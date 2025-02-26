@@ -7,7 +7,9 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
+import { Source } from '../types/language-model';
 import { LanguageModelUsage } from '../types/usage';
+import { ReasoningDetail } from './reasoning-detail';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -36,7 +38,16 @@ The generated text.
   /**
 The reasoning that was generated during the generation.
 */
+  // TODO v5: rename to `reasoningText`
   readonly reasoning: string | undefined;
+
+  // TODO v5: rename to `reasoning`
+  readonly reasoningDetails: Array<ReasoningDetail>;
+
+  /**
+The sources that were used to generate the text.
+*/
+  readonly sources: Source[];
 
   /**
 The tool calls that were made during the generation.
@@ -90,6 +101,11 @@ They contain a generated id.
 Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
+   */
+  readonly providerMetadata: ProviderMetadata | undefined;
+
+  /**
+@deprecated Use `providerMetadata` instead.
    */
   readonly experimental_providerMetadata: ProviderMetadata | undefined;
 

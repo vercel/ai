@@ -1,5 +1,84 @@
 # @ai-sdk/google-vertex
 
+## 2.1.18
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/anthropic@1.1.10
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/google@1.1.17
+  - @ai-sdk/provider-utils@2.1.10
+
+## 2.1.17
+
+### Patch Changes
+
+- Updated dependencies [1b2e2a0]
+  - @ai-sdk/google@1.1.16
+
+## 2.1.16
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/anthropic@1.1.9
+  - @ai-sdk/google@1.1.15
+  - @ai-sdk/provider-utils@2.1.9
+
+## 2.1.15
+
+### Patch Changes
+
+- Updated dependencies [08a3641]
+  - @ai-sdk/google@1.1.14
+
+## 2.1.14
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+  - @ai-sdk/anthropic@1.1.8
+  - @ai-sdk/google@1.1.13
+
+## 2.1.13
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+  - @ai-sdk/anthropic@1.1.7
+  - @ai-sdk/google@1.1.12
+
+## 2.1.12
+
+### Patch Changes
+
+- Updated dependencies [6eb7fc4]
+  - @ai-sdk/google@1.1.11
+
+## 2.1.11
+
+### Patch Changes
+
+- 4da908a: feat (provider/google-vertex): add new gemini models
+
+## 2.1.10
+
+### Patch Changes
+
+- Updated dependencies [e5567f7]
+  - @ai-sdk/google@1.1.10
+
+## 2.1.9
+
+### Patch Changes
+
+- Updated dependencies [b2573de]
+  - @ai-sdk/google@1.1.9
+
 ## 2.1.8
 
 ### Patch Changes

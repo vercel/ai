@@ -1,5 +1,46 @@
 # @ai-sdk/perplexity
 
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/provider-utils@2.1.10
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+
+## 1.0.0
+
+### Major Changes
+
+- 2e898b4: feat (provider/perplexity): rewrite provider and support sources
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+
+## 0.0.8
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+  - @ai-sdk/openai-compatible@0.1.9
+
+## 0.0.7
+
+### Patch Changes
+
+- 18713a5: feat (provider/perplexity): add support for return_images
+
 ## 0.0.6
 
 ### Patch Changes

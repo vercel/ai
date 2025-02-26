@@ -16,7 +16,7 @@ async function main() {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
     const result = streamText({
-      model: google('gemini-1.5-pro-latest'),
+      model: google('gemini-2.0-pro-exp-02-05'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',

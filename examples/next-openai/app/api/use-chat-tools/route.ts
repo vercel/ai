@@ -10,6 +10,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: openai('gpt-4o'),
+    // model: anthropic('claude-3-5-sonnet-latest'),
     messages,
     toolCallStreaming: true,
     maxSteps: 5, // multi-steps for server-side tools

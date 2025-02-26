@@ -250,6 +250,24 @@ export function convertToAnthropicMessagesPrompt({
                 break;
               }
 
+              case 'reasoning': {
+                anthropicContent.push({
+                  type: 'thinking',
+                  thinking: part.text,
+                  signature: part.signature!,
+                  cache_control: cacheControl,
+                });
+                break;
+              }
+
+              case 'redacted-reasoning': {
+                anthropicContent.push({
+                  type: 'redacted_thinking',
+                  data: part.data,
+                  cache_control: cacheControl,
+                });
+                break;
+              }
               case 'tool-call': {
                 anthropicContent.push({
                   type: 'tool_use',
@@ -259,6 +277,11 @@ export function convertToAnthropicMessagesPrompt({
                   cache_control: cacheControl,
                 });
                 break;
+              }
+
+              default: {
+                const _exhaustiveCheck: never = part;
+                throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
               }
             }
           }

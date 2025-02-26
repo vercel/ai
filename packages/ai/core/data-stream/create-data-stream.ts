@@ -37,6 +37,9 @@ export function createDataStream({
       writeMessageAnnotation(annotation) {
         safeEnqueue(formatDataStreamPart('message_annotations', [annotation]));
       },
+      writeSource(source) {
+        safeEnqueue(formatDataStreamPart('source', source));
+      },
       merge(streamArg) {
         ongoingStreamPromises.push(
           (async () => {

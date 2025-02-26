@@ -38,7 +38,7 @@ Navigate to the newly created directory:
 
 ### Install dependencies
 
-Install `ai` and `@ai-sdk/openai`, the AI package and AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
+Install `ai`, `@ai-sdk/react`, and `@ai-sdk/openai`, the AI package, AI SDK's React hooks, and AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -50,13 +50,13 @@ Install `ai` and `@ai-sdk/openai`, the AI package and AI SDK's [ OpenAI provider
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add ai @ai-sdk/openai zod" dark />
+      <Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/openai zod" dark />
+      <Snippet text="npm install ai @ai-sdk/react @ai-sdk/openai zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/openai zod" dark />
+      <Snippet text="yarn add ai @ai-sdk/react @ai-sdk/openai zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -125,7 +125,7 @@ Update your root page (`app/page.tsx`) with the following code to show a list of
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -240,7 +240,7 @@ To display the tool invocations in your UI, update your `app/page.tsx` file:
 ```tsx filename="app/page.tsx" highlight="12-16"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -287,7 +287,7 @@ Modify your `app/page.tsx` file to include the `maxSteps` option:
 ```tsx filename="app/page.tsx" highlight="7"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({

@@ -6,6 +6,7 @@ import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } 
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
+import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 
 const dummyResponseValues = {
   rawCall: { rawPrompt: 'prompt', rawSettings: {} },
@@ -571,7 +572,7 @@ describe('output = "object"', () => {
         prompt: 'prompt',
       });
 
-      assert.deepStrictEqual(result.experimental_providerMetadata, {
+      expect(result.providerMetadata).toStrictEqual({
         anthropic: {
           cacheCreationInputTokens: 10,
           cacheReadInputTokens: 20,
@@ -632,6 +633,87 @@ describe('output = "object"', () => {
       });
 
       expect(result.object).toStrictEqual({ content: 'headers test' });
+    });
+  });
+
+  describe('options.repairText', () => {
+    it('should be able to repair a JSONParseError', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({}) => {
+            return {
+              ...dummyResponseValues,
+              text: `{ "content": "provider metadata test" `,
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        experimental_repairText: async ({ text, error }) => {
+          expect(error).toBeInstanceOf(JSONParseError);
+          expect(text).toStrictEqual('{ "content": "provider metadata test" ');
+          return text + '}';
+        },
+      });
+
+      expect(result.object).toStrictEqual({
+        content: 'provider metadata test',
+      });
+    });
+
+    it('should be able to repair a TypeValidationError', async () => {
+      const result = await generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({}) => {
+            return {
+              ...dummyResponseValues,
+              text: `{ "content-a": "provider metadata test" }`,
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        experimental_repairText: async ({ text, error }) => {
+          expect(error).toBeInstanceOf(TypeValidationError);
+          expect(text).toStrictEqual(
+            '{ "content-a": "provider metadata test" }',
+          );
+          return `{ "content": "provider metadata test" }`;
+        },
+      });
+
+      expect(result.object).toStrictEqual({
+        content: 'provider metadata test',
+      });
+    });
+
+    it('should be able to handle repair that returns null', async () => {
+      const result = generateObject({
+        model: new MockLanguageModelV1({
+          doGenerate: async ({}) => {
+            return {
+              ...dummyResponseValues,
+              text: `{ "content-a": "provider metadata test" }`,
+            };
+          },
+        }),
+        schema: z.object({ content: z.string() }),
+        mode: 'json',
+        prompt: 'prompt',
+        experimental_repairText: async ({ text, error }) => {
+          expect(error).toBeInstanceOf(TypeValidationError);
+          expect(text).toStrictEqual(
+            '{ "content-a": "provider metadata test" }',
+          );
+          return null;
+        },
+      });
+
+      expect(result).rejects.toThrow(
+        'No object generated: response did not match schema.',
+      );
     });
   });
 
@@ -810,6 +892,29 @@ describe('output = "object"', () => {
           schema: z.object({ content: z.string() }),
           mode: 'json',
           prompt: 'prompt',
+        });
+
+        fail('must throw error');
+      } catch (error) {
+        verifyNoObjectGeneratedError(error, {
+          message: 'No object generated: could not parse the response.',
+        });
+      }
+    });
+
+    it('should throw NoObjectGeneratedError when parsing fails in json model also with repairResponse', async () => {
+      try {
+        await generateObject({
+          model: new MockLanguageModelV1({
+            doGenerate: async ({}) => ({
+              ...dummyResponseValues,
+              text: '{ broken json',
+            }),
+          }),
+          schema: z.object({ content: z.string() }),
+          mode: 'json',
+          prompt: 'prompt',
+          experimental_repairText: async ({ text }) => text + '{',
         });
 
         fail('must throw error');
@@ -1281,5 +1386,43 @@ describe('options.messages', () => {
     });
 
     expect(result.object).toStrictEqual({ content: 'Hello, world!' });
+  });
+
+  it('should support models that use "this" context in supportsUrl', async () => {
+    let supportsUrlCalled = false;
+    class MockLanguageModelWithImageSupport extends MockLanguageModelV1 {
+      readonly supportsImageUrls = false;
+
+      constructor() {
+        super({
+          supportsUrl(url: URL) {
+            supportsUrlCalled = true;
+            // Reference 'this' to verify context
+            return this.modelId === 'mock-model-id';
+          },
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            text: `{ "content": "Hello, world!" }`,
+          }),
+        });
+      }
+    }
+
+    const model = new MockLanguageModelWithImageSupport();
+
+    const result = await generateObject({
+      model,
+      schema: z.object({ content: z.string() }),
+      mode: 'json',
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'image', image: 'https://example.com/test.jpg' }],
+        },
+      ],
+    });
+
+    expect(result.object).toStrictEqual({ content: 'Hello, world!' });
+    expect(supportsUrlCalled).toBe(true);
   });
 });

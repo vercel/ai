@@ -31,7 +31,7 @@ Start with a basic chat implementation using the `useChat` hook:
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
@@ -169,7 +169,7 @@ Update your `page.tsx` file:
 ```tsx filename="app/page.tsx" highlight="4,16-39"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { Weather } from '@/components/weather';
 
 export default function Page() {
@@ -284,7 +284,7 @@ Finally, update your `page.tsx` file to include the new Stock component:
 ```tsx
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { Weather } from '@/components/weather';
 import { Stock } from '@/components/stock';
 

@@ -66,6 +66,10 @@ const { text } = await generateText({
   To use o3-mini, you must be using @ai-sdk/openai version 1.1.9 or greater.
 </Note>
 
+<Note>
+  System messages are automatically converted to OpenAI developer messages.
+</Note>
+
 ### Refining Reasoning Effort
 
 You can control the amount of reasoning effort expended by o3-mini through the `reasoningEffort` parameter.
@@ -177,7 +181,7 @@ Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:
 ```tsx filename="app/page.tsx"
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, handleInputChange, handleSubmit, error } = useChat();

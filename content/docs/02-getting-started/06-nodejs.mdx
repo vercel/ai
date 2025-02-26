@@ -53,7 +53,7 @@ The `ai` and `@ai-sdk/openai` packages contain the AI SDK and the [ AI SDK OpenA
 
 ### Configure OpenAI API key
 
-Create a `.env` file in your project root and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
+Create a `.env` file in your project's root directory and add your OpenAI API Key. This key is used to authenticate your application with the OpenAI service.
 
 <Snippet text="touch .env" />
 
@@ -117,7 +117,7 @@ main().catch(console.error);
 
 Let's take a look at what is happening in this code:
 
-1. Set up a readline interface for taking input from the terminal, enabling interactive sessions directly from the command line.
+1. Set up a readline interface to take input from the terminal, enabling interactive sessions directly from the command line.
 2. Initialize an array called `messages` to store the history of your conversation. This history allows the model to maintain context in ongoing dialogues.
 3. In the `main` function:
 
@@ -139,7 +139,7 @@ You should see a prompt in your terminal. Test it out by entering a message and 
 
 While large language models (LLMs) have incredible generation capabilities, they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather). This is where [tools](/docs/ai-sdk-core/tools-and-tool-calling) come in.
 
-Tools are actions that an LLM can invoke. The results of these actions can be reported back to the LLM to be considered in the next response.
+Tools are actions that an LLM can invoke. The results of these actions can be reported back to the LLM to be considered for the next response.
 
 For example, if a user asks about the current weather, without tools, the model would only be able to provide general information based on its training data. But with a weather tool, it can fetch and provide up-to-date, location-specific weather information.
 

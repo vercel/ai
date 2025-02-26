@@ -13,7 +13,7 @@ async function main() {
   });
 
   console.log(result.text);
-  console.log(result.experimental_providerMetadata?.google);
+  console.log(result.providerMetadata?.google);
   console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);

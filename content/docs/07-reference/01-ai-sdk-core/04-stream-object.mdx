@@ -253,7 +253,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ToolCallPart>',
+              type: 'string | Array<TextPart | ReasoningPart | RedactedReasoningPart | ToolCallPart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -268,6 +268,40 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                       name: 'text',
                       type: 'string',
                       description: 'The text content of the message part.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning'",
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The reasoning text.',
+                    },
+                    {
+                      name: 'signature',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The signature for the reasoning.',
+                    },
+                  ],
+                },
+                {
+                  type: 'RedactedReasoningPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'redacted-reasoning'",
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      description: 'The redacted data.',
                     },
                   ],
                 },
@@ -481,6 +515,25 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
         'Provider-specific options. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
     },
     {
+      name: 'onError',
+      type: '(event: OnErrorResult) => Promise<void> |void',
+      isOptional: true,
+      description:
+        'Callback that is called when an error occurs during streaming. You can use it to log errors.',
+      properties: [
+        {
+          type: 'OnErrorResult',
+          parameters: [
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that occurred.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'onFinish',
       type: '(result: OnFinishResult) => void',
       isOptional: true,
@@ -519,7 +572,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
               ],
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               description:
                 'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
@@ -619,7 +672,7 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
       ],
     },
     {
-      name: 'experimental_providerMetadata',
+      name: 'providerMetadata',
       type: 'Promise<Record<string,Record<string,JSONValue>> | undefined>',
       description:
         'Optional metadata from the provider. Resolved whe the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',

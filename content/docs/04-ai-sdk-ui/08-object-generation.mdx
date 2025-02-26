@@ -43,7 +43,7 @@ Please note the code for handling `undefined` values in the JSX.
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { experimental_useObject as useObject } from 'ai/react';
+import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { notificationSchema } from './api/notifications/schema';
 
 export default function Page() {
@@ -110,7 +110,7 @@ purposes:
 ```tsx filename='app/page.tsx' highlight="6,13-20,24"
 'use client';
 
-import { useObject } from 'ai/react';
+import { useObject } from '@ai-sdk/react';
 
 export default function Page() {
   const { isLoading, object, submit } = useObject({
@@ -147,7 +147,7 @@ The `stop` function can be used to stop the object generation process. This can 
 ```tsx filename='app/page.tsx' highlight="6,14-16"
 'use client';
 
-import { useObject } from 'ai/react';
+import { useObject } from '@ai-sdk/react';
 
 export default function Page() {
   const { isLoading, stop, object, submit } = useObject({
@@ -192,7 +192,7 @@ It can be used to display an error message, or to disable the submit button:
 ```tsx file="app/page.tsx" highlight="6,13"
 'use client';
 
-import { useObject } from 'ai/react';
+import { useObject } from '@ai-sdk/react';
 
 export default function Page() {
   const { error, object, submit } = useObject({
@@ -231,7 +231,7 @@ These callbacks can be used to trigger additional actions, such as logging, anal
 ```tsx filename='app/page.tsx' highlight="10-20"
 'use client';
 
-import { experimental_useObject as useObject } from 'ai/react';
+import { experimental_useObject as useObject } from '@ai-sdk/react';
 import { notificationSchema } from './api/notifications/schema';
 
 export default function Page() {

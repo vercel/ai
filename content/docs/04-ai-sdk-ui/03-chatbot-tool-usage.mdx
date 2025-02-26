@@ -22,12 +22,12 @@ The flow is as follows:
 1. Client-side tools that should be automatically executed are handled with the `onToolCall` callback.
    You can return the tool result from the callback.
 1. Client-side tool that require user interactions can be displayed in the UI.
-   The tool calls and results are available in the `toolInvocations` property of the last assistant message.
+   The tool calls and results are available as tool invocation parts in the `parts` property of the last assistant message.
 1. When the user interaction is done, `addToolResult` can be used to add the tool result to the chat.
 1. When there are tool calls in the last assistant message and all tool results are available, the client sends the updated messages back to the server.
    This triggers another iteration of this flow.
 
-The tool call and tool executions are integrated into the assistant message as `toolInvocations`.
+The tool call and tool executions are integrated into the assistant message as tool invocation parts.
 A tool invocation is at first a tool call, and then it becomes a tool result when the tool is executed.
 The tool result contains all information about the tool call as well as the result of the tool execution.
 
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o'),
     messages,
     tools: {
       // server-side tool with execute function:
@@ -98,7 +98,8 @@ export async function POST(req: Request) {
 ### Client-side page
 
 The client-side page uses the `useChat` hook to create a chatbot application with real-time message streaming.
-Tool invocations are displayed in the chat UI.
+Tool invocations are displayed in the chat UI as tool invocation parts.
+Please make sure to render the messages using the `parts` property of the message.
 
 There are three things worth mentioning:
 
@@ -117,7 +118,7 @@ There are three things worth mentioning:
 'use client';
 
 import { ToolInvocation } from 'ai';
-import { Message, useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
@@ -140,43 +141,104 @@ export default function Chat() {
 
   return (
     <>
-      {messages?.map((m: Message) => (
-        <div key={m.id}>
-          <strong>{m.role}:</strong>
-          {m.content}
-          {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
-            const toolCallId = toolInvocation.toolCallId;
-            const addResult = (result: string) =>
-              addToolResult({ toolCallId, result });
+      {messages?.map(message => (
+        <div key={message.id}>
+          <strong>{`${message.role}: `}</strong>
+          {message.parts.map(part => {
+            switch (part.type) {
+              // render text parts as simple text:
+              case 'text':
+                return part.text;
 
-            // render confirmation tool (client-side tool with user interaction)
-            if (toolInvocation.toolName === 'askForConfirmation') {
-              return (
-                <div key={toolCallId}>
-                  {toolInvocation.args.message}
-                  <div>
-                    {'result' in toolInvocation ? (
-                      <b>{toolInvocation.result}</b>
-                    ) : (
-                      <>
-                        <button onClick={() => addResult('Yes')}>Yes</button>
-                        <button onClick={() => addResult('No')}>No</button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
+              // for tool invocations, distinguish between the tools and the state:
+              case 'tool-invocation': {
+                const callId = part.toolInvocation.toolCallId;
+
+                switch (part.toolInvocation.toolName) {
+                  case 'askForConfirmation': {
+                    switch (part.toolInvocation.state) {
+                      case 'call':
+                        return (
+                          <div key={callId}>
+                            {part.toolInvocation.args.message}
+                            <div>
+                              <button
+                                onClick={() =>
+                                  addToolResult({
+                                    toolCallId: callId,
+                                    result: 'Yes, confirmed.',
+                                  })
+                                }
+                              >
+                                Yes
+                              </button>
+                              <button
+                                onClick={() =>
+                                  addToolResult({
+                                    toolCallId: callId,
+                                    result: 'No, denied',
+                                  })
+                                }
+                              >
+                                No
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      case 'result':
+                        return (
+                          <div key={callId}>
+                            Location access allowed:{' '}
+                            {part.toolInvocation.result}
+                          </div>
+                        );
+                    }
+                    break;
+                  }
+
+                  case 'getLocation': {
+                    switch (part.toolInvocation.state) {
+                      case 'call':
+                        return <div key={callId}>Getting location...</div>;
+                      case 'result':
+                        return (
+                          <div key={callId}>
+                            Location: {part.toolInvocation.result}
+                          </div>
+                        );
+                    }
+                    break;
+                  }
+
+                  case 'getWeatherInformation': {
+                    switch (part.toolInvocation.state) {
+                      // example of pre-rendering streaming tool calls:
+                      case 'partial-call':
+                        return (
+                          <pre key={callId}>
+                            {JSON.stringify(part.toolInvocation, null, 2)}
+                          </pre>
+                        );
+                      case 'call':
+                        return (
+                          <div key={callId}>
+                            Getting weather information for{' '}
+                            {part.toolInvocation.args.city}...
+                          </div>
+                        );
+                      case 'result':
+                        return (
+                          <div key={callId}>
+                            Weather in {part.toolInvocation.args.city}:{' '}
+                            {part.toolInvocation.result}
+                          </div>
+                        );
+                    }
+                    break;
+                  }
+                }
+              }
             }
-
-            // other tools:
-            return 'result' in toolInvocation ? (
-              <div key={toolCallId}>
-                Tool call {`${toolInvocation.toolName}: `}
-                {toolInvocation.result}
-              </div>
-            ) : (
-              <div key={toolCallId}>Calling {toolInvocation.toolName}...</div>
-            );
           })}
           <br />
         </div>
@@ -210,7 +272,7 @@ export async function POST(req: Request) {
 
 When the flag is enabled, partial tool calls will be streamed as part of the data stream.
 They are available through the `useChat` hook.
-The `toolInvocations` property of assistant messages will also contain partial tool calls.
+The tool invocation parts of assistant messages will also contain partial tool calls.
 You can use the `state` property of the tool invocation to render the correct UI.
 
 ```tsx filename='app/page.tsx' highlight="9,10"
@@ -218,16 +280,18 @@ export default function Chat() {
   // ...
   return (
     <>
-      {messages?.map((m: Message) => (
-        <div key={m.id}>
-          {m.toolInvocations?.map((toolInvocation: ToolInvocation) => {
-            switch (toolInvocation.state) {
-              case 'partial-call':
-                return <>render partial tool call</>;
-              case 'call':
-                return <>render full tool call</>;
-              case 'result':
-                return <>render tool result</>;
+      {messages?.map(message => (
+        <div key={message.id}>
+          {message.parts.map(part => {
+            if (part.type === 'tool-invocation') {
+              switch (part.toolInvocation.state) {
+                case 'partial-call':
+                  return <>render partial tool call</>;
+                case 'call':
+                  return <>render full tool call</>;
+                case 'result':
+                  return <>render tool result</>;
+              }
             }
           })}
         </div>
@@ -251,7 +315,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4-turbo'),
+    model: openai('gpt-4o'),
     messages,
     tools: {
       getWeatherInformation: {

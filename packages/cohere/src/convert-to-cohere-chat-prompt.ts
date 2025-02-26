@@ -47,6 +47,10 @@ export function convertToCohereChatPrompt(
               text += part.text;
               break;
             }
+            case 'redacted-reasoning':
+            case 'reasoning': {
+              break; // ignored
+            }
             case 'tool-call': {
               toolCalls.push({
                 id: part.toolCallId,

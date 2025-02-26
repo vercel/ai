@@ -1,10 +1,10 @@
 import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
+import { mockId } from '@ai-sdk/provider-utils/test';
 import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
 import { ToolExecutionError } from '../../errors';
-import { mockId } from '../test/mock-id';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
@@ -17,6 +17,46 @@ const dummyResponseValues = {
   finishReason: 'stop' as const,
   usage: { promptTokens: 10, completionTokens: 20 },
 };
+
+const modelWithSources = new MockLanguageModelV1({
+  doGenerate: async () => ({
+    ...dummyResponseValues,
+    sources: [
+      {
+        sourceType: 'url' as const,
+        id: '123',
+        url: 'https://example.com',
+        title: 'Example',
+        providerMetadata: { provider: { custom: 'value' } },
+      },
+      {
+        sourceType: 'url' as const,
+        id: '456',
+        url: 'https://example.com/2',
+        title: 'Example 2',
+        providerMetadata: { provider: { custom: 'value2' } },
+      },
+    ],
+  }),
+});
+
+const modelWithReasoning = new MockLanguageModelV1({
+  doGenerate: async () => ({
+    ...dummyResponseValues,
+    reasoning: [
+      {
+        type: 'text',
+        text: 'I will open the conversation with witty banter.',
+        signature: 'signature',
+      },
+      {
+        type: 'redacted',
+        data: 'redacted-reasoning-data',
+      },
+    ],
+    text: 'Hello, world!',
+  }),
+});
 
 describe('result.text', () => {
   it('should generate text', async () => {
@@ -51,15 +91,9 @@ describe('result.text', () => {
 });
 
 describe('result.reasoning', () => {
-  it('should contain reasoning from model response', async () => {
+  it('should contain reasoning string from model response', async () => {
     const result = await generateText({
-      model: new MockLanguageModelV1({
-        doGenerate: async () => ({
-          ...dummyResponseValues,
-          text: 'Hello, world!',
-          reasoning: 'I will open the conversation with witty banter.',
-        }),
-      }),
+      model: modelWithReasoning,
       prompt: 'prompt',
     });
 
@@ -69,20 +103,39 @@ describe('result.reasoning', () => {
   });
 });
 
+describe('result.sources', () => {
+  it('should contain sources', async () => {
+    const result = await generateText({
+      model: modelWithSources,
+      prompt: 'prompt',
+    });
+
+    expect(result.sources).toMatchSnapshot();
+  });
+});
+
 describe('result.steps', () => {
   it('should add the reasoning from the model response to the step result', async () => {
     const result = await generateText({
-      model: new MockLanguageModelV1({
-        doGenerate: async () => ({
-          ...dummyResponseValues,
-          text: 'Hello, world!',
-          reasoning: 'I will open the conversation with witty banter.',
-        }),
-      }),
+      model: modelWithReasoning,
       prompt: 'prompt',
       experimental_generateMessageId: mockId({
         prefix: 'msg',
       }),
+      _internal: {
+        generateId: mockId({ prefix: 'id' }),
+        currentDate: () => new Date(0),
+      },
+    });
+
+    expect(result.steps).toMatchSnapshot();
+  });
+
+  it('should contain sources', async () => {
+    const result = await generateText({
+      model: modelWithSources,
+      prompt: 'prompt',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
       _internal: {
         generateId: mockId({ prefix: 'id' }),
         currentDate: () => new Date(0),
@@ -168,7 +221,7 @@ describe('result.toolCalls', () => {
       assertType<string>(result.toolCalls[0].args.value);
     }
 
-    assert.deepStrictEqual(result.toolCalls, [
+    expect(result.toolCalls).toStrictEqual([
       {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -270,7 +323,7 @@ describe('result.providerMetadata', () => {
       prompt: 'test-input',
     });
 
-    assert.deepStrictEqual(result.experimental_providerMetadata, {
+    expect(result.providerMetadata).toStrictEqual({
       anthropic: {
         cacheCreationInputTokens: 10,
         cacheReadInputTokens: 20,
@@ -331,6 +384,16 @@ describe('result.response.messages', () => {
           },
         },
       },
+      prompt: 'test-input',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
+    });
+
+    expect(result.response.messages).toMatchSnapshot();
+  });
+
+  it('should contain reasoning', async () => {
+    const result = await generateText({
+      model: modelWithReasoning,
       prompt: 'test-input',
       experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
@@ -658,6 +721,15 @@ describe('options.maxSteps', () => {
                     timestamp: new Date(10000),
                     modelId: 'test-response-model-id',
                   },
+                  sources: [
+                    {
+                      sourceType: 'url' as const,
+                      id: '123',
+                      url: 'https://example.com',
+                      title: 'Example',
+                      providerMetadata: { provider: { custom: 'value' } },
+                    },
+                  ],
                   usage: { completionTokens: 5, promptTokens: 30 },
                   // test handling of custom response headers:
                   rawResponse: {
@@ -702,6 +774,22 @@ describe('options.maxSteps', () => {
                   // set up trailing whitespace for next step:
                   text: 'immediatefollow  ',
                   finishReason: 'length',
+                  sources: [
+                    {
+                      sourceType: 'url' as const,
+                      id: '456',
+                      url: 'https://example.com/2',
+                      title: 'Example 2',
+                      providerMetadata: { provider: { custom: 'value2' } },
+                    },
+                    {
+                      sourceType: 'url' as const,
+                      id: '789',
+                      url: 'https://example.com/3',
+                      title: 'Example 3',
+                      providerMetadata: { provider: { custom: 'value3' } },
+                    },
+                  ],
                   response: {
                     id: 'test-id-3-from-model',
                     timestamp: new Date(20000),
@@ -821,6 +909,10 @@ describe('options.maxSteps', () => {
 
     it('onStepFinish should be called for each step', () => {
       expect(onStepFinishResults).toMatchSnapshot();
+    });
+
+    it('result.sources should contain sources from all steps', () => {
+      expect(result.sources).toMatchSnapshot();
     });
   });
 });
@@ -1222,6 +1314,42 @@ describe('options.messages', () => {
     });
 
     expect(result.text).toStrictEqual('Hello, world!');
+  });
+
+  it('should support models that use "this" context in supportsUrl', async () => {
+    let supportsUrlCalled = false;
+    class MockLanguageModelWithImageSupport extends MockLanguageModelV1 {
+      readonly supportsImageUrls = false;
+
+      constructor() {
+        super({
+          supportsUrl(url: URL) {
+            supportsUrlCalled = true;
+            // Reference 'this' to verify context
+            return this.modelId === 'mock-model-id';
+          },
+          doGenerate: async () => ({
+            ...dummyResponseValues,
+            text: 'Hello, world!',
+          }),
+        });
+      }
+    }
+
+    const model = new MockLanguageModelWithImageSupport();
+
+    const result = await generateText({
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'image', image: 'https://example.com/test.jpg' }],
+        },
+      ],
+    });
+
+    expect(result.text).toStrictEqual('Hello, world!');
+    expect(supportsUrlCalled).toBe(true);
   });
 });
 

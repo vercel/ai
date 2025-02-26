@@ -21,12 +21,30 @@ export interface AnthropicUserMessage {
 
 export interface AnthropicAssistantMessage {
   role: 'assistant';
-  content: Array<AnthropicTextContent | AnthropicToolCallContent>;
+  content: Array<
+    | AnthropicTextContent
+    | AnthropicThinkingContent
+    | AnthropicRedactedThinkingContent
+    | AnthropicToolCallContent
+  >;
 }
 
 export interface AnthropicTextContent {
   type: 'text';
   text: string;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicThinkingContent {
+  type: 'thinking';
+  thinking: string;
+  signature: string;
+  cache_control: AnthropicCacheControl | undefined;
+}
+
+export interface AnthropicRedactedThinkingContent {
+  type: 'redacted_thinking';
+  data: string;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -74,7 +92,7 @@ export type AnthropicTool =
     }
   | {
       name: string;
-      type: 'computer_20241022';
+      type: 'computer_20250124' | 'computer_20241022';
       display_width_px: number;
       display_height_px: number;
       display_number: number;

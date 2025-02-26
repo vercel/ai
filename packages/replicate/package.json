@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/replicate",
-  "version": "0.1.7",
+  "version": "0.1.11",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,8 +30,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.7",
-    "@ai-sdk/provider-utils": "2.1.6"
+    "@ai-sdk/provider": "1.0.9",
+    "@ai-sdk/provider-utils": "2.1.10"
   },
   "devDependencies": {
     "@types/node": "^18",

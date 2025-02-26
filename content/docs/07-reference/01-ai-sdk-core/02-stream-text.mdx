@@ -14,7 +14,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
 const { textStream } = streamText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4o'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -157,7 +157,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ToolCallPart>',
+              type: 'string | Array<TextPart | ReasoningPart | RedactedReasoningPart | ToolCallPart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -172,6 +172,40 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'text',
                       type: 'string',
                       description: 'The text content of the message part.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning'",
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The reasoning text.',
+                    },
+                    {
+                      name: 'signature',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The signature for the reasoning.',
+                    },
+                  ],
+                },
+                {
+                  type: 'RedactedReasoningPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'redacted-reasoning'",
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      description: 'The redacted data.',
                     },
                   ],
                 },
@@ -624,6 +658,21 @@ To see `streamText` in action, check out [these examples](#examples).
                   parameters: [
                     {
                       name: 'type',
+                      type: "'source'",
+                      description: 'The type to identify the object as source.',
+                    },
+                    {
+                      name: 'source',
+                      type: 'Source',
+                      description: 'The source.',
+                    },
+                  ],
+                },
+                {
+                  type: 'TextStreamPart',
+                  parameters: [
+                    {
+                      name: 'type',
                       type: "'tool-call'",
                       description:
                         'The type to identify the object as tool call.',
@@ -738,6 +787,25 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'onError',
+      type: '(event: OnErrorResult) => Promise<void> |void',
+      isOptional: true,
+      description:
+        'Callback that is called when an error occurs during streaming. You can use it to log errors.',
+      properties: [
+        {
+          type: 'OnErrorResult',
+          parameters: [
+            {
+              name: 'error',
+              type: 'unknown',
+              description: 'The error that occurred.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'experimental_output',
       type: 'Output',
       isOptional: true,
@@ -827,6 +895,54 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The full text that has been generated.',
             },
             {
+              name: 'reasoning',
+              type: 'string | undefined',
+              description:
+                'The reasoning text of the model (only available for some models).',
+            },
+            {
+              name: 'sources',
+              type: 'Array<Source>',
+              description:
+                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              properties: [
+                {
+                  type: 'Source',
+                  parameters: [
+                    {
+                      name: 'sourceType',
+                      type: "'url'",
+                      description:
+                        'A URL source. This is return by web search RAG models.',
+                    },
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description: 'The ID of the source.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description: 'The URL of the source.',
+                    },
+                    {
+                      name: 'title',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The title of the source.',
+                    },
+                    {
+                      name: 'providerMetadata',
+                      type: 'LanguageModelV1ProviderMetadata',
+                      isOptional: true,
+                      description:
+                        'Additional provider metadata for the source.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'toolCalls',
               type: 'ToolCall[]',
               description: 'The tool calls that have been executed.',
@@ -886,7 +1002,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'True when there will be a continuation step with a continuation text.',
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
               description:
@@ -940,7 +1056,7 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               description:
                 'Optional metadata from the provider. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
@@ -949,6 +1065,99 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'text',
               type: 'string',
               description: 'The full text that has been generated.',
+            },
+            {
+              name: 'reasoning',
+              type: 'string | undefined',
+              description:
+                'The reasoning text of the model (only available for some models).',
+            },
+            {
+              name: 'reasoningDetails',
+              type: 'Array<ReasoningDetail>',
+              description:
+                'The reasoning details of the model (only available for some models).',
+              properties: [
+                {
+                  type: 'ReasoningDetail',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'text'",
+                      description: 'The type of the reasoning detail.',
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The text content (only for type "text").',
+                    },
+                    {
+                      name: 'signature',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'Optional signature (only for type "text").',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningDetail',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'redacted'",
+                      description: 'The type of the reasoning detail.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      description:
+                        'The redacted data content (only for type "redacted").',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'sources',
+              type: 'Array<Source>',
+              description:
+                'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps.',
+              properties: [
+                {
+                  type: 'Source',
+                  parameters: [
+                    {
+                      name: 'sourceType',
+                      type: "'url'",
+                      description:
+                        'A URL source. This is return by web search RAG models.',
+                    },
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description: 'The ID of the source.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description: 'The URL of the source.',
+                    },
+                    {
+                      name: 'title',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The title of the source.',
+                    },
+                    {
+                      name: 'providerMetadata',
+                      type: 'LanguageModelV1ProviderMetadata',
+                      isOptional: true,
+                      description:
+                        'Additional provider metadata for the source.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'toolCalls',
@@ -1061,7 +1270,7 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
-      name: 'experimental_providerMetadata',
+      name: 'providerMetadata',
       type: 'Promise<Record<string,Record<string,JSONValue>> | undefined>',
       description:
         'Optional metadata from the provider. Resolved whe the response is finished. The outer key is the provider name. The inner values are the metadata. Details depend on the provider.',
@@ -1077,6 +1286,92 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'Promise<string | undefined>',
       description:
         'The reasoning text of the model (only available for some models). Resolved when the response is finished.',
+    },
+    {
+      name: 'reasoningDetails',
+      type: 'Promise<Array<ReasoningDetail>>',
+      description:
+        'The reasoning details of the model (only available for some models). Resolved when the response is finished.',
+      properties: [
+        {
+          type: 'ReasoningDetail',
+          parameters: [
+            {
+              name: 'type',
+              type: "'text'",
+              description: 'The type of the reasoning detail.',
+            },
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The text content (only for type "text").',
+            },
+            {
+              name: 'signature',
+              type: 'string',
+              isOptional: true,
+              description: 'Optional signature (only for type "text").',
+            },
+          ],
+        },
+        {
+          type: 'ReasoningDetail',
+          parameters: [
+            {
+              name: 'type',
+              type: "'redacted'",
+              description: 'The type of the reasoning detail.',
+            },
+            {
+              name: 'data',
+              type: 'string',
+              description:
+                'The redacted data content (only for type "redacted").',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'sources',
+      type: 'Promise<Array<Source>>',
+      description:
+        'Sources that have been used as input to generate the response. For multi-step generation, the sources are accumulated from all steps. Resolved when the response is finished.',
+      properties: [
+        {
+          type: 'Source',
+          parameters: [
+            {
+              name: 'sourceType',
+              type: "'url'",
+              description:
+                'A URL source. This is return by web search RAG models.',
+            },
+            {
+              name: 'id',
+              type: 'string',
+              description: 'The ID of the source.',
+            },
+            {
+              name: 'url',
+              type: 'string',
+              description: 'The URL of the source.',
+            },
+            {
+              name: 'title',
+              type: 'string',
+              isOptional: true,
+              description: 'The title of the source.',
+            },
+            {
+              name: 'providerMetadata',
+              type: 'LanguageModelV1ProviderMetadata',
+              isOptional: true,
+              description: 'Additional provider metadata for the source.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'toolCalls',
@@ -1183,6 +1478,47 @@ To see `streamText` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'The reasoning text of the model (only available for some models).',
+            },
+            {
+              name: 'sources',
+              type: 'Array<Source>',
+              description: 'Sources that have been used as input.',
+              properties: [
+                {
+                  type: 'Source',
+                  parameters: [
+                    {
+                      name: 'sourceType',
+                      type: "'url'",
+                      description:
+                        'A URL source. This is return by web search RAG models.',
+                    },
+                    {
+                      name: 'id',
+                      type: 'string',
+                      description: 'The ID of the source.',
+                    },
+                    {
+                      name: 'url',
+                      type: 'string',
+                      description: 'The URL of the source.',
+                    },
+                    {
+                      name: 'title',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The title of the source.',
+                    },
+                    {
+                      name: 'providerMetadata',
+                      type: 'LanguageModelV1ProviderMetadata',
+                      isOptional: true,
+                      description:
+                        'Additional provider metadata for the source.',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'toolCalls',
@@ -1303,7 +1639,7 @@ To see `streamText` in action, check out [these examples](#examples).
                 'True when there will be a continuation step with a continuation text.',
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
               description:
@@ -1317,7 +1653,7 @@ To see `streamText` in action, check out [these examples](#examples).
       name: 'textStream',
       type: 'AsyncIterable<string> & ReadableStream<string>',
       description:
-        'A text stream that returns only the generated text deltas. You can use it as either an AsyncIterable or a ReadableStream. When an error occurs, the stream will throw the error.',
+        'A text stream that returns only the generated text deltas. You can use it as either an AsyncIterable or a ReadableStream. Errors are suppressed to prevent server crashes. Use the onError callback to log errors.',
     },
     {
       name: 'fullStream',
@@ -1352,6 +1688,53 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'textDelta',
               type: 'string',
               description: 'The reasoning text delta.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'reasoning-signature'",
+              description:
+                'The signature for the previous reasoning chunks. Send by some providers.',
+            },
+            {
+              name: 'signature',
+              type: 'string',
+              description: 'The signature.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'redacted-reasoning'",
+              description:
+                'The type to identify the object as redacted reasoning.',
+            },
+            {
+              name: 'data',
+              type: 'string',
+              description: 'The redacted data.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'source'",
+              description: 'The type to identify the object as source.',
+            },
+            {
+              name: 'source',
+              type: 'Source',
+              description: 'The source.',
             },
           ],
         },
@@ -1624,7 +2007,7 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The reason the model finished generating the text.',
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
               description:
@@ -1680,7 +2063,7 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
-              name: 'experimental_providerMetadata',
+              name: 'providerMetadata',
               type: 'Record<string,Record<string,JSONValue>> | undefined',
               isOptional: true,
               description:
@@ -1756,6 +2139,12 @@ To see `streamText` in action, check out [these examples](#examples).
         'A stream of partial outputs. It uses the `experimental_output` specification.',
     },
     {
+      name: 'consumeStream',
+      type: '() => Promise<void>',
+      description:
+        'Consumes the stream without processing the parts. This is useful to force the stream to finish.',
+    },
+    {
       name: 'pipeDataStreamToResponse',
       type: '(response: ServerResponse, options: PipeDataStreamToResponseOptions } => void',
       description:
@@ -1808,6 +2197,13 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Whether to send the reasoning information in the stream. Defaults to false.',
+            },
+            {
+              name: 'sendSources',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the sources information in the stream. Defaults to false.',
             },
           ],
         },
@@ -1879,6 +2275,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the reasoning information in the stream. Defaults to false.',
             },
+            {
+              name: 'sendSources',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the sources information in the stream. Defaults to false.',
+            },
           ],
         },
       ],
@@ -1937,6 +2340,13 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the reasoning information in the stream. Defaults to false.',
             },
+            {
+              name: 'sendSources',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the sources information in the stream. Defaults to false.',
+            },
           ],
         },
       ],
@@ -1974,12 +2384,12 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'mergeIntoDataStream',
-      type: '(dataStream: DataStreamWriter, options?: { sendUsage?: boolean, sendReasoning?: boolean }) => void',
+      type: '(dataStream: DataStreamWriter, options?: DataStreamOptions) => void',
       description:
         'Merges the result as a data stream into another data stream.',
       properties: [
         {
-          type: 'MergeIntoDataStreamOptions',
+          type: 'DataStreamOptions',
           parameters: [
             {
               name: 'sendUsage',
@@ -1994,6 +2404,13 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Whether to send the reasoning information in the stream. Defaults to false.',
+            },
+            {
+              name: 'sendSources',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Whether to send the sources information in the stream. Defaults to false.',
             },
           ],
         },

@@ -1,25 +1,41 @@
 import {
+  BEDROCK_CACHE_POINT,
+  BedrockAssistantMessage,
+  BedrockCachePoint,
+  BedrockDocumentFormat,
+  BedrockImageFormat,
+  BedrockMessages,
+  BedrockSystemMessages,
+  BedrockUserMessage,
+} from './bedrock-api-types';
+import {
+  JSONObject,
   LanguageModelV1Message,
   LanguageModelV1Prompt,
+  LanguageModelV1ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { createIdGenerator } from '@ai-sdk/provider-utils';
-import { DocumentFormat, ImageFormat } from '@aws-sdk/client-bedrock-runtime';
 import {
-  BedrockAssistantMessage,
-  BedrockMessagesPrompt,
-  BedrockUserMessage,
-} from './bedrock-chat-prompt';
+  convertUint8ArrayToBase64,
+  createIdGenerator,
+} from '@ai-sdk/provider-utils';
 
 const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
-export function convertToBedrockChatMessages(
-  prompt: LanguageModelV1Prompt,
-): BedrockMessagesPrompt {
+function getCachePoint(
+  providerMetadata: LanguageModelV1ProviderMetadata | undefined,
+): BedrockCachePoint | undefined {
+  return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
+}
+
+export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
+  system: BedrockSystemMessages;
+  messages: BedrockMessages;
+} {
   const blocks = groupIntoBlocks(prompt);
 
-  let system: string | undefined = undefined;
-  const messages: BedrockMessagesPrompt['messages'] = [];
+  let system: BedrockSystemMessages = [];
+  const messages: BedrockMessages = [];
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i];
@@ -35,7 +51,12 @@ export function convertToBedrockChatMessages(
           });
         }
 
-        system = block.messages.map(({ content }) => content).join('\n');
+        for (const message of block.messages) {
+          system.push({ text: message.content });
+          if (getCachePoint(message.providerMetadata)) {
+            system.push(BEDROCK_CACHE_POINT);
+          }
+        }
         break;
       }
 
@@ -44,7 +65,7 @@ export function convertToBedrockChatMessages(
         const bedrockContent: BedrockUserMessage['content'] = [];
 
         for (const message of block.messages) {
-          const { role, content } = message;
+          const { role, content, providerMetadata } = message;
           switch (role) {
             case 'user': {
               for (let j = 0; j < content.length; j++) {
@@ -67,9 +88,13 @@ export function convertToBedrockChatMessages(
 
                     bedrockContent.push({
                       image: {
-                        format: part.mimeType?.split('/')?.[1] as ImageFormat,
+                        format: part.mimeType?.split(
+                          '/',
+                        )?.[1] as BedrockImageFormat,
                         source: {
-                          bytes: part.image ?? (part.image as Uint8Array),
+                          bytes: convertUint8ArrayToBase64(
+                            part.image ?? (part.image as Uint8Array),
+                          ),
                         },
                       },
                     });
@@ -88,10 +113,10 @@ export function convertToBedrockChatMessages(
                       document: {
                         format: part.mimeType?.split(
                           '/',
-                        )?.[1] as DocumentFormat,
+                        )?.[1] as BedrockDocumentFormat,
                         name: generateFileId(),
                         source: {
-                          bytes: Buffer.from(part.data, 'base64'),
+                          bytes: part.data,
                         },
                       },
                     });
@@ -121,6 +146,10 @@ export function convertToBedrockChatMessages(
               const _exhaustiveCheck: never = role;
               throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
             }
+          }
+
+          if (getCachePoint(providerMetadata)) {
+            bedrockContent.push(BEDROCK_CACHE_POINT);
           }
         }
 
@@ -161,12 +190,15 @@ export function convertToBedrockChatMessages(
                   toolUse: {
                     toolUseId: part.toolCallId,
                     name: part.toolName,
-                    input: part.args as any,
+                    input: part.args as JSONObject,
                   },
                 });
                 break;
               }
             }
+          }
+          if (getCachePoint(message.providerMetadata)) {
+            bedrockContent.push(BEDROCK_CACHE_POINT);
           }
         }
 
@@ -182,10 +214,7 @@ export function convertToBedrockChatMessages(
     }
   }
 
-  return {
-    system,
-    messages,
-  };
+  return { system, messages };
 }
 
 type SystemBlock = {

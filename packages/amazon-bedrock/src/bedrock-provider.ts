@@ -1,17 +1,16 @@
 import {
   EmbeddingModelV1,
+  ImageModelV1,
   LanguageModelV1,
   ProviderV1,
 } from '@ai-sdk/provider';
 import {
+  FetchFunction,
   generateId,
   loadOptionalSetting,
   loadSetting,
+  withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  BedrockRuntimeClient,
-  BedrockRuntimeClientConfig,
-} from '@aws-sdk/client-bedrock-runtime';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import {
   BedrockChatModelId,
@@ -22,19 +21,52 @@ import {
   BedrockEmbeddingModelId,
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
+import { BedrockImageModel } from './bedrock-image-model';
+import {
+  BedrockImageModelId,
+  BedrockImageSettings,
+} from './bedrock-image-settings';
+import { createSigV4FetchFunction } from './bedrock-sigv4-fetch';
 
 export interface AmazonBedrockProviderSettings {
+  /**
+The AWS region to use for the Bedrock provider. Defaults to the value of the
+`AWS_REGION` environment variable.
+   */
   region?: string;
+
+  /**
+The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
+   */
   accessKeyId?: string;
+
+  /**
+The AWS secret access key to use for the Bedrock provider. Defaults to the value of the
+`AWS_SECRET_ACCESS_KEY` environment variable.
+   */
   secretAccessKey?: string;
+
+  /**
+The AWS session token to use for the Bedrock provider. Defaults to the value of the
+`AWS_SESSION_TOKEN` environment variable.
+   */
   sessionToken?: string;
 
   /**
-   * Complete Bedrock configuration for setting advanced authentication and
-   * other options. When this is provided, the region, accessKeyId, and
-   * secretAccessKey settings are ignored.
+Base URL for the Bedrock API calls.
    */
-  bedrockOptions?: BedrockRuntimeClientConfig;
+  baseURL?: string;
+
+  /**
+Custom headers to include in the requests.
+   */
+  headers?: Record<string, string>;
+
+  /**
+Custom fetch implementation. You can use it as a middleware to intercept requests,
+or to provide a custom fetch implementation for e.g. testing.
+*/
+  fetch?: FetchFunction;
 
   // for testing
   generateId?: () => string;
@@ -55,6 +87,16 @@ export interface AmazonBedrockProvider extends ProviderV1 {
     modelId: BedrockEmbeddingModelId,
     settings?: BedrockEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  image(
+    modelId: BedrockImageModelId,
+    settings?: BedrockImageSettings,
+  ): ImageModelV1;
+
+  imageModel(
+    modelId: BedrockImageModelId,
+    settings?: BedrockImageSettings,
+  ): ImageModelV1;
 }
 
 /**
@@ -63,42 +105,53 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const createBedrockRuntimeClient = () =>
-    new BedrockRuntimeClient(
-      options.bedrockOptions ?? {
-        region: loadSetting({
+  const sigv4Fetch = createSigV4FetchFunction(
+    () => ({
+      region: loadSetting({
+        settingValue: options.region,
+        settingName: 'region',
+        environmentVariableName: 'AWS_REGION',
+        description: 'AWS region',
+      }),
+      accessKeyId: loadSetting({
+        settingValue: options.accessKeyId,
+        settingName: 'accessKeyId',
+        environmentVariableName: 'AWS_ACCESS_KEY_ID',
+        description: 'AWS access key ID',
+      }),
+      secretAccessKey: loadSetting({
+        settingValue: options.secretAccessKey,
+        settingName: 'secretAccessKey',
+        environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+        description: 'AWS secret access key',
+      }),
+      sessionToken: loadOptionalSetting({
+        settingValue: options.sessionToken,
+        environmentVariableName: 'AWS_SESSION_TOKEN',
+      }),
+    }),
+    options.fetch,
+  );
+
+  const getBaseUrl = (): string =>
+    withoutTrailingSlash(
+      options.baseURL ??
+        `https://bedrock-runtime.${loadSetting({
           settingValue: options.region,
           settingName: 'region',
           environmentVariableName: 'AWS_REGION',
           description: 'AWS region',
-        }),
-        credentials: {
-          accessKeyId: loadSetting({
-            settingValue: options.accessKeyId,
-            settingName: 'accessKeyId',
-            environmentVariableName: 'AWS_ACCESS_KEY_ID',
-            description: 'AWS access key ID',
-          }),
-          secretAccessKey: loadSetting({
-            settingValue: options.secretAccessKey,
-            settingName: 'secretAccessKey',
-            environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-            description: 'AWS secret access key',
-          }),
-          sessionToken: loadOptionalSetting({
-            settingValue: options.sessionToken,
-            environmentVariableName: 'AWS_SESSION_TOKEN',
-          }),
-        },
-      },
-    );
+        })}.amazonaws.com`,
+    ) ?? `https://bedrock-runtime.us-east-1.amazonaws.com`;
 
   const createChatModel = (
     modelId: BedrockChatModelId,
     settings: BedrockChatSettings = {},
   ) =>
     new BedrockChatLanguageModel(modelId, settings, {
-      client: createBedrockRuntimeClient(),
+      baseUrl: getBaseUrl,
+      headers: options.headers ?? {},
+      fetch: sigv4Fetch,
       generateId,
     });
 
@@ -120,15 +173,29 @@ export function createAmazonBedrock(
     settings: BedrockEmbeddingSettings = {},
   ) =>
     new BedrockEmbeddingModel(modelId, settings, {
-      client: createBedrockRuntimeClient(),
+      baseUrl: getBaseUrl,
+      headers: options.headers ?? {},
+      fetch: sigv4Fetch,
+    });
+
+  const createImageModel = (
+    modelId: BedrockImageModelId,
+    settings: BedrockImageSettings = {},
+  ) =>
+    new BedrockImageModel(modelId, settings, {
+      baseUrl: getBaseUrl,
+      headers: options.headers ?? {},
+      fetch: sigv4Fetch,
     });
 
   provider.languageModel = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
-  return provider as AmazonBedrockProvider;
+  return provider;
 }
 
 /**

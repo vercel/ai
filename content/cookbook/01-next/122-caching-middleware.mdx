@@ -10,12 +10,12 @@ Let's create a simple chat interface that uses [`LanguageModelMiddleware`](/docs
 
 ## Client
 
-Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useChat` hook from `ai/react` to stream responses.
+Let's create a simple chat interface that allows users to send messages to the assistant and receive responses. You will integrate the `useChat` hook from `@ai-sdk/react` to stream responses.
 
 ```tsx filename='app/page.tsx'
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, error } = useChat();
@@ -64,10 +64,10 @@ You can control the initial delay and delay between chunks by adjusting the `ini
 
 ```tsx filename='ai/middleware.ts'
 import { Redis } from '@upstash/redis';
-import type {
-  LanguageModelV1,
-  LanguageModelV1Middleware,
-  LanguageModelV1StreamPart,
+import {
+  type LanguageModelV1,
+  type LanguageModelV1Middleware,
+  type LanguageModelV1StreamPart,
   simulateReadableStream,
 } from 'ai';
 

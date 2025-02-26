@@ -1,4 +1,4 @@
-import { parseDataStreamPart, DataStreamPartType } from './data-stream-parts';
+import { DataStreamPartType, parseDataStreamPart } from './data-stream-parts';
 
 const NEWLINE = '\n'.charCodeAt(0);
 
@@ -20,6 +20,9 @@ export async function processDataStream({
   stream,
   onTextPart,
   onReasoningPart,
+  onReasoningSignaturePart,
+  onRedactedReasoningPart,
+  onSourcePart,
   onDataPart,
   onErrorPart,
   onToolCallStreamingStartPart,
@@ -37,6 +40,15 @@ export async function processDataStream({
   ) => Promise<void> | void;
   onReasoningPart?: (
     streamPart: (DataStreamPartType & { type: 'reasoning' })['value'],
+  ) => Promise<void> | void;
+  onReasoningSignaturePart?: (
+    streamPart: (DataStreamPartType & { type: 'reasoning_signature' })['value'],
+  ) => Promise<void> | void;
+  onRedactedReasoningPart?: (
+    streamPart: (DataStreamPartType & { type: 'redacted_reasoning' })['value'],
+  ) => Promise<void> | void;
+  onSourcePart?: (
+    streamPart: (DataStreamPartType & { type: 'source' })['value'],
   ) => Promise<void> | void;
   onDataPart?: (
     streamPart: (DataStreamPartType & { type: 'data' })['value'],
@@ -113,6 +125,15 @@ export async function processDataStream({
           break;
         case 'reasoning':
           await onReasoningPart?.(value);
+          break;
+        case 'reasoning_signature':
+          await onReasoningSignaturePart?.(value);
+          break;
+        case 'redacted_reasoning':
+          await onRedactedReasoningPart?.(value);
+          break;
+        case 'source':
+          await onSourcePart?.(value);
           break;
         case 'data':
           await onDataPart?.(value);

@@ -1,5 +1,214 @@
 # ai
 
+## 4.1.46
+
+### Patch Changes
+
+- ddf9740: feat (ai): add anthropic reasoning
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/ui-utils@1.1.16
+  - @ai-sdk/provider-utils@2.1.10
+  - @ai-sdk/react@1.1.18
+
+## 4.1.45
+
+### Patch Changes
+
+- 93bd5a0: feat (ai/ui): add writeSource to createDataStream
+
+## 4.1.44
+
+### Patch Changes
+
+- f8e7df2: fix (ai/core): add `startWithReasoning` option to `extractReasoningMiddleware`
+
+## 4.1.43
+
+### Patch Changes
+
+- ef2e23b: feat (ai/core): add experimental repairText function to generateObject
+
+## 4.1.42
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+  - @ai-sdk/ui-utils@1.1.15
+  - @ai-sdk/react@1.1.17
+
+## 4.1.41
+
+### Patch Changes
+
+- Updated dependencies [60c3220]
+  - @ai-sdk/react@1.1.16
+
+## 4.1.40
+
+### Patch Changes
+
+- Updated dependencies [c43df41]
+  - @ai-sdk/react@1.1.15
+
+## 4.1.39
+
+### Patch Changes
+
+- 075a9a9: fix (ai): improve tsdoc on custom provider
+
+## 4.1.38
+
+### Patch Changes
+
+- 4c9c194: chore (ai): add description to provider-defined tools for better accessibility
+- 2e898b4: chore (ai): move mockId test helper into provider utils
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+  - @ai-sdk/react@1.1.14
+  - @ai-sdk/ui-utils@1.1.14
+
+## 4.1.37
+
+### Patch Changes
+
+- c1e10d1: chore: export UIMessage type
+
+## 4.1.36
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+  - @ai-sdk/react@1.1.13
+  - @ai-sdk/ui-utils@1.1.13
+
+## 4.1.35
+
+### Patch Changes
+
+- 166e09e: feat (ai/ui): forward source parts to useChat
+- Updated dependencies [166e09e]
+  - @ai-sdk/ui-utils@1.1.12
+  - @ai-sdk/react@1.1.12
+
+## 4.1.34
+
+### Patch Changes
+
+- dc49119: chore: deprecate ai/react
+
+## 4.1.33
+
+### Patch Changes
+
+- 74f0f0e: chore (ai/core): move providerMetadata to stable
+
+## 4.1.32
+
+### Patch Changes
+
+- c128ca5: fix (ai/core): fix streamText onFinish messages with structured output
+
+## 4.1.31
+
+### Patch Changes
+
+- b30b1cc: feat (ai/core): add onError callback to streamObject
+
+## 4.1.30
+
+### Patch Changes
+
+- 4ee5b6f: fix (core): remove invalid providerOptions from streamObject onFinish callback
+
+## 4.1.29
+
+### Patch Changes
+
+- 605de49: feat (ai/core): export callback types
+
+## 4.1.28
+
+### Patch Changes
+
+- 6eb7fc4: feat (ai/core): url source support
+
+## 4.1.27
+
+### Patch Changes
+
+- Updated dependencies [318b351]
+  - @ai-sdk/ui-utils@1.1.11
+  - @ai-sdk/react@1.1.11
+
+## 4.1.26
+
+### Patch Changes
+
+- 34983d4: fix (ai/core): bind supportsUrl when creating wrapper
+
+## 4.1.25
+
+### Patch Changes
+
+- 5a21310: fix (ai/core): use ai types on custom provider to prevent ts error
+
+## 4.1.24
+
+### Patch Changes
+
+- 38142b8: feat (ai/core): introduce streamText consumeStream
+
+## 4.1.23
+
+### Patch Changes
+
+- b08f7c1: fix (ai/core): suppress errors in textStream
+
+## 4.1.22
+
+### Patch Changes
+
+- 2bec72a: feat (ai/core): add onError callback to streamText
+
+## 4.1.21
+
+### Patch Changes
+
+- d387989: feat (ai/core): re-export zodSchema
+
+## 4.1.20
+
+### Patch Changes
+
+- bcc61d4: feat (ui): introduce message parts for useChat
+- Updated dependencies [bcc61d4]
+  - @ai-sdk/ui-utils@1.1.10
+  - @ai-sdk/react@1.1.10
+
+## 4.1.19
+
+### Patch Changes
+
+- Updated dependencies [6b8cc14]
+  - @ai-sdk/ui-utils@1.1.9
+  - @ai-sdk/react@1.1.9
+
+## 4.1.18
+
+### Patch Changes
+
+- 6a1acfe: fix (ai/core): revert '@internal' tag on function definitions due to build impacts
+
+## 4.1.17
+
+### Patch Changes
+
+- 5af8cdb: fix (ai/core): support this reference in model.supportsUrl implementations
+
 ## 4.1.16
 
 ### Patch Changes

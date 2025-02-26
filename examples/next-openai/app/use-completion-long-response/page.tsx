@@ -1,6 +1,6 @@
 'use client';
 
-import { useCompletion } from 'ai/react';
+import { useCompletion } from '@ai-sdk/react';
 import ReactMarkdown from 'react-markdown';
 
 export default function Chat() {

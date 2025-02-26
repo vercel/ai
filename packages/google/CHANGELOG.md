@@ -1,5 +1,65 @@
 # @ai-sdk/google
 
+## 1.1.17
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/provider-utils@2.1.10
+
+## 1.1.16
+
+### Patch Changes
+
+- 1b2e2a0: fix (provider/google): add resilience against undefined parts
+
+## 1.1.15
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+
+## 1.1.14
+
+### Patch Changes
+
+- 08a3641: fix (provider/google): support nullable enums in schema
+
+## 1.1.13
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+
+## 1.1.12
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+
+## 1.1.11
+
+### Patch Changes
+
+- 6eb7fc4: feat (ai/core): url source support
+
+## 1.1.10
+
+### Patch Changes
+
+- e5567f7: feat (provider/google): update model ids
+
+## 1.1.9
+
+### Patch Changes
+
+- b2573de: fix (provider/google): remove reasoning text following removal from Gemini API
+
 ## 1.1.8
 
 ### Patch Changes

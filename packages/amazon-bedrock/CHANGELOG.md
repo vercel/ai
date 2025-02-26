@@ -1,5 +1,51 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.0.5
+
+### Patch Changes
+
+- 58c3411: feat (provider/amazon-bedrock): add generate image support for Amazon Nova Canvas
+
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/provider-utils@2.1.10
+
+## 2.0.3
+
+### Patch Changes
+
+- d1475de: feat (provider/amazon-bedrock): add support for cache points
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [2e898b4]
+  - @ai-sdk/provider-utils@2.1.8
+
+## 2.0.0
+
+### Major Changes
+
+- 3ff4ef8: feat (provider/amazon-bedrock): remove dependence on AWS SDK Bedrock client library
+
+### Patch Changes
+
+- Updated dependencies [3ff4ef8]
+  - @ai-sdk/provider-utils@2.1.7
+
 ## 1.1.6
 
 ### Patch Changes

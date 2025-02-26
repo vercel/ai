@@ -41,6 +41,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       "isContinued": false,
       "logprobs": undefined,
       "messageId": "msg-0",
+      "providerMetadata": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -60,6 +61,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       "experimental_providerMetadata": undefined,
       "finishReason": "stop",
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "response": {
         "headers": undefined,
         "id": "id-0",
@@ -87,7 +89,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
+  "providerMetadata": undefined,
   "reasoning": undefined,
+  "reasoningDetails": [],
   "request": {},
   "response": {
     "headers": {
@@ -139,13 +143,16 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
+  "sources": [],
   "steps": [
     {
       "experimental_providerMetadata": undefined,
       "finishReason": "tool-calls",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
+      "reasoningDetails": [],
       "request": {},
       "response": {
         "headers": {
@@ -187,6 +194,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "sources": [],
       "stepType": "initial",
       "text": "",
       "toolCalls": [
@@ -222,7 +230,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
+      "reasoningDetails": [],
       "request": {},
       "response": {
         "headers": {
@@ -274,6 +284,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
+      "sources": [],
       "stepType": "tool-result",
       "text": "Hello, world!",
       "toolCalls": [],
@@ -305,7 +316,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -347,6 +360,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "",
     "toolCalls": [
@@ -382,7 +396,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -434,6 +450,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
@@ -479,6 +496,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -516,6 +534,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-2",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -537,6 +556,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": {
         "call": "2",
@@ -736,7 +756,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -778,6 +800,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "",
     "toolCalls": [
@@ -813,7 +836,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -865,6 +890,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
@@ -884,7 +910,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   "experimental_providerMetadata": undefined,
   "finishReason": "stop",
   "logprobs": undefined,
+  "providerMetadata": undefined,
   "reasoning": undefined,
+  "reasoningDetails": [],
   "request": {},
   "response": {
     "headers": {
@@ -908,13 +936,16 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:01.000Z,
   },
+  "sources": [],
   "steps": [
     {
       "experimental_providerMetadata": undefined,
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
+      "reasoningDetails": [],
       "request": {},
       "response": {
         "headers": undefined,
@@ -935,6 +966,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "sources": [],
       "stepType": "initial",
       "text": "part 1 
  ",
@@ -952,7 +984,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
+      "reasoningDetails": [],
       "request": {},
       "response": {
         "headers": undefined,
@@ -973,6 +1007,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
+      "sources": [
+        {
+          "id": "123",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example",
+          "url": "https://example.com",
+        },
+      ],
       "stepType": "continue",
       "text": "no-whitespace",
       "toolCalls": [],
@@ -989,7 +1036,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
+      "reasoningDetails": [],
       "request": {},
       "response": {
         "headers": {
@@ -1012,6 +1061,30 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
+      "sources": [
+        {
+          "id": "456",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value2",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example 2",
+          "url": "https://example.com/2",
+        },
+        {
+          "id": "789",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value3",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example 3",
+          "url": "https://example.com/3",
+        },
+      ],
       "stepType": "continue",
       "text": "immediatefollow  ",
       "toolCalls": [],
@@ -1028,7 +1101,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": undefined,
       "reasoning": undefined,
+      "reasoningDetails": [],
       "request": {},
       "response": {
         "headers": {
@@ -1052,6 +1127,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
+      "sources": [],
       "stepType": "continue",
       "text": "final value keep all whitespace
  end",
@@ -1086,7 +1162,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -1107,6 +1185,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "part 1 
  ",
@@ -1124,7 +1203,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -1145,6 +1226,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "url": "https://example.com",
+      },
+    ],
     "stepType": "continue",
     "text": "no-whitespace",
     "toolCalls": [],
@@ -1161,7 +1255,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -1184,6 +1280,30 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "url": "https://example.com/2",
+      },
+      {
+        "id": "789",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value3",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 3",
+        "url": "https://example.com/3",
+      },
+    ],
     "stepType": "continue",
     "text": "immediatefollow  ",
     "toolCalls": [],
@@ -1200,7 +1320,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -1224,6 +1346,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "final value keep all whitespace
  end",
@@ -1235,6 +1358,44 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "totalTokens": 5,
     },
     "warnings": undefined,
+  },
+]
+`;
+
+exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > result.sources should contain sources from all steps 1`] = `
+[
+  {
+    "id": "123",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example",
+    "url": "https://example.com",
+  },
+  {
+    "id": "456",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value2",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example 2",
+    "url": "https://example.com/2",
+  },
+  {
+    "id": "789",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value3",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example 3",
+    "url": "https://example.com/3",
   },
 ]
 `;
@@ -1266,6 +1427,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1288,6 +1450,20 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": [],
   },
   {
+    "source": {
+      "id": "123",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example",
+      "url": "https://example.com",
+    },
+    "type": "source",
+  },
+  {
     "textDelta": "no-whitespace",
     "type": "text-delta",
   },
@@ -1297,6 +1473,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1319,8 +1496,36 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": [],
   },
   {
+    "source": {
+      "id": "456",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value2",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example 2",
+      "url": "https://example.com/2",
+    },
+    "type": "source",
+  },
+  {
     "textDelta": "immediatefollow  ",
     "type": "text-delta",
+  },
+  {
+    "source": {
+      "id": "789",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value3",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example 3",
+      "url": "https://example.com/3",
+    },
+    "type": "source",
   },
   {
     "experimental_providerMetadata": undefined,
@@ -1328,6 +1533,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1374,6 +1580,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1395,6 +1602,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": {
         "call": "3",
@@ -1659,7 +1867,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -1680,6 +1890,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
     "text": "part 1 
  ",
@@ -1697,7 +1908,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -1718,6 +1931,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "url": "https://example.com",
+      },
+    ],
     "stepType": "continue",
     "text": "no-whitespace",
     "toolCalls": [],
@@ -1734,7 +1960,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -1757,6 +1985,30 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "url": "https://example.com/2",
+      },
+      {
+        "id": "789",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value3",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 3",
+        "url": "https://example.com/3",
+      },
+    ],
     "stepType": "continue",
     "text": "immediatefollow  ",
     "toolCalls": [],
@@ -1773,7 +2025,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -1797,6 +2051,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
+    "sources": [],
     "stepType": "continue",
     "text": "final value keep all whitespace
  end",
@@ -1812,6 +2067,77 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 ]
 `;
 
+exports[`streamText > options.onChunk > should return events in order 1`] = `
+[
+  {
+    "textDelta": "Hello",
+    "type": "text-delta",
+  },
+  {
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-call-streaming-start",
+  },
+  {
+    "argsTextDelta": "{"value": "",
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-call-delta",
+  },
+  {
+    "textDelta": "Feeling clever",
+    "type": "reasoning",
+  },
+  {
+    "argsTextDelta": "test",
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-call-delta",
+  },
+  {
+    "argsTextDelta": ""}",
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-call-delta",
+  },
+  {
+    "source": {
+      "id": "123",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example",
+      "url": "https://example.com",
+    },
+    "type": "source",
+  },
+  {
+    "args": {
+      "value": "test",
+    },
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-call",
+  },
+  {
+    "args": {
+      "value": "test",
+    },
+    "result": "test-result",
+    "toolCallId": "1",
+    "toolName": "tool1",
+    "type": "tool-result",
+  },
+  {
+    "textDelta": " World",
+    "type": "text-delta",
+  },
+]
+`;
+
 exports[`streamText > options.onFinish > should send correct information 1`] = `
 {
   "experimental_providerMetadata": {
@@ -1821,7 +2147,13 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
   },
   "finishReason": "stop",
   "logprobs": undefined,
+  "providerMetadata": {
+    "testProvider": {
+      "testKey": "testValue",
+    },
+  },
   "reasoning": undefined,
+  "reasoningDetails": [],
   "request": {},
   "response": {
     "headers": {
@@ -1863,6 +2195,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "sources": [],
   "steps": [
     {
       "experimental_providerMetadata": {
@@ -1873,7 +2206,13 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": {
+        "testProvider": {
+          "testKey": "testValue",
+        },
+      },
       "reasoning": undefined,
+      "reasoningDetails": [],
       "request": {},
       "response": {
         "headers": {
@@ -1915,6 +2254,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "sources": [],
       "stepType": "initial",
       "text": "Hello, world!",
       "toolCalls": [
@@ -1977,6 +2317,214 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
 }
 `;
 
+exports[`streamText > options.onFinish > should send sources 1`] = `
+{
+  "experimental_providerMetadata": undefined,
+  "finishReason": "stop",
+  "logprobs": undefined,
+  "providerMetadata": undefined,
+  "reasoning": undefined,
+  "reasoningDetails": [],
+  "request": {},
+  "response": {
+    "headers": undefined,
+    "id": "id-1",
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "Hello!",
+            "type": "text",
+          },
+        ],
+        "id": "msg-0",
+        "role": "assistant",
+      },
+    ],
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "sources": [
+    {
+      "id": "123",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example",
+      "url": "https://example.com",
+    },
+    {
+      "id": "456",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value2",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example 2",
+      "url": "https://example.com/2",
+    },
+  ],
+  "steps": [
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "stop",
+      "isContinued": false,
+      "logprobs": undefined,
+      "providerMetadata": undefined,
+      "reasoning": undefined,
+      "reasoningDetails": [],
+      "request": {},
+      "response": {
+        "headers": undefined,
+        "id": "id-1",
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello!",
+                "type": "text",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+        ],
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "sources": [
+        {
+          "id": "123",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example",
+          "url": "https://example.com",
+        },
+        {
+          "id": "456",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value2",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example 2",
+          "url": "https://example.com/2",
+        },
+      ],
+      "stepType": "initial",
+      "text": "Hello!",
+      "toolCalls": [],
+      "toolResults": [],
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+      "warnings": undefined,
+    },
+  ],
+  "text": "Hello!",
+  "toolCalls": [],
+  "toolResults": [],
+  "usage": {
+    "completionTokens": 10,
+    "promptTokens": 3,
+    "totalTokens": 13,
+  },
+  "warnings": undefined,
+}
+`;
+
+exports[`streamText > options.output > object output > should call onFinish with the correct content 1`] = `
+{
+  "experimental_providerMetadata": undefined,
+  "finishReason": "stop",
+  "logprobs": undefined,
+  "providerMetadata": undefined,
+  "reasoning": undefined,
+  "reasoningDetails": [],
+  "request": {},
+  "response": {
+    "headers": undefined,
+    "id": "id-1",
+    "messages": [
+      {
+        "content": [
+          {
+            "text": "{ "value": "Hello, world!" }",
+            "type": "text",
+          },
+        ],
+        "id": "msg-0",
+        "role": "assistant",
+      },
+    ],
+    "modelId": "mock-model-id",
+    "timestamp": 1970-01-01T00:00:00.000Z,
+  },
+  "sources": [],
+  "steps": [
+    {
+      "experimental_providerMetadata": undefined,
+      "finishReason": "stop",
+      "isContinued": false,
+      "logprobs": undefined,
+      "providerMetadata": undefined,
+      "reasoning": undefined,
+      "reasoningDetails": [],
+      "request": {},
+      "response": {
+        "headers": undefined,
+        "id": "id-1",
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "{ "value": "Hello, world!" }",
+                "type": "text",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+        ],
+        "modelId": "mock-model-id",
+        "timestamp": 1970-01-01T00:00:00.000Z,
+      },
+      "sources": [],
+      "stepType": "initial",
+      "text": "{ "value": "Hello, world!" }",
+      "toolCalls": [],
+      "toolResults": [],
+      "usage": {
+        "completionTokens": 10,
+        "promptTokens": 3,
+        "totalTokens": 13,
+      },
+      "warnings": undefined,
+    },
+  ],
+  "text": "{ "value": "Hello, world!" }",
+  "toolCalls": [],
+  "toolResults": [],
+  "usage": {
+    "completionTokens": 10,
+    "promptTokens": 3,
+    "totalTokens": 13,
+  },
+  "warnings": undefined,
+}
+`;
+
 exports[`streamText > options.transform > with base transformation > options.onFinish should receive transformed data 1`] = `
 {
   "experimental_providerMetadata": {
@@ -1986,7 +2534,13 @@ exports[`streamText > options.transform > with base transformation > options.onF
   },
   "finishReason": "stop",
   "logprobs": undefined,
+  "providerMetadata": {
+    "testProvider": {
+      "testKey": "TEST VALUE",
+    },
+  },
   "reasoning": undefined,
+  "reasoningDetails": [],
   "request": {},
   "response": {
     "headers": {
@@ -2028,6 +2582,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "sources": [],
   "steps": [
     {
       "experimental_providerMetadata": {
@@ -2038,7 +2593,13 @@ exports[`streamText > options.transform > with base transformation > options.onF
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
+      "providerMetadata": {
+        "testProvider": {
+          "testKey": "TEST VALUE",
+        },
+      },
       "reasoning": undefined,
+      "reasoningDetails": [],
       "request": {},
       "response": {
         "headers": {
@@ -2080,6 +2641,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
+      "sources": [],
       "stepType": "initial",
       "text": "HELLO, WORLD!",
       "toolCalls": [
@@ -2152,7 +2714,13 @@ exports[`streamText > options.transform > with base transformation > options.onS
   "finishReason": "stop",
   "isContinued": false,
   "logprobs": undefined,
+  "providerMetadata": {
+    "testProvider": {
+      "testKey": "TEST VALUE",
+    },
+  },
   "reasoning": undefined,
+  "reasoningDetails": [],
   "request": {},
   "response": {
     "headers": {
@@ -2194,6 +2762,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "sources": [],
   "stepType": "initial",
   "text": "HELLO, WORLD!",
   "toolCalls": [
@@ -2224,6 +2793,89 @@ exports[`streamText > options.transform > with base transformation > options.onS
   },
   "warnings": undefined,
 }
+`;
+
+exports[`streamText > options.transform > with base transformation > result.steps should be transformed 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "reasoning": undefined,
+    "reasoningDetails": [],
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-0",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "HELLO, WORLD!",
+              "type": "text",
+            },
+            {
+              "args": {
+                "value": "VALUE",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "RESULT1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "id": "msg-1",
+          "role": "tool",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "sources": [],
+    "stepType": "initial",
+    "text": "HELLO, WORLD!",
+    "toolCalls": [
+      {
+        "args": {
+          "value": "VALUE",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "args": {
+          "value": "VALUE",
+        },
+        "result": "RESULT1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+]
 `;
 
 exports[`streamText > options.transform > with base transformation > telemetry should record transformed data when enabled 1`] = `
@@ -2315,7 +2967,9 @@ exports[`streamText > options.transform > with transformation that aborts stream
   "finishReason": "stop",
   "isContinued": false,
   "logprobs": undefined,
+  "providerMetadata": undefined,
   "reasoning": undefined,
+  "reasoningDetails": [],
   "request": {},
   "response": {
     "id": "response-id",
@@ -2334,6 +2988,7 @@ exports[`streamText > options.transform > with transformation that aborts stream
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
+  "sources": [],
   "stepType": "initial",
   "text": "Hello, ",
   "toolCalls": [],
@@ -2373,6 +3028,7 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -2392,76 +3048,12 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
-      "totalTokens": 13,
-    },
-  },
-]
-`;
-
-exports[`streamText > result.fullStream > should include reasoning content in fullStream 1`] = `
-[
-  {
-    "messageId": "msg-0",
-    "request": {},
-    "type": "step-start",
-    "warnings": [],
-  },
-  {
-    "textDelta": "I will open the conversation",
-    "type": "reasoning",
-  },
-  {
-    "textDelta": " with witty banter.",
-    "type": "reasoning",
-  },
-  {
-    "textDelta": "Once the user has relaxed,",
-    "type": "reasoning",
-  },
-  {
-    "textDelta": " I will pry for valuable information.",
-    "type": "reasoning",
-  },
-  {
-    "experimental_providerMetadata": undefined,
-    "finishReason": "stop",
-    "isContinued": false,
-    "logprobs": undefined,
-    "messageId": "msg-0",
-    "request": {},
-    "response": {
-      "headers": undefined,
-      "id": "id-2000",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:02.000Z,
-    },
-    "type": "step-finish",
-    "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
-      "totalTokens": 13,
-    },
-    "warnings": undefined,
-  },
-  {
-    "experimental_providerMetadata": undefined,
-    "finishReason": "stop",
-    "logprobs": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-2000",
-      "modelId": "mock-model-id",
-      "timestamp": 1970-01-01T00:00:02.000Z,
     },
     "type": "finish",
     "usage": {
@@ -2495,6 +3087,7 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -2514,6 +3107,7 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -2561,6 +3155,7 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -2580,11 +3175,182 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+]
+`;
+
+exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
+[
+  {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "textDelta": "I will open the conversation",
+    "type": "reasoning",
+  },
+  {
+    "textDelta": " with witty banter. ",
+    "type": "reasoning",
+  },
+  {
+    "signature": "1234567890",
+    "type": "reasoning-signature",
+  },
+  {
+    "data": "redacted-reasoning-data",
+    "type": "redacted-reasoning",
+  },
+  {
+    "textDelta": "Once the user has relaxed,",
+    "type": "reasoning",
+  },
+  {
+    "textDelta": " I will pry for valuable information.",
+    "type": "reasoning",
+  },
+  {
+    "signature": "1234567890",
+    "type": "reasoning-signature",
+  },
+  {
+    "textDelta": "Hi",
+    "type": "text-delta",
+  },
+  {
+    "textDelta": " there!",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-0",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "id-0",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+  },
+]
+`;
+
+exports[`streamText > result.fullStream > should send sources 1`] = `
+[
+  {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "source": {
+      "id": "123",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example",
+      "url": "https://example.com",
+    },
+    "type": "source",
+  },
+  {
+    "textDelta": "Hello!",
+    "type": "text-delta",
+  },
+  {
+    "source": {
+      "id": "456",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value2",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example 2",
+      "url": "https://example.com/2",
+    },
+    "type": "source",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-0",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-2000",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:02.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "id-2000",
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:02.000Z,
     },
     "type": "finish",
     "usage": {
@@ -2622,6 +3388,7 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -2641,6 +3408,7 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "response-id",
@@ -2726,6 +3494,7 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -2745,6 +3514,7 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -2783,6 +3553,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -2802,6 +3573,7 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -2849,6 +3621,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -2868,6 +3641,7 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",
@@ -2910,6 +3684,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -2929,6 +3704,7 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-2000",
@@ -3073,16 +3849,64 @@ exports[`streamText > result.pipeDataStreamToResponse > should write reasoning c
 ",
   "g:"I will open the conversation"
 ",
-  "g:" with witty banter."
+  "g:" with witty banter. "
+",
+  "j:{"signature":"1234567890"}
+",
+  "i:{"data":"redacted-reasoning-data"}
 ",
   "g:"Once the user has relaxed,"
 ",
   "g:" I will pry for valuable information."
 ",
+  "j:{"signature":"1234567890"}
+",
+  "0:"Hi"
+",
+  "0:" there!"
+",
   "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
   "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
 ",
+]
+`;
+
+exports[`streamText > result.pipeDataStreamToResponse > should write source content to a Node.js response-like object 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "h:{"sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+",
+  "0:"Hello!"
+",
+  "h:{"sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`streamText > result.reasoning > should contain reasoning from model response 1`] = `"I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information."`;
+
+exports[`streamText > result.reasoningDetails > should contain reasoning from model response 1`] = `
+[
+  {
+    "signature": "1234567890",
+    "text": "I will open the conversation with witty banter. ",
+    "type": "text",
+  },
+  {
+    "data": "redacted-reasoning-data",
+    "type": "redacted",
+  },
+  {
+    "signature": "1234567890",
+    "text": "Once the user has relaxed, I will pry for valuable information.",
+    "type": "text",
+  },
 ]
 `;
 
@@ -3107,6 +3931,35 @@ exports[`streamText > result.response > should resolve with response information
   "modelId": "mock-model-id",
   "timestamp": 1970-01-01T00:00:00.000Z,
 }
+`;
+
+exports[`streamText > result.response.messages > should contain reasoning 1`] = `
+[
+  {
+    "content": [
+      {
+        "signature": "1234567890",
+        "text": "I will open the conversation with witty banter. ",
+        "type": "reasoning",
+      },
+      {
+        "data": "redacted-reasoning-data",
+        "type": "redacted-reasoning",
+      },
+      {
+        "signature": "1234567890",
+        "text": "Once the user has relaxed, I will pry for valuable information.",
+        "type": "reasoning",
+      },
+      {
+        "text": "Hi there!",
+        "type": "text",
+      },
+    ],
+    "id": "msg-0",
+    "role": "assistant",
+  },
+]
 `;
 
 exports[`streamText > result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
@@ -3159,6 +4012,33 @@ exports[`streamText > result.responseMessages > should contain assistant respons
 ]
 `;
 
+exports[`streamText > result.sources > should contain sources 1`] = `
+[
+  {
+    "id": "123",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example",
+    "url": "https://example.com",
+  },
+  {
+    "id": "456",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value2",
+      },
+    },
+    "sourceType": "url",
+    "title": "Example 2",
+    "url": "https://example.com/2",
+  },
+]
+`;
+
 exports[`streamText > result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
   {
@@ -3166,16 +4046,47 @@ exports[`streamText > result.steps > should add the reasoning from the model res
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
-    "reasoning": "I will open the conversation with witty banter.",
+    "providerMetadata": undefined,
+    "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+    "reasoningDetails": [
+      {
+        "signature": "1234567890",
+        "text": "I will open the conversation with witty banter. ",
+        "type": "text",
+      },
+      {
+        "data": "redacted-reasoning-data",
+        "type": "redacted",
+      },
+      {
+        "signature": "1234567890",
+        "text": "Once the user has relaxed, I will pry for valuable information.",
+        "type": "text",
+      },
+    ],
     "request": {},
     "response": {
       "headers": undefined,
-      "id": "id-1",
+      "id": "id-0",
       "messages": [
         {
           "content": [
             {
-              "text": "Hello, world!",
+              "signature": "1234567890",
+              "text": "I will open the conversation with witty banter. ",
+              "type": "reasoning",
+            },
+            {
+              "data": "redacted-reasoning-data",
+              "type": "redacted-reasoning",
+            },
+            {
+              "signature": "1234567890",
+              "text": "Once the user has relaxed, I will pry for valuable information.",
+              "type": "reasoning",
+            },
+            {
+              "text": "Hi there!",
               "type": "text",
             },
           ],
@@ -3186,8 +4097,9 @@ exports[`streamText > result.steps > should add the reasoning from the model res
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
+    "sources": [],
     "stepType": "initial",
-    "text": "Hello, world!",
+    "text": "Hi there!",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
@@ -3199,6 +4111,92 @@ exports[`streamText > result.steps > should add the reasoning from the model res
   },
 ]
 `;
+
+exports[`streamText > result.steps > should add the sources from the model response to the step result 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "reasoning": undefined,
+    "reasoningDetails": [],
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-1",
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "Hello!",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "mock-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "sources": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "url": "https://example.com",
+      },
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "url": "https://example.com/2",
+      },
+    ],
+    "stepType": "initial",
+    "text": "Hello!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 3,
+      "totalTokens": 13,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`streamText > result.text > should resolve with full text 1`] = `"Hello, world!"`;
+
+exports[`streamText > result.textStream > should filter out empty text deltas 1`] = `
+[
+  "Hello",
+  ", ",
+  "world!",
+]
+`;
+
+exports[`streamText > result.textStream > should not include reasoning content in textStream 1`] = `
+[
+  "Hi",
+  " there!",
+]
+`;
+
+exports[`streamText > result.textStream > should swallow error to prevent server crash 1`] = `[]`;
 
 exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 [
@@ -3226,6 +4224,52 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
 ",
   "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStream > should send reasoning content when sendReasoning is true 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "g:"I will open the conversation"
+",
+  "g:" with witty banter. "
+",
+  "j:{"signature":"1234567890"}
+",
+  "i:{"data":"redacted-reasoning-data"}
+",
+  "g:"Once the user has relaxed,"
+",
+  "g:" I will pry for valuable information."
+",
+  "j:{"signature":"1234567890"}
+",
+  "0:"Hi"
+",
+  "0:" there!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStream > should send source content when sendSources is true 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "h:{"sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+",
+  "0:"Hello!"
+",
+  "h:{"sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
 ",
 ]
 `;
@@ -3681,6 +4725,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "messageId": "msg-0",
+    "providerMetadata": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3700,6 +4745,7 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
+    "providerMetadata": undefined,
     "response": {
       "headers": undefined,
       "id": "id-0",

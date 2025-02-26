@@ -4,6 +4,7 @@ import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';
 import { LanguageModelV1FunctionToolCall } from './language-model-v1-function-tool-call';
 import { LanguageModelV1LogProbs } from './language-model-v1-logprobs';
 import { LanguageModelV1ProviderMetadata } from './language-model-v1-provider-metadata';
+import { LanguageModelV1Source } from './language-model-v1-source';
 
 /**
 Specification for a language model that implements the language model interface version 1.
@@ -63,7 +64,7 @@ use further optimizations if this flag is set to `true`.
 
 Defaults to `false`.
 */
-  // TODO rename to supportsGrammarGuidedGeneration in v2
+  // TODO v2: rename to supportsGrammarGuidedGeneration?
   readonly supportsStructuredOutputs?: boolean;
 
   /**
@@ -82,21 +83,39 @@ Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
   doGenerate(options: LanguageModelV1CallOptions): PromiseLike<{
+    // TODO v2: switch to a composite content array with text, tool calls, reasoning
     /**
-Text that the model has generated. Can be undefined if the model
-has only generated tool calls.
+Text that the model has generated.
+Can be undefined if the model did not generate any text.
      */
     text?: string;
 
     /**
-Reasoning text that the model has generated. Can be undefined if the model
-has only generated text.
+Reasoning that the model has generated.
+Can be undefined if the model does not support reasoning.
      */
-    reasoning?: string;
+    // TODO v2: remove string option
+    reasoning?:
+      | string
+      | Array<
+          | {
+              type: 'text';
+              text: string;
+
+              /**
+An optional signature for verifying that the reasoning originated from the model.
+   */
+              signature?: string;
+            }
+          | {
+              type: 'redacted';
+              data: string;
+            }
+        >;
 
     /**
-Tool calls that the model has generated. Can be undefined if the
-model has only generated text.
+Tool calls that the model has generated.
+Can be undefined if the model did not generate any tool calls.
      */
     toolCalls?: Array<LanguageModelV1FunctionToolCall>;
 
@@ -116,7 +135,7 @@ Finish reason.
     /**
 Raw prompt and setting information for observability provider integration.
      */
-    // TODO remove in v2 (there is now request)
+    // TODO v2: remove in v2 (now there is request)
     rawCall: {
       /**
 Raw prompt after expansion and conversion to the format that the
@@ -180,8 +199,12 @@ Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
      */
-    // TODO language model v2 rename to providerOptions
     providerMetadata?: LanguageModelV1ProviderMetadata;
+
+    /**
+Sources that have been used as input to generate the response.
+     */
+    sources?: LanguageModelV1Source[];
 
     /**
 Logprobs for the completion.
@@ -257,6 +280,11 @@ export type LanguageModelV1StreamPart =
 
   // Reasoning text deltas:
   | { type: 'reasoning'; textDelta: string }
+  | { type: 'reasoning-signature'; signature: string }
+  | { type: 'redacted-reasoning'; data: string }
+
+  // Sources:
+  | { type: 'source'; source: LanguageModelV1Source }
 
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV1FunctionToolCall)

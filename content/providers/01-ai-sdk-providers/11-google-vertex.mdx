@@ -364,7 +364,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const { text, experimental_providerMetadata } = await generateText({
+const { text, providerMetadata } = await generateText({
   model: vertex('gemini-1.5-pro', {
     useSearchGrounding: true,
   }),
@@ -375,7 +375,7 @@ const { text, experimental_providerMetadata } = await generateText({
 
 // access the grounding metadata. Casting to the provider metadata type
 // is optional but provides autocomplete and type safety.
-const metadata = experimental_providerMetadata?.google as
+const metadata = providerMetadata?.google as
   | GoogleGenerativeAIProviderMetadata
   | undefined;
 const groundingMetadata = metadata?.groundingMetadata;
@@ -428,7 +428,30 @@ Example response excerpt:
 }
 ```
 
-The safety ratings provide insight into how the model's response was grounded to search results. See [Google Vertex AI documentation on configuring safety filters](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters).
+<Note>
+  The Google Vertex provider does not yet support [dynamic retrieval mode and
+  threshold](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#dynamic-retrieval).
+</Note>
+
+### Sources
+
+When you use [Search Grounding](#search-grounding), the model will include sources in the response.
+You can access them using the `sources` property of the result:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { sources } = await generateText({
+  model: vertex('gemini-1.5-pro', { useSearchGrounding: true }),
+  prompt: 'List the top 5 San Francisco news from the past week.',
+});
+```
+
+### Safety Ratings
+
+The safety ratings provide insight into the safety of the model's response.
+See [Google Vertex AI documentation on configuring safety filters](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters).
 
 Example response excerpt:
 
@@ -467,11 +490,6 @@ Example response excerpt:
   ]
 }
 ```
-
-<Note>
-  The Google Vertex provider does not yet support [dynamic retrieval mode and
-  threshold](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#dynamic-retrieval).
-</Note>
 
 For more details, see the [Google Vertex AI documentation on grounding with Google Search](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search).
 
@@ -520,6 +538,7 @@ The following Zod features are known to not work with Google Vertex:
 
 | Model                  | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-2.0-flash-001` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-2.0-flash-exp` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-flash`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-1.5-pro`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -797,6 +816,35 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
   instead of streaming it incrementally.
 </Note>
 
+### Reasoning
+
+Anthropic has reasoning support for the `claude-3-7-sonnet@20250219` model.
+
+You can enable it using the `thinking` provider option
+and specifying a thinking budget in tokens.
+
+```ts
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+
+const { text, reasoning, reasoningDetails } = await generateText({
+  model: vertexAnthropic('claude-3-7-sonnet@20250219'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 12000 },
+    },
+  },
+});
+
+console.log(reasoning); // reasoning text
+console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(text); // text response
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
+on how to integrate reasoning into your chatbot.
+
 #### Cache Control
 
 <Note>
@@ -808,7 +856,7 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
 In the messages and message parts, you can use the `providerOptions` property to set cache control breakpoints.
 You need to set the `anthropic` property in the `providerOptions` object to `{ cacheControl: { type: 'ephemeral' } }` to set a cache control breakpoint.
 
-The cache creation input tokens are then returned in the `experimental_providerMetadata` object
+The cache creation input tokens are then returned in the `providerMetadata` object
 for `generateText` and `generateObject`, again under the `anthropic` property.
 When you use `streamText` or `streamObject`, the response contains a promise
 that resolves to the metadata. Alternatively you can receive it in the
@@ -841,7 +889,7 @@ const result = await generateText({
 });
 
 console.log(result.text);
-console.log(result.experimental_providerMetadata?.anthropic);
+console.log(result.providerMetadata?.anthropic);
 // e.g. { cacheCreationInputTokens: 2118, cacheReadInputTokens: 0 }
 ```
 
@@ -991,6 +1039,7 @@ See also [Anthropic Model Comparison](https://docs.anthropic.com/en/docs/about-c
 
 | Model                           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Computer Use        |
 | ------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-3-7-sonnet@20250219`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-3-5-sonnet-v2@20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-3-5-sonnet@20240620`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `claude-3-5-haiku@20241022`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
