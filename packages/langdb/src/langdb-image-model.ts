@@ -76,7 +76,7 @@ export class LangDBImageModel implements ImageModelV1 {
           width: parseInt(splitSize[0]),
           height: parseInt(splitSize[1]),
         }),
-        response_format: 'base64',
+        response_format: 'B64Json',
         ...(providerOptions.langdb ?? {}),
       },
       failedResponseHandler: createJsonErrorResponseHandler({

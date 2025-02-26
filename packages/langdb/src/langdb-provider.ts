@@ -6,7 +6,6 @@ import {
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
-  OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
 } from '@ai-sdk/openai-compatible';
 import {
@@ -19,10 +18,6 @@ import {
   LangDBChatModelId,
 } from './langdb-chat-settings';
 import {
-  LangDBCompletionSettings,
-  LangDBCompletionModelId,
-} from './langdb-completion-settings';
-import {
   LangDBImageSettings,
   LangDBImageModelId,
 } from './langdb-image-settings';
@@ -31,69 +26,89 @@ import {
   LangDBEmbeddingModelId,
 } from './langdb-embedding-settings';
 import { LangDBImageModel } from './langdb-image-model';
+
 export interface LangDBProviderSettings {
   /**
-   * LangDB API key.
+   * API key for authentication with LangDB.
    */
   apiKey?: string;
+
   /**
-   * Base URL for the API calls.
+   * Base URL for the LangDB API.
    */
   baseURL?: string;
+
   /**
    * Custom headers to include in the requests.
    */
   headers?: Record<string, string>;
+
   /**
-   * Custom fetch implementation.
+   * Custom fetch function to use for making requests.
    */
   fetch?: FetchFunction;
+
   /**
-   * LangDB Project ID
+   * Project ID for LangDB.
    */
   projectId?: string;
+
+  /**
+   * Thread ID for LangDB.
+   */
+  threadId?: string;
+
+  /**
+   * Run ID for LangDB.
+   */
+  runId?: string;
+
+  /**
+   * Label for LangDB.
+   */
+  label?: string;
 }
 
 export interface LangDBProvider extends ProviderV1 {
   /**
-Creates a model for text generation.
-*/
-(
-  modelId: LangDBChatModelId,
-  settings?: LangDBChatSettings,
-): LanguageModelV1;
-
-/**
-Creates a chat model for text generation.
-*/
-chatModel(
-  modelId: LangDBChatModelId,
-  settings?: LangDBChatSettings,
-): LanguageModelV1;
-
-/**
-Creates a chat model for text generation.
-*/
-languageModel(
-  modelId: LangDBChatModelId,
-  settings?: LangDBChatSettings,
-): LanguageModelV1;
+   * Creates a model for text generation.
+   */
+  (
+    modelId: LangDBChatModelId,
+    settings?: LangDBChatSettings,
+  ): LanguageModelV1;
 
   /**
-  Creates a model for image generation.
+   * Creates a chat model for text generation.
    */
-textEmbeddingModel(
-  modelId: LangDBEmbeddingModelId,
-  settings?: LangDBEmbeddingSettings,
-): EmbeddingModelV1<string>;
-  /**
-  Creates a model for image generation.
-   */
-imageModel(
-  modelId: LangDBImageModelId,
-  settings?: LangDBImageSettings,
-): ImageModelV1;
+  chatModel(
+    modelId: LangDBChatModelId,
+    settings?: LangDBChatSettings,
+  ): LanguageModelV1;
 
+  /**
+   * Creates a chat model for text generation.
+   */
+  languageModel(
+    modelId: LangDBChatModelId,
+    settings?: LangDBChatSettings,
+  ): LanguageModelV1;
+
+  /**
+   * Creates a model for text embeddings.
+   */
+  textEmbeddingModel(
+    modelId: LangDBEmbeddingModelId,
+    settings?: LangDBEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
+
+  /**
+   * Creates a model for image generation.
+   */
+  imageModel(
+    modelId: LangDBImageModelId,
+    settings?: LangDBImageSettings,
+  ): ImageModelV1;
 }
 
 export function createLangDB(
@@ -102,14 +117,37 @@ export function createLangDB(
   const baseURL = withoutTrailingSlash(
     options.baseURL ?? 'https://api.us-east-1.langdb.ai',
   );
-  const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'LANGDB_API_KEY',
-      description: 'LangDB',
-    })}`,
-    ...options.headers,
-  });
+
+  const getHeaders = () => {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${loadApiKey({
+        apiKey: options.apiKey,
+        environmentVariableName: 'LANGDB_API_KEY',
+        description: 'LangDB',
+      })}`,
+    };
+
+    if (options.projectId) {
+      headers['x-project-id'] = options.projectId;
+    }
+
+    if (options.threadId) {
+      headers['x-thread-id'] = options.threadId;
+    }
+
+    if (options.runId) {
+      headers['x-run-id'] = options.runId;
+    }
+
+    if (options.label) {
+      headers['x-label'] = options.label;
+    }
+
+    return {
+      ...headers,
+      ...options.headers,
+    };
+  };
 
   interface CommonModelConfig {
     provider: string;
@@ -135,27 +173,27 @@ export function createLangDB(
     });
   };
 
+  const createTextEmbeddingModel = (
+    modelId: LangDBEmbeddingModelId,
+    settings: LangDBEmbeddingSettings = {},
+  ) =>
+    new OpenAICompatibleEmbeddingModel(
+      modelId,
+      settings,
+      getCommonModelConfig('embedding'),
+    );
 
-    const createTextEmbeddingModel = (
-      modelId: LangDBEmbeddingModelId,
-      settings: LangDBEmbeddingSettings = {},
-    ) =>
-      new OpenAICompatibleEmbeddingModel(
-        modelId,
-        settings,
-        getCommonModelConfig('embedding'),
-      );
+  const createImageModel = (
+    modelId: LangDBImageModelId,
+    settings: LangDBImageSettings = {},
+  ) =>
+    new LangDBImageModel(modelId, settings, {
+      provider: `langdb.image`,
+      baseURL: baseURL ?? 'https://api.us-east-1.langdb.ai/v1',
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
 
-      const createImageModel = (
-        modelId: LangDBImageModelId,
-        settings: LangDBImageSettings = {},
-      ) =>
-        new LangDBImageModel(modelId, settings, {
-          provider: `langdb.image`,
-          baseURL: baseURL ?? 'https://api.us-east-1.langdb.ai/v1',
-          headers: getHeaders,
-          fetch: options.fetch,
-        }); 
   const provider = (
     modelId: LangDBChatModelId,
     settings?: LangDBChatSettings,
