@@ -1,6 +1,6 @@
-import { useChat } from "@ai-sdk/react";
-import logoDark from "./logo-dark.svg";
-import logoLight from "./logo-light.svg";
+import { useChat } from '@ai-sdk/react';
+import logoDark from './logo-dark.svg';
+import logoLight from './logo-light.svg';
 
 export function Welcome() {
   const {
@@ -14,8 +14,8 @@ export function Welcome() {
     stop,
   } = useChat({
     onFinish(message, { usage, finishReason }) {
-      console.log("Usage", usage);
-      console.log("FinishReason", finishReason);
+      console.log('Usage', usage);
+      console.log('FinishReason', finishReason);
     },
   });
   return (
@@ -36,16 +36,16 @@ export function Welcome() {
           </div>
         </header>
         <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-          {messages.map((m) => (
+          {messages.map(m => (
             <div key={m.id} className="whitespace-pre-wrap">
-              {m.role === "user" ? "User: " : "AI: "}
+              {m.role === 'user' ? 'User: ' : 'AI: '}
               {m.content}
             </div>
           ))}
 
-          {(status === "submitted" || status === "streaming") && (
+          {(status === 'submitted' || status === 'streaming') && (
             <div className="mt-4 text-gray-500">
-              {status === "submitted" && <div>Loading...</div>}
+              {status === 'submitted' && <div>Loading...</div>}
               <button
                 type="button"
                 className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
@@ -75,7 +75,7 @@ export function Welcome() {
               value={input}
               placeholder="Say something..."
               onChange={handleInputChange}
-              disabled={status !== "ready"}
+              disabled={status !== 'ready'}
             />
           </form>
         </div>
@@ -108,8 +108,8 @@ export function Welcome() {
 
 const resources = [
   {
-    href: "https://reactrouter.com/docs",
-    text: "React Router Docs",
+    href: 'https://reactrouter.com/docs',
+    text: 'React Router Docs',
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -128,8 +128,8 @@ const resources = [
     ),
   },
   {
-    href: "https://rmx.as/discord",
-    text: "Join Discord",
+    href: 'https://rmx.as/discord',
+    text: 'Join Discord',
     icon: (
       <svg
         xmlns="http://www.w3.org/2000/svg"
