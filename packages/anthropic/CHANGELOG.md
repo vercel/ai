@@ -1,5 +1,12 @@
 # @ai-sdk/anthropic
 
+## 1.1.11
+
+### Patch Changes
+
+- 00276ae: feat (provider/anthropic): update types for Anthropic computer_20250124 tool
+- a4f8714: feat (provider/anthropic): update beta flag for sonnet-3-7 when using new computer-use tool
+
 ## 1.1.10
 
 ### Patch Changes
