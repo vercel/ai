@@ -59,7 +59,7 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const { object } = await generateObject({
-  model: openai('gpt-4.5'),
+  model: openai('gpt-4.5-preview'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
