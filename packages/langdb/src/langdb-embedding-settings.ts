@@ -6,4 +6,5 @@ export type LangDBEmbeddingModelId =
   | 'openai/text-embedding-ada-002'
   | (string & {});
 
-export interface LangDBEmbeddingSettings extends OpenAICompatibleEmbeddingSettings {}
+export interface LangDBEmbeddingSettings
+  extends OpenAICompatibleEmbeddingSettings {}

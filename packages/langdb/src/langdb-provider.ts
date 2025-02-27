@@ -13,10 +13,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  LangDBChatSettings,
-  LangDBChatModelId,
-} from './langdb-chat-settings';
+import { LangDBChatSettings, LangDBChatModelId } from './langdb-chat-settings';
 import {
   LangDBImageSettings,
   LangDBImageModelId,
@@ -73,10 +70,7 @@ export interface LangDBProvider extends ProviderV1 {
   /**
    * Creates a model for text generation.
    */
-  (
-    modelId: LangDBChatModelId,
-    settings?: LangDBChatSettings,
-  ): LanguageModelV1;
+  (modelId: LangDBChatModelId, settings?: LangDBChatSettings): LanguageModelV1;
 
   /**
    * Creates a chat model for text generation.

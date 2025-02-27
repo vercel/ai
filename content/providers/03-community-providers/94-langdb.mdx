@@ -1,0 +1,108 @@
+---
+title: LangDB
+description: Learn how to use LangDB with the AI SDK
+---
+
+# LangDB
+
+[LangDB](https://langdb.ai) is a high-performance enterprise AI gateway built in Rust, designed to govern, secure, and optimize AI traffic.
+
+## Installation
+
+```bash
+npm install @ai-sdk/langdb
+```
+
+## Usage
+
+### Chat Completions
+
+```tsx
+import { createLangDB } from '@ai-sdk/langdb';
+import { generateText } from 'ai';
+
+const langdb = createLangDB({
+  apiKey: process.env.LANGDB_API_KEY,
+  projectId: 'your-project-id',
+});
+
+export async function generateTextExample() {
+  const { text } = await generateText({
+    model: langdb('openai/gpt-4o-mini'),
+    prompt: 'Write a Python function that sorts a list:',
+  });
+
+  console.log(text);
+}
+```
+
+### Image Generation
+
+```tsx
+import { createLangDB } from '@ai-sdk/langdb';
+import { experimental_generateImage as generateImage } from 'ai';
+import fs from 'fs';
+import path from 'path';
+
+const langdb = createLangDB({
+  apiKey: process.env.LANGDB_API_KEY,
+  projectId: 'your-project-id',
+});
+
+export async function generateImageExample() {
+  const { images } = await generateImage({
+    model: langdb.image('openai/dall-e-3'),
+    prompt: 'A delighted resplendent quetzal mid-flight amidst raindrops',
+  });
+
+  const imagePath = path.join(__dirname, 'generated-image.png');
+  fs.writeFileSync(imagePath, images[0].uint8Array);
+  console.log(`Image saved to: ${imagePath}`);
+}
+```
+
+### Embeddings
+
+```tsx
+import { createLangDB } from '@ai-sdk/langdb';
+import { embed } from 'ai';
+
+const langdb = createLangDB({
+  apiKey: process.env.LANGDB_API_KEY,
+  projectId: 'your-project-id',
+});
+
+export async function generateEmbeddings() {
+  const { embedding } = await embed({
+    model: langdb.textEmbeddingModel('text-embedding-3-small'),
+    value: 'sunny day at the beach',
+  });
+
+  console.log('Embedding:', embedding);
+}
+```
+
+## Configuration
+
+You can configure the LangDB provider with the following options:
+
+```tsx
+import { createLangDB } from '@ai-sdk/langdb';
+
+const langdb = createLangDB({
+  apiKey: process.env.LANGDB_API_KEY, // Required
+  projectId: 'your-project-id', // Required
+  threadId: uuidv4(), // Optional
+  runId: uuidv4(), // Optional
+  label: 'code-agent', // Optional
+  headers: { 'Custom-Header': 'value' }, // Optional
+});
+
+## Supported Models
+
+LangDB supports over 250 models, enabling seamless interaction with a wide range of AI capabilities.
+
+Checkout the [model list](https://app.langdb.ai/models) for more information.
+
+For more information, visit the [LangDB documentation](https://docs.langdb.ai/).
+```
