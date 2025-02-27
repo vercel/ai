@@ -5,26 +5,24 @@ description: Get started with OpenAI GPT-4.5 using the AI SDK.
 
 # Get started with OpenAI GPT-4.5
 
-With the [release of OpenAI's GPT-4.5 model](https://openai.com/research/gpt-4-5), there has never been a better time to start building AI applications, particularly those that require sophisticated reasoning capabilities and more natural interactions.
+With the [release of OpenAI's GPT-4.5 model](https://openai.com/index/introducing-gpt-4-5), there has never been a better time to start building AI applications, particularly those that require a deeper understanding of the world.
 
 The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications with large language models (LLMs) like OpenAI GPT-4.5 alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more.
 
 ## OpenAI GPT-4.5
 
-OpenAI recently released GPT-4.5, their largest and most knowledgeable model yet. Building on GPT-4o, GPT-4.5 scales pre-training further and is designed to be more general-purpose than their powerful STEM-focused reasoning models. It was trained using new supervision techniques combined with traditional methods like supervised fine-tuning (SFT) and reinforcement learning from human feedback (RLHF).
+OpenAI recently released GPT-4.5, their largest and best model for chat yet. GPT‑4.5 is a step forward in scaling up pretraining and post-training. By scaling unsupervised learning, GPT‑4.5 improves its ability to recognize patterns, draw connections, and generate creative insights without reasoning.
 
-Early testing shows that interacting with GPT-4.5 feels more natural. Its broader knowledge base, stronger alignment with user intent, and improved emotional intelligence make it well-suited for tasks like writing, programming, and solving practical problems - with fewer hallucinations.
+Based on early testing, developers may find GPT‑4.5 particularly useful for applications that benefit from its higher emotional intelligence and creativity—such as writing help, communication, learning, coaching, and brainstorming. It also shows strong capabilities in agentic planning and execution, including multi-step coding workflows and complex task automation.
 
 ### Benchmarks
 
 GPT-4.5 demonstrates impressive performance across various benchmarks:
 
-- **PersonQA (accuracy)**: 78%
-- **PersonQA (hallucination rate)**: 19% (lower is better)
-- **BBQ Unambiguous Questions (accuracy)**: 74%
-- **SWE-bench Verified (Pass@1)**: 38%
+- **SimpleQA Accuracy**: 62.5% (higher is better)
+- **SimpleQA Hallucination Rate**: 37.1% (lower is better)
 
-[Source](https://openai.com/research/gpt-4-5)
+[Source](https://openai.com/index/introducing-gpt-4-5)
 
 ### Prompt Engineering for GPT-4.5
 
@@ -46,7 +44,7 @@ import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4.5'),
+  model: openai('gpt-4.5-preview'),
   prompt: 'Explain the concept of quantum entanglement.',
 });
 ```
@@ -84,7 +82,7 @@ import { generateText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4.5'),
+  model: openai('gpt-4.5-preview'),
   prompt: 'What is the weather like today in San Francisco?',
   tools: {
     getWeather: tool({
@@ -130,7 +128,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4.5'),
+    model: openai('gpt-4.5-preview'),
     messages,
   });
 
