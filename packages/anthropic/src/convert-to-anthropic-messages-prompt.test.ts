@@ -646,7 +646,7 @@ describe('assistant messages', () => {
     expect(warnings).toEqual([
       {
         type: 'other',
-        message: 'reasoning content is removed for this model',
+        message: 'sending reasoning content is disabled for this model',
       },
     ]);
   });
@@ -692,7 +692,7 @@ describe('assistant messages', () => {
     expect(warnings).toEqual([
       {
         type: 'other',
-        message: 'reasoning content is removed for this model',
+        message: 'sending reasoning content is disabled for this model',
       },
     ]);
   });

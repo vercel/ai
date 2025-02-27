@@ -266,7 +266,8 @@ export function convertToAnthropicMessagesPrompt({
                 } else {
                   warnings.push({
                     type: 'other',
-                    message: 'reasoning content is removed for this model',
+                    message:
+                      'sending reasoning content is disabled for this model',
                   });
                 }
                 break;
