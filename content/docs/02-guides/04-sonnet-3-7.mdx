@@ -35,7 +35,7 @@ console.log(text); // text response
 The unified interface also means that you can easily switch between providers by changing just two lines of code. For example, to use Claude 3.7 Sonnet via Amazon Bedrock:
 
 ```ts
-import { bedrock } from '@ai-sdk/bedrock';
+import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 const { reasoning, text } = await generateText({
