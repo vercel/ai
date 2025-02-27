@@ -9,7 +9,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from './use-chat';
 
 describe('data protocol stream', () => {
@@ -1887,4 +1887,84 @@ describe('test sending additional fields during message submission', () => {
       },
     ),
   );
+});
+
+describe('initialMessages stability', () => {
+  let renderCount = 0;
+
+  const TestComponent = () => {
+    renderCount++;
+    const [derivedState, setDerivedState] = useState<string[]>([]);
+
+    const { messages } = useChat({
+      api: '/api/chat',
+      id: 'test-stability',
+      initialMessages: [
+        {
+          id: 'test-msg-1',
+          content: 'Test message',
+          role: 'user',
+        },
+        {
+          id: 'test-msg-2',
+          content: 'Test response',
+          role: 'assistant',
+        },
+      ],
+    });
+
+    useEffect(() => {
+      setDerivedState(messages.map(m => m.content));
+    }, [messages]);
+
+    if (renderCount > 10) {
+      throw new Error('Excessive renders detected; likely an infinite loop!');
+    }
+
+    return (
+      <div>
+        <div data-testid="render-count">{renderCount}</div>
+        <div data-testid="derived-state">{derivedState.join(', ')}</div>
+        {messages.map(m => (
+          <div key={m.id} data-testid={`message-${m.role}`}>
+            {m.content}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    renderCount = 0;
+    render(<TestComponent />);
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('should not cause infinite rerenders when initialMessages is defined and messages is a dependency of useEffect', async () => {
+    await waitFor(() => {
+      expect(screen.getByTestId('message-user')).toHaveTextContent(
+        'Test message',
+      );
+    });
+
+    const initialRenderCount = parseInt(
+      screen.getByTestId('render-count').textContent || '0',
+    );
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    const finalRenderCount = parseInt(
+      screen.getByTestId('render-count').textContent || '0',
+    );
+
+    expect(finalRenderCount).toBeLessThan(3);
+    expect(finalRenderCount).toBe(initialRenderCount);
+
+    expect(screen.getByTestId('derived-state')).toHaveTextContent(
+      'Test message, Test response',
+    );
+  });
 });

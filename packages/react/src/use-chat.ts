@@ -18,8 +18,8 @@ import {
   shouldResubmitMessages,
   updateToolCallResult,
 } from '@ai-sdk/ui-utils';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import useSWR from 'swr';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import useSWR, { unstable_serialize } from 'swr';
 import { throttle } from './throttle';
 
 export type { CreateMessage, Message, UseChatOptions };
@@ -179,19 +179,19 @@ By default, it's set to 1, which means that only a single LLM call is made.
   const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
 
   // Store a empty array as the initial messages
-  // (instead of using a default parameter value that gets re-created each time)
+  // (processed with messaged parts if applicable)
+  // instead of using a default parameter value that gets re-created each time
   // to avoid re-renders:
-  const [initialMessagesFallback] = useState([]);
+  const [initialMessagesFallback] = useState(
+    initialMessages != null ? fillMessageParts(initialMessages) : [],
+  );
 
   // Store the chat state in SWR, using the chatId as the key to share states.
   const { data: messages, mutate } = useSWR<UIMessage[]>(
     [chatKey, 'messages'],
     null,
     {
-      fallbackData:
-        initialMessages != null
-          ? fillMessageParts(initialMessages)
-          : initialMessagesFallback,
+      fallbackData: initialMessagesFallback,
     },
   );
 
