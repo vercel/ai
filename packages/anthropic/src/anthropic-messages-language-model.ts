@@ -111,6 +111,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     const { prompt: messagesPrompt, betas: messagesBetas } =
       convertToAnthropicMessagesPrompt({
         prompt,
+        sendReasoning: this.settings.sendReasoning ?? true,
       });
 
     const thinkingOptions = thinkingOptionsSchema.safeParse(
