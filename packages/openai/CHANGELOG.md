@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.1.15
+
+### Patch Changes
+
+- d8216f8: feat (provider/openai): add gpt-4.5-preview to model id set
+
 ## 1.1.14
 
 ### Patch Changes
