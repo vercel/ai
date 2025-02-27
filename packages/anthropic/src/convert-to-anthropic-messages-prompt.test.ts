@@ -1,3 +1,4 @@
+import { LanguageModelV1CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 
 describe('system messages', () => {
@@ -5,6 +6,7 @@ describe('system messages', () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [{ role: 'system', content: 'This is a system message' }],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -23,6 +25,7 @@ describe('system messages', () => {
         { role: 'system', content: 'This is another system message' },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -54,6 +57,7 @@ describe('user messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -94,6 +98,7 @@ describe('user messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -135,6 +140,7 @@ describe('user messages', () => {
           },
         ],
         sendReasoning: true,
+        warnings: [],
       }),
     ).toThrow('Non-PDF files in user messages');
   });
@@ -155,6 +161,7 @@ describe('user messages', () => {
           },
         ],
         sendReasoning: true,
+        warnings: [],
       }),
     ).toThrow('Non-PDF files in user messages');
   });
@@ -177,6 +184,7 @@ describe('tool messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -222,6 +230,7 @@ describe('tool messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -271,6 +280,7 @@ describe('tool messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -322,6 +332,7 @@ describe('tool messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -369,6 +380,7 @@ describe('assistant messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -404,6 +416,7 @@ describe('assistant messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -443,6 +456,7 @@ describe('assistant messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -475,6 +489,7 @@ describe('assistant messages', () => {
         { role: 'assistant', content: [{ type: 'text', text: '!' }] },
       ],
       sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -496,6 +511,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
+    const warnings: LanguageModelV1CallWarning[] = [];
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -514,6 +530,7 @@ describe('assistant messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings,
     });
 
     expect(result).toEqual({
@@ -538,9 +555,11 @@ describe('assistant messages', () => {
       },
       betas: new Set(),
     });
+    expect(warnings).toEqual([]);
   });
 
   it('should convert reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
+    const warnings: LanguageModelV1CallWarning[] = [];
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -558,6 +577,7 @@ describe('assistant messages', () => {
         },
       ],
       sendReasoning: true,
+      warnings,
     });
 
     expect(result).toEqual({
@@ -581,9 +601,11 @@ describe('assistant messages', () => {
       },
       betas: new Set(),
     });
+    expect(warnings).toEqual([]);
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
+    const warnings: LanguageModelV1CallWarning[] = [];
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -602,6 +624,7 @@ describe('assistant messages', () => {
         },
       ],
       sendReasoning: false,
+      warnings,
     });
 
     expect(result).toEqual({
@@ -620,14 +643,25 @@ describe('assistant messages', () => {
       },
       betas: new Set(),
     });
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message: 'reasoning content is removed for this model',
+      },
+    ]);
   });
 
   it('should omit reasoning parts without signature when sendReasoning is false', async () => {
+    const warnings: LanguageModelV1CallWarning[] = [];
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'assistant',
           content: [
+            {
+              type: 'reasoning',
+              text: 'I need to count the number of "r"s in the word "strawberry".',
+            },
             {
               type: 'text',
               text: 'The word "strawberry" has 2 "r"s.',
@@ -636,6 +670,7 @@ describe('assistant messages', () => {
         },
       ],
       sendReasoning: false,
+      warnings,
     });
 
     expect(result).toEqual({
@@ -654,6 +689,12 @@ describe('assistant messages', () => {
       },
       betas: new Set(),
     });
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message: 'reasoning content is removed for this model',
+      },
+    ]);
   });
 });
 
@@ -671,6 +712,7 @@ describe('cache control', () => {
           },
         ],
         sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -709,6 +751,7 @@ describe('cache control', () => {
           },
         ],
         sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -747,6 +790,7 @@ describe('cache control', () => {
           },
         ],
         sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -795,6 +839,7 @@ describe('cache control', () => {
           },
         ],
         sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -839,6 +884,7 @@ describe('cache control', () => {
           },
         ],
         sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -881,6 +927,7 @@ describe('cache control', () => {
           },
         ],
         sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -931,6 +978,7 @@ describe('cache control', () => {
           },
         ],
         sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -981,6 +1029,7 @@ describe('cache control', () => {
           },
         ],
         sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
