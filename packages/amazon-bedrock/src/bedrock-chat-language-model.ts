@@ -558,6 +558,9 @@ const BedrockStreamSchema = z.object({
               signature: z.string(),
             }),
           }),
+          z.object({
+            reasoningContent: z.object({ data: z.string() }),
+          }),
         ])
         .optional(),
     })

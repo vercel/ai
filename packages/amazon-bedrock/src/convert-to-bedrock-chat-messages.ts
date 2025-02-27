@@ -254,11 +254,6 @@ type AssistantBlock = {
   type: 'assistant';
   messages: Array<LanguageModelV1Message & { role: 'assistant' }>;
 };
-type ThinkingBlock = {
-  type: 'thinking';
-  thinking: string;
-  signature: string;
-};
 type UserBlock = {
   type: 'user';
   messages: Array<LanguageModelV1Message & { role: 'user' | 'tool' }>;
