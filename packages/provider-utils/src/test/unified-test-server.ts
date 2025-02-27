@@ -29,7 +29,13 @@ export type UrlHandler = {
         headers?: Record<string, string>;
         status?: number;
         body?: string;
-      };
+      }
+    | {
+        type: 'readable-stream';
+        headers?: Record<string, string>;
+        stream: ReadableStream;
+      }
+    | undefined;
 };
 
 export type FullUrlHandler = {
@@ -59,6 +65,11 @@ export type FullUrlHandler = {
         type: 'empty';
         headers?: Record<string, string>;
         status?: number;
+      }
+    | {
+        type: 'readable-stream';
+        headers?: Record<string, string>;
+        stream: ReadableStream;
       }
     | undefined;
 };
@@ -145,6 +156,21 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
                 },
               },
             );
+
+          case 'readable-stream': {
+            return new HttpResponse(
+              response.stream.pipeThrough(new TextEncoderStream()),
+              {
+                status: 200,
+                headers: {
+                  'Content-Type': 'text/event-stream',
+                  'Cache-Control': 'no-cache',
+                  Connection: 'keep-alive',
+                  ...response.headers,
+                },
+              },
+            );
+          }
 
           case 'binary': {
             return HttpResponse.arrayBuffer(response.body, {

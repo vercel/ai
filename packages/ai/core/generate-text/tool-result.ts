@@ -10,7 +10,7 @@ type ToToolsWithExecute<TOOLS extends ToolSet> = {
 };
 
 // limits the tools to those that have execute !== undefined
-type ToToolsWithDefinedExecute<TOOLS extends ToolSet> = {
+export type ToToolsWithDefinedExecute<TOOLS extends ToolSet> = {
   [K in keyof TOOLS as TOOLS[K]['execute'] extends undefined
     ? never
     : K]: TOOLS[K];

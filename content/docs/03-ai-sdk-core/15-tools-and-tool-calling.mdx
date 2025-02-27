@@ -624,6 +624,107 @@ export const weatherTool = tool({
 });
 ```
 
+## MCP Tools
+
+The AI SDK supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers to access their tools. This enables your AI applications to discover and use tools across various services through a standardized interface.
+
+### Initializing an MCP Client
+
+Create an MCP client using either:
+
+- `stdio`: Uses standard input and output streams for communication, ideal for local tool servers running on the same machine (like CLI tools or local services)
+- `SSE` (Server-Sent Events): Uses HTTP-based real-time communication, better suited for remote servers that need to send data over the network
+
+```typescript
+// Example of using MCP with stdio
+const client = await createMCPClient({
+  transport: {
+    type: 'stdio',
+    command: 'node',
+    args: ['src/stdio/dist/server.js'],
+  },
+});
+
+// Example of using MCP with SSE
+const client = await createMCPClient({
+  transport: {
+    type: 'sse',
+    url: 'https://my-server.com/sse',
+  },
+});
+```
+
+After initialization, always close the MCP client when you're done to prevent resource leaks. Use try/finally or cleanup functions in your framework:
+
+```typescript
+  try {
+    const client = await createMCPClient({...});
+    const tools = await client.tools();
+    // use tools...
+  } finally {
+    await client?.close();
+  }
+```
+
+### Using MCP Tools
+
+The client's `tools` method acts as an adapter between MCP tools and AI SDK tools. It supports two approaches for working with tool schemas:
+
+#### Runtime Schema Discovery
+
+The simplest approach where all tools offered by the server are listed, and input parameter types are inferred based the schemas provided by the server:
+
+```typescript
+const tools = await client.tools();
+```
+
+**Pros:**
+
+- Simpler to implement
+- Automatically stays in sync with server changes
+
+**Cons:**
+
+- No TypeScript type safety during development
+- No IDE autocompletion for tool parameters
+- Errors only surface at runtime
+
+#### Compile-Time Schema Definition
+
+Define the tools and their input schemas explicitly in your client code:
+
+```typescript
+import { z } from 'zod';
+
+const toolSchemas = {
+  'get-data': {
+    parameters: z.object({
+      query: z.string().describe('The data query'),
+      format: z.enum(['json', 'text']).optional(),
+    }),
+  },
+} as const;
+
+const tools = await client.tools({ schemas: toolSchemas });
+```
+
+**Pros:**
+
+- Full TypeScript type safety
+- Better IDE support with autocompletion
+- Catch parameter mismatches during development
+
+**Cons:**
+
+- Need to manually keep schemas in sync with server
+- More code to maintain
+
+When you define `schemas`, the client will only pull the explicitly defined tools, even if the server offers additional tools. This can be beneficial for:
+
+- Keeping your application focused on the tools it needs
+- Reducing unnecessary tool loading
+- Making your tool dependencies explicit
+
 ## Examples
 
 You can see tools in action using various frameworks in the following examples:
