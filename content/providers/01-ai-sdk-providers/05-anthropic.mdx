@@ -95,6 +95,15 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
   instead of streaming it incrementally.
 </Note>
 
+The following optional settings are available for Anthropic models:
+
+- `sendReasoning` _boolean_
+
+  Optional. Include reasoning content in requests sent to the model. Defaults to `true`.
+
+  If you are experiencing issues with the model handling requests involving
+  reasoning content, you can set this to `false` to omit them from the request.
+
 ### Reasoning
 
 Anthropic has reasoning support for the `claude-3-7-sonnet-20250219` model.

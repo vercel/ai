@@ -1,4 +1,5 @@
 import {
+  LanguageModelV1CallWarning,
   LanguageModelV1Message,
   LanguageModelV1Prompt,
   LanguageModelV1ProviderMetadata,
@@ -14,8 +15,12 @@ import {
 
 export function convertToAnthropicMessagesPrompt({
   prompt,
+  sendReasoning,
+  warnings,
 }: {
   prompt: LanguageModelV1Prompt;
+  sendReasoning: boolean;
+  warnings: LanguageModelV1CallWarning[];
 }): {
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -251,12 +256,20 @@ export function convertToAnthropicMessagesPrompt({
               }
 
               case 'reasoning': {
-                anthropicContent.push({
-                  type: 'thinking',
-                  thinking: part.text,
-                  signature: part.signature!,
-                  cache_control: cacheControl,
-                });
+                if (sendReasoning) {
+                  anthropicContent.push({
+                    type: 'thinking',
+                    thinking: part.text,
+                    signature: part.signature!,
+                    cache_control: cacheControl,
+                  });
+                } else {
+                  warnings.push({
+                    type: 'other',
+                    message:
+                      'sending reasoning content is disabled for this model',
+                  });
+                }
                 break;
               }
 
@@ -268,6 +281,7 @@ export function convertToAnthropicMessagesPrompt({
                 });
                 break;
               }
+
               case 'tool-call': {
                 anthropicContent.push({
                   type: 'tool_use',
