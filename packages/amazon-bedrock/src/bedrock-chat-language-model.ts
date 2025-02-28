@@ -247,14 +247,33 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       rawResponse: { headers: responseHeaders },
       warnings,
       reasoning: response.output?.message?.content
-        ?.filter(part => part.reasoningContent?.reasoningText?.text != null)
-        ?.map(part => ({
-          type: 'text' as const,
-          text: part.reasoningContent?.reasoningText?.text!,
-          ...(part.reasoningContent?.reasoningText?.signature && {
-            signature: part.reasoningContent.reasoningText.signature,
-          }),
-        })),
+        ?.filter(
+          part =>
+            part.reasoningContent &&
+            (('reasoningText' in part.reasoningContent &&
+              part.reasoningContent.reasoningText.text != null) ||
+              ('redactedReasoning' in part.reasoningContent &&
+                part.reasoningContent.redactedReasoning.data != null)),
+        )
+        ?.map(part => {
+          const reasoningContent = part.reasoningContent!;
+
+          if ('reasoningText' in reasoningContent) {
+            return {
+              type: 'text' as const,
+              text: reasoningContent.reasoningText.text,
+              ...(reasoningContent.reasoningText.signature && {
+                signature: reasoningContent.reasoningText.signature,
+              }),
+            };
+          } else {
+            // Must be redactedReasoning
+            return {
+              type: 'redacted' as const,
+              data: reasoningContent.redactedReasoning.data,
+            };
+          }
+        }),
       ...(providerMetadata && { providerMetadata }),
     };
   }
@@ -414,6 +433,11 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
                   type: 'reasoning-signature',
                   signature: reasoningContent.signature,
                 });
+              } else if ('data' in reasoningContent && reasoningContent.data) {
+                controller.enqueue({
+                  type: 'redacted-reasoning',
+                  data: reasoningContent.data,
+                });
               }
             }
 
@@ -505,7 +529,11 @@ const BedrockReasoningTextSchema = z.object({
   text: z.string(),
 });
 
-// limited version of the schema, focussed on what is needed for the implementation
+const BedrockRedactedReasoningSchema = z.object({
+  data: z.string(),
+});
+
+// limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const BedrockResponseSchema = z.object({
   metrics: z
@@ -520,9 +548,14 @@ const BedrockResponseSchema = z.object({
           text: z.string().nullish(),
           toolUse: BedrockToolUseSchema.nullish(),
           reasoningContent: z
-            .object({
-              reasoningText: BedrockReasoningTextSchema,
-            })
+            .union([
+              z.object({
+                reasoningText: BedrockReasoningTextSchema,
+              }),
+              z.object({
+                redactedReasoning: BedrockRedactedReasoningSchema,
+              }),
+            ])
             .nullish(),
         }),
       ),
