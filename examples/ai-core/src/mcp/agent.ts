@@ -7,7 +7,7 @@ import { z } from 'zod';
  * When running this example:
  *
  * 1. Build the server: npx tsc server.ts --outDir dist --target es2022
- * 2. Run the agent: pnpm tsx src/complex/mcp/agent.ts
+ * 2. Run the agent: pnpm tsx src/mcp/agent.ts
  */
 
 const toolSchemas = {
@@ -22,7 +22,7 @@ async function main() {
       server: {
         type: 'stdio',
         command: 'node',
-        args: ['src/complex/mcp/dist/server.js'],
+        args: ['src/mcp/dist/server.js'],
       },
     },
     toolSchemas,
