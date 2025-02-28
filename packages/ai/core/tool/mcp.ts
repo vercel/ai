@@ -1,56 +1,89 @@
+import { ToolSet } from './../generate-text/tool-set';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import {
-  StdioClientTransport,
-  StdioServerParameters,
-} from '@modelcontextprotocol/sdk/client/stdio.js';
-import {
-  SSEClientTransport,
-  SSEClientTransportOptions,
-} from '@modelcontextprotocol/sdk/client/sse.js';
-import {
-  ListToolsResult,
   CallToolResultSchema,
   CallToolResult,
 } from '@modelcontextprotocol/sdk/types';
 import { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol';
 
 import { jsonSchema, Schema } from '@ai-sdk/ui-utils';
-import { JSONSchema7 } from '@ai-sdk/provider';
+import { AISDKError, JSONSchema7 } from '@ai-sdk/provider';
 
-import { inferParameters, Tool } from './tool';
+import { inferParameters, Tool, tool } from './tool';
 import { z } from 'zod';
+import { IOType } from 'node:child_process';
+import { Stream } from 'node:stream';
 
-type McpStdioServerConfig = StdioServerParameters & {
+interface McpStdioServerConfig {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  stderr?: IOType | Stream | number;
+  cwd?: string;
   type: 'stdio';
-};
+}
 interface McpSSEServerConfig {
   type: 'sse';
   url: string;
-  options?: SSEClientTransportOptions;
+  options?: {
+    // authProvider?: OAuthClientProvider;
+    eventSourceInit?: EventSourceInit;
+    requestInit?: RequestInit;
+  };
 }
-type McpServerConfig = McpStdioServerConfig | McpSSEServerConfig;
+interface McpClientConfig {
+  name: string;
+  version: string;
+  capabilities: Record<string, string>;
+  /**
+   * Timeout in milliseconds for connecting to an MCP server
+   * @default 5000
+   */
+  connectTimeoutMs: number;
+}
 
-interface CreateMcpToolsConfig {
-  servers: Record<string, McpServerConfig>;
+interface AdapterConfig {
+  server: McpStdioServerConfig | McpSSEServerConfig;
+  clientConfig?: McpClientConfig;
   toolCallOptions?: RequestOptions;
 }
-
-type McpCallToolInputSchema = z.ZodType<any, any, any> | Schema<any>;
-type McpToolSchemaMap = Record<string, { input: McpCallToolInputSchema }>;
-interface McpToolset<TToolSchemas extends McpToolSchemaMap = {}> {
-  tools: {
-    [K in keyof TToolSchemas]: Tool<
-      inferParameters<TToolSchemas[K]['input']>,
-      CallToolResult
-    >;
-  };
-  clients: Record<string, Client>;
+interface AdapterReturnType<TOOL_SCHEMAS extends ToolSchemas = {}> {
+  tools: McpToolSet<TOOL_SCHEMAS>;
+  client: Client;
 }
 
-// Based off: https://github.com/dnakov/claude-code/blob/da716d77b251868918bb5776377f85a18a47ffdf/src/services/mcpClient.ts#L224
+type ToolSchemas = Record<string, { input: z.ZodTypeAny | Schema<any> }>;
+
+type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = {}> = ToolSet & {
+  [K in keyof TOOL_SCHEMAS]: Tool<
+    inferParameters<TOOL_SCHEMAS[K]['input']>,
+    CallToolResult
+  > & {
+    execute: (
+      args: inferParameters<TOOL_SCHEMAS[K]['input']>,
+      // options?
+    ) => Promise<CallToolResult>;
+  };
+} & {
+  [key: string]: Tool<any, CallToolResult> & {
+    execute: (
+      args: any,
+      // options?
+    ) => Promise<CallToolResult>;
+  };
+};
+
+// Heavily inspired by: https://github.com/dnakov/claude-code/blob/da716d77b251868918bb5776377f85a18a47ffdf/src/services/mcpClient.ts#L224
 async function connectToServer(
-  name: string,
-  serverConfig: McpServerConfig,
+  serverConfig: McpStdioServerConfig | McpSSEServerConfig,
+  clientConfig: McpClientConfig = {
+    name: 'ai-sdk-mcp-client',
+    version: '1.0.0',
+    capabilities: {},
+    connectTimeoutMs: 5000,
+  },
 ): Promise<Client> {
   const transport =
     serverConfig.type === 'sse'
@@ -63,26 +96,28 @@ async function connectToServer(
           } as Record<string, string>,
         });
 
+  const { name, version, capabilities, connectTimeoutMs } = clientConfig;
+
   const client = new Client(
     {
-      name: `${name}-client`,
-      version: '0.1.0',
+      name,
+      version,
     },
     {
-      capabilities: {},
+      capabilities,
     },
   );
 
-  const CONNECTION_TIMEOUT_MS = 5000;
   const connectPromise = client.connect(transport);
   const timeoutPromise = new Promise<never>((_, reject) => {
     const timeoutId = setTimeout(() => {
       reject(
-        new Error(
-          `Connection to MCP server "${name}" timed out after ${CONNECTION_TIMEOUT_MS}ms`,
-        ),
+        new AISDKError({
+          name: 'McpToolAdapterError',
+          message: `Connection to ${serverConfig.type} MCP server timed out after ${connectTimeoutMs}ms`,
+        }),
       );
-    }, CONNECTION_TIMEOUT_MS);
+    }, connectTimeoutMs);
 
     connectPromise.then(
       () => clearTimeout(timeoutId),
@@ -96,16 +131,67 @@ async function connectToServer(
   try {
     await Promise.race([connectPromise, timeoutPromise]);
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(
-        `Failed to connect to MCP server "${name}". ${error.message}`,
-        { cause: error },
-      );
-    }
-    throw error;
+    throw new AISDKError({
+      name: 'McpToolAdapterError',
+      message: `Failed to connect to ${serverConfig.type} MCP server`,
+      cause: error,
+    });
   }
 
   return client;
+}
+
+export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
+  config: AdapterConfig,
+  toolSchemas: TOOL_SCHEMAS,
+): Promise<AdapterReturnType<TOOL_SCHEMAS>> {
+  const tools: Record<string, Tool> = {};
+
+  try {
+    const client = await connectToServer(config.server, config.clientConfig);
+    const listToolsResult = await client.listTools();
+
+    for (const { name, description, inputSchema } of listToolsResult.tools) {
+      const parameters = toolSchemas[name]
+        ? toolSchemas[name].input
+        : jsonSchema(inputSchema as JSONSchema7);
+
+      const baseTool = tool({
+        description,
+        parameters,
+      });
+
+      const toolWithExecute = {
+        ...baseTool,
+        execute: async (
+          args: inferParameters<typeof parameters>,
+        ): Promise<CallToolResult> => {
+          const result = await client.callTool(
+            {
+              name,
+              arguments: args,
+            },
+            CallToolResultSchema,
+            config.toolCallOptions,
+          );
+          return result as CallToolResult;
+        },
+      };
+
+      tools[name] = toolWithExecute;
+    }
+
+    return {
+      tools: tools as McpToolSet<TOOL_SCHEMAS>,
+      client,
+    };
+  } catch (error) {
+    throw new AISDKError({
+      name: 'McpToolAdapterError',
+      message: `Failed to generate tools for ${config.server.type} MCP server`,
+      cause: error,
+    });
+  }
 }
 
 // To address:
@@ -120,6 +206,7 @@ async function connectToServer(
  * 
  * const toolManager = new McpToolManager({
   sse: {
+  sse: {
     type: 'sse',
     url: 'https://server.com/sse'
   },
@@ -131,79 +218,7 @@ async function connectToServer(
  */
 
 /**
- * Get Lars review on:
- * - Generic type approach for dynamic input parameters
- * - Which package to add to? Core is okie?
- */
-
-/**
  * Add tests, web socket impl. for `msw`
  * Read: https://mswjs.io/docs/basics/handling-websocket-events
  * Also add new example(s) for MCP stdio (and SSE?)
  */
-
-/**
- * Overall improvement of error handling
- */
-
-export async function createMcpTools<
-  TToolSchemas extends McpToolSchemaMap = {},
->(config: CreateMcpToolsConfig): Promise<McpToolset<TToolSchemas>> {
-  const toolSet: McpToolset<TToolSchemas> = {
-    tools: {} as McpToolset<TToolSchemas>['tools'],
-    clients: {},
-  };
-
-  const clientConnections = await Promise.allSettled(
-    Object.entries(config.servers).map(async ([name, serverConfig]) => {
-      const client = await connectToServer(name, serverConfig);
-      return { name, client };
-    }),
-  );
-
-  await Promise.all(
-    clientConnections.map(async result => {
-      if (result.status === 'fulfilled') {
-        const { name, client } = result.value;
-        toolSet.clients[name] = client;
-
-        try {
-          const listToolsResult: ListToolsResult = await client.listTools();
-
-          for (const tool of listToolsResult.tools) {
-            const toolName = `${name}:${tool.name}` as keyof TToolSchemas;
-            const parameters = jsonSchema(tool.inputSchema as JSONSchema7);
-
-            (toolSet.tools[toolName] as any) = {
-              description: tool.description,
-              parameters,
-              execute: async <T extends inferParameters<typeof parameters>>(
-                args: T,
-              ): Promise<CallToolResult> => {
-                const result = await client.callTool(
-                  {
-                    name: tool.name,
-                    arguments: args as Record<string, unknown>,
-                  },
-                  CallToolResultSchema,
-                  config.toolCallOptions,
-                );
-                return result as CallToolResult;
-              },
-            };
-          }
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          throw new Error(
-            `Failed to list tools for server ${name}: ${errorMessage}`,
-          );
-        }
-      } else {
-        throw new Error(`Failed to connect to server: ${result.reason}`);
-      }
-    }),
-  );
-
-  return toolSet;
-}
