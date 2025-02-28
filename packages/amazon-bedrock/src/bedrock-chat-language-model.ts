@@ -223,6 +223,35 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
           }
         : undefined;
 
+    const reasoningDetails = (response.output?.message?.content || [])
+      .filter(
+        part =>
+          part.reasoningContent &&
+          (('reasoningText' in part.reasoningContent &&
+            part.reasoningContent.reasoningText.text != null) ||
+            ('redactedReasoning' in part.reasoningContent &&
+              part.reasoningContent.redactedReasoning.data != null)),
+      )
+      .map(part => {
+        const reasoningContent = part.reasoningContent!;
+
+        if ('reasoningText' in reasoningContent) {
+          return {
+            type: 'text' as const,
+            text: reasoningContent.reasoningText.text,
+            ...(reasoningContent.reasoningText.signature && {
+              signature: reasoningContent.reasoningText.signature,
+            }),
+          };
+        } else {
+          // Must be redactedReasoning
+          return {
+            type: 'redacted' as const,
+            data: reasoningContent.redactedReasoning.data,
+          };
+        }
+      });
+
     return {
       text:
         response.output?.message?.content
@@ -246,35 +275,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
-      reasoning:
-        response.output?.message?.content
-          ?.filter(
-            part =>
-              part.reasoningContent &&
-              (('reasoningText' in part.reasoningContent &&
-                part.reasoningContent.reasoningText.text != null) ||
-                ('redactedReasoning' in part.reasoningContent &&
-                  part.reasoningContent.redactedReasoning.data != null)),
-          )
-          ?.map(part => {
-            const reasoningContent = part.reasoningContent!;
-
-            if ('reasoningText' in reasoningContent) {
-              return {
-                type: 'text' as const,
-                text: reasoningContent.reasoningText.text,
-                ...(reasoningContent.reasoningText.signature && {
-                  signature: reasoningContent.reasoningText.signature,
-                }),
-              };
-            } else {
-              // Must be redactedReasoning
-              return {
-                type: 'redacted' as const,
-                data: reasoningContent.redactedReasoning.data,
-              };
-            }
-          }) || undefined,
+      reasoning: reasoningDetails,
       ...(providerMetadata && { providerMetadata }),
     };
   }
