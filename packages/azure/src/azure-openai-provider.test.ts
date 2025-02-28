@@ -353,14 +353,16 @@ describe('image', () => {
     it('should set the correct modified api version', async () => {
       prepareJsonResponse();
 
-      await providerApiVersionChanged.image('dalle-deployment').doGenerate({
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
+      await providerApiVersionChanged
+        .imageModel('dalle-deployment')
+        .doGenerate({
+          prompt,
+          n: 1,
+          size: '1024x1024',
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
 
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
@@ -405,7 +407,7 @@ describe('image', () => {
       prepareJsonResponse();
 
       const provider = createAzure({
-        baseURL: 'https://custom-endpoint.azure.com/openai/deployments',
+        baseURL: 'https://test-resource.openai.azure.com/openai/deployments',
         apiKey: 'test-api-key',
       });
 
@@ -419,8 +421,8 @@ describe('image', () => {
       });
 
       const requestUrl = await server.getRequestUrl();
-      expect(requestUrl).toMatch(
-        /https:\/\/custom-endpoint\.azure\.com\/openai\/deployments\/dalle-deployment\/images\/generations\?api-version=.*/,
+      expect(requestUrl).toStrictEqual(
+        'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations?api-version=2024-10-01-preview',
       );
     });
 
@@ -452,29 +454,13 @@ describe('image', () => {
       });
 
       expect(await server.getRequestBodyJson()).toStrictEqual({
+        model: 'dalle-deployment',
         prompt,
         n: 2,
         size: '1024x1024',
         style: 'natural',
         response_format: 'b64_json',
       });
-    });
-
-    it('should not include model in request body', async () => {
-      // Azure API doesn't need model in the request body since it's in the URL
-      prepareJsonResponse();
-
-      await provider.imageModel('dalle-deployment').doGenerate({
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-      });
-
-      const requestBody = await server.getRequestBodyJson();
-      expect(requestBody.model).toBeUndefined();
     });
   });
 

@@ -147,10 +147,10 @@ export function createAzure(
       : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${apiVersion}`;
 
   const createChatModel = (
-    deploymentName: string,
+    deploymentId: string,
     settings: OpenAIChatSettings = {},
   ) =>
-    new OpenAIChatLanguageModel(deploymentName, settings, {
+    new OpenAIChatLanguageModel(deploymentId, settings, {
       provider: 'azure-openai.chat',
       url,
       headers: getHeaders,
@@ -159,10 +159,10 @@ export function createAzure(
     });
 
   const createCompletionModel = (
-    modelId: string,
+    deploymentId: string,
     settings: OpenAICompletionSettings = {},
   ) =>
-    new OpenAICompletionLanguageModel(modelId, settings, {
+    new OpenAICompletionLanguageModel(deploymentId, settings, {
       provider: 'azure-openai.completion',
       url,
       compatibility: 'strict',
@@ -171,10 +171,10 @@ export function createAzure(
     });
 
   const createEmbeddingModel = (
-    modelId: string,
+    deploymentId: string,
     settings: OpenAIEmbeddingSettings = {},
   ) =>
-    new OpenAIEmbeddingModel(modelId, settings, {
+    new OpenAIEmbeddingModel(deploymentId, settings, {
       provider: 'azure-openai.embeddings',
       headers: getHeaders,
       url,
@@ -214,7 +214,7 @@ export function createAzure(
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
-  return provider;
+  return provider as AzureOpenAIProvider;
 }
 
 /**
