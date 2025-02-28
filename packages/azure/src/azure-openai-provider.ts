@@ -98,6 +98,11 @@ or to provide a custom fetch implementation for e.g. testing.
 Custom api version to use. Defaults to `2024-10-01-preview`.
     */
   apiVersion?: string;
+
+  /**
+  Function to fetch an authorization token using Azure Managed Identity using the `@azure/identity` package. If provided, the `apiKey` is ignored.
+   */
+  identityTokenProvider?: () => Promise<string>;
 }
 
 /**
@@ -107,11 +112,15 @@ export function createAzure(
   options: AzureOpenAIProviderSettings = {},
 ): AzureOpenAIProvider {
   const getHeaders = () => ({
-    'api-key': loadApiKey({
-      apiKey: options.apiKey,
-      environmentVariableName: 'AZURE_API_KEY',
-      description: 'Azure OpenAI',
-    }),
+    ...(options.identityTokenProvider
+      ? {}
+      : {
+          'api-key': loadApiKey({
+            apiKey: options.apiKey,
+            environmentVariableName: 'AZURE_API_KEY',
+            description: 'Azure OpenAI',
+          }),
+        }),
     ...options.headers,
   });
 
@@ -129,6 +138,36 @@ export function createAzure(
       ? `${options.baseURL}/${modelId}${path}?api-version=${apiVersion}`
       : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${apiVersion}`;
 
+  const wrappedFetch = async function (...args: Parameters<FetchFunction>) {
+    if (options.identityTokenProvider) {
+      const [input, init] = args;
+      let token: string;
+
+      try {
+        token = await options.identityTokenProvider();
+      } catch (error) {
+        throw new Error(
+          'Failed to fetch Azure Managed Identity token: ' +
+            (error as Error).message,
+        );
+      }
+      if (!token || typeof token !== 'string') {
+        throw new Error(
+          `Invalid Azure Managed Identity token format: token must be a non-empty string. Received: ${token}`,
+        );
+      }
+
+      return (options.fetch || fetch)(input, {
+        ...init,
+        headers: {
+          ...init?.headers,
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    }
+    return (options.fetch || fetch)(...args);
+  } as FetchFunction;
+
   const createChatModel = (
     deploymentName: string,
     settings: OpenAIChatSettings = {},
@@ -138,7 +177,7 @@ export function createAzure(
       url,
       headers: getHeaders,
       compatibility: 'strict',
-      fetch: options.fetch,
+      fetch: wrappedFetch,
     });
 
   const createCompletionModel = (
@@ -150,7 +189,7 @@ export function createAzure(
       url,
       compatibility: 'strict',
       headers: getHeaders,
-      fetch: options.fetch,
+      fetch: wrappedFetch,
     });
 
   const createEmbeddingModel = (
@@ -161,7 +200,7 @@ export function createAzure(
       provider: 'azure-openai.embeddings',
       headers: getHeaders,
       url,
-      fetch: options.fetch,
+      fetch: wrappedFetch,
     });
 
   const provider = function (
