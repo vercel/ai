@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.0.5
+
+### Patch Changes
+
+- 58c3411: feat (provider/amazon-bedrock): add generate image support for Amazon Nova Canvas
+
 ## 2.0.4
 
 ### Patch Changes

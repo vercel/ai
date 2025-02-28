@@ -37,9 +37,9 @@ export function prepareTools(
         });
         break;
       case 'provider-defined':
-        betas.add('computer-use-2024-10-22');
         switch (tool.id) {
           case 'anthropic.computer_20250124':
+            betas.add('computer-use-2025-01-24');
             anthropicTools.push({
               name: tool.name,
               type: 'computer_20250124',
@@ -49,6 +49,7 @@ export function prepareTools(
             });
             break;
           case 'anthropic.computer_20241022':
+            betas.add('computer-use-2024-10-22');
             anthropicTools.push({
               name: tool.name,
               type: 'computer_20241022',
@@ -58,12 +59,14 @@ export function prepareTools(
             });
             break;
           case 'anthropic.text_editor_20241022':
+            betas.add('computer-use-2024-10-22');
             anthropicTools.push({
               name: tool.name,
               type: 'text_editor_20241022',
             });
             break;
           case 'anthropic.bash_20241022':
+            betas.add('computer-use-2024-10-22');
             anthropicTools.push({
               name: tool.name,
               type: 'bash_20241022',
