@@ -1944,27 +1944,24 @@ describe('initialMessages stability', () => {
   });
 
   it('should not cause infinite rerenders when initialMessages is defined and messages is a dependency of useEffect', async () => {
+    // wait for initial render to complete
     await waitFor(() => {
       expect(screen.getByTestId('message-user')).toHaveTextContent(
         'Test message',
       );
     });
 
-    const initialRenderCount = parseInt(
-      screen.getByTestId('render-count').textContent || '0',
+    // confirm useEffect ran
+    await waitFor(() => {
+      expect(screen.getByTestId('derived-state')).toHaveTextContent(
+        'Test message, Test response',
+      );
+    });
+
+    const renderCount = parseInt(
+      screen.getByTestId('render-count').textContent!,
     );
 
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    const finalRenderCount = parseInt(
-      screen.getByTestId('render-count').textContent || '0',
-    );
-
-    expect(finalRenderCount).toBeLessThan(3);
-    expect(finalRenderCount).toBe(initialRenderCount);
-
-    expect(screen.getByTestId('derived-state')).toHaveTextContent(
-      'Test message, Test response',
-    );
+    expect(renderCount).toBe(2);
   });
 });
