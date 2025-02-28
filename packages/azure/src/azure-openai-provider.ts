@@ -5,11 +5,14 @@ import {
   OpenAICompletionSettings,
   OpenAIEmbeddingModel,
   OpenAIEmbeddingSettings,
+  OpenAIImageModel,
+  OpenAIImageSettings,
 } from '@ai-sdk/openai/internal';
 import {
   EmbeddingModelV1,
   LanguageModelV1,
   ProviderV1,
+  ImageModelV1,
 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
@@ -44,6 +47,20 @@ Creates an Azure OpenAI completion model for text generation.
     deploymentId: string,
     settings?: OpenAIEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  /**
+   * Creates an Azure OpenAI DALL-E model for image generation.
+   * @deprecated Use `imageModel` instead.
+   */
+  image(deploymentId: string, settings?: OpenAIImageSettings): ImageModelV1;
+
+  /**
+   * Creates an Azure OpenAI DALL-E model for image generation.
+   */
+  imageModel(
+    deploymentId: string,
+    settings?: OpenAIImageSettings,
+  ): ImageModelV1;
 
   /**
 @deprecated Use `textEmbeddingModel` instead.
@@ -164,6 +181,17 @@ export function createAzure(
       fetch: options.fetch,
     });
 
+  const createImageModel = (
+    deploymentId: string,
+    settings: OpenAIImageSettings = {},
+  ) =>
+    new OpenAIImageModel(deploymentId, settings, {
+      provider: 'azure-openai.image',
+      url,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (
     deploymentId: string,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
@@ -181,6 +209,8 @@ export function createAzure(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 

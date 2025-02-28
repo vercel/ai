@@ -305,3 +305,186 @@ describe('embedding', () => {
     });
   });
 });
+
+describe('image', () => {
+  const prompt = 'A cute baby sea otter';
+
+  describe('doGenerate', () => {
+    const server = new JsonTestServer(
+      'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations',
+    );
+
+    server.setupTestEnvironment();
+
+    function prepareJsonResponse() {
+      server.responseBodyJson = {
+        created: 1733837122,
+        data: [
+          {
+            revised_prompt:
+              'A charming visual illustration of a baby sea otter swimming joyously.',
+            b64_json: 'base64-image-1',
+          },
+          {
+            b64_json: 'base64-image-2',
+          },
+        ],
+      };
+    }
+
+    it('should set the correct default api version', async () => {
+      prepareJsonResponse();
+
+      await provider.imageModel('dalle-deployment').doGenerate({
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const searchParams = await server.getRequestUrlSearchParams();
+      expect(searchParams.get('api-version')).toStrictEqual(
+        '2024-10-01-preview',
+      );
+    });
+
+    it('should set the correct modified api version', async () => {
+      prepareJsonResponse();
+
+      await providerApiVersionChanged.image('dalle-deployment').doGenerate({
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const searchParams = await server.getRequestUrlSearchParams();
+      expect(searchParams.get('api-version')).toStrictEqual(
+        '2024-08-01-preview',
+      );
+    });
+
+    it('should pass headers', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        resourceName: 'test-resource',
+        apiKey: 'test-api-key',
+        headers: {
+          'Custom-Provider-Header': 'provider-header-value',
+        },
+      });
+
+      await provider.imageModel('dalle-deployment').doGenerate({
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+        headers: {
+          'Custom-Request-Header': 'request-header-value',
+        },
+      });
+
+      const requestHeaders = await server.getRequestHeaders();
+
+      expect(requestHeaders).toStrictEqual({
+        'api-key': 'test-api-key',
+        'content-type': 'application/json',
+        'custom-provider-header': 'provider-header-value',
+        'custom-request-header': 'request-header-value',
+      });
+    });
+
+    it('should use the baseURL correctly', async () => {
+      prepareJsonResponse();
+
+      const provider = createAzure({
+        baseURL: 'https://custom-endpoint.azure.com/openai/deployments',
+        apiKey: 'test-api-key',
+      });
+
+      await provider.imageModel('dalle-deployment').doGenerate({
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestUrl = await server.getRequestUrl();
+      expect(requestUrl).toMatch(
+        /https:\/\/custom-endpoint\.azure\.com\/openai\/deployments\/dalle-deployment\/images\/generations\?api-version=.*/,
+      );
+    });
+
+    it('should extract the generated images', async () => {
+      prepareJsonResponse();
+
+      const result = await provider.imageModel('dalle-deployment').doGenerate({
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
+    });
+
+    it('should send the correct request body', async () => {
+      prepareJsonResponse();
+
+      await provider.imageModel('dalle-deployment').doGenerate({
+        prompt,
+        n: 2,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: { openai: { style: 'natural' } },
+      });
+
+      expect(await server.getRequestBodyJson()).toStrictEqual({
+        prompt,
+        n: 2,
+        size: '1024x1024',
+        style: 'natural',
+        response_format: 'b64_json',
+      });
+    });
+
+    it('should not include model in request body', async () => {
+      // Azure API doesn't need model in the request body since it's in the URL
+      prepareJsonResponse();
+
+      await provider.imageModel('dalle-deployment').doGenerate({
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      const requestBody = await server.getRequestBodyJson();
+      expect(requestBody.model).toBeUndefined();
+    });
+  });
+
+  describe('imageModel method', () => {
+    it('should create the same model as image method', () => {
+      const imageModel = provider.imageModel('dalle-deployment');
+      const imageModelAlias = provider.imageModel('dalle-deployment');
+
+      expect(imageModel.provider).toBe(imageModelAlias.provider);
+      expect(imageModel.modelId).toBe(imageModelAlias.modelId);
+    });
+  });
+});
