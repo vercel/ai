@@ -99,11 +99,11 @@ export type AnthropicTool =
     }
   | {
       name: string;
-      type: 'text_editor_20241022';
+      type: 'text_editor_20250124' | 'text_editor_20241022';
     }
   | {
       name: string;
-      type: 'bash_20241022';
+      type: 'bash_20250124' | 'bash_20241022';
     };
 
 export type AnthropicToolChoice =
