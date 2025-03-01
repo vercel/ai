@@ -86,7 +86,6 @@ export function prepareTools(
               type: 'bash_20241022',
             });
             break;
-
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
