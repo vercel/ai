@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- ai@4.1.47
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [ddf9740]
   - ai@4.1.46
 
