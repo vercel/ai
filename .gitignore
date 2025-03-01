@@ -12,4 +12,3 @@ server/dist
 public/dist
 .turbo
 test-results
-.tool-versions
