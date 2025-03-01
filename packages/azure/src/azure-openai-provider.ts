@@ -5,11 +5,14 @@ import {
   OpenAICompletionSettings,
   OpenAIEmbeddingModel,
   OpenAIEmbeddingSettings,
+  OpenAIImageModel,
+  OpenAIImageSettings,
 } from '@ai-sdk/openai/internal';
 import {
   EmbeddingModelV1,
   LanguageModelV1,
   ProviderV1,
+  ImageModelV1,
 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
@@ -44,6 +47,20 @@ Creates an Azure OpenAI completion model for text generation.
     deploymentId: string,
     settings?: OpenAIEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  /**
+   * Creates an Azure OpenAI DALL-E model for image generation.
+   * @deprecated Use `imageModel` instead.
+   */
+  image(deploymentId: string, settings?: OpenAIImageSettings): ImageModelV1;
+
+  /**
+   * Creates an Azure OpenAI DALL-E model for image generation.
+   */
+  imageModel(
+    deploymentId: string,
+    settings?: OpenAIImageSettings,
+  ): ImageModelV1;
 
   /**
 @deprecated Use `textEmbeddingModel` instead.
@@ -130,10 +147,10 @@ export function createAzure(
       : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${apiVersion}`;
 
   const createChatModel = (
-    deploymentName: string,
+    deploymentId: string,
     settings: OpenAIChatSettings = {},
   ) =>
-    new OpenAIChatLanguageModel(deploymentName, settings, {
+    new OpenAIChatLanguageModel(deploymentId, settings, {
       provider: 'azure-openai.chat',
       url,
       headers: getHeaders,
@@ -142,10 +159,10 @@ export function createAzure(
     });
 
   const createCompletionModel = (
-    modelId: string,
+    deploymentId: string,
     settings: OpenAICompletionSettings = {},
   ) =>
-    new OpenAICompletionLanguageModel(modelId, settings, {
+    new OpenAICompletionLanguageModel(deploymentId, settings, {
       provider: 'azure-openai.completion',
       url,
       compatibility: 'strict',
@@ -154,13 +171,24 @@ export function createAzure(
     });
 
   const createEmbeddingModel = (
-    modelId: string,
+    deploymentId: string,
     settings: OpenAIEmbeddingSettings = {},
   ) =>
-    new OpenAIEmbeddingModel(modelId, settings, {
+    new OpenAIEmbeddingModel(deploymentId, settings, {
       provider: 'azure-openai.embeddings',
       headers: getHeaders,
       url,
+      fetch: options.fetch,
+    });
+
+  const createImageModel = (
+    deploymentId: string,
+    settings: OpenAIImageSettings = {},
+  ) =>
+    new OpenAIImageModel(deploymentId, settings, {
+      provider: 'azure-openai.image',
+      url,
+      headers: getHeaders,
       fetch: options.fetch,
     });
 
@@ -181,10 +209,12 @@ export function createAzure(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
-  return provider;
+  return provider as AzureOpenAIProvider;
 }
 
 /**
