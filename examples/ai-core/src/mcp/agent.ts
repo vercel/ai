@@ -1,5 +1,7 @@
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { openai } from '@ai-sdk/openai';
-import { generateText, createMcpTools, tool } from 'ai';
+import { generateText, createMcpTools } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
@@ -17,18 +19,43 @@ const toolSchemas = {
 };
 
 async function main() {
-  const pokemonServerToolSet = await createMcpTools<typeof toolSchemas>(
+  // With custom client
+  const transport = new StdioClientTransport({
+    command: 'node',
+    args: ['src/mcp/dist/server.js'],
+  });
+
+  const client = new Client({
+    name: 'my-client',
+    version: '1.0.0',
+  });
+
+  await client.connect(transport);
+  const toolset = await createMcpTools<typeof toolSchemas>(
     {
       server: {
         type: 'stdio',
         command: 'node',
         args: ['src/mcp/dist/server.js'],
       },
+      customClient: client,
     },
     toolSchemas,
   );
 
-  const tools = pokemonServerToolSet.tools;
+  // With internal one-time client
+  // const toolset = await createMcpTools<typeof toolSchemas>(
+  //   {
+  //     server: {
+  //       type: 'stdio',
+  //       command: 'node',
+  //       args: ['src/mcp/dist/server.js'],
+  //     },
+  //   },
+  //   toolSchemas,
+  // );
+
+  const tools = toolset.toolSet;
 
   const { text: answer } = await generateText({
     model: openai('gpt-4o-mini', { structuredOutputs: true }),
@@ -41,6 +68,9 @@ async function main() {
     prompt:
       'Which 3 Pokemon could best defeat Feebas? Give me more details about each one.',
   });
+
+  // await toolset.cleanup();
+  await client.close();
 
   console.log(`FINAL ANSWER: ${answer}`);
 }

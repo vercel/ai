@@ -1,9 +1,5 @@
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import {
-  CallToolResultSchema,
-  CallToolResult,
-} from '@modelcontextprotocol/sdk/types';
 
 import { jsonSchema, Schema } from '@ai-sdk/ui-utils';
 import { AISDKError, JSONSchema7 } from '@ai-sdk/provider';
@@ -14,7 +10,16 @@ import { z } from 'zod';
 import { IOType } from 'node:child_process';
 import { Stream } from 'node:stream';
 import { SimpleMcpClient } from './mcp/client';
-import { Implementation, RequestOptions } from './mcp/types';
+import {
+  CallToolRequest,
+  CallToolResult,
+  CallToolResultSchema,
+  CompatibilityCallToolResultSchema,
+  Implementation,
+  ListToolsRequest,
+  ListToolsResult,
+  RequestOptions,
+} from './mcp/types';
 
 interface McpStdioServerConfig {
   command: string;
@@ -41,8 +46,27 @@ const DEFAULT_CLIENT_CONFIG = {
   requestTimeoutMs: 3000,
 };
 
+/**
+ * An interface that defines the minimum required MCP client properties.
+ * Used when endusers provide their own MCP Client for more granular control.
+ */
+interface McpClientInterface {
+  listTools(
+    params?: ListToolsRequest['params'],
+    options?: RequestOptions,
+  ): Promise<ListToolsResult>;
+  callTool(
+    params: CallToolRequest['params'],
+    resultSchema?:
+      | typeof CallToolResultSchema
+      | typeof CompatibilityCallToolResultSchema,
+    options?: RequestOptions,
+  ): Promise<any>;
+}
+
 interface AdapterConfig {
   server: McpStdioServerConfig | McpSSEServerConfig;
+  customClient?: McpClientInterface;
   clientConfig?: Implementation;
   toolCallOptions?: RequestOptions;
 }
@@ -77,27 +101,10 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
   config: AdapterConfig,
   toolSchemas: TOOL_SCHEMAS,
 ): Promise<AdapterReturnType<TOOL_SCHEMAS>> {
-  const clientConfig = config.clientConfig || DEFAULT_CLIENT_CONFIG;
-  const client = new SimpleMcpClient(clientConfig);
   const tools: Record<string, Tool> = {};
+  const { client, cleanup } = await setupClient(config);
 
   try {
-    const transport =
-      config.server.type === 'sse'
-        ? new SSEClientTransport(
-            new URL(config.server.url),
-            config.server.options,
-          )
-        : new StdioClientTransport({
-            ...config.server,
-            env: {
-              ...process.env,
-              ...config.server.env,
-            } as Record<string, string>,
-          });
-
-    await client.connect(transport);
-
     const listToolsResult = await client.listTools();
 
     for (const { name, description, inputSchema } of listToolsResult.tools) {
@@ -123,7 +130,8 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
             CallToolResultSchema,
             config.toolCallOptions,
           );
-          return result as CallToolResult;
+          const parsedResult = CallToolResultSchema.parse(result);
+          return parsedResult as CallToolResult;
         },
       };
 
@@ -132,15 +140,58 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
 
     return {
       toolSet: tools as McpToolSet<TOOL_SCHEMAS>,
+      cleanup,
+    };
+  } catch (error) {
+    await cleanup();
+    throw new AISDKError({
+      name: 'McpToolAdapterError',
+      message: `Failed to generate tools for ${config.server.type} MCP server`,
+      cause: error,
+    });
+  }
+}
+
+async function setupClient(config: AdapterConfig) {
+  if (config.customClient)
+    return {
+      client: config.customClient,
+      cleanup: async () => {
+        // noop - no clean up for custom clients
+        return Promise.resolve();
+      },
+    };
+
+  try {
+    const client = new SimpleMcpClient(
+      config.clientConfig || DEFAULT_CLIENT_CONFIG,
+    );
+
+    const transport =
+      config.server.type === 'sse'
+        ? new SSEClientTransport(
+            new URL(config.server.url),
+            config.server.options,
+          )
+        : new StdioClientTransport({
+            ...config.server,
+            env: {
+              ...process.env,
+              ...config.server.env,
+            } as Record<string, string>,
+          });
+
+    await client.connect(transport);
+    return {
+      client,
       cleanup: async () => {
         await client.close();
       },
     };
   } catch (error) {
-    await client.close();
     throw new AISDKError({
-      name: 'McpToolAdapterError',
-      message: `Failed to generate tools for ${config.server.type} MCP server`,
+      name: 'McpClientSetupError',
+      message: `Failed to connect to ${config.server.type} MCP server`,
       cause: error,
     });
   }

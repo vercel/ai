@@ -27,13 +27,12 @@ import { AISDKError } from '@ai-sdk/provider';
 
 /**
  * A lightweight MCP Client implementation,
- * primarily for tool conversion between
- * MCP<>AI SDK.
+ * primarily for tool conversion between MCP<>AI SDK.
  *
  * It is a custom implementation of the MCP Client (derived from Protocol) class.
  *
  * Not supported:
- * - Client options (e.g. sampling, roots) as they are not needed for tool conversion.
+ * - Client options (e.g. sampling, roots) as they are not needed for tool conversion
  * - Accepting notifications
  */
 export class SimpleMcpClient {
