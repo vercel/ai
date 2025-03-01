@@ -83,13 +83,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const warnings: LanguageModelV1CallWarning[] = [];
 
-    if (seed != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
-      });
-    }
-
     const generationConfig = {
       // standardized settings:
       maxOutputTokens: maxTokens,
@@ -99,6 +92,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       frequencyPenalty,
       presencePenalty,
       stopSequences,
+      seed,
 
       // response format:
       responseMimeType:
