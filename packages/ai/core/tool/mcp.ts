@@ -1,20 +1,20 @@
-import { ToolSet } from './../generate-text/tool-set';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import {
   CallToolResultSchema,
   CallToolResult,
 } from '@modelcontextprotocol/sdk/types';
-import { RequestOptions } from '@modelcontextprotocol/sdk/shared/protocol';
 
 import { jsonSchema, Schema } from '@ai-sdk/ui-utils';
 import { AISDKError, JSONSchema7 } from '@ai-sdk/provider';
 
+import { ToolSet } from './../generate-text/tool-set';
 import { inferParameters, Tool, tool } from './tool';
 import { z } from 'zod';
 import { IOType } from 'node:child_process';
 import { Stream } from 'node:stream';
+import { SimpleMcpClient } from './mcp/client';
+import { Implementation, RequestOptions } from './mcp/types';
 
 interface McpStdioServerConfig {
   command: string;
@@ -33,25 +33,23 @@ interface McpSSEServerConfig {
     requestInit?: RequestInit;
   };
 }
-interface McpClientConfig {
-  name: string;
-  version: string;
-  capabilities: Record<string, string>;
-  /**
-   * Timeout in milliseconds for connecting to an MCP server
-   * @default 5000
-   */
-  connectTimeoutMs: number;
-}
+
+const DEFAULT_CLIENT_CONFIG = {
+  name: 'ai-sdk-mcp-client',
+  version: '1.0.0',
+  connectionTimeoutMs: 6000,
+  requestTimeoutMs: 3000,
+};
 
 interface AdapterConfig {
   server: McpStdioServerConfig | McpSSEServerConfig;
-  clientConfig?: McpClientConfig;
+  clientConfig?: Implementation;
   toolCallOptions?: RequestOptions;
 }
+
 interface AdapterReturnType<TOOL_SCHEMAS extends ToolSchemas = {}> {
-  tools: McpToolSet<TOOL_SCHEMAS>;
-  client: Client;
+  toolSet: McpToolSet<TOOL_SCHEMAS>;
+  cleanup: () => Promise<void>;
 }
 
 type ToolSchemas = Record<string, { input: z.ZodTypeAny | Schema<any> }>;
@@ -75,80 +73,31 @@ type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = {}> = ToolSet & {
   };
 };
 
-// Heavily inspired by: https://github.com/dnakov/claude-code/blob/da716d77b251868918bb5776377f85a18a47ffdf/src/services/mcpClient.ts#L224
-async function connectToServer(
-  serverConfig: McpStdioServerConfig | McpSSEServerConfig,
-  clientConfig: McpClientConfig = {
-    name: 'ai-sdk-mcp-client',
-    version: '1.0.0',
-    capabilities: {},
-    connectTimeoutMs: 5000,
-  },
-): Promise<Client> {
-  const transport =
-    serverConfig.type === 'sse'
-      ? new SSEClientTransport(new URL(serverConfig.url), serverConfig.options)
-      : new StdioClientTransport({
-          ...serverConfig,
-          env: {
-            ...process.env,
-            ...serverConfig.env,
-          } as Record<string, string>,
-        });
-
-  const { name, version, capabilities, connectTimeoutMs } = clientConfig;
-
-  const client = new Client(
-    {
-      name,
-      version,
-    },
-    {
-      capabilities,
-    },
-  );
-
-  const connectPromise = client.connect(transport);
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    const timeoutId = setTimeout(() => {
-      reject(
-        new AISDKError({
-          name: 'McpToolAdapterError',
-          message: `Connection to ${serverConfig.type} MCP server timed out after ${connectTimeoutMs}ms`,
-        }),
-      );
-    }, connectTimeoutMs);
-
-    connectPromise.then(
-      () => clearTimeout(timeoutId),
-      error => {
-        clearTimeout(timeoutId);
-        reject(error);
-      },
-    );
-  });
-
-  try {
-    await Promise.race([connectPromise, timeoutPromise]);
-  } catch (error) {
-    throw new AISDKError({
-      name: 'McpToolAdapterError',
-      message: `Failed to connect to ${serverConfig.type} MCP server`,
-      cause: error,
-    });
-  }
-
-  return client;
-}
-
 export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
   config: AdapterConfig,
   toolSchemas: TOOL_SCHEMAS,
 ): Promise<AdapterReturnType<TOOL_SCHEMAS>> {
+  const clientConfig = config.clientConfig || DEFAULT_CLIENT_CONFIG;
+  const client = new SimpleMcpClient(clientConfig);
   const tools: Record<string, Tool> = {};
 
   try {
-    const client = await connectToServer(config.server, config.clientConfig);
+    const transport =
+      config.server.type === 'sse'
+        ? new SSEClientTransport(
+            new URL(config.server.url),
+            config.server.options,
+          )
+        : new StdioClientTransport({
+            ...config.server,
+            env: {
+              ...process.env,
+              ...config.server.env,
+            } as Record<string, string>,
+          });
+
+    await client.connect(transport);
+
     const listToolsResult = await client.listTools();
 
     for (const { name, description, inputSchema } of listToolsResult.tools) {
@@ -182,10 +131,13 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
     }
 
     return {
-      tools: tools as McpToolSet<TOOL_SCHEMAS>,
-      client,
+      toolSet: tools as McpToolSet<TOOL_SCHEMAS>,
+      cleanup: async () => {
+        await client.close();
+      },
     };
   } catch (error) {
+    await client.close();
     throw new AISDKError({
       name: 'McpToolAdapterError',
       message: `Failed to generate tools for ${config.server.type} MCP server`,
