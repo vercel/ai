@@ -58,11 +58,25 @@ export function prepareTools(
               display_number: tool.args.displayNumber as number,
             });
             break;
+          case 'anthropic.text_editor_20250124':
+            betas.add('computer-use-2025-01-24');
+            anthropicTools.push({
+              name: tool.name,
+              type: 'text_editor_20250124',
+            });
+            break;
           case 'anthropic.text_editor_20241022':
             betas.add('computer-use-2024-10-22');
             anthropicTools.push({
               name: tool.name,
               type: 'text_editor_20241022',
+            });
+            break;
+          case 'anthropic.bash_20250124':
+            betas.add('computer-use-2025-01-24');
+            anthropicTools.push({
+              name: tool.name,
+              type: 'bash_20250124',
             });
             break;
           case 'anthropic.bash_20241022':
@@ -72,6 +86,7 @@ export function prepareTools(
               type: 'bash_20241022',
             });
             break;
+
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
