@@ -10,15 +10,7 @@ import {
 import { IOType } from 'node:child_process';
 import { Stream } from 'node:stream';
 import { MCPClient } from './mcp/client';
-import {
-  CallToolRequest,
-  CallToolResult,
-  CallToolResultSchema,
-  CompatibilityCallToolResultSchema,
-  ListToolsRequest,
-  ListToolsResult,
-  RequestOptions,
-} from './mcp/types';
+import { CallToolResult, CallToolResultSchema } from './mcp/types';
 import { ToToolsWithDefinedExecute } from '../generate-text/tool-result';
 
 interface McpStdioServerConfig {
@@ -83,18 +75,18 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
         ): Promise<CallToolResult> => {
           options?.abortSignal?.throwIfAborted();
 
-          const result = await client.callTool(
-            {
+          const result = await client.callTool({
+            params: {
               name,
               arguments: args,
             },
-            CallToolResultSchema,
-            {
+            resultSchema: CallToolResultSchema,
+            options: {
               signal: options.abortSignal,
             },
-          );
-          const parsedResult = CallToolResultSchema.parse(result);
-          return parsedResult as CallToolResult;
+          });
+
+          return result;
         },
       });
 

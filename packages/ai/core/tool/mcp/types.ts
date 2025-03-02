@@ -15,93 +15,63 @@ const ImplementationSchema = z
   .passthrough();
 export type Implementation = z.infer<typeof ImplementationSchema>;
 
-const BaseRequestParamsSchema = z
-  .object({
-    _meta: z.optional(z.object({}).passthrough()),
-  })
-  .passthrough();
+interface BaseParams {
+  _meta?: Record<string, unknown>;
+  [key: string]: unknown;
+}
 
-const RequestSchema = z.object({
-  method: z.string(),
-  params: z.optional(BaseRequestParamsSchema),
-});
-export type Request = z.infer<typeof RequestSchema>;
+export interface Request {
+  method: string;
+  params?: BaseParams;
+}
+
 export type RequestOptions = {
   signal?: AbortSignal;
   timeout?: number;
   maxTotalTimeout?: number;
 };
-const BaseNotificationParamsSchema = z
-  .object({
-    _meta: z.optional(z.object({}).passthrough()),
-  })
-  .passthrough();
-const NotificationSchema = z.object({
-  method: z.string(),
-  params: z.optional(BaseNotificationParamsSchema),
-});
-export type Notification = z.infer<typeof NotificationSchema>;
 
-export const ResultSchema = z
-  .object({
-    /**
-     * This result property is reserved by the protocol to allow clients and servers to attach additional metadata to their responses.
-     */
-    _meta: z.optional(z.object({}).passthrough()),
-  })
-  .passthrough();
-
-export interface TimeoutInfo {
-  timeoutId: ReturnType<typeof setTimeout>;
-  startTime: number;
-  timeout: number;
-  maxTotalTimeout?: number;
-  onTimeout: () => void;
+export interface Notification {
+  method: string;
+  params?: BaseParams;
 }
 
-const RequestIdSchema = z.union([z.string(), z.number().int()]);
-const JSONRPCRequestSchema = z
+export type JSONRPCRequest = Request & {
+  jsonrpc: typeof JSONRPC_VERSION;
+  id: string | number;
+};
+
+const ResultSchema = z
   .object({
-    jsonrpc: z.literal(JSONRPC_VERSION),
-    id: RequestIdSchema,
+    _meta: z.optional(z.object({}).passthrough()),
   })
-  .merge(RequestSchema)
-  .strict();
-export type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
-const JSONRPCResponseSchema = z
-  .object({
-    jsonrpc: z.literal(JSONRPC_VERSION),
-    id: RequestIdSchema,
-    result: ResultSchema,
-  })
-  .strict();
-export type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
-const JSONRPCErrorSchema = z
-  .object({
-    jsonrpc: z.literal(JSONRPC_VERSION),
-    id: RequestIdSchema,
-    error: z.object({
-      code: z.number().int(),
-      message: z.string(),
-      data: z.optional(z.unknown()),
-    }),
-  })
-  .strict();
-export type JSONRPCError = z.infer<typeof JSONRPCErrorSchema>;
-const JSONRPCNotificationSchema = z
-  .object({
-    jsonrpc: z.literal(JSONRPC_VERSION),
-  })
-  .merge(NotificationSchema)
-  .strict();
-export type JSONRPCNotification = z.infer<typeof JSONRPCNotificationSchema>;
-const JSONRPCMessageSchema = z.union([
-  JSONRPCRequestSchema,
-  JSONRPCNotificationSchema,
-  JSONRPCResponseSchema,
-  JSONRPCErrorSchema,
-]);
-export type JSONRPCMessage = z.infer<typeof JSONRPCMessageSchema>;
+  .passthrough();
+
+export interface JSONRPCResponse {
+  jsonrpc: typeof JSONRPC_VERSION;
+  id: string | number;
+  result: z.infer<typeof ResultSchema>;
+}
+
+export interface JSONRPCError {
+  jsonrpc: typeof JSONRPC_VERSION;
+  id: string | number;
+  error: {
+    code: number;
+    message: string;
+    data?: unknown;
+  };
+}
+
+export type JSONRPCNotification = Notification & {
+  jsonrpc: typeof JSONRPC_VERSION;
+};
+
+export type JSONRPCMessage =
+  | JSONRPCRequest
+  | JSONRPCNotification
+  | JSONRPCResponse
+  | JSONRPCError;
 
 export interface Transport {
   start(): Promise<void>;
@@ -140,30 +110,32 @@ const ServerCapabilitiesSchema = z
     ),
   })
   .passthrough();
-export type ServerCapabilities = z.infer<typeof ServerCapabilitiesSchema>;
 export const InitializeResultSchema = ResultSchema.extend({
-  /**
-   * The version of the Model Context Protocol that the server wants to use. This may not match the version that the client requested. If the client cannot support this version, it MUST disconnect.
-   */
   protocolVersion: z.string(),
   capabilities: ServerCapabilitiesSchema,
   serverInfo: ImplementationSchema,
-  /**
-   * Instructions describing how to use the server and its features.
-   *
-   * This can be used by clients to improve the LLM's understanding of available tools, resources, etc. It can be thought of like a "hint" to the model. For example, this information MAY be added to the system prompt.
-   */
   instructions: z.optional(z.string()),
 });
 
-const CursorSchema = z.string();
+type PaginatedRequest = Request & {
+  params?: BaseParams & {
+    cursor?: string;
+  };
+};
+
+export type CallToolRequest = Request & {
+  params?: BaseParams & {
+    name: string;
+    arguments?: Record<string, unknown>;
+  };
+};
+
+export type ListToolsRequest = PaginatedRequest & {
+  method: 'tools/list';
+};
+
 const PaginatedResultSchema = ResultSchema.extend({
-  nextCursor: z.optional(CursorSchema),
-});
-export const PaginatedRequestSchema = RequestSchema.extend({
-  params: BaseRequestParamsSchema.extend({
-    cursor: z.optional(CursorSchema),
-  }).optional(),
+  nextCursor: z.optional(z.string()),
 });
 
 const ToolSchema = z
@@ -182,19 +154,7 @@ export const ListToolsResultSchema = PaginatedResultSchema.extend({
   tools: z.array(ToolSchema),
 });
 export type ListToolsResult = z.infer<typeof ListToolsResultSchema>;
-const ListToolsRequestSchema = PaginatedRequestSchema.extend({
-  method: z.literal('tools/list'),
-});
-export type ListToolsRequest = z.infer<typeof ListToolsRequestSchema>;
 
-const CallToolRequestSchema = RequestSchema.extend({
-  method: z.literal('tools/call'),
-  params: BaseRequestParamsSchema.extend({
-    name: z.string(),
-    arguments: z.optional(z.record(z.unknown())),
-  }),
-});
-export type CallToolRequest = z.infer<typeof CallToolRequestSchema>;
 const TextContentSchema = z
   .object({
     type: z.literal('text'),
@@ -232,18 +192,15 @@ const EmbeddedResourceSchema = z
     resource: z.union([TextResourceContentsSchema, BlobResourceContentsSchema]),
   })
   .passthrough();
+
 export const CallToolResultSchema = ResultSchema.extend({
   content: z.array(
     z.union([TextContentSchema, ImageContentSchema, EmbeddedResourceSchema]),
   ),
   isError: z.boolean().default(false).optional(),
-});
-export const CompatibilityCallToolResultSchema = CallToolResultSchema.or(
+}).or(
   ResultSchema.extend({
     toolResult: z.unknown(),
   }),
 );
 export type CallToolResult = z.infer<typeof CallToolResultSchema>;
-export type CompatibilityCallToolResult = z.infer<
-  typeof CompatibilityCallToolResultSchema
->;

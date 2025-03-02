@@ -3,8 +3,6 @@ import {
   CallToolRequest,
   CallToolResult,
   CallToolResultSchema,
-  CompatibilityCallToolResult,
-  CompatibilityCallToolResultSchema,
   Implementation,
   InitializeResultSchema,
   JSONRPCError,
@@ -204,10 +202,13 @@ export class MCPClient {
     });
   }
 
-  async listTools(
-    params?: ListToolsRequest['params'],
-    options?: RequestOptions,
-  ): Promise<ListToolsResult> {
+  async listTools({
+    params,
+    options,
+  }: {
+    params?: ListToolsRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListToolsResult> {
     return this.request({
       request: { method: 'tools/list', params },
       resultSchema: ListToolsResultSchema,
@@ -215,13 +216,15 @@ export class MCPClient {
     });
   }
 
-  async callTool(
-    params: CallToolRequest['params'],
-    resultSchema:
-      | typeof CallToolResultSchema
-      | typeof CompatibilityCallToolResultSchema = CallToolResultSchema,
-    options?: RequestOptions,
-  ): Promise<CallToolResult | CompatibilityCallToolResult> {
+  async callTool({
+    params,
+    resultSchema,
+    options,
+  }: {
+    params: CallToolRequest['params'];
+    resultSchema: typeof CallToolResultSchema;
+    options?: RequestOptions;
+  }): Promise<CallToolResult> {
     return this.request({
       request: { method: 'tools/call', params },
       resultSchema,
