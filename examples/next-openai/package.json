@@ -9,11 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "1.1.12",
+    "@ai-sdk/anthropic": "1.1.13",
     "@ai-sdk/deepseek": "0.1.12",
     "@ai-sdk/fireworks": "0.1.12",
     "@ai-sdk/openai": "1.1.15",
-    "@ai-sdk/google-vertex": "2.1.20",
+    "@ai-sdk/google-vertex": "2.1.21",
     "@ai-sdk/perplexity": "1.0.2",
     "@ai-sdk/ui-utils": "1.1.16",
     "@ai-sdk/react": "1.1.19",
