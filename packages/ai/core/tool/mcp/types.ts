@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { IOType } from 'node:child_process';
+import { Stream } from 'node:stream';
 
 export const LATEST_PROTOCOL_VERSION = '2024-11-05';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
@@ -6,6 +8,20 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   '2024-10-07',
 ];
 const JSONRPC_VERSION = '2.0';
+
+export interface McpStdioServerConfig {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  stderr?: IOType | Stream | number;
+  cwd?: string;
+  type: 'stdio';
+}
+export interface McpSSEServerConfig {
+  type: 'sse';
+  url: string;
+}
+export type TransportConfig = McpStdioServerConfig | McpSSEServerConfig;
 
 const ImplementationSchema = z
   .object({
@@ -15,10 +31,12 @@ const ImplementationSchema = z
   .passthrough();
 export type Implementation = z.infer<typeof ImplementationSchema>;
 
-interface BaseParams {
-  _meta?: Record<string, unknown>;
-  [key: string]: unknown;
-}
+const BaseParamsSchema = z
+  .object({
+    _meta: z.optional(z.object({}).passthrough()),
+  })
+  .passthrough();
+type BaseParams = z.infer<typeof BaseParamsSchema>;
 
 export interface Request {
   method: string;
@@ -31,47 +49,62 @@ export type RequestOptions = {
   maxTotalTimeout?: number;
 };
 
-export interface Notification {
-  method: string;
-  params?: BaseParams;
-}
+const RequestSchema = z.object({
+  method: z.string(),
+  params: z.optional(BaseParamsSchema),
+});
+const ResultSchema = BaseParamsSchema;
+const NotificationSchema = z.object({
+  method: z.string(),
+  params: z.optional(BaseParamsSchema),
+});
 
-export type JSONRPCRequest = Request & {
-  jsonrpc: typeof JSONRPC_VERSION;
-  id: string | number;
-};
+export type Notification = z.infer<typeof NotificationSchema>;
 
-const ResultSchema = z
+const RequestIdSchema = z.union([z.string(), z.number().int()]);
+const JSONRPCRequestSchema = z
   .object({
-    _meta: z.optional(z.object({}).passthrough()),
+    jsonrpc: z.literal(JSONRPC_VERSION),
+    id: RequestIdSchema,
   })
-  .passthrough();
+  .merge(RequestSchema)
+  .strict();
+export type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
+const JSONRPCResponseSchema = z
+  .object({
+    jsonrpc: z.literal(JSONRPC_VERSION),
+    id: RequestIdSchema,
+    result: ResultSchema,
+  })
+  .strict();
+export type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
+const JSONRPCErrorSchema = z
+  .object({
+    jsonrpc: z.literal(JSONRPC_VERSION),
+    id: RequestIdSchema,
+    error: z.object({
+      code: z.number().int(),
+      message: z.string(),
+      data: z.optional(z.unknown()),
+    }),
+  })
+  .strict();
+export type JSONRPCError = z.infer<typeof JSONRPCErrorSchema>;
+const JSONRPCNotificationSchema = z
+  .object({
+    jsonrpc: z.literal(JSONRPC_VERSION),
+  })
+  .merge(NotificationSchema)
+  .strict();
+export type JSONRPCNotification = z.infer<typeof JSONRPCNotificationSchema>;
 
-export interface JSONRPCResponse {
-  jsonrpc: typeof JSONRPC_VERSION;
-  id: string | number;
-  result: z.infer<typeof ResultSchema>;
-}
-
-export interface JSONRPCError {
-  jsonrpc: typeof JSONRPC_VERSION;
-  id: string | number;
-  error: {
-    code: number;
-    message: string;
-    data?: unknown;
-  };
-}
-
-export type JSONRPCNotification = Notification & {
-  jsonrpc: typeof JSONRPC_VERSION;
-};
-
-export type JSONRPCMessage =
-  | JSONRPCRequest
-  | JSONRPCNotification
-  | JSONRPCResponse
-  | JSONRPCError;
+export const JSONRPCMessageSchema = z.union([
+  JSONRPCRequestSchema,
+  JSONRPCNotificationSchema,
+  JSONRPCResponseSchema,
+  JSONRPCErrorSchema,
+]);
+export type JSONRPCMessage = z.infer<typeof JSONRPCMessageSchema>;
 
 export interface Transport {
   start(): Promise<void>;

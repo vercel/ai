@@ -7,25 +7,13 @@ import {
   tool,
   ToolExecutionOptions,
 } from './tool';
-import { IOType } from 'node:child_process';
-import { Stream } from 'node:stream';
 import { MCPClient } from './mcp/client';
-import { CallToolResult, CallToolResultSchema } from './mcp/types';
+import {
+  CallToolResult,
+  CallToolResultSchema,
+  TransportConfig,
+} from './mcp/types';
 import { ToToolsWithDefinedExecute } from '../generate-text/tool-result';
-
-interface McpStdioServerConfig {
-  command: string;
-  args?: string[];
-  env?: Record<string, string>;
-  stderr?: IOType | Stream | number;
-  cwd?: string;
-  type: 'stdio';
-}
-interface McpSSEServerConfig {
-  type: 'sse';
-  url: string;
-}
-export type TransportConfig = McpStdioServerConfig | McpSSEServerConfig;
 
 interface AdapterConfig<TOOL_SCHEMAS extends ToolSchemas = {}> {
   transport: TransportConfig;

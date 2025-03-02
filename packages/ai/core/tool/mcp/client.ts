@@ -18,11 +18,10 @@ import {
   RequestOptions,
   SUPPORTED_PROTOCOL_VERSIONS,
   Transport,
+  TransportConfig,
 } from './types';
 import { AISDKError } from '@ai-sdk/provider';
-import { TransportConfig } from '../mcp';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
+import { createMcpTransport } from './transport';
 
 const CONNECTION_TIMEOUT_MS = 6000;
 const REQUEST_TIMEOUT_MS = 3000;
@@ -63,25 +62,14 @@ export class MCPClient {
     connectionTimeoutMs = CONNECTION_TIMEOUT_MS,
     requestTimeoutMs = REQUEST_TIMEOUT_MS,
   }: MCPClientConfig) {
-    const transport =
-      transportConfig.type === 'sse'
-        ? new SSEClientTransport(new URL(transportConfig.url))
-        : new StdioClientTransport({
-            ...transportConfig,
-            env: {
-              ...process.env,
-              ...transportConfig.env,
-            } as Record<string, string>,
-          });
-
-    this.transport = transport;
+    this.transport = createMcpTransport(transportConfig);
+    this._initTransport();
     this.clientInfo = {
       name,
       version,
     };
     this.connectionTimeoutMs = connectionTimeoutMs;
     this.requestTimeoutMs = requestTimeoutMs;
-    this._initTransport(transport);
   }
 
   async init(): Promise<this> {
@@ -291,8 +279,7 @@ export class MCPClient {
     }
   }
 
-  private _initTransport(transport: Transport): void {
-    this.transport = transport;
+  private _initTransport(): void {
     this.transport.onclose = () => {
       this._onclose();
     };
