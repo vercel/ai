@@ -1,25 +1,25 @@
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-
-import { jsonSchema, Schema } from '@ai-sdk/ui-utils';
+import { jsonSchema } from '@ai-sdk/ui-utils';
 import { AISDKError, JSONSchema7 } from '@ai-sdk/provider';
-
-import { ToolSet } from './../generate-text/tool-set';
-import { inferParameters, Tool, tool } from './tool';
-import { z } from 'zod';
+import {
+  inferParameters,
+  Parameters,
+  Tool,
+  tool,
+  ToolExecutionOptions,
+} from './tool';
 import { IOType } from 'node:child_process';
 import { Stream } from 'node:stream';
-import { SimpleMcpClient } from './mcp/client';
+import { MCPClient } from './mcp/client';
 import {
   CallToolRequest,
   CallToolResult,
   CallToolResultSchema,
   CompatibilityCallToolResultSchema,
-  Implementation,
   ListToolsRequest,
   ListToolsResult,
   RequestOptions,
 } from './mcp/types';
+import { ToToolsWithDefinedExecute } from '../generate-text/tool-result';
 
 interface McpStdioServerConfig {
   command: string;
@@ -32,43 +32,12 @@ interface McpStdioServerConfig {
 interface McpSSEServerConfig {
   type: 'sse';
   url: string;
-  options?: {
-    // authProvider?: OAuthClientProvider;
-    eventSourceInit?: EventSourceInit;
-    requestInit?: RequestInit;
-  };
 }
+export type TransportConfig = McpStdioServerConfig | McpSSEServerConfig;
 
-const DEFAULT_CLIENT_CONFIG = {
-  name: 'ai-sdk-mcp-client',
-  version: '1.0.0',
-  connectionTimeoutMs: 6000,
-  requestTimeoutMs: 3000,
-};
-
-/**
- * An interface that defines the minimum required MCP client properties.
- * Used when endusers provide their own MCP Client for more granular control.
- */
-interface McpClientInterface {
-  listTools(
-    params?: ListToolsRequest['params'],
-    options?: RequestOptions,
-  ): Promise<ListToolsResult>;
-  callTool(
-    params: CallToolRequest['params'],
-    resultSchema?:
-      | typeof CallToolResultSchema
-      | typeof CompatibilityCallToolResultSchema,
-    options?: RequestOptions,
-  ): Promise<any>;
-}
-
-interface AdapterConfig {
-  server: McpStdioServerConfig | McpSSEServerConfig;
-  customClient?: McpClientInterface;
-  clientConfig?: Implementation;
-  toolCallOptions?: RequestOptions;
+interface AdapterConfig<TOOL_SCHEMAS extends ToolSchemas = {}> {
+  transport: TransportConfig;
+  tools?: TOOL_SCHEMAS;
 }
 
 interface AdapterReturnType<TOOL_SCHEMAS extends ToolSchemas = {}> {
@@ -76,30 +45,23 @@ interface AdapterReturnType<TOOL_SCHEMAS extends ToolSchemas = {}> {
   cleanup: () => Promise<void>;
 }
 
-type ToolSchemas = Record<string, { input: z.ZodTypeAny | Schema<any> }>;
+type ToolSchemas = Record<string, { parameters: Parameters }>;
 
-type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = {}> = ToolSet & {
-  [K in keyof TOOL_SCHEMAS]: Tool<
-    inferParameters<TOOL_SCHEMAS[K]['input']>,
-    CallToolResult
-  > & {
-    execute: (
-      args: inferParameters<TOOL_SCHEMAS[K]['input']>,
-      // options?
-    ) => Promise<CallToolResult>;
-  };
-} & {
-  [key: string]: Tool<any, CallToolResult> & {
-    execute: (
-      args: any,
-      // options?
-    ) => Promise<CallToolResult>;
-  };
-};
+type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = {}> =
+  ToToolsWithDefinedExecute<{
+    [K in keyof TOOL_SCHEMAS]: Tool<
+      inferParameters<TOOL_SCHEMAS[K]['parameters']>,
+      CallToolResult
+    > & {
+      execute: (
+        args: inferParameters<TOOL_SCHEMAS[K]['parameters']>,
+        options: ToolExecutionOptions,
+      ) => PromiseLike<CallToolResult>;
+    };
+  }>;
 
 export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
-  config: AdapterConfig,
-  toolSchemas: TOOL_SCHEMAS,
+  config: AdapterConfig<TOOL_SCHEMAS>,
 ): Promise<AdapterReturnType<TOOL_SCHEMAS>> {
   const tools: Record<string, Tool> = {};
   const { client, cleanup } = await setupClient(config);
@@ -108,32 +70,33 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
     const listToolsResult = await client.listTools();
 
     for (const { name, description, inputSchema } of listToolsResult.tools) {
-      const parameters = toolSchemas[name]
-        ? toolSchemas[name].input
+      const parameters = config.tools?.[name]
+        ? config.tools[name].parameters
         : jsonSchema(inputSchema as JSONSchema7);
 
-      const baseTool = tool({
+      const toolWithExecute = tool({
         description,
         parameters,
-      });
-
-      const toolWithExecute = {
-        ...baseTool,
         execute: async (
           args: inferParameters<typeof parameters>,
+          options: ToolExecutionOptions,
         ): Promise<CallToolResult> => {
+          options?.abortSignal?.throwIfAborted();
+
           const result = await client.callTool(
             {
               name,
               arguments: args,
             },
             CallToolResultSchema,
-            config.toolCallOptions,
+            {
+              signal: options.abortSignal,
+            },
           );
           const parsedResult = CallToolResultSchema.parse(result);
           return parsedResult as CallToolResult;
         },
-      };
+      });
 
       tools[name] = toolWithExecute;
     }
@@ -146,42 +109,23 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
     await cleanup();
     throw new AISDKError({
       name: 'McpToolAdapterError',
-      message: `Failed to generate tools for ${config.server.type} MCP server`,
+      message: `Failed to generate tools for ${config.transport.type} MCP server`,
       cause: error,
     });
   }
 }
 
-async function setupClient(config: AdapterConfig) {
-  if (config.customClient)
-    return {
-      client: config.customClient,
-      cleanup: async () => {
-        // noop - no clean up for custom clients
-        return Promise.resolve();
-      },
-    };
-
+async function setupClient<TOOL_SCHEMAS extends ToolSchemas = {}>(
+  config: AdapterConfig<TOOL_SCHEMAS>,
+): Promise<{
+  client: MCPClient;
+  cleanup: () => Promise<void>;
+}> {
   try {
-    const client = new SimpleMcpClient(
-      config.clientConfig || DEFAULT_CLIENT_CONFIG,
-    );
+    const client = await new MCPClient({
+      transport: config.transport,
+    }).init();
 
-    const transport =
-      config.server.type === 'sse'
-        ? new SSEClientTransport(
-            new URL(config.server.url),
-            config.server.options,
-          )
-        : new StdioClientTransport({
-            ...config.server,
-            env: {
-              ...process.env,
-              ...config.server.env,
-            } as Record<string, string>,
-          });
-
-    await client.connect(transport);
     return {
       client,
       cleanup: async () => {
@@ -191,7 +135,7 @@ async function setupClient(config: AdapterConfig) {
   } catch (error) {
     throw new AISDKError({
       name: 'McpClientSetupError',
-      message: `Failed to connect to ${config.server.type} MCP server`,
+      message: `Failed to connect to ${config.transport.type} MCP server`,
       cause: error,
     });
   }

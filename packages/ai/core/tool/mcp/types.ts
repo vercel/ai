@@ -11,8 +11,6 @@ const ImplementationSchema = z
   .object({
     name: z.string(),
     version: z.string(),
-    connectionTimeoutMs: z.number().default(6000),
-    requestTimeoutMs: z.number().default(3000),
   })
   .passthrough();
 export type Implementation = z.infer<typeof ImplementationSchema>;

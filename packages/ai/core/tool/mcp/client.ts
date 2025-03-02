@@ -18,12 +18,24 @@ import {
   Notification,
   Request,
   RequestOptions,
-  ServerCapabilities,
   SUPPORTED_PROTOCOL_VERSIONS,
-  TimeoutInfo,
   Transport,
 } from './types';
 import { AISDKError } from '@ai-sdk/provider';
+import { TransportConfig } from '../mcp';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio';
+
+const CONNECTION_TIMEOUT_MS = 6000;
+const REQUEST_TIMEOUT_MS = 3000;
+
+interface MCPClientConfig {
+  transport: TransportConfig;
+  name?: string;
+  version?: string;
+  connectionTimeoutMs?: number;
+  requestTimeoutMs?: number;
+}
 
 /**
  * A lightweight MCP Client implementation,
@@ -35,39 +47,61 @@ import { AISDKError } from '@ai-sdk/provider';
  * - Client options (e.g. sampling, roots) as they are not needed for tool conversion
  * - Accepting notifications
  */
-export class SimpleMcpClient {
-  private _transport: Transport | undefined;
-  private _requestMessageId = 0;
-  private _responseHandlers: Map<
+export class MCPClient {
+  private transport: Transport;
+  private clientInfo: Implementation;
+  private requestMessageId = 0;
+  private responseHandlers: Map<
     number,
     (response: JSONRPCResponse | Error) => void
   > = new Map();
   private connectionTimeoutMs: number;
   private requestTimeoutMs: number;
-  private _timeoutInfo: Map<number, TimeoutInfo> = new Map();
-  private _serverCapabilities?: ServerCapabilities;
 
-  constructor(private _clientInfo: Implementation) {
-    this.connectionTimeoutMs = _clientInfo.connectionTimeoutMs || 6000;
-    this.requestTimeoutMs = _clientInfo.requestTimeoutMs || 3000;
+  constructor({
+    transport: transportConfig,
+    name = 'ai-sdk-mcp-client',
+    version = '1.0.0',
+    connectionTimeoutMs = CONNECTION_TIMEOUT_MS,
+    requestTimeoutMs = REQUEST_TIMEOUT_MS,
+  }: MCPClientConfig) {
+    const transport =
+      transportConfig.type === 'sse'
+        ? new SSEClientTransport(new URL(transportConfig.url))
+        : new StdioClientTransport({
+            ...transportConfig,
+            env: {
+              ...process.env,
+              ...transportConfig.env,
+            } as Record<string, string>,
+          });
+
+    this.transport = transport;
+    this.clientInfo = {
+      name,
+      version,
+    };
+    this.connectionTimeoutMs = connectionTimeoutMs;
+    this.requestTimeoutMs = requestTimeoutMs;
+    this._initTransport(transport);
   }
 
-  async connect(transport: Transport): Promise<void> {
+  async init(): Promise<this> {
     try {
-      await this._initTransport(transport);
+      await this.transport.start();
 
-      const result = await this.request(
-        {
+      const result = await this.request({
+        request: {
           method: 'initialize',
           params: {
             protocolVersion: LATEST_PROTOCOL_VERSION,
             capabilities: {},
-            clientInfo: this._clientInfo,
+            clientInfo: this.clientInfo,
           },
         },
-        InitializeResultSchema,
-        { timeout: this.connectionTimeoutMs },
-      );
+        resultSchema: InitializeResultSchema,
+        options: { timeout: this.connectionTimeoutMs },
+      });
 
       if (result === undefined) {
         throw new AISDKError({
@@ -83,11 +117,19 @@ export class SimpleMcpClient {
         });
       }
 
-      this._serverCapabilities = result.capabilities;
+      if (!result.capabilities?.tools) {
+        throw new AISDKError({
+          name: 'McpClientError',
+          message: `Server does not support tools`,
+        });
+      }
 
+      // Complete initialization handshake:
       await this.notification({
         method: 'notifications/initialized',
       });
+
+      return this;
     } catch (error) {
       void this.close();
       throw error;
@@ -95,34 +137,53 @@ export class SimpleMcpClient {
   }
 
   async close(): Promise<void> {
-    await this._transport?.close();
+    await this.transport?.close();
     this._onclose();
   }
 
-  async request<T extends ZodType<object>>(
-    request: Request,
-    resultSchema: T,
-    options?: RequestOptions,
-  ): Promise<z.infer<T>> {
+  async request<T extends ZodType<object>>({
+    request,
+    resultSchema,
+    options,
+  }: {
+    request: Request;
+    resultSchema: T;
+    options?: RequestOptions;
+  }): Promise<z.infer<T>> {
     return new Promise((resolve, reject) => {
-      if (!this._transport) {
-        reject(new Error('Not connected'));
-        return;
-      }
-
       options?.signal?.throwIfAborted();
 
-      const messageId = this._requestMessageId++;
+      const timeoutSignal = AbortSignal.timeout(
+        options?.timeout ?? this.requestTimeoutMs,
+      );
+      const signal = options?.signal
+        ? AbortSignal.any([options.signal, timeoutSignal])
+        : timeoutSignal;
+
+      const messageId = this.requestMessageId++;
       const jsonrpcRequest: JSONRPCRequest = {
         ...request,
         jsonrpc: '2.0',
         id: messageId,
       };
 
-      const cancel = (reason: unknown) => {};
+      const cleanup = () => {
+        this.responseHandlers.delete(messageId);
+      };
 
-      this._responseHandlers.set(messageId, response => {
-        if (options?.signal?.aborted) return;
+      signal.addEventListener('abort', () => {
+        cleanup();
+        reject(
+          new AISDKError({
+            name: 'McpClientTimeoutError',
+            message: 'Request timed out',
+            cause: signal?.reason,
+          }),
+        );
+      });
+
+      this.responseHandlers.set(messageId, response => {
+        if (signal.aborted) return;
 
         if (response instanceof Error) {
           return reject(response);
@@ -136,28 +197,8 @@ export class SimpleMcpClient {
         }
       });
 
-      options?.signal?.addEventListener('abort', () => {
-        cancel(options?.signal?.reason);
-      });
-
-      const timeout = options?.timeout ?? this.requestTimeoutMs;
-      const timeoutHandler = () =>
-        cancel(
-          new AISDKError({
-            name: 'McpClientTimeoutError',
-            message: 'Request timed out',
-          }),
-        );
-
-      this._setupTimeout(
-        messageId,
-        timeout,
-        options?.maxTotalTimeout,
-        timeoutHandler,
-      );
-
-      this._transport.send(jsonrpcRequest).catch(error => {
-        this._cleanupTimeout(messageId);
+      this.transport.send(jsonrpcRequest).catch(error => {
+        cleanup();
         reject(error);
       });
     });
@@ -167,18 +208,11 @@ export class SimpleMcpClient {
     params?: ListToolsRequest['params'],
     options?: RequestOptions,
   ): Promise<ListToolsResult> {
-    if (!this._serverCapabilities?.tools) {
-      throw new AISDKError({
-        name: 'McpClientError',
-        message: `Server does not support tools (required for tools/list)`,
-      });
-    }
-
-    return this.request(
-      { method: 'tools/list', params },
-      ListToolsResultSchema,
+    return this.request({
+      request: { method: 'tools/list', params },
+      resultSchema: ListToolsResultSchema,
       options,
-    );
+    });
   }
 
   async callTool(
@@ -188,63 +222,25 @@ export class SimpleMcpClient {
       | typeof CompatibilityCallToolResultSchema = CallToolResultSchema,
     options?: RequestOptions,
   ): Promise<CallToolResult | CompatibilityCallToolResult> {
-    if (!this._serverCapabilities?.tools) {
-      throw new AISDKError({
-        name: 'McpClientError',
-        message: `Server does not support tools (required for tools/call)`,
-      });
-    }
-
-    return this.request(
-      { method: 'tools/call', params },
+    return this.request({
+      request: { method: 'tools/call', params },
       resultSchema,
       options,
-    );
+    });
   }
 
   async notification(notification: Notification): Promise<void> {
-    if (!this._transport) {
-      throw new AISDKError({
-        name: 'McpClientError',
-        message: 'Not connected',
-      });
-    }
-
     const jsonrpcNotification: JSONRPCNotification = {
       ...notification,
       jsonrpc: '2.0',
     };
 
-    await this._transport.send(jsonrpcNotification);
-  }
-
-  private _setupTimeout(
-    messageId: number,
-    timeout: number,
-    maxTotalTimeout: number | undefined,
-    onTimeout: () => void,
-  ) {
-    this._timeoutInfo.set(messageId, {
-      timeoutId: setTimeout(onTimeout, timeout),
-      startTime: Date.now(),
-      timeout,
-      maxTotalTimeout,
-      onTimeout,
-    });
-  }
-
-  private _cleanupTimeout(messageId: number) {
-    const info = this._timeoutInfo.get(messageId);
-    if (info) {
-      clearTimeout(info.timeoutId);
-      this._timeoutInfo.delete(messageId);
-    }
+    await this.transport.send(jsonrpcNotification);
   }
 
   private _onclose(): void {
-    const responseHandlers = this._responseHandlers;
-    this._responseHandlers = new Map();
-    this._transport = undefined;
+    const responseHandlers = this.responseHandlers;
+    this.responseHandlers = new Map();
 
     const error = new AISDKError({
       name: 'McpClientConnectionClosedError',
@@ -266,7 +262,7 @@ export class SimpleMcpClient {
 
   private _onresponse(response: JSONRPCResponse | JSONRPCError): void {
     const messageId = Number(response.id);
-    const handler = this._responseHandlers.get(messageId);
+    const handler = this.responseHandlers.get(messageId);
     if (handler === undefined) {
       this._onerror(
         new Error(
@@ -278,8 +274,7 @@ export class SimpleMcpClient {
       return;
     }
 
-    this._responseHandlers.delete(messageId);
-    this._cleanupTimeout(messageId);
+    this.responseHandlers.delete(messageId);
 
     if ('result' in response) {
       handler(response);
@@ -293,15 +288,15 @@ export class SimpleMcpClient {
     }
   }
 
-  private async _initTransport(transport: Transport): Promise<void> {
-    this._transport = transport;
-    this._transport.onclose = () => {
+  private _initTransport(transport: Transport): void {
+    this.transport = transport;
+    this.transport.onclose = () => {
       this._onclose();
     };
-    this._transport.onerror = (error: Error) => {
+    this.transport.onerror = (error: Error) => {
       this._onerror(error);
     };
-    this._transport.onmessage = message => {
+    this.transport.onmessage = message => {
       if (!('method' in message)) {
         this._onresponse(message);
       } else {
@@ -313,6 +308,5 @@ export class SimpleMcpClient {
         });
       }
     };
-    await this._transport.start();
   }
 }

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { ToolResultContent } from '../prompt/tool-result-content';
 import { CoreMessage } from '../prompt/message';
 
-type Parameters = z.ZodTypeAny | Schema<any>;
+export type Parameters = z.ZodTypeAny | Schema<any>;
 
 export type inferParameters<PARAMETERS extends Parameters> =
   PARAMETERS extends Schema<any>

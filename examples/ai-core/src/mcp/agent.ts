@@ -1,5 +1,3 @@
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { openai } from '@ai-sdk/openai';
 import { generateText, createMcpTools } from 'ai';
 import 'dotenv/config';
@@ -14,48 +12,22 @@ import { z } from 'zod';
 
 const toolSchemas = {
   'get-pokemon': {
-    input: z.object({ name: z.string() }),
+    parameters: z.object({ name: z.string() }),
   },
 };
 
 async function main() {
-  // With custom client
-  const transport = new StdioClientTransport({
-    command: 'node',
-    args: ['src/mcp/dist/server.js'],
-  });
-
-  const client = new Client({
-    name: 'my-client',
-    version: '1.0.0',
-  });
-
-  await client.connect(transport);
-  const toolset = await createMcpTools<typeof toolSchemas>(
-    {
-      server: {
-        type: 'stdio',
-        command: 'node',
-        args: ['src/mcp/dist/server.js'],
-      },
-      customClient: client,
+  const toolset = await createMcpTools<typeof toolSchemas>({
+    transport: {
+      type: 'stdio',
+      command: 'node',
+      args: ['src/mcp/dist/server.js'],
     },
-    toolSchemas,
-  );
-
-  // With internal one-time client
-  // const toolset = await createMcpTools<typeof toolSchemas>(
-  //   {
-  //     server: {
-  //       type: 'stdio',
-  //       command: 'node',
-  //       args: ['src/mcp/dist/server.js'],
-  //     },
-  //   },
-  //   toolSchemas,
-  // );
+    tools: toolSchemas,
+  });
 
   const tools = toolset.toolSet;
+  const cleanup = toolset.cleanup;
 
   const { text: answer } = await generateText({
     model: openai('gpt-4o-mini', { structuredOutputs: true }),
@@ -69,8 +41,7 @@ async function main() {
       'Which 3 Pokemon could best defeat Feebas? Give me more details about each one.',
   });
 
-  // await toolset.cleanup();
-  await client.close();
+  await cleanup();
 
   console.log(`FINAL ANSWER: ${answer}`);
 }
