@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 1.1.13
+
+### Patch Changes
+
+- 3004b14: feat(provider/anthropic): add bash_20250124 and text_editor_20250124 tools
+
 ## 1.1.12
 
 ### Patch Changes
