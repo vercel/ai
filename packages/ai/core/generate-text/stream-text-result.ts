@@ -38,6 +38,14 @@ export type DataStreamOptions = {
    * Default to false.
    */
   sendSources?: boolean;
+
+  /**
+   * Send the finish event to the client.
+   * Set to false if you are using additional streamText calls
+   * that send additional data.
+   * Default to true.
+   */
+  experimental_sendFinishReason?: boolean;
 };
 
 /**
