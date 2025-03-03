@@ -45,7 +45,7 @@ export type DataStreamOptions = {
    * that send additional data.
    * Default to true.
    */
-  experimental_sendFinishReason?: boolean;
+  experimental_sendFinish?: boolean;
 };
 
 /**

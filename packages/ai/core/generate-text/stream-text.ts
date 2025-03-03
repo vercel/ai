@@ -1596,13 +1596,13 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendUsage = true,
     sendReasoning = false,
     sendSources = false,
-    experimental_sendFinishReason = true,
+    experimental_sendFinish = true,
   }: {
     getErrorMessage: ((error: unknown) => string) | undefined;
     sendUsage: boolean | undefined;
     sendReasoning: boolean | undefined;
     sendSources: boolean | undefined;
-    experimental_sendFinishReason: boolean | undefined;
+    experimental_sendFinish: boolean | undefined;
   }): ReadableStream<DataStreamString> {
     return this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, DataStreamString>({
@@ -1728,7 +1728,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'finish': {
-              if (experimental_sendFinishReason) {
+              if (experimental_sendFinish) {
                 controller.enqueue(
                   formatDataStreamPart('finish_message', {
                     finishReason: chunk.finishReason,
@@ -1765,7 +1765,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendUsage,
       sendReasoning,
       sendSources,
-      experimental_sendFinishReason,
+      experimental_sendFinish,
     }: ResponseInit &
       DataStreamOptions & {
         data?: StreamData;
@@ -1786,7 +1786,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendUsage,
         sendReasoning,
         sendSources,
-        experimental_sendFinishReason,
+        experimental_sendFinish,
       }),
     });
   }
@@ -1815,7 +1815,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendUsage: options?.sendUsage,
       sendReasoning: options?.sendReasoning,
       sendSources: options?.sendSources,
-      experimental_sendFinishReason: options?.experimental_sendFinishReason,
+      experimental_sendFinish: options?.experimental_sendFinish,
     }).pipeThrough(new TextEncoderStream());
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
@@ -1828,7 +1828,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendUsage: options?.sendUsage,
         sendReasoning: options?.sendReasoning,
         sendSources: options?.sendSources,
-        experimental_sendFinishReason: options?.experimental_sendFinishReason,
+        experimental_sendFinish: options?.experimental_sendFinish,
       }),
     );
   }
@@ -1842,7 +1842,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendUsage,
     sendReasoning,
     sendSources,
-    experimental_sendFinishReason,
+    experimental_sendFinish,
   }: ResponseInit &
     DataStreamOptions & {
       data?: StreamData;
@@ -1855,7 +1855,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendUsage,
         sendReasoning,
         sendSources,
-        experimental_sendFinishReason,
+        experimental_sendFinish,
       }),
       {
         status,
