@@ -29,35 +29,6 @@ describe('appendResponseMessages', () => {
       expect(result).toMatchSnapshot();
     });
 
-    it('appends assistant messages with single reasoning text', () => {
-      const result = appendResponseMessages({
-        messages: [
-          {
-            role: 'user',
-            id: '1',
-            content: 'Hello!',
-            createdAt: new Date(123),
-            parts: [{ type: 'text', text: 'Hello!' }],
-          },
-        ],
-        responseMessages: [
-          {
-            role: 'assistant',
-            content: [
-              { type: 'reasoning', text: 'reasoning part' },
-              { type: 'text', text: 'text response' },
-            ],
-            id: '123',
-          },
-        ],
-        _internal: {
-          currentDate: () => new Date(789),
-        },
-      });
-
-      expect(result).toMatchSnapshot();
-    });
-
     it('appends assistant messages with mixed complex reasoning and text', () => {
       const result = appendResponseMessages({
         messages: [

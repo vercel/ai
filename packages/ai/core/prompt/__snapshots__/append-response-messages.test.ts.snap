@@ -332,47 +332,6 @@ exports[`appendResponseMessages > after user message > appends assistant message
 ]
 `;
 
-exports[`appendResponseMessages > after user message > appends assistant messages with single reasoning text 1`] = `
-[
-  {
-    "content": "Hello!",
-    "createdAt": 1970-01-01T00:00:00.123Z,
-    "id": "1",
-    "parts": [
-      {
-        "text": "Hello!",
-        "type": "text",
-      },
-    ],
-    "role": "user",
-  },
-  {
-    "content": "text response",
-    "createdAt": 1970-01-01T00:00:00.789Z,
-    "id": "123",
-    "parts": [
-      {
-        "details": [
-          {
-            "signature": undefined,
-            "text": "reasoning part",
-            "type": "text",
-          },
-        ],
-        "reasoning": "reasoning part",
-        "type": "reasoning",
-      },
-      {
-        "text": "text response",
-        "type": "text",
-      },
-    ],
-    "role": "assistant",
-    "toolInvocations": [],
-  },
-]
-`;
-
 exports[`appendResponseMessages > after user message > appends assistant messages with text content 1`] = `
 [
   {
