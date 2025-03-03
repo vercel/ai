@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 1.1.13
+
+### Patch Changes
+
+- 3004b14: feat(provider/anthropic): add bash_20250124 and text_editor_20250124 tools
+
+## 1.1.12
+
+### Patch Changes
+
+- b3e5a15: fix (provider/anthropic): add model setting to allow omitting reasoning content from model requests
+
 ## 1.1.11
 
 ### Patch Changes

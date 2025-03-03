@@ -21,4 +21,12 @@ Enable Anthropic cache control. This will allow you to use provider-specific
 optionally mark content for caching) and this setting is no longer needed.
 */
   cacheControl?: boolean;
+
+  /**
+Include reasoning content in requests sent to the model. Defaults to `true`.
+
+If you are experiencing issues with the model handling requests involving
+reasoning content, you can set this to `false` to omit them from the request.
+  */
+  sendReasoning?: boolean;
 }

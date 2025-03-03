@@ -1,5 +1,31 @@
 # ai
 
+## 4.1.50
+
+### Patch Changes
+
+- ae98f0d: fix (ai/core): forward providerOptions for text, image, and file parts
+
+## 4.1.49
+
+### Patch Changes
+
+- dc027d3: fix (ai/core): add reasoning support to appendResponseMessages
+
+## 4.1.48
+
+### Patch Changes
+
+- Updated dependencies [6255fbc]
+  - @ai-sdk/react@1.1.20
+
+## 4.1.47
+
+### Patch Changes
+
+- Updated dependencies [da5c734]
+  - @ai-sdk/react@1.1.19
+
 ## 4.1.46
 
 ### Patch Changes
