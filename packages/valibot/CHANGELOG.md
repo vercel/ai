@@ -1,5 +1,11 @@
 # @ai-sdk/valibot
 
+## 0.0.14
+
+### Patch Changes
+
+- ai@4.1.47
+
 ## 0.0.13
 
 ### Patch Changes
