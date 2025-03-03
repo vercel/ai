@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.50
+
+### Patch Changes
+
+- ae98f0d: fix (ai/core): forward providerOptions for text, image, and file parts
+
 ## 4.1.49
 
 ### Patch Changes
