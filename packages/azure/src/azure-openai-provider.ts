@@ -214,7 +214,7 @@ export function createAzure(
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
-  return provider as AzureOpenAIProvider;
+  return provider;
 }
 
 /**
