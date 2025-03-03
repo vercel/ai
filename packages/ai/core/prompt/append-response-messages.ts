@@ -47,6 +47,16 @@ Internal. For test use only. May change without notice.
                 .map(part => part.text)
                 .join('');
 
+        const reasoningContent =
+          typeof message.content === 'string'
+            ? undefined
+            : message.content
+                .filter(part => part.type === 'reasoning')
+                .map(part => part.text)
+                .join('');
+
+        // TODO redacted reasoning
+
         function getToolInvocations(step: number) {
           return (
             typeof message.content === 'string'
@@ -100,6 +110,21 @@ Internal. For test use only. May change without notice.
             parts: [
               ...(textContent.length > 0
                 ? [{ type: 'text' as const, text: textContent }]
+                : []),
+              ...(reasoningContent != null && reasoningContent.length > 0
+                ? [
+                    {
+                      type: 'reasoning' as const,
+                      reasoning: reasoningContent,
+                      details: [
+                        {
+                          type: 'text' as const,
+                          text: reasoningContent,
+                          // TODO signature
+                        },
+                      ],
+                    },
+                  ]
                 : []),
               ...getToolInvocations(0).map(call => ({
                 type: 'tool-invocation' as const,

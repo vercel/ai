@@ -28,6 +28,35 @@ describe('appendResponseMessages', () => {
     expect(result).toMatchSnapshot();
   });
 
+  it('appends assistant messages with text reasoning when last message is user', () => {
+    const result = appendResponseMessages({
+      messages: [
+        {
+          role: 'user',
+          id: '1',
+          content: 'Hello!',
+          createdAt: new Date(123),
+          parts: [{ type: 'text', text: 'Hello!' }],
+        },
+      ],
+      responseMessages: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'reasoning part' },
+            { type: 'text', text: 'text response' },
+          ],
+          id: '123',
+        },
+      ],
+      _internal: {
+        currentDate: () => new Date(789),
+      },
+    });
+
+    expect(result).toMatchSnapshot();
+  });
+
   it('adds assistant text response to previous assistant message', () => {
     const result = appendResponseMessages({
       messages: [
