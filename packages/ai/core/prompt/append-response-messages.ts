@@ -1,6 +1,8 @@
 import {
   extractMaxToolInvocationStep,
   Message,
+  ReasoningUIPart,
+  TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
 } from '@ai-sdk/ui-utils';
@@ -38,7 +40,8 @@ Internal. For test use only. May change without notice.
     const isLastMessageAssistant = lastMessage.role === 'assistant';
 
     switch (role) {
-      case 'assistant': // only include text in the content:
+      case 'assistant': {
+        // only include text in the content:
         const textContent =
           typeof message.content === 'string'
             ? message.content
@@ -46,16 +49,6 @@ Internal. For test use only. May change without notice.
                 .filter(part => part.type === 'text')
                 .map(part => part.text)
                 .join('');
-
-        const reasoningContent =
-          typeof message.content === 'string'
-            ? undefined
-            : message.content
-                .filter(part => part.type === 'reasoning')
-                .map(part => part.text)
-                .join('');
-
-        // TODO redacted reasoning
 
         function getToolInvocations(step: number) {
           return (
@@ -100,6 +93,68 @@ Internal. For test use only. May change without notice.
               lastMessage.parts!.push(part);
             });
         } else {
+          const parts: Array<
+            TextUIPart | ReasoningUIPart | ToolInvocationUIPart
+          > = [];
+
+          if (typeof message.content === 'string') {
+            parts.push({
+              type: 'text' as const,
+              text: message.content,
+            });
+          } else {
+            let reasoningPart: ReasoningUIPart | undefined = undefined;
+            for (const part of message.content) {
+              switch (part.type) {
+                case 'text': {
+                  reasoningPart = undefined; // reset the reasoning part
+
+                  parts.push({
+                    type: 'text' as const,
+                    text: part.text,
+                  });
+                  break;
+                }
+                case 'reasoning': {
+                  if (reasoningPart == null) {
+                    reasoningPart = {
+                      type: 'reasoning' as const,
+                      reasoning: '',
+                      details: [],
+                    };
+                    parts.push(reasoningPart);
+                  }
+
+                  reasoningPart.reasoning += part.text;
+                  reasoningPart.details.push({
+                    type: 'text' as const,
+                    text: part.text,
+                    signature: part.signature,
+                  });
+                  break;
+                }
+                case 'redacted-reasoning': {
+                  if (reasoningPart == null) {
+                    reasoningPart = {
+                      type: 'reasoning' as const,
+                      reasoning: '',
+                      details: [],
+                    };
+                    parts.push(reasoningPart);
+                  }
+
+                  reasoningPart.details.push({
+                    type: 'redacted' as const,
+                    data: part.data,
+                  });
+                  break;
+                }
+                case 'tool-call':
+                  break;
+              }
+            }
+          }
+
           // last message was a user message, add the assistant message:
           clonedMessages.push({
             role: 'assistant',
@@ -108,24 +163,7 @@ Internal. For test use only. May change without notice.
             content: textContent,
             toolInvocations: getToolInvocations(0),
             parts: [
-              ...(textContent.length > 0
-                ? [{ type: 'text' as const, text: textContent }]
-                : []),
-              ...(reasoningContent != null && reasoningContent.length > 0
-                ? [
-                    {
-                      type: 'reasoning' as const,
-                      reasoning: reasoningContent,
-                      details: [
-                        {
-                          type: 'text' as const,
-                          text: reasoningContent,
-                          // TODO signature
-                        },
-                      ],
-                    },
-                  ]
-                : []),
+              ...parts,
               ...getToolInvocations(0).map(call => ({
                 type: 'tool-invocation' as const,
                 toolInvocation: call,
@@ -135,6 +173,7 @@ Internal. For test use only. May change without notice.
         }
 
         break;
+      }
 
       case 'tool': {
         // for tool call results, add the result to previous message:

@@ -272,6 +272,66 @@ exports[`appendResponseMessages > after user message > adds chain of assistant m
 ]
 `;
 
+exports[`appendResponseMessages > after user message > appends assistant messages with mixed complex reasoning and text 1`] = `
+[
+  {
+    "content": "Hello!",
+    "createdAt": 1970-01-01T00:00:00.123Z,
+    "id": "1",
+    "parts": [
+      {
+        "text": "Hello!",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "content": "text responsetext response 2",
+    "createdAt": 1970-01-01T00:00:00.789Z,
+    "id": "123",
+    "parts": [
+      {
+        "details": [
+          {
+            "signature": "sig-1",
+            "text": "reasoning part",
+            "type": "text",
+          },
+          {
+            "data": "redacted part",
+            "type": "redacted",
+          },
+        ],
+        "reasoning": "reasoning part",
+        "type": "reasoning",
+      },
+      {
+        "text": "text response",
+        "type": "text",
+      },
+      {
+        "details": [
+          {
+            "signature": "sig-2",
+            "text": "reasoning part 2",
+            "type": "text",
+          },
+        ],
+        "reasoning": "reasoning part 2",
+        "type": "reasoning",
+      },
+      {
+        "text": "text response 2",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+    "toolInvocations": [],
+  },
+]
+`;
+
 exports[`appendResponseMessages > after user message > appends assistant messages with single reasoning text 1`] = `
 [
   {
@@ -292,18 +352,19 @@ exports[`appendResponseMessages > after user message > appends assistant message
     "id": "123",
     "parts": [
       {
-        "text": "text response",
-        "type": "text",
-      },
-      {
         "details": [
           {
+            "signature": undefined,
             "text": "reasoning part",
             "type": "text",
           },
         ],
         "reasoning": "reasoning part",
         "type": "reasoning",
+      },
+      {
+        "text": "text response",
+        "type": "text",
       },
     ],
     "role": "assistant",

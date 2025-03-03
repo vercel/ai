@@ -58,6 +58,42 @@ describe('appendResponseMessages', () => {
       expect(result).toMatchSnapshot();
     });
 
+    it('appends assistant messages with mixed complex reasoning and text', () => {
+      const result = appendResponseMessages({
+        messages: [
+          {
+            role: 'user',
+            id: '1',
+            content: 'Hello!',
+            createdAt: new Date(123),
+            parts: [{ type: 'text', text: 'Hello!' }],
+          },
+        ],
+        responseMessages: [
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'reasoning part', signature: 'sig-1' },
+              { type: 'redacted-reasoning', data: 'redacted part' },
+              { type: 'text', text: 'text response' },
+              {
+                type: 'reasoning',
+                text: 'reasoning part 2',
+                signature: 'sig-2',
+              },
+              { type: 'text', text: 'text response 2' },
+            ],
+            id: '123',
+          },
+        ],
+        _internal: {
+          currentDate: () => new Date(789),
+        },
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
     it('handles tool calls and marks them as "call" initially', () => {
       const result = appendResponseMessages({
         messages: [
