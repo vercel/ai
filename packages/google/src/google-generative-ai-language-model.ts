@@ -512,10 +512,10 @@ export const safetyRatingSchema = z.object({
   blocked: z.boolean().nullish(),
 });
 
-const responseSchema = z.object({
+export const responseSchema = z.object({
   candidates: z.array(
     z.object({
-      content: contentSchema.nullish(),
+      content: contentSchema.nullish().or(z.object({}).strict()),
       finishReason: z.string().nullish(),
       safetyRatings: z.array(safetyRatingSchema).nullish(),
       groundingMetadata: groundingMetadataSchema.nullish(),

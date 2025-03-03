@@ -8,6 +8,7 @@ import { createGoogleGenerativeAI } from './google-provider';
 import {
   GoogleGenerativeAILanguageModel,
   groundingMetadataSchema,
+  responseSchema,
 } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIGroundingMetadata } from './google-generative-ai-prompt';
 
@@ -166,6 +167,43 @@ describe('groundingMetadataSchema', () => {
 
     const result = groundingMetadataSchema.safeParse(metadata);
     expect(result.success).toBe(false);
+  });
+});
+
+describe('responseSchema', () => {
+  it('validates response with empty content object and MALFORMED_FUNCTION_CALL finish reason', () => {
+    // Test data with empty content object
+    const responseWithEmptyContent = {
+      "candidates": [
+        {
+          "content": {},
+          "finishReason": "MALFORMED_FUNCTION_CALL"
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 9056,
+        "totalTokenCount": 9056,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 9056
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-lite"
+    };
+
+    // Parse the test data with the schema
+    const result = responseSchema.safeParse(responseWithEmptyContent);
+    
+    // The schema validation should succeed
+    expect(result.success).toBe(true);
+    
+    if (result.success) {
+      // Verify the parsed data has the expected structure
+      expect(result.data.candidates?.[0]?.content).toEqual({});
+      expect(result.data.candidates?.[0]?.finishReason).toBe("MALFORMED_FUNCTION_CALL");
+    }
   });
 });
 
