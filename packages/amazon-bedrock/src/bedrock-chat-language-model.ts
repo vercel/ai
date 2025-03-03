@@ -4,6 +4,8 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1ProviderMetadata,
+  LanguageModelV1ReasoningPart,
+  LanguageModelV1RedactedReasoningPart,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -22,6 +24,8 @@ import {
   BedrockStopReason,
   BEDROCK_STOP_REASONS,
   BEDROCK_CACHE_POINT,
+  BedrockReasoningContentBlock,
+  BedrockRedactedReasoningContentBlock,
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
@@ -223,34 +227,44 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
           }
         : undefined;
 
-    const reasoningDetails = (response.output?.message?.content || [])
-      .filter(
-        part =>
-          part.reasoningContent &&
-          (('reasoningText' in part.reasoningContent &&
-            part.reasoningContent.reasoningText.text != null) ||
-            ('redactedReasoning' in part.reasoningContent &&
-              part.reasoningContent.redactedReasoning.data != null)),
-      )
-      .map(part => {
-        const reasoningContent = part.reasoningContent!;
+    // Extract reasoning details from all content parts that have reasoningContent
+    // This handles both tool use and non-tool use cases
+    let reasoningDetails: Array<
+      | { type: 'text'; text: string; signature?: string }
+      | { type: 'redacted'; data: string }
+    > = [];
 
-        if ('reasoningText' in reasoningContent) {
-          return {
-            type: 'text' as const,
-            text: reasoningContent.reasoningText.text,
-            ...(reasoningContent.reasoningText.signature && {
-              signature: reasoningContent.reasoningText.signature,
-            }),
-          };
-        } else {
-          // Must be redactedReasoning
-          return {
-            type: 'redacted' as const,
-            data: reasoningContent.redactedReasoning.data,
-          };
-        }
-      });
+    // Process message content if available
+    if (response.output?.message?.content) {
+      reasoningDetails = response.output.message.content
+        .filter(
+          part =>
+            part.reasoningContent &&
+            (('reasoningText' in part.reasoningContent &&
+              part.reasoningContent.reasoningText.text != null) ||
+              ('redactedReasoning' in part.reasoningContent &&
+                part.reasoningContent.redactedReasoning.data != null)),
+        )
+        .map(part => {
+          const reasoningContent = part.reasoningContent!;
+
+          if ('reasoningText' in reasoningContent) {
+            return {
+              type: 'text' as const,
+              text: reasoningContent.reasoningText.text,
+              ...(reasoningContent.reasoningText.signature && {
+                signature: reasoningContent.reasoningText.signature,
+              }),
+            };
+          } else {
+            // Must be redactedReasoning
+            return {
+              type: 'redacted' as const,
+              data: reasoningContent.redactedReasoning.data,
+            };
+          }
+        });
+    }
 
     return {
       text:
@@ -275,7 +289,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
-      reasoning: reasoningDetails,
+      ...(reasoningDetails.length > 0 && { reasoning: reasoningDetails }),
       ...(providerMetadata && { providerMetadata }),
     };
   }
