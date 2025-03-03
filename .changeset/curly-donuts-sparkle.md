@@ -3,4 +3,4 @@
 '@ai-sdk/azure': minor
 ---
 
-Adds image model support to azure openai
+feat (provider/azure): Add Azure image model support
