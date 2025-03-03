@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [dc027d3]
+  - ai@4.1.49
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@4.1.48
 
 ## 0.0.1
