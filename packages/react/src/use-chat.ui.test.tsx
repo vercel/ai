@@ -9,7 +9,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from './use-chat';
 
 describe('data protocol stream', () => {
@@ -1887,4 +1887,142 @@ describe('test sending additional fields during message submission', () => {
       },
     ),
   );
+});
+
+describe('initialMessages', () => {
+  describe('stability', () => {
+    let renderCount = 0;
+
+    const TestComponent = () => {
+      renderCount++;
+      const [derivedState, setDerivedState] = useState<string[]>([]);
+
+      const { messages } = useChat({
+        initialMessages: [
+          {
+            id: 'test-msg-1',
+            content: 'Test message',
+            role: 'user',
+          },
+          {
+            id: 'test-msg-2',
+            content: 'Test response',
+            role: 'assistant',
+          },
+        ],
+      });
+
+      useEffect(() => {
+        setDerivedState(messages.map(m => m.content));
+      }, [messages]);
+
+      if (renderCount > 10) {
+        throw new Error('Excessive renders detected; likely an infinite loop!');
+      }
+
+      return (
+        <div>
+          <div data-testid="render-count">{renderCount}</div>
+          <div data-testid="derived-state">{derivedState.join(', ')}</div>
+          {messages.map(m => (
+            <div key={m.id} data-testid={`message-${m.role}`}>
+              {m.content}
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    beforeEach(() => {
+      renderCount = 0;
+      render(<TestComponent />);
+    });
+
+    afterEach(() => {
+      cleanup();
+    });
+
+    it('should not cause infinite rerenders when initialMessages is defined and messages is a dependency of useEffect', async () => {
+      // wait for initial render to complete
+      await waitFor(() => {
+        expect(screen.getByTestId('message-user')).toHaveTextContent(
+          'Test message',
+        );
+      });
+
+      // confirm useEffect ran
+      await waitFor(() => {
+        expect(screen.getByTestId('derived-state')).toHaveTextContent(
+          'Test message, Test response',
+        );
+      });
+
+      const renderCount = parseInt(
+        screen.getByTestId('render-count').textContent!,
+      );
+
+      expect(renderCount).toBe(2);
+    });
+  });
+
+  describe('changing initial messages', () => {
+    const TestComponent = () => {
+      const [initialMessages, setInitialMessages] = useState<Message[]>([
+        {
+          id: 'test-msg-1',
+          content: 'Test message 1',
+          role: 'user',
+        },
+      ]);
+
+      const { messages } = useChat({
+        initialMessages,
+      });
+
+      return (
+        <div>
+          <div data-testid="messages">
+            {messages.map(m => m.content).join(', ')}
+          </div>
+
+          <button
+            data-testid="do-update-initial-messages"
+            onClick={() => {
+              setInitialMessages([
+                {
+                  id: 'test-msg-2',
+                  content: 'Test message 2',
+                  role: 'user',
+                },
+              ]);
+            }}
+          />
+        </div>
+      );
+    };
+
+    beforeEach(() => {
+      render(<TestComponent />);
+    });
+
+    afterEach(() => {
+      cleanup();
+    });
+
+    it('should update messages when initialMessages changes', async () => {
+      await waitFor(() => {
+        expect(screen.getByTestId('messages')).toHaveTextContent(
+          'Test message 1',
+        );
+      });
+
+      await userEvent.click(screen.getByTestId('do-update-initial-messages'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('messages')).toHaveTextContent(
+          'Test message 2',
+        );
+      });
+    });
+  });
 });
