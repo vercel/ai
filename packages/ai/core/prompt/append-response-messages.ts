@@ -41,15 +41,6 @@ Internal. For test use only. May change without notice.
 
     switch (role) {
       case 'assistant': {
-        // only include text in the content:
-        const textContent =
-          typeof message.content === 'string'
-            ? message.content
-            : message.content
-                .filter(part => part.type === 'text')
-                .map(part => part.text)
-                .join('');
-
         function getToolInvocations(step: number) {
           return (
             typeof message.content === 'string'
@@ -64,6 +55,73 @@ Internal. For test use only. May change without notice.
           }));
         }
 
+        const parts: Array<
+          TextUIPart | ReasoningUIPart | ToolInvocationUIPart
+        > = [];
+        let textContent = '';
+        let reasoningTextContent = undefined;
+
+        if (typeof message.content === 'string') {
+          textContent = message.content;
+          parts.push({
+            type: 'text' as const,
+            text: message.content,
+          });
+        } else {
+          let reasoningPart: ReasoningUIPart | undefined = undefined;
+          for (const part of message.content) {
+            switch (part.type) {
+              case 'text': {
+                reasoningPart = undefined; // reset the reasoning part
+
+                textContent += part.text;
+                parts.push({
+                  type: 'text' as const,
+                  text: part.text,
+                });
+                break;
+              }
+              case 'reasoning': {
+                if (reasoningPart == null) {
+                  reasoningPart = {
+                    type: 'reasoning' as const,
+                    reasoning: '',
+                    details: [],
+                  };
+                  parts.push(reasoningPart);
+                }
+
+                reasoningTextContent = (reasoningTextContent ?? '') + part.text;
+                reasoningPart.reasoning += part.text;
+                reasoningPart.details.push({
+                  type: 'text' as const,
+                  text: part.text,
+                  signature: part.signature,
+                });
+                break;
+              }
+              case 'redacted-reasoning': {
+                if (reasoningPart == null) {
+                  reasoningPart = {
+                    type: 'reasoning' as const,
+                    reasoning: '',
+                    details: [],
+                  };
+                  parts.push(reasoningPart);
+                }
+
+                reasoningPart.details.push({
+                  type: 'redacted' as const,
+                  data: part.data,
+                });
+                break;
+              }
+              case 'tool-call':
+                break;
+            }
+          }
+        }
+
         if (isLastMessageAssistant) {
           const maxStep = extractMaxToolInvocationStep(
             lastMessage.toolInvocations,
@@ -72,12 +130,8 @@ Internal. For test use only. May change without notice.
           lastMessage.parts ??= [];
 
           lastMessage.content = textContent;
-          if (textContent.length > 0) {
-            lastMessage.parts.push({
-              type: 'text' as const,
-              text: textContent,
-            });
-          }
+          lastMessage.reasoning = reasoningTextContent;
+          lastMessage.parts.push(...parts);
 
           lastMessage.toolInvocations = [
             ...(lastMessage.toolInvocations ?? []),
@@ -93,74 +147,13 @@ Internal. For test use only. May change without notice.
               lastMessage.parts!.push(part);
             });
         } else {
-          const parts: Array<
-            TextUIPart | ReasoningUIPart | ToolInvocationUIPart
-          > = [];
-
-          if (typeof message.content === 'string') {
-            parts.push({
-              type: 'text' as const,
-              text: message.content,
-            });
-          } else {
-            let reasoningPart: ReasoningUIPart | undefined = undefined;
-            for (const part of message.content) {
-              switch (part.type) {
-                case 'text': {
-                  reasoningPart = undefined; // reset the reasoning part
-
-                  parts.push({
-                    type: 'text' as const,
-                    text: part.text,
-                  });
-                  break;
-                }
-                case 'reasoning': {
-                  if (reasoningPart == null) {
-                    reasoningPart = {
-                      type: 'reasoning' as const,
-                      reasoning: '',
-                      details: [],
-                    };
-                    parts.push(reasoningPart);
-                  }
-
-                  reasoningPart.reasoning += part.text;
-                  reasoningPart.details.push({
-                    type: 'text' as const,
-                    text: part.text,
-                    signature: part.signature,
-                  });
-                  break;
-                }
-                case 'redacted-reasoning': {
-                  if (reasoningPart == null) {
-                    reasoningPart = {
-                      type: 'reasoning' as const,
-                      reasoning: '',
-                      details: [],
-                    };
-                    parts.push(reasoningPart);
-                  }
-
-                  reasoningPart.details.push({
-                    type: 'redacted' as const,
-                    data: part.data,
-                  });
-                  break;
-                }
-                case 'tool-call':
-                  break;
-              }
-            }
-          }
-
           // last message was a user message, add the assistant message:
           clonedMessages.push({
             role: 'assistant',
             id: message.id,
             createdAt: currentDate(), // generate a createdAt date for the message, will be overridden by the client
             content: textContent,
+            reasoning: reasoningTextContent,
             toolInvocations: getToolInvocations(0),
             parts: [
               ...parts,

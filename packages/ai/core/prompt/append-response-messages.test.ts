@@ -381,5 +381,80 @@ describe('appendResponseMessages', () => {
 
       expect(result).toMatchSnapshot();
     });
+
+    it('appends assistant messages with mixed complex reasoning and text', () => {
+      const result = appendResponseMessages({
+        messages: [
+          {
+            role: 'user',
+            id: '1',
+            content: 'User wants a tool invocation',
+            createdAt: new Date(123),
+            parts: [{ type: 'text', text: 'User wants a tool invocation' }],
+          },
+          {
+            role: 'assistant',
+            id: '2',
+            content: 'Placeholder text',
+            createdAt: new Date(456),
+            toolInvocations: [
+              {
+                toolCallId: 'call-1',
+                toolName: 'some-tool',
+                state: 'call',
+                args: { query: 'some query' },
+                step: 0,
+              },
+            ],
+            parts: [
+              {
+                type: 'tool-invocation',
+                toolInvocation: {
+                  toolCallId: 'call-1',
+                  toolName: 'some-tool',
+                  state: 'call',
+                  args: { query: 'some query' },
+                  step: 0,
+                },
+              },
+            ],
+          },
+        ],
+        responseMessages: [
+          {
+            role: 'tool',
+            id: '3',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'some-tool',
+                result: { answer: 'Tool result data' },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'reasoning', text: 'reasoning part', signature: 'sig-1' },
+              { type: 'redacted-reasoning', data: 'redacted part' },
+              { type: 'text', text: 'text response' },
+              {
+                type: 'reasoning',
+                text: 'reasoning part 2',
+                signature: 'sig-2',
+              },
+              { type: 'text', text: 'text response 2' },
+            ],
+            id: '123',
+          },
+        ],
+        _internal: {
+          currentDate: () => new Date(789),
+        },
+      });
+
+      expect(result).toMatchSnapshot();
+    });
   });
 });
