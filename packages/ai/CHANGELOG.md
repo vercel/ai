@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.49
+
+### Patch Changes
+
+- dc027d3: fix (ai/core): add reasoning support to appendResponseMessages
+
 ## 4.1.48
 
 ### Patch Changes
