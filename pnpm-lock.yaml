@@ -63,7 +63,7 @@ importers:
         specifier: 1.1.13
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/azure
       '@ai-sdk/cerebras':
         specifier: 0.1.12
@@ -99,7 +99,7 @@ importers:
         specifier: 1.1.13
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
         specifier: 0.1.12
@@ -175,7 +175,7 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       ai:
         specifier: 4.1.50
@@ -203,7 +203,7 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       ai:
         specifier: 4.1.50
@@ -228,7 +228,7 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
@@ -256,7 +256,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -512,7 +512,7 @@ importers:
         specifier: 2.1.22
         version: link:../../packages/google-vertex
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
         specifier: 1.0.2
@@ -579,7 +579,7 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.1.20
@@ -634,7 +634,7 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.1.20
@@ -689,7 +689,7 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.1.20
@@ -756,7 +756,7 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.1.20
@@ -829,7 +829,7 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@ai-sdk/react':
         specifier: 1.1.20
@@ -887,7 +887,7 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       ai:
         specifier: 4.1.50
@@ -915,7 +915,7 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@ai-sdk/vue':
         specifier: 1.1.19
@@ -970,7 +970,7 @@ importers:
   examples/solidstart-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@ai-sdk/solid':
         specifier: 1.1.20
@@ -1013,7 +1013,7 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../../packages/openai
       '@ai-sdk/svelte':
         specifier: 1.1.19
@@ -1203,7 +1203,7 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.1.15
+        specifier: 1.2.0
         version: link:../openai
       '@ai-sdk/provider':
         specifier: 1.0.9
