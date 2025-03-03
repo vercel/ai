@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 1.1.20
+
+### Patch Changes
+
+- 6255fbc: fix (ai/react): update messages when initialMessages changes
+
 ## 1.1.19
 
 ### Patch Changes
