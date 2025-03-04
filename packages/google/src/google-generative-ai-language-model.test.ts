@@ -8,7 +8,6 @@ import { createGoogleGenerativeAI } from './google-provider';
 import {
   GoogleGenerativeAILanguageModel,
   groundingMetadataSchema,
-  responseSchema,
 } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIGroundingMetadata } from './google-generative-ai-prompt';
 
@@ -170,43 +169,6 @@ describe('groundingMetadataSchema', () => {
   });
 });
 
-describe('responseSchema', () => {
-  it('validates response with empty content object and MALFORMED_FUNCTION_CALL finish reason', () => {
-    // Test data with empty content object
-    const responseWithEmptyContent = {
-      "candidates": [
-        {
-          "content": {},
-          "finishReason": "MALFORMED_FUNCTION_CALL"
-        }
-      ],
-      "usageMetadata": {
-        "promptTokenCount": 9056,
-        "totalTokenCount": 9056,
-        "promptTokensDetails": [
-          {
-            "modality": "TEXT",
-            "tokenCount": 9056
-          }
-        ]
-      },
-      "modelVersion": "gemini-2.0-flash-lite"
-    };
-
-    // Parse the test data with the schema
-    const result = responseSchema.safeParse(responseWithEmptyContent);
-    
-    // The schema validation should succeed
-    expect(result.success).toBe(true);
-    
-    if (result.success) {
-      // Verify the parsed data has the expected structure
-      expect(result.data.candidates?.[0]?.content).toEqual({});
-      expect(result.data.candidates?.[0]?.finishReason).toBe("MALFORMED_FUNCTION_CALL");
-    }
-  });
-});
-
 describe('doGenerate', () => {
   const prepareJsonResponse = ({
     content = '',
@@ -287,6 +249,45 @@ describe('doGenerate', () => {
           promptTokens: 20,
           completionTokens: 5,
         });
+      },
+    ),
+  );
+
+  it(
+    'should handle MALFORMED_FUNCTION_CALL finish reason and empty content object',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {},
+              finishReason: 'MALFORMED_FUNCTION_CALL',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 9056,
+            totalTokenCount: 9056,
+            promptTokensDetails: [
+              {
+                modality: 'TEXT',
+                tokenCount: 9056,
+              },
+            ],
+          },
+          modelVersion: 'gemini-2.0-flash-lite',
+        },
+      },
+      async () => {
+        const { text, finishReason } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toBeUndefined();
+        expect(finishReason).toStrictEqual('error');
       },
     ),
   );
