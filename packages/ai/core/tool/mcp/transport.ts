@@ -9,7 +9,7 @@ import {
   McpSSEServerConfig,
   McpStdioServerConfig,
 } from './types';
-import { AISDKError } from '@ai-sdk/provider';
+import { MCPClientError } from '@ai-sdk/provider';
 
 export function createMcpTransport(config: TransportConfig): MCPTransport {
   return config.type === 'stdio'
@@ -33,8 +33,7 @@ export class StdioClientTransport implements MCPTransport {
 
   async start(): Promise<void> {
     if (this.process) {
-      throw new AISDKError({
-        name: 'McpTransportError',
+      throw new MCPClientError({
         message: 'StdioClientTransport already started.',
       });
     }
@@ -111,9 +110,8 @@ export class StdioClientTransport implements MCPTransport {
   send(message: JSONRPCMessage): Promise<void> {
     return new Promise(resolve => {
       if (!this.process?.stdin) {
-        throw new AISDKError({
-          name: 'TransportError',
-          message: 'Not connected',
+        throw new MCPClientError({
+          message: 'StdioClientTransport not connected',
         });
       }
 
@@ -147,8 +145,7 @@ class SSEClientTransport implements MCPTransport {
       this.abortController = new AbortController();
 
       this.eventSource.onerror = event => {
-        const error = new AISDKError({
-          name: 'McpTransportError',
+        const error = new MCPClientError({
           message: `SSEClientTransport error (Code: ${event.code}): ${event.message}`,
           cause: event,
         });
@@ -166,8 +163,7 @@ class SSEClientTransport implements MCPTransport {
         try {
           this.endpoint = new URL(messageEvent.data, this.url);
           if (this.endpoint.origin !== this.url.origin) {
-            throw new AISDKError({
-              name: 'McpTransportError',
+            throw new MCPClientError({
               message: `Endpoint origin does not match connection origin: ${this.endpoint.origin}`,
             });
           }
@@ -198,8 +194,7 @@ class SSEClientTransport implements MCPTransport {
 
   async start(): Promise<void> {
     if (this.eventSource) {
-      throw new AISDKError({
-        name: 'McpTransportError',
+      throw new MCPClientError({
         message: 'SSEClientTransport already started.',
       });
     }
@@ -215,9 +210,8 @@ class SSEClientTransport implements MCPTransport {
 
   async send(message: JSONRPCMessage): Promise<void> {
     if (!this.endpoint) {
-      throw new AISDKError({
-        name: 'McpTransportError',
-        message: 'Not connected',
+      throw new MCPClientError({
+        message: 'SSEClientTransport not connected',
       });
     }
 
@@ -234,8 +228,7 @@ class SSEClientTransport implements MCPTransport {
       const response = await fetch(this.endpoint, init);
       if (!response.ok) {
         const text = await response.text().catch(() => null);
-        throw new AISDKError({
-          name: 'McpTransportError',
+        throw new MCPClientError({
           message: `Error POSTing to endpoint (HTTP ${response.status}): ${text}`,
         });
       }

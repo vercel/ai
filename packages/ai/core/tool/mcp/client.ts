@@ -20,7 +20,7 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
   TransportConfig,
 } from './types';
-import { AISDKError } from '@ai-sdk/provider';
+import { MCPClientError } from '@ai-sdk/provider';
 import { createMcpTransport } from './transport';
 
 interface MCPClientConfig {
@@ -72,8 +72,7 @@ export class MCPClient {
       } else {
         // This lightweight client implementation does not support
         // receiving notifications or requests from server:
-        throw new AISDKError({
-          name: 'McpClientError',
+        throw new MCPClientError({
           message: 'Unsupported message type',
         });
       }
@@ -101,22 +100,19 @@ export class MCPClient {
       });
 
       if (result === undefined) {
-        throw new AISDKError({
-          name: 'McpClientError',
+        throw new MCPClientError({
           message: 'Server sent invalid initialize result',
         });
       }
 
       if (!SUPPORTED_PROTOCOL_VERSIONS.includes(result.protocolVersion)) {
-        throw new AISDKError({
-          name: 'McpClientError',
+        throw new MCPClientError({
           message: `Server's protocol version is not supported: ${result.protocolVersion}`,
         });
       }
 
       if (!result.capabilities?.tools) {
-        throw new AISDKError({
-          name: 'McpClientError',
+        throw new MCPClientError({
           message: `Server does not support tools`,
         });
       }
@@ -165,8 +161,7 @@ export class MCPClient {
       this.responseHandlers.set(messageId, response => {
         if (signal?.aborted) {
           return reject(
-            new AISDKError({
-              name: 'McpClientAbortError',
+            new MCPClientError({
               message: 'Request was aborted',
               cause: signal.reason,
             }),
@@ -235,8 +230,7 @@ export class MCPClient {
     const responseHandlers = this.responseHandlers;
     this.responseHandlers = new Map();
 
-    const error = new AISDKError({
-      name: 'McpClientConnectionClosedError',
+    const error = new MCPClientError({
       message: 'Connection closed',
     });
 
@@ -246,8 +240,7 @@ export class MCPClient {
   }
 
   private onerror(error: Error): void {
-    throw new AISDKError({
-      name: 'McpClientError',
+    throw new MCPClientError({
       message: error.message,
       cause: error,
     });
@@ -272,8 +265,7 @@ export class MCPClient {
     if ('result' in response) {
       handler(response);
     } else {
-      const error = new AISDKError({
-        name: 'McpClientResponseError',
+      const error = new MCPClientError({
         message: response.error.message,
         cause: response.error,
       });

@@ -13,3 +13,4 @@ export { NoSuchModelError } from './no-such-model-error';
 export { TooManyEmbeddingValuesForCallError } from './too-many-embedding-values-for-call-error';
 export { TypeValidationError } from './type-validation-error';
 export { UnsupportedFunctionalityError } from './unsupported-functionality-error';
+export { MCPClientError } from './mcp-client-error';

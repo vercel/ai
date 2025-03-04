@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { jsonSchema } from '@ai-sdk/ui-utils';
-import { AISDKError, JSONSchema7 } from '@ai-sdk/provider';
+import { MCPClientError, JSONSchema7 } from '@ai-sdk/provider';
 import { ToToolsWithDefinedExecute } from '../../generate-text/tool-result';
 import {
   inferParameters,
@@ -110,8 +110,7 @@ export async function createMcpTools<
     };
   } catch (error) {
     await client.close();
-    throw new AISDKError({
-      name: 'McpToolAdapterError',
+    throw new MCPClientError({
       message: `Failed to generate tools for ${transport.type} MCP server`,
       cause: error,
     });
