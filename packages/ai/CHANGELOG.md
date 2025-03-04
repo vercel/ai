@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.51
+
+### Patch Changes
+
+- 0cb2647: feat (ai/core): add streamText sendStart & sendFinish data stream options
+
 ## 4.1.50
 
 ### Patch Changes
