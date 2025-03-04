@@ -3,9 +3,9 @@ import { z } from 'zod';
 import { ToolResultContent } from '../prompt/tool-result-content';
 import { CoreMessage } from '../prompt/message';
 
-type Parameters = z.ZodTypeAny | Schema<any>;
+export type ToolParameters = z.ZodTypeAny | Schema<any>;
 
-export type inferParameters<PARAMETERS extends Parameters> =
+export type inferParameters<PARAMETERS extends ToolParameters> =
   PARAMETERS extends Schema<any>
     ? PARAMETERS['_type']
     : PARAMETERS extends z.ZodTypeAny
@@ -36,7 +36,7 @@ This enables the language model to generate the input.
 
 The tool can also contain an optional execute function for the actual execution function of the tool.
  */
-export type Tool<PARAMETERS extends Parameters = any, RESULT = any> = {
+export type Tool<PARAMETERS extends ToolParameters = any, RESULT = any> = {
   /**
 The schema of the input that the tool expects. The language model will use this to generate the input.
 It is also used to validate the output of the language model.
@@ -96,16 +96,16 @@ The arguments for configuring the tool. Must match the expected arguments define
  * @deprecated Use `Tool` instead.
  */
 // TODO remove in v5
-export type CoreTool<PARAMETERS extends Parameters = any, RESULT = any> = Tool<
-  PARAMETERS,
-  RESULT
->;
+export type CoreTool<
+  PARAMETERS extends ToolParameters = any,
+  RESULT = any,
+> = Tool<PARAMETERS, RESULT>;
 
 /**
 Helper function for inferring the execute args of a tool.
  */
 // Note: special type inference is needed for the execute function args to make sure they are inferred correctly.
-export function tool<PARAMETERS extends Parameters, RESULT>(
+export function tool<PARAMETERS extends ToolParameters, RESULT>(
   tool: Tool<PARAMETERS, RESULT> & {
     execute: (
       args: inferParameters<PARAMETERS>,
@@ -118,14 +118,14 @@ export function tool<PARAMETERS extends Parameters, RESULT>(
     options: ToolExecutionOptions,
   ) => PromiseLike<RESULT>;
 };
-export function tool<PARAMETERS extends Parameters, RESULT>(
+export function tool<PARAMETERS extends ToolParameters, RESULT>(
   tool: Tool<PARAMETERS, RESULT> & {
     execute?: undefined;
   },
 ): Tool<PARAMETERS, RESULT> & {
   execute: undefined;
 };
-export function tool<PARAMETERS extends Parameters, RESULT = any>(
+export function tool<PARAMETERS extends ToolParameters, RESULT = any>(
   tool: Tool<PARAMETERS, RESULT>,
 ): Tool<PARAMETERS, RESULT> {
   return tool;
