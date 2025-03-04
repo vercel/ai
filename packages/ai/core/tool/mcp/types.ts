@@ -4,7 +4,6 @@ import { Stream } from 'node:stream';
 import { Tool, ToolExecutionOptions } from '../tool';
 import { inferParameters } from '../tool';
 import { ToolParameters } from '../tool';
-import { ToToolsWithDefinedExecute } from '../../generate-text/tool-result';
 
 export const LATEST_PROTOCOL_VERSION = '2024-11-05';
 export const SUPPORTED_PROTOCOL_VERSIONS = [

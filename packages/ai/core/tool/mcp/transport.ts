@@ -16,7 +16,7 @@ export function createMcpTransport(config: TransportConfig): MCPTransport {
     : new SSEClientTransport(config);
 }
 
-export class StdioClientTransport implements MCPTransport {
+class StdioClientTransport implements MCPTransport {
   private process?: ChildProcess;
   private abortController: AbortController = new AbortController();
   private readBuffer: ReadBuffer = new ReadBuffer();
@@ -142,6 +142,7 @@ class SSEClientTransport implements MCPTransport {
   }
 
   async start(): Promise<void> {
+    console.log('>>>>>>SSEClientTransport start', this.url);
     return new Promise<void>((resolve, reject) => {
       if (this.connected) {
         return resolve();
