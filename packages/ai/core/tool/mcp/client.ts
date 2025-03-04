@@ -24,8 +24,11 @@ import { AISDKError } from '@ai-sdk/provider';
 import { createMcpTransport } from './transport';
 
 interface MCPClientConfig {
+  /** Transport configuration for connecting to the MCP server */
   transport: TransportConfig;
+  /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   name?: string;
+  /** Optional client version, defaults to '1.0.0' */
   version?: string;
 }
 
@@ -34,6 +37,9 @@ interface MCPClientConfig {
  * primarily for tool conversion between MCP<>AI SDK.
  *
  * It is a custom implementation of the MCP Client class.
+ *
+ * Tool parameters are automatically inferred from the server's JSON schema
+ * if not explicitly provided in the tools configuration.
  *
  * Not supported:
  * - Client options (e.g. sampling, roots) as they are not needed for tool conversion

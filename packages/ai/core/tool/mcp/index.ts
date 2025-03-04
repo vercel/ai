@@ -13,7 +13,7 @@ import { ToToolsWithDefinedExecute } from '../../generate-text/tool-result';
 
 interface AdapterConfig<TOOL_SCHEMAS extends ToolSchemas = {}> {
   transport: TransportConfig;
-  tools?: TOOL_SCHEMAS;
+  tools: 'automatic' | TOOL_SCHEMAS;
 }
 
 interface AdapterReturnType<TOOL_SCHEMAS extends ToolSchemas = {}> {
@@ -36,21 +36,28 @@ type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = {}> =
     };
   }>;
 
-export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
-  config: AdapterConfig<TOOL_SCHEMAS>,
-): Promise<AdapterReturnType<TOOL_SCHEMAS>> {
+export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>({
+  transport,
+  tools: toolsConfig = 'automatic',
+}: AdapterConfig<TOOL_SCHEMAS>): Promise<AdapterReturnType<TOOL_SCHEMAS>> {
   const tools: Record<string, Tool> = {};
   const client = await new MCPClient({
-    transport: config.transport,
+    transport,
   }).init();
 
   try {
     const listToolsResult = await client.listTools();
 
     for (const { name, description, inputSchema } of listToolsResult.tools) {
-      const parameters = config.tools?.[name]
-        ? config.tools[name].parameters
-        : jsonSchema(inputSchema as JSONSchema7);
+      if (toolsConfig !== 'automatic' && !(name in toolsConfig)) {
+        continue;
+      }
+
+      // TODO(Grace): What if the user-provided input schema is invalid?
+      const parameters =
+        toolsConfig === 'automatic'
+          ? jsonSchema(inputSchema as JSONSchema7)
+          : toolsConfig[name].parameters;
 
       const toolWithExecute = tool({
         description,
@@ -89,37 +96,8 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
     await client.close();
     throw new AISDKError({
       name: 'McpToolAdapterError',
-      message: `Failed to generate tools for ${config.transport.type} MCP server`,
+      message: `Failed to generate tools for ${transport.type} MCP server`,
       cause: error,
     });
   }
 }
-
-// To address:
-
-/**
- * Refreshing tools:
- * 
- * - Would it be better to ship a global "tool/client manager" class? 
- * - Gives users more granular control over clients, refreshing tools
- * (e.g. getTools, refreshTools, closeConnections)
- * - Even in non-serverless environments, we need a way to refresh tools (custom Transport?)
- * 
- * const toolManager = new McpToolManager({
-  sse: {
-  sse: {
-    type: 'sse',
-    url: 'https://server.com/sse'
-  },
-  local: {
-    type: 'stdio',
-    command: 'npx'
-  }
-});
- */
-
-/**
- * Add tests, web socket impl. for `msw`
- * Read: https://mswjs.io/docs/basics/handling-websocket-events
- * Also add new example(s) for MCP stdio (and SSE?)
- */
