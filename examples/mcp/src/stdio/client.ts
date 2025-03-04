@@ -3,31 +3,21 @@ import { generateText, createMcpTools } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
-/**
- * When running this example:
- *
- * 1. Build the server: npx tsc server.ts --outDir dist --target es2022
- * 2. Run the agent: pnpm tsx src/mcp/agent.ts
- */
-
-const toolSchemas = {
+const stdioToolSchemas = {
   'get-pokemon': {
     parameters: z.object({ name: z.string() }),
   },
 };
 
 async function main() {
-  const toolset = await createMcpTools<typeof toolSchemas>({
+  const { tools, close } = await createMcpTools<typeof stdioToolSchemas>({
     transport: {
       type: 'stdio',
       command: 'node',
-      args: ['src/mcp/dist/server.js'],
+      args: ['src/stdio/dist/server.js'],
     },
-    tools: toolSchemas,
+    tools: stdioToolSchemas,
   });
-
-  const tools = toolset.toolSet;
-  const cleanup = toolset.cleanup;
 
   const { text: answer } = await generateText({
     model: openai('gpt-4o-mini', { structuredOutputs: true }),
@@ -41,7 +31,7 @@ async function main() {
       'Which 3 Pokemon could best defeat Feebas? Give me more details about each one.',
   });
 
-  await cleanup();
+  await close();
 
   console.log(`FINAL ANSWER: ${answer}`);
 }

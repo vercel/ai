@@ -125,9 +125,6 @@ importers:
       '@google/generative-ai':
         specifier: 0.21.0
         version: 0.21.0
-      '@modelcontextprotocol/sdk':
-        specifier: ^1.6.0
-        version: 1.6.0
       '@opentelemetry/auto-instrumentations-node':
         specifier: 0.54.0
         version: 0.54.0(@opentelemetry/api@1.9.0)
@@ -246,6 +243,40 @@ importers:
         specifier: 4.6.9
         version: 4.6.9
     devDependencies:
+      '@types/node':
+        specifier: 20.11.20
+        version: 20.11.20
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+
+  examples/mcp:
+    dependencies:
+      '@ai-sdk/openai':
+        specifier: 1.1.14
+        version: link:../../packages/openai
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.6.0
+        version: 1.6.0
+      ai:
+        specifier: 4.1.46
+        version: link:../../packages/ai
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      express:
+        specifier: 5.0.1
+        version: 5.0.1
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@types/express':
+        specifier: 5.0.0
+        version: 5.0.0
       '@types/node':
         specifier: 20.11.20
         version: 20.11.20

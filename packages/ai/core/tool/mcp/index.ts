@@ -2,18 +2,14 @@ import { jsonSchema } from '@ai-sdk/ui-utils';
 import { AISDKError, JSONSchema7 } from '@ai-sdk/provider';
 import {
   inferParameters,
-  Parameters,
+  ToolParameters,
   Tool,
   tool,
   ToolExecutionOptions,
-} from './tool';
-import { MCPClient } from './mcp/client';
-import {
-  CallToolResult,
-  CallToolResultSchema,
-  TransportConfig,
-} from './mcp/types';
-import { ToToolsWithDefinedExecute } from '../generate-text/tool-result';
+} from '../tool';
+import { MCPClient } from './client';
+import { CallToolResult, CallToolResultSchema, TransportConfig } from './types';
+import { ToToolsWithDefinedExecute } from '../../generate-text/tool-result';
 
 interface AdapterConfig<TOOL_SCHEMAS extends ToolSchemas = {}> {
   transport: TransportConfig;
@@ -21,11 +17,11 @@ interface AdapterConfig<TOOL_SCHEMAS extends ToolSchemas = {}> {
 }
 
 interface AdapterReturnType<TOOL_SCHEMAS extends ToolSchemas = {}> {
-  toolSet: McpToolSet<TOOL_SCHEMAS>;
-  cleanup: () => Promise<void>;
+  tools: McpToolSet<TOOL_SCHEMAS>;
+  close: () => Promise<void>;
 }
 
-type ToolSchemas = Record<string, { parameters: Parameters }>;
+type ToolSchemas = Record<string, { parameters: ToolParameters }>;
 
 type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = {}> =
   ToToolsWithDefinedExecute<{
@@ -44,7 +40,9 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
   config: AdapterConfig<TOOL_SCHEMAS>,
 ): Promise<AdapterReturnType<TOOL_SCHEMAS>> {
   const tools: Record<string, Tool> = {};
-  const { client, cleanup } = await setupClient(config);
+  const client = await new MCPClient({
+    transport: config.transport,
+  }).init();
 
   try {
     const listToolsResult = await client.listTools();
@@ -82,40 +80,16 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>(
     }
 
     return {
-      toolSet: tools as McpToolSet<TOOL_SCHEMAS>,
-      cleanup,
-    };
-  } catch (error) {
-    await cleanup();
-    throw new AISDKError({
-      name: 'McpToolAdapterError',
-      message: `Failed to generate tools for ${config.transport.type} MCP server`,
-      cause: error,
-    });
-  }
-}
-
-async function setupClient<TOOL_SCHEMAS extends ToolSchemas = {}>(
-  config: AdapterConfig<TOOL_SCHEMAS>,
-): Promise<{
-  client: MCPClient;
-  cleanup: () => Promise<void>;
-}> {
-  try {
-    const client = await new MCPClient({
-      transport: config.transport,
-    }).init();
-
-    return {
-      client,
-      cleanup: async () => {
+      tools: tools as McpToolSet<TOOL_SCHEMAS>,
+      close: async () => {
         await client.close();
       },
     };
   } catch (error) {
+    await client.close();
     throw new AISDKError({
-      name: 'McpClientSetupError',
-      message: `Failed to connect to ${config.transport.type} MCP server`,
+      name: 'McpToolAdapterError',
+      message: `Failed to generate tools for ${config.transport.type} MCP server`,
       cause: error,
     });
   }

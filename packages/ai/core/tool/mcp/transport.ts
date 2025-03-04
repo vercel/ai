@@ -4,20 +4,20 @@ import process from 'node:process';
 import {
   JSONRPCMessage,
   JSONRPCMessageSchema,
-  Transport,
+  MCPTransport,
   TransportConfig,
   McpSSEServerConfig,
   McpStdioServerConfig,
 } from './types';
 import { AISDKError } from '@ai-sdk/provider';
 
-export function createMcpTransport(config: TransportConfig): Transport {
+export function createMcpTransport(config: TransportConfig): MCPTransport {
   return config.type === 'stdio'
     ? new StdioClientTransport(config)
     : new SSEClientTransport(config);
 }
 
-export class StdioClientTransport implements Transport {
+export class StdioClientTransport implements MCPTransport {
   private process?: ChildProcess;
   private abortController: AbortController = new AbortController();
   private readBuffer: ReadBuffer = new ReadBuffer();
@@ -127,7 +127,7 @@ export class StdioClientTransport implements Transport {
   }
 }
 
-class SSEClientTransport implements Transport {
+class SSEClientTransport implements MCPTransport {
   private eventSource?: EventSource;
   private endpoint?: URL;
   private abortController?: AbortController;

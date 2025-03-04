@@ -56,6 +56,7 @@ interface PokemonAbility {
   id: string;
   name: string;
 }
+
 interface Pokemon {
   id: string;
   name: string;

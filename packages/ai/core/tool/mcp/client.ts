@@ -3,7 +3,7 @@ import {
   CallToolRequest,
   CallToolResult,
   CallToolResultSchema,
-  Implementation,
+  Configuration as ClientConfiguration,
   InitializeResultSchema,
   JSONRPCError,
   JSONRPCNotification,
@@ -13,63 +13,69 @@ import {
   ListToolsRequest,
   ListToolsResult,
   ListToolsResultSchema,
+  MCPTransport,
   Notification,
   Request,
   RequestOptions,
   SUPPORTED_PROTOCOL_VERSIONS,
-  Transport,
   TransportConfig,
 } from './types';
 import { AISDKError } from '@ai-sdk/provider';
 import { createMcpTransport } from './transport';
 
-const CONNECTION_TIMEOUT_MS = 6000;
-const REQUEST_TIMEOUT_MS = 3000;
-
 interface MCPClientConfig {
   transport: TransportConfig;
   name?: string;
   version?: string;
-  connectionTimeoutMs?: number;
-  requestTimeoutMs?: number;
 }
 
 /**
  * A lightweight MCP Client implementation,
  * primarily for tool conversion between MCP<>AI SDK.
  *
- * It is a custom implementation of the MCP Client (derived from Protocol) class.
+ * It is a custom implementation of the MCP Client class.
  *
  * Not supported:
  * - Client options (e.g. sampling, roots) as they are not needed for tool conversion
  * - Accepting notifications
  */
 export class MCPClient {
-  private transport: Transport;
-  private clientInfo: Implementation;
+  private transport: MCPTransport;
+  private clientInfo: ClientConfiguration;
   private requestMessageId = 0;
   private responseHandlers: Map<
     number,
     (response: JSONRPCResponse | Error) => void
   > = new Map();
-  private connectionTimeoutMs: number;
-  private requestTimeoutMs: number;
 
   constructor({
     transport: transportConfig,
     name = 'ai-sdk-mcp-client',
     version = '1.0.0',
-    connectionTimeoutMs = CONNECTION_TIMEOUT_MS,
-    requestTimeoutMs = REQUEST_TIMEOUT_MS,
   }: MCPClientConfig) {
     this.transport = createMcpTransport(transportConfig);
-    this._initTransport();
+    this.transport.onclose = () => {
+      this.onclose();
+    };
+    this.transport.onerror = (error: Error) => {
+      this.onerror(error);
+    };
+    this.transport.onmessage = message => {
+      if (!('method' in message)) {
+        this.onresponse(message);
+      } else {
+        // This lightweight client implementation does not support
+        // receiving notifications or requests from server:
+        throw new AISDKError({
+          name: 'McpClientError',
+          message: 'Unsupported message type',
+        });
+      }
+    };
     this.clientInfo = {
       name,
       version,
     };
-    this.connectionTimeoutMs = connectionTimeoutMs;
-    this.requestTimeoutMs = requestTimeoutMs;
   }
 
   async init(): Promise<this> {
@@ -86,7 +92,6 @@ export class MCPClient {
           },
         },
         resultSchema: InitializeResultSchema,
-        options: { timeout: this.connectionTimeoutMs },
       });
 
       if (result === undefined) {
@@ -124,7 +129,7 @@ export class MCPClient {
 
   async close(): Promise<void> {
     await this.transport?.close();
-    this._onclose();
+    this.onclose();
   }
 
   async request<T extends ZodType<object>>({
@@ -137,14 +142,8 @@ export class MCPClient {
     options?: RequestOptions;
   }): Promise<z.infer<T>> {
     return new Promise((resolve, reject) => {
-      options?.signal?.throwIfAborted();
-
-      const timeoutSignal = AbortSignal.timeout(
-        options?.timeout ?? this.requestTimeoutMs,
-      );
-      const signal = options?.signal
-        ? AbortSignal.any([options.signal, timeoutSignal])
-        : timeoutSignal;
+      const signal = options?.signal;
+      signal?.throwIfAborted();
 
       const messageId = this.requestMessageId++;
       const jsonrpcRequest: JSONRPCRequest = {
@@ -157,19 +156,16 @@ export class MCPClient {
         this.responseHandlers.delete(messageId);
       };
 
-      signal.addEventListener('abort', () => {
-        cleanup();
-        reject(
-          new AISDKError({
-            name: 'McpClientTimeoutError',
-            message: 'Request timed out',
-            cause: signal?.reason,
-          }),
-        );
-      });
-
       this.responseHandlers.set(messageId, response => {
-        if (signal.aborted) return;
+        if (signal?.aborted) {
+          return reject(
+            new AISDKError({
+              name: 'McpClientAbortError',
+              message: 'Request was aborted',
+              cause: signal.reason,
+            }),
+          );
+        }
 
         if (response instanceof Error) {
           return reject(response);
@@ -229,7 +225,7 @@ export class MCPClient {
     await this.transport.send(jsonrpcNotification);
   }
 
-  private _onclose(): void {
+  private onclose(): void {
     const responseHandlers = this.responseHandlers;
     this.responseHandlers = new Map();
 
@@ -243,7 +239,7 @@ export class MCPClient {
     }
   }
 
-  private _onerror(error: Error): void {
+  private onerror(error: Error): void {
     throw new AISDKError({
       name: 'McpClientError',
       message: error.message,
@@ -251,11 +247,11 @@ export class MCPClient {
     });
   }
 
-  private _onresponse(response: JSONRPCResponse | JSONRPCError): void {
+  private onresponse(response: JSONRPCResponse | JSONRPCError): void {
     const messageId = Number(response.id);
     const handler = this.responseHandlers.get(messageId);
     if (handler === undefined) {
-      this._onerror(
+      this.onerror(
         new Error(
           `Received a response for an unknown message ID: ${JSON.stringify(
             response,
@@ -277,26 +273,5 @@ export class MCPClient {
       });
       handler(error);
     }
-  }
-
-  private _initTransport(): void {
-    this.transport.onclose = () => {
-      this._onclose();
-    };
-    this.transport.onerror = (error: Error) => {
-      this._onerror(error);
-    };
-    this.transport.onmessage = message => {
-      if (!('method' in message)) {
-        this._onresponse(message);
-      } else {
-        // This lightweight client implementation does not support
-        // notifications or requests from server:
-        throw new AISDKError({
-          name: 'McpClientError',
-          message: 'Unsupported message type',
-        });
-      }
-    };
   }
 }

@@ -23,13 +23,13 @@ export interface McpSSEServerConfig {
 }
 export type TransportConfig = McpStdioServerConfig | McpSSEServerConfig;
 
-const ImplementationSchema = z
+const ClientOrServerImplementationSchema = z
   .object({
     name: z.string(),
     version: z.string(),
   })
   .passthrough();
-export type Implementation = z.infer<typeof ImplementationSchema>;
+export type Configuration = z.infer<typeof ClientOrServerImplementationSchema>;
 
 const BaseParamsSchema = z
   .object({
@@ -106,7 +106,7 @@ export const JSONRPCMessageSchema = z.union([
 ]);
 export type JSONRPCMessage = z.infer<typeof JSONRPCMessageSchema>;
 
-export interface Transport {
+export interface MCPTransport {
   start(): Promise<void>;
   send(message: JSONRPCMessage): Promise<void>;
   close(): Promise<void>;
@@ -146,7 +146,7 @@ const ServerCapabilitiesSchema = z
 export const InitializeResultSchema = ResultSchema.extend({
   protocolVersion: z.string(),
   capabilities: ServerCapabilitiesSchema,
-  serverInfo: ImplementationSchema,
+  serverInfo: ClientOrServerImplementationSchema,
   instructions: z.optional(z.string()),
 });
 
