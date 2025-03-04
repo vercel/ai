@@ -1,46 +1,38 @@
 import { openai } from '@ai-sdk/openai';
-import { generateId, createDataStreamResponse, streamText, tool } from 'ai';
-import { z } from 'zod';
+import { generateId, createDataStreamResponse, streamText } from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
+  // immediately start streaming (solves RAG issues with status, etc.)
   return createDataStreamResponse({
-    execute: async dataStream => {
-      // step 1 example: forced tool call
-      const result1 = streamText({
+    execute: dataStream => {
+      dataStream.writeData('initialized call');
+
+      const result = streamText({
         model: openai('gpt-4o'),
-        system: 'Extract the user goal from the conversation.',
         messages,
-        toolChoice: 'required', // force the model to call a tool
-        tools: {
-          extractGoal: tool({
-            parameters: z.object({ goal: z.string() }),
-            execute: async ({ goal }) => goal, // no-op extract tool
-          }),
+        onChunk() {
+          dataStream.writeMessageAnnotation({ chunk: '123' });
+        },
+        onFinish() {
+          // message annotation:
+          dataStream.writeMessageAnnotation({
+            id: generateId(), // e.g. id from saved DB record
+            other: 'information',
+          });
+
+          // call annotation:
+          dataStream.writeData('call completed');
         },
       });
 
-      // forward the initial result to the client without the finish event:
-      result1.mergeIntoDataStream(dataStream, {
-        experimental_sendFinish: false,
-      });
-
-      // note: you can use any programming construct here, e.g. if-else, loops, etc.
-      // workflow programming is normal programming with this approach.
-
-      // example: continue stream with forced tool call from previous step
-      const result2 = streamText({
-        // different system prompt, different model, no tools:
-        model: openai('gpt-4o'),
-        system:
-          'You are a helpful assistant with a different system prompt. Repeat the extract user goal in your answer.',
-        // continue the workflow stream with the messages from the previous step:
-        messages: [...messages, ...(await result1.response).messages],
-      });
-
-      // forward the 2nd result to the client (incl. the finish event):
-      result2.mergeIntoDataStream(dataStream);
+      result.mergeIntoDataStream(dataStream);
+    },
+    onError: error => {
+      // Error messages are masked by default for security reasons.
+      // If you want to expose the error message to the client, you can do so here:
+      return error instanceof Error ? error.message : String(error);
     },
   });
 }
