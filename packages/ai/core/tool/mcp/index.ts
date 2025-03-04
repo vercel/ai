@@ -1,5 +1,7 @@
+import { z } from 'zod';
 import { jsonSchema } from '@ai-sdk/ui-utils';
 import { AISDKError, JSONSchema7 } from '@ai-sdk/provider';
+import { ToToolsWithDefinedExecute } from '../../generate-text/tool-result';
 import {
   inferParameters,
   ToolParameters,
@@ -9,34 +11,47 @@ import {
 } from '../tool';
 import { MCPClient } from './client';
 import { CallToolResult, CallToolResultSchema, TransportConfig } from './types';
-import { ToToolsWithDefinedExecute } from '../../generate-text/tool-result';
 
-interface AdapterConfig<TOOL_SCHEMAS extends ToolSchemas = {}> {
+type ToolSchemas =
+  | Record<string, { parameters: ToolParameters }>
+  | 'automatic'
+  | undefined;
+
+interface AdapterConfig<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> {
   transport: TransportConfig;
-  tools: 'automatic' | TOOL_SCHEMAS;
+  tools?: TOOL_SCHEMAS;
 }
 
-interface AdapterReturnType<TOOL_SCHEMAS extends ToolSchemas = {}> {
+interface AdapterReturnType<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> {
   tools: McpToolSet<TOOL_SCHEMAS>;
   close: () => Promise<void>;
 }
 
-type ToolSchemas = Record<string, { parameters: ToolParameters }>;
+type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
+  TOOL_SCHEMAS extends Record<string, { parameters: ToolParameters }>
+    ? ToToolsWithDefinedExecute<{
+        [K in keyof TOOL_SCHEMAS]: Tool<
+          inferParameters<TOOL_SCHEMAS[K]['parameters']>,
+          CallToolResult
+        > & {
+          execute: (
+            args: inferParameters<TOOL_SCHEMAS[K]['parameters']>,
+            options: ToolExecutionOptions,
+          ) => PromiseLike<CallToolResult>;
+        };
+      }>
+    : ToToolsWithDefinedExecute<{
+        [k: string]: Tool<z.ZodUnknown, CallToolResult> & {
+          execute: (
+            args: unknown,
+            options: ToolExecutionOptions,
+          ) => PromiseLike<CallToolResult>;
+        };
+      }>;
 
-type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = {}> =
-  ToToolsWithDefinedExecute<{
-    [K in keyof TOOL_SCHEMAS]: Tool<
-      inferParameters<TOOL_SCHEMAS[K]['parameters']>,
-      CallToolResult
-    > & {
-      execute: (
-        args: inferParameters<TOOL_SCHEMAS[K]['parameters']>,
-        options: ToolExecutionOptions,
-      ) => PromiseLike<CallToolResult>;
-    };
-  }>;
-
-export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>({
+export async function createMcpTools<
+  TOOL_SCHEMAS extends ToolSchemas = 'automatic',
+>({
   transport,
   tools: toolsConfig = 'automatic',
 }: AdapterConfig<TOOL_SCHEMAS>): Promise<AdapterReturnType<TOOL_SCHEMAS>> {
@@ -48,6 +63,7 @@ export async function createMcpTools<TOOL_SCHEMAS extends ToolSchemas = {}>({
   try {
     const listToolsResult = await client.listTools();
 
+    // TODO(Grace): What if a user-provided tool is not listed?
     for (const { name, description, inputSchema } of listToolsResult.tools) {
       if (toolsConfig !== 'automatic' && !(name in toolsConfig)) {
         continue;
