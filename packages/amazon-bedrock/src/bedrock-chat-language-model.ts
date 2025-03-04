@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   JSONObject,
   LanguageModelV1,
   LanguageModelV1CallWarning,
@@ -117,12 +118,64 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const { system, messages } = convertToBedrockChatMessages(prompt);
 
+    // Parse thinking options from provider metadata
+    const reasoningConfigOptions =
+      BedrockReasoningConfigOptionsSchema.safeParse(
+        providerMetadata?.bedrock?.reasoning_config,
+      );
+
+    if (!reasoningConfigOptions.success) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.bedrock.reasoning_config',
+        message: 'invalid reasoning configuration options',
+        cause: reasoningConfigOptions.error,
+      });
+    }
+
+    const isThinking = reasoningConfigOptions.data?.type === 'enabled';
+    const thinkingBudget = reasoningConfigOptions.data?.budget_tokens;
+
     const inferenceConfig = {
       ...(maxTokens != null && { maxTokens }),
       ...(temperature != null && { temperature }),
       ...(topP != null && { topP }),
       ...(stopSequences != null && { stopSequences }),
     };
+
+    // Adjust maxTokens if thinking is enabled
+    if (isThinking && thinkingBudget != null) {
+      if (inferenceConfig.maxTokens != null) {
+        inferenceConfig.maxTokens += thinkingBudget;
+      } else {
+        inferenceConfig.maxTokens = thinkingBudget + 4096; // Default + thinking budget maxTokens = 4096, TODO update default in v5
+      }
+      // Add them to additional model request fields
+      // Add reasoning config to additionalModelRequestFields
+      this.settings.additionalModelRequestFields = {
+        ...this.settings.additionalModelRequestFields,
+        reasoning_config: { ...reasoningConfigOptions.data },
+      };
+    }
+
+    // Remove temperature if thinking is enabled
+    if (isThinking && inferenceConfig.temperature != null) {
+      delete inferenceConfig.temperature;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'temperature',
+        details: 'temperature is not supported when thinking is enabled',
+      });
+    }
+
+    // Remove topP if thinking is enabled
+    if (isThinking && inferenceConfig.topP != null) {
+      delete inferenceConfig.topP;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topP',
+        details: 'topP is not supported when thinking is enabled',
+      });
+    }
 
     const baseArgs: BedrockConverseInput = {
       system,
@@ -131,7 +184,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         inferenceConfig,
       }),
       messages,
-      ...providerMetadata?.bedrock,
+      ...(providerMetadata?.bedrock || {}),
     };
 
     switch (type) {
@@ -227,44 +280,35 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
           }
         : undefined;
 
-    // Extract reasoning details from all content parts that have reasoningContent
-    // This handles both tool use and non-tool use cases
-    let reasoningDetails: Array<
-      | { type: 'text'; text: string; signature?: string }
-      | { type: 'redacted'; data: string }
-    > = [];
-
-    // Process message content if available
-    if (response.output?.message?.content) {
-      reasoningDetails = response.output.message.content
-        .filter(
-          part =>
-            part.reasoningContent &&
-            (('reasoningText' in part.reasoningContent &&
-              part.reasoningContent.reasoningText.text != null) ||
-              ('redactedReasoning' in part.reasoningContent &&
-                part.reasoningContent.redactedReasoning.data != null)),
-        )
-        .map(part => {
-          const reasoningContent = part.reasoningContent!;
-
-          if ('reasoningText' in reasoningContent) {
-            return {
-              type: 'text' as const,
-              text: reasoningContent.reasoningText.text,
-              ...(reasoningContent.reasoningText.signature && {
-                signature: reasoningContent.reasoningText.signature,
-              }),
-            };
-          } else {
-            // Must be redactedReasoning
-            return {
-              type: 'redacted' as const,
-              data: reasoningContent.redactedReasoning.data,
-            };
-          }
-        });
-    }
+    const reasoning = response.output.message.content
+      .filter(content => content.reasoningContent)
+      .map(content => {
+        if (
+          content.reasoningContent &&
+          'reasoningText' in content.reasoningContent
+        ) {
+          return {
+            type: 'text' as const,
+            text: content.reasoningContent.reasoningText.text,
+            ...(content.reasoningContent.reasoningText.signature && {
+              signature: content.reasoningContent.reasoningText.signature,
+            }),
+          };
+        } else if (
+          content.reasoningContent &&
+          'redactedReasoning' in content.reasoningContent
+        ) {
+          return {
+            type: 'redacted' as const,
+            data: content.reasoningContent.redactedReasoning.data || '',
+          };
+        } else {
+          // Return undefined for unexpected structures
+          return undefined;
+        }
+      })
+      // Filter out any undefined values
+      .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
     return {
       text:
@@ -289,7 +333,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
-      ...(reasoningDetails.length > 0 && { reasoning: reasoningDetails }),
+      reasoning: reasoning.length > 0 ? reasoning : undefined,
       ...(providerMetadata && { providerMetadata }),
     };
   }
@@ -528,6 +572,13 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     return `${this.config.baseUrl()}/model/${encodedModelId}`;
   }
 }
+
+const BedrockReasoningConfigOptionsSchema = z
+  .object({
+    type: z.union([z.literal('enabled'), z.literal('disabled')]),
+    budget_tokens: z.number().min(1024).max(64000).optional(),
+  })
+  .optional();
 
 const BedrockStopReasonSchema = z.union([
   z.enum(BEDROCK_STOP_REASONS),

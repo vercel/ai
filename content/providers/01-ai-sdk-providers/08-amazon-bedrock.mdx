@@ -316,6 +316,38 @@ console.log(
 // }
 ```
 
+## Reasoning
+
+Amazon Bedrock has reasoning support for the `claude-3-7-sonnet-20250219` model.
+
+You can enable it using the `reasoning_config` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
+
+````ts
+import { bedrock } from 'ai-sdk/amazonBedrock';
+import { generateText } from 'ai;
+
+const { text, reasoning, reasoningDetails } = await generateText({
+  model: bedrock('claude-3-7-sonnet-20250219'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    bedrock: {
+      reasoning_config:
+        {
+          type: 'enabled',
+          budgetTokens: 12000
+        },
+    },
+  },
+});
+
+console.log(reasoning); // reasoning text
+console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(text); // text response
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
+on how to integrate reasoning into your chatbot.
+
 ### Model Capabilities
 
 | Model                                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
@@ -362,7 +394,7 @@ using the `.embedding()` factory method.
 
 ```ts
 const model = bedrock.embedding('amazon.titan-embed-text-v1');
-```
+````
 
 Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several aditional settings.
 You can pass them as an options argument:
