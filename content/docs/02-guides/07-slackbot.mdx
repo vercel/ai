@@ -189,10 +189,7 @@ In this updated implementation:
    - `getWeather`: Fetches weather data for a specified location
    - `searchWeb`: Searches the web for information using the Exa API
 
-2. You set `maxSteps: 10` to enable multi-step conversations, allowing the AI to:
-   - Call tools based on user queries
-   - Process the results
-   - Generate appropriate responses
+2. You set `maxSteps: 10` to enable multi-step conversations. This will automatically send any tool results back to the LLM to trigger additional tool calls or responses as the LLM deems necessary. This turns your LLM call from a one-off operation into a multi-step agentic flow.
 
 ## How It Works
 
