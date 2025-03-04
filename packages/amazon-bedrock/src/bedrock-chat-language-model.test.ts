@@ -1077,7 +1077,6 @@ describe('doStream', () => {
 describe('doGenerate', () => {
   function prepareJsonResponse({
     content = [{ type: 'text', text: 'Hello, World!' }],
-    toolCalls = [],
     usage = {
       inputTokens: 4,
       outputTokens: 34,
@@ -1087,7 +1086,6 @@ describe('doGenerate', () => {
     },
     stopReason = 'stop_sequence',
     trace,
-    reasoningContent,
   }: {
     content?: Array<
       | { type: 'text'; text: string }
@@ -1148,29 +1146,34 @@ describe('doGenerate', () => {
             }
         >;
   }) {
-    // Create a copy of the content array to avoid modifying the default parameter
-    const contentBlocks = [...content];
-
-    // Add tool calls
-    toolCalls.forEach(tool => {
-      contentBlocks.push({
-        type: 'tool_use',
-        id: tool.id ?? 'tool-use-id',
-        name: tool.name,
-        input: tool.args,
-      });
-    });
-
-    // Add reasoning content
-    if (reasoningContent) {
-      if (Array.isArray(reasoningContent)) {
-        reasoningContent.forEach(rc => {
-          contentBlocks.push(rc as any);
-        });
-      } else {
-        contentBlocks.push(reasoningContent as any);
+    // Map the content array to the format expected by the API
+    const contentBlocks = content.map(item => {
+      if ('type' in item) {
+        if (item.type === 'text') {
+          return { text: item.text };
+        } else if (item.type === 'thinking') {
+          return {
+            reasoningContent: {
+              reasoningText: {
+                text: item.thinking,
+                signature: item.signature,
+              },
+            },
+          };
+        } else if (item.type === 'tool_use') {
+          return {
+            toolUse: {
+              toolUseId: item.id,
+              name: item.name,
+              input: item.input,
+            },
+          };
+        }
+      } else if ('reasoningContent' in item) {
+        return item;
       }
-    }
+      return item;
+    });
 
     server.urls[generateUrl].response = {
       type: 'json-value',
@@ -1610,15 +1613,17 @@ describe('doGenerate', () => {
     const signature = 'abc123signature';
 
     prepareJsonResponse({
-      content: [{ type: 'text', text: 'The answer is 42.' }],
-      reasoningContent: {
-        reasoningContent: {
-          reasoningText: {
-            text: reasoningText,
-            signature: signature,
+      content: [
+        {
+          reasoningContent: {
+            reasoningText: {
+              text: reasoningText,
+              signature: signature,
+            },
           },
         },
-      },
+        { type: 'text', text: 'The answer is 42.' },
+      ],
     });
 
     const { reasoning, text } = await model.doGenerate({
@@ -1641,14 +1646,16 @@ describe('doGenerate', () => {
     const reasoningText = 'I need to think about this problem carefully...';
 
     prepareJsonResponse({
-      content: [{ type: 'text', text: 'The answer is 42.' }],
-      reasoningContent: {
-        reasoningContent: {
-          reasoningText: {
-            text: reasoningText,
+      content: [
+        {
+          reasoningContent: {
+            reasoningText: {
+              text: reasoningText,
+            },
           },
         },
-      },
+        { type: 'text', text: 'The answer is 42.' },
+      ],
     });
 
     const { reasoning, text } = await model.doGenerate({
@@ -1668,14 +1675,16 @@ describe('doGenerate', () => {
 
   it('should extract redacted reasoning', async () => {
     prepareJsonResponse({
-      content: [{ type: 'text', text: 'The answer is 42.' }],
-      reasoningContent: {
-        reasoningContent: {
-          redactedReasoning: {
-            data: 'redacted-reasoning-data',
+      content: [
+        {
+          reasoningContent: {
+            redactedReasoning: {
+              data: 'redacted-reasoning-data',
+            },
           },
         },
-      },
+        { type: 'text', text: 'The answer is 42.' },
+      ],
     });
 
     const { reasoning, text } = await model.doGenerate({
@@ -1695,8 +1704,7 @@ describe('doGenerate', () => {
 
   it('should handle multiple reasoning blocks', async () => {
     prepareJsonResponse({
-      content: [{ type: 'text', text: 'The answer is 42.' }],
-      reasoningContent: [
+      content: [
         {
           reasoningContent: {
             reasoningText: {
@@ -1712,6 +1720,7 @@ describe('doGenerate', () => {
             },
           },
         },
+        { type: 'text', text: 'The answer is 42.' },
       ],
     });
 
