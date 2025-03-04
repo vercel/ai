@@ -4,7 +4,6 @@ import type {
   UseCompletionOptions,
 } from '@ai-sdk/ui-utils';
 import { callCompletionApi } from '@ai-sdk/ui-utils';
-import { useSWR } from 'sswr';
 import { Readable, Writable, derived, get, writable } from 'svelte/store';
 
 export type { UseCompletionOptions };
@@ -50,7 +49,7 @@ export type UseCompletionHelpers = {
 
 let uniqueId = 0;
 
-const store: Record<string, any> = {};
+const store = writable<Record<string, string>>({});
 
 export function useCompletion({
   api = '/api/completion',
@@ -70,29 +69,21 @@ export function useCompletion({
   const completionId = id || `completion-${uniqueId++}`;
 
   const key = `${api}|${completionId}`;
-  const {
-    data,
-    mutate: originalMutate,
-    isLoading: isSWRLoading,
-  } = useSWR<string>(key, {
-    fetcher: () => store[key] || initialCompletion,
-    fallbackData: initialCompletion,
-  });
+  const data = derived([store], ([$store]) => $store[key] ?? initialCompletion);
 
   const streamData = writable<JSONValue[] | undefined>(undefined);
 
   const loading = writable<boolean>(false);
 
-  // Force the `data` to be `initialCompletion` if it's `undefined`.
-  data.set(initialCompletion);
-
   const mutate = (data: string) => {
-    store[key] = data;
-    return originalMutate(data);
+    store.update(value => {
+      value[key] = data;
+      return value;
+    });
   };
 
   // Because of the `fallbackData` option, the `data` will never be `undefined`.
-  const completion = data as Writable<string>;
+  const completion = data;
 
   const error = writable<undefined | Error>(undefined);
 
@@ -152,13 +143,6 @@ export function useCompletion({
     return inputValue ? complete(inputValue) : undefined;
   };
 
-  const isLoading = derived(
-    [isSWRLoading, loading],
-    ([$isSWRLoading, $loading]) => {
-      return $isSWRLoading || $loading;
-    },
-  );
-
   return {
     completion,
     complete,
@@ -167,7 +151,7 @@ export function useCompletion({
     setCompletion,
     input,
     handleSubmit,
-    isLoading,
+    isLoading: loading,
     data: streamData,
   };
 }
