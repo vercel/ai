@@ -184,7 +184,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         inferenceConfig,
       }),
       messages,
-      ...(providerMetadata?.bedrock || {}),
+      ...providerMetadata?.bedrock,
     };
 
     switch (type) {
