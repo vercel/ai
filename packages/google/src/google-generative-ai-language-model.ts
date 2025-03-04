@@ -83,13 +83,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const warnings: LanguageModelV1CallWarning[] = [];
 
-    if (seed != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
-      });
-    }
-
     const generationConfig = {
       // standardized settings:
       maxOutputTokens: maxTokens,
@@ -99,6 +92,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       frequencyPenalty,
       presencePenalty,
       stopSequences,
+      seed,
 
       // response format:
       responseMimeType:
@@ -225,15 +219,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { contents: rawPrompt, ...rawSettings } = args;
     const candidate = response.candidates[0];
 
+    const parts =
+      candidate.content == null ||
+      typeof candidate.content !== 'object' ||
+      !('parts' in candidate.content)
+        ? []
+        : candidate.content.parts;
+
     const toolCalls = getToolCallsFromParts({
-      parts: candidate.content?.parts ?? [],
+      parts,
       generateId: this.config.generateId,
     });
 
     const usageMetadata = response.usageMetadata;
 
     return {
-      text: getTextFromParts(candidate.content?.parts ?? []),
+      text: getTextFromParts(parts),
       toolCalls,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
@@ -515,7 +516,7 @@ export const safetyRatingSchema = z.object({
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
-      content: contentSchema.nullish(),
+      content: contentSchema.nullish().or(z.object({}).strict()),
       finishReason: z.string().nullish(),
       safetyRatings: z.array(safetyRatingSchema).nullish(),
       groundingMetadata: groundingMetadataSchema.nullish(),

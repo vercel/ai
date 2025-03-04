@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/vue": "1.1.19",
-    "@ai-sdk/openai": "1.1.15",
+    "@ai-sdk/openai": "1.2.0",
     "ai": "4.1.50",
     "zod": "3.23.8"
   },

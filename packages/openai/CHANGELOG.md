@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.2.0
+
+### Minor Changes
+
+- ede6d1b: feat (provider/azure): Add Azure image model support
+
 ## 1.1.15
 
 ### Patch Changes

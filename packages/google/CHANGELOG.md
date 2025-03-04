@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 1.1.19
+
+### Patch Changes
+
+- 2c27583: fix (provider/google): support empty content in malformed function call responses
+
+## 1.1.18
+
+### Patch Changes
+
+- 5c8f512: feat (provider/google): add seed support
+
 ## 1.1.17
 
 ### Patch Changes
