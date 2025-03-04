@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 1.1.20
+
+### Patch Changes
+
+- 30e6ebd: feat (provider/svelte): support Svelte 5
+
 ## 1.1.19
 
 ### Patch Changes

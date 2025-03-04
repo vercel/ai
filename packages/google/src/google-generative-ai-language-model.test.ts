@@ -254,6 +254,45 @@ describe('doGenerate', () => {
   );
 
   it(
+    'should handle MALFORMED_FUNCTION_CALL finish reason and empty content object',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {},
+              finishReason: 'MALFORMED_FUNCTION_CALL',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 9056,
+            totalTokenCount: 9056,
+            promptTokensDetails: [
+              {
+                modality: 'TEXT',
+                tokenCount: 9056,
+              },
+            ],
+          },
+          modelVersion: 'gemini-2.0-flash-lite',
+        },
+      },
+      async () => {
+        const { text, finishReason } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toBeUndefined();
+        expect(finishReason).toStrictEqual('error');
+      },
+    ),
+  );
+
+  it(
     'should extract tool calls',
     withTestServer(
       {

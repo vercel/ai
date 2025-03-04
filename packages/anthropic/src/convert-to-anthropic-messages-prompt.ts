@@ -101,20 +101,19 @@ export function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'image': {
-                    if (part.image instanceof URL) {
-                      // The AI SDK automatically downloads images for user image parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'Image URLs in user messages',
-                      });
-                    }
-
                     anthropicContent.push({
                       type: 'image',
-                      source: {
-                        type: 'base64',
-                        media_type: part.mimeType ?? 'image/jpeg',
-                        data: convertUint8ArrayToBase64(part.image),
-                      },
+                      source:
+                        part.image instanceof URL
+                          ? {
+                              type: 'url',
+                              url: part.image.toString(),
+                            }
+                          : {
+                              type: 'base64',
+                              media_type: part.mimeType ?? 'image/jpeg',
+                              data: convertUint8ArrayToBase64(part.image),
+                            },
                       cache_control: cacheControl,
                     });
 
