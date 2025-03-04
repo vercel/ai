@@ -18,10 +18,10 @@ The step is used to track how to map an assistant UI message with many tool invo
 back to a sequence of LLM assistant/tool result message pairs.
 It is optional for backwards compatibility.
  */
-export type ToolInvocation =
-  | ({ state: 'partial-call'; step?: number } & ToolCall<string, any>)
-  | ({ state: 'call'; step?: number } & ToolCall<string, any>)
-  | ({ state: 'result'; step?: number } & ToolResult<string, any, any>);
+export type ToolInvocation<TArgs = any, TResult = any> =
+  | ({ state: 'partial-call'; step?: number } & ToolCall<string, TArgs>)
+  | ({ state: 'call'; step?: number } & ToolCall<string, TArgs>)
+  | ({ state: 'result'; step?: number } & ToolResult<string, TArgs, TResult>);
 
 /**
  * An attachment that can be sent along with a message.
@@ -157,13 +157,12 @@ export type ReasoningUIPart = {
 /**
  * A tool invocation part of a message.
  */
-export type ToolInvocationUIPart = {
+export type ToolInvocationUIPart<TArgs = any, TResult = any> = {
   type: 'tool-invocation';
-
   /**
    * The tool invocation.
    */
-  toolInvocation: ToolInvocation;
+  toolInvocation: ToolInvocation<TArgs, TResult>;
 };
 
 /**
