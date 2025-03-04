@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "tsx src/server.ts",
+    "sse:server": "tsx src/sse/server.ts",
+    "sse:client": "tsx src/sse/client.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

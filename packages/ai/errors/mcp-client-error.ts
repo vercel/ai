@@ -1,4 +1,4 @@
-import { AISDKError } from './ai-sdk-error';
+import { AISDKError } from '@ai-sdk/provider/src/errors/ai-sdk-error';
 
 const name = 'AI_MCPClientError';
 const marker = `vercel.ai.error.${name}`;

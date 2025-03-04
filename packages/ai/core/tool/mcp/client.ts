@@ -1,4 +1,5 @@
 import { z, ZodType } from 'zod';
+import { MCPClientError } from '../../../errors';
 import {
   CallToolRequest,
   CallToolResult,
@@ -20,7 +21,6 @@ import {
   SUPPORTED_PROTOCOL_VERSIONS,
   TransportConfig,
 } from './types';
-import { MCPClientError } from '@ai-sdk/provider';
 import { createMcpTransport } from './transport';
 
 interface MCPClientConfig {

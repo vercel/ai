@@ -1,6 +1,6 @@
-import { EventSource } from 'eventsource';
 import { ChildProcess, spawn } from 'node:child_process';
 import process from 'node:process';
+import { MCPClientError } from '../../../errors';
 import {
   JSONRPCMessage,
   JSONRPCMessageSchema,
@@ -9,7 +9,6 @@ import {
   McpSSEServerConfig,
   McpStdioServerConfig,
 } from './types';
-import { MCPClientError } from '@ai-sdk/provider';
 
 export function createMcpTransport(config: TransportConfig): MCPTransport {
   return config.type === 'stdio'
@@ -126,10 +125,13 @@ export class StdioClientTransport implements MCPTransport {
 }
 
 class SSEClientTransport implements MCPTransport {
-  private eventSource?: EventSource;
   private endpoint?: URL;
   private abortController?: AbortController;
   private url: URL;
+  private connected = false;
+  private sseConnection?: {
+    close: () => void;
+  };
 
   onclose?: () => void;
   onerror?: (error: Error) => void;
@@ -139,72 +141,130 @@ class SSEClientTransport implements MCPTransport {
     this.url = new URL(url);
   }
 
-  private _start(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.eventSource = new EventSource(this.url.href);
+  async start(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (this.connected) {
+        return resolve();
+      }
+
       this.abortController = new AbortController();
 
-      this.eventSource.onerror = event => {
-        const error = new MCPClientError({
-          message: `SSEClientTransport error (Code: ${event.code}): ${event.message}`,
-          cause: event,
-        });
-        reject(error);
-        this.onerror?.(error);
-      };
-
-      this.eventSource.onopen = () => {
-        // The connection is open, but we need to wait for the endpoint to be received.
-      };
-
-      this.eventSource.addEventListener('endpoint', (event: Event) => {
-        const messageEvent = event as MessageEvent;
-
+      const establishConnection = async () => {
         try {
-          this.endpoint = new URL(messageEvent.data, this.url);
-          if (this.endpoint.origin !== this.url.origin) {
-            throw new MCPClientError({
-              message: `Endpoint origin does not match connection origin: ${this.endpoint.origin}`,
+          const response = await fetch(this.url.href, {
+            headers: {
+              Accept: 'text/event-stream',
+            },
+            signal: this.abortController?.signal,
+          });
+
+          if (!response.ok || !response.body) {
+            const error = new MCPClientError({
+              message: `SSE connection failed: ${response.status} ${response.statusText}`,
             });
+            this.onerror?.(error);
+            return reject(error);
           }
+
+          const reader = response.body.getReader();
+          const textDecoder = new TextDecoder();
+
+          let buffer = '';
+
+          const processEvents = async () => {
+            try {
+              const { done, value } = await reader.read();
+
+              if (done) {
+                if (this.connected) {
+                  const error = new MCPClientError({
+                    message: 'SSE connection closed unexpectedly',
+                  });
+                  this.onerror?.(error);
+                }
+                return;
+              }
+
+              buffer += textDecoder.decode(value, { stream: true });
+              const events = buffer.split('\n\n');
+              buffer = events.pop() || '';
+
+              for (const eventStr of events) {
+                const eventLines = eventStr.split('\n');
+                let event = '';
+                let data = '';
+
+                for (const line of eventLines) {
+                  if (line.startsWith('event:')) {
+                    event = line.substring(6).trim();
+                  } else if (line.startsWith('data:')) {
+                    data += line.substring(5).trim();
+                  }
+                }
+
+                if (event === 'endpoint') {
+                  try {
+                    this.endpoint = new URL(data, this.url);
+                    if (this.endpoint.origin !== this.url.origin) {
+                      throw new MCPClientError({
+                        message: `Endpoint origin does not match connection origin: ${this.endpoint.origin}`,
+                      });
+                    }
+                    this.connected = true;
+                    resolve();
+                  } catch (error) {
+                    reject(error);
+                    this.onerror?.(error as Error);
+                    this.close();
+                    return;
+                  }
+                } else if (event === 'message') {
+                  let message: JSONRPCMessage;
+                  try {
+                    message = JSONRPCMessageSchema.parse(JSON.parse(data));
+                    this.onmessage?.(message);
+                  } catch (error) {
+                    this.onerror?.(error as Error);
+                  }
+                }
+              }
+
+              await processEvents();
+            } catch (error) {
+              if (error instanceof Error && error.name === 'AbortError') {
+                return;
+              }
+              const e =
+                error instanceof Error ? error : new Error(String(error));
+              this.onerror?.(e);
+              reject(e);
+            }
+          };
+
+          this.sseConnection = {
+            close: () => {
+              reader.cancel();
+            },
+          };
+
+          processEvents();
         } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            return;
+          }
+          this.onerror?.(error as Error);
           reject(error);
-          this.onerror?.(error as Error);
-          void this.close();
-          return;
         }
-
-        resolve();
-      });
-
-      this.eventSource.onmessage = (event: Event) => {
-        const messageEvent = event as MessageEvent;
-        let message: JSONRPCMessage;
-        try {
-          message = JSONRPCMessageSchema.parse(JSON.parse(messageEvent.data));
-        } catch (error) {
-          this.onerror?.(error as Error);
-          return;
-        }
-
-        this.onmessage?.(message);
       };
+
+      establishConnection();
     });
   }
 
-  async start(): Promise<void> {
-    if (this.eventSource) {
-      throw new MCPClientError({
-        message: 'SSEClientTransport already started.',
-      });
-    }
-
-    return this._start();
-  }
-
   async close(): Promise<void> {
+    this.connected = false;
+    this.sseConnection?.close();
     this.abortController?.abort();
-    this.eventSource?.close();
     this.onclose?.();
   }
 
