@@ -284,7 +284,7 @@ To solve this, you can enable multi-step tool calls using the `maxSteps` option 
 
 Modify your `app/page.tsx` file to include the `maxSteps` option:
 
-```tsx filename="app/page.tsx" highlight="7"
+```tsx filename="app/page.tsx" highlight="7,14-17"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -293,7 +293,17 @@ export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     maxSteps: 5,
   });
-
+  return (
+    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
+      {messages.map(m => (
+        <div key={m.id} className="whitespace-pre-wrap">
+          {m.role === 'user' ? 'User: ' : 'AI: '}
+          {m.toolInvocations && (
+            <pre>{JSON.stringify(m.toolInvocations, null, 2)}</pre>
+          )}
+          <p>{m.content}</p>
+        </div>
+      ))}
   // ... rest of your component code
 }
 ```
