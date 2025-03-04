@@ -13,11 +13,11 @@ import { Source } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
+import { ReasoningDetail } from './reasoning-detail';
 import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ReasoningDetail } from './reasoning-detail';
 
 export type DataStreamOptions = {
   /**
@@ -38,6 +38,27 @@ export type DataStreamOptions = {
    * Default to false.
    */
   sendSources?: boolean;
+
+  /**
+   * Send the finish event to the client.
+   * Set to false if you are using additional streamText calls
+   * that send additional data.
+   * Default to true.
+   */
+  experimental_sendFinish?: boolean;
+
+  /**
+   * Send the message start event to the client.
+   * Set to false if you are using additional streamText calls
+   * and the message start event has already been sent.
+   * Default to true.
+   *
+   * Note: this setting is currently not used, but you should
+   * already set it to false if you are using additional
+   * streamText calls that send additional data to prevent
+   * the message start event from being sent multiple times.
+   */
+  experimental_sendStart?: boolean;
 };
 
 /**

@@ -3781,6 +3781,17 @@ exports[`streamText > result.pipeDataStreamToResponse > should mask error messag
 ]
 `;
 
+exports[`streamText > result.pipeDataStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello, World!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+]
+`;
+
 exports[`streamText > result.pipeDataStreamToResponse > should support custom error messages 1`] = `
 [
   "f:{"messageId":"msg-0"}
@@ -4224,6 +4235,17 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
 ",
   "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStream > should omit message finish event (d:) when sendFinish is false 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello, World!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
 ]
 `;
