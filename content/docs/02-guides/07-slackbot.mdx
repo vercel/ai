@@ -35,7 +35,7 @@ This project uses the following stack:
 
 ### Getting Started
 
-1. Clone the repository and check out the `starter` branch
+1. Clone [the repository](https://github.com/vercel-labs/ai-sdk-slackbot) and check out the `starter` branch
 
 <Snippet
   text={[
@@ -61,15 +61,15 @@ For this guide, we'll focus on implementing the AI functionality using the AI SD
 
 ## Implementing AI Logic
 
-The core of our application is the `callLLM` function in `lib/ai.ts`, which processes messages and generates responses using the AI SDK.
+The core of our application is the `generateResponse` function in `lib/generate-response.ts`, which processes messages and generates responses using the AI SDK.
 
 Here's how to implement it:
 
-```typescript filename="lib/ai.ts"
+```typescript filename="lib/generate-response.ts"
 import { openai } from '@ai-sdk/openai';
 import { CoreMessage, generateText } from 'ai';
 
-export const callLLM = async (
+export const generateResponse = async (
   messages: CoreMessage[],
   updateStatus?: (status: string) => void,
 ) => {
@@ -81,13 +81,8 @@ export const callLLM = async (
     messages,
   });
 
-  // Format for Slack: replace Markdown links with Slack format
-  const linkRegex = /\[(.*?)\]\((.*?)\)/g;
-  const replacedLinks = text.replace(linkRegex, '<$2|$1>');
-
-  // Replace all instances of "**" with "*" for Slack formatting
-  const finalStr = replacedLinks.replace(/\*\*/g, '*');
-  return finalStr;
+  // Convert markdown to Slack mrkdwn format
+  return text.replace(/\[(.*?)\]\((.*?)\)/g, '<$2|$1>').replace(/\*\*/g, '*');
 };
 ```
 
@@ -101,13 +96,13 @@ This basic implementation:
 
 The real power of the AI SDK comes from tools that enable your bot to perform actions. Let's add two useful tools:
 
-```typescript filename="lib/ai.ts"
+```typescript filename="lib/generate-response.ts"
 import { openai } from '@ai-sdk/openai';
 import { CoreMessage, generateText, tool } from 'ai';
 import { z } from 'zod';
 import { exa } from './utils';
 
-export const callLLM = async (
+export const generateResponse = async (
   messages: CoreMessage[],
   updateStatus?: (status: string) => void,
 ) => {
@@ -174,11 +169,8 @@ export const callLLM = async (
     },
   });
 
-  // Format for Slack
-  const linkRegex = /\[(.*?)\]\((.*?)\)/g;
-  const replacedLinks = text.replace(linkRegex, '<$2|$1>');
-  const finalStr = replacedLinks.replace(/\*\*/g, '*');
-  return finalStr;
+  // Convert markdown to Slack mrkdwn format
+  return text.replace(/\[(.*?)\]\((.*?)\)/g, '<$2|$1>').replace(/\*\*/g, '*');
 };
 ```
 
@@ -196,7 +188,7 @@ In this updated implementation:
 When a user interacts with your bot:
 
 1. The Slack event is received and processed by your API endpoint
-2. The user's message and the thread history is passed to the `callLLM` function
+2. The user's message and the thread history is passed to the `generateResponse` function
 3. The AI SDK processes the message and may invoke tools as needed
 4. The response is formatted for Slack and sent back to the user
 
