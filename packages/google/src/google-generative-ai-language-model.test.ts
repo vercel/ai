@@ -379,7 +379,7 @@ describe('doGenerate', () => {
   );
 
   it(
-    'should pass the model and the messages',
+    'should pass the model, messages, and options',
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
       await model.doGenerate({
         inputFormat: 'prompt',
@@ -388,6 +388,8 @@ describe('doGenerate', () => {
           { role: 'system', content: 'test system instruction' },
           { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
         ],
+        seed: 123,
+        temperature: 0.5,
       });
 
       expect(await call(0).getRequestBodyJson()).toStrictEqual({
@@ -398,7 +400,10 @@ describe('doGenerate', () => {
           },
         ],
         systemInstruction: { parts: [{ text: 'test system instruction' }] },
-        generationConfig: {},
+        generationConfig: {
+          seed: 123,
+          temperature: 0.5,
+        },
       });
     }),
   );
