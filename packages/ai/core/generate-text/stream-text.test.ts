@@ -937,6 +937,32 @@ describe('streamText', () => {
       expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
     });
 
+    it('should omit message finish event (d:) when sendFinish is false', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse, {
+        experimental_sendFinish: false,
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
     it('should write reasoning content to a Node.js response-like object', async () => {
       const mockResponse = createMockServerResponse();
 
@@ -1203,6 +1229,32 @@ describe('streamText', () => {
       });
 
       const dataStream = result.toDataStream({ sendUsage: false });
+
+      expect(
+        await convertReadableStreamToArray(
+          dataStream.pipeThrough(new TextDecoderStream()),
+        ),
+      ).toMatchSnapshot();
+    });
+
+    it('should omit message finish event (d:) when sendFinish is false', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      const dataStream = result.toDataStream({
+        experimental_sendFinish: false,
+      });
 
       expect(
         await convertReadableStreamToArray(
