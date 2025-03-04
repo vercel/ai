@@ -33,7 +33,7 @@ This project uses the following stack:
 - [Vercel](https://vercel.com)
 - [OpenAI](https://openai.com)
 
-### Getting Started
+## Getting Started
 
 1. Clone [the repository](https://github.com/vercel-labs/ai-sdk-slackbot) and check out the `starter` branch
 
@@ -49,15 +49,266 @@ This project uses the following stack:
 
 <Snippet text={['pnpm install']} />
 
-## Project Overview
+## Project Structure
 
-The starter repository includes:
+The starter repository already includes:
 
-- Slack utility functions for request validation and message formatting (`lib/slack-utils.ts`)
-- API endpoints to handle Slack events (`api/events.ts`)
-- Event handlers for different message types (`lib/handle-messages.ts` and `lib/handle-app-mention.ts`)
+- Slack utilities (`lib/slack-utils.ts`) including functions for validating incoming requests, converting Slack threads to AI SDK compatible message formats, and getting the Slackbot's user ID
+- General utility functions (`lib/utils.ts`) including initial Exa setup
+- Files to handle the different types of Slack events (`lib/handle-messages.ts` and `lib/handle-app-mention.ts`)
+- An API endpoint (`POST`) for Slack events (`api/events.ts`)
 
-For this guide, we'll focus on implementing the AI functionality using the AI SDK.
+## Event Handler
+
+First, let's take a look at our API route (`api/events.ts`):
+
+```typescript
+import type { SlackEvent } from '@slack/web-api';
+import {
+  assistantThreadMessage,
+  handleNewAssistantMessage,
+} from '../lib/handle-messages';
+import { waitUntil } from '@vercel/functions';
+import { handleNewAppMention } from '../lib/handle-app-mention';
+import { verifyRequest, getBotId } from '../lib/slack-utils';
+
+export async function POST(request: Request) {
+  const rawBody = await request.text();
+  const payload = JSON.parse(rawBody);
+  const requestType = payload.type as 'url_verification' | 'event_callback';
+
+  // See https://api.slack.com/events/url_verification
+  if (requestType === 'url_verification') {
+    return new Response(payload.challenge, { status: 200 });
+  }
+
+  await verifyRequest({ requestType, request, rawBody });
+
+  try {
+    const botUserId = await getBotId();
+
+    const event = payload.event as SlackEvent;
+
+    if (event.type === 'app_mention') {
+      waitUntil(handleNewAppMention(event, botUserId));
+    }
+
+    if (event.type === 'assistant_thread_started') {
+      waitUntil(assistantThreadMessage(event));
+    }
+
+    if (
+      event.type === 'message' &&
+      !event.subtype &&
+      event.channel_type === 'im' &&
+      !event.bot_id &&
+      !event.bot_profile &&
+      event.bot_id !== botUserId
+    ) {
+      waitUntil(handleNewAssistantMessage(event, botUserId));
+    }
+
+    return new Response('Success!', { status: 200 });
+  } catch (error) {
+    console.error('Error generating response', error);
+    return new Response('Error generating response', { status: 500 });
+  }
+}
+```
+
+This file defines a `POST` function that handles incoming requests from Slack. First, you check the request type to see if it's a URL verification request. If it is, you respond with the challenge string provided by Slack. If it's an event callback, you verify the request and then have access to the event data. This is where you can implement your event handling logic.
+
+You then handle three types of events: `app_mention`, `assistant_thread_started`, and `message`:
+
+- For `app_mention`, you call `handleNewAppMention` with the event and the bot user ID.
+- For `assistant_thread_started`, you call `assistantThreadMessage` with the event.
+- For `message`, you call `handleNewAssistantMessage` with the event and the bot user ID.
+
+Finally, you respond with a success message to Slack. Note, each handler function is wrapped in a `waitUntil` function. Let's take a look at what this means and why it's important.
+
+### The waitUntil Function
+
+Slack expects a response within 3 seconds to confirm the request is being handled. However, generating AI responses can take longer. If you don't respond to the Slack request within 3 seconds, Slack will send another request, leading to another invocation of your API route, another call to the LLM, and ultimately another response to the user. To solve this, you can use the `waitUntil` function, which allows you to run your AI logic after the response is sent, without blocking the response itself.
+
+This means, your API endpoint will:
+
+1. Immediately respond to Slack (within 3 seconds)
+2. Continue processing the message asynchronously
+3. Send the AI response when it's ready
+
+## Event Handlers
+
+Let's look at how each event type is currently handled.
+
+### App Mentions
+
+When a user mentions your bot in a channel, the `app_mention` event is triggered. The `handleNewAppMention` function in `handle-app-mention.ts` processes these mentions:
+
+1. Checks if the message is from a bot to avoid infinite response loops
+2. Creates a status updater to show the bot is "thinking"
+3. If the mention is in a thread, it retrieves the thread history
+4. Calls the LLM with the message content (using the `generateResponse` function which you will implement in the next section)
+5. Updates the initial "thinking" message with the AI response
+
+Here's the code for the `handleNewAppMention` function:
+
+```typescript filename="lib/handle-app-mention.ts"
+import { AppMentionEvent } from '@slack/web-api';
+import { client, getThread } from './slack-utils';
+import { generateResponse } from './ai';
+
+const updateStatusUtil = async (
+  initialStatus: string,
+  event: AppMentionEvent,
+) => {
+  const initialMessage = await client.chat.postMessage({
+    channel: event.channel,
+    thread_ts: event.thread_ts ?? event.ts,
+    text: initialStatus,
+  });
+
+  if (!initialMessage || !initialMessage.ts)
+    throw new Error('Failed to post initial message');
+
+  const updateMessage = async (status: string) => {
+    await client.chat.update({
+      channel: event.channel,
+      ts: initialMessage.ts as string,
+      text: status,
+    });
+  };
+  return updateMessage;
+};
+
+export async function handleNewAppMention(
+  event: AppMentionEvent,
+  botUserId: string,
+) {
+  console.log('Handling app mention');
+  if (event.bot_id || event.bot_id === botUserId || event.bot_profile) {
+    console.log('Skipping app mention');
+    return;
+  }
+
+  const { thread_ts, channel } = event;
+  const updateMessage = await updateStatusUtil('is thinking...', event);
+
+  if (thread_ts) {
+    const messages = await getThread(channel, thread_ts, botUserId);
+    const result = await generateResponse(messages, updateMessage);
+    updateMessage(result);
+  } else {
+    const result = await generateResponse(
+      [{ role: 'user', content: event.text }],
+      updateMessage,
+    );
+    updateMessage(result);
+  }
+}
+```
+
+Now let's see how new assistant threads and messages are handled.
+
+### Assistant Thread Messages
+
+When a user starts a thread with your assistant, the `assistant_thread_started` event is triggered. The `assistantThreadMessage` function in `handle-messages.ts` handles this:
+
+1. Posts a welcome message to the thread
+2. Sets up suggested prompts to help users get started
+
+Here's the code for the `assistantThreadMessage` function:
+
+```typescript filename="lib/handle-messages.ts"
+import type { AssistantThreadStartedEvent } from '@slack/web-api';
+import { client } from './slack-utils';
+
+export async function assistantThreadMessage(
+  event: AssistantThreadStartedEvent,
+) {
+  const { channel_id, thread_ts } = event.assistant_thread;
+  console.log(`Thread started: ${channel_id} ${thread_ts}`);
+  console.log(JSON.stringify(event));
+
+  await client.chat.postMessage({
+    channel: channel_id,
+    thread_ts: thread_ts,
+    text: "Hello, I'm an AI assistant built with the AI SDK by Vercel!",
+  });
+
+  await client.assistant.threads.setSuggestedPrompts({
+    channel_id: channel_id,
+    thread_ts: thread_ts,
+    prompts: [
+      {
+        title: 'Get the weather',
+        message: 'What is the current weather in London?',
+      },
+      {
+        title: 'Get the news',
+        message: 'What is the latest Premier League news from the BBC?',
+      },
+    ],
+  });
+}
+```
+
+### Direct Messages
+
+For direct messages to your bot, the `message` event is triggered and the event is handled by the `handleNewAssistantMessage` function in `handle-messages.ts`:
+
+1. Verifies the message isn't from a bot
+2. Updates the status to show the response is being generated
+3. Retrieves the conversation history
+4. Calls the LLM with the conversation context
+5. Posts the LLM's response to the thread
+
+Here's the code for the `handleNewAssistantMessage` function:
+
+```typescript filename="lib/handle-messages.ts"
+import type { GenericMessageEvent } from '@slack/web-api';
+import { client, getThread } from './slack-utils';
+import { generateResponse } from './ai';
+
+export async function handleNewAssistantMessage(
+  event: GenericMessageEvent,
+  botUserId: string,
+) {
+  if (
+    event.bot_id ||
+    event.bot_id === botUserId ||
+    event.bot_profile ||
+    !event.thread_ts
+  )
+    return;
+
+  const { thread_ts, channel } = event;
+  const updateStatus = updateStatusUtil(channel, thread_ts);
+  updateStatus('is thinking...');
+
+  const messages = await getThread(channel, thread_ts, botUserId);
+  const result = await generateResponse(messages, updateStatus);
+
+  await client.chat.postMessage({
+    channel: channel,
+    thread_ts: thread_ts,
+    text: result,
+    unfurl_links: false,
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: result,
+        },
+      },
+    ],
+  });
+
+  updateStatus('');
+}
+```
+
+With the event handlers in place, let's now implement the AI logic.
 
 ## Implementing AI Logic
 
