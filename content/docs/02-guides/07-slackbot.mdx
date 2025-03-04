@@ -1,0 +1,262 @@
+---
+title: Slackbot Guide
+description: Learn how to use the AI SDK to build an AI Slackbot.
+---
+
+# Building a Slack AI Chatbot with the AI SDK
+
+In this guide, you will learn how to build a Slackbot powered by the AI SDK. The bot will be able to respond to direct messages and mentions in channels using the full context of the thread.
+
+## Slack App Setup
+
+Before we start building, you'll need to create and configure a Slack app:
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps)
+2. Click "Create New App" and choose "From scratch"
+3. Give your app a name and select your workspace
+4. Under "OAuth & Permissions", add the following bot token scopes:
+   - `app_mentions:read`
+   - `chat:write`
+   - `im:history`
+   - `im:write`
+   - `assistant:write`
+5. Install the app to your workspace (button under "OAuth Tokens" subsection)
+6. Copy the Bot User OAuth Token and Signing Secret for the next step
+7. Under App Home -> Show Tabs -> Chat Tab, check "Allow users to send Slash commands and messages from the chat tab"
+
+## Project Setup
+
+This project uses the following stack:
+
+- [AI SDK by Vercel](https://sdk.vercel.ai/docs)
+- [Slack Web API](https://api.slack.com/web)
+- [Vercel](https://vercel.com)
+- [OpenAI](https://openai.com)
+
+### Getting Started
+
+1. Clone the repository and check out the `starter` branch
+
+<Snippet
+  text={[
+    'git clone https://github.com/vercel-labs/ai-sdk-slackbot.git',
+    'cd ai-sdk-slackbot',
+    'git checkout starter',
+  ]}
+/>
+
+2. Install dependencies
+
+<Snippet text={['pnpm install']} />
+
+## Project Overview
+
+The starter repository includes:
+
+- Slack utility functions for request validation and message formatting
+- API endpoints to handle Slack events
+- Event handlers for different message types
+
+For this guide, we'll focus on implementing the AI functionality using the AI SDK.
+
+## Implementing AI Logic
+
+The core of our application is the `callLLM` function in `lib/ai.ts`, which processes messages and generates responses using the AI SDK.
+
+Here's how to implement it:
+
+```typescript filename="lib/ai.ts"
+import { openai } from '@ai-sdk/openai';
+import { CoreMessage, generateText } from 'ai';
+
+export const callLLM = async (
+  messages: CoreMessage[],
+  updateStatus?: (status: string) => void,
+) => {
+  const { text } = await generateText({
+    model: openai('gpt-4o-mini'),
+    system: `You are a Slack bot assistant. Keep your responses concise and to the point.
+    - Do not tag users.
+    - Current date is: ${new Date().toISOString().split('T')[0]}`,
+    messages,
+  });
+
+  // Format for Slack: replace Markdown links with Slack format
+  const linkRegex = /\[(.*?)\]\((.*?)\)/g;
+  const replacedLinks = text.replace(linkRegex, '<$2|$1>');
+
+  // Replace all instances of "**" with "*" for Slack formatting
+  const finalStr = replacedLinks.replace(/\*\*/g, '*');
+  return finalStr;
+};
+```
+
+This basic implementation:
+
+1. Uses the AI SDK's `generateText` function with OpenAI's model
+2. Provides a system prompt to guide the model's behavior
+3. Formats the response for Slack's markdown format
+
+## Enhancing with Tools
+
+The real power of the AI SDK comes from tools that enable your bot to perform actions. Let's add two useful tools:
+
+```typescript filename="lib/ai.ts"
+import { openai } from '@ai-sdk/openai';
+import { CoreMessage, generateText, tool } from 'ai';
+import { z } from 'zod';
+import { exa } from './utils';
+
+export const callLLM = async (
+  messages: CoreMessage[],
+  updateStatus?: (status: string) => void,
+) => {
+  const { text } = await generateText({
+    model: openai('gpt-4o'),
+    system: `You are a Slack bot assistant. Keep your responses concise and to the point.
+    - Do not tag users.
+    - Current date is: ${new Date().toISOString().split('T')[0]}
+    - Always include sources in your final response if you use web search.`,
+    messages,
+    maxSteps: 10,
+    tools: {
+      getWeather: tool({
+        description: 'Get the current weather at a location',
+        parameters: z.object({
+          latitude: z.number(),
+          longitude: z.number(),
+          city: z.string(),
+        }),
+        execute: async ({ latitude, longitude, city }) => {
+          updateStatus?.(`is getting weather for ${city}...`);
+
+          const response = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weathercode,relativehumidity_2m&timezone=auto`,
+          );
+
+          const weatherData = await response.json();
+          return {
+            temperature: weatherData.current.temperature_2m,
+            weatherCode: weatherData.current.weathercode,
+            humidity: weatherData.current.relativehumidity_2m,
+            city,
+          };
+        },
+      }),
+      searchWeb: tool({
+        description: 'Use this to search the web for information',
+        parameters: z.object({
+          query: z.string(),
+          specificDomain: z
+            .string()
+            .nullable()
+            .describe(
+              'a domain to search if the user specifies e.g. bbc.com. Should be only the domain name without the protocol',
+            ),
+        }),
+        execute: async ({ query, specificDomain }) => {
+          updateStatus?.(`is searching the web for ${query}...`);
+          const { results } = await exa.searchAndContents(query, {
+            livecrawl: 'always',
+            numResults: 3,
+            includeDomains: specificDomain ? [specificDomain] : undefined,
+          });
+
+          return {
+            results: results.map(result => ({
+              title: result.title,
+              url: result.url,
+              snippet: result.text.slice(0, 1000),
+            })),
+          };
+        },
+      }),
+    },
+  });
+
+  // Format for Slack
+  const linkRegex = /\[(.*?)\]\((.*?)\)/g;
+  const replacedLinks = text.replace(linkRegex, '<$2|$1>');
+  const finalStr = replacedLinks.replace(/\*\*/g, '*');
+  return finalStr;
+};
+```
+
+In this updated implementation:
+
+1. You added two tools:
+
+   - `getWeather`: Fetches weather data for a specified location
+   - `searchWeb`: Searches the web for information using the Exa API
+
+2. You set `maxSteps: 10` to enable multi-step conversations, allowing the AI to:
+   - Call tools based on user queries
+   - Process the results
+   - Generate appropriate responses
+
+## How It Works
+
+When a user interacts with your bot:
+
+1. The Slack event is received and processed by your API endpoint
+2. The user's message and the thread history is passed to the `callLLM` function
+3. The AI SDK processes the message and may invoke tools as needed
+4. The response is formatted for Slack and sent back to the user
+
+The tools are automatically invoked based on the user's intent. For example, if a user asks "What's the weather in London?", the AI will:
+
+1. Recognize this as a weather query
+2. Call the `getWeather` tool with London's coordinates (inferred by the LLM)
+3. Process the weather data
+4. Generate a final response, answering the user's question
+
+## Deploying the App
+
+1. Install the Vercel CLI
+
+<Snippet text={['pnpm install -g vercel']} />
+
+2. Deploy the app
+
+<Snippet text={['vercel deploy']} />
+
+3. Copy the deployment URL and update the Slack app's Event Subscriptions to point to your Vercel URL
+4. Go to deployment settings and add your environment variables
+
+```bash
+SLACK_BOT_TOKEN=your_slack_bot_token
+SLACK_SIGNING_SECRET=your_slack_signing_secret
+OPENAI_API_KEY=your_openai_api_key
+EXA_API_KEY=your_exa_api_key
+```
+
+<Note>
+  Make sure to redeploy your app after updating environment variables.
+</Note>
+
+5. Head back to the [https://api.slack.com/](https://api.slack.com/) and navigate to the "Event Subscriptions" page. Enable events and add your deployment URL.
+
+```
+https://your-vercel-url.vercel.app/api/events
+```
+
+6. On the Events Subscription page, subscribe to the following events.
+   - `app_mention`
+   - `assistant_thread_started`
+   - `message:im`
+
+Finally, head to Slack and test the app by sending a message to the bot.
+
+## Next Steps
+
+You've built a Slack chatbot powered by the AI SDK! Here are some ways you could extend it:
+
+1. Add memory for specific users to give the LLM context of previous interactions
+2. Implement more tools like database queries or knowledge base searches
+3. Add support for rich message formatting with blocks
+4. Add analytics to track usage patterns
+
+<Note>
+  In a production environment, it is recommended to implement a robust queueing
+  system to ensure messages are properly handled.
+</Note>
