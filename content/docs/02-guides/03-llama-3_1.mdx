@@ -32,26 +32,21 @@ The AI SDK is the TypeScript toolkit designed to help developers build AI-powere
 
 The AI SDK abstracts away the differences between model providers, eliminates boilerplate code for building chatbots, and allows you to go beyond text output to generate rich, interactive components.
 
-At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call Llama 3.1 (using [Groq](https://groq.com)) with the AI SDK:
+At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call Llama 3.1 (using [DeepInfra](https://https://deepinfra.com)) with the AI SDK:
 
 ```tsx
 import { generateText } from 'ai';
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
-
-const groq = createGroq({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
+import { deepinfra } from '@ai-sdk/deepinfra';
 
 const { text } = await generateText({
-  model: groq('llama-3.1-405b-reasoning'),
+  model: deepinfra('meta-llama/Meta-Llama-3.1-405B-Instruct'),
   prompt: 'What is love?',
 });
 ```
 
 <Note>
   Llama 3.1 is available to use with many AI SDK providers including
-  [Groq](/providers/ai-sdk-providers/groq), [Amazon
+  [DeepInfra](/providers/ai-sdk-providers/deepinfra), [Amazon
   Bedrock](/providers/ai-sdk-providers/amazon-bedrock),
   [Baseten](/providers/openai-compatible-providers/baseten)
   [Fireworks](/providers/ai-sdk-providers/fireworks), and more.
@@ -75,15 +70,10 @@ To stream the model's response as it's being generated, update your code snippet
 
 ```tsx
 import { streamText } from 'ai';
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
-
-const groq = createGroq({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
+import { deepinfra } from '@ai-sdk/deepinfra';
 
 const { textStream } = streamText({
-  model: groq('llama-3.1-70b-versatile'),
+  model: deepinfra('meta-llama/Meta-Llama-3.1-405B-Instruct'),
   prompt: 'What is love?',
 });
 ```
@@ -94,16 +84,11 @@ While text generation can be useful, you might want to generate structured JSON 
 
 ```tsx
 import { generateObject } from 'ai';
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
+import { deepinfra } from '@ai-sdk/deepinfra';
 import { z } from 'zod';
 
-const groq = createGroq({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
-
 const { object } = await generateObject({
-  model: groq('llama-3.1-70b-versatile'),
+  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
   schema: z.object({
     recipe: z.object({
       name: z.string(),
@@ -129,16 +114,11 @@ Here's an example of how you can use a tool with the AI SDK and Llama 3.1:
 
 ```tsx
 import { generateText, tool } from 'ai';
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
+import { deepinfra } from '@ai-sdk/deepinfra';
 import { getWeather } from './weatherTool';
 
-const groq = createGroq({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
-
 const { text } = await generateText({
-  model: groq('llama-3.1-70b-versatile'),
+  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
   prompt: 'What is the weather like today?',
   tools: {
     weather: tool({
@@ -171,20 +151,15 @@ Here's an example of an agent that solves math problems:
 
 ```tsx
 import { generateText, tool } from 'ai';
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
+import { deepinfra } from '@ai-sdk/deepinfra';
 import * as mathjs from 'mathjs';
 import { z } from 'zod';
-
-const groq = createGroq({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
 
 const problem =
   'Calculate the profit for a day if revenue is $5000 and expenses are $3500.';
 
 const { text: answer } = await generateText({
-  model: groq('llama-3.1-70b-versatile'),
+  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
   system:
     'You are solving math problems. Reason step by step. Use the calculator when necessary.',
   prompt: problem,
@@ -209,16 +184,11 @@ AI SDK UI provides robust abstractions that simplify the complex tasks of managi
 
 With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), [`useObject`](/docs/reference/ai-sdk-ui/use-object), and [`useAssistant`](/docs/reference/ai-sdk-ui/use-assistant) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
 
-Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and Llama 3.1 (via [Groq](https://groq.com/)):
+Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and Llama 3.1 (via [DeepInfra](https://deepinfra.com/)):
 
 ```tsx filename="app/api/chat/route.ts"
 import { streamText } from 'ai';
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
-
-const groq = createGroq({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
+import { deepinfra } from '@ai-sdk/deepinfra';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -227,7 +197,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: groq('llama-3.1-70b-versatile'),
+    model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
     system: 'You are a helpful assistant.',
     messages,
   });
@@ -277,17 +247,12 @@ First, create a Server Action.
 'use server';
 
 import { streamUI } from 'ai/rsc';
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
+import { deepinfra } from '@ai-sdk/deepinfra';
 import { z } from 'zod';
-
-const groq = createGroq({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
 
 export async function streamComponent() {
   const result = await streamUI({
-    model: groq('llama-3.1-70b-versatile'),
+    model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
     prompt: 'Get the weather for San Francisco',
     text: ({ content }) => <div>{content}</div>,
     tools: {
@@ -343,7 +308,7 @@ To see AI SDK RSC in action, check out our open-source [Next.js Gemini Chatbot](
 
 ## Migrate from OpenAI
 
-One of the key advantages of the AI SDK is its unified API, which makes it incredibly easy to switch between different AI models and providers. This flexibility is particularly useful when you want to migrate from one model to another, such as moving from OpenAI's GPT models to Meta's Llama models hosted on Groq.
+One of the key advantages of the AI SDK is its unified API, which makes it incredibly easy to switch between different AI models and providers. This flexibility is particularly useful when you want to migrate from one model to another, such as moving from OpenAI's GPT models to Meta's Llama models hosted on DeepInfra.
 
 Here's how simple the migration process can be:
 
@@ -359,29 +324,24 @@ const { text } = await generateText({
 });
 ```
 
-**Llama on Groq Example:**
+**Llama on DeepInfra Example:**
 
 ```tsx
 import { generateText } from 'ai';
-import { createOpenAI as createGroq } from '@ai-sdk/openai';
-
-const groq = createGroq({
-  baseURL: 'https://api.groq.com/openai/v1',
-  apiKey: process.env.GROQ_API_KEY,
-});
+import { deepinfra } from '@ai-sdk/deepinfra';
 
 const { text } = await generateText({
-  model: groq('llama-3.1-70b-versatile'),
+  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
   prompt: 'What is love?',
 });
 ```
 
 Thanks to the unified API, the core structure of the code remains the same. The main differences are:
 
-1. Creating a Groq client
-2. Changing the model name from `openai("gpt-4-turbo")` to `groq("llama-3.1-70b-versatile")`.
+1. Creating a DeepInfra client
+2. Changing the model name from `openai("gpt-4-turbo")` to `deepinfra("meta-llama/Meta-Llama-3.1-70B-Instruct")`.
 
-With just these few changes, you've migrated from using OpenAI's GPT-4-Turbo to Meta's Llama 3.1 hosted on Groq. The `generateText` function and its usage remain identical, showcasing the power of the AI SDK's unified API.
+With just these few changes, you've migrated from using OpenAI's GPT-4-Turbo to Meta's Llama 3.1 hosted on DeepInfra. The `generateText` function and its usage remain identical, showcasing the power of the AI SDK's unified API.
 
 This feature allows you to easily experiment with different models, compare their performance, and choose the best one for your specific use case without having to rewrite large portions of your codebase.
 
