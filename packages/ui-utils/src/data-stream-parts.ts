@@ -192,6 +192,7 @@ const finishMessageStreamPart: DataStreamPart<
   'finish_message',
   {
     finishReason: LanguageModelV1FinishReason;
+    // TODO v5 remove usage from finish event (only on step-finish)
     usage?: {
       promptTokens: number;
       completionTokens: number;
