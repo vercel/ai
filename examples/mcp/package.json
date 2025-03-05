@@ -6,7 +6,7 @@
     "sse:server": "tsx src/sse/server.ts",
     "sse:client": "tsx src/sse/client.ts",
     "stdio:client": "tsx src/stdio/client.ts",
-    "build": "tsc src/stdio/server.ts --outDir src/stdio/dist --target es2023 --module nodenext",
+    "stdio:build": "tsc src/stdio/server.ts --outDir src/stdio/dist --target es2023 --module nodenext",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
