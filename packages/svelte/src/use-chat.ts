@@ -309,7 +309,7 @@ export function useChat({
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
         parts: getMessageParts(message),
-      } as UIMessage),
+      }),
       headers,
       body,
       data,
