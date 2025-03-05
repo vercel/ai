@@ -1,5 +1,14 @@
 # @ai-sdk/perplexity
 
+## 1.0.3
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+
 ## 1.0.2
 
 ### Patch Changes

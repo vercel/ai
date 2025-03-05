@@ -11,9 +11,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/ui-utils": "1.1.16",
-    "@ai-sdk/react": "1.1.20",
-    "ai": "4.1.52",
+    "@ai-sdk/ui-utils": "1.1.17",
+    "@ai-sdk/react": "1.1.21",
+    "ai": "4.1.53",
     "geist": "^1.3.1",
     "next": "latest",
     "react": "^18",
