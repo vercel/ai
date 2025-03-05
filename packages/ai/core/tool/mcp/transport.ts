@@ -22,9 +22,9 @@ class StdioClientTransport implements MCPTransport {
   private readBuffer: ReadBuffer = new ReadBuffer();
   private serverParams: McpStdioServerConfig;
 
-  onclose?: () => void;
-  onerror?: (error: Error) => void;
-  onmessage?: (message: JSONRPCMessage) => void;
+  onClose?: () => void;
+  onError?: (error: Error) => void;
+  onMessage?: (message: JSONRPCMessage) => void;
 
   constructor(server: McpStdioServerConfig) {
     this.serverParams = server;
@@ -53,12 +53,12 @@ class StdioClientTransport implements MCPTransport {
 
       this.process.on('error', error => {
         if (error.name === 'AbortError') {
-          this.onclose?.();
+          this.onClose?.();
           return;
         }
 
         reject(error);
-        this.onerror?.(error);
+        this.onError?.(error);
       });
 
       this.process.on('spawn', () => {
@@ -67,11 +67,11 @@ class StdioClientTransport implements MCPTransport {
 
       this.process.on('close', _code => {
         this.process = undefined;
-        this.onclose?.();
+        this.onClose?.();
       });
 
       this.process.stdin?.on('error', error => {
-        this.onerror?.(error);
+        this.onError?.(error);
       });
 
       this.process.stdout?.on('data', chunk => {
@@ -80,7 +80,7 @@ class StdioClientTransport implements MCPTransport {
       });
 
       this.process.stdout?.on('error', error => {
-        this.onerror?.(error);
+        this.onError?.(error);
       });
     });
   }
@@ -93,9 +93,9 @@ class StdioClientTransport implements MCPTransport {
           break;
         }
 
-        this.onmessage?.(message);
+        this.onMessage?.(message);
       } catch (error) {
-        this.onerror?.(error as Error);
+        this.onError?.(error as Error);
       }
     }
   }
@@ -133,16 +133,15 @@ class SSEClientTransport implements MCPTransport {
     close: () => void;
   };
 
-  onclose?: () => void;
-  onerror?: (error: Error) => void;
-  onmessage?: (message: JSONRPCMessage) => void;
+  onClose?: () => void;
+  onError?: (error: Error) => void;
+  onMessage?: (message: JSONRPCMessage) => void;
 
   constructor({ url }: McpSSEServerConfig) {
     this.url = new URL(url);
   }
 
   async start(): Promise<void> {
-    console.log('>>>>>>SSEClientTransport start', this.url);
     return new Promise<void>((resolve, reject) => {
       if (this.connected) {
         return resolve();
@@ -163,7 +162,7 @@ class SSEClientTransport implements MCPTransport {
             const error = new MCPClientError({
               message: `SSE connection failed: ${response.status} ${response.statusText}`,
             });
-            this.onerror?.(error);
+            this.onError?.(error);
             return reject(error);
           }
 
@@ -181,7 +180,7 @@ class SSEClientTransport implements MCPTransport {
                   const error = new MCPClientError({
                     message: 'SSE connection closed unexpectedly',
                   });
-                  this.onerror?.(error);
+                  this.onError?.(error);
                 }
                 return;
               }
@@ -215,7 +214,7 @@ class SSEClientTransport implements MCPTransport {
                     resolve();
                   } catch (error) {
                     reject(error);
-                    this.onerror?.(error as Error);
+                    this.onError?.(error as Error);
                     this.close();
                     return;
                   }
@@ -223,9 +222,9 @@ class SSEClientTransport implements MCPTransport {
                   let message: JSONRPCMessage;
                   try {
                     message = JSONRPCMessageSchema.parse(JSON.parse(data));
-                    this.onmessage?.(message);
+                    this.onMessage?.(message);
                   } catch (error) {
-                    this.onerror?.(error as Error);
+                    this.onError?.(error as Error);
                   }
                 }
               }
@@ -237,7 +236,7 @@ class SSEClientTransport implements MCPTransport {
               }
               const e =
                 error instanceof Error ? error : new Error(String(error));
-              this.onerror?.(e);
+              this.onError?.(e);
               reject(e);
             }
           };
@@ -253,7 +252,7 @@ class SSEClientTransport implements MCPTransport {
           if (error instanceof Error && error.name === 'AbortError') {
             return;
           }
-          this.onerror?.(error as Error);
+          this.onError?.(error as Error);
           reject(error);
         }
       };
@@ -266,7 +265,7 @@ class SSEClientTransport implements MCPTransport {
     this.connected = false;
     this.sseConnection?.close();
     this.abortController?.abort();
-    this.onclose?.();
+    this.onClose?.();
   }
 
   async send(message: JSONRPCMessage): Promise<void> {
@@ -287,6 +286,7 @@ class SSEClientTransport implements MCPTransport {
       };
 
       const response = await fetch(this.endpoint, init);
+
       if (!response.ok) {
         const text = await response.text().catch(() => null);
         throw new MCPClientError({
@@ -294,7 +294,7 @@ class SSEClientTransport implements MCPTransport {
         });
       }
     } catch (error) {
-      this.onerror?.(error as Error);
+      this.onError?.(error as Error);
       throw error;
     }
   }

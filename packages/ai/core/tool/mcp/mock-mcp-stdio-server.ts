@@ -16,9 +16,9 @@ const DEFAULT_TOOLS: MCPTool[] = [
 export class MockStdioTransport {
   private tools;
 
-  onmessage?: (message: JSONRPCMessage) => void;
-  onclose?: () => void;
-  onerror?: (error: Error) => void;
+  onMessage?: (message: JSONRPCMessage) => void;
+  onClose?: () => void;
+  onError?: (error: Error) => void;
 
   constructor({
     overrideTools = DEFAULT_TOOLS,
@@ -29,7 +29,7 @@ export class MockStdioTransport {
   }
 
   async start(): Promise<void> {
-    return Promise.resolve();
+    return;
   }
 
   async send(message: JSONRPCMessage): Promise<void> {
@@ -37,7 +37,7 @@ export class MockStdioTransport {
     if ('method' in message && 'id' in message) {
       if (message.method === 'initialize') {
         setTimeout(() => {
-          this.onmessage?.({
+          this.onMessage?.({
             jsonrpc: '2.0',
             id: message.id,
             result: {
@@ -56,7 +56,7 @@ export class MockStdioTransport {
 
       if (message.method === 'tools/list') {
         setTimeout(() => {
-          this.onmessage?.({
+          this.onMessage?.({
             jsonrpc: '2.0',
             id: message.id,
             result: {
@@ -68,7 +68,7 @@ export class MockStdioTransport {
 
       if (message.method === 'tools/call') {
         setTimeout(() => {
-          this.onmessage?.({
+          this.onMessage?.({
             jsonrpc: '2.0',
             id: message.id,
             result: {
@@ -84,11 +84,11 @@ export class MockStdioTransport {
       }
     }
 
-    return Promise.resolve();
+    return;
   }
 
   async close(): Promise<void> {
-    if (this.onclose) this.onclose();
-    return Promise.resolve();
+    this.onClose?.();
+    return;
   }
 }

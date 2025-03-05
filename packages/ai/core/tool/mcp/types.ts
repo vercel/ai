@@ -140,9 +140,9 @@ export interface MCPTransport {
   start(): Promise<void>;
   send(message: JSONRPCMessage): Promise<void>;
   close(): Promise<void>;
-  onclose?: () => void;
-  onerror?: (error: Error) => void;
-  onmessage?: (message: JSONRPCMessage) => void;
+  onClose?: () => void;
+  onError?: (error: Error) => void;
+  onMessage?: (message: JSONRPCMessage) => void;
 }
 
 const ServerCapabilitiesSchema = z
@@ -173,6 +173,7 @@ const ServerCapabilitiesSchema = z
     ),
   })
   .passthrough();
+export type ServerCapabilities = z.infer<typeof ServerCapabilitiesSchema>;
 export const InitializeResultSchema = ResultSchema.extend({
   protocolVersion: z.string(),
   capabilities: ServerCapabilitiesSchema,
@@ -213,6 +214,7 @@ const ToolSchema = z
       .passthrough(),
   })
   .passthrough();
+export type MCPTool = z.infer<typeof ToolSchema>;
 export const ListToolsResultSchema = PaginatedResultSchema.extend({
   tools: z.array(ToolSchema),
 });

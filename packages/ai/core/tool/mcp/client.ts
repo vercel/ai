@@ -77,13 +77,13 @@ class MCPClient {
     version = '1.0.0',
   }: MCPClientConfig) {
     this.transport = createMcpTransport(transportConfig);
-    this.transport.onclose = () => {
+    this.transport.onClose = () => {
       this.onClose();
     };
-    this.transport.onerror = (error: Error) => {
+    this.transport.onError = (error: Error) => {
       this.onError(error);
     };
-    this.transport.onmessage = message => {
+    this.transport.onMessage = message => {
       if ('method' in message) {
         // This lightweight client implementation does not support
         // receiving notifications or requests from server:
