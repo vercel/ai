@@ -1,47 +1,14 @@
-import { isAbortError } from '@ai-sdk/provider-utils';
+import { isAbortError } from "@ai-sdk/provider-utils";
 import type {
   AssistantStatus,
   CreateMessage,
   Message,
   UseAssistantOptions,
-} from '@ai-sdk/ui-utils';
-import { generateId, processAssistantStream } from '@ai-sdk/ui-utils';
-import { Readable, Writable, get, writable } from 'svelte/store';
-
-export class Assistant {
-  #options = $state();
-
-  constructor(options: UseAssistantOptions) {
-    this.options = options;
-    this.store = useAssistant(options);
-  }
-}
-
-let uniqueId = 0;
-
-const store: Record<string, any> = {};
+} from "@ai-sdk/ui-utils";
+import { generateId, processAssistantStream } from "@ai-sdk/ui-utils";
+import { Readable, Writable, get, writable } from "svelte/store";
 
 export type UseAssistantHelpers = {
-  /**
-   * The current array of chat messages.
-   */
-  messages: Readable<Message[]>;
-
-  /**
-   * Update the message store with a new array of messages.
-   */
-  setMessages: (messages: Message[]) => void;
-
-  /**
-   * The current thread ID.
-   */
-  threadId: Readable<string | undefined>;
-
-  /**
-   * The current value of the input field.
-   */
-  input: Writable<string>;
-
   /**
    * Append a user message to the chat list. This triggers the API call to fetch
    * the assistant's response.
@@ -50,11 +17,13 @@ export type UseAssistantHelpers = {
    */
   append: (
     message: Message | CreateMessage,
-    requestOptions?: { data?: Record<string, string> },
+    requestOptions?: {
+      data?: Record<string, string>;
+    },
   ) => Promise<void>;
 
   /**
-Abort the current request immediately, keep the generated tokens if any.
+   * Abort the current request immediately, keep the generated tokens if any.
    */
   stop: () => void;
 
@@ -62,20 +31,145 @@ Abort the current request immediately, keep the generated tokens if any.
    * Form submission handler that automatically resets the input field and appends a user message.
    */
   submitMessage: (
-    event?: { preventDefault?: () => void },
-    requestOptions?: { data?: Record<string, string> },
+    event?: Event & {
+      currentTarget: EventTarget & HTMLFormElement;
+    },
+    requestOptions?: {
+      data?: Record<string, string>;
+    },
   ) => Promise<void>;
-
-  /**
-   * The current status of the assistant. This can be used to show a loading indicator.
-   */
-  status: Readable<AssistantStatus>;
-
-  /**
-   * The error thrown during the assistant message processing, if any.
-   */
-  error: Readable<undefined | Error>;
 };
+
+export class Assistant {
+  #threadId = $state<string>()!;
+  #status = $state<AssistantStatus>("awaiting_message");
+  #error = $state<Error | undefined>(undefined);
+  #abortController = $state<AbortController | null>(null);
+
+  api = $state<UseAssistantOptions["api"]>()!;
+  credentials = $state<UseAssistantOptions["credentials"]>();
+  headers = $state<UseAssistantOptions["headers"]>();
+  body = $state<UseAssistantOptions["body"]>();
+  fetch = $state<NonNullable<UseAssistantOptions["fetch"]>>(fetch);
+  input = $state<string>("");
+  messages = $state<Message[]>([]);
+
+  get threadId() {
+    return this.#threadId;
+  }
+
+  set threadId(value: string | undefined) {
+    this.#threadId = value ?? Assistant.#newThreadId();
+    this.messages = [];
+  }
+
+  get status(): AssistantStatus {
+    return this.#status;
+  }
+
+  get error(): Error | undefined {
+    return this.#error;
+  }
+
+  constructor({ api, threadId, fetch }: UseAssistantOptions) {
+    this.#threadId = threadId ?? Assistant.#newThreadId();
+    this.fetch = fetch ?? this.fetch;
+    this.api = api;
+  }
+
+  append = async (
+    message: Message | CreateMessage,
+    requestOptions?: { data?: Record<string, string> },
+  ) => {
+    const classInstance = this;
+    this.#status = "in_progress";
+    this.#abortController = new AbortController();
+    this.messages.push({ ...message, id: message.id ?? generateId() });
+    this.input = "";
+
+    try {
+      const response = await this.fetch(this.api, {
+        method: "POST",
+        credentials: this.credentials,
+        signal: this.#abortController.signal,
+        headers: { "Content-Type": "application/json", ...this.headers },
+        body: JSON.stringify({
+          ...this.body,
+          threadId: this.threadId,
+          message: message.content,
+          data: requestOptions?.data,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          (await response.text()) ?? "Failed to fetch the assistant response.",
+        );
+      }
+
+      if (response.body == null) {
+        throw new Error("The response body is empty.");
+      }
+
+      await processAssistantStream({
+        stream: response.body,
+        onAssistantMessagePart(value) {
+          classInstance.messages.push({
+            id: value.id,
+            role: value.role,
+            content: value.content[0].text.value,
+            parts: [],
+          });
+        },
+        onTextPart(value) {
+          // in a technical sense this is unsafe, but it'd be a bug in the assistant utils package
+          classInstance.messages[classInstance.messages.length - 1].content +=
+            value;
+        },
+        onAssistantControlDataPart(value) {
+          classInstance.#threadId = value.threadId;
+          classInstance.messages[classInstance.messages.length - 1].id =
+            value.messageId;
+        },
+        onDataMessagePart(value) {
+          classInstance.messages.push({
+            id: value.id ?? generateId(),
+            role: "data",
+            content: "",
+            data: value.data,
+            parts: [],
+          });
+        },
+        onErrorPart(value) {
+          classInstance.#error = new Error(value);
+        },
+      });
+    } catch (err) {
+      // Ignore abort errors as they are expected when the user cancels the request:
+      if (isAbortError(error) && abortController?.signal?.aborted) {
+        abortController = null;
+        return;
+      }
+
+      if (onError && err instanceof Error) {
+        onError(err);
+      }
+
+      error.set(err as Error);
+    } finally {
+      abortController = null;
+      status.set("awaiting_message");
+    }
+  };
+
+  static #newThreadId() {
+    return `completion-${generateId()}`;
+  }
+}
+
+let uniqueId = 0;
+
+const store: Record<string, any> = {};
 
 export function useAssistant({
   api,
@@ -92,8 +186,8 @@ export function useAssistant({
   // Initialize message, input, status, and error stores
   const key = `${api}|${threadIdParam ?? `completion-${uniqueId++}`}`;
   const messages = writable<Message[]>(store[key] || []);
-  const input = writable('');
-  const status = writable<AssistantStatus>('awaiting_message');
+  const input = writable("");
+  const status = writable<AssistantStatus>("awaiting_message");
   const error = writable<undefined | Error>(undefined);
 
   // To manage aborting the current fetch request
@@ -110,7 +204,7 @@ export function useAssistant({
     message: Message | CreateMessage,
     requestOptions?: { data?: Record<string, string> },
   ) {
-    status.set('in_progress');
+    status.set("in_progress");
     abortController = new AbortController(); // Initialize a new AbortController
 
     // Add the new message to the existing array
@@ -119,14 +213,14 @@ export function useAssistant({
       { ...message, id: message.id ?? generateId() },
     ]);
 
-    input.set('');
+    input.set("");
 
     try {
       const response = await fetch(api, {
-        method: 'POST',
+        method: "POST",
         credentials,
         signal: abortController.signal,
-        headers: { 'Content-Type': 'application/json', ...headers },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({
           ...body,
           // always use user-provided threadId when available:
@@ -140,12 +234,12 @@ export function useAssistant({
 
       if (!response.ok) {
         throw new Error(
-          (await response.text()) ?? 'Failed to fetch the assistant response.',
+          (await response.text()) ?? "Failed to fetch the assistant response.",
         );
       }
 
       if (response.body == null) {
-        throw new Error('The response body is empty.');
+        throw new Error("The response body is empty.");
       }
 
       await processAssistantStream({
@@ -189,8 +283,8 @@ export function useAssistant({
             ...get(messages),
             {
               id: value.id ?? generateId(),
-              role: 'data',
-              content: '',
+              role: "data",
+              content: "",
               data: value.data,
               parts: [],
             },
@@ -214,7 +308,7 @@ export function useAssistant({
       error.set(err as Error);
     } finally {
       abortController = null;
-      status.set('awaiting_message');
+      status.set("awaiting_message");
     }
   }
 
@@ -239,7 +333,7 @@ export function useAssistant({
     if (!inputValue) return;
 
     await append(
-      { role: 'user', content: inputValue, parts: [] },
+      { role: "user", content: inputValue, parts: [] },
       requestOptions,
     );
   }
