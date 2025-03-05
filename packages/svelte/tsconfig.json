@@ -1,9 +1,18 @@
 {
-  "extends": "./node_modules/@vercel/ai-tsconfig/react-library.json",
-  "compilerOptions": {
-    "target": "ES2018",
-    "stripInternal": true
-  },
-  "include": ["."],
-  "exclude": ["*/dist", "dist", "build", "node_modules"]
+	"extends": "./.svelte-kit/tsconfig.json",
+	"compilerOptions": {
+		"allowJs": true,
+		"checkJs": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"strict": true,
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"declaration": true,
+		"declarationMap": true,
+		"stripInternal": true,
+	}
 }

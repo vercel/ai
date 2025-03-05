@@ -5,9 +5,7 @@
   "tasks": {
     "build": {
       "outputs": [
-        "./dist/**",
-        ".svelte-kit/**",
-        ".vercel/**"
+        "**/dist/**"
       ]
     }
   }
