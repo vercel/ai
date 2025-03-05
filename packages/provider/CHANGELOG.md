@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.0.10
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+
 ## 1.0.9
 
 ### Patch Changes
