@@ -69,6 +69,7 @@ class MCPClient {
     (response: JSONRPCResponse | Error) => void
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
+  private isClosed = true;
 
   constructor({
     transport: transportConfig,
@@ -77,10 +78,10 @@ class MCPClient {
   }: MCPClientConfig) {
     this.transport = createMcpTransport(transportConfig);
     this.transport.onclose = () => {
-      this.onclose();
+      this.onClose();
     };
     this.transport.onerror = (error: Error) => {
-      this.onerror(error);
+      this.onError(error);
     };
     this.transport.onmessage = message => {
       if ('method' in message) {
@@ -91,7 +92,7 @@ class MCPClient {
         });
       }
 
-      this.onresponse(message);
+      this.onResponse(message);
     };
     this.clientInfo = {
       name,
@@ -102,6 +103,7 @@ class MCPClient {
   async init(): Promise<this> {
     try {
       await this.transport.start();
+      this.isClosed = false;
 
       const result = await this.request({
         request: {
@@ -136,14 +138,14 @@ class MCPClient {
 
       return this;
     } catch (error) {
-      void this.close();
+      await this.close();
       throw error;
     }
   }
 
   async close(): Promise<void> {
     await this.transport?.close();
-    this.onclose();
+    this.onClose();
   }
 
   private async request<T extends ZodType<object>>({
@@ -302,31 +304,33 @@ class MCPClient {
     return tools as McpToolSet<TOOL_SCHEMAS>;
   }
 
-  private onclose(): void {
-    const responseHandlers = this.responseHandlers;
-    this.responseHandlers = new Map();
+  private onClose(): void {
+    if (this.isClosed) return;
 
+    this.isClosed = true;
     const error = new MCPClientError({
       message: 'Connection closed',
     });
 
-    for (const handler of responseHandlers.values()) {
+    for (const handler of this.responseHandlers.values()) {
       handler(error);
     }
+
+    this.responseHandlers.clear();
   }
 
-  private onerror(error: Error): void {
+  private onError(error: Error): void {
     throw new MCPClientError({
       message: error.message,
       cause: error,
     });
   }
 
-  private onresponse(response: JSONRPCResponse | JSONRPCError): void {
+  private onResponse(response: JSONRPCResponse | JSONRPCError): void {
     const messageId = Number(response.id);
     const handler = this.responseHandlers.get(messageId);
     if (handler === undefined) {
-      this.onerror(
+      this.onError(
         new Error(
           `Received a response for an unknown message ID: ${JSON.stringify(
             response,
