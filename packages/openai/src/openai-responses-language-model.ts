@@ -8,18 +8,18 @@ import { openaiFailedResponseHandler } from './openai-error';
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
+import { OpenAIResponsesModelId } from './openai-responses-settings';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'json';
 
-  readonly modelId: string;
+  readonly modelId: OpenAIResponsesModelId;
 
   private readonly config: OpenAIConfig;
 
   constructor(
-    modelId: string,
-    // modelId: OpenAIChatModelId,
+    modelId: OpenAIResponsesModelId,
     // settings: OpenAIChatSettings,
     config: OpenAIConfig,
   ) {

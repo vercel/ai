@@ -27,6 +27,7 @@ import {
   OpenAIImageSettings,
 } from './openai-image-settings';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
+import { OpenAIResponsesModelId } from './openai-responses-settings';
 
 export interface OpenAIProvider extends ProviderV1 {
   (
@@ -55,8 +56,10 @@ Creates an OpenAI chat model for text generation.
     settings?: OpenAIChatSettings,
   ): LanguageModelV1;
 
-  // TODO
-  responses(modelId: string): LanguageModelV1;
+  /**
+Creates an OpenAI responses API model for text generation.
+   */
+  responses(modelId: OpenAIResponsesModelId): LanguageModelV1;
 
   /**
 Creates an OpenAI completion model for text generation.
@@ -245,7 +248,7 @@ export function createOpenAI(
     return createChatModel(modelId, settings as OpenAIChatSettings);
   };
 
-  const createResponsesModel = (modelId: string) => {
+  const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
     return new OpenAIResponsesLanguageModel(modelId, {
       provider: `${providerName}.responses`,
       url: ({ path }) => `${baseURL}${path}`,
