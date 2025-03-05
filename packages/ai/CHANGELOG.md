@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.52
+
+### Patch Changes
+
+- 5329a69: fix (ai/core): fix duplicated reasoning in streamText onFinish and messages
+
 ## 4.1.51
 
 ### Patch Changes
