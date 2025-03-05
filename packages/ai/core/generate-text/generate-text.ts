@@ -469,35 +469,9 @@ A function that attempts to repair a tool call that failed to parse.
             ? text + stepText
             : stepText;
 
-        // Only add reasoning details if they exist and aren't already included
-        if (
-          currentModelResponse.reasoning &&
-          currentModelResponse.reasoning.length > 0
-        ) {
-          const newReasoningDetails = asReasoningDetails(
-            currentModelResponse.reasoning,
-          );
-          // Avoid duplicate reasoning by checking if we already have this content
-          const reasoningExists = currentReasoningDetails.some(
-            existing =>
-              JSON.stringify(existing) === JSON.stringify(newReasoningDetails),
-          );
-
-          if (!reasoningExists) {
-            // Handle both cases: single ReasoningDetail or array of ReasoningDetail
-            if (Array.isArray(newReasoningDetails)) {
-              currentReasoningDetails = [
-                ...currentReasoningDetails,
-                ...newReasoningDetails,
-              ];
-            } else {
-              currentReasoningDetails = [
-                ...currentReasoningDetails,
-                newReasoningDetails,
-              ];
-            }
-          }
-        }
+        currentReasoningDetails = asReasoningDetails(
+          currentModelResponse.reasoning,
+        );
 
         // sources:
         sources.push(...(currentModelResponse.sources ?? []));

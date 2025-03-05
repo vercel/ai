@@ -576,9 +576,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 const BedrockReasoningConfigOptionsSchema = z
   .object({
     type: z.union([z.literal('enabled'), z.literal('disabled')]),
-    budget_tokens: z.number().min(1024).max(64000).optional(),
+    budget_tokens: z.number().min(1024).max(64000).nullish(),
   })
-  .optional();
+  .nullish();
 
 const BedrockStopReasonSchema = z.union([
   z.enum(BEDROCK_STOP_REASONS),
@@ -662,7 +662,7 @@ const BedrockStreamSchema = z.object({
             reasoningContent: z.object({ data: z.string() }),
           }),
         ])
-        .optional(),
+        .nullish(),
     })
     .nullish(),
   contentBlockStart: z

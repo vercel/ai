@@ -1146,42 +1146,13 @@ describe('doGenerate', () => {
             }
         >;
   }) {
-    // Map the content array to the format expected by the API
-    const contentBlocks = content.map(item => {
-      if ('type' in item) {
-        if (item.type === 'text') {
-          return { text: item.text };
-        } else if (item.type === 'thinking') {
-          return {
-            reasoningContent: {
-              reasoningText: {
-                text: item.thinking,
-                signature: item.signature,
-              },
-            },
-          };
-        } else if (item.type === 'tool_use') {
-          return {
-            toolUse: {
-              toolUseId: item.id,
-              name: item.name,
-              input: item.input,
-            },
-          };
-        }
-      } else if ('reasoningContent' in item) {
-        return item;
-      }
-      return item;
-    });
-
     server.urls[generateUrl].response = {
       type: 'json-value',
       body: {
         output: {
           message: {
             role: 'assistant',
-            content: contentBlocks,
+            content: content,
           },
         },
         usage,
