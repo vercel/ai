@@ -246,7 +246,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const {
       responseHeaders,
       value: responseBody,
-      rawValue: parsedBody,
+      rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
@@ -265,7 +265,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = responseBody.choices[0];
     const providerMetadata = this.config.metadataExtractor?.extractMetadata?.({
-      parsedBody,
+      parsedBody: rawResponse,
     });
 
     return {
@@ -284,7 +284,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       },
       ...(providerMetadata && { providerMetadata }),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
       response: getResponseMetadata(responseBody),
       warnings,
       request: { body },
