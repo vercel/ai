@@ -51,6 +51,7 @@ export class Assistant {
   headers = $state<UseAssistantOptions["headers"]>();
   body = $state<UseAssistantOptions["body"]>();
   fetch = $state<NonNullable<UseAssistantOptions["fetch"]>>(fetch);
+  onError = $state();
   input = $state<string>("");
   messages = $state<Message[]>([]);
 
@@ -144,14 +145,14 @@ export class Assistant {
           classInstance.#error = new Error(value);
         },
       });
-    } catch (err) {
+    } catch (error) {
       // Ignore abort errors as they are expected when the user cancels the request:
-      if (isAbortError(error) && abortController?.signal?.aborted) {
-        abortController = null;
+      if (isAbortError(error) && this.#abortController?.signal?.aborted) {
+        this.#abortController = null;
         return;
       }
 
-      if (onError && err instanceof Error) {
+      if (this.onError && error instanceof Error) {
         onError(err);
       }
 
