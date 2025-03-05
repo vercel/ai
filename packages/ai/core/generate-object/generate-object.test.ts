@@ -312,6 +312,7 @@ describe('output = "object"', () => {
               headers: {
                 'custom-response-header': 'response-header-value',
               },
+              body: 'test body',
             },
           }),
         }),
@@ -327,6 +328,7 @@ describe('output = "object"', () => {
         headers: {
           'custom-response-header': 'response-header-value',
         },
+        body: 'test body',
       });
     });
 
@@ -352,6 +354,7 @@ describe('output = "object"', () => {
               headers: {
                 'custom-response-header': 'response-header-value',
               },
+              body: 'test body',
             },
           }),
         }),
@@ -367,6 +370,7 @@ describe('output = "object"', () => {
         headers: {
           'custom-response-header': 'response-header-value',
         },
+        body: 'test body',
       });
     });
   });
