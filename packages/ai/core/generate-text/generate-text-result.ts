@@ -99,6 +99,11 @@ If there are tools that do not have execute functions, they are not included in 
 need to be added separately.
        */
     messages: Array<CoreAssistantMessage | CoreToolMessage>;
+
+    /**
+Response body (available only for providers that use HTTP requests).
+     */
+    body?: unknown;
   };
 
   /**

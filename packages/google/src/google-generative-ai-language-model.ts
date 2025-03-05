@@ -204,7 +204,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       options.headers,
     );
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(
         this.modelId,
       )}:generateContent`,
@@ -245,7 +249,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         completionTokens: usageMetadata?.candidatesTokenCount ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
       warnings,
       providerMetadata: {
         google: {

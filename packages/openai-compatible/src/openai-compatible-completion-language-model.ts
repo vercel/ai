@@ -182,7 +182,11 @@ export class OpenAICompatibleCompletionLanguageModel
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = this.getArgs(options);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/completions',
         modelId: this.modelId,
@@ -208,7 +212,7 @@ export class OpenAICompatibleCompletionLanguageModel
       },
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
       response: getResponseMetadata(response),
       warnings,
       request: { body: JSON.stringify(args) },
