@@ -15,7 +15,7 @@ export type LanguageModelResponseMetadata = {
   modelId: string;
 
   /**
-Response headers.
+Response headers (available only for providers that use HTTP requests).
      */
   headers?: Record<string, string>;
 };
