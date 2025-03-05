@@ -593,7 +593,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedContinuationText = '';
     let recordedFullText = '';
 
-    const stepReasoning: Array<ReasoningDetail> = [];
+    let stepReasoning: Array<ReasoningDetail> = [];
     let activeReasoningText: undefined | (ReasoningDetail & { type: 'text' }) =
       undefined;
 
@@ -748,6 +748,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedToolResults = [];
           recordedStepText = '';
           recordedStepSources = [];
+          stepReasoning = [];
+          activeReasoningText = undefined;
 
           if (nextStepType !== 'done') {
             stepType = nextStepType;
