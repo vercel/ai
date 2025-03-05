@@ -1,6 +1,6 @@
-import { JSONRPCMessage } from './types';
+import { JSONRPCMessage, MCPTool } from './types';
 
-const DEFAULT_TOOLS = [
+const DEFAULT_TOOLS: MCPTool[] = [
   {
     name: 'mock-tool',
     description: 'A mock tool for testing',
@@ -14,9 +14,19 @@ const DEFAULT_TOOLS = [
 ];
 
 export class MockStdioTransport {
+  private tools;
+
   onmessage?: (message: JSONRPCMessage) => void;
   onclose?: () => void;
   onerror?: (error: Error) => void;
+
+  constructor({
+    overrideTools = DEFAULT_TOOLS,
+  }: {
+    overrideTools?: MCPTool[];
+  } = {}) {
+    this.tools = overrideTools;
+  }
 
   async start(): Promise<void> {
     return Promise.resolve();
@@ -37,7 +47,7 @@ export class MockStdioTransport {
                 version: '1.0.0',
               },
               capabilities: {
-                tools: {},
+                ...(this.tools.length > 0 ? { tools: {} } : {}),
               },
             },
           });

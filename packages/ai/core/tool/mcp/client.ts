@@ -26,6 +26,7 @@ import {
   TransportConfig,
   McpToolSet,
   ToolSchemas,
+  ServerCapabilities,
 } from './types';
 import { createMcpTransport } from './transport';
 
@@ -59,7 +60,7 @@ export async function createMCPClient(
  * - Client options (e.g. sampling, roots) as they are not needed for tool conversion
  * - Accepting notifications
  */
-export class MCPClient {
+class MCPClient {
   private transport: MCPTransport;
   private clientInfo: ClientConfiguration;
   private requestMessageId = 0;
@@ -67,6 +68,7 @@ export class MCPClient {
     number,
     (response: JSONRPCResponse | Error) => void
   > = new Map();
+  private serverCapabilities: ServerCapabilities = {};
 
   constructor({
     transport: transportConfig,
@@ -81,15 +83,15 @@ export class MCPClient {
       this.onerror(error);
     };
     this.transport.onmessage = message => {
-      if (!('method' in message)) {
-        this.onresponse(message);
-      } else {
+      if ('method' in message) {
         // This lightweight client implementation does not support
         // receiving notifications or requests from server:
         throw new MCPClientError({
           message: 'Unsupported message type',
         });
       }
+
+      this.onresponse(message);
     };
     this.clientInfo = {
       name,
@@ -125,11 +127,7 @@ export class MCPClient {
         });
       }
 
-      if (!result.capabilities?.tools) {
-        throw new MCPClientError({
-          message: `Server does not support tools`,
-        });
-      }
+      this.serverCapabilities = result.capabilities;
 
       // Complete initialization handshake:
       await this.notification({
@@ -208,6 +206,12 @@ export class MCPClient {
     params?: ListToolsRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListToolsResult> {
+    if (!this.serverCapabilities.tools) {
+      throw new MCPClientError({
+        message: `Server does not support tools`,
+      });
+    }
+
     return this.request({
       request: { method: 'tools/list', params },
       resultSchema: ListToolsResultSchema,
@@ -224,6 +228,12 @@ export class MCPClient {
     resultSchema: typeof CallToolResultSchema;
     options?: RequestOptions;
   }): Promise<CallToolResult> {
+    if (!this.serverCapabilities.tools) {
+      throw new MCPClientError({
+        message: `Server does not support tools`,
+      });
+    }
+
     return this.request({
       request: { method: 'tools/call', params },
       resultSchema,
@@ -328,14 +338,13 @@ export class MCPClient {
 
     this.responseHandlers.delete(messageId);
 
-    if ('result' in response) {
-      handler(response);
-    } else {
-      const error = new MCPClientError({
-        message: response.error.message,
-        cause: response.error,
-      });
-      handler(error);
-    }
+    handler(
+      'result' in response
+        ? response
+        : new MCPClientError({
+            message: response.error.message,
+            cause: response.error,
+          }),
+    );
   }
 }

@@ -3,12 +3,6 @@ import { generateText, createMCPClient } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
-const sseToolSchemas = {
-  'find-product': {
-    parameters: z.object({}),
-  },
-};
-
 async function main() {
   const client = await createMCPClient({
     transport: {
@@ -18,7 +12,11 @@ async function main() {
   });
 
   const tools = await client.tools({
-    schemas: sseToolSchemas,
+    schemas: {
+      'find-product': {
+        parameters: z.object({}),
+      },
+    },
   });
 
   const { text: answer } = await generateText({
