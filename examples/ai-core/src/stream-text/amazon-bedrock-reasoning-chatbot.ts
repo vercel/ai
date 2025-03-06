@@ -50,7 +50,7 @@ async function main() {
       maxRetries: 0,
       providerOptions: {
         bedrock: {
-          reasoning_config: { type: 'enabled', budget_tokens: 12000 },
+          reasoning_config: { type: 'enabled', budget_tokens: 2048 },
         },
       },
       onError: error => {

@@ -9,10 +9,11 @@ async function main() {
     temperature: 0.5, // should get ignored (warning)
     providerOptions: {
       bedrock: {
-        reasoning_config: { type: 'enabled', budget_tokens: 12000 },
+        reasoning_config: { type: 'enabled', budget_tokens: 2048 },
       },
     },
     maxRetries: 0,
+    maxSteps: 5,
   });
 
   console.log('Reasoning:');

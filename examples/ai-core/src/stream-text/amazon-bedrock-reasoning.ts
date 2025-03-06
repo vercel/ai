@@ -12,10 +12,11 @@ async function main() {
     },
     providerOptions: {
       bedrock: {
-        reasoning_config: { type: 'enabled', budget_tokens: 12000 },
+        reasoning_config: { type: 'enabled', budget_tokens: 1024 },
       },
     },
     maxRetries: 0,
+    maxSteps: 5,
   });
 
   for await (const part of result.fullStream) {
