@@ -1,19 +1,20 @@
 import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { streamText, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
 import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = streamText({
-    model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
     tools: {
       weather: weatherTool,
-      cityAttractions: {
-        parameters: z.object({ city: z.string() }),
-      },
     },
     prompt: 'What is the weather in San Francisco?',
+    providerOptions: {
+      bedrock: {
+        reasoning_config: { type: 'enabled', budget_tokens: 12000 },
+      },
+    },
     maxSteps: 5,
   });
 
