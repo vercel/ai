@@ -1,7 +1,13 @@
-import { LanguageModelV1 } from '@ai-sdk/provider';
+import {
+  LanguageModelV1,
+  LanguageModelV1FinishReason,
+  LanguageModelV1StreamPart,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
+  createEventSourceResponseHandler,
   createJsonResponseHandler,
+  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
@@ -32,13 +38,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
+  private getArgs({ prompt }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+    return {
+      args: {
+        model: this.modelId,
+        input: convertToOpenAIResponsesMessages({ prompt }),
+      },
+      warnings: [],
+    };
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const body = {
-      model: this.modelId,
-      input: convertToOpenAIResponsesMessages({ prompt: options.prompt }),
-    };
+    const { args: body, warnings } = this.getArgs(options);
 
     const {
       responseHeaders,
@@ -80,7 +93,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     });
 
     return {
-      text: response.output[0].content[0].text, // TODO what if there are multiple text parts / messages
+      // TODO what if there are multiple text parts / messages:
+      text: response.output[0].content[0].text,
       finishReason: 'stop',
       usage: {
         promptTokens: response.usage.input_tokens,
@@ -108,6 +122,120 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    throw new Error('Method not implemented.');
+    const { args: body, warnings } = this.getArgs(options);
+
+    const { responseHeaders, value: response } = await postJsonToApi({
+      url: this.config.url({
+        path: '/responses',
+        modelId: this.modelId,
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body: {
+        ...body,
+        stream: true,
+      },
+      failedResponseHandler: openaiFailedResponseHandler,
+      successfulResponseHandler: createEventSourceResponseHandler(
+        openaiResponsesChunkSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let usage: { promptTokens: number; completionTokens: number } = {
+      promptTokens: NaN,
+      completionTokens: NaN,
+    };
+
+    return {
+      stream: response.pipeThrough(
+        new TransformStream<
+          ParseResult<z.infer<typeof openaiResponsesChunkSchema>>,
+          LanguageModelV1StreamPart
+        >({
+          transform(chunk, controller) {
+            // handle failed chunk parsing / validation:
+            if (!chunk.success) {
+              finishReason = 'error';
+              controller.enqueue({ type: 'error', error: chunk.error });
+              return;
+            }
+
+            const value = chunk.value;
+
+            if (isTextDeltaChunk(value)) {
+              controller.enqueue({
+                type: 'text-delta',
+                textDelta: value.delta,
+              });
+
+              return;
+            }
+
+            if (isResponseCompletedChunk(value)) {
+              finishReason = 'stop';
+              usage = {
+                promptTokens: value.response.usage.input_tokens,
+                completionTokens: value.response.usage.output_tokens,
+              };
+
+              return;
+            }
+
+            // console.log('chunk', JSON.stringify(chunk, null, 2));
+          },
+
+          flush(controller) {
+            controller.enqueue({
+              type: 'finish',
+              finishReason: 'stop',
+              usage,
+            });
+          },
+        }),
+      ),
+      rawCall: {
+        rawPrompt: body, // TODO
+        rawSettings: {}, // TODO
+      },
+      rawResponse: { headers: responseHeaders },
+      request: { body: JSON.stringify(body) },
+      warnings,
+    };
   }
+}
+
+const textDeltaChunkSchema = z.object({
+  type: z.literal('response.output_text.delta'),
+  delta: z.string(),
+});
+
+const responseCompletedChunkSchema = z.object({
+  type: z.literal('response.completed'),
+  response: z.object({
+    usage: z.object({
+      input_tokens: z.number(),
+      output_tokens: z.number(),
+    }),
+  }),
+});
+
+const openaiResponsesChunkSchema = z.union([
+  textDeltaChunkSchema,
+  responseCompletedChunkSchema,
+  // fallback for unknown chunks;
+  z.object({ type: z.string() }).passthrough(),
+]);
+
+function isTextDeltaChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof textDeltaChunkSchema> {
+  return chunk.type === 'response.output_text.delta';
+}
+
+function isResponseCompletedChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseCompletedChunkSchema> {
+  return chunk.type === 'response.completed';
 }

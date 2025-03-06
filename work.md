@@ -8,10 +8,12 @@
 - [ ] doGenerate testing
 - [ ] finish reason support
 - [ ] system & developer message support
+- [ ] settings
 
 ### streamText support
 
 - [ ] streamText chatbot prototype
+- [ ] finish reason support
 
 ### structured outputs support
 
