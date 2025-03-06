@@ -29,6 +29,12 @@ export { processAssistantStream } from './process-assistant-stream';
 export { processDataStream } from './process-data-stream';
 export { processTextStream } from './process-text-stream';
 export { asSchema, jsonSchema } from './schema';
+export {
+  buildAdjacency,
+  getConversationPath,
+  getSiblingIdsSorted,
+  findLatestLeafDescendant,
+} from './tree';
 export type { Schema } from './schema';
 export {
   isAssistantMessageWithCompletedToolCalls,

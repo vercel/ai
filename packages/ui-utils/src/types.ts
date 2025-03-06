@@ -182,6 +182,23 @@ export type CreateMessage = Omit<Message, 'id'> & {
   id?: Message['id'];
 };
 
+export type UUID = string & { readonly brand: unique symbol };
+
+export type BranchMessageAnnotations = {
+  parentId?: UUID;
+  name?: string;
+  modelId?: string;
+};
+
+export type BranchMessage = UIMessage & {
+  id: UUID;
+  createdAt: Date;
+  annotations?: Array<BranchMessageAnnotations>;
+};
+
+export type BranchMessageCreate = Omit<BranchMessage, 'id' | 'createdAt'> &
+  Partial<Pick<BranchMessage, 'id' | 'createdAt'>>;
+
 export type ChatRequest = {
   /**
 An optional object of headers to be passed to the API endpoint.
