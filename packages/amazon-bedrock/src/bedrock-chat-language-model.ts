@@ -128,7 +128,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     }
 
     const isThinking = reasoningConfigOptions.data?.type === 'enabled';
-    const thinkingBudget = reasoningConfigOptions.data?.budget_tokens;
+    // Check for both budget_tokens and budgetTokens, prioritizing budget_tokens if both exist
+    const thinkingBudget =
+      reasoningConfigOptions.data &&
+      ('budget_tokens' in reasoningConfigOptions.data
+        ? reasoningConfigOptions.data.budget_tokens
+        : 'budgetTokens' in reasoningConfigOptions.data
+        ? reasoningConfigOptions.data.budgetTokens
+        : undefined);
 
     const inferenceConfig = {
       ...(maxTokens != null && { maxTokens }),
@@ -574,25 +581,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 const BedrockReasoningConfigOptionsSchema = z
   .object({
     type: z.union([z.literal('enabled'), z.literal('disabled')]),
-    budget_tokens: z.number().nullish(),
-    budgetTokens: z.number().nullish(),
   })
-  .nullish()
-  .transform(data => {
-    if (!data) return data;
-
-    // Normalize the data to ensure we have budget_tokens
-    if (data.budgetTokens !== undefined && data.budget_tokens === undefined) {
-      return {
-        ...data,
-        budget_tokens: data.budgetTokens,
-        // Remove budgetTokens to avoid duplication
-        budgetTokens: undefined,
-      };
-    }
-
-    return data;
-  });
+  .and(
+    z.union([
+      z.object({ budget_tokens: z.number() }),
+      z.object({ budgetTokens: z.number() }),
+    ]),
+  )
+  .nullish();
 
 const BedrockStopReasonSchema = z.union([
   z.enum(BEDROCK_STOP_REASONS),
