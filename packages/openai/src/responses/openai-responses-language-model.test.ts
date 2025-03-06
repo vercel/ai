@@ -113,6 +113,71 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(warnings).toStrictEqual([]);
     });
 
+    it('should send json schema format', async () => {
+      prepareJsonResponse({});
+
+      const { warnings } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: {
+          type: 'object-json',
+          name: 'response',
+          description: 'A response',
+          schema: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBody).toStrictEqual({
+        model: 'gpt-4o-mini',
+        text: {
+          format: {
+            type: 'json_schema',
+            strict: true,
+            name: 'response',
+            description: 'A response',
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        },
+        input: [
+          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+        ],
+      });
+
+      expect(warnings).toStrictEqual([]);
+    });
+
+    it('should send json object format', async () => {
+      prepareJsonResponse({});
+
+      const { warnings } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'object-json' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBody).toStrictEqual({
+        model: 'gpt-4o-mini',
+        text: { format: { type: 'json_object' } },
+        input: [
+          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+        ],
+      });
+
+      expect(warnings).toStrictEqual([]);
+    });
+
     it('should warn about unsupported settings', async () => {
       prepareJsonResponse({});
 

@@ -3,6 +3,7 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -40,24 +41,64 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   }
 
   private getArgs({
+    mode,
     topK,
     temperature,
     prompt,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+    const type = mode.type;
     const warnings: LanguageModelV1CallWarning[] = [];
 
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
     }
 
-    return {
-      args: {
-        model: this.modelId,
-        input: convertToOpenAIResponsesMessages({ prompt }),
-        temperature,
-      },
-      warnings,
-    };
+    switch (type) {
+      case 'regular': {
+        return {
+          args: {
+            model: this.modelId,
+            input: convertToOpenAIResponsesMessages({ prompt }),
+            temperature,
+          },
+          warnings,
+        };
+      }
+
+      case 'object-json': {
+        return {
+          args: {
+            model: this.modelId,
+            input: convertToOpenAIResponsesMessages({ prompt }),
+            temperature,
+            text: {
+              format:
+                mode.schema != null
+                  ? {
+                      type: 'json_schema',
+                      strict: true,
+                      name: mode.name ?? 'response',
+                      description: mode.description,
+                      schema: mode.schema,
+                    }
+                  : { type: 'json_object' },
+            },
+          },
+          warnings,
+        };
+      }
+
+      case 'object-tool': {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'Tool calling is not supported for responses models',
+        });
+      }
+
+      default: {
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+      }
+    }
   }
 
   async doGenerate(

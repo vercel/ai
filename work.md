@@ -6,14 +6,16 @@
 - [x] message conversion testing
 - [x] image inputs
 - [x] doGenerate testing
-- [ ] finish reason support
+- [ ] structured outputs (json mode)
+- [ ] json response format support
 - [ ] system & developer message support
+- [ ] finish reason support
 - [ ] settings
 
 ### streamText support
 
 - [x] streamText chatbot prototype
-- [ ] test scaffolding
+- [x] test scaffolding
 - [ ] finish reason support
 - [ ] model id, created at, message id
 
@@ -22,6 +24,11 @@
 - [ ] structured outputs opt out
 
 ### tool call support
+
+### custom settings
+
+- [ ] reasoning effort
+- [ ] parallel tool calls
 
 ### provider-defined tool support
 
