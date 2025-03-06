@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: bedrock('anthropic.claude-3-7-sonnet-20250219-v1:0'),
+    model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     temperature: 0.5, // should get ignored (warning)
     providerOptions: {

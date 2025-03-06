@@ -17,7 +17,7 @@ async function main() {
     messages.push({ role: 'user', content: userInput });
 
     const { steps, response } = await generateText({
-      model: bedrock('anthropic.claude-3-7-sonnet-20250219-v1:0'),
+      model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
       tools: { weatherTool },
       system: `You are a helpful, respectful and honest assistant.`,
       messages,

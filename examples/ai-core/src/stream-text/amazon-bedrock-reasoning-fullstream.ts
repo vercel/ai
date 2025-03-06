@@ -5,7 +5,7 @@ import { weatherTool } from '../tools/weather-tool';
 
 async function main() {
   const result = streamText({
-    model: bedrock('anthropic.claude-3-7-sonnet-20250219-v1:0'),
+    model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
     tools: {
       weather: weatherTool,
     },

@@ -324,10 +324,10 @@ You can enable it using the `reasoning_config` provider option and specifying a 
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';
-import { generateText } from 'ai;
+import { generateText } from 'ai';
 
 const { text, reasoning, reasoningDetails } = await generateText({
-  model: bedrock('anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     bedrock: {

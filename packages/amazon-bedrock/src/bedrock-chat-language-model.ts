@@ -576,6 +576,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 const BedrockReasoningConfigOptionsSchema = z
   .object({
     type: z.union([z.literal('enabled'), z.literal('disabled')]),
+    // https://docs.anthropic.com/en/docs/about-claude/models/all-models#model-comparison-table
     budget_tokens: z.number().min(1024).max(64000).nullish(),
   })
   .nullish();
