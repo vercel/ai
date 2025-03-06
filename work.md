@@ -5,14 +5,14 @@
 - [x] generateText chatbot prototype
 - [x] message conversion testing
 - [x] image inputs
-- [ ] doGenerate testing
+- [x] doGenerate testing
 - [ ] finish reason support
 - [ ] system & developer message support
 - [ ] settings
 
 ### streamText support
 
-- [ ] streamText chatbot prototype
+- [x] streamText chatbot prototype
 - [ ] test scaffolding
 - [ ] finish reason support
 - [ ] model id, created at, message id

@@ -11,9 +11,9 @@ import {
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { openaiFailedResponseHandler } from '../openai-error';
 import { z } from 'zod';
 import { OpenAIConfig } from '../openai-config';
+import { openaiFailedResponseHandler } from '../openai-error';
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 
