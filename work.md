@@ -13,7 +13,9 @@
 ### streamText support
 
 - [ ] streamText chatbot prototype
+- [ ] test scaffolding
 - [ ] finish reason support
+- [ ] model id, created at, message id
 
 ### structured outputs support
 

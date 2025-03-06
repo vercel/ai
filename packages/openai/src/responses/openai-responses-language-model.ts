@@ -1,5 +1,6 @@
 import {
   LanguageModelV1,
+  LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
@@ -38,13 +39,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
-  private getArgs({ prompt }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+  private getArgs({
+    topK,
+    temperature,
+    prompt,
+  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+    const warnings: LanguageModelV1CallWarning[] = [];
+
+    if (topK != null) {
+      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+    }
+
     return {
       args: {
         model: this.modelId,
         input: convertToOpenAIResponsesMessages({ prompt }),
+        temperature,
       },
-      warnings: [],
+      warnings,
     };
   }
 
@@ -116,6 +128,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
         timestamp: new Date(response.created_at * 1000),
         modelId: response.model,
       },
+      warnings,
     };
   }
 
