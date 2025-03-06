@@ -1,5 +1,5 @@
 {
-  "name": "ai",
+  "name": "@InteractionCo/ai",
   "version": "4.3.16",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
@@ -101,12 +101,12 @@
     "node": ">=18"
   },
   "publishConfig": {
-    "access": "public"
+    "registry": "https://npm.pkg.github.com"
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vercel/ai.git"
+    "url": "git+https://github.com/InteractionCo/ai.git"
   },
   "bugs": {
     "url": "https://github.com/vercel/ai/issues"
