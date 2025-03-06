@@ -583,6 +583,7 @@ A function that attempts to repair a tool call that failed to parse.
         response: {
           ...currentModelResponse.response,
           headers: currentModelResponse.rawResponse?.headers,
+          body: currentModelResponse.rawResponse?.body,
           messages: responseMessages,
         },
         logprobs: currentModelResponse.logprobs,

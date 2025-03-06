@@ -364,7 +364,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args: body, warnings } = this.getArgs(options);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
@@ -427,7 +431,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
       request: { body: JSON.stringify(body) },
       response: getResponseMetadata(response),
       warnings,
