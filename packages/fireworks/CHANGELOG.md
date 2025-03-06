@@ -1,5 +1,11 @@
 # @ai-sdk/fireworks
 
+## 0.1.14
+
+### Patch Changes
+
+- 9dcc12d: feat (providers/fireworks): add qwq-32b model
+
 ## 0.1.13
 
 ### Patch Changes
