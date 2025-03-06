@@ -1,13 +1,17 @@
 ## Tasks
 
-### generate / stream text support
+### generate text support
 
 - [x] generateText chatbot prototype
+- [x] message conversion testing
 - [x] image inputs
-- [ ] generateText testing
-- [ ] message conversion testing
-- [ ] streamText chatbot prototype
+- [ ] doGenerate testing
 - [ ] finish reason support
+- [ ] system & developer message support
+
+### streamText support
+
+- [ ] streamText chatbot prototype
 
 ### structured outputs support
 
