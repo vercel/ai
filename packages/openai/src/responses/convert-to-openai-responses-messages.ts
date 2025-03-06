@@ -3,6 +3,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAIResponsesPrompt } from './openai-responses-prompt';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToOpenAIResponsesMessages({
   prompt,
@@ -27,10 +28,17 @@ export function convertToOpenAIResponsesMessages({
               }
 
               case 'image': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'Image content parts in user messages',
-                });
+                return {
+                  type: 'input_image',
+                  image_url:
+                    part.image instanceof URL
+                      ? part.image.toString()
+                      : `data:${
+                          part.mimeType ?? 'image/jpeg'
+                        };base64,${convertUint8ArrayToBase64(part.image)}`,
+                };
               }
+
               case 'file': {
                 throw new UnsupportedFunctionalityError({
                   functionality: 'Image content parts in user messages',

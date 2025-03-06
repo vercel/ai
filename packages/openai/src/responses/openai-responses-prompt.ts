@@ -6,16 +6,13 @@ export type OpenAIResponsesMessage =
 
 export type OpenAIResponsesUserMessage = {
   role: 'user';
-  content: Array<{
-    type: 'input_text';
-    text: string;
-  }>;
+  content: Array<
+    | { type: 'input_text'; text: string }
+    | { type: 'input_image'; image_url: string }
+  >;
 };
 
 export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
-  content: Array<{
-    type: 'output_text';
-    text: string;
-  }>;
+  content: Array<{ type: 'output_text'; text: string }>;
 };
