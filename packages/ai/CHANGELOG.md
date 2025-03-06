@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.54
+
+### Patch Changes
+
+- ee1c787: fix (ai/core): correct spread apply order to fix extract reasoning middleware with generateText
+
 ## 4.1.53
 
 ### Patch Changes
