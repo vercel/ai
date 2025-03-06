@@ -178,9 +178,12 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
                     // trim the last text part if it's the last message in the block
                     // because Bedrock does not allow trailing whitespace
                     // in pre-filled assistant responses
-                    isLastBlock && isLastMessage && isLastContentPart
-                      ? part.text.trim()
-                      : part.text,
+                    trimIfLast(
+                      isLastBlock,
+                      isLastMessage,
+                      isLastContentPart,
+                      part.text,
+                    ),
                 });
                 break;
               }
@@ -192,10 +195,12 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
                       // trim the last text part if it's the last message in the block
                       // because Bedrock does not allow trailing whitespace
                       // in pre-filled assistant responses
-                      text:
-                        isLastBlock && isLastMessage && isLastContentPart
-                          ? part.text.trim()
-                          : part.text,
+                      text: trimIfLast(
+                        isLastBlock,
+                        isLastMessage,
+                        isLastContentPart,
+                        part.text,
+                      ),
                       signature: part.signature,
                     },
                   },
@@ -244,6 +249,15 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
   }
 
   return { system, messages };
+}
+
+function trimIfLast(
+  isLastBlock: boolean,
+  isLastMessage: boolean,
+  isLastContentPart: boolean,
+  text: string,
+) {
+  return isLastBlock && isLastMessage && isLastContentPart ? text.trim() : text;
 }
 
 type SystemBlock = {

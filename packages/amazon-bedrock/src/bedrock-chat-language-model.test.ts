@@ -6,6 +6,10 @@ import {
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { vi } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
+import {
+  BedrockReasoningContentBlock,
+  BedrockRedactedReasoningContentBlock,
+} from './bedrock-api-types';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'system', content: 'System Prompt' },
@@ -1091,12 +1095,8 @@ describe('doGenerate', () => {
       | { type: 'text'; text: string }
       | { type: 'thinking'; thinking: string; signature: string }
       | { type: 'tool_use'; id: string; name: string; input: unknown }
-      | {
-          reasoningContent: {
-            reasoningText: { text: string; signature?: string };
-          };
-        }
-      | { reasoningContent: { redactedReasoning: { data: string } } }
+      | BedrockReasoningContentBlock
+      | BedrockRedactedReasoningContentBlock
     >;
     toolCalls?: Array<{
       id?: string;
@@ -1113,37 +1113,10 @@ describe('doGenerate', () => {
     stopReason?: string;
     trace?: typeof mockTrace;
     reasoningContent?:
-      | {
-          reasoningContent: {
-            reasoningText: {
-              text: string;
-              signature?: string;
-            };
-          };
-        }
-      | {
-          reasoningContent: {
-            redactedReasoning: {
-              data: string;
-            };
-          };
-        }
+      | BedrockReasoningContentBlock
+      | BedrockRedactedReasoningContentBlock
       | Array<
-          | {
-              reasoningContent: {
-                reasoningText: {
-                  text: string;
-                  signature?: string;
-                };
-              };
-            }
-          | {
-              reasoningContent: {
-                redactedReasoning: {
-                  data: string;
-                };
-              };
-            }
+          BedrockReasoningContentBlock | BedrockRedactedReasoningContentBlock
         >;
   }) {
     server.urls[generateUrl].response = {
@@ -1152,7 +1125,7 @@ describe('doGenerate', () => {
         output: {
           message: {
             role: 'assistant',
-            content: content,
+            content,
           },
         },
         usage,
