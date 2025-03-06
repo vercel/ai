@@ -153,7 +153,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     }
 
     // Remove temperature if thinking is enabled
-    if (isThinking && inferenceConfig.temperature != null) {
+    if (isThinking && inferenceConfig.temperature !== null) {
       delete inferenceConfig.temperature;
       warnings.push({
         type: 'unsupported-setting',
@@ -170,13 +170,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         setting: 'topP',
         details: 'topP is not supported when thinking is enabled',
       });
-    }
-
-    // We embed the reasoning config in additionalModelRequestFields, so avoid
-    // duplication in the request.
-    const providerMetadataWithoutReasoningConfig = { ...providerMetadata };
-    if (providerMetadataWithoutReasoningConfig?.bedrock?.reasoning_config) {
-      delete providerMetadataWithoutReasoningConfig.bedrock.reasoning_config;
     }
 
     const baseArgs: BedrockConverseInput = {
