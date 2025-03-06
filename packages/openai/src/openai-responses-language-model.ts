@@ -79,8 +79,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
-    console.log(JSON.stringify(rawResponse, null, 2));
-
     return {
       text: response.output[0].content[0].text, // TODO what if there are multiple text parts / messages
       finishReason: 'stop',
@@ -94,6 +92,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       },
       rawResponse: {
         headers: responseHeaders,
+        body: rawResponse,
       },
       request: {
         body: JSON.stringify(body),

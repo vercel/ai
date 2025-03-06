@@ -44,9 +44,25 @@ export function convertToOpenAIResponsesMessages({
       }
 
       case 'assistant': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'Assistant messages',
+        messages.push({
+          role: 'assistant',
+          content: content.map(part => {
+            switch (part.type) {
+              case 'text': {
+                return { type: 'output_text', text: part.text };
+              }
+
+              default: {
+                throw new UnsupportedFunctionalityError({
+                  functionality:
+                    'Unsupported content part type in assistant messages',
+                });
+              }
+            }
+          }),
         });
+
+        break;
       }
 
       case 'tool': {

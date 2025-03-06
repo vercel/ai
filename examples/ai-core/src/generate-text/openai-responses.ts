@@ -3,17 +3,17 @@ import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const { text, usage, request, response } = await generateText({
+  const result = await generateText({
     model: openai.responses('gpt-4o-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  console.log(text);
+  console.log(result.text);
   console.log();
-  console.log('Usage:', usage);
+  console.log('Usage:', result.usage);
 
-  console.log('Request:', request);
-  console.log('Response:', response);
+  console.log('Request:', JSON.stringify(result.request, null, 2));
+  console.log('Response:', JSON.stringify(result.response, null, 2));
 }
 
 main().catch(console.error);
