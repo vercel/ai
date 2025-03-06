@@ -57,7 +57,7 @@ export function extractReasoningMiddleware({
           afterMatch;
       }
 
-      return { text: textWithoutReasoning, reasoning, ...rest };
+      return { ...rest, text: textWithoutReasoning, reasoning };
     },
 
     wrapStream: async ({ doStream }) => {
