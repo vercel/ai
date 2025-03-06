@@ -2,7 +2,12 @@
 
 ### generate / stream text support
 
-- [ ] generateText prototype
+- [x] generateText chatbot prototype
+- [ ] generateText testing
+- [ ] message conversion testing
+- [ ] streamText chatbot prototype
+- [ ] finish reason support
+- [ ] image inputs
 
 ### structured outputs support
 

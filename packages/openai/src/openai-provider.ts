@@ -26,8 +26,8 @@ import {
   OpenAIImageModelId,
   OpenAIImageSettings,
 } from './openai-image-settings';
-import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
-import { OpenAIResponsesModelId } from './openai-responses-settings';
+import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
+import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
 
 export interface OpenAIProvider extends ProviderV1 {
   (

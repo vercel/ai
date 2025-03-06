@@ -4,9 +4,9 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { openaiFailedResponseHandler } from './openai-error';
+import { openaiFailedResponseHandler } from '../openai-error';
 import { z } from 'zod';
-import { OpenAIConfig } from './openai-config';
+import { OpenAIConfig } from '../openai-config';
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 
