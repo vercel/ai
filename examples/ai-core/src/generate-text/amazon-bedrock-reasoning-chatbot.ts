@@ -24,7 +24,7 @@ async function main() {
       maxSteps: 5,
       providerOptions: {
         bedrock: {
-          reasoning_config: { type: 'enabled', budget_tokens: 2048 },
+          reasoning_config: { type: 'enabled', budgetTokens: 2048 },
         },
       },
     });
@@ -43,7 +43,7 @@ async function main() {
         for (const toolCall of step.toolCalls) {
           console.log(
             `\x1b[33m${toolCall.toolName}\x1b[0m` +
-              JSON.stringify(toolCall.args),
+            JSON.stringify(toolCall.args),
           );
         }
       }

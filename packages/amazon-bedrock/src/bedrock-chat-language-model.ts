@@ -51,7 +51,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     readonly modelId: BedrockChatModelId,
     private readonly settings: BedrockChatSettings,
     private readonly config: BedrockChatConfig,
-  ) {}
+  ) { }
 
   private getArgs({
     mode,
@@ -148,7 +148,10 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       // Add reasoning config to additionalModelRequestFields
       this.settings.additionalModelRequestFields = {
         ...this.settings.additionalModelRequestFields,
-        reasoning_config: { ...reasoningConfigOptions.data },
+        reasoning_config: {
+          type: reasoningConfigOptions.data?.type,
+          budget_tokens: thinkingBudget
+        },
       };
     }
 
@@ -259,20 +262,20 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     const providerMetadata =
       response.trace || response.usage
         ? {
-            bedrock: {
-              ...(response.trace && typeof response.trace === 'object'
-                ? { trace: response.trace as JSONObject }
-                : {}),
-              ...(response.usage && {
-                usage: {
-                  cacheReadInputTokens:
-                    response.usage?.cacheReadInputTokens ?? Number.NaN,
-                  cacheWriteInputTokens:
-                    response.usage?.cacheWriteInputTokens ?? Number.NaN,
-                },
-              }),
-            },
-          }
+          bedrock: {
+            ...(response.trace && typeof response.trace === 'object'
+              ? { trace: response.trace as JSONObject }
+              : {}),
+            ...(response.usage && {
+              usage: {
+                cacheReadInputTokens:
+                  response.usage?.cacheReadInputTokens ?? Number.NaN,
+                cacheWriteInputTokens:
+                  response.usage?.cacheWriteInputTokens ?? Number.NaN,
+              },
+            }),
+          },
+        }
         : undefined;
 
     const reasoning = response.output.message.content
@@ -428,23 +431,23 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
               const cacheUsage =
                 value.metadata.usage?.cacheReadInputTokens != null ||
-                value.metadata.usage?.cacheWriteInputTokens != null
+                  value.metadata.usage?.cacheWriteInputTokens != null
                   ? {
-                      usage: {
-                        cacheReadInputTokens:
-                          value.metadata.usage?.cacheReadInputTokens ??
-                          Number.NaN,
-                        cacheWriteInputTokens:
-                          value.metadata.usage?.cacheWriteInputTokens ??
-                          Number.NaN,
-                      },
-                    }
+                    usage: {
+                      cacheReadInputTokens:
+                        value.metadata.usage?.cacheReadInputTokens ??
+                        Number.NaN,
+                      cacheWriteInputTokens:
+                        value.metadata.usage?.cacheWriteInputTokens ??
+                        Number.NaN,
+                    },
+                  }
                   : undefined;
 
               const trace = value.metadata.trace
                 ? {
-                    trace: value.metadata.trace as JSONObject,
-                  }
+                  trace: value.metadata.trace as JSONObject,
+                }
                 : undefined;
 
               if (cacheUsage || trace) {
@@ -572,8 +575,24 @@ const BedrockReasoningConfigOptionsSchema = z
   .object({
     type: z.union([z.literal('enabled'), z.literal('disabled')]),
     budget_tokens: z.number().nullish(),
+    budgetTokens: z.number().nullish(),
   })
-  .nullish();
+  .nullish()
+  .transform(data => {
+    if (!data) return data;
+
+    // Normalize the data to ensure we have budget_tokens
+    if (data.budgetTokens !== undefined && data.budget_tokens === undefined) {
+      return {
+        ...data,
+        budget_tokens: data.budgetTokens,
+        // Remove budgetTokens to avoid duplication
+        budgetTokens: undefined,
+      };
+    }
+
+    return data;
+  });
 
 const BedrockStopReasonSchema = z.union([
   z.enum(BEDROCK_STOP_REASONS),
