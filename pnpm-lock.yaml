@@ -1016,7 +1016,7 @@ importers:
         specifier: 1.2.1
         version: link:../../packages/openai
       '@ai-sdk/svelte':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/svelte
       ai:
         specifier: 4.1.53
