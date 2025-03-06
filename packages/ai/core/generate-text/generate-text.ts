@@ -58,6 +58,17 @@ export type GenerateTextOnStepFinishCallback<TOOLS extends ToolSet> = (
 ) => Promise<void> | void;
 
 /**
+Callback that is set using the `beforeToolUse` option.
+
+@param currentModelResponse - The generated model response
+ */
+export type GenerateTextBeforeToolUseCallback = (
+  currentModelResponse: Awaited<ReturnType<LanguageModel['doGenerate']>> & {
+    response: { id: string; timestamp: Date; modelId: string };
+  },
+) => Promise<void> | void;
+
+/**
 Generate a text and call tools for a given prompt using a language model.
 
 This function does not stream the output. If you want to stream the output, use `streamText` instead.
@@ -100,6 +111,7 @@ If set and supported by the model, calls will generate deterministic results.
 @param experimental_generateMessageId - Generate a unique ID for each message.
 
 @param onStepFinish - Callback that is called when each step (LLM call) is finished, including intermediate steps.
+@param beforeToolUse - Callback that is called before executing tools, receiving the generated response as a parameter.
 
 @returns
 A result object that contains the generated text, the results of the tool calls, and additional information.
@@ -133,6 +145,7 @@ export async function generateText<
     currentDate = () => new Date(),
   } = {},
   onStepFinish,
+  beforeToolUse,
   ...settings
 }: CallSettings &
   Prompt & {
@@ -235,6 +248,11 @@ A function that attempts to repair a tool call that failed to parse.
     Callback that is called when each step (LLM call) is finished, including intermediate steps.
     */
     onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
+
+    /**
+    Callback that is called before executing tools, receiving the generated text as a parameter.
+    */
+    beforeToolUse?: GenerateTextBeforeToolUseCallback;
 
     /**
      * Internal. For test use only. May change without notice.
@@ -465,6 +483,9 @@ A function that attempts to repair a tool call that failed to parse.
           ),
         );
 
+        if (beforeToolUse) {
+          await beforeToolUse(currentModelResponse);
+        }
         // execute tools:
         currentToolResults =
           tools == null
