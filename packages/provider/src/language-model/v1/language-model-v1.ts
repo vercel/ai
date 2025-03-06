@@ -1,3 +1,4 @@
+import { JSONValue } from '../../json-value';
 import { LanguageModelV1CallOptions } from './language-model-v1-call-options';
 import { LanguageModelV1CallWarning } from './language-model-v1-call-warning';
 import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';
@@ -159,6 +160,11 @@ Optional response information for telemetry and debugging purposes.
 Response headers.
       */
       headers?: Record<string, string>;
+
+      /**
+Response body.
+      */
+      body?: unknown;
     };
 
     /**

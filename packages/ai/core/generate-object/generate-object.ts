@@ -464,7 +464,9 @@ export async function generateObject<SCHEMA, RESULT>({
       let finishReason: FinishReason;
       let usage: Parameters<typeof calculateLanguageModelUsage>[0];
       let warnings: CallWarning[] | undefined;
-      let rawResponse: { headers?: Record<string, string> } | undefined;
+      let rawResponse:
+        | { headers?: Record<string, string>; body?: unknown }
+        | undefined;
       let response: LanguageModelResponseMetadata;
       let request: LanguageModelRequestMetadata;
       let logprobs: LogProbs | undefined;
@@ -824,6 +826,7 @@ export async function generateObject<SCHEMA, RESULT>({
         response: {
           ...response,
           headers: rawResponse?.headers,
+          body: rawResponse?.body,
         },
         logprobs,
         providerMetadata: resultProviderMetadata,

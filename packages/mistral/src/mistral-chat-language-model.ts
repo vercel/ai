@@ -175,7 +175,11 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = this.getArgs(options);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
@@ -219,7 +223,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.completion_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: {
+        headers: responseHeaders,
+        body: rawResponse,
+      },
       request: { body: JSON.stringify(args) },
       response: getResponseMetadata(response),
       warnings,
