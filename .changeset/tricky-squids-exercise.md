@@ -1,5 +1,4 @@
 ---
-'next-openai-kasada-bot-protection': patch
 'ai': patch
 ---
 
