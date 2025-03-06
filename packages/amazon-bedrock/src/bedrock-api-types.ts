@@ -1,5 +1,4 @@
 import { JSONObject } from '@ai-sdk/provider';
-import { Resolvable } from '@ai-sdk/provider-utils';
 
 export interface BedrockConverseInput {
   system?: BedrockSystemMessages;

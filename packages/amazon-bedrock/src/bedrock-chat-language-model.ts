@@ -5,8 +5,6 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1ProviderMetadata,
-  LanguageModelV1ReasoningPart,
-  LanguageModelV1RedactedReasoningPart,
   LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -24,9 +22,6 @@ import {
   BedrockConverseInput,
   BedrockStopReason,
   BEDROCK_STOP_REASONS,
-  BEDROCK_CACHE_POINT,
-  BedrockReasoningContentBlock,
-  BedrockRedactedReasoningContentBlock,
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
@@ -175,6 +170,13 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
         setting: 'topP',
         details: 'topP is not supported when thinking is enabled',
       });
+    }
+
+    // We embed the reasoning config in additionalModelRequestFields, so avoid
+    // duplication in the request.
+    const providerMetadataWithoutReasoningConfig = { ...providerMetadata };
+    if (providerMetadataWithoutReasoningConfig?.bedrock?.reasoning_config) {
+      delete providerMetadataWithoutReasoningConfig.bedrock.reasoning_config;
     }
 
     const baseArgs: BedrockConverseInput = {

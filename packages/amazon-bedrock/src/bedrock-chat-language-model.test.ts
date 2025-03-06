@@ -1687,4 +1687,38 @@ describe('doGenerate', () => {
       },
     ]);
   });
+
+  it('should not duplicate reasoning_config in the request', async () => {
+    prepareJsonResponse({});
+
+    const reasoning_config = {
+      type: 'enabled',
+      budget_tokens: 12000,
+    };
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        bedrock: {
+          reasoning_config,
+        },
+      },
+    });
+
+    // Get the actual request body sent to the server
+    const requestBody = await server.calls[0].requestBody;
+
+    // Verify reasoning_config is in additionalModelRequestFields
+    expect(requestBody.additionalModelRequestFields).toHaveProperty(
+      'reasoning_config',
+    );
+    expect(requestBody.additionalModelRequestFields.reasoning_config).toEqual(
+      reasoning_config,
+    );
+
+    // Verify it's NOT duplicated at the top level
+    expect(requestBody).not.toHaveProperty('reasoning_config');
+  });
 });
