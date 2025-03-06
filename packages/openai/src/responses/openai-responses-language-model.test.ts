@@ -100,11 +100,13 @@ describe('OpenAIResponsesLanguageModel', () => {
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         temperature: 0.5,
+        topP: 0.3,
       });
 
       expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'gpt-4o-mini',
         temperature: 0.5,
+        top_p: 0.3,
         input: [
           { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
         ],

@@ -6,7 +6,7 @@
 - [x] message conversion testing
 - [x] image inputs
 - [x] doGenerate testing
-- [ ] structured outputs (json mode)
+- [x] structured outputs (json mode)
 - [ ] json response format support
 - [ ] system & developer message support
 - [ ] finish reason support

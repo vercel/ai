@@ -44,6 +44,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     mode,
     topK,
     temperature,
+    topP,
     prompt,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
@@ -53,14 +54,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
     }
 
+    const baseArgs = {
+      model: this.modelId,
+      input: convertToOpenAIResponsesMessages({ prompt }),
+      temperature,
+      top_p: topP,
+    };
+
     switch (type) {
       case 'regular': {
         return {
-          args: {
-            model: this.modelId,
-            input: convertToOpenAIResponsesMessages({ prompt }),
-            temperature,
-          },
+          args: baseArgs,
           warnings,
         };
       }
@@ -68,9 +72,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       case 'object-json': {
         return {
           args: {
-            model: this.modelId,
-            input: convertToOpenAIResponsesMessages({ prompt }),
-            temperature,
+            ...baseArgs,
             text: {
               format:
                 mode.schema != null
