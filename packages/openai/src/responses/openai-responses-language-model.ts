@@ -182,8 +182,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
               return;
             }
-
-            // console.log('chunk', JSON.stringify(chunk, null, 2));
           },
 
           flush(controller) {
@@ -224,8 +222,7 @@ const responseCompletedChunkSchema = z.object({
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseCompletedChunkSchema,
-  // fallback for unknown chunks;
-  z.object({ type: z.string() }).passthrough(),
+  z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
 function isTextDeltaChunk(
