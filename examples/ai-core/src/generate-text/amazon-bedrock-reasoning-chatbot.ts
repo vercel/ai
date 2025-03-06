@@ -43,7 +43,7 @@ async function main() {
         for (const toolCall of step.toolCalls) {
           console.log(
             `\x1b[33m${toolCall.toolName}\x1b[0m` +
-            JSON.stringify(toolCall.args),
+              JSON.stringify(toolCall.args),
           );
         }
       }
