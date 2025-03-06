@@ -1,5 +1,4 @@
 import { JSONObject } from '@ai-sdk/provider';
-import { Resolvable } from '@ai-sdk/provider-utils';
 
 export interface BedrockConverseInput {
   system?: BedrockSystemMessages;
@@ -132,6 +131,23 @@ export interface BedrockTextBlock {
   text: string;
 }
 
+export interface BedrockReasoningContentBlock {
+  reasoningContent: {
+    reasoningText: {
+      text: string;
+      signature?: string;
+    };
+  };
+}
+
+export interface BedrockRedactedReasoningContentBlock {
+  reasoningContent: {
+    redactedReasoning: {
+      data: string;
+    };
+  };
+}
+
 export type BedrockContentBlock =
   | BedrockDocumentBlock
   | BedrockGuardrailConverseContentBlock
@@ -139,4 +155,6 @@ export type BedrockContentBlock =
   | BedrockTextBlock
   | BedrockToolResultBlock
   | BedrockToolUseBlock
+  | BedrockReasoningContentBlock
+  | BedrockRedactedReasoningContentBlock
   | BedrockCachePoint;
