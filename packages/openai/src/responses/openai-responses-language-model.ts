@@ -272,7 +272,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             const value = chunk.value;
 
             // TODO remove
-            // console.log(JSON.stringify(chunk.rawValue, null, 2));
+            // console.log(JSON.stringify(chunk.rawValue));
+            // return;
 
             if (
               isResponseOutputItemAddedChunk(value) &&

@@ -480,5 +480,121 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       ]);
     });
+
+    it('should send streaming tool calls', async () => {
+      server.urls['https://api.openai.com/v1/responses'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data:{"type":"response.created","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.in_progress","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_6KxSghkb4MVnunFH2TxPErLP","name":"currentLocation","arguments":"","status":"completed"}}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a838088190be08eb3927c87501","output_index":0,"delta":"{}"}\n\n`,
+          `data:{"type":"response.function_call_arguments.done","item_id":"fc_67cb13a838088190be08eb3927c87501","output_index":0,"arguments":"{}"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_pgjcAI4ZegMkP6bsAV7sfrJA","name":"currentLocation","arguments":"{}","status":"completed"}}\n\n`,
+          `data:{"type":"response.output_item.added","output_index":1,"item":{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_Dg6WUmFHNeR5JxX1s53s1G4b","name":"weather","arguments":"","status":"in_progress"}}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"{"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"location"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\":"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"Rome"}\n\n`,
+          `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"}"}\n\n`,
+          `data:{"type":"response.function_call_arguments.done","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"arguments":"{\\"location\\":\\"Rome\\"}"}\n\n`,
+          `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_KsVqaVAf3alAtCCkQe4itE7W","name":"currentLocation","arguments":"{}","status":"completed"},{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular', tools: TEST_TOOLS },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        {
+          id: 'resp_67cb13a755c08190acbe3839a49632fc',
+          modelId: 'gpt-4o-mini-2024-07-18',
+          timestamp: new Date('2025-03-07T15:41:27.000Z'),
+          type: 'response-metadata',
+        },
+        {
+          argsTextDelta: '',
+          toolCallId: 'call_6KxSghkb4MVnunFH2TxPErLP',
+          toolCallType: 'function',
+          toolName: 'currentLocation',
+          type: 'tool-call-delta',
+        },
+        {
+          argsTextDelta: '{}',
+          toolCallId: 'call_6KxSghkb4MVnunFH2TxPErLP',
+          toolCallType: 'function',
+          toolName: 'currentLocation',
+          type: 'tool-call-delta',
+        },
+        {
+          args: '{}',
+          toolCallId: 'call_pgjcAI4ZegMkP6bsAV7sfrJA',
+          toolCallType: 'function',
+          toolName: 'currentLocation',
+          type: 'tool-call',
+        },
+        {
+          argsTextDelta: '',
+          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
+          toolCallType: 'function',
+          toolName: 'weather',
+          type: 'tool-call-delta',
+        },
+        {
+          argsTextDelta: '{',
+          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
+          toolCallType: 'function',
+          toolName: 'weather',
+          type: 'tool-call-delta',
+        },
+        {
+          argsTextDelta: '"location',
+          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
+          toolCallType: 'function',
+          toolName: 'weather',
+          type: 'tool-call-delta',
+        },
+        {
+          argsTextDelta: '":',
+          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
+          toolCallType: 'function',
+          toolName: 'weather',
+          type: 'tool-call-delta',
+        },
+        {
+          argsTextDelta: '"Rome',
+          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
+          toolCallType: 'function',
+          toolName: 'weather',
+          type: 'tool-call-delta',
+        },
+        {
+          argsTextDelta: '"}',
+          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
+          toolCallType: 'function',
+          toolName: 'weather',
+          type: 'tool-call-delta',
+        },
+        {
+          args: '{"location":"Rome"}',
+          toolCallId: 'call_X2PAkDJInno9VVnNkDrfhboW',
+          toolCallType: 'function',
+          toolName: 'weather',
+          type: 'tool-call',
+        },
+        {
+          finishReason: 'tool-calls',
+          type: 'finish',
+          usage: {
+            completionTokens: 0,
+            promptTokens: 0,
+          },
+        },
+      ]);
+    });
   });
 });

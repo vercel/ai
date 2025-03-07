@@ -19,7 +19,11 @@
 - [x] test incomplete response (different chunks)
 - [x] model id, created at, message id
 - [x] tool call support
-- [ ] test streaming tool calls
+- [x] test streaming tool calls
+
+### reasoning
+
+- [ ] reasoning model settings etc
 
 ### args
 
