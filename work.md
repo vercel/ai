@@ -9,6 +9,9 @@
 - [x] structured outputs (json mode)
 - [x] finish reason support
 - [ ] tool call support
+  - add tool spec to prompt
+  - return tool calls & status
+  - accept tool results
 
 ### streamText support
 
@@ -24,6 +27,7 @@
 - [ ] json response format support
 - [ ] system & developer message support
 - [ ] settings
+- [ ] image detail support
 - [ ] custom: structured outputs opt out
 - [ ] custom: reasoning effort
 - [ ] custom: parallel tool calls
@@ -33,6 +37,8 @@
 ### previousResponseId support
 
 ### documentation
+
+- [ ] responses section under OpenAI provider
 
 ### integration
 

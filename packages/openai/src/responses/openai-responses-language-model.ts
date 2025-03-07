@@ -18,6 +18,7 @@ import { openaiFailedResponseHandler } from '../openai-error';
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
+import { prepareResponsesTools } from './openai-responses-prepare-tools';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
@@ -66,9 +67,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
+        const { tools, tool_choice, toolWarnings } = prepareResponsesTools({
+          mode,
+          strict: true,
+        });
+
         return {
-          args: baseArgs,
-          warnings,
+          args: {
+            ...baseArgs,
+            tools,
+            tool_choice,
+          },
+          warnings: [...warnings, ...toolWarnings],
         };
       }
 
