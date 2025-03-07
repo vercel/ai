@@ -69,7 +69,7 @@ async function main() {
     '@ai-sdk/mistral',
     '@ai-sdk/xai',
     '@ai-sdk/togetherai',
-    '@ai-sdk/langdb',
+    '@langdb/vercel-provider',
     '@ai-sdk/cohere',
     '@ai-sdk/fireworks',
     '@ai-sdk/deepinfra',
