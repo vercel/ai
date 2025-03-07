@@ -2,7 +2,9 @@ export type OpenAIResponsesPrompt = Array<OpenAIResponsesMessage>;
 
 export type OpenAIResponsesMessage =
   | OpenAIResponsesUserMessage
-  | OpenAIResponsesAssistantMessage;
+  | OpenAIResponsesAssistantMessage
+  | OpenAIResponsesFunctionCall
+  | OpenAIResponsesFunctionCallOutput;
 
 export type OpenAIResponsesUserMessage = {
   role: 'user';
@@ -15,4 +17,17 @@ export type OpenAIResponsesUserMessage = {
 export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
   content: Array<{ type: 'output_text'; text: string }>;
+};
+
+export type OpenAIResponsesFunctionCall = {
+  type: 'function_call';
+  call_id: string;
+  name: string;
+  arguments: string;
+};
+
+export type OpenAIResponsesFunctionCallOutput = {
+  type: 'function_call_output';
+  call_id: string;
+  output: string;
 };

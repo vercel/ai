@@ -2,8 +2,8 @@ import {
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { OpenAIResponsesPrompt } from './openai-responses-prompt';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
+import { OpenAIResponsesPrompt } from './openai-responses-api-types';
 
 export function convertToOpenAIResponsesMessages({
   prompt,
@@ -52,31 +52,41 @@ export function convertToOpenAIResponsesMessages({
       }
 
       case 'assistant': {
-        messages.push({
-          role: 'assistant',
-          content: content.map(part => {
-            switch (part.type) {
-              case 'text': {
-                return { type: 'output_text', text: part.text };
-              }
-
-              default: {
-                throw new UnsupportedFunctionalityError({
-                  functionality:
-                    'Unsupported content part type in assistant messages',
-                });
-              }
+        for (const part of content) {
+          switch (part.type) {
+            case 'text': {
+              messages.push({
+                role: 'assistant',
+                content: [{ type: 'output_text', text: part.text }],
+              });
+              break;
             }
-          }),
-        });
+
+            case 'tool-call': {
+              messages.push({
+                type: 'function_call',
+                call_id: part.toolCallId,
+                name: part.toolName,
+                arguments: JSON.stringify(part.args),
+              });
+              break;
+            }
+          }
+        }
 
         break;
       }
 
       case 'tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'Tool messages',
-        });
+        for (const part of content) {
+          messages.push({
+            type: 'function_call_output',
+            call_id: part.toolCallId,
+            output: JSON.stringify(part.result),
+          });
+        }
+
+        break;
       }
 
       default: {
