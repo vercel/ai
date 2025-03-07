@@ -102,6 +102,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       {
         "content": [
           {
+            "text": "thinking",
+            "type": "reasoning",
+          },
+          {
             "text": "",
             "type": "text",
           },
@@ -151,8 +155,13 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "isContinued": false,
       "logprobs": undefined,
       "providerMetadata": undefined,
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": "thinking",
+      "reasoningDetails": [
+        {
+          "text": "thinking",
+          "type": "text",
+        },
+      ],
       "request": {},
       "response": {
         "headers": {
@@ -162,6 +171,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "messages": [
           {
             "content": [
+              {
+                "text": "thinking",
+                "type": "reasoning",
+              },
               {
                 "text": "",
                 "type": "text",
@@ -243,6 +256,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
           {
             "content": [
               {
+                "text": "thinking",
+                "type": "reasoning",
+              },
+              {
                 "text": "",
                 "type": "text",
               },
@@ -317,8 +334,13 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": "thinking",
+    "reasoningDetails": [
+      {
+        "text": "thinking",
+        "type": "text",
+      },
+    ],
     "request": {},
     "response": {
       "headers": {
@@ -328,6 +350,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "messages": [
         {
           "content": [
+            {
+              "text": "thinking",
+              "type": "reasoning",
+            },
             {
               "text": "",
               "type": "text",
@@ -409,6 +435,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         {
           "content": [
             {
+              "text": "thinking",
+              "type": "reasoning",
+            },
+            {
               "text": "",
               "type": "text",
             },
@@ -472,6 +502,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "request": {},
     "type": "step-start",
     "warnings": [],
+  },
+  {
+    "textDelta": "thinking",
+    "type": "reasoning",
   },
   {
     "args": {
@@ -660,7 +694,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
       "ai.prompt.format": "messages",
-      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
+      "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"reasoning","text":"thinking"},{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]},{"role":"tool","content":[{"type":"tool-result","toolCallId":"call-1","toolName":"tool1","result":"result1"}]}]",
       "ai.prompt.toolChoice": "{"type":"auto"}",
       "ai.prompt.tools": [
         "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
@@ -708,6 +742,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
 [
   {
     "content": [
+      {
+        "text": "thinking",
+        "type": "reasoning",
+      },
       {
         "text": "",
         "type": "text",
@@ -757,8 +795,13 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": "thinking",
+    "reasoningDetails": [
+      {
+        "text": "thinking",
+        "type": "text",
+      },
+    ],
     "request": {},
     "response": {
       "headers": {
@@ -768,6 +811,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "messages": [
         {
           "content": [
+            {
+              "text": "thinking",
+              "type": "reasoning",
+            },
             {
               "text": "",
               "type": "text",
@@ -848,6 +895,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "messages": [
         {
           "content": [
+            {
+              "text": "thinking",
+              "type": "reasoning",
+            },
             {
               "text": "",
               "type": "text",
@@ -3781,6 +3832,17 @@ exports[`streamText > result.pipeDataStreamToResponse > should mask error messag
 ]
 `;
 
+exports[`streamText > result.pipeDataStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello, World!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+",
+]
+`;
+
 exports[`streamText > result.pipeDataStreamToResponse > should support custom error messages 1`] = `
 [
   "f:{"messageId":"msg-0"}
@@ -4224,6 +4286,17 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
   "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
 ",
   "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStream > should omit message finish event (d:) when sendFinish is false 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello, World!"
+",
+  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
 ]
 `;

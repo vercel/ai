@@ -83,6 +83,46 @@ describe('user messages', () => {
     });
   });
 
+  it('should add image parts for URL images', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: new URL('https://example.com/image.png'),
+              mimeType: 'image/png',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'url',
+                  url: 'https://example.com/image.png',
+                },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
   it('should add PDF file parts', async () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [

@@ -40,7 +40,12 @@ Additional request information.
   /**
 Additional response information.
    */
-  readonly response: LanguageModelResponseMetadata;
+  readonly response: LanguageModelResponseMetadata & {
+    /**
+Response body (available only for providers that use HTTP requests).
+    */
+    body?: unknown;
+  };
 
   /**
  Logprobs for the completion.

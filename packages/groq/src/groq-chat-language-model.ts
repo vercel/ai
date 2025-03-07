@@ -190,7 +190,11 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
 
     const body = JSON.stringify(args);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
@@ -222,7 +226,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
       response: getResponseMetadata(response),
       warnings,
       request: { body },

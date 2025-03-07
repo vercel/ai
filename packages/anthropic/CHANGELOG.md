@@ -1,5 +1,20 @@
 # @ai-sdk/anthropic
 
+## 1.1.15
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+
+## 1.1.14
+
+### Patch Changes
+
+- 0e8b66c: feat (provider/anthropic): support image urls
+
 ## 1.1.13
 
 ### Patch Changes

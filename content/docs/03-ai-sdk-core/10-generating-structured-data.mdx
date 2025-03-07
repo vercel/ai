@@ -50,6 +50,24 @@ const { object } = await generateObject({
   See `generateObject` in action with [these examples](#more-examples)
 </Note>
 
+### Accessing response headers & body
+
+Sometimes you need access to the full response from the model provider,
+e.g. to access some provider-specific headers or body content.
+
+You can access the raw response headers and body using the `response` property:
+
+```ts
+import { generateText } from 'ai';
+
+const result = await generateText({
+  // ...
+});
+
+console.log(JSON.stringify(result.response.headers, null, 2));
+console.log(JSON.stringify(result.response.body, null, 2));
+```
+
 ## Stream Object
 
 Given the added complexity of returning structured data, model response time can be unacceptable for your interactive use case.

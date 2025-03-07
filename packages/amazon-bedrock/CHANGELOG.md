@@ -1,5 +1,19 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.1.0
+
+### Minor Changes
+
+- cf7d818: feat (providers/amazon-bedrock): Add reasoning support to amazon-bedrock
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+
 ## 2.0.5
 
 ### Patch Changes

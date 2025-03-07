@@ -247,4 +247,173 @@ describe('assistant messages', () => {
       system: [],
     });
   });
+
+  it('should properly convert reasoning content type', async () => {
+    const result = convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'This is my step-by-step reasoning process',
+            signature: 'test-signature',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                reasoningText: {
+                  text: 'This is my step-by-step reasoning process',
+                  signature: 'test-signature',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should properly convert redacted-reasoning content type', async () => {
+    const reasoningData = 'Redacted reasoning information';
+    const result = convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'redacted-reasoning',
+            data: reasoningData,
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                redactedReasoning: {
+                  data: reasoningData,
+                },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should trim trailing whitespace from reasoning content when it is the last part', async () => {
+    const result = convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'This is my reasoning with trailing space    ',
+            signature: 'test-signature',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              reasoningContent: {
+                reasoningText: {
+                  text: 'This is my reasoning with trailing space',
+                  signature: 'test-signature',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
+
+  it('should handle a mix of text and reasoning content types', async () => {
+    const result = convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Explain your reasoning' }],
+      },
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'My answer is 42.' },
+          {
+            type: 'reasoning',
+            text: 'I calculated this by analyzing the meaning of life',
+            signature: 'reasoning-process',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      messages: [
+        {
+          role: 'user',
+          content: [{ text: 'Explain your reasoning' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            { text: 'My answer is 42.' },
+            {
+              reasoningContent: {
+                reasoningText: {
+                  text: 'I calculated this by analyzing the meaning of life',
+                  signature: 'reasoning-process',
+                },
+              },
+            },
+          ],
+        },
+      ],
+      system: [],
+    });
+  });
 });

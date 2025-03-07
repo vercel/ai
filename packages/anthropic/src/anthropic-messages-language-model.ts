@@ -40,7 +40,7 @@ type AnthropicMessagesConfig = {
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'tool';
-  readonly supportsImageUrls = false;
+  readonly supportsImageUrls = true;
 
   readonly modelId: AnthropicMessagesModelId;
   readonly settings: AnthropicMessagesSettings;
@@ -262,7 +262,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings, betas } = await this.getArgs(options);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({ betas, headers: options.headers }),
       body: this.transformRequestBody(args),
@@ -328,7 +332,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.output_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: {
+        headers: responseHeaders,
+        body: rawResponse,
+      },
       response: {
         id: response.id ?? undefined,
         modelId: response.model ?? undefined,

@@ -124,6 +124,31 @@ describe('extractReasoningMiddleware', () => {
         'analyzing the request</think>Here is the response',
       );
     });
+
+    it('should preserve reasoning property even when rest contains other properties', async () => {
+      const mockModel = new MockLanguageModelV1({
+        async doGenerate() {
+          return {
+            text: '<think>analyzing the request</think>Here is the response',
+            finishReason: 'stop',
+            usage: { promptTokens: 10, completionTokens: 10 },
+            rawCall: { rawPrompt: '', rawSettings: {} },
+            reasoning: undefined,
+          };
+        },
+      });
+
+      const result = await generateText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+      });
+
+      expect(result.reasoning).toStrictEqual('analyzing the request');
+      expect(result.text).toStrictEqual('Here is the response');
+    });
   });
 
   describe('wrapStream', () => {
