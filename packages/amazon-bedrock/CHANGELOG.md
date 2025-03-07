@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.1.1
+
+### Patch Changes
+
+- a841484: fix (provider/bedrock): support budgetTokens
+
 ## 2.1.0
 
 ### Minor Changes
