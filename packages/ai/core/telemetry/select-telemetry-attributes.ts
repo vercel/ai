@@ -11,7 +11,8 @@ export function selectTelemetryAttributes({
       | AttributeValue
       | { input: () => AttributeValue | undefined }
       | { output: () => AttributeValue | undefined }
-      | undefined;
+      | undefined
+      | null;
   };
 }): Attributes {
   // when telemetry is disabled, return an empty object to avoid serialization overhead:
@@ -20,7 +21,7 @@ export function selectTelemetryAttributes({
   }
 
   return Object.entries(attributes).reduce((attributes, [key, value]) => {
-    if (value === undefined) {
+    if (value === undefined || value === null) {
       return attributes;
     }
 
