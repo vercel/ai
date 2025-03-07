@@ -331,7 +331,7 @@ const { text, reasoning, reasoningDetails } = await generateText({
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     bedrock: {
-      reasoningConfig: { type: 'enabled', budgetTokens: 12000 },
+      reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
     },
   },
 });
