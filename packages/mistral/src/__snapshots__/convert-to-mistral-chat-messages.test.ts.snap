@@ -46,6 +46,24 @@ exports[`tool calls > should stringify arguments to tool calls 1`] = `
 ]
 `;
 
+exports[`user messages > should convert messages with PDF file parts using URL 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "Please analyze this document",
+        "type": "text",
+      },
+      {
+        "document_url": "https://example.com/document.pdf",
+        "type": "document_url",
+      },
+    ],
+    "role": "user",
+  },
+]
+`;
+
 exports[`user messages > should convert messages with image parts 1`] = `
 [
   {
