@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 1.0.4
+
+### Patch Changes
+
+- 6a12e44: fix (providers/perplexity): fix error response data format
+
 ## 1.0.3
 
 ### Patch Changes
