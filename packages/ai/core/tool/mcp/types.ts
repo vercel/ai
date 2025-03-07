@@ -180,6 +180,7 @@ export const InitializeResultSchema = ResultSchema.extend({
   serverInfo: ClientOrServerImplementationSchema,
   instructions: z.optional(z.string()),
 });
+export type InitializeResult = z.infer<typeof InitializeResultSchema>;
 
 type PaginatedRequest = Request & {
   params?: BaseParams & {

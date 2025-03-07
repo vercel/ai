@@ -31,14 +31,11 @@ export type UrlHandler = {
         body?: string;
       }
     | {
-        type: 'sse';
+        type: 'readable-stream';
         headers?: Record<string, string>;
-        events: Array<{
-          data: string | object;
-          event?: string;
-          id?: string;
-        }>;
-      };
+        stream: ReadableStream;
+      }
+    | undefined;
 };
 
 export type FullUrlHandler = {
@@ -70,13 +67,9 @@ export type FullUrlHandler = {
         status?: number;
       }
     | {
-        type: 'sse';
+        type: 'readable-stream';
         headers?: Record<string, string>;
-        events: Array<{
-          data: string | object;
-          event?: string;
-          id?: string;
-        }>;
+        stream: ReadableStream;
       }
     | undefined;
 };
@@ -122,7 +115,6 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
 ): {
   urls: FullHandlers<URLS>;
   calls: TestServerCall[];
-  addSseEvent: (url: string, data: any, event?: string, id?: string) => void;
 } {
   const originalRoutes = structuredClone(routes); // deep copy
 
@@ -165,15 +157,9 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
               },
             );
 
-          case 'sse': {
-            const sseChunks = response.events.map(event => {
-              return formatSseEvent(event.data, event.event, event.id);
-            });
-
+          case 'readable-stream': {
             return new HttpResponse(
-              convertArrayToReadableStream(sseChunks).pipeThrough(
-                new TextEncoderStream(),
-              ),
+              response.stream.pipeThrough(new TextEncoderStream()),
               {
                 status: 200,
                 headers: {
@@ -215,23 +201,6 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
 
   let calls: TestServerCall[] = [];
 
-  function addSseEvent(url: string, data: any, event?: string, id?: string) {
-    const handler = routes[url as keyof URLS];
-    if (!handler || !handler.response) {
-      throw new Error(`No handler found for URL: ${url}`);
-    }
-
-    if (handler.response.type !== 'sse') {
-      throw new Error(`Handler for URL ${url} is not of type 'sse'`);
-    }
-
-    handler.response.events.push({
-      data,
-      event,
-      id,
-    });
-  }
-
   beforeAll(() => {
     mswServer.listen();
   });
@@ -256,25 +225,5 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
     get calls() {
       return calls;
     },
-    addSseEvent,
   };
-}
-
-function formatSseEvent(
-  data: string | object,
-  eventType?: string,
-  id?: string,
-): string {
-  let event = '';
-  if (eventType) event += `event: ${eventType}\n`;
-  if (id) event += `id: ${id}\n`;
-
-  const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
-  const dataLines = dataStr
-    .split('\n')
-    .map(line => `data: ${line}`)
-    .join('\n');
-  event += `${dataLines}\n\n`;
-
-  return event;
 }

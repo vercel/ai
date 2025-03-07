@@ -28,15 +28,17 @@ import {
   ToolSchemas,
   ServerCapabilities,
 } from './types';
-import { createMcpTransport } from './transport';
+import { createMcpTransport } from './mcp-transport';
+
+const CLIENT_VERSION = '1.0.0';
 
 interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
   transport: TransportConfig;
+  /** Optional callback for uncaught errors */
+  onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   name?: string;
-  /** Optional client version, defaults to '1.0.0' */
-  version?: string;
 }
 
 export async function createMCPClient(
@@ -62,6 +64,7 @@ export async function createMCPClient(
  */
 class MCPClient {
   private transport: MCPTransport;
+  private onUncaughtError?: (error: unknown) => void;
   private clientInfo: ClientConfiguration;
   private requestMessageId = 0;
   private responseHandlers: Map<
@@ -74,29 +77,30 @@ class MCPClient {
   constructor({
     transport: transportConfig,
     name = 'ai-sdk-mcp-client',
-    version = '1.0.0',
+    onUncaughtError,
   }: MCPClientConfig) {
+    this.onUncaughtError = onUncaughtError;
     this.transport = createMcpTransport(transportConfig);
-    this.transport.onClose = () => {
-      this.onClose();
-    };
-    this.transport.onError = (error: Error) => {
-      this.onError(error);
-    };
+    this.transport.onClose = () => this.onClose();
+    this.transport.onError = (error: Error) => this.onError(error);
     this.transport.onMessage = message => {
       if ('method' in message) {
         // This lightweight client implementation does not support
-        // receiving notifications or requests from server:
-        throw new MCPClientError({
-          message: 'Unsupported message type',
-        });
+        // receiving notifications or requests from server.
+        // If we get an unsupported message, we can safely ignore it and pass to the onError handler:
+        this.onError(
+          new MCPClientError({
+            message: 'Unsupported message type',
+          }),
+        );
+        return;
       }
 
       this.onResponse(message);
     };
     this.clientInfo = {
       name,
-      version,
+      version: CLIENT_VERSION,
     };
   }
 
@@ -144,6 +148,7 @@ class MCPClient {
   }
 
   async close(): Promise<void> {
+    if (this.isClosed) return;
     await this.transport?.close();
     this.onClose();
   }
@@ -158,6 +163,14 @@ class MCPClient {
     options?: RequestOptions;
   }): Promise<z.infer<T>> {
     return new Promise((resolve, reject) => {
+      if (this.isClosed) {
+        return reject(
+          new MCPClientError({
+            message: 'Attempted to send a request from a closed client',
+          }),
+        );
+      }
+
       const signal = options?.signal;
       signal?.throwIfAborted();
 
@@ -190,7 +203,11 @@ class MCPClient {
           const result = resultSchema.parse(response.result);
           resolve(result);
         } catch (error) {
-          reject(error);
+          const parseError = new MCPClientError({
+            message: 'Failed to parse server initialization result',
+            cause: error,
+          });
+          reject(parseError);
         }
       });
 
@@ -214,21 +231,25 @@ class MCPClient {
       });
     }
 
-    return this.request({
-      request: { method: 'tools/list', params },
-      resultSchema: ListToolsResultSchema,
-      options,
-    });
+    try {
+      return this.request({
+        request: { method: 'tools/list', params },
+        resultSchema: ListToolsResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
   private async callTool({
-    params,
-    resultSchema,
+    name,
+    args,
     options,
   }: {
-    params: CallToolRequest['params'];
-    resultSchema: typeof CallToolResultSchema;
-    options?: RequestOptions;
+    name: string;
+    args: Record<string, unknown>;
+    options?: ToolExecutionOptions;
   }): Promise<CallToolResult> {
     if (!this.serverCapabilities.tools) {
       throw new MCPClientError({
@@ -236,11 +257,17 @@ class MCPClient {
       });
     }
 
-    return this.request({
-      request: { method: 'tools/call', params },
-      resultSchema,
-      options,
-    });
+    try {
+      return this.request({
+        request: { method: 'tools/call', params: { name, args } },
+        resultSchema: CallToolResultSchema,
+        options: {
+          signal: options?.abortSignal,
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
   }
 
   private async notification(notification: Notification): Promise<void> {
@@ -248,7 +275,6 @@ class MCPClient {
       ...notification,
       jsonrpc: '2.0',
     };
-
     await this.transport.send(jsonrpcNotification);
   }
 
@@ -262,46 +288,45 @@ class MCPClient {
     schemas?: TOOL_SCHEMAS;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
     const tools: Record<string, Tool> = {};
-    const listToolsResult = await this.listTools();
 
-    for (const { name, description, inputSchema } of listToolsResult.tools) {
-      if (schemas !== 'automatic' && !(name in schemas)) {
-        continue;
+    try {
+      const listToolsResult = await this.listTools();
+
+      for (const { name, description, inputSchema } of listToolsResult.tools) {
+        if (schemas !== 'automatic' && !(name in schemas)) {
+          continue;
+        }
+
+        const parameters =
+          schemas === 'automatic'
+            ? jsonSchema(inputSchema as JSONSchema7)
+            : schemas[name].parameters;
+
+        const self = this;
+        const toolWithExecute = tool({
+          description,
+          parameters,
+          execute: async (
+            args: inferParameters<typeof parameters>,
+            options: ToolExecutionOptions,
+          ): Promise<CallToolResult> => {
+            options?.abortSignal?.throwIfAborted();
+
+            return self.callTool({
+              name,
+              args,
+              options,
+            });
+          },
+        });
+
+        tools[name] = toolWithExecute;
       }
 
-      const parameters =
-        schemas === 'automatic'
-          ? jsonSchema(inputSchema as JSONSchema7)
-          : schemas[name].parameters;
-
-      const toolWithExecute = tool({
-        description,
-        parameters,
-        execute: async (
-          args: inferParameters<typeof parameters>,
-          options: ToolExecutionOptions,
-        ): Promise<CallToolResult> => {
-          options?.abortSignal?.throwIfAborted();
-
-          const result = await this.callTool({
-            params: {
-              name,
-              arguments: args,
-            },
-            resultSchema: CallToolResultSchema,
-            options: {
-              signal: options.abortSignal,
-            },
-          });
-
-          return result;
-        },
-      });
-
-      tools[name] = toolWithExecute;
+      return tools as McpToolSet<TOOL_SCHEMAS>;
+    } catch (error) {
+      throw error;
     }
-
-    return tools as McpToolSet<TOOL_SCHEMAS>;
   }
 
   private onClose(): void {
@@ -319,25 +344,22 @@ class MCPClient {
     this.responseHandlers.clear();
   }
 
-  private onError(error: Error): void {
-    throw new MCPClientError({
-      message: error.message,
-      cause: error,
-    });
+  private onError(error: unknown): void {
+    if (this.onUncaughtError) {
+      this.onUncaughtError(error);
+    }
   }
 
   private onResponse(response: JSONRPCResponse | JSONRPCError): void {
     const messageId = Number(response.id);
     const handler = this.responseHandlers.get(messageId);
+
     if (handler === undefined) {
-      this.onError(
-        new Error(
-          `Received a response for an unknown message ID: ${JSON.stringify(
-            response,
-          )}`,
-        ),
-      );
-      return;
+      throw new MCPClientError({
+        message: `Protocol error: Received a response for an unknown message ID: ${JSON.stringify(
+          response,
+        )}`,
+      });
     }
 
     this.responseHandlers.delete(messageId);
