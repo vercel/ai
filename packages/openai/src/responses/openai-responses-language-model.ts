@@ -242,6 +242,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       promptTokens: NaN,
       completionTokens: NaN,
     };
+    let hasToolCalls = false;
 
     return {
       stream: response.pipeThrough(
@@ -258,6 +259,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             }
 
             const value = chunk.value;
+            const rawValue = chunk.rawValue;
 
             if (isResponseCreatedChunk(value)) {
               controller.enqueue({
@@ -276,10 +278,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               return;
             }
 
+            if (
+              isResponseOutputItemDoneChunk(value) &&
+              value.item.type === 'function_call'
+            ) {
+              hasToolCalls = true;
+              controller.enqueue({
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: value.item.call_id,
+                toolName: value.item.name,
+                args: value.item.arguments,
+              });
+            }
+
             if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
-                hasToolCalls: false,
+                hasToolCalls,
               });
               usage = {
                 promptTokens: value.response.usage.input_tokens,
@@ -334,10 +350,29 @@ const responseCreatedChunkSchema = z.object({
   }),
 });
 
+const responseOutputItemDoneSchema = z.object({
+  type: z.literal('response.output_item.done'),
+  output_index: z.number(),
+  item: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('message'),
+    }),
+    z.object({
+      type: z.literal('function_call'),
+      id: z.string(),
+      call_id: z.string(),
+      name: z.string(),
+      arguments: z.string(),
+      status: z.literal('completed'),
+    }),
+  ]),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
   responseCreatedChunkSchema,
+  responseOutputItemDoneSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -345,6 +380,12 @@ function isTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof textDeltaChunkSchema> {
   return chunk.type === 'response.output_text.delta';
+}
+
+function isResponseOutputItemDoneChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseOutputItemDoneSchema> {
+  return chunk.type === 'response.output_item.done';
 }
 
 function isResponseFinishedChunk(

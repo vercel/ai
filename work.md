@@ -18,7 +18,9 @@
 - [x] test incomplete response (different chunks)
 - [x] model id, created at, message id
 - [ ] tool call support
-  - streaming tool call parsing
+  - tool call parsing
+  - tool call streaming
+  - streamObject example w/ tools
 
 ### args
 
