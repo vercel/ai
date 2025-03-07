@@ -221,11 +221,12 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        // {
-        //   type: 'response-metadata',
-        //   id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
-        //   modelId: 'claude-3-haiku-20240307',
-        // },
+        {
+          id: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
+          modelId: 'gpt-4o-mini-2024-07-18',
+          timestamp: new Date('2025-03-06T13:50:19.000Z'),
+          type: 'response-metadata',
+        },
         { type: 'text-delta', textDelta: 'Hello,' },
         { type: 'text-delta', textDelta: ' World!' },
         {
@@ -262,11 +263,12 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        // {
-        //   type: 'response-metadata',
-        //   id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
-        //   modelId: 'claude-3-haiku-20240307',
-        // },
+        {
+          id: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
+          modelId: 'gpt-4o-mini-2024-07-18',
+          timestamp: new Date('2025-03-06T13:50:19.000Z'),
+          type: 'response-metadata',
+        },
         { type: 'text-delta', textDelta: 'Hello,' },
         {
           type: 'finish',

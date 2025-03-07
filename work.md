@@ -8,28 +8,25 @@
 - [x] doGenerate testing
 - [x] structured outputs (json mode)
 - [x] finish reason support
-- [ ] json response format support
-- [ ] system & developer message support
-- [ ] settings
+- [ ] tool call support
 
 ### streamText support
 
 - [x] streamText chatbot prototype
 - [x] test scaffolding
 - [x] finish reason support
-- [ ] test incomplete response (different chunks)
-- [ ] model id, created at, message id
+- [x] test incomplete response (different chunks)
+- [x] model id, created at, message id
+- [ ] tool call support
 
-### structured outputs support
+### args
 
-- [ ] structured outputs opt out
-
-### tool call support
-
-### custom settings
-
-- [ ] reasoning effort
-- [ ] parallel tool calls
+- [ ] json response format support
+- [ ] system & developer message support
+- [ ] settings
+- [ ] custom: structured outputs opt out
+- [ ] custom: reasoning effort
+- [ ] custom: parallel tool calls
 
 ### provider-defined tool support
 

@@ -226,25 +226,31 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
             const value = chunk.value;
 
+            if (isResponseCreatedChunk(value)) {
+              controller.enqueue({
+                type: 'response-metadata',
+                id: value.response.id,
+                timestamp: new Date(value.response.created_at * 1000),
+                modelId: value.response.model,
+              });
+            }
+
             if (isTextDeltaChunk(value)) {
               controller.enqueue({
                 type: 'text-delta',
                 textDelta: value.delta,
               });
-
               return;
             }
 
-            if (isResponseFinishChunk(value)) {
+            if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason(
                 value.response.incomplete_details?.reason,
               );
-
               usage = {
                 promptTokens: value.response.usage.input_tokens,
                 completionTokens: value.response.usage.output_tokens,
               };
-
               return;
             }
           },
@@ -274,7 +280,7 @@ const textDeltaChunkSchema = z.object({
   delta: z.string(),
 });
 
-const responseFinishChunkSchema = z.object({
+const responseFinishedChunkSchema = z.object({
   type: z.enum(['response.completed', 'response.incomplete']),
   response: z.object({
     incomplete_details: z.object({ reason: z.string() }).nullish(),
@@ -285,9 +291,19 @@ const responseFinishChunkSchema = z.object({
   }),
 });
 
+const responseCreatedChunkSchema = z.object({
+  type: z.literal('response.created'),
+  response: z.object({
+    id: z.string(),
+    created_at: z.number(),
+    model: z.string(),
+  }),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
-  responseFinishChunkSchema,
+  responseFinishedChunkSchema,
+  responseCreatedChunkSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -297,10 +313,16 @@ function isTextDeltaChunk(
   return chunk.type === 'response.output_text.delta';
 }
 
-function isResponseFinishChunk(
+function isResponseFinishedChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseFinishChunkSchema> {
+): chunk is z.infer<typeof responseFinishedChunkSchema> {
   return (
     chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
   );
+}
+
+function isResponseCreatedChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseCreatedChunkSchema> {
+  return chunk.type === 'response.created';
 }
