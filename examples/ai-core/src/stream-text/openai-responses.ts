@@ -1,12 +1,11 @@
+import 'dotenv/config';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import 'dotenv/config';
 
 async function main() {
   const result = streamText({
     model: openai.responses('gpt-4o-mini'),
-    maxTokens: 512,
-    temperature: 0.3,
+    maxTokens: 100,
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
@@ -15,8 +14,10 @@ async function main() {
   }
 
   console.log();
-  console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
+  console.log('Usage:', await result.usage);
+  console.log();
+  console.log(JSON.stringify(await result.response, null, 2));
 }
 
 main().catch(console.error);

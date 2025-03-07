@@ -17,6 +17,7 @@ import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
@@ -42,6 +43,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
   private getArgs({
     mode,
+    maxTokens,
     topK,
     temperature,
     topP,
@@ -59,6 +61,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       input: convertToOpenAIResponsesMessages({ prompt }),
       temperature,
       top_p: topP,
+      max_output_tokens: maxTokens,
     };
 
     switch (type) {
@@ -137,6 +140,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               ),
             }),
           ),
+          incomplete_details: z.object({ reason: z.string() }).nullable(),
           usage: z.object({
             input_tokens: z.number(),
             output_tokens: z.number(),
@@ -150,7 +154,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     return {
       // TODO what if there are multiple text parts / messages:
       text: response.output[0].content[0].text,
-      finishReason: 'stop',
+      finishReason: mapOpenAIResponseFinishReason(
+        response.incomplete_details?.reason,
+      ),
       usage: {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
@@ -219,6 +225,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             }
 
             const value = chunk.value;
+            const rawValue = chunk.rawValue;
+
+            console.log(JSON.stringify(rawValue, null, 2));
 
             if (isTextDeltaChunk(value)) {
               controller.enqueue({
@@ -229,8 +238,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               return;
             }
 
-            if (isResponseCompletedChunk(value)) {
-              finishReason = 'stop';
+            if (isResponseFinishChunk(value)) {
+              finishReason = mapOpenAIResponseFinishReason(
+                value.response.incomplete_details?.reason,
+              );
+
               usage = {
                 promptTokens: value.response.usage.input_tokens,
                 completionTokens: value.response.usage.output_tokens,
@@ -243,7 +255,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
           flush(controller) {
             controller.enqueue({
               type: 'finish',
-              finishReason: 'stop',
+              finishReason,
               usage,
             });
           },
@@ -265,9 +277,10 @@ const textDeltaChunkSchema = z.object({
   delta: z.string(),
 });
 
-const responseCompletedChunkSchema = z.object({
-  type: z.literal('response.completed'),
+const responseFinishChunkSchema = z.object({
+  type: z.enum(['response.completed', 'response.incomplete']),
   response: z.object({
+    incomplete_details: z.object({ reason: z.string() }).nullish(),
     usage: z.object({
       input_tokens: z.number(),
       output_tokens: z.number(),
@@ -277,7 +290,7 @@ const responseCompletedChunkSchema = z.object({
 
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
-  responseCompletedChunkSchema,
+  responseFinishChunkSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -287,8 +300,10 @@ function isTextDeltaChunk(
   return chunk.type === 'response.output_text.delta';
 }
 
-function isResponseCompletedChunk(
+function isResponseFinishChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseCompletedChunkSchema> {
-  return chunk.type === 'response.completed';
+): chunk is z.infer<typeof responseFinishChunkSchema> {
+  return (
+    chunk.type === 'response.completed' || chunk.type === 'response.incomplete'
+  );
 }

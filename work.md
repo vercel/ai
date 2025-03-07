@@ -7,16 +7,17 @@
 - [x] image inputs
 - [x] doGenerate testing
 - [x] structured outputs (json mode)
+- [x] finish reason support
 - [ ] json response format support
 - [ ] system & developer message support
-- [ ] finish reason support
 - [ ] settings
 
 ### streamText support
 
 - [x] streamText chatbot prototype
 - [x] test scaffolding
-- [ ] finish reason support
+- [x] finish reason support
+- [ ] test incomplete response (different chunks)
 - [ ] model id, created at, message id
 
 ### structured outputs support
@@ -33,6 +34,8 @@
 ### provider-defined tool support
 
 ### previousResponseId support
+
+### documentation
 
 ### integration
 

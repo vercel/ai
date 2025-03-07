@@ -6,10 +6,12 @@ async function main() {
   const result = await generateText({
     model: openai.responses('gpt-4o-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
+    maxTokens: 1000,
   });
 
   console.log(result.text);
   console.log();
+  console.log('Finish reason:', result.finishReason);
   console.log('Usage:', result.usage);
 
   console.log('Request:', JSON.stringify(result.request, null, 2));
