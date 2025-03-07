@@ -574,7 +574,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
 const BedrockReasoningConfigOptionsSchema = z
   .object({
-    type: z.union([z.literal('enabled'), z.literal('disabled')]),
+    type: z.union([z.literal('enabled'), z.literal('disabled')]).nullish(),
     budget_tokens: z.number().nullish(),
     budgetTokens: z.number().nullish(),
   })
