@@ -158,7 +158,7 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       body: args,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
-        errorToMessage: data => data.error,
+        errorToMessage,
       }),
       successfulResponseHandler: createJsonResponseHandler(
         perplexityResponseSchema,
@@ -220,7 +220,7 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
-        errorToMessage: data => data.error,
+        errorToMessage,
       }),
       successfulResponseHandler: createEventSourceResponseHandler(
         perplexityChunkSchema,
@@ -426,8 +426,15 @@ const perplexityChunkSchema = z.object({
 });
 
 export const perplexityErrorSchema = z.object({
-  code: z.string(),
-  error: z.string(),
+  error: z.object({
+    code: z.number(),
+    message: z.string().nullish(),
+    type: z.string().nullish(),
+  }),
 });
 
 export type PerplexityErrorData = z.infer<typeof perplexityErrorSchema>;
+
+const errorToMessage = (data: PerplexityErrorData) => {
+  return data.error.message ?? data.error.type ?? 'unknown error';
+};
