@@ -8,12 +8,7 @@
 - [x] doGenerate testing
 - [x] structured outputs (json mode)
 - [x] finish reason support
-- [ ] tool call support
-  - [x] add tool spec to prompt
-  - [x] return tool calls
-  - [x] return tool finish reason
-  - [x] accept tool results
-  - [ ] testing
+- [x] tool call support
 
 ### streamText support
 
@@ -23,6 +18,7 @@
 - [x] test incomplete response (different chunks)
 - [x] model id, created at, message id
 - [ ] tool call support
+  - streaming tool call parsing
 
 ### args
 
