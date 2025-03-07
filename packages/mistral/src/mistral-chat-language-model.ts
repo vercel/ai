@@ -54,6 +54,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
+  supportsUrl(url: URL): boolean {
+    return url.protocol === 'https:';
+  }
+
   private getArgs({
     mode,
     prompt,
@@ -66,6 +70,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -127,6 +132,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       // response format:
       response_format:
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
+
+      // mistral-specific provider options:
+      document_image_limit: providerMetadata?.mistral?.documentImageLimit,
+      document_page_limit: providerMetadata?.mistral?.documentPageLimit,
 
       // messages:
       messages: convertToMistralChatMessages(prompt),
