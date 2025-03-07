@@ -12,7 +12,7 @@
   - [x] add tool spec to prompt
   - [x] return tool calls
   - [x] return tool finish reason
-  - [ ] accept tool results
+  - [x] accept tool results
   - [ ] testing
 
 ### streamText support
