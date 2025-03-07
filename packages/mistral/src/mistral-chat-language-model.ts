@@ -54,6 +54,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
+  supportsUrl(url: URL): boolean {
+    return url.protocol === 'https:';
+  }
+
   private getArgs({
     mode,
     prompt,
