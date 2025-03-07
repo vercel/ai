@@ -18,10 +18,11 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod';
 import {
+  BEDROCK_STOP_REASONS,
   BedrockConverseInput,
   BedrockStopReason,
-  BEDROCK_STOP_REASONS,
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
@@ -32,7 +33,6 @@ import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
-import { z } from 'zod';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
@@ -66,7 +66,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     responseFormat,
     seed,
     providerMetadata,
-    headers,
   }: Parameters<LanguageModelV1['doGenerate']>[0]): {
     command: BedrockConverseInput;
     warnings: LanguageModelV1CallWarning[];
@@ -128,7 +127,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     }
 
     const isThinking = reasoningConfigOptions.data?.type === 'enabled';
-    const thinkingBudget = reasoningConfigOptions.data?.budget_tokens;
+    const thinkingBudget =
+      reasoningConfigOptions.data?.budgetTokens ??
+      reasoningConfigOptions.data?.budget_tokens;
 
     const inferenceConfig = {
       ...(maxTokens != null && { maxTokens }),
@@ -148,7 +149,10 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       // Add reasoning config to additionalModelRequestFields
       this.settings.additionalModelRequestFields = {
         ...this.settings.additionalModelRequestFields,
-        reasoning_config: { ...reasoningConfigOptions.data },
+        reasoning_config: {
+          type: reasoningConfigOptions.data?.type,
+          budget_tokens: thinkingBudget,
+        },
       };
     }
 
@@ -570,8 +574,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
 const BedrockReasoningConfigOptionsSchema = z
   .object({
-    type: z.union([z.literal('enabled'), z.literal('disabled')]),
+    type: z.union([z.literal('enabled'), z.literal('disabled')]).nullish(),
     budget_tokens: z.number().nullish(),
+    budgetTokens: z.number().nullish(),
   })
   .nullish();
 
