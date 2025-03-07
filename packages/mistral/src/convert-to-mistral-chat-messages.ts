@@ -49,7 +49,7 @@ export function convertToMistralChatMessages(
                 switch (part.mimeType) {
                   case 'application/pdf': {
                     return {
-                      type: 'document',
+                      type: 'document_url',
                       document_url: part.data.toString(),
                     };
                   }

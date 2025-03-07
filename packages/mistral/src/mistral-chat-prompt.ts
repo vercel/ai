@@ -19,7 +19,7 @@ export interface MistralUserMessage {
 export type MistralUserMessageContent =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: string }
-  | { type: 'document'; documentUrl: string };
+  | { type: 'document_url'; document_url: string };
 
 export interface MistralAssistantMessage {
   role: 'assistant';
