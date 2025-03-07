@@ -1,12 +1,38 @@
 import {
+  LanguageModelV1FunctionTool,
+  LanguageModelV1Prompt,
+} from '@ai-sdk/provider';
+import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+];
+
+const TEST_TOOLS: Array<LanguageModelV1FunctionTool> = [
+  {
+    type: 'function',
+    name: 'weather',
+    parameters: {
+      type: 'object',
+      properties: { location: { type: 'string' } },
+      required: ['location'],
+      additionalProperties: false,
+    },
+  },
+  {
+    type: 'function',
+    name: 'cityAttractions',
+    parameters: {
+      type: 'object',
+      properties: { city: { type: 'string' } },
+      required: ['city'],
+      additionalProperties: false,
+    },
+  },
 ];
 
 const provider = createOpenAI({ apiKey: 'test-api-key' });
@@ -17,130 +43,109 @@ describe('OpenAIResponsesLanguageModel', () => {
     'https://api.openai.com/v1/responses': {},
   });
 
-  function prepareJsonResponse({ text = '' }: { text?: string }) {
-    server.urls['https://api.openai.com/v1/responses'].response = {
-      type: 'json-value',
-      body: {
-        id: 'resp_67c97c0203188190a025beb4a75242bc',
-        object: 'response',
-        created_at: 1741257730,
-        status: 'completed',
-        error: null,
-        incomplete_details: null,
-        input: [],
-        instructions: null,
-        max_output_tokens: null,
-        model: 'gpt-4o-mini-2024-07-18',
-        output: [
-          {
-            id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-            type: 'message',
+  describe('doGenerate', () => {
+    describe('basic text response', () => {
+      beforeEach(() => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67c97c0203188190a025beb4a75242bc',
+            object: 'response',
+            created_at: 1741257730,
             status: 'completed',
-            role: 'assistant',
-            content: [
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-mini-2024-07-18',
+            output: [
               {
-                type: 'output_text',
-                text,
-                annotations: [],
+                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+                type: 'message',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'answer text',
+                    annotations: [],
+                  },
+                ],
               },
             ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: null,
+              summary: null,
+            },
+            store: true,
+            temperature: 1,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 34,
+              output_tokens: 538,
+              output_tokens_details: {
+                reasoning_tokens: 0,
+              },
+              total_tokens: 572,
+            },
+            user: null,
+            metadata: {},
           },
-        ],
-        parallel_tool_calls: true,
-        previous_response_id: null,
-        reasoning: {
-          effort: null,
-          summary: null,
-        },
-        store: true,
-        temperature: 1,
-        text: {
-          format: {
-            type: 'text',
-          },
-        },
-        tool_choice: 'auto',
-        tools: [],
-        top_p: 1,
-        truncation: 'disabled',
-        usage: {
-          input_tokens: 34,
-          output_tokens: 538,
-          output_tokens_details: {
-            reasoning_tokens: 0,
-          },
-          total_tokens: 572,
-        },
-        user: null,
-        metadata: {},
-      },
-    };
-  }
-
-  describe('doGenerate', () => {
-    it('should generate text', async () => {
-      prepareJsonResponse({ text: 'answer text' });
-
-      const result = await model.doGenerate({
-        prompt: [
-          { role: 'user', content: [{ type: 'text', text: 'Hello, World!' }] },
-        ],
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
+        };
       });
 
-      expect(result.text).toStrictEqual('answer text');
-    });
+      it('should generate text', async () => {
+        const result = await model.doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello, World!' }],
+            },
+          ],
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+        });
 
-    it('should send model id and settings', async () => {
-      prepareJsonResponse({});
-
-      const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-        temperature: 0.5,
-        topP: 0.3,
+        expect(result.text).toStrictEqual('answer text');
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        model: 'gpt-4o-mini',
-        temperature: 0.5,
-        top_p: 0.3,
-        input: [
-          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-        ],
+      it('should send model id and settings', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          temperature: 0.5,
+          topP: 0.3,
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o-mini',
+          temperature: 0.5,
+          top_p: 0.3,
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
       });
 
-      expect(warnings).toStrictEqual([]);
-    });
-
-    it('should send json schema format', async () => {
-      prepareJsonResponse({});
-
-      const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: {
-          type: 'object-json',
-          name: 'response',
-          description: 'A response',
-          schema: {
-            type: 'object',
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-        prompt: TEST_PROMPT,
-      });
-
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        model: 'gpt-4o-mini',
-        text: {
-          format: {
-            type: 'json_schema',
-            strict: true,
+      it('should send json schema format', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'object-json',
             name: 'response',
             description: 'A response',
             schema: {
@@ -151,48 +156,196 @@ describe('OpenAIResponsesLanguageModel', () => {
               $schema: 'http://json-schema.org/draft-07/schema#',
             },
           },
-        },
-        input: [
-          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-        ],
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o-mini',
+          text: {
+            format: {
+              type: 'json_schema',
+              strict: true,
+              name: 'response',
+              description: 'A response',
+              schema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          },
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
       });
 
-      expect(warnings).toStrictEqual([]);
+      it('should send json object format', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'object-json' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o-mini',
+          text: { format: { type: 'json_object' } },
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should warn about unsupported settings', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          topK: 0.1,
+        });
+
+        expect(warnings).toStrictEqual([
+          { type: 'unsupported-setting', setting: 'topK' },
+        ]);
+      });
     });
 
-    it('should send json object format', async () => {
-      prepareJsonResponse({});
-
-      const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'object-json' },
-        prompt: TEST_PROMPT,
+    describe('tool calls', () => {
+      beforeEach(() => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67c97c0203188190a025beb4a75242bc',
+            object: 'response',
+            created_at: 1741257730,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            input: [],
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-mini-2024-07-18',
+            output: [
+              {
+                type: 'function_call',
+                id: 'fc_67caf7f4c1ec8190b27edfb5580cfd31',
+                call_id: 'call_0NdsJqOS8N3J9l2p0p4WpYU9',
+                name: 'weather',
+                arguments: '{"location":"San Francisco"}',
+                status: 'completed',
+              },
+              {
+                type: 'function_call',
+                id: 'fc_67caf7f5071c81908209c2909c77af05',
+                call_id: 'call_gexo0HtjUfmAIW4gjNOgyrcr',
+                name: 'cityAttractions',
+                arguments: '{"city":"San Francisco"}',
+                status: 'completed',
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: null,
+              summary: null,
+            },
+            store: true,
+            temperature: 1,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [
+              {
+                type: 'function',
+                description: 'Get the weather in a location',
+                name: 'weather',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    location: {
+                      type: 'string',
+                      description: 'The location to get the weather for',
+                    },
+                  },
+                  required: ['location'],
+                  additionalProperties: false,
+                },
+                strict: true,
+              },
+              {
+                type: 'function',
+                description: null,
+                name: 'cityAttractions',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    city: {
+                      type: 'string',
+                    },
+                  },
+                  required: ['city'],
+                  additionalProperties: false,
+                },
+                strict: true,
+              },
+            ],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 34,
+              output_tokens: 538,
+              output_tokens_details: {
+                reasoning_tokens: 0,
+              },
+              total_tokens: 572,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        model: 'gpt-4o-mini',
-        text: { format: { type: 'json_object' } },
-        input: [
-          { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-        ],
+      it('should generate tool calls', async () => {
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          inputFormat: 'prompt',
+          mode: { type: 'regular', tools: TEST_TOOLS },
+        });
+
+        expect(result.toolCalls).toStrictEqual([
+          {
+            toolCallType: 'function',
+            toolCallId: 'call_0NdsJqOS8N3J9l2p0p4WpYU9',
+            toolName: 'weather',
+            args: JSON.stringify({ location: 'San Francisco' }),
+          },
+          {
+            toolCallType: 'function',
+            toolCallId: 'call_gexo0HtjUfmAIW4gjNOgyrcr',
+            toolName: 'cityAttractions',
+            args: JSON.stringify({ city: 'San Francisco' }),
+          },
+        ]);
       });
 
-      expect(warnings).toStrictEqual([]);
-    });
+      it('should have tool-calls finish reason', async () => {
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          inputFormat: 'prompt',
+          mode: { type: 'regular', tools: TEST_TOOLS },
+        });
 
-    it('should warn about unsupported settings', async () => {
-      prepareJsonResponse({});
-
-      const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: { type: 'regular' },
-        prompt: TEST_PROMPT,
-        topK: 0.1,
+        expect(result.finishReason).toStrictEqual('tool-calls');
       });
-
-      expect(warnings).toStrictEqual([
-        { type: 'unsupported-setting', setting: 'topK' },
-      ]);
     });
   });
 
