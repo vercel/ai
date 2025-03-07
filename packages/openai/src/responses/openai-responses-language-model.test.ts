@@ -141,7 +141,54 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send json schema format', async () => {
+      it('should send object-tool format', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'object-tool',
+            tool: {
+              type: 'function',
+              name: 'response',
+              description: 'A response',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o-mini',
+          tool_choice: { type: 'function', name: 'response' },
+          tools: [
+            {
+              type: 'function',
+              strict: true,
+              name: 'response',
+              description: 'A response',
+              parameters: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          ],
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send object-json json_schema format', async () => {
         const { warnings } = await model.doGenerate({
           inputFormat: 'prompt',
           mode: {
@@ -184,7 +231,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send json object format', async () => {
+      it('should send object-json json_object format', async () => {
         const { warnings } = await model.doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'object-json' },

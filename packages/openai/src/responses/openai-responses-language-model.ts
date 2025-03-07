@@ -3,7 +3,6 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1StreamPart,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -16,9 +15,9 @@ import { z } from 'zod';
 import { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
-import { OpenAIResponsesModelId } from './openai-responses-settings';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
+import { OpenAIResponsesModelId } from './openai-responses-settings';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
@@ -28,13 +27,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
   private readonly config: OpenAIConfig;
 
-  constructor(
-    modelId: OpenAIResponsesModelId,
-    // settings: OpenAIChatSettings,
-    config: OpenAIConfig,
-  ) {
+  constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {
     this.modelId = modelId;
-    // this.settings = settings;
     this.config = config;
   }
 

@@ -9,6 +9,7 @@
 - [x] structured outputs (json mode)
 - [x] finish reason support
 - [x] tool call support
+- [x] test tool mode structured outputs
 
 ### streamText support
 
@@ -17,10 +18,8 @@
 - [x] finish reason support
 - [x] test incomplete response (different chunks)
 - [x] model id, created at, message id
-- [ ] tool call support
-  - tool call parsing
-  - tool call streaming
-  - streamObject example w/ tools
+- [x] tool call support
+- [ ] test streaming tool calls
 
 ### args
 
