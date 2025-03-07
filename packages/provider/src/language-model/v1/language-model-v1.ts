@@ -1,4 +1,3 @@
-import { JSONValue } from '../../json-value';
 import { LanguageModelV1CallOptions } from './language-model-v1-call-options';
 import { LanguageModelV1CallWarning } from './language-model-v1-call-warning';
 import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';

@@ -139,16 +139,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
           created_at: z.number(),
           model: z.string(),
           output: z.array(
-            z.object({
-              type: z.literal('message'),
-              role: z.literal('assistant'),
-              content: z.array(
-                z.object({
-                  type: z.literal('output_text'),
-                  text: z.string(),
-                }),
-              ),
-            }),
+            z.discriminatedUnion('type', [
+              z.object({
+                type: z.literal('message'),
+                role: z.literal('assistant'),
+                content: z.array(
+                  z.object({
+                    type: z.literal('output_text'),
+                    text: z.string(),
+                  }),
+                ),
+              }),
+              z.object({
+                type: z.literal('function_call'),
+                call_id: z.string(),
+                name: z.string(),
+                arguments: z.string(),
+              }),
+            ]),
           ),
           incomplete_details: z.object({ reason: z.string() }).nullable(),
           usage: z.object({
@@ -161,12 +169,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
+    const toolCalls = response.output
+      .filter(output => output.type === 'function_call')
+      .map(output => ({
+        toolCallType: 'function' as const,
+        toolCallId: output.call_id,
+        toolName: output.name,
+        args: output.arguments,
+      }));
+
     return {
-      // TODO what if there are multiple text parts / messages:
-      text: response.output[0].content[0].text,
-      finishReason: mapOpenAIResponseFinishReason(
-        response.incomplete_details?.reason,
-      ),
+      text: response.output
+        .filter(output => output.type === 'message')
+        .flatMap(output => output.content)
+        .filter(content => content.type === 'output_text')
+        .map(content => content.text)
+        .join('\n'),
+      finishReason: mapOpenAIResponseFinishReason({
+        finishReason: response.incomplete_details?.reason,
+        hasToolCalls: toolCalls.length > 0,
+      }),
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
       usage: {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
@@ -254,9 +277,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             }
 
             if (isResponseFinishedChunk(value)) {
-              finishReason = mapOpenAIResponseFinishReason(
-                value.response.incomplete_details?.reason,
-              );
+              finishReason = mapOpenAIResponseFinishReason({
+                finishReason: value.response.incomplete_details?.reason,
+                hasToolCalls: false,
+              });
               usage = {
                 promptTokens: value.response.usage.input_tokens,
                 completionTokens: value.response.usage.output_tokens,

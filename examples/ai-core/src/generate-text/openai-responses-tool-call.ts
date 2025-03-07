@@ -17,8 +17,6 @@ async function main() {
       'What is the weather in San Francisco and what attractions should I visit?',
   });
 
-  console.log(result.response.body);
-
   // typed tool calls:
   for (const toolCall of result.toolCalls) {
     switch (toolCall.toolName) {
@@ -53,7 +51,9 @@ async function main() {
     }
   }
 
-  console.log(JSON.stringify(result, null, 2));
+  console.log(JSON.stringify(result.toolCalls, null, 2));
+  console.log(JSON.stringify(result.toolResults, null, 2));
+  console.log(JSON.stringify(result.finishReason, null, 2));
 }
 
 main().catch(console.error);

@@ -1,17 +1,21 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
 
-export function mapOpenAIResponseFinishReason(
-  finishReason: string | null | undefined,
-): LanguageModelV1FinishReason {
+export function mapOpenAIResponseFinishReason({
+  finishReason,
+  hasToolCalls,
+}: {
+  finishReason: string | null | undefined;
+  hasToolCalls: boolean;
+}): LanguageModelV1FinishReason {
   switch (finishReason) {
     case undefined:
     case null:
-      return 'stop';
+      return hasToolCalls ? 'tool-calls' : 'stop';
     case 'max_output_tokens':
       return 'length';
     case 'content_filter':
       return 'content-filter';
     default:
-      return 'unknown';
+      return hasToolCalls ? 'tool-calls' : 'unknown';
   }
 }

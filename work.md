@@ -9,9 +9,11 @@
 - [x] structured outputs (json mode)
 - [x] finish reason support
 - [ ] tool call support
-  - add tool spec to prompt
-  - return tool calls & status
-  - accept tool results
+  - [x] add tool spec to prompt
+  - [x] return tool calls
+  - [x] return tool finish reason
+  - [ ] accept tool results
+  - [ ] testing
 
 ### streamText support
 
