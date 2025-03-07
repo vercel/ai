@@ -18,10 +18,11 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod';
 import {
+  BEDROCK_STOP_REASONS,
   BedrockConverseInput,
   BedrockStopReason,
-  BEDROCK_STOP_REASONS,
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
@@ -32,7 +33,6 @@ import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
-import { z } from 'zod';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
@@ -66,7 +66,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     responseFormat,
     seed,
     providerMetadata,
-    headers,
   }: Parameters<LanguageModelV1['doGenerate']>[0]): {
     command: BedrockConverseInput;
     warnings: LanguageModelV1CallWarning[];
@@ -128,14 +127,9 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     }
 
     const isThinking = reasoningConfigOptions.data?.type === 'enabled';
-    // Check for both budget_tokens and budgetTokens, prioritizing budget_tokens if both exist
     const thinkingBudget =
-      reasoningConfigOptions.data &&
-      ('budget_tokens' in reasoningConfigOptions.data
-        ? reasoningConfigOptions.data.budget_tokens
-        : 'budgetTokens' in reasoningConfigOptions.data
-        ? reasoningConfigOptions.data.budgetTokens
-        : undefined);
+      reasoningConfigOptions.data?.budgetTokens ??
+      reasoningConfigOptions.data?.budget_tokens;
 
     const inferenceConfig = {
       ...(maxTokens != null && { maxTokens }),
@@ -580,14 +574,10 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
 const BedrockReasoningConfigOptionsSchema = z
   .object({
-    type: z.union([z.literal('enabled'), z.literal('disabled')]),
+    type: z.union([z.literal('enabled'), z.literal('disabled')]).nullish(),
+    budget_tokens: z.number().nullish(),
+    budgetTokens: z.number().nullish(),
   })
-  .and(
-    z.union([
-      z.object({ budget_tokens: z.number() }),
-      z.object({ budgetTokens: z.number() }),
-    ]),
-  )
   .nullish();
 
 const BedrockStopReasonSchema = z.union([
