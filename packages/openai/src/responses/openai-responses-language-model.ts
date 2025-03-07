@@ -225,9 +225,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             }
 
             const value = chunk.value;
-            const rawValue = chunk.rawValue;
-
-            console.log(JSON.stringify(rawValue, null, 2));
 
             if (isTextDeltaChunk(value)) {
               controller.enqueue({
