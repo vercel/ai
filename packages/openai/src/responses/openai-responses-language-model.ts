@@ -104,9 +104,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'Tool calling is not supported for responses models',
-        });
+        return {
+          args: {
+            ...baseArgs,
+            tool_choice: { type: 'function', name: mode.tool.name },
+            tools: [
+              {
+                type: 'function',
+                name: mode.tool.name,
+                description: mode.tool.description,
+                parameters: mode.tool.parameters,
+                strict: true,
+              },
+            ],
+          },
+          warnings,
+        };
       }
 
       default: {
@@ -242,6 +255,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       promptTokens: NaN,
       completionTokens: NaN,
     };
+    const ongoingToolCalls: Record<
+      number,
+      { toolName: string; toolCallId: string } | undefined
+    > = {};
     let hasToolCalls = false;
 
     return {
@@ -259,7 +276,41 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             }
 
             const value = chunk.value;
-            const rawValue = chunk.rawValue;
+
+            // TODO remove
+            // console.log(JSON.stringify(chunk.rawValue, null, 2));
+
+            if (
+              isResponseOutputItemAddedChunk(value) &&
+              value.item.type === 'function_call'
+            ) {
+              ongoingToolCalls[value.output_index] = {
+                toolName: value.item.name,
+                toolCallId: value.item.call_id,
+              };
+
+              controller.enqueue({
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: value.item.call_id,
+                toolName: value.item.name,
+                argsTextDelta: value.item.arguments,
+              });
+            }
+
+            if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
+              const toolCall = ongoingToolCalls[value.output_index];
+
+              if (toolCall != null) {
+                controller.enqueue({
+                  type: 'tool-call-delta',
+                  toolCallType: 'function',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  argsTextDelta: value.delta,
+                });
+              }
+            }
 
             if (isResponseCreatedChunk(value)) {
               controller.enqueue({
@@ -282,6 +333,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               isResponseOutputItemDoneChunk(value) &&
               value.item.type === 'function_call'
             ) {
+              ongoingToolCalls[value.output_index] = undefined;
               hasToolCalls = true;
               controller.enqueue({
                 type: 'tool-call',
@@ -368,11 +420,37 @@ const responseOutputItemDoneSchema = z.object({
   ]),
 });
 
+const responseFunctionCallArgumentsDeltaSchema = z.object({
+  type: z.literal('response.function_call_arguments.delta'),
+  item_id: z.string(),
+  output_index: z.number(),
+  delta: z.string(),
+});
+
+const responseOutputItemAddedSchema = z.object({
+  type: z.literal('response.output_item.added'),
+  output_index: z.number(),
+  item: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('message'),
+    }),
+    z.object({
+      type: z.literal('function_call'),
+      id: z.string(),
+      call_id: z.string(),
+      name: z.string(),
+      arguments: z.string(),
+    }),
+  ]),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
   responseCreatedChunkSchema,
   responseOutputItemDoneSchema,
+  responseFunctionCallArgumentsDeltaSchema,
+  responseOutputItemAddedSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -400,4 +478,16 @@ function isResponseCreatedChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseCreatedChunkSchema> {
   return chunk.type === 'response.created';
+}
+
+function isResponseFunctionCallArgumentsDeltaChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseFunctionCallArgumentsDeltaSchema> {
+  return chunk.type === 'response.function_call_arguments.delta';
+}
+
+function isResponseOutputItemAddedChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseOutputItemAddedSchema> {
+  return chunk.type === 'response.output_item.added';
 }

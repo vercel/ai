@@ -25,7 +25,7 @@ export function prepareResponsesTools({
     | 'auto'
     | 'none'
     | 'required'
-    | { type: 'function'; function: { name: string } };
+    | { type: 'function'; name: string };
   toolWarnings: LanguageModelV1CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
@@ -77,9 +77,7 @@ export function prepareResponsesTools({
         tools: openaiTools,
         tool_choice: {
           type: 'function',
-          function: {
-            name: toolChoice.toolName,
-          },
+          name: toolChoice.toolName,
         },
         toolWarnings,
       };
