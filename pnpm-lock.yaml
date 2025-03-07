@@ -96,7 +96,7 @@ importers:
         specifier: 0.0.9
         version: link:../../packages/luma
       '@ai-sdk/mistral':
-        specifier: 1.1.14
+        specifier: 1.1.15
         version: link:../../packages/mistral
       '@ai-sdk/openai':
         specifier: 1.2.1
