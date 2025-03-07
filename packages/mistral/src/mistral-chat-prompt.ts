@@ -18,11 +18,17 @@ export interface MistralUserMessage {
 
 export type MistralUserMessageContent =
   | MistralUserMessageTextContent
-  | MistralUserMessageImageContent;
+  | MistralUserMessageImageContent
+  | MistralUserMessageDocumentContent;
 
 export interface MistralUserMessageImageContent {
   type: 'image_url';
   image_url: string;
+}
+
+export interface MistralUserMessageDocumentContent {
+  type: 'document_url';
+  document_url: string;
 }
 
 export interface MistralUserMessageTextContent {
