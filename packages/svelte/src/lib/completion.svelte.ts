@@ -2,7 +2,6 @@ import {
   generateId,
   type UseCompletionOptions,
   type JSONValue,
-  type UIMessage,
   type RequestOptions,
   callCompletionApi,
 } from "@ai-sdk/ui-utils";

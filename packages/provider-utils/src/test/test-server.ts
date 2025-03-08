@@ -1,7 +1,6 @@
 import { HttpResponse, JsonBodyType, http } from 'msw';
 import { setupServer } from 'msw/node';
 import { convertArrayToReadableStream } from './convert-array-to-readable-stream';
-import { expect } from 'vitest';
 
 export type TestServerJsonBodyType = JsonBodyType;
 

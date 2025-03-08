@@ -14,5 +14,8 @@
 		"declaration": true,
 		"declarationMap": true,
 		"stripInternal": true,
+		"types": [
+			"vitest/globals",
+		]
 	}
 }
