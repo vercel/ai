@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { ThreadMessageManager } from "./thread-message-manager.svelte.js";
+import {
+  MessageManagerStore,
+  ThreadMessageManager,
+} from "./thread-message-manager.svelte.js";
 
 describe("ThreadMessageManager", () => {
   it("should create a new thread", () => {
@@ -63,5 +66,40 @@ describe("ThreadMessageManager", () => {
     expect(manager.messages).toStrictEqual([
       { id: "m0", role: "user", content: "hi" },
     ]);
+  });
+
+  describe("shared state", () => {
+    it("should keep instances with shared stores in sync", () => {
+      const store = new MessageManagerStore();
+      const manager1 = new ThreadMessageManager({ store });
+      const manager2 = new ThreadMessageManager({ store });
+      manager1.threadId = "t1";
+      manager1.messages = [{ id: "m0", role: "user", content: "hi" }];
+
+      manager2.threadId = "t1";
+      expect(manager2.messages).toStrictEqual([
+        { id: "m0", role: "user", content: "hi" },
+      ]);
+    });
+
+    it("should not clobber messages with subsequent changes from undefined to defined thread IDs", () => {
+      const store = new MessageManagerStore();
+      const manager1 = new ThreadMessageManager({ store });
+      const manager2 = new ThreadMessageManager({ store });
+      manager1.threadId = "t1";
+      manager1.messages = [{ id: "m0", role: "user", content: "hi" }];
+
+      // This one has messages assigned with an undefined thread ID; it should not clobber the messages
+      // when the thread ID is assigned.
+      manager2.messages = [{ id: "m1", role: "user", content: "hello" }];
+      manager2.threadId = "t1";
+
+      expect(manager1.messages).toStrictEqual([
+        { id: "m0", role: "user", content: "hi" },
+      ]);
+      expect(manager2.messages).toStrictEqual([
+        { id: "m0", role: "user", content: "hi" },
+      ]);
+    });
   });
 });
