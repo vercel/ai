@@ -35,7 +35,7 @@ export type ChatOptions = Readonly<
 export type { CreateMessage, Message, UIMessage };
 
 export class Chat {
-  readonly #options = $state<ChatOptions>()!;
+  readonly #options: ChatOptions = {};
   readonly #api = $derived(this.#options.api ?? "/api/chat");
   readonly #generateId = $derived(this.#options.generateId ?? generateId);
   readonly #id = $derived(this.#options.id ?? this.#generateId());
@@ -43,7 +43,7 @@ export class Chat {
   readonly #streamProtocol = $derived(this.#options.streamProtocol ?? "data");
   #error = $state<Error>();
   #status = $state<"submitted" | "streaming" | "ready" | "error">("ready");
-  #abortController = $state<AbortController>();
+  #abortController: AbortController | undefined;
   #messages = new SvelteMap<string, UIMessage[]>();
 
   /**
@@ -152,8 +152,14 @@ export class Chat {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop = () => {
-    this.#abortController?.abort();
-    this.#abortController = undefined;
+    try {
+      this.#abortController?.abort();
+    } catch {
+      // ignore
+    } finally {
+      this.#status = "ready";
+      this.#abortController = undefined;
+    }
   };
 
   /** Form submission handler to automatically reset input and append a user message */
@@ -289,19 +295,18 @@ export class Chat {
       this.#abortController = undefined;
       this.#status = "ready";
     } catch (error) {
-      // Ignore abort errors as they are expected when the user cancels the request:
-      if (isAbortError(error) && this.#abortController?.signal?.aborted) {
-        this.#abortController = undefined;
-        this.#status = "ready";
+      if (isAbortError(error)) {
         return;
       }
 
-      if (this.#options.onError && error instanceof Error) {
-        this.#options.onError(error);
+      const coalescedError =
+        error instanceof Error ? error : new Error(String(error));
+      if (this.#options.onError) {
+        this.#options.onError(coalescedError);
       }
 
-      this.#error = error as Error;
       this.#status = "error";
+      this.#error = coalescedError;
     }
 
     // auto-submit when all tool calls in the last assistant message have results

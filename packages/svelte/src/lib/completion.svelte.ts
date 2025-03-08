@@ -10,13 +10,13 @@ import { SvelteMap } from "svelte/reactivity";
 export type CompletionOptions = Readonly<UseCompletionOptions>;
 
 export class Completion {
-  readonly #options = $state<CompletionOptions>()!;
+  readonly #options: CompletionOptions = {};
   readonly #api = $derived(this.#options.api ?? "/api/completion");
   readonly #id = $derived(this.#options.id ?? generateId());
   readonly #streamProtocol = $derived(this.#options.streamProtocol ?? "data");
   #error = $state<Error>();
   #loading = $state(false);
-  #abortController = $state<AbortController>();
+  #abortController: AbortController | undefined;
   #completions = new SvelteMap<string, string>();
 
   /** The current completion result */
@@ -43,12 +43,7 @@ export class Completion {
   input = $state<string>()!;
 
   /**
-   * Hook status:
-   *
-   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
-   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
-   * - `ready`: The full response has been received and processed; a new completion can be requested.
-   * - `error`: An error occurred during the API request, preventing successful completion.
+   * Flag that indicates whether an API request is in progress.
    */
   get loading() {
     return this.#loading;
@@ -64,8 +59,14 @@ export class Completion {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop = () => {
-    this.#abortController?.abort();
-    this.#abortController = undefined;
+    try {
+      this.#abortController?.abort();
+    } catch {
+      // ignore
+    } finally {
+      this.#loading = false;
+      this.#abortController = undefined;
+    }
   };
 
   /**
@@ -93,7 +94,7 @@ export class Completion {
         ...options?.body,
       },
       streamProtocol: this.#streamProtocol,
-      fetch,
+      fetch: this.#options.fetch,
       // throttle streamed ui updates:
       setCompletion: (completion) => {
         this.completion = completion;
