@@ -1,5 +1,4 @@
 import { withTestServer } from "@ai-sdk/provider-utils/test";
-import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Chat } from "./chat.svelte.js";
 import { formatDataStreamPart, type Message } from "@ai-sdk/ui-utils";
 import { promiseWithResolvers } from "./utils.svelte.js";

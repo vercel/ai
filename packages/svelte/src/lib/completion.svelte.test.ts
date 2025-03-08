@@ -1,5 +1,4 @@
 import { withTestServer } from "@ai-sdk/provider-utils/test";
-import { describe, it, expect, vi } from "vitest";
 import { Completion } from "./completion.svelte.js";
 
 describe("Completion", () => {
