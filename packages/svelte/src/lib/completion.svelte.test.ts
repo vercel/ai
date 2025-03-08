@@ -54,7 +54,7 @@ describe("Completion", () => {
   it(
     "should show loading state",
     withTestServer(
-      { url: "/api/chat", type: "controlled-stream" },
+      { url: "/api/completion", type: "controlled-stream" },
       async ({ streamController }) => {
         const completion = new Completion();
         const completionOperation = completion.complete("hi");
