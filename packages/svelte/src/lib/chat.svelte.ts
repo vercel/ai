@@ -18,7 +18,6 @@ import {
 } from "@ai-sdk/ui-utils";
 import { isAbortError } from "@ai-sdk/provider-utils";
 import { SvelteMap } from "svelte/reactivity";
-import { SharedKeyedStore } from "./shared-store.svelte.js";
 
 export type ChatOptions = Readonly<
   Omit<UseChatOptions, "keepLastMessageOnError"> & {
@@ -35,29 +34,24 @@ export type ChatOptions = Readonly<
 
 export type { CreateMessage, Message, UIMessage };
 
-const globalStore = new SvelteMap<string, UIMessage[]>();
-
 export class Chat {
   readonly #options = $state<ChatOptions>()!;
-  readonly #store = $state<SharedKeyedStore<UIMessage[]>>()!;
   readonly #api = $derived(this.#options.api ?? "/api/chat");
   readonly #generateId = $derived(this.#options.generateId ?? generateId);
+  readonly #id = $derived(this.#options.id ?? this.#generateId());
   readonly #maxSteps = $derived(this.#options.maxSteps ?? 1);
   readonly #streamProtocol = $derived(this.#options.streamProtocol ?? "data");
   #error = $state<Error>();
   #status = $state<"submitted" | "streaming" | "ready" | "error">("ready");
   #abortController = $state<AbortController>();
+  #messages = new SvelteMap<string, UIMessage[]>();
 
   /**
-   * An unique identifier. If not provided, a random one will be
-   * generated. When provided, the `useObject` hook with the same `id` will
-   * have shared states across components.
+   * The id of the chat. If not provided through the constructor, a random ID will be generated
+   * using the provided `generateId` function, or a built-in function if not provided.
    */
   get id() {
-    return this.#store.id;
-  }
-  set id(id: string) {
-    this.#store.id = id;
+    return this.#id;
   }
 
   /**
@@ -94,24 +88,16 @@ export class Chat {
    * trigger {@link reload} to regenerate the AI response.
    */
   get messages(): UIMessage[] {
-    return this.#store.value;
+    return this.#messages.get(this.#id) ?? [];
   }
   set messages(value: Message[]) {
-    this.#store.value = fillMessageParts(value);
+    this.#messages.set(this.#id, fillMessageParts(value));
   }
 
   constructor(options: ChatOptions = {}) {
     this.#options = options;
+    this.messages = options.initialMessages ?? [];
     this.input = options.initialInput ?? "";
-
-    this.#store = new SharedKeyedStore({
-      get id() {
-        return options.id ?? options?.generateId?.() ?? generateId();
-      },
-      store: globalStore,
-      initialValue: fillMessageParts(options.initialMessages ?? []),
-      defaultValue: [],
-    });
   }
 
   /**
