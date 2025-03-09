@@ -1,5 +1,39 @@
 # @ai-sdk/anthropic
 
+## 1.1.15
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+
+## 1.1.14
+
+### Patch Changes
+
+- 0e8b66c: feat (provider/anthropic): support image urls
+
+## 1.1.13
+
+### Patch Changes
+
+- 3004b14: feat(provider/anthropic): add bash_20250124 and text_editor_20250124 tools
+
+## 1.1.12
+
+### Patch Changes
+
+- b3e5a15: fix (provider/anthropic): add model setting to allow omitting reasoning content from model requests
+
+## 1.1.11
+
+### Patch Changes
+
+- 00276ae: feat (provider/anthropic): update types for Anthropic computer_20250124 tool
+- a4f8714: feat (provider/anthropic): update beta flag for sonnet-3-7 when using new computer-use tool
+
 ## 1.1.10
 
 ### Patch Changes

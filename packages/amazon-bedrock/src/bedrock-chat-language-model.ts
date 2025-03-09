@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   JSONObject,
   LanguageModelV1,
   LanguageModelV1CallWarning,
@@ -17,11 +18,11 @@ import {
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
+import { z } from 'zod';
 import {
+  BEDROCK_STOP_REASONS,
   BedrockConverseInput,
   BedrockStopReason,
-  BEDROCK_STOP_REASONS,
-  BEDROCK_CACHE_POINT,
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
@@ -32,7 +33,6 @@ import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-
 import { prepareTools } from './bedrock-prepare-tools';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 import { mapBedrockFinishReason } from './map-bedrock-finish-reason';
-import { z } from 'zod';
 
 type BedrockChatConfig = {
   baseUrl: () => string;
@@ -66,7 +66,6 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     responseFormat,
     seed,
     providerMetadata,
-    headers,
   }: Parameters<LanguageModelV1['doGenerate']>[0]): {
     command: BedrockConverseInput;
     warnings: LanguageModelV1CallWarning[];
@@ -113,12 +112,69 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const { system, messages } = convertToBedrockChatMessages(prompt);
 
+    // Parse thinking options from provider metadata
+    const reasoningConfigOptions =
+      BedrockReasoningConfigOptionsSchema.safeParse(
+        providerMetadata?.bedrock?.reasoning_config,
+      );
+
+    if (!reasoningConfigOptions.success) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.bedrock.reasoning_config',
+        message: 'invalid reasoning configuration options',
+        cause: reasoningConfigOptions.error,
+      });
+    }
+
+    const isThinking = reasoningConfigOptions.data?.type === 'enabled';
+    const thinkingBudget =
+      reasoningConfigOptions.data?.budgetTokens ??
+      reasoningConfigOptions.data?.budget_tokens;
+
     const inferenceConfig = {
       ...(maxTokens != null && { maxTokens }),
       ...(temperature != null && { temperature }),
       ...(topP != null && { topP }),
       ...(stopSequences != null && { stopSequences }),
     };
+
+    // Adjust maxTokens if thinking is enabled
+    if (isThinking && thinkingBudget != null) {
+      if (inferenceConfig.maxTokens != null) {
+        inferenceConfig.maxTokens += thinkingBudget;
+      } else {
+        inferenceConfig.maxTokens = thinkingBudget + 4096; // Default + thinking budget maxTokens = 4096, TODO update default in v5
+      }
+      // Add them to additional model request fields
+      // Add reasoning config to additionalModelRequestFields
+      this.settings.additionalModelRequestFields = {
+        ...this.settings.additionalModelRequestFields,
+        reasoning_config: {
+          type: reasoningConfigOptions.data?.type,
+          budget_tokens: thinkingBudget,
+        },
+      };
+    }
+
+    // Remove temperature if thinking is enabled
+    if (isThinking && inferenceConfig.temperature != null) {
+      delete inferenceConfig.temperature;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'temperature',
+        details: 'temperature is not supported when thinking is enabled',
+      });
+    }
+
+    // Remove topP if thinking is enabled
+    if (isThinking && inferenceConfig.topP != null) {
+      delete inferenceConfig.topP;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topP',
+        details: 'topP is not supported when thinking is enabled',
+      });
+    }
 
     const baseArgs: BedrockConverseInput = {
       system,
@@ -223,6 +279,36 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
           }
         : undefined;
 
+    const reasoning = response.output.message.content
+      .filter(content => content.reasoningContent)
+      .map(content => {
+        if (
+          content.reasoningContent &&
+          'reasoningText' in content.reasoningContent
+        ) {
+          return {
+            type: 'text' as const,
+            text: content.reasoningContent.reasoningText.text,
+            ...(content.reasoningContent.reasoningText.signature && {
+              signature: content.reasoningContent.reasoningText.signature,
+            }),
+          };
+        } else if (
+          content.reasoningContent &&
+          'redactedReasoning' in content.reasoningContent
+        ) {
+          return {
+            type: 'redacted' as const,
+            data: content.reasoningContent.redactedReasoning.data ?? '',
+          };
+        } else {
+          // Return undefined for unexpected structures
+          return undefined;
+        }
+      })
+      // Filter out any undefined values
+      .filter((item): item is NonNullable<typeof item> => item !== undefined);
+
     return {
       text:
         response.output?.message?.content
@@ -246,6 +332,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders },
       warnings,
+      reasoning: reasoning.length > 0 ? reasoning : undefined,
       ...(providerMetadata && { providerMetadata }),
     };
   }
@@ -385,6 +472,34 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
               });
             }
 
+            if (
+              value.contentBlockDelta?.delta &&
+              'reasoningContent' in value.contentBlockDelta.delta &&
+              value.contentBlockDelta.delta.reasoningContent
+            ) {
+              const reasoningContent =
+                value.contentBlockDelta.delta.reasoningContent;
+              if ('text' in reasoningContent && reasoningContent.text) {
+                controller.enqueue({
+                  type: 'reasoning',
+                  textDelta: reasoningContent.text,
+                });
+              } else if (
+                'signature' in reasoningContent &&
+                reasoningContent.signature
+              ) {
+                controller.enqueue({
+                  type: 'reasoning-signature',
+                  signature: reasoningContent.signature,
+                });
+              } else if ('data' in reasoningContent && reasoningContent.data) {
+                controller.enqueue({
+                  type: 'redacted-reasoning',
+                  data: reasoningContent.data,
+                });
+              }
+            }
+
             const contentBlockStart = value.contentBlockStart;
             if (contentBlockStart?.start?.toolUse != null) {
               const toolUse = contentBlockStart.start.toolUse;
@@ -457,6 +572,14 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   }
 }
 
+const BedrockReasoningConfigOptionsSchema = z
+  .object({
+    type: z.union([z.literal('enabled'), z.literal('disabled')]).nullish(),
+    budget_tokens: z.number().nullish(),
+    budgetTokens: z.number().nullish(),
+  })
+  .nullish();
+
 const BedrockStopReasonSchema = z.union([
   z.enum(BEDROCK_STOP_REASONS),
   z.string(),
@@ -468,7 +591,16 @@ const BedrockToolUseSchema = z.object({
   input: z.unknown(),
 });
 
-// limited version of the schema, focussed on what is needed for the implementation
+const BedrockReasoningTextSchema = z.object({
+  signature: z.string().nullish(),
+  text: z.string(),
+});
+
+const BedrockRedactedReasoningSchema = z.object({
+  data: z.string(),
+});
+
+// limited version of the schema, focused on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const BedrockResponseSchema = z.object({
   metrics: z
@@ -482,6 +614,16 @@ const BedrockResponseSchema = z.object({
         z.object({
           text: z.string().nullish(),
           toolUse: BedrockToolUseSchema.nullish(),
+          reasoningContent: z
+            .union([
+              z.object({
+                reasoningText: BedrockReasoningTextSchema,
+              }),
+              z.object({
+                redactedReasoning: BedrockRedactedReasoningSchema,
+              }),
+            ])
+            .nullish(),
         }),
       ),
       role: z.string(),
@@ -508,6 +650,17 @@ const BedrockStreamSchema = z.object({
         .union([
           z.object({ text: z.string() }),
           z.object({ toolUse: z.object({ input: z.string() }) }),
+          z.object({
+            reasoningContent: z.object({ text: z.string() }),
+          }),
+          z.object({
+            reasoningContent: z.object({
+              signature: z.string(),
+            }),
+          }),
+          z.object({
+            reasoningContent: z.object({ data: z.string() }),
+          }),
         ])
         .nullish(),
     })

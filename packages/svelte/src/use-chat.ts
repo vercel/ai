@@ -1,9 +1,7 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
-  IdGenerator,
   JSONValue,
   Message,
   UseChatOptions as SharedUseChatOptions,
@@ -20,7 +18,6 @@ import {
   shouldResubmitMessages,
   updateToolCallResult,
 } from '@ai-sdk/ui-utils';
-import { useSWR } from 'sswr';
 import { Readable, Writable, derived, get, writable } from 'svelte/store';
 export type { CreateMessage, Message };
 
@@ -111,7 +108,7 @@ export type UseChatHelpers = {
   id: string;
 };
 
-const store: Record<string, UIMessage[] | undefined> = {};
+const store = writable<Record<string, UIMessage[] | undefined>>({});
 
 export function useChat({
   api = '/api/chat',
@@ -144,10 +141,10 @@ export function useChat({
   const chatId = id ?? generateId();
 
   const key = `${api}|${chatId}`;
-  const { data, mutate: originalMutate } = useSWR<UIMessage[]>(key, {
-    fetcher: () => store[key] ?? fillMessageParts(initialMessages),
-    fallbackData: fillMessageParts(initialMessages),
-  });
+  const messages = derived(
+    [store],
+    ([$store]) => $store[key] ?? fillMessageParts(initialMessages),
+  );
 
   const streamData = writable<JSONValue[] | undefined>(undefined);
 
@@ -155,16 +152,12 @@ export function useChat({
     'ready',
   );
 
-  // Force the `data` to be `initialMessages` if it's `undefined`.
-  data.set(fillMessageParts(initialMessages));
-
   const mutate = (data: UIMessage[]) => {
-    store[key] = data;
-    return originalMutate(data);
+    store.update(value => {
+      value[key] = data;
+      return value;
+    });
   };
-
-  // Because of the `fallbackData` option, the `data` will never be `undefined`.
-  const messages = data as Writable<UIMessage[]>;
 
   // Abort controller to cancel the current API call.
   let abortController: AbortController | null = null;
@@ -316,7 +309,7 @@ export function useChat({
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
         parts: getMessageParts(message),
-      } as UIMessage),
+      }),
       headers,
       body,
       data,
@@ -424,7 +417,7 @@ export function useChat({
       toolResult: result,
     });
 
-    messages.set(messagesSnapshot);
+    mutate(messagesSnapshot);
 
     // auto-submit when all tool calls in the last assistant message have results:
     const lastMessage = messagesSnapshot[messagesSnapshot.length - 1];

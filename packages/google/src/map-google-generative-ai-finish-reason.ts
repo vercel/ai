@@ -14,10 +14,15 @@ export function mapGoogleGenerativeAIFinishReason({
       return 'length';
     case 'RECITATION':
     case 'SAFETY':
+    case 'BLOCKLIST':
+    case 'PROHIBITED_CONTENT':
+    case 'SPII':
       return 'content-filter';
     case 'FINISH_REASON_UNSPECIFIED':
     case 'OTHER':
       return 'other';
+    case 'MALFORMED_FUNCTION_CALL':
+      return 'error';
     default:
       return 'unknown';
   }

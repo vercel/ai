@@ -1,5 +1,24 @@
 # @ai-sdk/svelte
 
+## 1.1.22
+
+### Patch Changes
+
+- 57cf070: fix: Remove hard-cast causing `Readable` to be treated as `Writable`
+
+## 1.1.21
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@2.1.11
+- @ai-sdk/ui-utils@1.1.17
+
+## 1.1.20
+
+### Patch Changes
+
+- 30e6ebd: feat (provider/svelte): support Svelte 5
+
 ## 1.1.19
 
 ### Patch Changes

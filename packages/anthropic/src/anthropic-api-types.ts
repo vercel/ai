@@ -50,11 +50,16 @@ export interface AnthropicRedactedThinkingContent {
 
 export interface AnthropicImageContent {
   type: 'image';
-  source: {
-    type: 'base64';
-    media_type: string;
-    data: string;
-  };
+  source:
+    | {
+        type: 'base64';
+        media_type: string;
+        data: string;
+      }
+    | {
+        type: 'url';
+        url: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -99,11 +104,11 @@ export type AnthropicTool =
     }
   | {
       name: string;
-      type: 'text_editor_20241022';
+      type: 'text_editor_20250124' | 'text_editor_20241022';
     }
   | {
       name: string;
-      type: 'bash_20241022';
+      type: 'bash_20250124' | 'bash_20241022';
     };
 
 export type AnthropicToolChoice =
