@@ -624,6 +624,85 @@ export const weatherTool = tool({
 });
 ```
 
+## MCP Tools
+
+The AI SDK supports connecting to Model Context Protocol (MCP) servers to access their tools. This enables your AI applications to discover and use tools across various services through a standardized interface.
+
+### Using MCP Tools
+
+Create an MCP client using either `stdio` (for local servers) or `SSE` (for web servers):
+
+```typescript
+const client = await createMCPClient({
+  transport: {
+    type: 'stdio',
+    command: 'node',
+    args: ['src/stdio/dist/server.js'],
+  },
+});
+```
+
+The client's `tools` method acts as an adapter between MCP tools and AI SDK tools. It supports two approaches for working with tool schemas:
+
+#### Runtime Schema Discovery
+
+```typescript
+// Use schemas provided by the server
+const tools = await client.tools();
+```
+
+#### Compile-Time Schema Definition
+
+```typescript
+import { z } from 'zod';
+
+const toolSchemas = {
+  'get-data': {
+    parameters: z.object({
+      query: z.string().describe('The data query'),
+      format: z.enum(['json', 'text']).optional()
+    })
+  }
+} as const;
+
+const tools = await client.tools({ schemas: toolSchemas });
+```
+
+Below is a complete example of using MCP tools with the AI SDK.
+
+### Example
+
+```ts
+import { createMCPClient, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const client = await createMCPClient({
+  transport: {
+    type: 'stdio',
+    command: 'node server.js'
+  }
+});
+
+try {
+  const tools = await client.tools();
+  
+  const response = await generateText({
+    model: openai('gpt-4o'),
+    tools,
+    messages: [{
+      role: 'user',
+      content: 'Find products under $100'
+    }]
+  });
+
+  console.log(response.text);
+} catch (error) {
+  console.error(error);
+} finally {
+  await client.close();
+}
+```
+
 ## Examples
 
 You can see tools in action using various frameworks in the following examples:
