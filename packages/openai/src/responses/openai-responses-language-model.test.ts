@@ -254,11 +254,19 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
+          stopSequences: ['\n\n'],
           topK: 0.1,
+          presencePenalty: 0,
+          frequencyPenalty: 0,
+          seed: 42,
         });
 
         expect(warnings).toStrictEqual([
           { type: 'unsupported-setting', setting: 'topK' },
+          { type: 'unsupported-setting', setting: 'seed' },
+          { type: 'unsupported-setting', setting: 'presencePenalty' },
+          { type: 'unsupported-setting', setting: 'frequencyPenalty' },
+          { type: 'unsupported-setting', setting: 'stopSequences' },
         ]);
       });
     });

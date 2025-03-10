@@ -39,16 +39,51 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   private getArgs({
     mode,
     maxTokens,
-    topK,
     temperature,
+    stopSequences,
     topP,
+    topK,
+    presencePenalty,
+    frequencyPenalty,
+    seed,
     prompt,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
     const warnings: LanguageModelV1CallWarning[] = [];
 
     if (topK != null) {
-      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'topK',
+      });
+    }
+
+    if (seed != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'seed',
+      });
+    }
+
+    if (presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'presencePenalty',
+      });
+    }
+
+    if (frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'frequencyPenalty',
+      });
+    }
+
+    if (stopSequences != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'stopSequences',
+      });
     }
 
     const baseArgs = {

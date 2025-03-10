@@ -21,21 +21,23 @@
 - [x] tool call support
 - [x] test streaming tool calls
 
-### reasoning
-
-- [ ] reasoning model settings etc
-
 ### args
 
+- [x] settings
 - [ ] json response format support
 - [ ] system & developer message support
-- [ ] settings
 - [ ] image detail support
 - [ ] custom: structured outputs opt out
 - [ ] custom: reasoning effort
 - [ ] custom: parallel tool calls
 
+### reasoning
+
+- [ ] reasoning model settings etc
+
 ### provider-defined tool support
+
+- [ ] computer use tool
 
 ### previousResponseId support
 
