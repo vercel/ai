@@ -30,10 +30,11 @@
 - [x] provider option: metadata
 - [x] provider option: user
 - [x] provider option (on images): detail
-- [ ] json response format support
-- [ ] provider option: structuredOutputs false
+- [x] json response format support
+- [ ] provider option: structuredOutputs (strict false) strictStructuredOutput: false
 - [ ] custom: cached prompt token usage information
 - [ ] custom: predicted outputs?
+- [ ] tool option: strict (requires tool provider options)
 
 ### reasoning
 
@@ -45,6 +46,7 @@
 ### provider-defined tool support
 
 - [x] web search tool (basic)
+- [ ] web search tool options
 - [ ] computer use tool
 - [ ] file search
 

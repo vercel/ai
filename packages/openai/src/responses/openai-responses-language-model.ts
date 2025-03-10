@@ -48,6 +48,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     seed,
     prompt,
     providerMetadata,
+    responseFormat,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const warnings: LanguageModelV1CallWarning[] = [];
     const modelConfig = getResponsesModelConfig(this.modelId);
@@ -103,11 +104,27 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       top_p: topP,
       max_output_tokens: maxTokens,
 
+      ...(responseFormat?.type === 'json' && {
+        text: {
+          format:
+            responseFormat.schema != null
+              ? {
+                  type: 'json_schema',
+                  strict: true,
+                  name: responseFormat.name ?? 'response',
+                  description: responseFormat.description,
+                  schema: responseFormat.schema,
+                }
+              : { type: 'json_object' },
+        },
+      }),
+
       // provider options:
       metadata: providerMetadata?.openai?.metadata,
       parallel_tool_calls: providerMetadata?.openai?.parallelToolCalls,
       store: providerMetadata?.openai?.store,
       user: providerMetadata?.openai?.user,
+
       ...(modelConfig.isReasoningModel &&
         providerMetadata?.openai?.reasoningEffort != null && {
           reasoning: { effort: providerMetadata?.openai?.reasoningEffort },
