@@ -45,12 +45,12 @@
 
 - [x] web search tool (basic)
 - [x] sources support: generate
-- [ ] sources support: stream
+- [ ] sources support: stream -- test
 - [ ] web search tool options
 
 ### previousResponseId support
 
-- [ ] provider option: previousResponseId
+- [x] provider option: previousResponseId
 
 ### computer use support
 

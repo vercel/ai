@@ -381,6 +381,29 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send previous response id provider option', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          providerMetadata: {
+            openai: {
+              previousResponseId: 'resp_123',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          previous_response_id: 'resp_123',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send metadata provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',

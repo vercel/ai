@@ -126,6 +126,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       // provider options:
       metadata: providerMetadata?.openai?.metadata,
       parallel_tool_calls: providerMetadata?.openai?.parallelToolCalls,
+      previous_response_id: providerMetadata?.openai?.previousResponseId,
       store: providerMetadata?.openai?.store,
       user: providerMetadata?.openai?.user,
 
