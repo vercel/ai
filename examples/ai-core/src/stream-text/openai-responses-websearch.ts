@@ -18,8 +18,6 @@ async function main() {
   console.log();
   console.log('Finish reason:', await result.finishReason);
   console.log('Usage:', await result.usage);
-  console.log();
-  console.log((await result.request).body);
 }
 
 main().catch(console.error);

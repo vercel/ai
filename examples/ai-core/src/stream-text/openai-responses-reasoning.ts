@@ -7,9 +7,6 @@ async function main() {
     model: openai.responses('o3-mini'),
     system: 'You are a helpful assistant.',
     prompt: 'Invent a new holiday and describe its traditions.',
-    onError: error => {
-      console.error(error);
-    },
   });
 
   for await (const textPart of result.textStream) {
@@ -19,8 +16,6 @@ async function main() {
   console.log();
   console.log('Finish reason:', await result.finishReason);
   console.log('Usage:', await result.usage);
-  console.log();
-  console.log((await result.request).body);
 }
 
 main().catch(console.error);

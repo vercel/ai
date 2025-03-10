@@ -258,7 +258,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send parallel tool calls provider option', async () => {
+      it('should send parallelToolCalls provider option', async () => {
         const { warnings } = await model.doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
@@ -276,6 +276,31 @@ describe('OpenAIResponsesLanguageModel', () => {
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
           parallel_tool_calls: false,
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send reasoningEffort provider option', async () => {
+        const { warnings } = await provider.responses('o3-mini').doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          providerMetadata: {
+            openai: {
+              reasoningEffort: 'low',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'o3-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          reasoning: {
+            effort: 'low',
+          },
         });
 
         expect(warnings).toStrictEqual([]);

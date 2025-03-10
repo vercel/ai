@@ -25,11 +25,12 @@
 
 - [x] settings
 - [x] system message support
+- [x] provider option: parallel tool calls = false
 - [ ] image detail support
 - [ ] json response format support
 - [ ] custom: structured outputs opt out
-- [x] provider option: parallel tool calls
-- [ ] custom: distillation
+- [ ] provider option: store = false
+- [ ] provider option: metadata
 - [ ] custom: cached prompt token usage information
 - [ ] custom: predicted outputs?
 
@@ -37,7 +38,8 @@
 
 - [x] reasoning model settings etc
 - [x] developer messages
-- [ ] custom: reasoning effort
+- [x] provider option: reasoning effort
+- [ ] reasoning tokens output
 
 ### provider-defined tool support
 
