@@ -347,10 +347,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     });
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
-    let usage: { promptTokens: number; completionTokens: number } = {
-      promptTokens: NaN,
-      completionTokens: NaN,
-    };
+    let promptTokens = NaN;
+    let completionTokens = NaN;
+    let cachedPromptTokens: number | null = null;
+    let reasoningTokens: number | null = null;
+
     const ongoingToolCalls: Record<
       number,
       { toolName: string; toolCallId: string } | undefined
@@ -446,11 +447,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 finishReason: value.response.incomplete_details?.reason,
                 hasToolCalls,
               });
-              usage = {
-                promptTokens: value.response.usage.input_tokens,
-                completionTokens: value.response.usage.output_tokens,
-              };
-              return;
+              promptTokens = value.response.usage.input_tokens;
+              completionTokens = value.response.usage.output_tokens;
+              cachedPromptTokens =
+                value.response.usage.input_tokens_details?.cached_tokens ??
+                cachedPromptTokens;
+              reasoningTokens =
+                value.response.usage.output_tokens_details?.reasoning_tokens ??
+                reasoningTokens;
             }
           },
 
@@ -458,7 +462,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              usage: { promptTokens, completionTokens },
+              ...((cachedPromptTokens != null || reasoningTokens != null) && {
+                providerMetadata: {
+                  openai: { cachedPromptTokens, reasoningTokens },
+                },
+              }),
             });
           },
         }),

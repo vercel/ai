@@ -32,14 +32,14 @@
 - [x] provider option: user
 - [x] provider option (on images): detail
 - [x] provider option: strictJsonSchema
-- [ ] provider metadata: cached prompt token usage information (streaming / non-streaming)
+- [x] provider metadata: cached prompt token usage
 
 ### reasoning
 
 - [x] reasoning model settings etc
 - [x] developer messages
 - [x] provider option: reasoning effort
-- [ ] provider metadata: reasoning tokens (streaming / non-streaming)
+- [x] provider metadata: reasoning tokens
 
 ### provider-defined tool support
 
