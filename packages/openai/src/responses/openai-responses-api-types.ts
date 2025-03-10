@@ -10,7 +10,7 @@ export type OpenAIResponsesMessage =
   | OpenAIResponsesFunctionCallOutput;
 
 export type OpenAIResponsesSystemMessage = {
-  role: 'system';
+  role: 'system' | 'developer';
   content: string;
 };
 

@@ -1,6 +1,37 @@
 import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-messages';
 
 describe('convertToOpenAIResponsesMessages', () => {
+  describe('system messages', () => {
+    it('should convert system messages to system role', async () => {
+      const result = convertToOpenAIResponsesMessages({
+        prompt: [{ role: 'system', content: 'Hello' }],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([{ role: 'system', content: 'Hello' }]);
+    });
+
+    it('should convert system messages to developer role', async () => {
+      const result = convertToOpenAIResponsesMessages({
+        prompt: [{ role: 'system', content: 'Hello' }],
+        systemMessageMode: 'developer',
+      });
+
+      expect(result.messages).toEqual([
+        { role: 'developer', content: 'Hello' },
+      ]);
+    });
+
+    it('should remove system messages', async () => {
+      const result = convertToOpenAIResponsesMessages({
+        prompt: [{ role: 'system', content: 'Hello' }],
+        systemMessageMode: 'remove',
+      });
+
+      expect(result.messages).toEqual([]);
+    });
+  });
+
   describe('user messages', () => {
     it('should convert messages with only a text part to a string content', async () => {
       const result = convertToOpenAIResponsesMessages({
@@ -10,9 +41,10 @@ describe('convertToOpenAIResponsesMessages', () => {
             content: [{ type: 'text', text: 'Hello' }],
           },
         ],
+        systemMessageMode: 'system',
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
       ]);
     });
@@ -31,9 +63,10 @@ describe('convertToOpenAIResponsesMessages', () => {
             ],
           },
         ],
+        systemMessageMode: 'system',
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'user',
           content: [
@@ -61,9 +94,10 @@ describe('convertToOpenAIResponsesMessages', () => {
             ],
           },
         ],
+        systemMessageMode: 'system',
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'user',
           content: [
@@ -89,9 +123,10 @@ describe('convertToOpenAIResponsesMessages', () => {
             ],
           },
         ],
+        systemMessageMode: 'system',
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'user',
           content: [
@@ -111,9 +146,10 @@ describe('convertToOpenAIResponsesMessages', () => {
         prompt: [
           { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
         ],
+        systemMessageMode: 'system',
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'assistant',
           content: [{ type: 'output_text', text: 'Hello' }],
@@ -137,9 +173,10 @@ describe('convertToOpenAIResponsesMessages', () => {
             ],
           },
         ],
+        systemMessageMode: 'system',
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'assistant',
           content: [
@@ -179,9 +216,10 @@ describe('convertToOpenAIResponsesMessages', () => {
             ],
           },
         ],
+        systemMessageMode: 'system',
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           type: 'function_call',
           call_id: 'call_123',
@@ -214,9 +252,10 @@ describe('convertToOpenAIResponsesMessages', () => {
             ],
           },
         ],
+        systemMessageMode: 'system',
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           type: 'function_call_output',
           call_id: 'call_123',
@@ -246,9 +285,10 @@ describe('convertToOpenAIResponsesMessages', () => {
             ],
           },
         ],
+        systemMessageMode: 'system',
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           type: 'function_call_output',
           call_id: 'call_123',

@@ -145,6 +145,77 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should remove unsupported settings for o1-mini', async () => {
+        const { warnings } = await provider.responses('o1-mini').doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+          temperature: 0.5,
+          topP: 0.3,
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'o1-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'other',
+            message: 'system messages are removed for this model',
+          },
+          {
+            details: 'temperature is not supported for reasoning models',
+            setting: 'temperature',
+            type: 'unsupported-setting',
+          },
+          {
+            details: 'topP is not supported for reasoning models',
+            setting: 'topP',
+            type: 'unsupported-setting',
+          },
+        ]);
+      });
+
+      it('should remove unsupported settings for o3-mini', async () => {
+        const { warnings } = await provider.responses('o3-mini').doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
+          temperature: 0.5,
+          topP: 0.3,
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'o3-mini',
+          input: [
+            { role: 'developer', content: 'You are a helpful assistant.' },
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([
+          {
+            details: 'temperature is not supported for reasoning models',
+            setting: 'temperature',
+            type: 'unsupported-setting',
+          },
+          {
+            details: 'topP is not supported for reasoning models',
+            setting: 'topP',
+            type: 'unsupported-setting',
+          },
+        ]);
+      });
+
       it('should send object-tool format', async () => {
         const { warnings } = await model.doGenerate({
           inputFormat: 'prompt',

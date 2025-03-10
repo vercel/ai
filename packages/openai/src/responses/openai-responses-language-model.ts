@@ -48,8 +48,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     seed,
     prompt,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
-    const type = mode.type;
     const warnings: LanguageModelV1CallWarning[] = [];
+    const modelConfig = getResponsesModelConfig(this.modelId);
+    const type = mode.type;
 
     if (topK != null) {
       warnings.push({
@@ -86,13 +87,43 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       });
     }
 
+    const { messages, warnings: messageWarnings } =
+      convertToOpenAIResponsesMessages({
+        prompt,
+        systemMessageMode: modelConfig.systemMessageMode,
+      });
+
+    warnings.push(...messageWarnings);
+
     const baseArgs = {
       model: this.modelId,
-      input: convertToOpenAIResponsesMessages({ prompt }),
+      input: messages,
       temperature,
       top_p: topP,
       max_output_tokens: maxTokens,
     };
+
+    if (modelConfig.isReasoningModel) {
+      // remove unsupported settings for reasoning models
+      // see https://platform.openai.com/docs/guides/reasoning#limitations
+      if (baseArgs.temperature != null) {
+        baseArgs.temperature = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        });
+      }
+
+      if (baseArgs.top_p != null) {
+        baseArgs.top_p = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'topP',
+          details: 'topP is not supported for reasoning models',
+        });
+      }
+    }
 
     switch (type) {
       case 'regular': {
@@ -520,4 +551,32 @@ function isResponseOutputItemAddedChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseOutputItemAddedSchema> {
   return chunk.type === 'response.output_item.added';
+}
+
+type ResponsesModelConfig = {
+  isReasoningModel: boolean;
+  systemMessageMode: 'remove' | 'system' | 'developer';
+};
+
+function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
+  // o series reasoning models:
+  if (modelId.startsWith('o')) {
+    if (modelId.startsWith('o1-mini') || modelId.startsWith('o1-preview')) {
+      return {
+        isReasoningModel: true,
+        systemMessageMode: 'remove',
+      };
+    }
+
+    return {
+      isReasoningModel: true,
+      systemMessageMode: 'developer',
+    };
+  }
+
+  // gpt models:
+  return {
+    isReasoningModel: false,
+    systemMessageMode: 'system',
+  };
 }

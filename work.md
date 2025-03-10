@@ -32,10 +32,9 @@
 
 ### reasoning
 
-- [ ] reasoning model settings etc
-  - [ ] temperature exception
+- [x] reasoning model settings etc
+- [x] developer messages
 - [ ] custom: reasoning effort
-- [ ] developer messages
 
 ### provider-defined tool support
 

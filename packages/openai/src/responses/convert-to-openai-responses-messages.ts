@@ -1,4 +1,5 @@
 import {
+  LanguageModelV1CallWarning,
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -7,15 +8,43 @@ import { OpenAIResponsesPrompt } from './openai-responses-api-types';
 
 export function convertToOpenAIResponsesMessages({
   prompt,
+  systemMessageMode,
 }: {
   prompt: LanguageModelV1Prompt;
-}): OpenAIResponsesPrompt {
+  systemMessageMode: 'system' | 'developer' | 'remove';
+}): {
+  messages: OpenAIResponsesPrompt;
+  warnings: Array<LanguageModelV1CallWarning>;
+} {
   const messages: OpenAIResponsesPrompt = [];
+  const warnings: Array<LanguageModelV1CallWarning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        switch (systemMessageMode) {
+          case 'system': {
+            messages.push({ role: 'system', content });
+            break;
+          }
+          case 'developer': {
+            messages.push({ role: 'developer', content });
+            break;
+          }
+          case 'remove': {
+            warnings.push({
+              type: 'other',
+              message: 'system messages are removed for this model',
+            });
+            break;
+          }
+          default: {
+            const _exhaustiveCheck: never = systemMessageMode;
+            throw new Error(
+              `Unsupported system message mode: ${_exhaustiveCheck}`,
+            );
+          }
+        }
         break;
       }
 
@@ -97,5 +126,5 @@ export function convertToOpenAIResponsesMessages({
     }
   }
 
-  return messages;
+  return { messages, warnings };
 }
