@@ -331,6 +331,46 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               return;
             }
 
+            const content = candidate.content;
+
+            // Process tool call's parts before determining finishReason to ensure hasToolCalls is properly set
+            if (content != null) {
+              const deltaText = getTextFromParts(content.parts);
+              if (deltaText != null) {
+                controller.enqueue({
+                  type: 'text-delta',
+                  textDelta: deltaText,
+                });
+              }
+
+              const toolCallDeltas = getToolCallsFromParts({
+                parts: content.parts,
+                generateId,
+              });
+
+              if (toolCallDeltas != null) {
+                for (const toolCall of toolCallDeltas) {
+                  controller.enqueue({
+                    type: 'tool-call-delta',
+                    toolCallType: 'function',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    argsTextDelta: toolCall.args,
+                  });
+
+                  controller.enqueue({
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    args: toolCall.args,
+                  });
+
+                  hasToolCalls = true;
+                }
+              }
+            }
+
             if (candidate.finishReason != null) {
               finishReason = mapGoogleGenerativeAIFinishReason({
                 finishReason: candidate.finishReason,
@@ -353,47 +393,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                   safetyRatings: candidate.safetyRatings ?? null,
                 },
               };
-            }
-
-            const content = candidate.content;
-
-            if (content == null) {
-              return;
-            }
-
-            const deltaText = getTextFromParts(content.parts);
-            if (deltaText != null) {
-              controller.enqueue({
-                type: 'text-delta',
-                textDelta: deltaText,
-              });
-            }
-
-            const toolCallDeltas = getToolCallsFromParts({
-              parts: content.parts,
-              generateId,
-            });
-
-            if (toolCallDeltas != null) {
-              for (const toolCall of toolCallDeltas) {
-                controller.enqueue({
-                  type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName,
-                  argsTextDelta: toolCall.args,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName,
-                  args: toolCall.args,
-                });
-
-                hasToolCalls = true;
-              }
             }
           },
 
