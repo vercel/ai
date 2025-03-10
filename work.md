@@ -25,7 +25,7 @@
 
 - [x] settings
 - [ ] json response format support
-- [ ] system & developer message support
+- [ ] system message support
 - [ ] image detail support
 - [ ] custom: structured outputs opt out
 - [ ] custom: parallel tool calls
@@ -34,6 +34,7 @@
 
 - [ ] reasoning model settings etc
 - [ ] custom: reasoning effort
+- [ ] developer messages
 
 ### provider-defined tool support
 
@@ -48,4 +49,4 @@
 
 ### integration
 
-- [ ] export responses language model
+- [x] export responses language model to azure
