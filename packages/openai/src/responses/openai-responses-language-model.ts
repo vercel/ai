@@ -260,6 +260,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 name: z.string(),
                 arguments: z.string(),
               }),
+              z.object({
+                type: z.literal('web_search_call'),
+              }),
             ]),
           ),
           incomplete_details: z.object({ reason: z.string() }).nullable(),

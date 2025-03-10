@@ -5,7 +5,7 @@ import { streamText } from 'ai';
 async function main() {
   const result = streamText({
     model: openai.responses('gpt-4o-mini'),
-    prompt: 'What are the three biggest tournaments worldwide in 2025?',
+    prompt: 'What happened in San Francisco last week?',
     tools: {
       web_search: openai.tools.web_search(),
     },

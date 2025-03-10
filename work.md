@@ -41,16 +41,20 @@
 - [x] provider option: reasoning effort
 - [x] provider metadata: reasoning tokens
 
-### provider-defined tool support
+### web search support
 
 - [x] web search tool (basic)
+- [ ] sources support: generate
+- [ ] sources support: stream
 - [ ] web search tool options
-- [ ] computer use tool
-- [ ] file search
 
 ### previousResponseId support
 
 - [ ] provider option: previousResponseId
+
+### computer use support
+
+- [ ] computer use tool
 
 ### integration
 
@@ -63,4 +67,7 @@
 
 ### future work
 
+- [ ] file search tool
 - [ ] tool option: strict (requires tool provider options)
+- [ ] progress information (e.g. websearch)
+- [ ] citations
