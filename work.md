@@ -33,6 +33,7 @@
 ### reasoning
 
 - [ ] reasoning model settings etc
+  - [ ] temperature exception
 - [ ] custom: reasoning effort
 - [ ] developer messages
 
