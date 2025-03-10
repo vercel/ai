@@ -304,6 +304,35 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send metadata provider option', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          providerMetadata: {
+            openai: {
+              metadata: {
+                key1: 'value1',
+                key2: 'value2',
+              },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          metadata: {
+            key1: 'value1',
+            key2: 'value2',
+          },
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send reasoningEffort provider option', async () => {
         const { warnings } = await provider.responses('o3-mini').doGenerate({
           inputFormat: 'prompt',

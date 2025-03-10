@@ -104,6 +104,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       max_output_tokens: maxTokens,
 
       // provider options:
+      metadata: providerMetadata?.openai?.metadata,
       parallel_tool_calls: providerMetadata?.openai?.parallelToolCalls,
       store: providerMetadata?.openai?.store,
       ...(modelConfig.isReasoningModel &&

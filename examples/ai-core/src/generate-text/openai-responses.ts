@@ -11,6 +11,10 @@ async function main() {
       openai: {
         parallelToolCalls: false,
         store: false,
+        metadata: {
+          key1: 'value1',
+          key2: 'value2',
+        },
       },
     },
   });

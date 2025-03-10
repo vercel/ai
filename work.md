@@ -27,10 +27,11 @@
 - [x] system message support
 - [x] provider option: parallel tool calls = false
 - [x] provider option: store = false
+- [x] provider option: metadata
+- [ ] provider option: user
 - [ ] image detail support
 - [ ] json response format support
 - [ ] provider option: structuredOutputs false
-- [ ] provider option: metadata
 - [ ] custom: cached prompt token usage information
 - [ ] custom: predicted outputs?
 
