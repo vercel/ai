@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 1.1.15
+
+### Patch Changes
+
+- 1cfdd68: feat (provider/mistral): add PDF support
+
 ## 1.1.14
 
 ### Patch Changes
