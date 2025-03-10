@@ -66,6 +66,9 @@ export function convertToOpenAIResponsesMessages({
                       : `data:${
                           part.mimeType ?? 'image/jpeg'
                         };base64,${convertUint8ArrayToBase64(part.image)}`,
+
+                  // OpenAI specific extension: image detail
+                  detail: part.providerMetadata?.openai?.imageDetail,
                 };
               }
 

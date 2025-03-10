@@ -138,6 +138,42 @@ describe('convertToOpenAIResponsesMessages', () => {
         },
       ]);
     });
+
+    it('should add image detail when specified through extension', async () => {
+      const result = convertToOpenAIResponsesMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                image: new Uint8Array([0, 1, 2, 3]),
+                mimeType: 'image/png',
+                providerMetadata: {
+                  openai: {
+                    imageDetail: 'low',
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_image',
+              image_url: 'data:image/png;base64,AAECAw==',
+              detail: 'low',
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('assistant messages', () => {

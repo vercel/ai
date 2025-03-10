@@ -29,7 +29,7 @@
 - [x] provider option: store = false
 - [x] provider option: metadata
 - [x] provider option: user
-- [ ] image detail support
+- [x] provider option (on images): detail
 - [ ] json response format support
 - [ ] provider option: structuredOutputs false
 - [ ] custom: cached prompt token usage information
