@@ -92,10 +92,13 @@ describe('OpenAIResponsesLanguageModel', () => {
             top_p: 1,
             truncation: 'disabled',
             usage: {
-              input_tokens: 34,
+              input_tokens: 345,
+              input_tokens_details: {
+                cached_tokens: 234,
+              },
               output_tokens: 538,
               output_tokens_details: {
-                reasoning_tokens: 0,
+                reasoning_tokens: 123,
               },
               total_tokens: 572,
             },
@@ -113,6 +116,27 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(result.text).toStrictEqual('answer text');
+      });
+
+      // TODO also for streaming...
+      it('should extract usage', async () => {
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+        });
+
+        expect(result.usage).toStrictEqual({
+          promptTokens: 345,
+          completionTokens: 538,
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          openai: {
+            cachedPromptTokens: 234,
+            reasoningTokens: 123,
+          },
+        });
       });
 
       it('should send model id, settings, and input', async () => {

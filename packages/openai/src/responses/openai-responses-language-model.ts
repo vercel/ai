@@ -263,10 +263,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             ]),
           ),
           incomplete_details: z.object({ reason: z.string() }).nullable(),
-          usage: z.object({
-            input_tokens: z.number(),
-            output_tokens: z.number(),
-          }),
+          usage: usageSchema,
         }),
       ),
       abortSignal: options.abortSignal,
@@ -313,6 +310,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
         id: response.id,
         timestamp: new Date(response.created_at * 1000),
         modelId: response.model,
+      },
+      providerMetadata: {
+        openai: {
+          cachedPromptTokens:
+            response.usage.input_tokens_details?.cached_tokens ?? null,
+          reasoningTokens:
+            response.usage.output_tokens_details?.reasoning_tokens ?? null,
+        },
       },
       warnings,
     };
@@ -469,6 +474,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   }
 }
 
+const usageSchema = z.object({
+  input_tokens: z.number(),
+  input_tokens_details: z
+    .object({ cached_tokens: z.number().nullish() })
+    .nullish(),
+  output_tokens: z.number(),
+  output_tokens_details: z
+    .object({ reasoning_tokens: z.number().nullish() })
+    .nullish(),
+});
+
 const textDeltaChunkSchema = z.object({
   type: z.literal('response.output_text.delta'),
   delta: z.string(),
@@ -478,10 +494,7 @@ const responseFinishedChunkSchema = z.object({
   type: z.enum(['response.completed', 'response.incomplete']),
   response: z.object({
     incomplete_details: z.object({ reason: z.string() }).nullish(),
-    usage: z.object({
-      input_tokens: z.number(),
-      output_tokens: z.number(),
-    }),
+    usage: usageSchema,
   }),
 });
 

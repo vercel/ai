@@ -32,16 +32,14 @@
 - [x] provider option: user
 - [x] provider option (on images): detail
 - [x] provider option: strictJsonSchema
-- [ ] custom: cached prompt token usage information
-- [ ] custom: predicted outputs?
-- [ ] tool option: strict (requires tool provider options)
+- [ ] provider metadata: cached prompt token usage information (streaming / non-streaming)
 
 ### reasoning
 
 - [x] reasoning model settings etc
 - [x] developer messages
 - [x] provider option: reasoning effort
-- [ ] reasoning tokens output (streaming / non-streaming)
+- [ ] provider metadata: reasoning tokens (streaming / non-streaming)
 
 ### provider-defined tool support
 
@@ -52,6 +50,8 @@
 
 ### previousResponseId support
 
+- [ ] provider option: previousResponseId
+
 ### integration
 
 - [x] export responses language model to azure
@@ -59,3 +59,8 @@
 ### documentation
 
 - [ ] responses section under OpenAI provider
+- [ ] provider options table (top-level)
+
+### future work
+
+- [ ] tool option: strict (requires tool provider options)

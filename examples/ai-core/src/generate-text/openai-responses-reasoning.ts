@@ -17,15 +17,13 @@ async function main() {
   console.log(result.text);
   console.log();
   console.log('Finish reason:', result.finishReason);
-  console.log('Usage:', result.usage);
+  console.log('Usage:', {
+    ...result.usage,
+    reasoningTokens: result.providerMetadata?.openai?.reasoningTokens,
+  });
   console.log();
   console.log('Request:', JSON.stringify(result.request, null, 2));
   console.log('Response:', JSON.stringify(result.response, null, 2));
-
-  // console.log('Usage:', {
-  //   ...usage,
-  //   reasoningTokens: providerMetadata?.openai?.reasoningTokens,
-  // });
 }
 
 main().catch(console.error);
