@@ -1,11 +1,10 @@
-import { z, ZodType } from 'zod';
-import { jsonSchema } from '@ai-sdk/ui-utils';
 import { JSONSchema7 } from '@ai-sdk/provider';
+import { jsonSchema } from '@ai-sdk/ui-utils';
+import { z, ZodType } from 'zod';
 import { MCPClientError } from '../../../errors';
-import { inferParameters, tool, ToolExecutionOptions } from '../tool';
-import { Tool } from '../tool';
+import { inferParameters, tool, Tool, ToolExecutionOptions } from '../tool';
+import { createMcpTransport } from './mcp-transport';
 import {
-  CallToolRequest,
   CallToolResult,
   CallToolResultSchema,
   Configuration as ClientConfiguration,
@@ -18,17 +17,16 @@ import {
   ListToolsRequest,
   ListToolsResult,
   ListToolsResultSchema,
+  McpToolSet,
   MCPTransport,
   Notification,
   Request,
   RequestOptions,
-  SUPPORTED_PROTOCOL_VERSIONS,
-  TransportConfig,
-  McpToolSet,
-  ToolSchemas,
   ServerCapabilities,
+  SUPPORTED_PROTOCOL_VERSIONS,
+  ToolSchemas,
+  TransportConfig,
 } from './types';
-import { createMcpTransport } from './mcp-transport';
 
 const CLIENT_VERSION = '1.0.0';
 

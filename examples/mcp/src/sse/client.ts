@@ -1,10 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, createMCPClient } from 'ai';
+import { experimental_createMCPClient, generateText } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const client = await createMCPClient({
+  const client = await experimental_createMCPClient({
     transport: {
       type: 'sse',
       url: 'http://localhost:8080/sse',
