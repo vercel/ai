@@ -11,10 +11,15 @@ import {
   type DeepPartial,
   type Schema,
 } from "@ai-sdk/ui-utils";
-import { SvelteMap } from "svelte/reactivity";
-import z from "zod";
+import { type z } from "zod";
+import {
+  getStructuredObjectContext,
+  hasStructuredObjectContext,
+  KeyedStructuredObjectStore,
+  type StructuredObjectStore,
+} from "./structured-object-context.svelte.js";
 
-export type Experimental_ObjecClienttOptions<RESULT> = {
+export type Experimental_StructuredObjectOptions<RESULT> = {
   /**
    * The API endpoint. It should stream JSON that matches the schema as chunked text.
    */
@@ -70,37 +75,46 @@ export type Experimental_ObjecClienttOptions<RESULT> = {
   headers?: Record<string, string> | Headers;
 };
 
-export class ObjectClient<RESULT, INPUT = any> {
-  #options: Experimental_ObjecClienttOptions<RESULT> = {} as any;
+export class StructuredObject<RESULT, INPUT = any> {
+  #options: Experimental_StructuredObjectOptions<RESULT> = {} as any;
   readonly #api = $derived(this.#options.api ?? "/api/completion");
   readonly #id = $derived(this.#options.id ?? generateId());
-  readonly #objects = new SvelteMap<string, DeepPartial<RESULT> | undefined>();
-  #error = $state<Error>();
-  #loading = $state(false);
+  readonly #keyedStore = $state<KeyedStructuredObjectStore>()!;
+  readonly #store = $derived(
+    this.#keyedStore.get(this.#id),
+  ) as StructuredObjectStore<RESULT>;
   #abortController: AbortController | undefined;
 
   /**
    * The current value for the generated object. Updated as the API streams JSON chunks.
    */
   get object(): DeepPartial<RESULT> | undefined {
-    return this.#objects.get(this.#id);
+    return this.#store.object;
+  }
+  set #object(value: DeepPartial<RESULT> | undefined) {
+    this.#store.object = value;
   }
 
   /** The error object of the API request */
   get error() {
-    return this.#error;
+    return this.#store.error;
   }
 
   /**
    * Flag that indicates whether an API request is in progress.
    */
   get loading() {
-    return this.#loading;
+    return this.#store.loading;
   }
 
-  constructor(options: Experimental_ObjecClienttOptions<RESULT>) {
+  constructor(options: Experimental_StructuredObjectOptions<RESULT>) {
+    if (hasStructuredObjectContext()) {
+      this.#keyedStore = getStructuredObjectContext();
+    } else {
+      this.#keyedStore = new KeyedStructuredObjectStore();
+    }
     this.#options = options;
-    this.#objects.set(this.#id, options.initialValue);
+    this.#object = options.initialValue;
   }
 
   /**
@@ -112,7 +126,7 @@ export class ObjectClient<RESULT, INPUT = any> {
     } catch {
       // ignore
     } finally {
-      this.#loading = false;
+      this.#store.loading = false;
       this.#abortController = undefined;
     }
   };
@@ -122,11 +136,12 @@ export class ObjectClient<RESULT, INPUT = any> {
    */
   submit = async (input: INPUT) => {
     try {
-      this.#objects.set(this.#id, undefined); // reset the data
-      this.#loading = true;
-      this.#error = undefined;
+      this.#store.object = undefined; // reset the data
+      this.#store.loading = true;
+      this.#store.error = undefined;
 
-      this.#abortController = new AbortController();
+      const abortController = new AbortController();
+      this.#abortController = abortController;
 
       const actualFetch = this.#options.fetch ?? fetch;
       const response = await actualFetch(this.#api, {
@@ -135,7 +150,7 @@ export class ObjectClient<RESULT, INPUT = any> {
           "Content-Type": "application/json",
           ...this.#options.headers,
         },
-        signal: this.#abortController.signal,
+        signal: abortController.signal,
         body: JSON.stringify(input),
       });
 
@@ -155,6 +170,9 @@ export class ObjectClient<RESULT, INPUT = any> {
       await response.body.pipeThrough(new TextDecoderStream()).pipeTo(
         new WritableStream<string>({
           write: (chunk) => {
+            if (abortController?.signal.aborted) {
+              throw new DOMException("Stream aborted", "AbortError");
+            }
             accumulatedText += chunk;
 
             const { value } = parsePartialJson(accumulatedText);
@@ -163,12 +181,12 @@ export class ObjectClient<RESULT, INPUT = any> {
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;
 
-              this.#objects.set(this.#id, currentObject);
+              this.#store.object = currentObject;
             }
           },
 
           close: () => {
-            this.#loading = false;
+            this.#store.loading = false;
             this.#abortController = undefined;
 
             if (this.#options.onFinish != null) {
@@ -201,8 +219,8 @@ export class ObjectClient<RESULT, INPUT = any> {
         this.#options.onError(coalescedError);
       }
 
-      this.#loading = false;
-      this.#error = coalescedError;
+      this.#store.loading = false;
+      this.#store.error = coalescedError;
     }
   };
 }
