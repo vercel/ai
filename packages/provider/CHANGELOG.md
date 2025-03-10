@@ -1,5 +1,23 @@
 # @ai-sdk/provider
 
+## 1.0.10
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+
+## 1.0.9
+
+### Patch Changes
+
+- ddf9740: feat (ai): add anthropic reasoning
+
+## 1.0.8
+
+### Patch Changes
+
+- 2761f06: fix (ai/provider): publish with LanguageModelV1Source
+
 ## 1.0.7
 
 ### Patch Changes

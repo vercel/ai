@@ -83,13 +83,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const warnings: LanguageModelV1CallWarning[] = [];
 
-    if (seed != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
-      });
-    }
-
     const generationConfig = {
       // standardized settings:
       maxOutputTokens: maxTokens,
@@ -99,6 +92,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       frequencyPenalty,
       presencePenalty,
       stopSequences,
+      seed,
 
       // response format:
       responseMimeType:
@@ -210,7 +204,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       options.headers,
     );
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/${getModelPath(
         this.modelId,
       )}:generateContent`,
@@ -225,15 +223,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const { contents: rawPrompt, ...rawSettings } = args;
     const candidate = response.candidates[0];
 
+    const parts =
+      candidate.content == null ||
+      typeof candidate.content !== 'object' ||
+      !('parts' in candidate.content)
+        ? []
+        : candidate.content.parts;
+
     const toolCalls = getToolCallsFromParts({
-      parts: candidate.content?.parts ?? [],
+      parts,
       generateId: this.config.generateId,
     });
 
     const usageMetadata = response.usageMetadata;
 
     return {
-      text: getTextFromParts(candidate.content?.parts ?? []),
+      text: getTextFromParts(parts),
       toolCalls,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
@@ -244,7 +249,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         completionTokens: usageMetadata?.candidatesTokenCount ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
       warnings,
       providerMetadata: {
         google: {
@@ -417,7 +422,7 @@ function getToolCallsFromParts({
   parts: z.infer<typeof contentSchema>['parts'];
   generateId: () => string;
 }) {
-  const functionCallParts = parts.filter(
+  const functionCallParts = parts?.filter(
     part => 'functionCall' in part,
   ) as Array<
     GoogleGenerativeAIContentPart & {
@@ -425,7 +430,7 @@ function getToolCallsFromParts({
     }
   >;
 
-  return functionCallParts.length === 0
+  return functionCallParts == null || functionCallParts.length === 0
     ? undefined
     : functionCallParts.map(part => ({
         toolCallType: 'function' as const,
@@ -436,30 +441,32 @@ function getToolCallsFromParts({
 }
 
 function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts.filter(part => 'text' in part) as Array<
+  const textParts = parts?.filter(part => 'text' in part) as Array<
     GoogleGenerativeAIContentPart & { text: string }
   >;
 
-  return textParts.length === 0
+  return textParts == null || textParts.length === 0
     ? undefined
     : textParts.map(part => part.text).join('');
 }
 
 const contentSchema = z.object({
   role: z.string(),
-  parts: z.array(
-    z.union([
-      z.object({
-        text: z.string(),
-      }),
-      z.object({
-        functionCall: z.object({
-          name: z.string(),
-          args: z.unknown(),
+  parts: z
+    .array(
+      z.union([
+        z.object({
+          text: z.string(),
         }),
-      }),
-    ]),
-  ),
+        z.object({
+          functionCall: z.object({
+            name: z.string(),
+            args: z.unknown(),
+          }),
+        }),
+      ]),
+    )
+    .nullish(),
 });
 
 // https://ai.google.dev/gemini-api/docs/grounding
@@ -513,7 +520,7 @@ export const safetyRatingSchema = z.object({
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
-      content: contentSchema.nullish(),
+      content: contentSchema.nullish().or(z.object({}).strict()),
       finishReason: z.string().nullish(),
       safetyRatings: z.array(safetyRatingSchema).nullish(),
       groundingMetadata: groundingMetadataSchema.nullish(),

@@ -19,7 +19,7 @@ import {
 } from '@ai-sdk/ui-utils';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
-import { ref, toRaw, unref } from 'vue';
+import { computed, ref, unref } from 'vue';
 
 export type { CreateMessage, Message, UIMessage, UseChatOptions };
 
@@ -63,8 +63,23 @@ export type UseChatHelpers = {
     event?: { preventDefault?: () => void },
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
-  /** Whether the API request is in progress */
-  isLoading: Ref<boolean | undefined>;
+
+  /**
+   * Whether the API request is in progress
+   *
+   * @deprecated use `status` instead
+   */
+  isLoading: Ref<boolean>;
+
+  /**
+   * Hook status:
+   *
+   * - `submitted`: The message has been sent to the API and we're awaiting the start of the response stream.
+   * - `streaming`: The response is actively streaming in from the API, receiving chunks of data.
+   * - `ready`: The full response has been received and processed; a new user message can be submitted.
+   * - `error`: An error occurred during the API request, preventing successful completion.
+   */
+  status: Ref<'submitted' | 'streaming' | 'ready' | 'error'>;
 
   /** Additional data added on the server via StreamData. */
   data: Ref<JSONValue[] | undefined>;
@@ -149,12 +164,11 @@ export function useChat(
     () => store[key] ?? fillMessageParts(initialMessages),
   );
 
-  const { data: isLoading, mutate: mutateLoading } = useSWRV<boolean>(
-    `${chatId}-loading`,
-    null,
-  );
+  const { data: status, mutate: mutateStatus } = useSWRV<
+    'submitted' | 'streaming' | 'ready' | 'error'
+  >(`${chatId}-status`, null);
 
-  isLoading.value ??= false;
+  status.value ??= 'ready';
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
   messagesData.value ??= fillMessageParts(initialMessages);
@@ -177,15 +191,15 @@ export function useChat(
     messagesSnapshot: Message[],
     { data, headers, body }: ChatRequestOptions = {},
   ) {
+    error.value = undefined;
+    mutateStatus(() => 'submitted');
+
     const messageCount = messages.value.length;
     const maxStep = extractMaxToolInvocationStep(
       messages.value[messages.value.length - 1]?.toolInvocations,
     );
 
     try {
-      error.value = undefined;
-      mutateLoading(() => true);
-
       abortController = new AbortController();
 
       // Do an optimistic update to the chat state to show the updated messages
@@ -243,6 +257,8 @@ export function useChat(
         credentials,
         onResponse,
         onUpdate({ message, data, replaceLastMessage }) {
+          mutateStatus(() => 'streaming');
+
           mutate([
             ...(replaceLastMessage
               ? chatMessages.slice(0, chatMessages.length - 1)
@@ -266,10 +282,13 @@ export function useChat(
         // enabled use of structured clone in processChatResponse:
         lastMessage: recursiveToRaw(chatMessages[chatMessages.length - 1]),
       });
+
+      mutateStatus(() => 'ready');
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
         abortController = null;
+        mutateStatus(() => 'ready');
         return null;
       }
 
@@ -278,9 +297,9 @@ export function useChat(
       }
 
       error.value = err as Error;
+      mutateStatus(() => 'error');
     } finally {
       abortController = null;
-      mutateLoading(() => false);
     }
 
     // auto-submit when all tool calls in the last assistant message have results:
@@ -422,7 +441,10 @@ export function useChat(
     setMessages,
     input,
     handleSubmit,
-    isLoading,
+    isLoading: computed(
+      () => status.value === 'submitted' || status.value === 'streaming',
+    ),
+    status: status as Ref<'submitted' | 'streaming' | 'ready' | 'error'>,
     data: streamData as Ref<undefined | JSONValue[]>,
     setData,
     addToolResult,

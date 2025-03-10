@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/valibot",
-  "version": "0.0.5",
+  "version": "0.0.21",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -27,7 +27,7 @@
     }
   },
   "dependencies": {
-    "ai": "4.1.38"
+    "ai": "4.1.54"
   },
   "devDependencies": {
     "@types/node": "^18",

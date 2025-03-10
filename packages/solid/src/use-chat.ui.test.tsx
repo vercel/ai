@@ -19,7 +19,7 @@ describe('prepareRequestBody', () => {
   let bodyOptions: any;
 
   const TestComponent = () => {
-    const { messages, append, isLoading } = useChat({
+    const { messages, append, status } = useChat({
       experimental_prepareRequestBody: options => {
         bodyOptions = options;
         return 'test-request-body';
@@ -28,7 +28,7 @@ describe('prepareRequestBody', () => {
 
     return (
       <div>
-        <div data-testid="loading">{isLoading().toString()}</div>
+        <div data-testid="status">{status()}</div>
         <For each={messages()}>
           {(m, idx) => (
             <div data-testid={`message-${idx()}`}>
@@ -246,18 +246,16 @@ describe('data protocol stream', () => {
 
   const TestComponent = () => {
     const [id, setId] = createSignal('first-id');
-    const { messages, append, error, data, isLoading, setData } = useChat(
-      () => ({
-        id: id(),
-        onFinish: (message, options) => {
-          onFinishCalls.push({ message, options });
-        },
-      }),
-    );
+    const { messages, append, error, data, status, setData } = useChat(() => ({
+      id: id(),
+      onFinish: (message, options) => {
+        onFinishCalls.push({ message, options });
+      },
+    }));
 
     return (
       <div>
-        <div data-testid="loading">{isLoading().toString()}</div>
+        <div data-testid="status">{status()}</div>
         <div data-testid="error">{error()?.toString()}</div>
         <div data-testid="data">
           {data() != null ? JSON.stringify(data()) : ''}
@@ -397,36 +395,43 @@ describe('data protocol stream', () => {
     ),
   );
 
-  describe('loading state', () => {
+  describe('status', () => {
     it(
-      'should show loading state',
+      'should show status',
       withTestServer(
         { url: '/api/chat', type: 'controlled-stream' },
         async ({ streamController }) => {
-          streamController.enqueue('0:"Hello"\n');
-
           await userEvent.click(screen.getByTestId('do-append'));
 
-          await screen.findByTestId('loading');
-          expect(screen.getByTestId('loading')).toHaveTextContent('true');
+          await waitFor(() => {
+            expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+          });
+
+          streamController.enqueue('0:"Hello"\n');
+
+          await waitFor(() => {
+            expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+          });
 
           streamController.close();
 
-          await findByText(await screen.findByTestId('loading'), 'false');
-          expect(screen.getByTestId('loading')).toHaveTextContent('false');
+          await waitFor(() => {
+            expect(screen.getByTestId('status')).toHaveTextContent('ready');
+          });
         },
       ),
     );
 
     it(
-      'should reset loading state on error',
+      'should set status to error when there is a server error',
       withTestServer(
         { type: 'error', url: '/api/chat', status: 404, content: 'Not found' },
         async () => {
           await userEvent.click(screen.getByTestId('do-append'));
 
-          await screen.findByTestId('loading');
-          expect(screen.getByTestId('loading')).toHaveTextContent('false');
+          await waitFor(() => {
+            expect(screen.getByTestId('status')).toHaveTextContent('error');
+          });
         },
       ),
     );
@@ -1045,7 +1050,7 @@ describe('maxSteps', () => {
 
 describe('form actions', () => {
   const TestComponent = () => {
-    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+    const { messages, handleSubmit, handleInputChange, status, input } =
       useChat();
 
     return (
@@ -1064,7 +1069,7 @@ describe('form actions', () => {
             value={input()}
             placeholder="Send message..."
             onInput={handleInputChange}
-            disabled={isLoading()}
+            disabled={status() !== 'ready'}
             data-testid="do-input"
           />
         </form>
@@ -1120,7 +1125,7 @@ describe('form actions', () => {
 
 describe('form actions (with options)', () => {
   const TestComponent = () => {
-    const { messages, handleSubmit, handleInputChange, isLoading, input } =
+    const { messages, handleSubmit, handleInputChange, status, input } =
       useChat();
 
     return (
@@ -1145,7 +1150,7 @@ describe('form actions (with options)', () => {
             value={input()}
             placeholder="Send message..."
             onInput={handleInputChange}
-            disabled={isLoading()}
+            disabled={status() !== 'ready'}
             data-testid="do-input"
           />
         </form>

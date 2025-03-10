@@ -157,7 +157,7 @@ To see `streamText` in action, check out [these examples](#examples).
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ToolCallPart>',
+              type: 'string | Array<TextPart | ReasoningPart | RedactedReasoningPart | ToolCallPart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -172,6 +172,40 @@ To see `streamText` in action, check out [these examples](#examples).
                       name: 'text',
                       type: 'string',
                       description: 'The text content of the message part.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning'",
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The reasoning text.',
+                    },
+                    {
+                      name: 'signature',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The signature for the reasoning.',
+                    },
+                  ],
+                },
+                {
+                  type: 'RedactedReasoningPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'redacted-reasoning'",
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      description: 'The redacted data.',
                     },
                   ],
                 },
@@ -1039,6 +1073,51 @@ To see `streamText` in action, check out [these examples](#examples).
                 'The reasoning text of the model (only available for some models).',
             },
             {
+              name: 'reasoningDetails',
+              type: 'Array<ReasoningDetail>',
+              description:
+                'The reasoning details of the model (only available for some models).',
+              properties: [
+                {
+                  type: 'ReasoningDetail',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'text'",
+                      description: 'The type of the reasoning detail.',
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The text content (only for type "text").',
+                    },
+                    {
+                      name: 'signature',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'Optional signature (only for type "text").',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningDetail',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'redacted'",
+                      description: 'The type of the reasoning detail.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      description:
+                        'The redacted data content (only for type "redacted").',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'sources',
               type: 'Array<Source>',
               description:
@@ -1207,6 +1286,51 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'Promise<string | undefined>',
       description:
         'The reasoning text of the model (only available for some models). Resolved when the response is finished.',
+    },
+    {
+      name: 'reasoningDetails',
+      type: 'Promise<Array<ReasoningDetail>>',
+      description:
+        'The reasoning details of the model (only available for some models). Resolved when the response is finished.',
+      properties: [
+        {
+          type: 'ReasoningDetail',
+          parameters: [
+            {
+              name: 'type',
+              type: "'text'",
+              description: 'The type of the reasoning detail.',
+            },
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The text content (only for type "text").',
+            },
+            {
+              name: 'signature',
+              type: 'string',
+              isOptional: true,
+              description: 'Optional signature (only for type "text").',
+            },
+          ],
+        },
+        {
+          type: 'ReasoningDetail',
+          parameters: [
+            {
+              name: 'type',
+              type: "'redacted'",
+              description: 'The type of the reasoning detail.',
+            },
+            {
+              name: 'data',
+              type: 'string',
+              description:
+                'The redacted data content (only for type "redacted").',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'sources',
@@ -1564,6 +1688,38 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'textDelta',
               type: 'string',
               description: 'The reasoning text delta.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'reasoning-signature'",
+              description:
+                'The signature for the previous reasoning chunks. Send by some providers.',
+            },
+            {
+              name: 'signature',
+              type: 'string',
+              description: 'The signature.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'redacted-reasoning'",
+              description:
+                'The type to identify the object as redacted reasoning.',
+            },
+            {
+              name: 'data',
+              type: 'string',
+              description: 'The redacted data.',
             },
           ],
         },
@@ -2049,6 +2205,20 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the sources information in the stream. Defaults to false.',
             },
+            {
+              name: 'experimental_sendFinish',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Send the finish event to the client. Set to false if you are using additional streamText calls that send additional data. Default to true.',
+            },
+            {
+              name: 'experimental_sendStart',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Send the message start event to the client. Set to false if you are using additional streamText calls and the message start event has already been sent. Default to true.',
+            },
           ],
         },
       ],
@@ -2126,6 +2296,20 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the sources information in the stream. Defaults to false.',
             },
+            {
+              name: 'experimental_sendFinish',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Send the finish event to the client. Set to false if you are using additional streamText calls that send additional data. Default to true.',
+            },
+            {
+              name: 'experimental_sendStart',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Send the message start event to the client. Set to false if you are using additional streamText calls and the message start event has already been sent. Default to true.',
+            },
           ],
         },
       ],
@@ -2191,6 +2375,20 @@ To see `streamText` in action, check out [these examples](#examples).
               description:
                 'Whether to send the sources information in the stream. Defaults to false.',
             },
+            {
+              name: 'experimental_sendFinish',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Send the finish event to the client. Set to false if you are using additional streamText calls that send additional data. Default to true.',
+            },
+            {
+              name: 'experimental_sendStart',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Send the message start event to the client. Set to false if you are using additional streamText calls and the message start event has already been sent. Default to true.',
+            },
           ],
         },
       ],
@@ -2255,6 +2453,20 @@ To see `streamText` in action, check out [these examples](#examples).
               isOptional: true,
               description:
                 'Whether to send the sources information in the stream. Defaults to false.',
+            },
+            {
+              name: 'experimental_sendFinish',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Send the finish event to the client. Set to false if you are using additional streamText calls that send additional data. Default to true.',
+            },
+            {
+              name: 'experimental_sendStart',
+              type: 'boolean',
+              isOptional: true,
+              description:
+                'Send the message start event to the client. Set to false if you are using additional streamText calls and the message start event has already been sent. Default to true.',
             },
           ],
         },

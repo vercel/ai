@@ -1,5 +1,51 @@
 # @ai-sdk/svelte
 
+## 1.1.22
+
+### Patch Changes
+
+- 57cf070: fix: Remove hard-cast causing `Readable` to be treated as `Writable`
+
+## 1.1.21
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@2.1.11
+- @ai-sdk/ui-utils@1.1.17
+
+## 1.1.20
+
+### Patch Changes
+
+- 30e6ebd: feat (provider/svelte): support Svelte 5
+
+## 1.1.19
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/ui-utils@1.1.16
+  - @ai-sdk/provider-utils@2.1.10
+
+## 1.1.18
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@2.1.9
+- @ai-sdk/ui-utils@1.1.15
+
+## 1.1.17
+
+### Patch Changes
+
+- 60c3220: fix (ui): set status to ready after stream was aborted
+
+## 1.1.16
+
+### Patch Changes
+
+- c43df41: feat (ui): add useChat status
+
 ## 1.1.15
 
 ### Patch Changes

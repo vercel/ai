@@ -9,6 +9,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -86,6 +87,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -206,6 +208,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -283,6 +286,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -358,6 +362,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -398,6 +403,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -455,6 +461,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -525,6 +532,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -621,6 +629,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -661,6 +670,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": {
@@ -718,6 +728,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -788,6 +799,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,
@@ -839,6 +851,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
 
 exports[`result.response > should contain response information 1`] = `
 {
+  "body": "test body",
   "headers": {
     "custom-response-header": "response-header-value",
   },
@@ -910,6 +923,30 @@ exports[`result.response.messages > should contain assistant response message wh
 ]
 `;
 
+exports[`result.response.messages > should contain reasoning 1`] = `
+[
+  {
+    "content": [
+      {
+        "signature": "signature",
+        "text": "I will open the conversation with witty banter.",
+        "type": "reasoning",
+      },
+      {
+        "data": "redacted-reasoning-data",
+        "type": "redacted-reasoning",
+      },
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "id": "msg-0",
+    "role": "assistant",
+  },
+]
+`;
+
 exports[`result.sources > should contain sources 1`] = `
 [
   {
@@ -946,6 +983,17 @@ exports[`result.steps > should add the reasoning from the model response to the 
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": "I will open the conversation with witty banter.",
+    "reasoningDetails": [
+      {
+        "signature": "signature",
+        "text": "I will open the conversation with witty banter.",
+        "type": "text",
+      },
+      {
+        "data": "redacted-reasoning-data",
+        "type": "redacted",
+      },
+    ],
     "request": {},
     "response": {
       "headers": undefined,
@@ -953,6 +1001,15 @@ exports[`result.steps > should add the reasoning from the model response to the 
       "messages": [
         {
           "content": [
+            {
+              "signature": "signature",
+              "text": "I will open the conversation with witty banter.",
+              "type": "reasoning",
+            },
+            {
+              "data": "redacted-reasoning-data",
+              "type": "redacted-reasoning",
+            },
             {
               "text": "Hello, world!",
               "type": "text",
@@ -989,6 +1046,7 @@ exports[`result.steps > should contain sources 1`] = `
     "logprobs": undefined,
     "providerMetadata": undefined,
     "reasoning": undefined,
+    "reasoningDetails": [],
     "request": {},
     "response": {
       "headers": undefined,

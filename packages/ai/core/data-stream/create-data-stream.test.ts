@@ -3,6 +3,7 @@ import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { expect, it } from 'vitest';
 import { DelayedPromise } from '../../util/delayed-promise';
+import { Source } from '../types/language-model';
 import { createDataStream } from './create-data-stream';
 import { DataStreamWriter } from './data-stream-writer';
 
@@ -209,6 +210,40 @@ describe('createDataStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
       formatDataStreamPart('error', 'error-message'),
+    ]);
+  });
+
+  it('should send source data and close the stream', async () => {
+    const source: Source = {
+      sourceType: 'url',
+      id: 'source-1',
+      url: 'https://example.com',
+      title: 'Example Source',
+      providerMetadata: {
+        provider: {
+          key: 'value',
+        },
+      },
+    };
+
+    const stream = createDataStream({
+      execute: dataStream => {
+        dataStream.writeSource(source);
+      },
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toEqual([
+      formatDataStreamPart('source', {
+        sourceType: 'url',
+        id: 'source-1',
+        url: 'https://example.com',
+        title: 'Example Source',
+        providerMetadata: {
+          provider: {
+            key: 'value',
+          },
+        },
+      }),
     ]);
   });
 

@@ -54,6 +54,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     return this.config.provider;
   }
 
+  supportsUrl(url: URL): boolean {
+    return url.protocol === 'https:';
+  }
+
   private getArgs({
     mode,
     prompt,
@@ -66,6 +70,7 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -128,6 +133,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
       response_format:
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
+      // mistral-specific provider options:
+      document_image_limit: providerMetadata?.mistral?.documentImageLimit,
+      document_page_limit: providerMetadata?.mistral?.documentPageLimit,
+
       // messages:
       messages: convertToMistralChatMessages(prompt),
     };
@@ -175,7 +184,11 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = this.getArgs(options);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
@@ -219,7 +232,10 @@ export class MistralChatLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.completion_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: {
+        headers: responseHeaders,
+        body: rawResponse,
+      },
       request: { body: JSON.stringify(args) },
       response: getResponseMetadata(response),
       warnings,
@@ -372,7 +388,7 @@ function extractTextContent(content: z.infer<typeof mistralContentSchema>) {
     return content;
   }
 
-  if (content === null) {
+  if (content == null) {
     return undefined;
   }
 
@@ -425,7 +441,7 @@ const mistralContentSchema = z
       ]),
     ),
   ])
-  .nullable();
+  .nullish();
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency

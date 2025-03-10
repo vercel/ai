@@ -155,7 +155,7 @@ To see `generateText` in action, check out [these examples](#examples).
             },
             {
               name: 'content',
-              type: 'string | Array<TextPart | ToolCallPart>',
+              type: 'string | Array<TextPart | ReasoningPart | RedactedReasoningPart | ToolCallPart>',
               description: 'The content of the message.',
               properties: [
                 {
@@ -170,6 +170,40 @@ To see `generateText` in action, check out [these examples](#examples).
                       name: 'text',
                       type: 'string',
                       description: 'The text content of the message part.',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'reasoning'",
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The reasoning text.',
+                    },
+                    {
+                      name: 'signature',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'The signature for the reasoning.',
+                    },
+                  ],
+                },
+                {
+                  type: 'RedactedReasoningPart',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'redacted-reasoning'",
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      description: 'The redacted data.',
                     },
                   ],
                 },
@@ -665,6 +699,12 @@ To see `generateText` in action, check out [these examples](#examples).
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
                     },
+                    {
+                      name: 'body',
+                      isOptional: true,
+                      type: 'unknown',
+                      description: 'Optional response body.',
+                    },
                   ],
                 },
               ],
@@ -703,6 +743,51 @@ To see `generateText` in action, check out [these examples](#examples).
       type: 'string | undefined',
       description:
         'The reasoning text of the model (only available for some models).',
+    },
+    {
+      name: 'reasoningDetails',
+      type: 'Array<ReasoningDetail>',
+      description:
+        'The reasoning details of the model (only available for some models).',
+      properties: [
+        {
+          type: 'ReasoningDetail',
+          parameters: [
+            {
+              name: 'type',
+              type: "'text'",
+              description: 'The type of the reasoning detail.',
+            },
+            {
+              name: 'text',
+              type: 'string',
+              description: 'The text content (only for type "text").',
+            },
+            {
+              name: 'signature',
+              type: 'string',
+              isOptional: true,
+              description: 'Optional signature (only for type "text").',
+            },
+          ],
+        },
+        {
+          type: 'ReasoningDetail',
+          parameters: [
+            {
+              name: 'type',
+              type: "'redacted'",
+              description: 'The type of the reasoning detail.',
+            },
+            {
+              name: 'data',
+              type: 'string',
+              description:
+                'The redacted data content (only for type "redacted").',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'sources',
@@ -893,6 +978,51 @@ To see `generateText` in action, check out [these examples](#examples).
               type: 'string | undefined',
               description:
                 'The reasoning text of the model (only available for some models).',
+            },
+            {
+              name: 'reasoningDetails',
+              type: 'Array<ReasoningDetail>',
+              description:
+                'The reasoning details of the model (only available for some models).',
+              properties: [
+                {
+                  type: 'ReasoningDetail',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'text'",
+                      description: 'The type of the reasoning detail.',
+                    },
+                    {
+                      name: 'text',
+                      type: 'string',
+                      description: 'The text content (only for type "text").',
+                    },
+                    {
+                      name: 'signature',
+                      type: 'string',
+                      isOptional: true,
+                      description: 'Optional signature (only for type "text").',
+                    },
+                  ],
+                },
+                {
+                  type: 'ReasoningDetail',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: "'redacted'",
+                      description: 'The type of the reasoning detail.',
+                    },
+                    {
+                      name: 'data',
+                      type: 'string',
+                      description:
+                        'The redacted data content (only for type "redacted").',
+                    },
+                  ],
+                },
+              ],
             },
             {
               name: 'sources',

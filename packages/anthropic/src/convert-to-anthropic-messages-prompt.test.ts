@@ -1,9 +1,12 @@
+import { LanguageModelV1CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [{ role: 'system', content: 'This is a system message' }],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -21,6 +24,8 @@ describe('system messages', () => {
         { role: 'system', content: 'This is a system message' },
         { role: 'system', content: 'This is another system message' },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -51,6 +56,8 @@ describe('user messages', () => {
           ],
         },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -76,6 +83,46 @@ describe('user messages', () => {
     });
   });
 
+  it('should add image parts for URL images', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: new URL('https://example.com/image.png'),
+              mimeType: 'image/png',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'url',
+                  url: 'https://example.com/image.png',
+                },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(),
+    });
+  });
+
   it('should add PDF file parts', async () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
@@ -90,6 +137,8 @@ describe('user messages', () => {
           ],
         },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -130,6 +179,8 @@ describe('user messages', () => {
             ],
           },
         ],
+        sendReasoning: true,
+        warnings: [],
       }),
     ).toThrow('Non-PDF files in user messages');
   });
@@ -149,6 +200,8 @@ describe('user messages', () => {
             ],
           },
         ],
+        sendReasoning: true,
+        warnings: [],
       }),
     ).toThrow('Non-PDF files in user messages');
   });
@@ -170,6 +223,8 @@ describe('tool messages', () => {
           ],
         },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -214,6 +269,8 @@ describe('tool messages', () => {
           ],
         },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -262,6 +319,8 @@ describe('tool messages', () => {
           content: [{ type: 'text', text: 'This is a user message' }],
         },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -312,6 +371,8 @@ describe('tool messages', () => {
           ],
         },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -358,6 +419,8 @@ describe('assistant messages', () => {
           content: [{ type: 'text', text: 'assistant content  ' }],
         },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -392,6 +455,8 @@ describe('assistant messages', () => {
           ],
         },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -430,6 +495,8 @@ describe('assistant messages', () => {
           content: [{ type: 'text', text: 'user content 2' }],
         },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -461,6 +528,8 @@ describe('assistant messages', () => {
         { role: 'assistant', content: [{ type: 'text', text: 'World' }] },
         { role: 'assistant', content: [{ type: 'text', text: '!' }] },
       ],
+      sendReasoning: true,
+      warnings: [],
     });
 
     expect(result).toEqual({
@@ -480,6 +549,193 @@ describe('assistant messages', () => {
       betas: new Set(),
     });
   });
+
+  it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
+    const warnings: LanguageModelV1CallWarning[] = [];
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'I need to count the number of "r"s in the word "strawberry".',
+              signature: 'test-signature',
+            },
+            {
+              type: 'text',
+              text: 'The word "strawberry" has 2 "r"s.',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'thinking',
+                thinking:
+                  'I need to count the number of "r"s in the word "strawberry".',
+                signature: 'test-signature',
+              },
+              {
+                type: 'text',
+                text: 'The word "strawberry" has 2 "r"s.',
+              },
+            ],
+          },
+        ],
+      },
+      betas: new Set(),
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it('should convert reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
+    const warnings: LanguageModelV1CallWarning[] = [];
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'I need to count the number of "r"s in the word "strawberry".',
+            },
+            {
+              type: 'text',
+              text: 'The word "strawberry" has 2 "r"s.',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'thinking',
+                thinking:
+                  'I need to count the number of "r"s in the word "strawberry".',
+              },
+              {
+                type: 'text',
+                text: 'The word "strawberry" has 2 "r"s.',
+              },
+            ],
+          },
+        ],
+      },
+      betas: new Set(),
+    });
+    expect(warnings).toEqual([]);
+  });
+
+  it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
+    const warnings: LanguageModelV1CallWarning[] = [];
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'I need to count the number of "r"s in the word "strawberry".',
+              signature: 'test-signature',
+            },
+            {
+              type: 'text',
+              text: 'The word "strawberry" has 2 "r"s.',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'The word "strawberry" has 2 "r"s.',
+              },
+            ],
+          },
+        ],
+      },
+      betas: new Set(),
+    });
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message: 'sending reasoning content is disabled for this model',
+      },
+    ]);
+  });
+
+  it('should omit reasoning parts without signature when sendReasoning is false', async () => {
+    const warnings: LanguageModelV1CallWarning[] = [];
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'I need to count the number of "r"s in the word "strawberry".',
+            },
+            {
+              type: 'text',
+              text: 'The word "strawberry" has 2 "r"s.',
+            },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'The word "strawberry" has 2 "r"s.',
+              },
+            ],
+          },
+        ],
+      },
+      betas: new Set(),
+    });
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message: 'sending reasoning content is disabled for this model',
+      },
+    ]);
+  });
 });
 
 describe('cache control', () => {
@@ -495,6 +751,8 @@ describe('cache control', () => {
             },
           },
         ],
+        sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -532,6 +790,8 @@ describe('cache control', () => {
             ],
           },
         ],
+        sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -569,6 +829,8 @@ describe('cache control', () => {
             },
           },
         ],
+        sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -616,6 +878,8 @@ describe('cache control', () => {
             ],
           },
         ],
+        sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -659,6 +923,8 @@ describe('cache control', () => {
             ],
           },
         ],
+        sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -700,6 +966,8 @@ describe('cache control', () => {
             },
           },
         ],
+        sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -749,6 +1017,8 @@ describe('cache control', () => {
             ],
           },
         ],
+        sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({
@@ -798,6 +1068,8 @@ describe('cache control', () => {
             },
           },
         ],
+        sendReasoning: true,
+        warnings: [],
       });
 
       expect(result).toEqual({

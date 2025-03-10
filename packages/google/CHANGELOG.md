@@ -1,5 +1,54 @@
 # @ai-sdk/google
 
+## 1.1.20
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+
+## 1.1.19
+
+### Patch Changes
+
+- 2c27583: fix (provider/google): support empty content in malformed function call responses
+
+## 1.1.18
+
+### Patch Changes
+
+- 5c8f512: feat (provider/google): add seed support
+
+## 1.1.17
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/provider-utils@2.1.10
+
+## 1.1.16
+
+### Patch Changes
+
+- 1b2e2a0: fix (provider/google): add resilience against undefined parts
+
+## 1.1.15
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+
+## 1.1.14
+
+### Patch Changes
+
+- 08a3641: fix (provider/google): support nullable enums in schema
+
 ## 1.1.13
 
 ### Patch Changes

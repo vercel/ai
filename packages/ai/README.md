@@ -53,7 +53,7 @@ The [AI SDK UI](https://sdk.vercel.ai/docs/ai-sdk-ui/overview) module provides a
 import { useChat } from 'ai/react';
 
 export default function Page() {
-  const { messages, input, handleSubmit, handleInputChange, isLoading } =
+  const { messages, input, handleSubmit, handleInputChange, status } =
     useChat();
 
   return (
@@ -70,7 +70,7 @@ export default function Page() {
           value={input}
           placeholder="Send a message..."
           onChange={handleInputChange}
-          disabled={isLoading}
+          disabled={status !== 'ready'}
         />
       </form>
     </div>

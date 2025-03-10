@@ -145,7 +145,13 @@ export type ReasoningUIPart = {
   /**
    * The reasoning text.
    */
+  // TODO: v5 rename to `text`
   reasoning: string;
+
+  details: Array<
+    | { type: 'text'; text: string; signature?: string }
+    | { type: 'redacted'; data: string }
+  >;
 };
 
 /**

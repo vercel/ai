@@ -43,6 +43,13 @@ const middleware = extractReasoningMiddleware({
       description:
         'The separator to use between reasoning and text sections. Defaults to "\\n"',
     },
+    {
+      name: 'startWithReasoning',
+      type: 'boolean',
+      isOptional: true,
+      description:
+        'Starts with reasoning tokens. Set to true when the response always starts with reasoning and the initial tag is omitted. Defaults to false.',
+    },
   ]}
 />
 

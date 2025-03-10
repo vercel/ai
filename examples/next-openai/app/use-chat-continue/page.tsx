@@ -6,7 +6,7 @@ export default function Chat() {
   const {
     error,
     input,
-    isLoading,
+    status,
     handleInputChange,
     handleSubmit,
     messages,
@@ -25,9 +25,9 @@ export default function Chat() {
         </div>
       ))}
 
-      {isLoading && (
+      {(status === 'submitted' || status === 'streaming') && (
         <div className="mt-4 text-gray-500">
-          <div>Loading...</div>
+          {status === 'submitted' && <div>Loading...</div>}
           <button
             type="button"
             className="px-4 py-2 mt-4 text-blue-500 border border-blue-500 rounded-md"
@@ -57,7 +57,7 @@ export default function Chat() {
           value={input}
           placeholder="Say something..."
           onChange={handleInputChange}
-          disabled={isLoading || error != null}
+          disabled={status !== 'ready'}
         />
       </form>
     </div>

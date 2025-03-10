@@ -21,6 +21,10 @@ export function convertToPerplexityMessages(
         messages.push({
           role,
           content: content
+            .filter(
+              part =>
+                part.type !== 'reasoning' && part.type !== 'redacted-reasoning',
+            )
             .map(part => {
               switch (part.type) {
                 case 'text': {

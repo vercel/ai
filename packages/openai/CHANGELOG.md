@@ -1,5 +1,48 @@
 # @ai-sdk/openai
 
+## 1.2.1
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+
+## 1.2.0
+
+### Minor Changes
+
+- ede6d1b: feat (provider/azure): Add Azure image model support
+
+## 1.1.15
+
+### Patch Changes
+
+- d8216f8: feat (provider/openai): add gpt-4.5-preview to model id set
+
+## 1.1.14
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/provider-utils@2.1.10
+
+## 1.1.13
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+
+## 1.1.12
+
+### Patch Changes
+
+- ea159cb: chore (provider/openai): remove default streaming simulation for o1
+
 ## 1.1.11
 
 ### Patch Changes

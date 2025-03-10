@@ -1,5 +1,53 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.1.1
+
+### Patch Changes
+
+- a841484: fix (provider/bedrock): support budgetTokens
+
+## 2.1.0
+
+### Minor Changes
+
+- cf7d818: feat (providers/amazon-bedrock): Add reasoning support to amazon-bedrock
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+
+## 2.0.5
+
+### Patch Changes
+
+- 58c3411: feat (provider/amazon-bedrock): add generate image support for Amazon Nova Canvas
+
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/provider-utils@2.1.10
+
+## 2.0.3
+
+### Patch Changes
+
+- d1475de: feat (provider/amazon-bedrock): add support for cache points
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+
 ## 2.0.1
 
 ### Patch Changes

@@ -364,7 +364,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args: body, warnings } = this.getArgs(options);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
@@ -427,7 +431,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
       request: { body: JSON.stringify(body) },
       response: getResponseMetadata(response),
       warnings,
@@ -439,10 +443,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    if (
-      this.settings.simulateStreaming ??
-      isStreamingSimulatedByDefault(this.modelId)
-    ) {
+    if (this.settings.simulateStreaming) {
       const result = await this.doGenerate(options);
 
       const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
@@ -941,40 +942,23 @@ function getSystemMessageMode(modelId: string) {
   );
 }
 
-function isStreamingSimulatedByDefault(modelId: string) {
-  if (!isReasoningModel(modelId)) {
-    return false;
-  }
-
-  return (
-    reasoningModels[modelId as keyof typeof reasoningModels]
-      ?.simulateStreamingByDefault ?? true
-  );
-}
-
 const reasoningModels = {
   'o1-mini': {
     systemMessageMode: 'remove',
-    simulateStreamingByDefault: false,
   },
   'o1-mini-2024-09-12': {
     systemMessageMode: 'remove',
-    simulateStreamingByDefault: false,
   },
   'o1-preview': {
     systemMessageMode: 'remove',
-    simulateStreamingByDefault: false,
   },
   'o1-preview-2024-09-12': {
     systemMessageMode: 'remove',
-    simulateStreamingByDefault: false,
   },
   'o3-mini': {
     systemMessageMode: 'developer',
-    simulateStreamingByDefault: false,
   },
   'o3-mini-2025-01-31': {
     systemMessageMode: 'developer',
-    simulateStreamingByDefault: false,
   },
 } as const;

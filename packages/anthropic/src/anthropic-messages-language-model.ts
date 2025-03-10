@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
@@ -23,9 +24,9 @@ import {
   AnthropicMessagesModelId,
   AnthropicMessagesSettings,
 } from './anthropic-messages-settings';
+import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
-import { prepareTools } from './anthropic-prepare-tools';
 
 type AnthropicMessagesConfig = {
   provider: string;
@@ -39,7 +40,7 @@ type AnthropicMessagesConfig = {
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'tool';
-  readonly supportsImageUrls = false;
+  readonly supportsImageUrls = true;
 
   readonly modelId: AnthropicMessagesModelId;
   readonly settings: AnthropicMessagesSettings;
@@ -63,7 +64,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   private async getArgs({
     mode,
     prompt,
-    maxTokens,
+    maxTokens = 4096, // 4096: max model output tokens TODO update default in v5
     temperature,
     topP,
     topK,
@@ -72,6 +73,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
+    providerMetadata: providerOptions,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -109,23 +111,83 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     const { prompt: messagesPrompt, betas: messagesBetas } =
       convertToAnthropicMessagesPrompt({
         prompt,
+        sendReasoning: this.settings.sendReasoning ?? true,
+        warnings,
       });
+
+    const thinkingOptions = thinkingOptionsSchema.safeParse(
+      providerOptions?.anthropic?.thinking,
+    );
+
+    if (!thinkingOptions.success) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions.anthropic.thinking',
+        message: 'invalid thinking options',
+        cause: thinkingOptions.error,
+      });
+    }
+
+    const isThinking = thinkingOptions.data?.type === 'enabled';
+    const thinkingBudget = thinkingOptions.data?.budgetTokens;
 
     const baseArgs = {
       // model id:
       model: this.modelId,
 
       // standardized settings:
-      max_tokens: maxTokens ?? 4096, // 4096: max model output tokens TODO remove
+      max_tokens: maxTokens,
       temperature,
       top_k: topK,
       top_p: topP,
       stop_sequences: stopSequences,
 
+      // provider specific settings:
+      ...(isThinking && {
+        thinking: { type: 'enabled', budget_tokens: thinkingBudget },
+      }),
+
       // prompt:
       system: messagesPrompt.system,
       messages: messagesPrompt.messages,
     };
+
+    if (isThinking) {
+      if (thinkingBudget == null) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'thinking requires a budget',
+        });
+      }
+
+      if (baseArgs.temperature != null) {
+        baseArgs.temperature = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'temperature is not supported when thinking is enabled',
+        });
+      }
+
+      if (topK != null) {
+        baseArgs.top_k = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'topK',
+          details: 'topK is not supported when thinking is enabled',
+        });
+      }
+
+      if (topP != null) {
+        baseArgs.top_p = undefined;
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'topP',
+          details: 'topP is not supported when thinking is enabled',
+        });
+      }
+
+      // adjust max tokens to account for thinking:
+      baseArgs.max_tokens = maxTokens + thinkingBudget;
+    }
 
     switch (type) {
       case 'regular': {
@@ -200,7 +262,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings, betas } = await this.getArgs(options);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: this.buildRequestUrl(false),
       headers: await this.getHeaders({ betas, headers: options.headers }),
       body: this.transformRequestBody(args),
@@ -238,8 +304,27 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
     }
 
+    const reasoning = response.content
+      .filter(
+        content =>
+          content.type === 'redacted_thinking' || content.type === 'thinking',
+      )
+      .map(content =>
+        content.type === 'thinking'
+          ? {
+              type: 'text' as const,
+              text: content.thinking,
+              signature: content.signature,
+            }
+          : {
+              type: 'redacted' as const,
+              data: content.data,
+            },
+      );
+
     return {
       text,
+      reasoning: reasoning.length > 0 ? reasoning : undefined,
       toolCalls,
       finishReason: mapAnthropicStopReason(response.stop_reason),
       usage: {
@@ -247,7 +332,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.output_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: {
+        headers: responseHeaders,
+        body: rawResponse,
+      },
       response: {
         id: response.id ?? undefined,
         modelId: response.model ?? undefined,
@@ -302,7 +390,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     let providerMetadata: LanguageModelV1ProviderMetadata | undefined =
       undefined;
 
-    const self = this;
+    let blockType:
+      | 'text'
+      | 'thinking'
+      | 'tool_use'
+      | 'redacted_thinking'
+      | undefined = undefined;
+
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -325,9 +419,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
               case 'content_block_start': {
                 const contentBlockType = value.content_block.type;
 
+                blockType = contentBlockType;
+
                 switch (contentBlockType) {
-                  case 'text': {
+                  case 'text':
+                  case 'thinking': {
                     return; // ignored
+                  }
+
+                  case 'redacted_thinking': {
+                    controller.enqueue({
+                      type: 'redacted-reasoning',
+                      data: value.content_block.data,
+                    });
+                    return;
                   }
 
                   case 'tool_use': {
@@ -364,6 +469,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                   delete toolCallContentBlocks[value.index];
                 }
 
+                blockType = undefined; // reset block type
+
                 return;
               }
 
@@ -375,6 +482,27 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                       type: 'text-delta',
                       textDelta: value.delta.text,
                     });
+
+                    return;
+                  }
+
+                  case 'thinking_delta': {
+                    controller.enqueue({
+                      type: 'reasoning',
+                      textDelta: value.delta.thinking,
+                    });
+
+                    return;
+                  }
+
+                  case 'signature_delta': {
+                    // signature are only supported on thinking blocks:
+                    if (blockType === 'thinking') {
+                      controller.enqueue({
+                        type: 'reasoning-signature',
+                        signature: value.delta.signature,
+                      });
+                    }
 
                     return;
                   }
@@ -476,6 +604,15 @@ const anthropicMessagesResponseSchema = z.object({
         text: z.string(),
       }),
       z.object({
+        type: z.literal('thinking'),
+        thinking: z.string(),
+        signature: z.string(),
+      }),
+      z.object({
+        type: z.literal('redacted_thinking'),
+        data: z.string(),
+      }),
+      z.object({
         type: z.literal('tool_use'),
         id: z.string(),
         name: z.string(),
@@ -517,9 +654,17 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
         text: z.string(),
       }),
       z.object({
+        type: z.literal('thinking'),
+        thinking: z.string(),
+      }),
+      z.object({
         type: z.literal('tool_use'),
         id: z.string(),
         name: z.string(),
+      }),
+      z.object({
+        type: z.literal('redacted_thinking'),
+        data: z.string(),
       }),
     ]),
   }),
@@ -534,6 +679,14 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
       z.object({
         type: z.literal('text_delta'),
         text: z.string(),
+      }),
+      z.object({
+        type: z.literal('thinking_delta'),
+        thinking: z.string(),
+      }),
+      z.object({
+        type: z.literal('signature_delta'),
+        signature: z.string(),
       }),
     ]),
   }),
@@ -560,3 +713,10 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
     type: z.literal('ping'),
   }),
 ]);
+
+const thinkingOptionsSchema = z
+  .object({
+    type: z.union([z.literal('enabled'), z.literal('disabled')]),
+    budgetTokens: z.number().optional(),
+  })
+  .optional();

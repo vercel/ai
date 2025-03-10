@@ -1,6 +1,6 @@
-import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelV1StreamPart } from '@ai-sdk/provider';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
-import { LanguageModelV1Middleware } from './language-model-v1-middleware';
+import type { LanguageModelV1Middleware } from './language-model-v1-middleware';
 
 /**
  * Extract an XML-tagged reasoning section from the generated text and exposes it
@@ -8,13 +8,16 @@ import { LanguageModelV1Middleware } from './language-model-v1-middleware';
  *
  * @param tagName - The name of the XML tag to extract reasoning from.
  * @param separator - The separator to use between reasoning and text sections.
+ * @param startWithReasoning - Whether to start with reasoning tokens.
  */
 export function extractReasoningMiddleware({
   tagName,
   separator = '\n',
+  startWithReasoning = false,
 }: {
   tagName: string;
   separator?: string;
+  startWithReasoning?: boolean;
 }): LanguageModelV1Middleware {
   const openingTag = `<${tagName}>`;
   const closingTag = `<\/${tagName}>`;
@@ -22,11 +25,13 @@ export function extractReasoningMiddleware({
   return {
     middlewareVersion: 'v1',
     wrapGenerate: async ({ doGenerate }) => {
-      const { text, ...rest } = await doGenerate();
+      const { text: rawText, ...rest } = await doGenerate();
 
-      if (text == null) {
-        return { text, ...rest };
+      if (rawText == null) {
+        return { text: rawText, ...rest };
       }
+
+      const text = startWithReasoning ? openingTag + rawText : rawText;
 
       const regexp = new RegExp(`${openingTag}(.*?)${closingTag}`, 'gs');
       const matches = Array.from(text.matchAll(regexp));
@@ -52,7 +57,7 @@ export function extractReasoningMiddleware({
           afterMatch;
       }
 
-      return { text: textWithoutReasoning, reasoning, ...rest };
+      return { ...rest, text: textWithoutReasoning, reasoning };
     },
 
     wrapStream: async ({ doStream }) => {
@@ -61,7 +66,7 @@ export function extractReasoningMiddleware({
       let isFirstReasoning = true;
       let isFirstText = true;
       let afterSwitch = false;
-      let isReasoning: boolean = false;
+      let isReasoning = startWithReasoning;
       let buffer = '';
 
       return {

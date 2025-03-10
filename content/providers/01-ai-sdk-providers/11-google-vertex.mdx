@@ -428,7 +428,30 @@ Example response excerpt:
 }
 ```
 
-The safety ratings provide insight into how the model's response was grounded to search results. See [Google Vertex AI documentation on configuring safety filters](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters).
+<Note>
+  The Google Vertex provider does not yet support [dynamic retrieval mode and
+  threshold](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#dynamic-retrieval).
+</Note>
+
+### Sources
+
+When you use [Search Grounding](#search-grounding), the model will include sources in the response.
+You can access them using the `sources` property of the result:
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
+
+const { sources } = await generateText({
+  model: vertex('gemini-1.5-pro', { useSearchGrounding: true }),
+  prompt: 'List the top 5 San Francisco news from the past week.',
+});
+```
+
+### Safety Ratings
+
+The safety ratings provide insight into the safety of the model's response.
+See [Google Vertex AI documentation on configuring safety filters](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters).
 
 Example response excerpt:
 
@@ -467,11 +490,6 @@ Example response excerpt:
   ]
 }
 ```
-
-<Note>
-  The Google Vertex provider does not yet support [dynamic retrieval mode and
-  threshold](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#dynamic-retrieval).
-</Note>
 
 For more details, see the [Google Vertex AI documentation on grounding with Google Search](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-gemini#ground-to-search).
 
@@ -798,6 +816,44 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
   instead of streaming it incrementally.
 </Note>
 
+The following optional settings are available for Anthropic models:
+
+- `sendReasoning` _boolean_
+
+  Optional. Include reasoning content in requests sent to the model. Defaults to `true`.
+
+  If you are experiencing issues with the model handling requests involving
+  reasoning content, you can set this to `false` to omit them from the request.
+
+### Reasoning
+
+Anthropic has reasoning support for the `claude-3-7-sonnet@20250219` model.
+
+You can enable it using the `thinking` provider option
+and specifying a thinking budget in tokens.
+
+```ts
+import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
+import { generateText } from 'ai';
+
+const { text, reasoning, reasoningDetails } = await generateText({
+  model: vertexAnthropic('claude-3-7-sonnet@20250219'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'enabled', budgetTokens: 12000 },
+    },
+  },
+});
+
+console.log(reasoning); // reasoning text
+console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(text); // text response
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
+on how to integrate reasoning into your chatbot.
+
 #### Cache Control
 
 <Note>
@@ -992,6 +1048,7 @@ See also [Anthropic Model Comparison](https://docs.anthropic.com/en/docs/about-c
 
 | Model                           | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Computer Use        |
 | ------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-3-7-sonnet@20250219`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-3-5-sonnet-v2@20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-3-5-sonnet@20240620`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `claude-3-5-haiku@20241022`     | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |

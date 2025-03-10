@@ -1,5 +1,119 @@
 # ai
 
+## 4.1.54
+
+### Patch Changes
+
+- ee1c787: fix (ai/core): correct spread apply order to fix extract reasoning middleware with generateText
+
+## 4.1.53
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+  - @ai-sdk/ui-utils@1.1.17
+  - @ai-sdk/react@1.1.21
+
+## 4.1.52
+
+### Patch Changes
+
+- 5329a69: fix (ai/core): fix duplicated reasoning in streamText onFinish and messages
+
+## 4.1.51
+
+### Patch Changes
+
+- 0cb2647: feat (ai/core): add streamText sendStart & sendFinish data stream options
+
+## 4.1.50
+
+### Patch Changes
+
+- ae98f0d: fix (ai/core): forward providerOptions for text, image, and file parts
+
+## 4.1.49
+
+### Patch Changes
+
+- dc027d3: fix (ai/core): add reasoning support to appendResponseMessages
+
+## 4.1.48
+
+### Patch Changes
+
+- Updated dependencies [6255fbc]
+  - @ai-sdk/react@1.1.20
+
+## 4.1.47
+
+### Patch Changes
+
+- Updated dependencies [da5c734]
+  - @ai-sdk/react@1.1.19
+
+## 4.1.46
+
+### Patch Changes
+
+- ddf9740: feat (ai): add anthropic reasoning
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/ui-utils@1.1.16
+  - @ai-sdk/provider-utils@2.1.10
+  - @ai-sdk/react@1.1.18
+
+## 4.1.45
+
+### Patch Changes
+
+- 93bd5a0: feat (ai/ui): add writeSource to createDataStream
+
+## 4.1.44
+
+### Patch Changes
+
+- f8e7df2: fix (ai/core): add `startWithReasoning` option to `extractReasoningMiddleware`
+
+## 4.1.43
+
+### Patch Changes
+
+- ef2e23b: feat (ai/core): add experimental repairText function to generateObject
+
+## 4.1.42
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+  - @ai-sdk/ui-utils@1.1.15
+  - @ai-sdk/react@1.1.17
+
+## 4.1.41
+
+### Patch Changes
+
+- Updated dependencies [60c3220]
+  - @ai-sdk/react@1.1.16
+
+## 4.1.40
+
+### Patch Changes
+
+- Updated dependencies [c43df41]
+  - @ai-sdk/react@1.1.15
+
+## 4.1.39
+
+### Patch Changes
+
+- 075a9a9: fix (ai): improve tsdoc on custom provider
+
 ## 4.1.38
 
 ### Patch Changes
