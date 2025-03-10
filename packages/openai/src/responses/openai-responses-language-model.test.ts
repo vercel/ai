@@ -7,7 +7,6 @@ import {
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
-import { openaiTools } from '../openai-tools';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -121,11 +120,14 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.text).toStrictEqual('answer text');
       });
 
-      it('should send model id and settings', async () => {
+      it('should send model id, settings, and input', async () => {
         const { warnings } = await model.doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
-          prompt: TEST_PROMPT,
+          prompt: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          ],
           temperature: 0.5,
           topP: 0.3,
         });
@@ -135,6 +137,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           temperature: 0.5,
           top_p: 0.3,
           input: [
+            { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
         });

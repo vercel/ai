@@ -3,10 +3,16 @@ import { JSONSchema7 } from '@ai-sdk/provider';
 export type OpenAIResponsesPrompt = Array<OpenAIResponsesMessage>;
 
 export type OpenAIResponsesMessage =
+  | OpenAIResponsesSystemMessage
   | OpenAIResponsesUserMessage
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
   | OpenAIResponsesFunctionCallOutput;
+
+export type OpenAIResponsesSystemMessage = {
+  role: 'system';
+  content: string;
+};
 
 export type OpenAIResponsesUserMessage = {
   role: 'user';

@@ -24,8 +24,8 @@
 ### args
 
 - [x] settings
+- [x] system message support
 - [ ] json response format support
-- [ ] system message support
 - [ ] image detail support
 - [ ] custom: structured outputs opt out
 - [ ] custom: parallel tool calls
@@ -43,10 +43,10 @@
 
 ### previousResponseId support
 
-### documentation
-
-- [ ] responses section under OpenAI provider
-
 ### integration
 
 - [x] export responses language model to azure
+
+### documentation
+
+- [ ] responses section under OpenAI provider

@@ -15,6 +15,7 @@ export function convertToOpenAIResponsesMessages({
   for (const { role, content } of prompt) {
     switch (role) {
       case 'system': {
+        messages.push({ role: 'system', content });
         break;
       }
 

@@ -6,6 +6,7 @@ async function main() {
   const result = streamText({
     model: openai.responses('gpt-4o-mini'),
     maxTokens: 100,
+    system: 'You are a helpful assistant.',
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
@@ -17,7 +18,7 @@ async function main() {
   console.log('Finish reason:', await result.finishReason);
   console.log('Usage:', await result.usage);
   console.log();
-  console.log(JSON.stringify(await result.response, null, 2));
+  console.log((await result.request).body);
 }
 
 main().catch(console.error);
