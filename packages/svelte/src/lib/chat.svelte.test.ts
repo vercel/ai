@@ -2,6 +2,8 @@ import { withTestServer } from "@ai-sdk/provider-utils/test";
 import { Chat } from "./chat.svelte.js";
 import { formatDataStreamPart, type Message } from "@ai-sdk/ui-utils";
 import { promiseWithResolvers } from "./utils.svelte.js";
+import { render } from "@testing-library/svelte";
+import ChatSynchronization from "./tests/chat-synchronization.svelte";
 
 function createFileList(...files: File[]): FileList {
   // file lists are really hard to create :(
@@ -1390,4 +1392,78 @@ describe("initialMessages", () => {
       }),
     ]);
   });
+});
+
+describe("synchronization", () => {
+  it(
+    "correctly synchronizes content between hook instances",
+    withTestServer(
+      {
+        type: "stream-values",
+        url: "/api/chat",
+        content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      },
+      async () => {
+        const {
+          component: { chat1, chat2 },
+        } = render(ChatSynchronization, { id: crypto.randomUUID() });
+
+        await chat1.append({ role: "user", content: "hi" });
+
+        expect(chat1.messages.at(0)).toStrictEqual(
+          expect.objectContaining({
+            role: "user",
+            content: "hi",
+          }),
+        );
+        expect(chat2.messages.at(0)).toStrictEqual(chat1.messages.at(0));
+
+        expect(chat1.messages.at(1)).toStrictEqual(
+          expect.objectContaining({
+            role: "assistant",
+            content: "Hello, world.",
+          }),
+        );
+        expect(chat2.messages.at(1)).toStrictEqual(chat1.messages.at(1));
+      },
+    ),
+  );
+
+  it(
+    "correctly synchronizes loading and error state between hook instances",
+    withTestServer(
+      {
+        type: "controlled-stream",
+        url: "/api/chat",
+      },
+      async ({ streamController }) => {
+        const {
+          component: { chat1, chat2 },
+        } = render(ChatSynchronization, { id: crypto.randomUUID() });
+
+        const appendOperation = chat1.append({ role: "user", content: "hi" });
+
+        await vi.waitFor(() => {
+          expect(chat1.status).toBe("submitted");
+          expect(chat2.status).toBe("submitted");
+        });
+
+        streamController.enqueue('0:"Hello"\n');
+        await vi.waitFor(() => {
+          expect(chat1.status).toBe("streaming");
+          expect(chat2.status).toBe("streaming");
+        });
+
+        streamController.error(new Error("Failed to be cool enough"));
+        await appendOperation;
+
+        expect(chat1.status).toBe("error");
+        expect(chat2.status).toBe("error");
+        expect(chat1.error).toBeInstanceOf(Error);
+        expect(chat1.error?.message).toBe("Failed to be cool enough");
+        expect(chat2.error).toBeInstanceOf(Error);
+        expect(chat2.error?.message).toBe("Failed to be cool enough");
+      },
+    ),
+  );
 });

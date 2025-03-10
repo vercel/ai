@@ -5,7 +5,11 @@ import {
   type RequestOptions,
   callCompletionApi,
 } from "@ai-sdk/ui-utils";
-import { SvelteMap } from "svelte/reactivity";
+import {
+  KeyedCompletionStore,
+  getCompletionContext,
+  hasCompletionContext,
+} from "./completion-context.svelte.js";
 
 export type CompletionOptions = Readonly<UseCompletionOptions>;
 
@@ -14,17 +18,16 @@ export class Completion {
   readonly #api = $derived(this.#options.api ?? "/api/completion");
   readonly #id = $derived(this.#options.id ?? generateId());
   readonly #streamProtocol = $derived(this.#options.streamProtocol ?? "data");
-  #error = $state<Error>();
-  #loading = $state(false);
+  readonly #keyedStore = $state<KeyedCompletionStore>()!;
+  readonly #store = $derived(this.#keyedStore.get(this.#id));
   #abortController: AbortController | undefined;
-  #completions = new SvelteMap<string, string>();
 
   /** The current completion result */
   get completion(): string {
-    return this.#completions.get(this.#id) ?? "";
+    return this.#store.completions.get(this.#id) ?? "";
   }
   set completion(value: string) {
-    this.#completions.set(this.#id, value);
+    this.#store.completions.set(this.#id, value);
   }
 
   /**
@@ -32,11 +35,16 @@ export class Completion {
    *
    * This is writable, so you can use it to transform or clear the chat data.
    */
-  data = $state<JSONValue[]>([]);
+  get data() {
+    return this.#store.data;
+  }
+  set data(value: JSONValue[]) {
+    this.#store.data = value;
+  }
 
   /** The error object of the API request */
   get error() {
-    return this.#error;
+    return this.#store.error;
   }
 
   /** The current value of the input. Writable, so it can be bound to form inputs. */
@@ -46,10 +54,16 @@ export class Completion {
    * Flag that indicates whether an API request is in progress.
    */
   get loading() {
-    return this.#loading;
+    return this.#store.loading;
   }
 
   constructor(options: CompletionOptions = {}) {
+    if (hasCompletionContext()) {
+      this.#keyedStore = getCompletionContext();
+    } else {
+      this.#keyedStore = new KeyedCompletionStore();
+    }
+
     this.#options = options;
     this.completion = options.initialCompletion ?? "";
     this.input = options.initialInput ?? "";
@@ -64,7 +78,7 @@ export class Completion {
     } catch {
       // ignore
     } finally {
-      this.#loading = false;
+      this.#store.loading = false;
       this.#abortController = undefined;
     }
   };
@@ -103,10 +117,10 @@ export class Completion {
         this.data.push(...data);
       },
       setLoading: (loading) => {
-        this.#loading = loading;
+        this.#store.loading = loading;
       },
       setError: (error) => {
-        this.#error = error;
+        this.#store.error = error;
       },
       setAbortController: (abortController) => {
         this.#abortController = abortController ?? undefined;

@@ -17,7 +17,11 @@ import {
   isAssistantMessageWithCompletedToolCalls,
 } from "@ai-sdk/ui-utils";
 import { isAbortError } from "@ai-sdk/provider-utils";
-import { SvelteMap } from "svelte/reactivity";
+import {
+  KeyedChatStore,
+  getChatContext,
+  hasChatContext,
+} from "./chat-context.svelte.js";
 
 export type ChatOptions = Readonly<
   Omit<UseChatOptions, "keepLastMessageOnError"> & {
@@ -41,10 +45,9 @@ export class Chat {
   readonly #id = $derived(this.#options.id ?? this.#generateId());
   readonly #maxSteps = $derived(this.#options.maxSteps ?? 1);
   readonly #streamProtocol = $derived(this.#options.streamProtocol ?? "data");
-  #error = $state<Error>();
-  #status = $state<"submitted" | "streaming" | "ready" | "error">("ready");
+  readonly #keyedStore = $state<KeyedChatStore>()!;
+  readonly #store = $derived(this.#keyedStore.get(this.#id));
   #abortController: AbortController | undefined;
-  #messages = new SvelteMap<string, UIMessage[]>();
 
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated
@@ -59,7 +62,12 @@ export class Chat {
    *
    * This is writable, so you can use it to transform or clear the chat data.
    */
-  data = $state<JSONValue[]>();
+  get data() {
+    return this.#store.data;
+  }
+  set data(value: JSONValue[] | undefined) {
+    this.#store.data = value;
+  }
 
   /**
    * Hook status:
@@ -70,12 +78,12 @@ export class Chat {
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
   get status() {
-    return this.#status;
+    return this.#store.status;
   }
 
   /** The error object of the API request */
   get error() {
-    return this.#error;
+    return this.#store.error;
   }
 
   /** The current value of the input. Writable, so it can be bound to form inputs. */
@@ -88,13 +96,19 @@ export class Chat {
    * trigger {@link reload} to regenerate the AI response.
    */
   get messages(): UIMessage[] {
-    return this.#messages.get(this.#id) ?? [];
+    return this.#store.messages;
   }
   set messages(value: Message[]) {
-    this.#messages.set(this.#id, fillMessageParts(value));
+    this.#store.messages = fillMessageParts(value);
   }
 
   constructor(options: ChatOptions = {}) {
+    if (hasChatContext()) {
+      this.#keyedStore = getChatContext();
+    } else {
+      this.#keyedStore = new KeyedChatStore();
+    }
+
     this.#options = options;
     this.messages = options.initialMessages ?? [];
     this.input = options.initialInput ?? "";
@@ -157,7 +171,7 @@ export class Chat {
     } catch {
       // ignore
     } finally {
-      this.#status = "ready";
+      this.#store.status = "ready";
       this.#abortController = undefined;
     }
   };
@@ -215,8 +229,8 @@ export class Chat {
   };
 
   #triggerRequest = async (chatRequest: ChatRequest) => {
-    this.#status = "submitted";
-    this.#error = undefined;
+    this.#store.status = "submitted";
+    this.#store.error = undefined;
 
     const messages = fillMessageParts(chatRequest.messages);
     const messageCount = messages.length;
@@ -225,7 +239,8 @@ export class Chat {
     );
 
     try {
-      this.#abortController = new AbortController();
+      const abortController = new AbortController();
+      this.#abortController = abortController;
 
       // Optimistically update messages
       this.messages = messages;
@@ -270,11 +285,11 @@ export class Chat {
           ...this.#options.headers,
           ...chatRequest.headers,
         },
-        abortController: () => this.#abortController ?? null,
+        abortController: () => abortController,
         restoreMessagesOnFailure: () => {},
         onResponse: this.#options.onResponse,
         onUpdate: ({ message, data, replaceLastMessage }) => {
-          this.#status = "streaming";
+          this.#store.status = "streaming";
 
           this.messages = [
             ...(replaceLastMessage ? messages.slice(0, -1) : messages),
@@ -293,7 +308,7 @@ export class Chat {
       });
 
       this.#abortController = undefined;
-      this.#status = "ready";
+      this.#store.status = "ready";
     } catch (error) {
       if (isAbortError(error)) {
         return;
@@ -305,8 +320,8 @@ export class Chat {
         this.#options.onError(coalescedError);
       }
 
-      this.#status = "error";
-      this.#error = coalescedError;
+      this.#store.status = "error";
+      this.#store.error = coalescedError;
     }
 
     // auto-submit when all tool calls in the last assistant message have results
