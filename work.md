@@ -25,10 +25,13 @@
 
 - [x] settings
 - [x] system message support
-- [ ] json response format support
 - [ ] image detail support
+- [ ] json response format support
 - [ ] custom: structured outputs opt out
-- [ ] custom: parallel tool calls
+- [x] provider option: parallel tool calls
+- [ ] custom: distillation
+- [ ] custom: cached prompt token usage information
+- [ ] custom: predicted outputs?
 
 ### reasoning
 
@@ -40,6 +43,7 @@
 
 - [x] web search tool (basic)
 - [ ] computer use tool
+- [ ] file search
 
 ### previousResponseId support
 

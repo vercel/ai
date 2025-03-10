@@ -107,12 +107,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       it('should generate text', async () => {
         const result = await model.doGenerate({
-          prompt: [
-            {
-              role: 'user',
-              content: [{ type: 'text', text: 'Hello, World!' }],
-            },
-          ],
+          prompt: TEST_PROMPT,
           inputFormat: 'prompt',
           mode: { type: 'regular' },
         });
@@ -258,6 +253,29 @@ describe('OpenAIResponsesLanguageModel', () => {
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send parallel tool calls provider option', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          providerMetadata: {
+            openai: {
+              parallelToolCalls: false,
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          parallel_tool_calls: false,
         });
 
         expect(warnings).toStrictEqual([]);

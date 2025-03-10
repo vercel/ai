@@ -47,6 +47,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     frequencyPenalty,
     seed,
     prompt,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const warnings: LanguageModelV1CallWarning[] = [];
     const modelConfig = getResponsesModelConfig(this.modelId);
@@ -101,6 +102,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       temperature,
       top_p: topP,
       max_output_tokens: maxTokens,
+
+      // provider options:
+      parallel_tool_calls: providerMetadata?.openai?.parallelToolCalls,
     };
 
     if (modelConfig.isReasoningModel) {
