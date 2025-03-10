@@ -87,14 +87,26 @@ export class SambaNovaChatLanguageModel implements LanguageModelV1 {
 
     const warnings: LanguageModelV1CallWarning[] = [];
 
-    // TODO: Should we raise an error on unsupported features? As they're ignored by default.
-    // List: logprobs, top_logprobs, n, presence_penalty, frequency_penaly, logit_bias, seed.
-    // if (topK != null) {
-    //   warnings.push({
-    //     type: 'unsupported-setting',
-    //     setting: 'topK',
-    //   });
-    // }
+    if (frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'frequencyPenalty',
+      });
+    }
+
+    if (presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'presencePenalty',
+      });
+    }
+
+    if (seed != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'seed',
+      });
+    }
 
     if (
       responseFormat != null &&

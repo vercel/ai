@@ -62,7 +62,7 @@ export function createSambaNova(
   options: SambaNovaProviderSettings = {},
 ): SambaNovaProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ?? 'https://api.sambanova.ai/v1'; // TODO: Check this URL
+    withoutTrailingSlash(options.baseURL) ?? 'https://api.sambanova.ai/v1';
 
   const getHeaders = () => ({
     Authorization: `Bearer ${loadApiKey({

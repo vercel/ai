@@ -56,7 +56,7 @@ describe('doGenerate', () => {
     finish_reason = 'stop',
     id = '751d1f56-ec97-4174-998c-6bd680d0c8ff',
     created = 1711115037,
-    model = 'Meta-Llama-3.1-8B-Instruct', // TODO: check for this model on our side
+    model = 'Meta-Llama-3.1-70B-Instruct',
   }: {
     content?: string;
     tool_calls?: Array<{
@@ -275,8 +275,6 @@ describe('doGenerate', () => {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
             },
           },
         ],
@@ -300,8 +298,6 @@ describe('doGenerate', () => {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
             },
           },
         },
@@ -497,7 +493,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { completionTokens: 439, promptTokens: 18 }, // TODO: from where is it receiving this usage?
+        usage: { completionTokens: 439, promptTokens: 18 }, // TODO: check this value
       },
     ]);
   });
