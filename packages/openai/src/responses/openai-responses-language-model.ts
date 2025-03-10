@@ -97,6 +97,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
     warnings.push(...messageWarnings);
 
+    const isStrictJsonSchema =
+      providerMetadata?.openai?.strictJsonSchema ?? true;
+
     const baseArgs = {
       model: this.modelId,
       input: messages,
@@ -110,7 +113,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             responseFormat.schema != null
               ? {
                   type: 'json_schema',
-                  strict: true,
+                  strict: isStrictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
                   schema: responseFormat.schema,
@@ -179,7 +182,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 mode.schema != null
                   ? {
                       type: 'json_schema',
-                      strict: true,
+                      strict: isStrictJsonSchema,
                       name: mode.name ?? 'response',
                       description: mode.description,
                       schema: mode.schema,
@@ -202,7 +205,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 name: mode.tool.name,
                 description: mode.tool.description,
                 parameters: mode.tool.parameters,
-                strict: true,
+                strict: isStrictJsonSchema,
               },
             ],
           },

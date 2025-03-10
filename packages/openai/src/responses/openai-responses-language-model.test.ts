@@ -508,6 +508,57 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send object-json json_schema format with strictJsonSchema false', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'object-json',
+            name: 'response',
+            description: 'A response',
+            schema: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+          prompt: TEST_PROMPT,
+          providerMetadata: {
+            openai: {
+              strictJsonSchema: false,
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o-mini',
+          text: {
+            format: {
+              type: 'json_schema',
+              strict: false,
+              name: 'response',
+              description: 'A response',
+              schema: {
+                type: 'object',
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          },
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send web_search tool', async () => {
         const { warnings } = await model.doGenerate({
           inputFormat: 'prompt',

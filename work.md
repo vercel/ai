@@ -25,13 +25,13 @@
 
 - [x] settings
 - [x] system message support
-- [x] provider option: parallel tool calls = false
-- [x] provider option: store = false
+- [x] json response format support
+- [x] provider option: parallel tool calls
+- [x] provider option: store
 - [x] provider option: metadata
 - [x] provider option: user
 - [x] provider option (on images): detail
-- [x] json response format support
-- [ ] provider option: structuredOutputs (strict false) strictStructuredOutput: false
+- [x] provider option: strictJsonSchema
 - [ ] custom: cached prompt token usage information
 - [ ] custom: predicted outputs?
 - [ ] tool option: strict (requires tool provider options)
