@@ -44,7 +44,7 @@
 ### web search support
 
 - [x] web search tool (basic)
-- [ ] sources support: generate
+- [x] sources support: generate
 - [ ] sources support: stream
 - [ ] web search tool options
 

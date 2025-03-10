@@ -13,6 +13,9 @@ async function main() {
 
   console.log(result.text);
   console.log();
+  console.log('Sources:');
+  console.log(result.sources);
+  console.log();
   console.log('Finish reason:', result.finishReason);
   console.log('Usage:', result.usage);
 

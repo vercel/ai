@@ -8,6 +8,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  generateId,
   ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -251,6 +252,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                   z.object({
                     type: z.literal('output_text'),
                     text: z.string(),
+                    annotations: z.array(
+                      z.object({
+                        type: z.literal('url_citation'),
+                        start_index: z.number(),
+                        end_index: z.number(),
+                        url: z.string(),
+                        title: z.string(),
+                      }),
+                    ),
                   }),
                 ),
               }),
@@ -282,13 +292,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
         args: output.arguments,
       }));
 
+    const outputTextElements = response.output
+      .filter(output => output.type === 'message')
+      .flatMap(output => output.content)
+      .filter(content => content.type === 'output_text');
+
     return {
-      text: response.output
-        .filter(output => output.type === 'message')
-        .flatMap(output => output.content)
-        .filter(content => content.type === 'output_text')
-        .map(content => content.text)
-        .join('\n'),
+      text: outputTextElements.map(content => content.text).join('\n'),
+      sources: outputTextElements.flatMap(content =>
+        content.annotations.map(annotation => ({
+          sourceType: 'url',
+          id: this.config.generateId?.() ?? generateId(),
+          url: annotation.url,
+          title: annotation.title,
+        })),
+      ),
       finishReason: mapOpenAIResponseFinishReason({
         finishReason: response.incomplete_details?.reason,
         hasToolCalls: toolCalls.length > 0,

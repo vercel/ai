@@ -5,8 +5,10 @@ import {
 import {
   convertReadableStreamToArray,
   createTestServer,
+  mockId,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
+import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -35,8 +37,14 @@ const TEST_TOOLS: Array<LanguageModelV1FunctionTool> = [
   },
 ];
 
-const provider = createOpenAI({ apiKey: 'test-api-key' });
-const model = provider.responses('gpt-4o-mini');
+function createModel(modelId: string) {
+  return new OpenAIResponsesLanguageModel(modelId, {
+    provider: 'openai',
+    url: ({ path }) => `https://api.openai.com/v1${path}`,
+    headers: () => ({ Authorization: `Bearer APIKEY` }),
+    generateId: mockId(),
+  });
+}
 
 describe('OpenAIResponsesLanguageModel', () => {
   const server = createTestServer({
@@ -58,7 +66,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             input: [],
             instructions: null,
             max_output_tokens: null,
-            model: 'gpt-4o-mini-2024-07-18',
+            model: 'gpt-4o-2024-07-18',
             output: [
               {
                 id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
@@ -109,7 +117,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should generate text', async () => {
-        const result = await model.doGenerate({
+        const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
           mode: { type: 'regular' },
@@ -120,7 +128,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       // TODO also for streaming...
       it('should extract usage', async () => {
-        const result = await model.doGenerate({
+        const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
           mode: { type: 'regular' },
@@ -140,7 +148,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send model id, settings, and input', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: [
@@ -152,7 +160,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           temperature: 0.5,
           top_p: 0.3,
           input: [
@@ -164,8 +172,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should remove unsupported settings for o1-mini', async () => {
-        const { warnings } = await provider.responses('o1-mini').doGenerate({
+      it('should remove unsupported settings for o1', async () => {
+        const { warnings } = await createModel('o1-mini').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: [
@@ -201,8 +209,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         ]);
       });
 
-      it('should remove unsupported settings for o3-mini', async () => {
-        const { warnings } = await provider.responses('o3-mini').doGenerate({
+      it('should remove unsupported settings for o3', async () => {
+        const { warnings } = await createModel('o3').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: [
@@ -214,7 +222,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'o3-mini',
+          model: 'o3',
           input: [
             { role: 'developer', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -236,7 +244,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send response format json schema', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
@@ -255,7 +263,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           text: {
             format: {
               type: 'json_schema',
@@ -280,7 +288,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send response format json object', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
@@ -290,7 +298,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           text: {
             format: {
               type: 'json_object',
@@ -305,7 +313,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send parallelToolCalls provider option', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
@@ -317,7 +325,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
@@ -328,7 +336,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send store provider option', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
@@ -340,7 +348,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
@@ -351,7 +359,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send user provider option', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
@@ -363,7 +371,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
@@ -374,7 +382,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send metadata provider option', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
@@ -386,7 +394,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
@@ -397,7 +405,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send reasoningEffort provider option', async () => {
-        const { warnings } = await provider.responses('o3-mini').doGenerate({
+        const { warnings } = await createModel('o3').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
@@ -409,7 +417,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'o3-mini',
+          model: 'o3',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
@@ -422,7 +430,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send object-tool format', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: {
             type: 'object-tool',
@@ -443,7 +451,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           tool_choice: { type: 'function', name: 'response' },
           tools: [
             {
@@ -469,14 +477,14 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send object-json json_object format', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'object-json' },
           prompt: TEST_PROMPT,
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           text: { format: { type: 'json_object' } },
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -487,7 +495,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send object-json json_schema format', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: {
             type: 'object-json',
@@ -505,7 +513,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           text: {
             format: {
               type: 'json_schema',
@@ -533,7 +541,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send object-json json_schema format with strictJsonSchema false', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: {
             type: 'object-json',
@@ -556,7 +564,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           text: {
             format: {
               type: 'json_schema',
@@ -584,7 +592,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should send web_search tool', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: {
             type: 'regular',
@@ -601,7 +609,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           tools: [{ type: 'web_search' }],
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -612,7 +620,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should warn about unsupported settings', async () => {
-        const { warnings } = await model.doGenerate({
+        const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
@@ -647,7 +655,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             input: [],
             instructions: null,
             max_output_tokens: null,
-            model: 'gpt-4o-mini-2024-07-18',
+            model: 'gpt-4o-2024-07-18',
             output: [
               {
                 type: 'function_call',
@@ -732,7 +740,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should generate tool calls', async () => {
-        const result = await model.doGenerate({
+        const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
           mode: { type: 'regular', tools: TEST_TOOLS },
@@ -755,13 +763,187 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
 
       it('should have tool-calls finish reason', async () => {
-        const result = await model.doGenerate({
+        const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
           mode: { type: 'regular', tools: TEST_TOOLS },
         });
 
         expect(result.finishReason).toStrictEqual('tool-calls');
+      });
+    });
+
+    describe('web search', () => {
+      const outputText = `Last week in San Francisco, several notable events and developments took place:\n\n**Bruce Lee Statue in Chinatown**\n\nThe Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))\n\n**Office Leasing Revival**\n\nThe Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))\n\n**Spring Blooms in the Bay Area**\n\nWith the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))\n\n**Oceanfront Great Highway Park**\n\nSan Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))\n\n**Warmer Spring Seasons**\n\nAn analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))\n\n\n# Key San Francisco Developments Last Week:\n- [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)\n- [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)\n- [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)`;
+
+      beforeEach(() => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'json-value',
+          body: {
+            id: 'resp_67cf2b2f6bd081909be2c8054ddef0eb',
+            object: 'response',
+            created_at: 1741630255,
+            status: 'completed',
+            error: null,
+            incomplete_details: null,
+            instructions: null,
+            max_output_tokens: null,
+            model: 'gpt-4o-2024-07-18',
+            output: [
+              {
+                type: 'web_search_call',
+                id: 'ws_67cf2b3051e88190b006770db6fdb13d',
+                status: 'completed',
+              },
+              {
+                type: 'message',
+                id: 'msg_67cf2b35467481908f24412e4fd40d66',
+                status: 'completed',
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: outputText,
+                    annotations: [
+                      {
+                        type: 'url_citation',
+                        start_index: 486,
+                        end_index: 606,
+                        url: 'https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com',
+                        title:
+                          'Bruce Lee statue to be installed in SF Chinatown',
+                      },
+                      {
+                        type: 'url_citation',
+                        start_index: 912,
+                        end_index: 1035,
+                        url: 'https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com',
+                        title:
+                          'The Bay Area is set to make an office leasing comeback',
+                      },
+                      {
+                        type: 'url_citation',
+                        start_index: 1346,
+                        end_index: 1472,
+                        url: 'https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com',
+                        title: 'Where to see spring blooms in the Bay Area',
+                      },
+                      {
+                        type: 'url_citation',
+                        start_index: 1884,
+                        end_index: 2023,
+                        url: 'https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com',
+                        title:
+                          'Oceanfront Great Highway park set to open in April',
+                      },
+                      {
+                        type: 'url_citation',
+                        start_index: 2404,
+                        end_index: 2540,
+                        url: 'https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com',
+                        title:
+                          "San Francisco's spring seasons are getting warmer",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+            parallel_tool_calls: true,
+            previous_response_id: null,
+            reasoning: {
+              effort: null,
+              summary: null,
+            },
+            store: true,
+            temperature: 0,
+            text: {
+              format: {
+                type: 'text',
+              },
+            },
+            tool_choice: 'auto',
+            tools: [
+              {
+                type: 'web_search_preview',
+                search_context_size: 'medium',
+                user_location: {
+                  type: 'approximate',
+                  city: null,
+                  country: 'US',
+                  region: null,
+                  timezone: null,
+                },
+              },
+            ],
+            top_p: 1,
+            truncation: 'disabled',
+            usage: {
+              input_tokens: 327,
+              input_tokens_details: {
+                cached_tokens: 0,
+              },
+              output_tokens: 770,
+              output_tokens_details: {
+                reasoning_tokens: 0,
+              },
+              total_tokens: 1097,
+            },
+            user: null,
+            metadata: {},
+          },
+        };
+      });
+
+      it('should generate text', async () => {
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+        });
+
+        expect(result.text).toStrictEqual(outputText);
+      });
+
+      it('should return sources', async () => {
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+        });
+
+        expect(result.sources).toStrictEqual([
+          {
+            sourceType: 'url',
+            id: 'id-0',
+            url: 'https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com',
+            title: 'Bruce Lee statue to be installed in SF Chinatown',
+          },
+          {
+            sourceType: 'url',
+            id: 'id-1',
+            url: 'https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com',
+            title: 'The Bay Area is set to make an office leasing comeback',
+          },
+          {
+            sourceType: 'url',
+            id: 'id-2',
+            url: 'https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com',
+            title: 'Where to see spring blooms in the Bay Area',
+          },
+          {
+            sourceType: 'url',
+            id: 'id-3',
+            url: 'https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com',
+            title: 'Oceanfront Great Highway park set to open in April',
+          },
+          {
+            sourceType: 'url',
+            id: 'id-4',
+            url: 'https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com',
+            title: "San Francisco's spring seasons are getting warmer",
+          },
+        ]);
       });
     });
   });
@@ -771,8 +953,8 @@ describe('OpenAIResponsesLanguageModel', () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.in_progress","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.in_progress","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
           `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
           `data:{"type":"response.content_part.added","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
           `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":"Hello,"}\n\n`,
@@ -780,11 +962,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           `data:{"type":"response.output_text.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"text":"Hello, World!"}\n\n`,
           `data:{"type":"response.content_part.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Hello, World!","annotations":[]}}\n\n`,
           `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[]}]}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_67c9a878139c8190aa2e3105411b408b","object":"response","created_at":1741269112,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":123},"total_tokens":512},"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_67c9a878139c8190aa2e3105411b408b","object":"response","created_at":1741269112,"status":"completed","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hello, World!","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":543,"input_tokens_details":{"cached_tokens":234},"output_tokens":478,"output_tokens_details":{"reasoning_tokens":123},"total_tokens":512},"user":null,"metadata":{}}}\n\n`,
         ],
       };
 
-      const { stream } = await model.doStream({
+      const { stream } = await createModel('gpt-4o').doStream({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
@@ -793,7 +975,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(await convertReadableStreamToArray(stream)).toStrictEqual([
         {
           id: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-          modelId: 'gpt-4o-mini-2024-07-18',
+          modelId: 'gpt-4o-2024-07-18',
           timestamp: new Date('2025-03-06T13:50:19.000Z'),
           type: 'response-metadata',
         },
@@ -820,19 +1002,19 @@ describe('OpenAIResponsesLanguageModel', () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.in_progress","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.created","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.in_progress","response":{"id":"resp_67c9a81b6a048190a9ee441c5755a4e8","object":"response","created_at":1741269019,"status":"in_progress","error":null,"incomplete_details":null,"input":[],"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0.3,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
           `data:{"type":"response.output_item.added","output_index":0,"item":{"id":"msg_67c9a81dea8c8190b79651a2b3adf91e","type":"message","status":"in_progress","role":"assistant","content":[]}}\n\n`,
           `data:{"type":"response.content_part.added","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"part":{"type":"output_text","text":"","annotations":[]}}\n\n`,
           `data:{"type":"response.output_text.delta","item_id":"msg_67c9a81dea8c8190b79651a2b3adf91e","output_index":0,"content_index":0,"delta":"Hello,"}\n\n`,
           `data:{"type":"response.output_text.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"text":"Hello,!"}\n\n`,
           `data:{"type":"response.content_part.done","item_id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","output_index":0,"content_index":0,"part":{"type":"output_text","text":"Hello,","annotations":[]}}\n\n`,
           `data:{"type":"response.output_item.done","output_index":0,"item":{"id":"msg_67c9a8787f4c8190b49c858d4c1cf20c","type":"message","status":"incomplete","role":"assistant","content":[{"type":"output_text","text":"Hello,","annotations":[]}]}}\n\n`,
-          `data:{"type":"response.incomplete","response":{"id":"resp_67cadb40a0708190ac2763c0b6960f6f","object":"response","created_at":1741347648,"status":"incomplete","error":null,"incomplete_details":{"reason":"max_output_tokens"},"instructions":null,"max_output_tokens":100,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"message","id":"msg_67cadb410ccc81909fe1d8f427b9cf02","status":"incomplete","role":"assistant","content":[{"type":"output_text","text":"Hello,","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.incomplete","response":{"id":"resp_67cadb40a0708190ac2763c0b6960f6f","object":"response","created_at":1741347648,"status":"incomplete","error":null,"incomplete_details":{"reason":"max_output_tokens"},"instructions":null,"max_output_tokens":100,"model":"gpt-4o-2024-07-18","output":[{"type":"message","id":"msg_67cadb410ccc81909fe1d8f427b9cf02","status":"incomplete","role":"assistant","content":[{"type":"output_text","text":"Hello,","annotations":[]}]}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
         ],
       };
 
-      const { stream } = await model.doStream({
+      const { stream } = await createModel('gpt-4o').doStream({
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
@@ -841,7 +1023,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(await convertReadableStreamToArray(stream)).toStrictEqual([
         {
           id: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-          modelId: 'gpt-4o-mini-2024-07-18',
+          modelId: 'gpt-4o-2024-07-18',
           timestamp: new Date('2025-03-06T13:50:19.000Z'),
           type: 'response-metadata',
         },
@@ -867,8 +1049,8 @@ describe('OpenAIResponsesLanguageModel', () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
-          `data:{"type":"response.created","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
-          `data:{"type":"response.in_progress","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.created","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.in_progress","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"in_progress","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":null,"user":null,"metadata":{}}}\n\n`,
           `data:{"type":"response.output_item.added","output_index":0,"item":{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_6KxSghkb4MVnunFH2TxPErLP","name":"currentLocation","arguments":"","status":"completed"}}\n\n`,
           `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a838088190be08eb3927c87501","output_index":0,"delta":"{}"}\n\n`,
           `data:{"type":"response.function_call_arguments.done","item_id":"fc_67cb13a838088190be08eb3927c87501","output_index":0,"arguments":"{}"}\n\n`,
@@ -881,11 +1063,11 @@ describe('OpenAIResponsesLanguageModel', () => {
           `data:{"type":"response.function_call_arguments.delta","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"delta":"\\"}"}\n\n`,
           `data:{"type":"response.function_call_arguments.done","item_id":"fc_67cb13a858f081908a600343fa040f47","output_index":1,"arguments":"{\\"location\\":\\"Rome\\"}"}\n\n`,
           `data:{"type":"response.output_item.done","output_index":1,"item":{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}}\n\n`,
-          `data:{"type":"response.completed","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-mini-2024-07-18","output":[{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_KsVqaVAf3alAtCCkQe4itE7W","name":"currentLocation","arguments":"{}","status":"completed"},{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
+          `data:{"type":"response.completed","response":{"id":"resp_67cb13a755c08190acbe3839a49632fc","object":"response","created_at":1741362087,"status":"completed","error":null,"incomplete_details":null,"instructions":null,"max_output_tokens":null,"model":"gpt-4o-2024-07-18","output":[{"type":"function_call","id":"fc_67cb13a838088190be08eb3927c87501","call_id":"call_KsVqaVAf3alAtCCkQe4itE7W","name":"currentLocation","arguments":"{}","status":"completed"},{"type":"function_call","id":"fc_67cb13a858f081908a600343fa040f47","call_id":"call_X2PAkDJInno9VVnNkDrfhboW","name":"weather","arguments":"{\\"location\\":\\"Rome\\"}","status":"completed"}],"parallel_tool_calls":true,"previous_response_id":null,"reasoning":{"effort":null,"summary":null},"store":true,"temperature":0,"text":{"format":{"type":"text"}},"tool_choice":"auto","tools":[{"type":"function","description":"Get the current location.","name":"currentLocation","parameters":{"type":"object","properties":{},"additionalProperties":false},"strict":true},{"type":"function","description":"Get the weather in a location","name":"weather","parameters":{"type":"object","properties":{"location":{"type":"string","description":"The location to get the weather for"}},"required":["location"],"additionalProperties":false},"strict":true}],"top_p":1,"truncation":"disabled","usage":{"input_tokens":0,"input_tokens_details":{"cached_tokens":0},"output_tokens":0,"output_tokens_details":{"reasoning_tokens":0},"total_tokens":0},"user":null,"metadata":{}}}\n\n`,
         ],
       };
 
-      const { stream } = await model.doStream({
+      const { stream } = await createModel('gpt-4o').doStream({
         inputFormat: 'prompt',
         mode: { type: 'regular', tools: TEST_TOOLS },
         prompt: TEST_PROMPT,
@@ -894,7 +1076,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(await convertReadableStreamToArray(stream)).toStrictEqual([
         {
           id: 'resp_67cb13a755c08190acbe3839a49632fc',
-          modelId: 'gpt-4o-mini-2024-07-18',
+          modelId: 'gpt-4o-2024-07-18',
           timestamp: new Date('2025-03-07T15:41:27.000Z'),
           type: 'response-metadata',
         },
