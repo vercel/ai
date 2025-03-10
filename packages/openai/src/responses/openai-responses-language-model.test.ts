@@ -304,17 +304,14 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send metadata provider option', async () => {
+      it('should send user provider option', async () => {
         const { warnings } = await model.doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           providerMetadata: {
             openai: {
-              metadata: {
-                key1: 'value1',
-                key2: 'value2',
-              },
+              store: false,
             },
           },
         });
@@ -324,10 +321,30 @@ describe('OpenAIResponsesLanguageModel', () => {
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],
-          metadata: {
-            key1: 'value1',
-            key2: 'value2',
+          store: false,
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send metadata provider option', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          providerMetadata: {
+            openai: {
+              user: 'user_123',
+            },
           },
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          user: 'user_123',
         });
 
         expect(warnings).toStrictEqual([]);
