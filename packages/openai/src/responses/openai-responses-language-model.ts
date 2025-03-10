@@ -105,6 +105,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
       // provider options:
       parallel_tool_calls: providerMetadata?.openai?.parallelToolCalls,
+      store: providerMetadata?.openai?.store,
       ...(modelConfig.isReasoningModel &&
         providerMetadata?.openai?.reasoningEffort != null && {
           reasoning: { effort: providerMetadata?.openai?.reasoningEffort },

@@ -281,6 +281,29 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send store provider option', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          providerMetadata: {
+            openai: {
+              store: false,
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o-mini',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          store: false,
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send reasoningEffort provider option', async () => {
         const { warnings } = await provider.responses('o3-mini').doGenerate({
           inputFormat: 'prompt',

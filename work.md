@@ -26,10 +26,10 @@
 - [x] settings
 - [x] system message support
 - [x] provider option: parallel tool calls = false
+- [x] provider option: store = false
 - [ ] image detail support
 - [ ] json response format support
-- [ ] custom: structured outputs opt out
-- [ ] provider option: store = false
+- [ ] provider option: structuredOutputs false
 - [ ] provider option: metadata
 - [ ] custom: cached prompt token usage information
 - [ ] custom: predicted outputs?
@@ -39,7 +39,7 @@
 - [x] reasoning model settings etc
 - [x] developer messages
 - [x] provider option: reasoning effort
-- [ ] reasoning tokens output
+- [ ] reasoning tokens output (streaming / non-streaming)
 
 ### provider-defined tool support
 

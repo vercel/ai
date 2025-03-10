@@ -7,6 +7,12 @@ async function main() {
     model: openai.responses('gpt-4o-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
     maxTokens: 1000,
+    providerOptions: {
+      openai: {
+        parallelToolCalls: false,
+        store: false,
+      },
+    },
   });
 
   console.log(result.text);
