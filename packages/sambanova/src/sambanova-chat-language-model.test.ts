@@ -261,7 +261,7 @@ describe('doGenerate', () => {
 
   it('should pass tools and toolChoice', async () => {
     prepareJsonResponse({ content: '' });
-  
+
     await model.doGenerate({
       inputFormat: 'prompt',
       mode: {
@@ -286,7 +286,7 @@ describe('doGenerate', () => {
       },
       prompt: TEST_PROMPT,
     });
-  
+
     expect(await server.getRequestBodyJson()).toStrictEqual({
       model: 'meta-llama-3.3-70b-instruct',
       messages: [{ role: 'user', content: 'Hello' }],

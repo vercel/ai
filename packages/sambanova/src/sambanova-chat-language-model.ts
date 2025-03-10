@@ -19,8 +19,14 @@ import {
 import { z } from 'zod';
 import { convertToSambaNovaChatMessages } from './convert-to-sambanova-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import { SambaNovaChatModelId, SambaNovaChatSettings } from './sambanova-chat-settings';
-import { sambanovaErrorDataSchema, sambanovaFailedResponseHandler } from './sambanova-error';
+import {
+  SambaNovaChatModelId,
+  SambaNovaChatSettings,
+} from './sambanova-chat-settings';
+import {
+  sambanovaErrorDataSchema,
+  sambanovaFailedResponseHandler,
+} from './sambanova-error';
 import { prepareTools } from './sambanova-prepare-tools';
 import { mapSambanovaFinishReason } from './map-sambanova-finish-reason';
 
@@ -251,8 +257,9 @@ export class sambanovaChatLanguageModel implements LanguageModelV1 {
         stream: true,
       },
       failedResponseHandler: sambanovaFailedResponseHandler,
-      successfulResponseHandler:
-        createEventSourceResponseHandler(sambanovaChatChunkSchema),
+      successfulResponseHandler: createEventSourceResponseHandler(
+        sambanovaChatChunkSchema,
+      ),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
@@ -314,7 +321,8 @@ export class sambanovaChatLanguageModel implements LanguageModelV1 {
 
             if (value.x_sambanova?.usage != null) {
               usage = {
-                promptTokens: value.x_sambanova.usage.prompt_tokens ?? undefined,
+                promptTokens:
+                  value.x_sambanova.usage.prompt_tokens ?? undefined,
                 completionTokens:
                   value.x_sambanova.usage.completion_tokens ?? undefined,
               };

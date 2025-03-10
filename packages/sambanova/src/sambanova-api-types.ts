@@ -18,7 +18,9 @@ export interface SambaNovaUserMessage {
   content: string | Array<SambaNovaContentPart>;
 }
 
-export type SambaNovaContentPart = SambaNovaContentPartText | SambaNovaContentPartImage;
+export type SambaNovaContentPart =
+  | SambaNovaContentPartText
+  | SambaNovaContentPartImage;
 
 export interface SambaNovaContentPartText {
   type: 'text';

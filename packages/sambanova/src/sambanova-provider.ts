@@ -9,8 +9,10 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { sambanovaChatLanguageModel } from './sambanova-chat-language-model';
-import { SambaNovaChatModelId, SambaNovaChatSettings } from './sambanova-chat-settings';
-
+import {
+  SambaNovaChatModelId,
+  SambaNovaChatSettings,
+} from './sambanova-chat-settings';
 
 export interface SambaNovaProvider extends ProviderV1 {
   /**
@@ -21,10 +23,7 @@ Creates a model for text generation.
   /**
 Creates a SambaNova chat model for text generation.
    */
-  languageModel(
-    modelId: string,
-    settings?: any,
-  ): LanguageModelV1;
+  languageModel(modelId: string, settings?: any): LanguageModelV1;
 }
 
 export interface SambaNovaProviderSettings {
@@ -53,7 +52,9 @@ or to provide a custom fetch implementation for e.g. testing.
 /**
 Create a SambaNova provider instance.
  */
-export function createSambaNova(options: SambaNovaProviderSettings = {}): SambaNovaProvider {
+export function createSambaNova(
+  options: SambaNovaProviderSettings = {},
+): SambaNovaProvider {
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://api.sambanova.ai/v1';
 
@@ -66,10 +67,7 @@ export function createSambaNova(options: SambaNovaProviderSettings = {}): SambaN
     ...options.headers,
   });
 
-  const createChatModel = (
-    modelId: string,
-    settings: any = {},
-  ) =>
+  const createChatModel = (modelId: string, settings: any = {}) =>
     new sambanovaChatLanguageModel(modelId, settings, {
       provider: 'sambanova.chat',
       url: ({ path }) => `${baseURL}${path}`,
@@ -77,10 +75,7 @@ export function createSambaNova(options: SambaNovaProviderSettings = {}): SambaN
       fetch: options.fetch,
     });
 
-  const createLanguageModel = (
-    modelId: string,
-    settings?: any,
-  ) => {
+  const createLanguageModel = (modelId: string, settings?: any) => {
     if (new.target) {
       throw new Error(
         'The SambaNova model function cannot be called with the new keyword.',
@@ -90,10 +85,7 @@ export function createSambaNova(options: SambaNovaProviderSettings = {}): SambaN
     return createChatModel(modelId, settings);
   };
 
-  const provider = function (
-    modelId: string,
-    settings?: any,
-  ) {
+  const provider = function (modelId: string, settings?: any) {
     return createLanguageModel(modelId, settings);
   };
 
