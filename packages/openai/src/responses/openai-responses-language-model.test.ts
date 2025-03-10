@@ -7,6 +7,7 @@ import {
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createOpenAI } from '../openai-provider';
+import { openaiTools } from '../openai-tools';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -241,6 +242,34 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(await server.calls[0].requestBody).toStrictEqual({
           model: 'gpt-4o-mini',
           text: { format: { type: 'json_object' } },
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
+      it('should send web_search tool', async () => {
+        const { warnings } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'regular',
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.web_search',
+                name: 'web_search',
+                args: {},
+              },
+            ],
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o-mini',
+          tools: [{ type: 'web_search' }],
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],

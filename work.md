@@ -28,15 +28,16 @@
 - [ ] system & developer message support
 - [ ] image detail support
 - [ ] custom: structured outputs opt out
-- [ ] custom: reasoning effort
 - [ ] custom: parallel tool calls
 
 ### reasoning
 
 - [ ] reasoning model settings etc
+- [ ] custom: reasoning effort
 
 ### provider-defined tool support
 
+- [x] web search tool (basic)
 - [ ] computer use tool
 
 ### previousResponseId support

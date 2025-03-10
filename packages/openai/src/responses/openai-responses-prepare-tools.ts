@@ -1,9 +1,9 @@
 import {
-  JSONSchema7,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { OpenAIResponsesTool } from './openai-responses-api-types';
 
 export function prepareResponsesTools({
   mode,
@@ -14,13 +14,7 @@ export function prepareResponsesTools({
   };
   strict: boolean;
 }): {
-  tools?: {
-    type: 'function';
-    name: string;
-    description: string | undefined;
-    parameters: JSONSchema7;
-    strict?: boolean;
-  }[];
+  tools?: Array<OpenAIResponsesTool>;
   tool_choice?:
     | 'auto'
     | 'none'
@@ -39,25 +33,32 @@ export function prepareResponsesTools({
 
   const toolChoice = mode.toolChoice;
 
-  const openaiTools: Array<{
-    type: 'function';
-    name: string;
-    description: string | undefined;
-    parameters: JSONSchema7;
-    strict: boolean | undefined;
-  }> = [];
+  const openaiTools: Array<OpenAIResponsesTool> = [];
 
   for (const tool of tools) {
-    if (tool.type === 'provider-defined') {
-      toolWarnings.push({ type: 'unsupported-tool', tool });
-    } else {
-      openaiTools.push({
-        type: 'function',
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-        strict: strict ? true : undefined,
-      });
+    switch (tool.type) {
+      case 'function':
+        openaiTools.push({
+          type: 'function',
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+          strict: strict ? true : undefined,
+        });
+        break;
+      case 'provider-defined':
+        switch (tool.id) {
+          case 'openai.web_search':
+            openaiTools.push({ type: 'web_search' });
+            break;
+          default:
+            toolWarnings.push({ type: 'unsupported-tool', tool });
+            break;
+        }
+        break;
+      default:
+        toolWarnings.push({ type: 'unsupported-tool', tool });
+        break;
     }
   }
 

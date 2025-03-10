@@ -1,3 +1,5 @@
+import { JSONSchema7 } from '@ai-sdk/provider';
+
 export type OpenAIResponsesPrompt = Array<OpenAIResponsesMessage>;
 
 export type OpenAIResponsesMessage =
@@ -31,3 +33,15 @@ export type OpenAIResponsesFunctionCallOutput = {
   call_id: string;
   output: string;
 };
+
+export type OpenAIResponsesTool =
+  | {
+      type: 'function';
+      name: string;
+      description: string | undefined;
+      parameters: JSONSchema7;
+      strict?: boolean;
+    }
+  | {
+      type: 'web_search';
+    };

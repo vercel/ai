@@ -28,6 +28,7 @@ import {
 } from './openai-image-settings';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
+import { openaiTools } from './openai-tools';
 
 export interface OpenAIProvider extends ProviderV1 {
   (
@@ -110,6 +111,11 @@ Creates a model for image generation.
     modelId: OpenAIImageModelId,
     settings?: OpenAIImageSettings,
   ): ImageModelV1;
+
+  /**
+OpenAI-specific tools.
+   */
+  tools: typeof openaiTools;
 }
 
 export interface OpenAIProviderSettings {
@@ -274,6 +280,8 @@ export function createOpenAI(
 
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+
+  provider.tools = openaiTools;
 
   return provider as OpenAIProvider;
 }
