@@ -11,7 +11,7 @@
   }: {
     id?: string;
     api: string;
-    schema: z.Schema<RESULT, z.ZodTypeDef, any> | Schema<RESULT>;
+    schema: z.Schema<RESULT, z.ZodTypeDef, unknown> | Schema<RESULT>;
   } = $props();
 
   createAIContext();

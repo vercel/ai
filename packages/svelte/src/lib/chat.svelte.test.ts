@@ -427,7 +427,6 @@ describe("form actions", () => {
         },
       ],
       async () => {
-        const chat = new Chat({ streamProtocol: "text" });
         chat.input = "hi";
         await chat.handleSubmit();
 
@@ -473,7 +472,6 @@ describe("form actions", () => {
         },
       ],
       async () => {
-        const chat = new Chat({ streamProtocol: "text" });
         chat.input = "hi";
         await chat.handleSubmit();
         expect(chat.input).toBe("");
