@@ -162,7 +162,7 @@ This component will display the weather information for a given location. It tak
 
 Now that you have your tool and corresponding React component, let's integrate them into your chat interface. You'll render the Weather component when the model calls the weather tool.
 
-To check if the model has called a tool, you can use the `toolInvocations` property of the message object. This property contains information about any tools that were invoked in that generation including `toolCallId`, `toolName`, `args`, `toolState`, and `result`.
+To check if the model has called a tool, you can use the `parts` property of the message object. This property contains information about any tools that were invoked in that generation including `toolCallId`, `toolName`, `args`, `toolState`, and `result`.
 
 Update your `page.tsx` file:
 
@@ -183,7 +183,7 @@ export default function Page() {
           <div>{message.content}</div>
 
           <div>
-            {message.toolInvocations?.map(toolInvocation => {
+            {message.parts?.map(toolInvocation => {
               const { toolName, toolCallId, state } = toolInvocation;
 
               if (state === 'result') {
@@ -224,7 +224,7 @@ export default function Page() {
 
 In this updated code snippet, you:
 
-1. Check if the message has `toolInvocations`.
+1. Check if the message has `parts`.
 2. Check if the tool invocation state is 'result'.
 3. If it's a result and the tool name is 'displayWeather', render the Weather component.
 4. If the tool invocation state is not 'result', show a loading message.
@@ -299,7 +299,7 @@ export default function Page() {
           <div>{message.content}</div>
 
           <div>
-            {message.toolInvocations?.map(toolInvocation => {
+            {message.parts?.map(toolInvocation => {
               const { toolName, toolCallId, state } = toolInvocation;
 
               if (state === 'result') {

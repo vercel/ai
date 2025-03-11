@@ -567,7 +567,7 @@ export default function Chat() {
                   m.content
                 ) : (
                   <span className="italic font-light">
-                    {'calling tool: ' + m?.toolInvocations?.[0].toolName}
+                    {'calling tool: ' + m?.parts?.[0].toolName}
                   </span>
                 )}
               </p>
