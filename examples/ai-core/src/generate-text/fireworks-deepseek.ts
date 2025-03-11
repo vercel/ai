@@ -3,14 +3,14 @@ import { generateText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const { text, usage } = await generateText({
+  const result = await generateText({
     model: fireworks('accounts/fireworks/models/deepseek-v3'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  console.log(text);
+  console.log(result.text);
   console.log();
-  console.log('Usage:', usage);
+  console.log('Usage:', result.usage);
 }
 
 main().catch(console.error);

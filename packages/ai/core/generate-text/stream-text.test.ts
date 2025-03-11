@@ -2182,6 +2182,10 @@ describe('streamText', () => {
                         timestamp: new Date(0),
                       },
                       {
+                        type: 'reasoning',
+                        textDelta: 'thinking',
+                      },
+                      {
                         type: 'tool-call',
                         toolCallType: 'function',
                         toolCallId: 'call-1',
@@ -2228,6 +2232,11 @@ describe('streamText', () => {
                     {
                       role: 'assistant',
                       content: [
+                        {
+                          type: 'reasoning',
+                          text: 'thinking',
+                          providerMetadata: undefined,
+                        },
                         {
                           type: 'tool-call',
                           toolCallId: 'call-1',

@@ -92,6 +92,42 @@ The following optional settings are available for Mistral models:
 
   Defaults to `false`.
 
+### Document OCR
+
+Mistral chat models support document OCR for PDF files.
+You can optionally set image and page limits using the provider options.
+
+```ts
+const result = await generateText({
+  model: mistral('mistral-small-latest'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'What is an embedding model according to this document?',
+        },
+        {
+          type: 'file',
+          data: new URL(
+            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf?raw=true',
+          ),
+          mimeType: 'application/pdf',
+        },
+      ],
+    },
+  ],
+  // optional settings:
+  providerOptions: {
+    mistral: {
+      documentImageLimit: 8,
+      documentPageLimit: 64,
+    },
+  },
+});
+```
+
 ### Example
 
 You can use Mistral language models to generate text with the `generateText` function:

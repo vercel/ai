@@ -1,9 +1,7 @@
-import { FetchFunction } from '@ai-sdk/provider-utils';
 import type {
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
-  IdGenerator,
   JSONValue,
   Message,
   UseChatOptions as SharedUseChatOptions,
@@ -143,7 +141,10 @@ export function useChat({
   const chatId = id ?? generateId();
 
   const key = `${api}|${chatId}`;
-  const data = derived([store], ([$store]) => $store[key] ?? initialMessages);
+  const messages = derived(
+    [store],
+    ([$store]) => $store[key] ?? fillMessageParts(initialMessages),
+  );
 
   const streamData = writable<JSONValue[] | undefined>(undefined);
 
@@ -157,9 +158,6 @@ export function useChat({
       return value;
     });
   };
-
-  // Because of the `fallbackData` option, the `data` will never be `undefined`.
-  const messages = data as Writable<UIMessage[]>;
 
   // Abort controller to cancel the current API call.
   let abortController: AbortController | null = null;
@@ -311,7 +309,7 @@ export function useChat({
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
         parts: getMessageParts(message),
-      } as UIMessage),
+      }),
       headers,
       body,
       data,
@@ -419,7 +417,7 @@ export function useChat({
       toolResult: result,
     });
 
-    messages.set(messagesSnapshot);
+    mutate(messagesSnapshot);
 
     // auto-submit when all tool calls in the last assistant message have results:
     const lastMessage = messagesSnapshot[messagesSnapshot.length - 1];

@@ -18,6 +18,24 @@ describe('user messages', () => {
 
     expect(result).toMatchSnapshot();
   });
+
+  it('should convert messages with PDF file parts using URL', () => {
+    const result = convertToMistralChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Please analyze this document' },
+          {
+            type: 'file',
+            data: new URL('https://example.com/document.pdf'),
+            mimeType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchSnapshot();
+  });
 });
 
 describe('tool calls', () => {

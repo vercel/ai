@@ -439,6 +439,7 @@ describe('result.response', () => {
             headers: {
               'custom-response-header': 'response-header-value',
             },
+            body: 'test body',
           },
         }),
       }),

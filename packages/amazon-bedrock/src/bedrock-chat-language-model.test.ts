@@ -6,6 +6,10 @@ import {
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { vi } from 'vitest';
 import { injectFetchHeaders } from './inject-fetch-headers';
+import {
+  BedrockReasoningContentBlock,
+  BedrockRedactedReasoningContentBlock,
+} from './bedrock-api-types';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'system', content: 'System Prompt' },
@@ -963,12 +967,120 @@ describe('doStream', () => {
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
     });
   });
+
+  it('should stream reasoning text deltas', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              reasoningContent: { text: 'I am thinking' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              reasoningContent: { text: ' about this problem...' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              reasoningContent: { signature: 'abc123signature' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { text: 'Based on my reasoning, the answer is 42.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      { type: 'reasoning', textDelta: 'I am thinking' },
+      { type: 'reasoning', textDelta: ' about this problem...' },
+      { type: 'reasoning-signature', signature: 'abc123signature' },
+      {
+        type: 'text-delta',
+        textDelta: 'Based on my reasoning, the answer is 42.',
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    ]);
+  });
+
+  it('should stream redacted reasoning', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: {
+              reasoningContent: { data: 'redacted-reasoning-data' },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: { text: 'Here is my answer.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: {
+            stopReason: 'stop_sequence',
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      { type: 'redacted-reasoning', data: 'redacted-reasoning-data' },
+      { type: 'text-delta', textDelta: 'Here is my answer.' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: NaN, completionTokens: NaN },
+      },
+    ]);
+  });
 });
 
 describe('doGenerate', () => {
   function prepareJsonResponse({
-    content = 'Hello, World!',
-    toolCalls = [],
+    content = [{ type: 'text', text: 'Hello, World!' }],
     usage = {
       inputTokens: 4,
       outputTokens: 34,
@@ -979,7 +1091,13 @@ describe('doGenerate', () => {
     stopReason = 'stop_sequence',
     trace,
   }: {
-    content?: string;
+    content?: Array<
+      | { type: 'text'; text: string }
+      | { type: 'thinking'; thinking: string; signature: string }
+      | { type: 'tool_use'; id: string; name: string; input: unknown }
+      | BedrockReasoningContentBlock
+      | BedrockRedactedReasoningContentBlock
+    >;
     toolCalls?: Array<{
       id?: string;
       name: string;
@@ -994,6 +1112,12 @@ describe('doGenerate', () => {
     };
     stopReason?: string;
     trace?: typeof mockTrace;
+    reasoningContent?:
+      | BedrockReasoningContentBlock
+      | BedrockRedactedReasoningContentBlock
+      | Array<
+          BedrockReasoningContentBlock | BedrockRedactedReasoningContentBlock
+        >;
   }) {
     server.urls[generateUrl].response = {
       type: 'json-value',
@@ -1001,15 +1125,7 @@ describe('doGenerate', () => {
         output: {
           message: {
             role: 'assistant',
-            content: [
-              { type: 'text', text: content },
-              ...toolCalls.map(tool => ({
-                type: 'tool_use',
-                toolUseId: tool.id ?? 'tool-use-id',
-                name: tool.name,
-                input: tool.args,
-              })),
-            ],
+            content,
           },
         },
         usage,
@@ -1020,7 +1136,7 @@ describe('doGenerate', () => {
   }
 
   it('should extract text response', async () => {
-    prepareJsonResponse({ content: 'Hello, World!' });
+    prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
     const { text } = await model.doGenerate({
       inputFormat: 'prompt',
@@ -1361,7 +1477,9 @@ describe('doGenerate', () => {
   });
 
   it('should include providerOptions in the request for generate calls', async () => {
-    prepareJsonResponse({ content: 'Test generation' });
+    prepareJsonResponse({
+      content: [{ type: 'text', text: 'Test generation' }],
+    });
 
     await model.doGenerate({
       inputFormat: 'prompt',
@@ -1381,7 +1499,7 @@ describe('doGenerate', () => {
 
   it('should include cache token usage in providerMetadata', async () => {
     prepareJsonResponse({
-      content: 'Testing',
+      content: [{ type: 'text', text: 'Testing' }],
       usage: {
         inputTokens: 4,
         outputTokens: 34,
@@ -1432,5 +1550,141 @@ describe('doGenerate', () => {
       system: [{ text: 'System Prompt' }, { cachePoint: { type: 'default' } }],
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
     });
+  });
+
+  it('should extract reasoning text with signature', async () => {
+    const reasoningText = 'I need to think about this problem carefully...';
+    const signature = 'abc123signature';
+
+    prepareJsonResponse({
+      content: [
+        {
+          reasoningContent: {
+            reasoningText: {
+              text: reasoningText,
+              signature: signature,
+            },
+          },
+        },
+        { type: 'text', text: 'The answer is 42.' },
+      ],
+    });
+
+    const { reasoning, text } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('The answer is 42.');
+    expect(reasoning).toStrictEqual([
+      {
+        type: 'text',
+        text: reasoningText,
+        signature: signature,
+      },
+    ]);
+  });
+
+  it('should extract reasoning text without signature', async () => {
+    const reasoningText = 'I need to think about this problem carefully...';
+
+    prepareJsonResponse({
+      content: [
+        {
+          reasoningContent: {
+            reasoningText: {
+              text: reasoningText,
+            },
+          },
+        },
+        { type: 'text', text: 'The answer is 42.' },
+      ],
+    });
+
+    const { reasoning, text } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('The answer is 42.');
+    expect(reasoning).toStrictEqual([
+      {
+        type: 'text',
+        text: reasoningText,
+      },
+    ]);
+  });
+
+  it('should extract redacted reasoning', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          reasoningContent: {
+            redactedReasoning: {
+              data: 'redacted-reasoning-data',
+            },
+          },
+        },
+        { type: 'text', text: 'The answer is 42.' },
+      ],
+    });
+
+    const { reasoning, text } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('The answer is 42.');
+    expect(reasoning).toStrictEqual([
+      {
+        type: 'redacted',
+        data: 'redacted-reasoning-data',
+      },
+    ]);
+  });
+
+  it('should handle multiple reasoning blocks', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          reasoningContent: {
+            reasoningText: {
+              text: 'First reasoning block',
+              signature: 'sig1',
+            },
+          },
+        },
+        {
+          reasoningContent: {
+            redactedReasoning: {
+              data: 'redacted-data',
+            },
+          },
+        },
+        { type: 'text', text: 'The answer is 42.' },
+      ],
+    });
+
+    const { reasoning, text } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('The answer is 42.');
+    expect(reasoning).toStrictEqual([
+      {
+        type: 'text',
+        text: 'First reasoning block',
+        signature: 'sig1',
+      },
+      {
+        type: 'redacted',
+        data: 'redacted-data',
+      },
+    ]);
   });
 });

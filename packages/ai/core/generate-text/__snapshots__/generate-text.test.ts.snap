@@ -851,6 +851,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
 
 exports[`result.response > should contain response information 1`] = `
 {
+  "body": "test body",
   "headers": {
     "custom-response-header": "response-header-value",
   },
