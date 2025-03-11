@@ -593,7 +593,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedContinuationText = '';
     let recordedFullText = '';
 
-    const stepReasoning: Array<ReasoningDetail> = [];
+    let stepReasoning: Array<ReasoningDetail> = [];
     let activeReasoningText: undefined | (ReasoningDetail & { type: 'text' }) =
       undefined;
 
@@ -748,6 +748,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedToolResults = [];
           recordedStepText = '';
           recordedStepSources = [];
+          stepReasoning = [];
+          activeReasoningText = undefined;
 
           if (nextStepType !== 'done') {
             stepType = nextStepType;
@@ -1596,11 +1598,13 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendUsage = true,
     sendReasoning = false,
     sendSources = false,
+    experimental_sendFinish = true,
   }: {
     getErrorMessage: ((error: unknown) => string) | undefined;
     sendUsage: boolean | undefined;
     sendReasoning: boolean | undefined;
     sendSources: boolean | undefined;
+    experimental_sendFinish: boolean | undefined;
   }): ReadableStream<DataStreamString> {
     return this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, DataStreamString>({
@@ -1726,17 +1730,19 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'finish': {
-              controller.enqueue(
-                formatDataStreamPart('finish_message', {
-                  finishReason: chunk.finishReason,
-                  usage: sendUsage
-                    ? {
-                        promptTokens: chunk.usage.promptTokens,
-                        completionTokens: chunk.usage.completionTokens,
-                      }
-                    : undefined,
-                }),
-              );
+              if (experimental_sendFinish) {
+                controller.enqueue(
+                  formatDataStreamPart('finish_message', {
+                    finishReason: chunk.finishReason,
+                    usage: sendUsage
+                      ? {
+                          promptTokens: chunk.usage.promptTokens,
+                          completionTokens: chunk.usage.completionTokens,
+                        }
+                      : undefined,
+                  }),
+                );
+              }
               break;
             }
 
@@ -1761,6 +1767,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendUsage,
       sendReasoning,
       sendSources,
+      experimental_sendFinish,
     }: ResponseInit &
       DataStreamOptions & {
         data?: StreamData;
@@ -1781,6 +1788,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendUsage,
         sendReasoning,
         sendSources,
+        experimental_sendFinish,
       }),
     });
   }
@@ -1809,6 +1817,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendUsage: options?.sendUsage,
       sendReasoning: options?.sendReasoning,
       sendSources: options?.sendSources,
+      experimental_sendFinish: options?.experimental_sendFinish,
     }).pipeThrough(new TextEncoderStream());
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
@@ -1821,6 +1830,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendUsage: options?.sendUsage,
         sendReasoning: options?.sendReasoning,
         sendSources: options?.sendSources,
+        experimental_sendFinish: options?.experimental_sendFinish,
       }),
     );
   }
@@ -1834,6 +1844,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendUsage,
     sendReasoning,
     sendSources,
+    experimental_sendFinish,
   }: ResponseInit &
     DataStreamOptions & {
       data?: StreamData;
@@ -1846,6 +1857,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendUsage,
         sendReasoning,
         sendSources,
+        experimental_sendFinish,
       }),
       {
         status,

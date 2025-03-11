@@ -1,5 +1,34 @@
 # ai
 
+## 4.1.54
+
+### Patch Changes
+
+- ee1c787: fix (ai/core): correct spread apply order to fix extract reasoning middleware with generateText
+
+## 4.1.53
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+  - @ai-sdk/ui-utils@1.1.17
+  - @ai-sdk/react@1.1.21
+
+## 4.1.52
+
+### Patch Changes
+
+- 5329a69: fix (ai/core): fix duplicated reasoning in streamText onFinish and messages
+
+## 4.1.51
+
+### Patch Changes
+
+- 0cb2647: feat (ai/core): add streamText sendStart & sendFinish data stream options
+
 ## 4.1.50
 
 ### Patch Changes

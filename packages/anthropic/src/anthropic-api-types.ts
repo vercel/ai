@@ -50,11 +50,16 @@ export interface AnthropicRedactedThinkingContent {
 
 export interface AnthropicImageContent {
   type: 'image';
-  source: {
-    type: 'base64';
-    media_type: string;
-    data: string;
-  };
+  source:
+    | {
+        type: 'base64';
+        media_type: string;
+        data: string;
+      }
+    | {
+        type: 'url';
+        url: string;
+      };
   cache_control: AnthropicCacheControl | undefined;
 }
 

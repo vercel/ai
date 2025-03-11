@@ -191,7 +191,11 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     const { warnings, ...args } = this.getArgs(options);
     args.tools = args.tools && this.removeJsonSchemaExtras(args.tools);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
       headers: combineHeaders(this.config.headers(), options.headers),
       body: args,
@@ -204,7 +208,8 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     });
 
     const { messages, ...rawSettings } = args;
-    let text = response.message.content?.[0]?.text ?? '';
+
+    const text = response.message.content?.[0]?.text ?? '';
 
     return {
       text,
@@ -232,7 +237,10 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       response: {
         id: response.generation_id ?? undefined,
       },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: {
+        headers: responseHeaders,
+        body: rawResponse,
+      },
       warnings,
       request: { body: JSON.stringify(args) },
     };

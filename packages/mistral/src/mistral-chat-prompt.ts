@@ -17,18 +17,9 @@ export interface MistralUserMessage {
 }
 
 export type MistralUserMessageContent =
-  | MistralUserMessageTextContent
-  | MistralUserMessageImageContent;
-
-export interface MistralUserMessageImageContent {
-  type: 'image_url';
-  image_url: string;
-}
-
-export interface MistralUserMessageTextContent {
-  type: 'text';
-  text: string;
-}
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: string }
+  | { type: 'document_url'; document_url: string };
 
 export interface MistralAssistantMessage {
   role: 'assistant';
