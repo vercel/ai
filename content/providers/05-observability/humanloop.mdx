@@ -1,0 +1,265 @@
+---
+title: Humanloop
+description: Monitor and trace your AI SDK application with Humanloop, the LLM evals platform for enterprises.
+---
+
+# Humanloop Observability
+
+[Humanloop](https://humanloop.com/) is the LLM evals platform for enterprises, giving you the tools that top teams use to ship and scale AI with confidence. Humanloop integrates with the AI SDK to provide:
+
+The AI SDK can log to [Humanloop](https://humanloop.com/) via OpenTelemetry. This integration enables trace visualization, cost/latency/error monitoring, and evaluation by code, LLM, or human judges.
+
+## Reference
+
+### Telemetry Configuration
+
+The AI SDK supports tracing through the `experimental_telemetry` parameter that can be set on each request.
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a short story about a cat.',
+  experimental_telemetry: { isEnabled: true },
+});
+```
+
+### Metadata Parameters
+
+The Humanloop OpenTelemetry Receiver accepts these metadata parameters:
+
+| Parameter             | Required | Description                                                                    |
+| --------------------- | -------- | ------------------------------------------------------------------------------ |
+| `humanloopPromptPath` | Yes      | Path to the prompt on Humanloop. Generation spans create Logs for this Prompt. |
+| `humanloopFlowPath`   | No       | Path to the flow on Humanloop. Groups steps into a single Flow Log.            |
+| `humanloopFlowId`     | No       | ID of a Flow Log on Humanloop. Groups multiple calls into a single Flow Log.   |
+
+## Setup
+
+### Prerequisites
+
+- A Humanloop account and API key.
+  - [Sign up](https://app.humanloop.com/signup) or [login](https://app.humanloop.com/login) to Humanloop.
+  - Create an API key in [Organization Settings](https://app.humanloop.com/account/api-keys).
+- A Vercel AI SDK application.
+
+### Telemetry Configuration
+
+When sending traces to Humanloop, these parameters are added to the telemetry object:
+
+```ts
+experimental_telemetry: {
+  isEnabled: true,
+  functionId: 'unique-function-id', // Optional identifier for the function
+  metadata: {
+    humanloopPromptPath: 'Path/To/Prompt',
+    humanloopFlowPath: 'Path/To/Flow', // Optional
+    humanloopFlowId: 'flow-log-id'     // Optional
+  },
+}
+```
+
+### Environment Variables
+
+When using OpenTelemetry with Humanloop, the following environment variables configure the OTLP exporter:
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=https://api.humanloop.com/v5/import/otel
+OTEL_EXPORTER_OTLP_PROTOCOL=http/json
+OTEL_EXPORTER_OTLP_HEADERS="X-API-KEY=xxxxxx" # Humanloop API key
+```
+
+## Framework Implementation
+
+<Tabs items={['Next.js', 'Node.js']}>
+  <Tab>
+    Next.js has support for OpenTelemetry instrumentation on the framework level. Learn more about it in the [Next.js OpenTelemetry guide](https://nextjs.org/docs/app/building-your-application/optimizing/open-telemetry).
+
+    Required dependencies:
+
+    <Tabs items={['pnpm', 'npm', 'yarn']}>
+      <Tab>
+        <Snippet
+          text="pnpm add @vercel/otel @opentelemetry/sdk-logs @opentelemetry/api-logs @opentelemetry/instrumentation"
+          dark
+        />
+      </Tab>
+      <Tab>
+        <Snippet
+          text="npm install @vercel/otel @opentelemetry/sdk-logs @opentelemetry/api-logs @opentelemetry/instrumentation"
+          dark
+        />
+      </Tab>
+      <Tab>
+        <Snippet
+          text="yarn add @vercel/otel @opentelemetry/sdk-logs @opentelemetry/api-logs @opentelemetry/instrumentation"
+          dark
+        />
+      </Tab>
+    </Tabs>
+
+    Update your `.env.local` file to configure the OTLP Exporter:
+
+    ```bash filename=".env.local"
+    OTEL_EXPORTER_OTLP_ENDPOINT=https://api.humanloop.com/v5/import/otel
+    OTEL_EXPORTER_OTLP_PROTOCOL=http/json
+    OTEL_EXPORTER_OTLP_HEADERS="X-API-KEY=xxxxxx" # Humanloop API key
+    ```
+
+    Register the OpenTelemetry SDK `instrumentation.ts` file (in root or src/ dir):
+
+    ```ts filename="instrumentation.ts"
+    import { registerOTel } from '@vercel/otel';
+
+    export function register() {
+      registerOTel({
+        serviceName: 'humanloop-vercel-ai-nextjs',
+      });
+    }
+    ```
+
+    Your calls to the AI SDK should now be logged to Humanloop.
+
+  </Tab>
+  <Tab>
+
+    ### Node.js Implementation
+
+    OpenTelemetry has a package to auto-instrument Node.js applications. Learn more about it in the [OpenTelemetry Node.js guide](https://opentelemetry.io/docs/languages/js/getting-started/nodejs/).
+
+    Required dependencies:
+
+    <Tabs items={['pnpm', 'npm', 'yarn']}>
+      <Tab>
+        <Snippet
+          text="pnpm add @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node @opentelemetry/exporter-trace-otlp-http"
+          dark
+        />
+      </Tab>
+      <Tab>
+        <Snippet
+          text="npm install @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node @opentelemetry/exporter-trace-otlp-http"
+          dark
+        />
+      </Tab>
+      <Tab>
+        <Snippet
+          text="yarn add @opentelemetry/sdk-node @opentelemetry/auto-instrumentations-node @opentelemetry/exporter-trace-otlp-http"
+          dark
+        />
+      </Tab>
+    </Tabs>
+
+    Update your `.env` file to configure the OTLP Exporter:
+
+    ```bash filename=".env"
+    OTEL_EXPORTER_OTLP_ENDPOINT=https://api.humanloop.com/v5/import/otel
+    OTEL_EXPORTER_OTLP_PROTOCOL=http/json
+    OTEL_EXPORTER_OTLP_HEADERS="X-API-KEY=xxxxxx" # Humanloop API key
+    ```
+
+    Register the OpenTelemetry SDK and add Humanloop metadata to the spans. The `humanloopPromptPath` specifies the (Prompt File)[http://localhost:3001/docs/v5/explanation/prompts] in Humanloop to which the spans will be logged.
+
+    ```ts highlight="3-13,19"
+    import { openai } from '@ai-sdk/openai';
+    import { generateText } from 'ai';
+    import { NodeSDK } from '@opentelemetry/sdk-node';
+    import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+    import dotenv from 'dotenv';
+
+    dotenv.config();
+
+    const sdk = new NodeSDK({
+      instrumentations: [getNodeAutoInstrumentations()],
+    });
+
+    sdk.start();
+
+    async function main() {
+      // ... Vercel AI SDK calls ...
+
+      // Must call shutdown to flush traces
+      await sdk.shutdown();
+    }
+
+    main().catch(console.error);
+    ```
+
+    Your calls to the AI SDK should now be logged to Humanloop.
+
+  </Tab>
+</Tabs>
+
+## Trace Grouping
+
+To group multiple AI SDK calls into a single Flow Log, create and pass a Flow Log ID to the telemetry metadata of each AI SDK call.
+
+1. Create a Flow Log in Humanloop
+2. Pass the Flow Log ID to each AI SDK call
+3. Update the Flow Log when all executions are complete
+
+The Flow Log serves as a parent container for all related Prompt Logs in Humanloop.
+
+```ts
+import { HumanloopClient } from 'humanloop';
+
+const humanloop = new HumanloopClient();
+
+async function main() {
+  const flow = await humanloop.flows.upsert({
+    path: 'Plethora of Poetry',
+    attributes: {},
+  });
+  const flowLog = await humanloop.flows.log({
+    id: flow.id,
+  });
+
+  const outputs = [];
+
+  for (const poetName of ['Edgar Allan Poe', 'Mary Shelley', 'Lord Byron']) {
+    const result = await generateText({
+      model: openai('gpt-3.5-turbo'),
+      maxTokens: 50,
+      prompt: `Write me a poem in the style of ${poetName}.`,
+      experimental_telemetry: {
+        isEnabled: true,
+        functionId: `poet-${poetName.toLowerCase().replace(' ', '-')}`,
+        metadata: {
+          humanloopFlowId: flowLog.id,
+          humanloopPromptPath: `Poets/${poetName}`,
+        },
+      },
+    });
+
+    outputs.push(result.text);
+  }
+
+  await humanloop.flows.updateLog(flowLog.id, {
+    traceStatus: 'complete',
+    output: outputs.join('\n\n'),
+  });
+
+  await sdk.shutdown();
+}
+```
+
+## Debugging
+
+If you aren't using Next.js 15+, you will also need to enable the experimental instrumentation hook (available in 13.4+).
+
+```javascript filename="next.config.js"
+module.exports = {
+  experimental: {
+    instrumentationHook: true,
+  },
+};
+```
+
+## Resources
+
+To see a full example of instrumenting your application, check out the Humanloop [AI SDK Guides](https://humanloop.com/docs/v5/vercel-ai-sdk).
+
+After instrumenting your AI SDK application with Humanloop, you can then:
+
+- Experiment with different [versions of Prompts](https://humanloop.com/docs/v5/guides/evals/comparing-prompts) and try them out in the Editor
+- Create [custom Evaluators](https://humanloop.com/docs/v5/explanation/evaluators) -- Human, Code, or LLM -- to monitor and benchmark your AI application
+- Set up [live monitoring](https://humanloop.com/docs/v5/guides/observability/monitoring) of your logs to continuously track your application's performance
