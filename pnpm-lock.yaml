@@ -256,14 +256,14 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.0
-        version: 1.2.0(zod@3.23.8)
+        specifier: 1.2.1
+        version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.6.1
         version: 1.6.1
       ai:
-        specifier: 4.1.51
-        version: 4.1.51(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)
+        specifier: 4.1.54
+        version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -2131,46 +2131,6 @@ packages:
 
   '@adobe/css-tools@4.4.0':
     resolution: {integrity: sha512-Ff9+ksdQQB3rMncgqDK78uLznstjyfIf2Arnh22pW8kBpLs6rpKDwgnZT46hin5Hl1WzazzK64DOrhSwYpS7bQ==}
-
-  '@ai-sdk/openai@1.2.0':
-    resolution: {integrity: sha512-tzxH6OxKL5ffts4zJPdziQSJGGpSrQcJmuSrE92jCt7pJ4PAU5Dx4tjNNFIU8lSfwarLnywejZEt3Fz0uQZZOQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-
-  '@ai-sdk/provider-utils@2.1.10':
-    resolution: {integrity: sha512-4GZ8GHjOFxePFzkl3q42AU0DQOtTQ5w09vmaWUf/pKFXJPizlnzKSUkF0f+VkapIUfDugyMqPMT1ge8XQzVI7Q==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
-  '@ai-sdk/provider@1.0.9':
-    resolution: {integrity: sha512-jie6ZJT2ZR0uVOVCDc9R2xCX5I/Dum/wEK28lx21PJx6ZnFAN9EzD2WsPhcDWfCgGx3OAZZ0GyM3CEobXpa9LA==}
-    engines: {node: '>=18'}
-
-  '@ai-sdk/react@1.1.20':
-    resolution: {integrity: sha512-4QOM9fR9SryaRraybckDjrhl1O6XejqELdKmrM5g9y9eLnWAfjwF+W1aN0knkSHzbbjMqN77sy9B9yL8EuJbDw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      react: ^18 || ^19 || ^19.0.0-rc
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      react:
-        optional: true
-      zod:
-        optional: true
-
-  '@ai-sdk/ui-utils@1.1.16':
-    resolution: {integrity: sha512-jfblR2yZVISmNK2zyNzJZFtkgX57WDAUQXcmn3XUBJyo8LFsADu+/vYMn5AOyBi9qJT0RBk11PEtIxIqvByw3Q==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -7699,18 +7659,6 @@ packages:
   agentkeepalive@4.5.0:
     resolution: {integrity: sha512-5GG/5IbQQpC9FpkRGsSvZI5QYeSCzlJHdpBQntCsuTOxhKD8lqKhrleg2Yi7yvMIf82Ycmmqln9U8V9qwEiJew==}
     engines: {node: '>= 8.0.0'}
-
-  ai@4.1.51:
-    resolution: {integrity: sha512-CuJgbi2Ktfv/7jjxvUhFOGZ8OFxWQ8a7ZF19lwJuVLauL4uWHLetm6R3iaafahJ8ZkueSbhR/Bnroy5apd1nCw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      react: ^18 || ^19 || ^19.0.0-rc
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      react:
-        optional: true
-      zod:
-        optional: true
 
   ajv-formats@2.1.1:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
@@ -14590,43 +14538,6 @@ snapshots:
 
   '@adobe/css-tools@4.4.0': {}
 
-  '@ai-sdk/openai@1.2.0(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.9
-      '@ai-sdk/provider-utils': 2.1.10(zod@3.23.8)
-      zod: 3.23.8
-
-  '@ai-sdk/provider-utils@2.1.10(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.9
-      eventsource-parser: 3.0.0
-      nanoid: 3.3.8
-      secure-json-parse: 2.7.0
-    optionalDependencies:
-      zod: 3.23.8
-
-  '@ai-sdk/provider@1.0.9':
-    dependencies:
-      json-schema: 0.4.0
-
-  '@ai-sdk/react@1.1.20(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider-utils': 2.1.10(zod@3.23.8)
-      '@ai-sdk/ui-utils': 1.1.16(zod@3.23.8)
-      swr: 2.2.5(react@19.0.0-rc-cc1ec60d0d-20240607)
-      throttleit: 2.1.0
-    optionalDependencies:
-      react: 19.0.0-rc-cc1ec60d0d-20240607
-      zod: 3.23.8
-
-  '@ai-sdk/ui-utils@1.1.16(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.9
-      '@ai-sdk/provider-utils': 2.1.10(zod@3.23.8)
-      zod-to-json-schema: 3.24.1(zod@3.23.8)
-    optionalDependencies:
-      zod: 3.23.8
-
   '@alloc/quick-lru@5.2.0': {}
 
   '@ampproject/remapping@2.3.0':
@@ -21428,18 +21339,6 @@ snapshots:
   agentkeepalive@4.5.0:
     dependencies:
       humanize-ms: 1.2.1
-
-  ai@4.1.51(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8):
-    dependencies:
-      '@ai-sdk/provider': 1.0.9
-      '@ai-sdk/provider-utils': 2.1.10(zod@3.23.8)
-      '@ai-sdk/react': 1.1.20(react@19.0.0-rc-cc1ec60d0d-20240607)(zod@3.23.8)
-      '@ai-sdk/ui-utils': 1.1.16(zod@3.23.8)
-      '@opentelemetry/api': 1.9.0
-      jsondiffpatch: 0.6.0
-    optionalDependencies:
-      react: 19.0.0-rc-cc1ec60d0d-20240607
-      zod: 3.23.8
 
   ajv-formats@2.1.1(ajv@8.12.0):
     optionalDependencies:
@@ -28592,12 +28491,6 @@ snapshots:
       react: 18.3.1
       use-sync-external-store: 1.2.0(react@18.3.1)
 
-  swr@2.2.5(react@19.0.0-rc-cc1ec60d0d-20240607):
-    dependencies:
-      client-only: 0.0.1
-      react: 19.0.0-rc-cc1ec60d0d-20240607
-      use-sync-external-store: 1.2.0(react@19.0.0-rc-cc1ec60d0d-20240607)
-
   swrv@1.0.4(vue@3.3.8(typescript@5.6.3)):
     dependencies:
       vue: 3.3.8(typescript@5.6.3)
@@ -29588,10 +29481,6 @@ snapshots:
   use-sync-external-store@1.2.0(react@18.3.1):
     dependencies:
       react: 18.3.1
-
-  use-sync-external-store@1.2.0(react@19.0.0-rc-cc1ec60d0d-20240607):
-    dependencies:
-      react: 19.0.0-rc-cc1ec60d0d-20240607
 
   utif@2.0.1:
     dependencies:
