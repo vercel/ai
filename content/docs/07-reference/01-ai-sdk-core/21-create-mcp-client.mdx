@@ -13,7 +13,10 @@ This feature is experimental and may change or be removed in the future.
 
 ## Import
 
-<Snippet text={`import { experimental_createMCPClient } from "ai"`} prompt={false} />
+<Snippet
+  text={`import { experimental_createMCPClient } from "ai"`}
+  prompt={false}
+/>
 
 ## API Signature
 
@@ -37,38 +40,40 @@ This feature is experimental and may change or be removed in the future.
                 {
                   name: 'type',
                   type: "'stdio'",
-                  description: 'Use standard input/output streams for communication'
+                  description:
+                    'Use standard input/output streams for communication',
                 },
                 {
                   name: 'command',
                   type: 'string',
-                  description: 'Command to start the server'
+                  description: 'Command to start the server',
                 },
                 {
                   name: 'args',
                   type: 'string[]',
                   isOptional: true,
-                  description: 'Command line arguments'
+                  description: 'Command line arguments',
                 },
                 {
                   name: 'env',
                   type: 'Record<string, string>',
                   isOptional: true,
-                  description: 'Environment variables'
+                  description: 'Environment variables',
                 },
                 {
                   name: 'cwd',
                   type: 'string',
                   isOptional: true,
-                  description: 'Working directory for the server process'
+                  description: 'Working directory for the server process',
                 },
                 {
                   name: 'stderr',
                   type: 'IOType | Stream | number',
                   isOptional: true,
-                  description: 'Handler for stderr output. Defaults to "inherit".'
-                }
-              ]
+                  description:
+                    'Handler for stderr output. Defaults to "inherit".',
+                },
+              ],
             },
             {
               type: 'McpSSEServerConfig',
@@ -76,31 +81,31 @@ This feature is experimental and may change or be removed in the future.
                 {
                   name: 'type',
                   type: "'sse'",
-                  description: 'Use Server-Sent Events for communication'
+                  description: 'Use Server-Sent Events for communication',
                 },
                 {
                   name: 'url',
                   type: 'string',
-                  description: 'URL of the MCP server'
-                }
-              ]
-            }
-          ]
+                  description: 'URL of the MCP server',
+                },
+              ],
+            },
+          ],
         },
         {
           name: 'name',
           type: 'string',
           isOptional: true,
-          description: 'Client name. Defaults to "ai-sdk-mcp-client"'
+          description: 'Client name. Defaults to "ai-sdk-mcp-client"',
         },
         {
           name: 'onUncaughtError',
           type: '(error: unknown) => void',
           isOptional: true,
-          description: 'Handler for uncaught errors'
-        }
-      ]
-    }
+          description: 'Handler for uncaught errors',
+        },
+      ],
+    },
   ]}
 />
 
@@ -124,51 +129,54 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
               name: 'schemas',
               type: 'TOOL_SCHEMAS',
               isOptional: true,
-              description: 'Schema definitions for compile-time type checking. When not provided, schemas are inferred from the server.'
-            }
-          ]
-        }
-      ]
+              description:
+                'Schema definitions for compile-time type checking. When not provided, schemas are inferred from the server.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'close',
       type: 'async () => void',
-      description: 'Closes the connection to the MCP server and cleans up resources.'
-    }
+      description:
+        'Closes the connection to the MCP server and cleans up resources.',
+    },
   ]}
 />
 
 ## Example
 
 ```typescript
-import { experimental_createMCPClient, generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import { experimental_createMCPClient, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 try {
   const client = await experimental_createMCPClient({
     transport: {
       type: 'stdio',
       command: 'node server.js',
-    }
-    })
+    },
+  });
 
-  const tools = await client.tools()
-  
+  const tools = await client.tools();
+
   const response = await generateText({
     model: openai('gpt-4o-mini'),
     tools,
-    messages: [{ role: 'user', content: 'Query the data' }]
-  })
+    messages: [{ role: 'user', content: 'Query the data' }],
+  });
 
-  console.log(response)
+  console.log(response);
 } finally {
-  await client.close()
+  await client.close();
 }
 ```
 
 ## Error Handling
 
 The client throws `MCPClientError` for:
+
 - Client initialization failures
 - Protocol version mismatches
 - Missing server capabilities

@@ -660,9 +660,9 @@ const toolSchemas = {
   'get-data': {
     parameters: z.object({
       query: z.string().describe('The data query'),
-      format: z.enum(['json', 'text']).optional()
-    })
-  }
+      format: z.enum(['json', 'text']).optional(),
+    }),
+  },
 } as const;
 
 const tools = await client.tools({ schemas: toolSchemas });
@@ -679,20 +679,22 @@ import { openai } from '@ai-sdk/openai';
 const client = await createMCPClient({
   transport: {
     type: 'stdio',
-    command: 'node server.js'
-  }
+    command: 'node server.js',
+  },
 });
 
 try {
   const tools = await client.tools();
-  
+
   const response = await generateText({
     model: openai('gpt-4o'),
     tools,
-    messages: [{
-      role: 'user',
-      content: 'Find products under $100'
-    }]
+    messages: [
+      {
+        role: 'user',
+        content: 'Find products under $100',
+      },
+    ],
   });
 
   console.log(response.text);
