@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { computerActionSchema, computerSafetyCheckSchema } from './internal';
 
 // Copied from ai package
 type ExecuteFunction<PARAMETERS, RESULT> =
@@ -52,70 +53,27 @@ function webSearchPreviewTool({
   };
 }
 
-const ComputerUsePreviewParameters = z.discriminatedUnion('type', [
-  // Model wants to click at coordinates
-  z.object({
-    type: z.literal('click'),
-    button: z.enum(['left', 'right', 'wheel', 'back', 'forward']),
-    x: z.number(),
-    y: z.number(),
-  }),
-  // Model wants to double click at coordinates
-  z.object({
-    type: z.literal('double_click'),
-    x: z.number(),
-    y: z.number(),
-  }),
-  // Model wants to scroll (scroll_x, scroll_y) with mouse at x, y
-  z.object({
-    type: z.literal('scroll'),
-    x: z.number(),
-    y: z.number(),
-    scroll_x: z.number(),
-    scroll_y: z.number(),
-  }),
-  // Model wants to type in the currently focused input
-  z.object({
-    type: z.literal('type'),
-    text: z.string(),
-  }),
-  // Model wants to wait 3s before continuing
-  z.object({
-    type: z.literal('wait'),
-  }),
-  // Model wants to press a key
-  z.object({
-    type: z.literal('keypress'),
-    keys: z.array(z.string()),
-  }),
-  // model wants to drag along a defined path
-  z.object({
-    type: z.literal('drag'),
-    path: z.array(
-      z.object({
-        x: z.number(),
-        y: z.number(),
-      }),
-    ),
-  }),
-  // model wants a screenshot
-  z.object({
-    type: z.literal('screenshot'),
-  }),
-  // model wants to move the mouse to x, y
-  z.object({
-    type: z.literal('move'),
-    x: z.number(),
-    y: z.number(),
-  }),
-]);
+const ComputerUsePreviewParameters = z.object({
+  action: computerActionSchema,
+  pendingSafetyChecks: z.array(computerSafetyCheckSchema),
+});
 
-function computerUsePreviewTool<RESULT>(options: {
+type ComputerUsePreviewResult = {
+  screenshot: Uint8Array;
+  acknowledgedSafetyChecks: Array<z.infer<typeof computerSafetyCheckSchema>>;
+};
+
+function computerUsePreviewTool(options: {
   displayWidth: number;
   displayHeight: number;
   environment: 'mac' | 'windows' | 'linux' | 'browser';
-  execute?: ExecuteFunction<{}, RESULT>;
-  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  execute?: ExecuteFunction<
+    z.infer<typeof ComputerUsePreviewParameters>,
+    ComputerUsePreviewResult
+  >;
+  experimental_toToolResultContent?: (
+    result: ComputerUsePreviewResult,
+  ) => ToolResultContent;
 }): {
   type: 'provider-defined';
   id: 'openai.computer_use_preview';
@@ -123,9 +81,11 @@ function computerUsePreviewTool<RESULT>(options: {
   parameters: typeof ComputerUsePreviewParameters;
   execute: ExecuteFunction<
     z.infer<typeof ComputerUsePreviewParameters>,
-    RESULT
+    ComputerUsePreviewResult
   >;
-  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+  experimental_toToolResultContent?: (
+    result: ComputerUsePreviewResult,
+  ) => ToolResultContent;
 } {
   return {
     type: 'provider-defined',

@@ -57,6 +57,7 @@
 
 - [ ] computer use tool
   - e2b sandbox that is invoked from command line tool
+  - special mapping for computer call output
   - run command line tool in loop
   - streaming
 
