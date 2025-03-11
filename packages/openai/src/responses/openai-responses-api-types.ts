@@ -1,4 +1,9 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
+import {
+  computerActionSchema,
+  computerSafetyCheckSchema,
+} from './openai-responses-language-model';
+import { z } from 'zod';
 
 export type OpenAIResponsesPrompt = Array<OpenAIResponsesMessage>;
 
@@ -7,7 +12,9 @@ export type OpenAIResponsesMessage =
   | OpenAIResponsesUserMessage
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
-  | OpenAIResponsesFunctionCallOutput;
+  | OpenAIResponsesFunctionCallOutput
+  | OpenAIResponsesComputerCall
+  | OpenAIResponsesComputerCallOutput;
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -38,6 +45,20 @@ export type OpenAIResponsesFunctionCallOutput = {
   type: 'function_call_output';
   call_id: string;
   output: string;
+};
+
+export type OpenAIResponsesComputerCall = {
+  type: 'computer_call';
+  call_id: string;
+  action: z.infer<typeof computerActionSchema>;
+  pending_safety_checks: Array<z.infer<typeof computerSafetyCheckSchema>>;
+};
+
+export type OpenAIResponsesComputerCallOutput = {
+  type: 'computer_call_output';
+  call_id: string;
+  output: { type: 'input_image'; image_url: string };
+  acknowledged_safety_checks: Array<z.infer<typeof computerSafetyCheckSchema>>;
 };
 
 export type OpenAIResponsesTool =

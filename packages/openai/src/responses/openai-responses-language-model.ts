@@ -285,6 +285,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 action: computerActionSchema,
                 pending_safety_checks: z.array(computerSafetyCheckSchema),
               }),
+              z.object({
+                type: z.literal('reasoning'),
+              }),
             ]),
           ),
           incomplete_details: z.object({ reason: z.string() }).nullable(),

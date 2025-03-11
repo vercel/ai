@@ -5,6 +5,11 @@ import {
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAIResponsesPrompt } from './openai-responses-api-types';
+import {
+  computerActionSchema,
+  computerSafetyCheckSchema,
+} from './openai-responses-language-model';
+import { z } from 'zod';
 
 export function convertToOpenAIResponsesMessages({
   prompt,
@@ -56,7 +61,6 @@ export function convertToOpenAIResponsesMessages({
               case 'text': {
                 return { type: 'input_text', text: part.text };
               }
-
               case 'image': {
                 return {
                   type: 'input_image',
@@ -71,7 +75,6 @@ export function convertToOpenAIResponsesMessages({
                   detail: part.providerMetadata?.openai?.imageDetail,
                 };
               }
-
               case 'file': {
                 throw new UnsupportedFunctionalityError({
                   functionality: 'Image content parts in user messages',
@@ -94,14 +97,30 @@ export function convertToOpenAIResponsesMessages({
               });
               break;
             }
-
             case 'tool-call': {
-              messages.push({
-                type: 'function_call',
-                call_id: part.toolCallId,
-                name: part.toolName,
-                arguments: JSON.stringify(part.args),
-              });
+              if (part.toolName === 'computer_use_preview') {
+                // TODO proper parsing
+                const args = part.args as {
+                  action: z.infer<typeof computerActionSchema>;
+                  pendingSafetyChecks: Array<
+                    z.infer<typeof computerSafetyCheckSchema>
+                  >;
+                };
+
+                messages.push({
+                  type: 'computer_call',
+                  call_id: part.toolCallId,
+                  action: args.action,
+                  pending_safety_checks: args.pendingSafetyChecks,
+                });
+              } else {
+                messages.push({
+                  type: 'function_call',
+                  call_id: part.toolCallId,
+                  name: part.toolName,
+                  arguments: JSON.stringify(part.args),
+                });
+              }
               break;
             }
           }
@@ -112,11 +131,33 @@ export function convertToOpenAIResponsesMessages({
 
       case 'tool': {
         for (const part of content) {
-          messages.push({
-            type: 'function_call_output',
-            call_id: part.toolCallId,
-            output: JSON.stringify(part.result),
-          });
+          if (part.toolName === 'computer_use_preview') {
+            // TODO proper parsing
+            const result = part.result as {
+              screenshot: Uint8Array;
+              acknowledgedSafetyChecks: Array<
+                z.infer<typeof computerSafetyCheckSchema>
+              >;
+            };
+
+            messages.push({
+              type: 'computer_call_output',
+              call_id: part.toolCallId,
+              output: {
+                type: 'input_image',
+                image_url: `data:image/png;base64,${convertUint8ArrayToBase64(
+                  result.screenshot,
+                )}`,
+              },
+              acknowledged_safety_checks: result.acknowledgedSafetyChecks,
+            });
+          } else {
+            messages.push({
+              type: 'function_call_output',
+              call_id: part.toolCallId,
+              output: JSON.stringify(part.result),
+            });
+          }
         }
 
         break;
