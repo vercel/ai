@@ -7,4 +7,3 @@ export type OpenAIConfig = {
   fetch?: FetchFunction;
   generateId?: () => string;
 };
-2;
