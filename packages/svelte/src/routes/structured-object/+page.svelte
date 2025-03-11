@@ -1,22 +1,22 @@
 <script lang="ts">
-  import ArrowUp from "$demo-lib/components/icons/arrow-up.svelte";
-  import { Button } from "$demo-lib/components/ui/button/index.js";
-  import { Textarea } from "$demo-lib/components/ui/textarea/index.js";
-  import { Experimental_StructuredObject } from "$lib/index.js";
-  import { notificationSchema } from "./schema.js";
+  import ArrowUp from '$demo-lib/components/icons/arrow-up.svelte';
+  import { Button } from '$demo-lib/components/ui/button/index.js';
+  import { Textarea } from '$demo-lib/components/ui/textarea/index.js';
+  import { Experimental_StructuredObject } from '$lib/index.js';
+  import { notificationSchema } from './schema.js';
 
   const structuredObject = new Experimental_StructuredObject({
-    api: "/api/structured-object",
+    api: '/api/structured-object',
     schema: notificationSchema,
   });
-  let input = $state("");
-  let userMessage = $state("");
+  let input = $state('');
+  let userMessage = $state('');
 
   function handleSubmit(e: Event) {
     userMessage = input;
     e.preventDefault();
     structuredObject.submit(input);
-    input = "";
+    input = '';
   }
 </script>
 
@@ -40,7 +40,7 @@
     </div>
     <form
       class="relative"
-      onsubmit={(e) => {
+      onsubmit={e => {
         e.preventDefault();
         handleSubmit(e);
       }}
@@ -49,8 +49,8 @@
         bind:value={input}
         placeholder="Think of a theme to generate three notifications..."
         class="h-full"
-        onkeydown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
+        onkeydown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             handleSubmit(e);
           }

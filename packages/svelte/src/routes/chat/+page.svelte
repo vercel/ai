@@ -1,16 +1,16 @@
 <script lang="ts">
-  import ArrowUp from "$demo-lib/components/icons/arrow-up.svelte";
-  import Button from "$demo-lib/components/ui/button/button.svelte";
-  import { Textarea } from "$demo-lib/components/ui/textarea/index.js";
-  import { Chat } from "$lib/index.js";
+  import ArrowUp from '$demo-lib/components/icons/arrow-up.svelte';
+  import Button from '$demo-lib/components/ui/button/button.svelte';
+  import { Textarea } from '$demo-lib/components/ui/textarea/index.js';
+  import { Chat } from '$lib/index.js';
 
   const chat = new Chat();
-  const disabled = $derived(chat.status !== "ready");
+  const disabled = $derived(chat.status !== 'ready');
 
   function mapRoleToClass(role: string) {
-    return role === "assistant"
-      ? "bg-primary text-secondary rounded-md"
-      : "bg-secondary text-primary rounded-md justify-self-end";
+    return role === 'assistant'
+      ? 'bg-primary text-secondary rounded-md'
+      : 'bg-secondary text-primary rounded-md justify-self-end';
   }
 </script>
 
@@ -30,8 +30,8 @@
         bind:value={chat.input}
         placeholder="Send a message..."
         class="h-full"
-        onkeydown={(event) => {
-          if (event.key === "Enter" && !event.shiftKey) {
+        onkeydown={event => {
+          if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             chat.handleSubmit();
           }

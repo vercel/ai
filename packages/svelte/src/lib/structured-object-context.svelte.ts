@@ -1,5 +1,5 @@
-import type { DeepPartial } from "@ai-sdk/ui-utils";
-import { createContext, KeyedStore } from "./utils.svelte.js";
+import type { DeepPartial } from '@ai-sdk/ui-utils';
+import { createContext, KeyedStore } from './utils.svelte.js';
 
 export class StructuredObjectStore<RESULT> {
   object = $state<DeepPartial<RESULT>>();
@@ -24,4 +24,4 @@ export const {
   hasContext: hasStructuredObjectContext,
   getContext: getStructuredObjectContext,
   setContext: setStructuredObjectContext,
-} = createContext<KeyedStructuredObjectStore>("StructuredObject");
+} = createContext<KeyedStructuredObjectStore>('StructuredObject');

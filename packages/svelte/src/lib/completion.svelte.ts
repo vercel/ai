@@ -4,27 +4,27 @@ import {
   type JSONValue,
   type RequestOptions,
   callCompletionApi,
-} from "@ai-sdk/ui-utils";
+} from '@ai-sdk/ui-utils';
 import {
   KeyedCompletionStore,
   getCompletionContext,
   hasCompletionContext,
-} from "./completion-context.svelte.js";
+} from './completion-context.svelte.js';
 
 export type CompletionOptions = Readonly<UseCompletionOptions>;
 
 export class Completion {
   readonly #options: CompletionOptions = {};
-  readonly #api = $derived(this.#options.api ?? "/api/completion");
+  readonly #api = $derived(this.#options.api ?? '/api/completion');
   readonly #id = $derived(this.#options.id ?? generateId());
-  readonly #streamProtocol = $derived(this.#options.streamProtocol ?? "data");
+  readonly #streamProtocol = $derived(this.#options.streamProtocol ?? 'data');
   readonly #keyedStore = $state<KeyedCompletionStore>()!;
   readonly #store = $derived(this.#keyedStore.get(this.#id));
   #abortController: AbortController | undefined;
 
   /** The current completion result */
   get completion(): string {
-    return this.#store.completions.get(this.#id) ?? "";
+    return this.#store.completions.get(this.#id) ?? '';
   }
   set completion(value: string) {
     this.#store.completions.set(this.#id, value);
@@ -65,8 +65,8 @@ export class Completion {
     }
 
     this.#options = options;
-    this.completion = options.initialCompletion ?? "";
-    this.input = options.initialInput ?? "";
+    this.completion = options.initialCompletion ?? '';
+    this.input = options.initialInput ?? '';
   }
 
   /**
@@ -110,19 +110,19 @@ export class Completion {
       streamProtocol: this.#streamProtocol,
       fetch: this.#options.fetch,
       // throttle streamed ui updates:
-      setCompletion: (completion) => {
+      setCompletion: completion => {
         this.completion = completion;
       },
-      onData: (data) => {
+      onData: data => {
         this.data.push(...data);
       },
-      setLoading: (loading) => {
+      setLoading: loading => {
         this.#store.loading = loading;
       },
-      setError: (error) => {
+      setError: error => {
         this.#store.error = error;
       },
-      setAbortController: (abortController) => {
+      setAbortController: abortController => {
         this.#abortController = abortController ?? undefined;
       },
       onResponse: this.#options.onResponse,
