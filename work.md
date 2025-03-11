@@ -46,7 +46,7 @@
 - [x] web search tool (basic)
 - [x] sources support: generate
 - [x] sources support: stream
-- [ ] web search tool options
+- [x] web search tool options
 
 ### previousResponseId support
 
@@ -72,3 +72,4 @@
 - [ ] tool option: strict (requires tool provider options)
 - [ ] progress information (e.g. websearch)
 - [ ] citations
+- [ ] chat api web search support

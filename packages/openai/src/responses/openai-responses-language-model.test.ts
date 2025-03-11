@@ -637,9 +637,15 @@ describe('OpenAIResponsesLanguageModel', () => {
             tools: [
               {
                 type: 'provider-defined',
-                id: 'openai.web_search',
-                name: 'web_search',
-                args: {},
+                id: 'openai.web_search_preview',
+                name: 'web_search_preview',
+                args: {
+                  searchContextSize: 'high',
+                  userLocation: {
+                    type: 'approximate',
+                    city: 'San Francisco',
+                  },
+                },
               },
             ],
           },
@@ -648,7 +654,13 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(await server.calls[0].requestBody).toStrictEqual({
           model: 'gpt-4o',
-          tools: [{ type: 'web_search' }],
+          tools: [
+            {
+              type: 'web_search_preview',
+              search_context_size: 'high',
+              user_location: { type: 'approximate', city: 'San Francisco' },
+            },
+          ],
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
           ],

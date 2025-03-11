@@ -7,7 +7,7 @@ async function main() {
     model: openai.responses('gpt-4o-mini'),
     prompt: 'What happened in San Francisco last week?',
     tools: {
-      web_search: openai.tools.web_search(),
+      web_search_preview: openai.tools.webSearchPreview(),
     },
   });
 

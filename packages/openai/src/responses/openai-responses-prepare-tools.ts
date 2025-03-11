@@ -48,8 +48,19 @@ export function prepareResponsesTools({
         break;
       case 'provider-defined':
         switch (tool.id) {
-          case 'openai.web_search':
-            openaiTools.push({ type: 'web_search' });
+          case 'openai.web_search_preview':
+            openaiTools.push({
+              type: 'web_search_preview',
+              search_context_size: tool.args.searchContextSize as
+                | 'low'
+                | 'medium'
+                | 'high',
+              user_location: tool.args.userLocation as {
+                type: 'approximate';
+                city: string;
+                region: string;
+              },
+            });
             break;
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });

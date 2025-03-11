@@ -49,5 +49,11 @@ export type OpenAIResponsesTool =
       strict?: boolean;
     }
   | {
-      type: 'web_search';
+      type: 'web_search_preview';
+      search_context_size: 'low' | 'medium' | 'high';
+      user_location: {
+        type: 'approximate';
+        city: string;
+        region: string;
+      };
     };
