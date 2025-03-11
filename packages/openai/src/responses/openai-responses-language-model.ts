@@ -328,8 +328,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage.output_tokens,
       },
       rawCall: {
-        rawPrompt: body, // TODO
-        rawSettings: {}, // TODO
+        rawPrompt: undefined,
+        rawSettings: {},
       },
       rawResponse: {
         headers: responseHeaders,
@@ -408,10 +408,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             }
 
             const value = chunk.value;
-
-            // TODO remove
-            // console.log(JSON.stringify(chunk.rawValue));
-            // return;
 
             if (isResponseOutputItemAddedChunk(value)) {
               if (value.item.type === 'function_call') {
@@ -511,8 +507,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
         }),
       ),
       rawCall: {
-        rawPrompt: body, // TODO
-        rawSettings: {}, // TODO
+        rawPrompt: undefined,
+        rawSettings: {},
       },
       rawResponse: { headers: responseHeaders },
       request: { body: JSON.stringify(body) },
