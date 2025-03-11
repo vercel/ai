@@ -8,12 +8,14 @@
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "prepack": "svelte-kit sync && svelte-package && publint",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-    "format": "prettier --write .",
-    "lint": "prettier --check . && eslint .",
+    "type-check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "type-check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "prettier-fix": "prettier --write .",
+    "prettier-check": "prettier --check .",
+    "lint": "eslint .",
     "test": "vitest --run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
   },
   "files": [
     "dist",
