@@ -1,9 +1,4 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import {
-  computerActionSchema,
-  computerSafetyCheckSchema,
-} from './openai-responses-language-model';
-import { z } from 'zod';
 
 export type OpenAIResponsesPrompt = Array<OpenAIResponsesMessage>;
 
@@ -12,9 +7,7 @@ export type OpenAIResponsesMessage =
   | OpenAIResponsesUserMessage
   | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCall
-  | OpenAIResponsesFunctionCallOutput
-  | OpenAIResponsesComputerCall
-  | OpenAIResponsesComputerCallOutput;
+  | OpenAIResponsesFunctionCallOutput;
 
 export type OpenAIResponsesSystemMessage = {
   role: 'system' | 'developer';
@@ -47,21 +40,6 @@ export type OpenAIResponsesFunctionCallOutput = {
   output: string;
 };
 
-export type OpenAIResponsesComputerCall = {
-  type: 'computer_call';
-  id: string;
-  call_id: string;
-  action: z.infer<typeof computerActionSchema>;
-  pending_safety_checks: Array<z.infer<typeof computerSafetyCheckSchema>>;
-};
-
-export type OpenAIResponsesComputerCallOutput = {
-  type: 'computer_call_output';
-  call_id: string;
-  output: { type: 'input_image'; image_url: string };
-  acknowledged_safety_checks: Array<z.infer<typeof computerSafetyCheckSchema>>;
-};
-
 export type OpenAIResponsesTool =
   | {
       type: 'function';
@@ -78,10 +56,4 @@ export type OpenAIResponsesTool =
         city: string;
         region: string;
       };
-    }
-  | {
-      type: 'computer_use_preview';
-      display_width: number;
-      display_height: number;
-      environment: 'mac' | 'windows' | 'linux' | 'browser';
     };
