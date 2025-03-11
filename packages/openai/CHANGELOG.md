@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.2.2
+
+### Patch Changes
+
+- e3a389e: feat (provider/openai): support responses api
+
 ## 1.2.1
 
 ### Patch Changes

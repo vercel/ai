@@ -12,7 +12,7 @@
     "@ai-sdk/anthropic": "1.1.15",
     "@ai-sdk/deepseek": "0.1.13",
     "@ai-sdk/fireworks": "0.1.14",
-    "@ai-sdk/openai": "1.2.1",
+    "@ai-sdk/openai": "1.2.2",
     "@ai-sdk/google-vertex": "2.1.24",
     "@ai-sdk/perplexity": "1.0.4",
     "@ai-sdk/ui-utils": "1.1.17",
