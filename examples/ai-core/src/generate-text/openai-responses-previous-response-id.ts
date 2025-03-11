@@ -12,7 +12,10 @@ async function main() {
     model: openai.responses('gpt-4o-mini'),
     prompt: 'Summarize in 2 sentences',
     providerOptions: {
-      openai: { previousResponseId: result1.steps.at(-1)!.response.id },
+      openai: {
+        previousResponseId: result1.providerMetadata?.openai
+          .responseId as string,
+      },
     },
   });
 

@@ -51,6 +51,7 @@
 ### previousResponseId support
 
 - [x] provider option: previousResponseId
+- [x] providerMetadata: responseId (gen + stream)
 
 ### computer use support
 

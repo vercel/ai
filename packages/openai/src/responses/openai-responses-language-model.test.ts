@@ -7,7 +7,6 @@ import {
   createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { createOpenAI } from '../openai-provider';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
@@ -126,7 +125,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.text).toStrictEqual('answer text');
       });
 
-      // TODO also for streaming...
       it('should extract usage', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
@@ -141,6 +139,23 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(result.providerMetadata).toStrictEqual({
           openai: {
+            responseId: 'resp_67c97c0203188190a025beb4a75242bc',
+            cachedPromptTokens: 234,
+            reasoningTokens: 123,
+          },
+        });
+      });
+
+      it('should extract response id metadata ', async () => {
+        const result = await createModel('gpt-4o').doGenerate({
+          prompt: TEST_PROMPT,
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          openai: {
+            responseId: 'resp_67c97c0203188190a025beb4a75242bc',
             cachedPromptTokens: 234,
             reasoningTokens: 123,
           },
@@ -1013,6 +1028,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           providerMetadata: {
             openai: {
+              responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
               cachedPromptTokens: 234,
               reasoningTokens: 123,
             },
@@ -1060,6 +1076,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           providerMetadata: {
             openai: {
+              responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
               cachedPromptTokens: 0,
               reasoningTokens: 0,
             },
@@ -1182,6 +1199,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
           providerMetadata: {
             openai: {
+              responseId: 'resp_67cb13a755c08190acbe3839a49632fc',
               cachedPromptTokens: 0,
               reasoningTokens: 0,
             },

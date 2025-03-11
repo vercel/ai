@@ -335,6 +335,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       },
       providerMetadata: {
         openai: {
+          responseId: response.id,
           cachedPromptTokens:
             response.usage.input_tokens_details?.cached_tokens ?? null,
           reasoningTokens:
@@ -373,7 +374,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     let completionTokens = NaN;
     let cachedPromptTokens: number | null = null;
     let reasoningTokens: number | null = null;
-
+    let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
       { toolName: string; toolCallId: string } | undefined
@@ -433,6 +434,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             }
 
             if (isResponseCreatedChunk(value)) {
+              responseId = value.response.id;
               controller.enqueue({
                 type: 'response-metadata',
                 id: value.response.id,
@@ -487,7 +489,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               usage: { promptTokens, completionTokens },
               ...((cachedPromptTokens != null || reasoningTokens != null) && {
                 providerMetadata: {
-                  openai: { cachedPromptTokens, reasoningTokens },
+                  openai: {
+                    responseId,
+                    cachedPromptTokens,
+                    reasoningTokens,
+                  },
                 },
               }),
             });
