@@ -56,6 +56,7 @@ function webSearchPreviewTool({
 const ComputerUsePreviewParameters = z.object({
   action: computerActionSchema,
   pendingSafetyChecks: z.array(computerSafetyCheckSchema),
+  id: z.string(), // need to carry over the id to be able to send it back to openai
 });
 
 type ComputerUsePreviewResult = {

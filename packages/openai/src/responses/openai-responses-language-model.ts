@@ -281,6 +281,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               }),
               z.object({
                 type: z.literal('computer_call'),
+                id: z.string(),
                 call_id: z.string(),
                 action: computerActionSchema,
                 pending_safety_checks: z.array(computerSafetyCheckSchema),
@@ -313,6 +314,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
           args: JSON.stringify({
             action: output.action,
             pendingSafetyChecks: output.pending_safety_checks,
+            id: output.id,
           }),
         }));
 

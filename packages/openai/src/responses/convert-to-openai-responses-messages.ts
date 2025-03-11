@@ -105,11 +105,14 @@ export function convertToOpenAIResponsesMessages({
                   pendingSafetyChecks: Array<
                     z.infer<typeof computerSafetyCheckSchema>
                   >;
+                  id: string;
+                  reasoning: string;
                 };
 
                 messages.push({
                   type: 'computer_call',
                   call_id: part.toolCallId,
+                  id: args.id,
                   action: args.action,
                   pending_safety_checks: args.pendingSafetyChecks,
                 });

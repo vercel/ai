@@ -49,6 +49,7 @@ export type OpenAIResponsesFunctionCallOutput = {
 
 export type OpenAIResponsesComputerCall = {
   type: 'computer_call';
+  id: string;
   call_id: string;
   action: z.infer<typeof computerActionSchema>;
   pending_safety_checks: Array<z.infer<typeof computerSafetyCheckSchema>>;
