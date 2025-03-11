@@ -1,10 +1,10 @@
 import { streamObject } from "ai";
 import { notificationSchema } from "../../structured-object/schema.js";
-import { OPENAI_API_KEY } from "$env/static/private";
 import { createOpenAI } from "@ai-sdk/openai";
+import { env } from "$env/dynamic/private";
 
 const openai = createOpenAI({
-  apiKey: OPENAI_API_KEY,
+  apiKey: env?.OPENAI_API_KEY,
 });
 
 export async function POST({ request }) {

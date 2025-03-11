@@ -28,7 +28,7 @@ export type Experimental_StructuredObjectOptions<RESULT> = {
   /**
    * A Zod schema that defines the shape of the complete object.
    */
-  schema: z.Schema<RESULT, z.ZodTypeDef, any> | Schema<RESULT>;
+  schema: z.Schema<RESULT, z.ZodTypeDef, unknown> | Schema<RESULT>;
 
   /**
    * An unique identifier. If not provided, a random one will be
@@ -75,8 +75,9 @@ export type Experimental_StructuredObjectOptions<RESULT> = {
   headers?: Record<string, string> | Headers;
 };
 
-export class StructuredObject<RESULT, INPUT = any> {
-  #options: Experimental_StructuredObjectOptions<RESULT> = {} as any;
+export class StructuredObject<RESULT, INPUT = unknown> {
+  #options: Experimental_StructuredObjectOptions<RESULT> =
+    {} as Experimental_StructuredObjectOptions<RESULT>;
   readonly #id = $derived(this.#options.id ?? generateId());
   readonly #keyedStore = $state<KeyedStructuredObjectStore>()!;
   readonly #store = $derived(

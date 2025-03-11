@@ -1,14 +1,8 @@
 {
-  "extends": [
-    "//"
-  ],
+  "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": [
-        "./dist/**",
-        ".svelte-kit/**",
-        ".vercel/**"
-      ]
+      "outputs": ["./dist/**", ".svelte-kit/**", ".vercel/**"]
     }
   }
 }

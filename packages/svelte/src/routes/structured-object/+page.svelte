@@ -27,13 +27,13 @@
     <div class="h-full w-full overflow-y-auto">
       {#if userMessage}
         <div
-          class="bg-secondary text-primary my-2 max-w-[80%] justify-self-end rounded-md p-2"
+          class="my-2 max-w-[80%] justify-self-end rounded-md bg-secondary p-2 text-primary"
         >
           Me: {userMessage}
         </div>
       {/if}
-      {#each structuredObject.object?.notifications ?? [] as notification}
-        <div class="bg-primary text-secondary my-2 max-w-[80%] rounded-md p-2">
+      {#each structuredObject.object?.notifications ?? [] as notification, i (i)}
+        <div class="my-2 max-w-[80%] rounded-md bg-primary p-2 text-secondary">
           {notification?.name}: {notification?.message}
         </div>
       {/each}
