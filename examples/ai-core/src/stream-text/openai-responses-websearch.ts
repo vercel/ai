@@ -16,6 +16,7 @@ async function main() {
   }
 
   console.log();
+  console.log('Sources:', await result.sources);
   console.log('Finish reason:', await result.finishReason);
   console.log('Usage:', await result.usage);
 }

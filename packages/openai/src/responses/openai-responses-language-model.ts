@@ -369,6 +369,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       fetch: this.config.fetch,
     });
 
+    const self = this;
+
     let finishReason: LanguageModelV1FinishReason = 'unknown';
     let promptTokens = NaN;
     let completionTokens = NaN;
@@ -401,25 +403,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             // console.log(JSON.stringify(chunk.rawValue));
             // return;
 
-            if (
-              isResponseOutputItemAddedChunk(value) &&
-              value.item.type === 'function_call'
-            ) {
-              ongoingToolCalls[value.output_index] = {
-                toolName: value.item.name,
-                toolCallId: value.item.call_id,
-              };
+            if (isResponseOutputItemAddedChunk(value)) {
+              if (value.item.type === 'function_call') {
+                ongoingToolCalls[value.output_index] = {
+                  toolName: value.item.name,
+                  toolCallId: value.item.call_id,
+                };
 
-              controller.enqueue({
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: value.item.call_id,
-                toolName: value.item.name,
-                argsTextDelta: value.item.arguments,
-              });
-            }
-
-            if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
+                controller.enqueue({
+                  type: 'tool-call-delta',
+                  toolCallType: 'function',
+                  toolCallId: value.item.call_id,
+                  toolName: value.item.name,
+                  argsTextDelta: value.item.arguments,
+                });
+              }
+            } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
               const toolCall = ongoingToolCalls[value.output_index];
 
               if (toolCall != null) {
@@ -431,9 +430,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                   argsTextDelta: value.delta,
                 });
               }
-            }
-
-            if (isResponseCreatedChunk(value)) {
+            } else if (isResponseCreatedChunk(value)) {
               responseId = value.response.id;
               controller.enqueue({
                 type: 'response-metadata',
@@ -441,17 +438,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 timestamp: new Date(value.response.created_at * 1000),
                 modelId: value.response.model,
               });
-            }
-
-            if (isTextDeltaChunk(value)) {
+            } else if (isTextDeltaChunk(value)) {
               controller.enqueue({
                 type: 'text-delta',
                 textDelta: value.delta,
               });
-              return;
-            }
-
-            if (
+            } else if (
               isResponseOutputItemDoneChunk(value) &&
               value.item.type === 'function_call'
             ) {
@@ -464,9 +456,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 toolName: value.item.name,
                 args: value.item.arguments,
               });
-            }
-
-            if (isResponseFinishedChunk(value)) {
+            } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
                 finishReason: value.response.incomplete_details?.reason,
                 hasToolCalls,
@@ -479,6 +469,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               reasoningTokens =
                 value.response.usage.output_tokens_details?.reasoning_tokens ??
                 reasoningTokens;
+            } else if (isResponseAnnotationAddedChunk(value)) {
+              controller.enqueue({
+                type: 'source',
+                source: {
+                  sourceType: 'url',
+                  id: self.config.generateId?.() ?? generateId(),
+                  url: value.annotation.url,
+                  title: value.annotation.title,
+                },
+              });
             }
           },
 
@@ -586,6 +586,15 @@ const responseOutputItemAddedSchema = z.object({
   ]),
 });
 
+const responseAnnotationAddedSchema = z.object({
+  type: z.literal('response.output_text.annotation.added'),
+  annotation: z.object({
+    type: z.literal('url_citation'),
+    url: z.string(),
+    title: z.string(),
+  }),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
@@ -593,6 +602,7 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemDoneSchema,
   responseFunctionCallArgumentsDeltaSchema,
   responseOutputItemAddedSchema,
+  responseAnnotationAddedSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -632,6 +642,12 @@ function isResponseOutputItemAddedChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseOutputItemAddedSchema> {
   return chunk.type === 'response.output_item.added';
+}
+
+function isResponseAnnotationAddedChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseAnnotationAddedSchema> {
+  return chunk.type === 'response.output_text.annotation.added';
 }
 
 type ResponsesModelConfig = {

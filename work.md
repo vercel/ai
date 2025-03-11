@@ -45,13 +45,13 @@
 
 - [x] web search tool (basic)
 - [x] sources support: generate
-- [ ] sources support: stream -- test
+- [x] sources support: stream
 - [ ] web search tool options
 
 ### previousResponseId support
 
 - [x] provider option: previousResponseId
-- [x] providerMetadata: responseId (gen + stream)
+- [x] providerMetadata: responseId
 
 ### computer use support
 
