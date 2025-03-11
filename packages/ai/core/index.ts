@@ -49,3 +49,11 @@ export type { TelemetrySettings } from './telemetry/telemetry-settings';
 // util exports:
 export { cosineSimilarity } from './util/cosine-similarity';
 export { simulateReadableStream } from './util/simulate-readable-stream';
+
+import { generateText } from 'ai';
+import { sambanova } from '@ai-sdk/sambanova';
+
+const result = await generateText({
+  model: sambanova('Llama-3.1-8B-Instruct'),
+  prompt: 'What is the capital of the moon?',
+});

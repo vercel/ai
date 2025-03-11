@@ -31,7 +31,8 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "1.0.10",
-    "@ai-sdk/provider-utils": "2.1.11"
+    "@ai-sdk/provider-utils": "2.1.11",
+    "dotenv": "16.4.5"
   },
   "devDependencies": {
     "@types/node": "^18",
