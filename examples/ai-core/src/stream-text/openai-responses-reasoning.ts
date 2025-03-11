@@ -4,8 +4,8 @@ import { streamText } from 'ai';
 
 async function main() {
   const result = streamText({
-    model: openai('gpt-4o-mini'),
-    maxTokens: 512,
+    model: openai.responses('o3-mini'),
+    system: 'You are a helpful assistant.',
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
@@ -14,7 +14,8 @@ async function main() {
   }
 
   console.log();
-  console.log(JSON.stringify(await result.response, null, 2));
+  console.log('Finish reason:', await result.finishReason);
+  console.log('Usage:', await result.usage);
 }
 
 main().catch(console.error);
