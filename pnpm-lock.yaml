@@ -33,8 +33,8 @@ importers:
         specifier: ^1.44.1
         version: 1.46.0
       prettier:
-        specifier: 2.8.8
-        version: 2.8.8
+        specifier: ^3.4.2
+        version: 3.5.3
       publint:
         specifier: 0.2.12
         version: 0.2.12
