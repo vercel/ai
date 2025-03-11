@@ -205,8 +205,9 @@ export class Chat {
       data: options.data,
     };
 
-    await this.#triggerRequest(chatRequest);
+    const request = this.#triggerRequest(chatRequest);
     this.input = "";
+    await request;
   };
 
   addToolResult = ({

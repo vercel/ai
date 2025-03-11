@@ -1,0 +1,70 @@
+<script lang="ts">
+  import ArrowUp from "$demo-lib/components/icons/arrow-up.svelte";
+  import { Button } from "$demo-lib/components/ui/button/index.js";
+  import { Textarea } from "$demo-lib/components/ui/textarea/index.js";
+  import { Experimental_StructuredObject } from "$lib/index.js";
+  import { notificationSchema } from "./schema.js";
+
+  const structuredObject = new Experimental_StructuredObject({
+    api: "/api/structured-object",
+    schema: notificationSchema,
+  });
+  let input = $state("");
+  let userMessage = $state("");
+
+  function handleSubmit(e: Event) {
+    userMessage = input;
+    e.preventDefault();
+    structuredObject.submit(input);
+    input = "";
+  }
+</script>
+
+<main class="flex h-dvh w-dvw flex-col items-center">
+  <div
+    class="grid h-full w-full max-w-4xl grid-cols-1 grid-rows-[1fr,120px] p-2"
+  >
+    <div class="h-full w-full overflow-y-auto">
+      {#if userMessage}
+        <div
+          class="bg-secondary text-primary my-2 max-w-[80%] justify-self-end rounded-md p-2"
+        >
+          Me: {userMessage}
+        </div>
+      {/if}
+      {#each structuredObject.object?.notifications ?? [] as notification}
+        <div class="bg-primary text-secondary my-2 max-w-[80%] rounded-md p-2">
+          {notification?.name}: {notification?.message}
+        </div>
+      {/each}
+    </div>
+    <form
+      class="relative"
+      onsubmit={(e) => {
+        e.preventDefault();
+        handleSubmit(e);
+      }}
+    >
+      <Textarea
+        bind:value={input}
+        placeholder="Think of a theme to generate three notifications..."
+        class="h-full"
+        onkeydown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit(e);
+          }
+        }}
+      />
+      <Button
+        aria-label="Send message"
+        disabled={structuredObject.loading}
+        type="submit"
+        size="icon"
+        class="absolute bottom-3 right-3"
+      >
+        <ArrowUp />
+      </Button>
+    </form>
+  </div>
+</main>

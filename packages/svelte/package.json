@@ -1,88 +1,98 @@
 {
-	"name": "@ai-sdk/svelte",
-	"version": "1.1.19",
-	"license": "Apache-2.0",
-	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build && npm run prepack",
-		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
-		"prepack": "svelte-kit sync && svelte-package && publint",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"format": "prettier --write .",
-		"lint": "prettier --check . && eslint .",
-		"test": "vitest --run",
-		"test:watch": "vitest"
-	},
-	"files": [
-		"dist",
-		"!dist/**/*.test.*",
-		"!dist/**/*.spec.*",
-		"src/lib",
-		"!src/lib/**/*.test.*",
-		"!src/lib/**/*.spec.*",
-		"CHANGELOG.md"
-	],
-	"sideEffects": [
-		"**/*.css"
-	],
-	"svelte": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"type": "module",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"svelte": "./dist/index.js"
-		}
-	},
-	"publishConfig": {
-		"access": "public"
-	},
-	"peerDependencies": {
-		"svelte": "^5.0.0"
-	},
-	"devDependencies": {
-		"@eslint/compat": "^1.2.5",
-		"@eslint/js": "^9.18.0",
-		"@sveltejs/adapter-vercel": "^5.5.2",
-		"@sveltejs/kit": "^2.16.0",
-		"@sveltejs/package": "^2.0.0",
-		"@sveltejs/vite-plugin-svelte": "^5.0.0",
-		"@testing-library/jest-dom": "^6.6.3",
-		"@testing-library/svelte": "^5.2.7",
-		"eslint": "^9.18.0",
-		"eslint-config-prettier": "^10.0.1",
-		"eslint-config-vercel-ai": "workspace:^",
-		"eslint-plugin-svelte": "^3.0.0",
-		"globals": "^16.0.0",
-		"jsdom": "^26.0.0",
-		"prettier": "^3.4.2",
-		"prettier-plugin-svelte": "^3.3.3",
-		"publint": "^0.3.2",
-		"svelte": "^5.0.0",
-		"svelte-check": "^4.0.0",
-		"typescript": "^5.0.0",
-		"typescript-eslint": "^8.20.0",
-		"vite": "^6.0.0",
-		"vitest": "^3.0.0",
-		"zod": "^3.24.2"
-	},
-	"homepage": "https://sdk.vercel.ai/docs",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/vercel/ai.git",
-		"directory": "packages/svelte"
-	},
-	"bugs": {
-		"url": "https://github.com/vercel/ai/issues"
-	},
-	"keywords": [
-		"ai",
-		"svelte"
-	],
-	"dependencies": {
-		"@ai-sdk/provider-utils": "workspace:2.1.10",
-		"@ai-sdk/ui-utils": "workspace:1.1.16"
-	}
+  "name": "@ai-sdk/svelte",
+  "version": "1.1.19",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build && npm run prepack",
+    "preview": "vite preview",
+    "prepare": "svelte-kit sync || echo ''",
+    "prepack": "svelte-kit sync && svelte-package && publint",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "format": "prettier --write .",
+    "lint": "prettier --check . && eslint .",
+    "test": "vitest --run",
+    "test:watch": "vitest"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.spec.*",
+    "src/lib",
+    "!src/lib/**/*.test.*",
+    "!src/lib/**/*.spec.*",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "svelte": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "svelte": "^5.0.0"
+  },
+  "devDependencies": {
+    "@ai-sdk/openai": "1.2.0",
+    "@eslint/compat": "^1.2.5",
+    "@eslint/js": "^9.18.0",
+    "@sveltejs/adapter-vercel": "^5.5.2",
+    "@sveltejs/kit": "^2.16.0",
+    "@sveltejs/package": "^2.0.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/svelte": "^5.2.7",
+    "ai": "4.1.54",
+    "autoprefixer": "^10.4.20",
+    "bits-ui": "^1.3.9",
+    "clsx": "^2.1.1",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-config-vercel-ai": "workspace:^",
+    "eslint-plugin-svelte": "^3.0.0",
+    "globals": "^16.0.0",
+    "jsdom": "^26.0.0",
+    "prettier": "^3.4.2",
+    "prettier-plugin-svelte": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.10",
+    "publint": "^0.3.2",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "tailwind-merge": "^3.0.2",
+    "tailwind-variants": "^1.0.0",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.20.0",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0",
+    "zod": "^3.24.2"
+  },
+  "homepage": "https://sdk.vercel.ai/docs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vercel/ai.git",
+    "directory": "packages/svelte"
+  },
+  "bugs": {
+    "url": "https://github.com/vercel/ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "svelte"
+  ],
+  "dependencies": {
+    "@ai-sdk/provider-utils": "2.1.10",
+    "@ai-sdk/ui-utils": "1.1.16"
+  }
 }

@@ -77,7 +77,6 @@ export type Experimental_StructuredObjectOptions<RESULT> = {
 
 export class StructuredObject<RESULT, INPUT = any> {
   #options: Experimental_StructuredObjectOptions<RESULT> = {} as any;
-  readonly #api = $derived(this.#options.api ?? "/api/completion");
   readonly #id = $derived(this.#options.id ?? generateId());
   readonly #keyedStore = $state<KeyedStructuredObjectStore>()!;
   readonly #store = $derived(
@@ -144,7 +143,7 @@ export class StructuredObject<RESULT, INPUT = any> {
       this.#abortController = abortController;
 
       const actualFetch = this.#options.fetch ?? fetch;
-      const response = await actualFetch(this.#api, {
+      const response = await actualFetch(this.#options.api, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
