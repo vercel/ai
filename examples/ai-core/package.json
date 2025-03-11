@@ -25,6 +25,7 @@
     "@ai-sdk/togetherai": "0.1.14",
     "@ai-sdk/xai": "1.1.13",
     "@ai-sdk/valibot": "0.0.21",
+    "@e2b/desktop": "1.3.0",
     "@google/generative-ai": "0.21.0",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
     "@opentelemetry/sdk-node": "0.54.2",

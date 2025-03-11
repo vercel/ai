@@ -56,4 +56,10 @@ export type OpenAIResponsesTool =
         city: string;
         region: string;
       };
+    }
+  | {
+      type: 'computer_use_preview';
+      display_width: number;
+      display_height: number;
+      environment: 'mac' | 'windows' | 'linux' | 'browser';
     };

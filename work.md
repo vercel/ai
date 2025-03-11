@@ -56,6 +56,9 @@
 ### computer use support
 
 - [ ] computer use tool
+  - e2b sandbox that is invoked from command line tool
+  - run command line tool in loop
+  - streaming
 
 ### integration
 
@@ -73,3 +76,7 @@
 - [ ] progress information (e.g. websearch)
 - [ ] citations
 - [ ] chat api web search support
+
+---
+
+,"output":[{"type":"computer_call","id":"cu_67d013f9dcfc81908ae087ce887ff533","call_id":"call_uoTH23GFIT0mYrLK1QFRXgM2","action":{"type":"screenshot"},"pending_safety_checks":[],"status":"completed"}]

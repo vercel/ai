@@ -130,10 +130,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       store: providerMetadata?.openai?.store,
       user: providerMetadata?.openai?.user,
 
+      // model-specific settings:
       ...(modelConfig.isReasoningModel &&
         providerMetadata?.openai?.reasoningEffort != null && {
           reasoning: { effort: providerMetadata?.openai?.reasoningEffort },
         }),
+      ...(modelConfig.requiredAutoTruncation && {
+        truncation: 'auto',
+      }),
     };
 
     if (modelConfig.isReasoningModel) {
@@ -273,6 +277,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               }),
               z.object({
                 type: z.literal('web_search_call'),
+              }),
+              z.object({
+                type: z.literal('computer_call'),
+                call_id: z.string(),
+                action: z.object({ type: z.string() }),
+                pending_safety_checks: z.array(z.string()),
               }),
             ]),
           ),
@@ -653,21 +663,33 @@ function isResponseAnnotationAddedChunk(
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
+  requiredAutoTruncation: boolean;
 };
 
 function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
+  // computer use preview model:
+  if (modelId === 'computer-use-preview-2025-02-04') {
+    return {
+      isReasoningModel: false,
+      systemMessageMode: 'system',
+      requiredAutoTruncation: true,
+    };
+  }
+
   // o series reasoning models:
   if (modelId.startsWith('o')) {
     if (modelId.startsWith('o1-mini') || modelId.startsWith('o1-preview')) {
       return {
         isReasoningModel: true,
         systemMessageMode: 'remove',
+        requiredAutoTruncation: false,
       };
     }
 
     return {
       isReasoningModel: true,
       systemMessageMode: 'developer',
+      requiredAutoTruncation: false,
     };
   }
 
@@ -675,5 +697,6 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
   return {
     isReasoningModel: false,
     systemMessageMode: 'system',
+    requiredAutoTruncation: false,
   };
 }
