@@ -1,5 +1,5 @@
-import { hasContext, getContext, setContext, untrack } from "svelte";
-import { SvelteMap } from "svelte/reactivity";
+import { hasContext, getContext, setContext, untrack } from 'svelte';
+import { SvelteMap } from 'svelte/reactivity';
 
 export function createContext<T>(name: string) {
   const key = Symbol(name);
@@ -9,11 +9,11 @@ export function createContext<T>(name: string) {
         return hasContext(key);
       } catch (e) {
         if (
-          typeof e === "object" &&
+          typeof e === 'object' &&
           e !== null &&
-          "message" in e &&
-          typeof e.message === "string" &&
-          e.message?.includes("lifecycle_outside_component")
+          'message' in e &&
+          typeof e.message === 'string' &&
+          e.message?.includes('lifecycle_outside_component')
         ) {
           return false;
         }

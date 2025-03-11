@@ -15,16 +15,16 @@ import {
   getMessageParts,
   updateToolCallResult,
   isAssistantMessageWithCompletedToolCalls,
-} from "@ai-sdk/ui-utils";
-import { isAbortError } from "@ai-sdk/provider-utils";
+} from '@ai-sdk/ui-utils';
+import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   KeyedChatStore,
   getChatContext,
   hasChatContext,
-} from "./chat-context.svelte.js";
+} from './chat-context.svelte.js';
 
 export type ChatOptions = Readonly<
-  Omit<UseChatOptions, "keepLastMessageOnError"> & {
+  Omit<UseChatOptions, 'keepLastMessageOnError'> & {
     /**
      * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
      * Must be at least 1.
@@ -40,11 +40,11 @@ export type { CreateMessage, Message, UIMessage };
 
 export class Chat {
   readonly #options: ChatOptions = {};
-  readonly #api = $derived(this.#options.api ?? "/api/chat");
+  readonly #api = $derived(this.#options.api ?? '/api/chat');
   readonly #generateId = $derived(this.#options.generateId ?? generateId);
   readonly #id = $derived(this.#options.id ?? this.#generateId());
   readonly #maxSteps = $derived(this.#options.maxSteps ?? 1);
-  readonly #streamProtocol = $derived(this.#options.streamProtocol ?? "data");
+  readonly #streamProtocol = $derived(this.#options.streamProtocol ?? 'data');
   readonly #keyedStore = $state<KeyedChatStore>()!;
   readonly #store = $derived(this.#keyedStore.get(this.#id));
   #abortController: AbortController | undefined;
@@ -111,7 +111,7 @@ export class Chat {
 
     this.#options = options;
     this.messages = options.initialMessages ?? [];
-    this.input = options.initialInput ?? "";
+    this.input = options.initialInput ?? '';
   }
 
   /**
@@ -153,7 +153,7 @@ export class Chat {
     const lastMessage = this.messages[this.messages.length - 1];
     await this.#triggerRequest({
       messages:
-        lastMessage.role === "assistant"
+        lastMessage.role === 'assistant'
           ? this.messages.slice(0, -1)
           : this.messages,
       headers,
@@ -171,7 +171,7 @@ export class Chat {
     } catch {
       // ignore
     } finally {
-      this.#store.status = "ready";
+      this.#store.status = 'ready';
       this.#abortController = undefined;
     }
   };
@@ -191,11 +191,11 @@ export class Chat {
     const messages = this.messages.concat({
       id: generateId(),
       createdAt: new Date(),
-      role: "user",
+      role: 'user',
       content: this.input,
       experimental_attachments:
         attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-      parts: [{ type: "text", text: this.input }],
+      parts: [{ type: 'text', text: this.input }],
     });
 
     const chatRequest: ChatRequest = {
@@ -206,7 +206,7 @@ export class Chat {
     };
 
     const request = this.#triggerRequest(chatRequest);
-    this.input = "";
+    this.input = '';
     await request;
   };
 
@@ -230,7 +230,7 @@ export class Chat {
   };
 
   #triggerRequest = async (chatRequest: ChatRequest) => {
-    this.#store.status = "submitted";
+    this.#store.status = 'submitted';
     this.#store.error = undefined;
 
     const messages = fillMessageParts(chatRequest.messages);
@@ -290,7 +290,7 @@ export class Chat {
         restoreMessagesOnFailure: () => {},
         onResponse: this.#options.onResponse,
         onUpdate: ({ message, data, replaceLastMessage }) => {
-          this.#store.status = "streaming";
+          this.#store.status = 'streaming';
 
           this.messages = [
             ...(replaceLastMessage ? messages.slice(0, -1) : messages),
@@ -309,7 +309,7 @@ export class Chat {
       });
 
       this.#abortController = undefined;
-      this.#store.status = "ready";
+      this.#store.status = 'ready';
     } catch (error) {
       if (isAbortError(error)) {
         return;
@@ -321,7 +321,7 @@ export class Chat {
         this.#options.onError(coalescedError);
       }
 
-      this.#store.status = "error";
+      this.#store.status = 'error';
       this.#store.error = coalescedError;
     }
 

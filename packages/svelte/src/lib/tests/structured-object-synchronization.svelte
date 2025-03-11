@@ -1,8 +1,8 @@
 <script lang="ts" generics="RESULT">
-  import { createAIContext } from "$lib/context-provider.js";
-  import { StructuredObject } from "$lib/structured-object.svelte.js";
-  import type { Schema } from "@ai-sdk/ui-utils";
-  import type { z } from "zod";
+  import { createAIContext } from '$lib/context-provider.js';
+  import { StructuredObject } from '$lib/structured-object.svelte.js';
+  import type { Schema } from '@ai-sdk/ui-utils';
+  import type { z } from 'zod';
 
   let {
     id,

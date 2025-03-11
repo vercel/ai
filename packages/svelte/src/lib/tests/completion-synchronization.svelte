@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Completion } from "$lib/completion.svelte.js";
-  import { createAIContext } from "$lib/context-provider.js";
+  import { Completion } from '$lib/completion.svelte.js';
+  import { createAIContext } from '$lib/context-provider.js';
 
   let { id }: { id?: string } = $props();
 

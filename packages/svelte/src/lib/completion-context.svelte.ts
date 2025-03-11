@@ -1,6 +1,6 @@
-import type { JSONValue } from "@ai-sdk/ui-utils";
-import { SvelteMap } from "svelte/reactivity";
-import { createContext, KeyedStore } from "./utils.svelte.js";
+import type { JSONValue } from '@ai-sdk/ui-utils';
+import { SvelteMap } from 'svelte/reactivity';
+import { createContext, KeyedStore } from './utils.svelte.js';
 
 class CompletionStore {
   completions = new SvelteMap<string, string>();
@@ -21,4 +21,4 @@ export const {
   hasContext: hasCompletionContext,
   getContext: getCompletionContext,
   setContext: setCompletionContext,
-} = createContext<KeyedCompletionStore>("Completion");
+} = createContext<KeyedCompletionStore>('Completion');

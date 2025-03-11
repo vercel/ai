@@ -3,21 +3,21 @@ import {
   isAbortError,
   safeValidateTypes,
   type FetchFunction,
-} from "@ai-sdk/provider-utils";
+} from '@ai-sdk/provider-utils';
 import {
   asSchema,
   isDeepEqualData,
   parsePartialJson,
   type DeepPartial,
   type Schema,
-} from "@ai-sdk/ui-utils";
-import { type z } from "zod";
+} from '@ai-sdk/ui-utils';
+import { type z } from 'zod';
 import {
   getStructuredObjectContext,
   hasStructuredObjectContext,
   KeyedStructuredObjectStore,
   type StructuredObjectStore,
-} from "./structured-object-context.svelte.js";
+} from './structured-object-context.svelte.js';
 
 export type Experimental_StructuredObjectOptions<RESULT> = {
   /**
@@ -145,9 +145,9 @@ export class StructuredObject<RESULT, INPUT = unknown> {
 
       const actualFetch = this.#options.fetch ?? fetch;
       const response = await actualFetch(this.#options.api, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           ...this.#options.headers,
         },
         signal: abortController.signal,
@@ -156,22 +156,22 @@ export class StructuredObject<RESULT, INPUT = unknown> {
 
       if (!response.ok) {
         throw new Error(
-          (await response.text()) ?? "Failed to fetch the response.",
+          (await response.text()) ?? 'Failed to fetch the response.',
         );
       }
 
       if (response.body == null) {
-        throw new Error("The response body is empty.");
+        throw new Error('The response body is empty.');
       }
 
-      let accumulatedText = "";
+      let accumulatedText = '';
       let latestObject: DeepPartial<RESULT> | undefined = undefined;
 
       await response.body.pipeThrough(new TextDecoderStream()).pipeTo(
         new WritableStream<string>({
-          write: (chunk) => {
+          write: chunk => {
             if (abortController?.signal.aborted) {
-              throw new DOMException("Stream aborted", "AbortError");
+              throw new DOMException('Stream aborted', 'AbortError');
             }
             accumulatedText += chunk;
 

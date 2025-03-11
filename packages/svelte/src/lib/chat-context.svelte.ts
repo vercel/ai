@@ -1,10 +1,10 @@
-import type { JSONValue, UIMessage } from "@ai-sdk/ui-utils";
-import { createContext, KeyedStore } from "./utils.svelte.js";
+import type { JSONValue, UIMessage } from '@ai-sdk/ui-utils';
+import { createContext, KeyedStore } from './utils.svelte.js';
 
 class ChatStore {
   messages = $state<UIMessage[]>([]);
   data = $state<JSONValue[]>();
-  status = $state<"submitted" | "streaming" | "ready" | "error">("ready");
+  status = $state<'submitted' | 'streaming' | 'ready' | 'error'>('ready');
   error = $state<Error>();
 }
 
@@ -20,4 +20,4 @@ export const {
   hasContext: hasChatContext,
   getContext: getChatContext,
   setContext: setChatContext,
-} = createContext<KeyedChatStore>("Chat");
+} = createContext<KeyedChatStore>('Chat');
