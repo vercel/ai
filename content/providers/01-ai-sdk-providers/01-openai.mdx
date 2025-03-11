@@ -549,6 +549,31 @@ The following OpenAI-specific metadata is returned:
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
 
+#### Web Search
+
+The OpenAI responses provider supports web search through the `openai.tools.webSearchPreview` tool.
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-4o-mini'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search_preview: openai.tools.webSearchPreview({
+      // optional configuration:
+      searchContextSize: 'high',
+      userLocation: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+      },
+    }),
+  },
+});
+
+// URL sources
+const sources = result.sources;
+```
+
 ### Completion Models
 
 You can create models that call the [OpenAI completions API](https://platform.openai.com/docs/api-reference/completions) using the `.completion()` factory method.

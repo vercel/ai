@@ -67,8 +67,10 @@
 
 ### documentation
 
+- [x] provider options
+- [x] provider metadata
+- [x] web search section
 - [ ] responses section under OpenAI provider
-- [ ] provider options table (top-level)
 
 ### future work
 
