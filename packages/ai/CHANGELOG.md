@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.58
+
+### Patch Changes
+
+- e9897eb: fix (ai/core): move process access into functions and use globalThis
+
 ## 4.1.57
 
 ### Patch Changes
