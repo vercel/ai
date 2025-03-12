@@ -4,13 +4,18 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
+import {
+  DynamicRetrievalConfig,
+  GoogleGenerativeAIModelId,
+} from './google-generative-ai-settings';
 
 export function prepareTools(
   mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
     type: 'regular';
   },
   useSearchGrounding: boolean,
-  isGemini2: boolean,
+  dynamicRetrievalConfig: DynamicRetrievalConfig | undefined,
+  modelId: GoogleGenerativeAIModelId,
 ): {
   tools:
     | undefined
@@ -21,7 +26,11 @@ export function prepareTools(
           parameters: unknown;
         }>;
       }
-    | { googleSearchRetrieval: Record<string, never> }
+    | {
+        googleSearchRetrieval:
+          | Record<string, never>
+          | { dynamicRetrievalConfig: DynamicRetrievalConfig };
+      }
     | { googleSearch: Record<string, never> };
   toolConfig:
     | undefined
@@ -36,9 +45,20 @@ export function prepareTools(
   const tools = mode.tools?.length ? mode.tools : undefined;
   const toolWarnings: LanguageModelV1CallWarning[] = [];
 
+  const isGemini2 = modelId.includes('gemini-2');
+  const supportsDynamicRetrieval =
+    modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
+
   if (useSearchGrounding) {
     return {
-      tools: isGemini2 ? { googleSearch: {} } : { googleSearchRetrieval: {} },
+      tools: isGemini2
+        ? { googleSearch: {} }
+        : {
+            googleSearchRetrieval:
+              !supportsDynamicRetrieval || !dynamicRetrievalConfig
+                ? {}
+                : { dynamicRetrievalConfig },
+          },
       toolConfig: undefined,
       toolWarnings,
     };
