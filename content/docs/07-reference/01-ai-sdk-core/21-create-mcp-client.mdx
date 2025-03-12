@@ -30,12 +30,15 @@ This feature is experimental and may change or be removed in the future.
       description: 'Configuration for the MCP client.',
       properties: [
         {
+          type: 'MCPTransport',
+          parameters: [
+            {
           name: 'transport',
           type: 'TransportConfig',
           description: 'Configuration for the message transport layer.',
           properties: [
             {
-              type: 'McpStdioServerConfig',
+              type: 'StdioMCPTransport',
               parameters: [
                 {
                   name: 'type',
@@ -76,7 +79,7 @@ This feature is experimental and may change or be removed in the future.
               ],
             },
             {
-              type: 'McpSSEServerConfig',
+              type: 'SSEMCPTransport',
               parameters: [
                 {
                   name: 'type',
@@ -90,23 +93,26 @@ This feature is experimental and may change or be removed in the future.
                 },
               ],
             },
+              ]
+
+            },
           ],
-        },
-        {
-          name: 'name',
-          type: 'string',
-          isOptional: true,
-          description: 'Client name. Defaults to "ai-sdk-mcp-client"',
-        },
-        {
-          name: 'onUncaughtError',
-          type: '(error: unknown) => void',
-          isOptional: true,
-          description: 'Handler for uncaught errors',
         },
       ],
     },
-  ]}
+    {
+      name: 'name',
+      type: 'string',
+      isOptional: true,
+      description: 'Client name. Defaults to "ai-sdk-mcp-client"',
+    },
+    {
+      name: 'onUncaughtError',
+      type: '(error: unknown) => void',
+      isOptional: true,
+      description: 'Handler for uncaught errors',
+    },
+]}
 />
 
 ### Returns
@@ -117,8 +123,8 @@ Returns a Promise that resolves to an `MCPClient` with the following methods:
   content={[
     {
       name: 'tools',
-      type: `async (options?: { 
-        schemas?: TOOL_SCHEMAS 
+      type: `async (options?: {
+        schemas?: TOOL_SCHEMAS
       }) => Promise<McpToolSet<TOOL_SCHEMAS>>`,
       description: 'Gets the tools available from the MCP server.',
       properties: [
