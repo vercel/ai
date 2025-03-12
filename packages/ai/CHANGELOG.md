@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.57
+
+### Patch Changes
+
+- 092fdaa: feat (ai/core): add defaultSettingsMiddleware
+
 ## 4.1.56
 
 ### Patch Changes
