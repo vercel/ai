@@ -23,6 +23,4 @@ export {
   Root,
   //
   Root as Textarea,
-  type TextareaEvents,
-  type FormTextareaEvent,
 };
