@@ -3,7 +3,7 @@
 You can use the AI SDK with MCP to convert between MCP and AI SDK tool calls.
 This example demonstrates tool conversion from both SSE and `stdio` MCP servers.
 
-## Usage
+## Build
 
 1. Create .env file with the following content (and more settings, depending on the providers you want to use):
 
@@ -18,14 +18,30 @@ pnpm install
 pnpm build
 ```
 
-3. Run the following command:
+## Stdio Transport
+
+Build
 
 ```sh
-pnpm dev
+pnpm stdio:build
 ```
 
-4. Test the endpoint with Curl:
+Run example:
 
 ```sh
-curl -X POST http://localhost:8080
+pnpm stdio:client
+```
+
+## SSE Transport
+
+Start server
+
+```sh
+pnpm sse:server
+```
+
+Run example:
+
+```sh
+pnpm sse:client
 ```
