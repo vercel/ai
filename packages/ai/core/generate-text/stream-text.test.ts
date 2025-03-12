@@ -37,7 +37,7 @@ const defaultSettings = () =>
       generateId: mockId({ prefix: 'id' }),
       currentDate: () => new Date(0),
     },
-  } as const);
+  }) as const;
 
 function createTestModel({
   stream = convertArrayToReadableStream([

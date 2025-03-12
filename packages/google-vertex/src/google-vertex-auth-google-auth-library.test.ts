@@ -40,7 +40,7 @@ describe('generateAuthToken', () => {
             getAccessToken: vi.fn().mockResolvedValue({ token: null }),
           }),
           isGCE: vi.fn(),
-        } as unknown as GoogleAuth),
+        }) as unknown as GoogleAuth,
     );
 
     const token = await generateAuthToken();

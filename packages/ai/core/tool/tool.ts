@@ -9,8 +9,8 @@ export type inferParameters<PARAMETERS extends ToolParameters> =
   PARAMETERS extends Schema<any>
     ? PARAMETERS['_type']
     : PARAMETERS extends z.ZodTypeAny
-    ? z.infer<PARAMETERS>
-    : never;
+      ? z.infer<PARAMETERS>
+      : never;
 
 export interface ToolExecutionOptions {
   /**

@@ -31,7 +31,8 @@
     "lint-staged": "15.2.10",
     "next": "15.0.0-canary.23",
     "playwright": "^1.44.1",
-    "prettier": "2.8.8",
+    "prettier": "^3.3.3",
+    "prettier-plugin-svelte": "^3.3.3",
     "publint": "0.2.12",
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
@@ -60,6 +61,17 @@
     "useTabs": false,
     "singleQuote": true,
     "arrowParens": "avoid",
-    "trailingComma": "all"
+    "trailingComma": "all",
+    "plugins": [
+      "prettier-plugin-svelte"
+    ],
+    "overrides": [
+      {
+        "files": "*.svelte",
+        "options": {
+          "parser": "svelte"
+        }
+      }
+    ]
   }
 }

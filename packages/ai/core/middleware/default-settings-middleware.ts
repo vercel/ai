@@ -32,7 +32,7 @@ export function defaultSettingsMiddleware({
         // TODO remove when temperature defaults to undefined
         temperature:
           params.temperature === 0 || params.temperature == null
-            ? settings.temperature ?? 0
+            ? (settings.temperature ?? 0)
             : params.temperature,
       };
     },

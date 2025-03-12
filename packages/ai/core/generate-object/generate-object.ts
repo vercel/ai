@@ -480,11 +480,11 @@ export async function generateObject<SCHEMA, RESULT>({
                 outputStrategy.jsonSchema == null
                   ? injectJsonInstruction({ prompt: system })
                   : model.supportsStructuredOutputs
-                  ? system
-                  : injectJsonInstruction({
-                      prompt: system,
-                      schema: outputStrategy.jsonSchema,
-                    }),
+                    ? system
+                    : injectJsonInstruction({
+                        prompt: system,
+                        schema: outputStrategy.jsonSchema,
+                      }),
               prompt,
               messages,
             },

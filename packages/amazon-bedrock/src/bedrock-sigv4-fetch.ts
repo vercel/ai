@@ -36,8 +36,8 @@ export function createSigV4FetchFunction(
       typeof input === 'string'
         ? input
         : input instanceof URL
-        ? input.href
-        : input.url;
+          ? input.href
+          : input.url;
 
     const originalHeaders = extractHeaders(init.headers);
     const body = prepareBodyString(init.body);
