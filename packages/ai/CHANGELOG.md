@@ -1,5 +1,12 @@
 # ai
 
+## 4.1.56
+
+### Patch Changes
+
+- 80be82b: feat (ai/core): add simulateStreamingMiddleware
+- 8109a24: fix (ai/core): limit node imports to types where possible
+
 ## 4.1.55
 
 ### Patch Changes
