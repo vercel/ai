@@ -1,3 +1,4 @@
+export { defaultSettingsMiddleware } from './default-settings-middleware';
 export { extractReasoningMiddleware } from './extract-reasoning-middleware';
 export type {
   Experimental_LanguageModelV1Middleware,
