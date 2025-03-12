@@ -98,6 +98,7 @@ describe('wrapLanguageModel', () => {
 
     expect(wrapGenerate).toHaveBeenCalledWith({
       doGenerate: expect.any(Function),
+      doStream: expect.any(Function),
       params,
       model: mockModel,
     });
@@ -161,6 +162,7 @@ describe('wrapLanguageModel', () => {
     await wrappedModel.doStream(params);
 
     expect(wrapStream).toHaveBeenCalledWith({
+      doGenerate: expect.any(Function),
       doStream: expect.any(Function),
       params,
       model: mockModel,
