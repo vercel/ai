@@ -106,7 +106,7 @@ There are three things worth mentioning:
 1. The [`onToolCall`](/docs/reference/ai-sdk-ui/use-chat#on-tool-call) callback is used to handle client-side tools that should be automatically executed.
    In this example, the `getLocation` tool is a client-side tool that returns a random city.
 
-2. The `toolInvocations` property of the last assistant message contains all tool calls and results.
+2. The `parts` property of the last assistant message contains all tool calls and results.
    The client-side tool `askForConfirmation` is displayed in the UI.
    It asks the user for confirmation and displays the result once the user confirms or denies the execution.
    The result is added to the chat using `addToolResult`.

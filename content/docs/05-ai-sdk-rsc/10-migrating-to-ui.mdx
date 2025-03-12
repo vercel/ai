@@ -210,7 +210,7 @@ As mentioned earlier, `streamUI` generates text and renders the React component 
 
 #### After: Replace with route handler and stream props data to client
 
-The `streamText` function streams the props data as response to the client, while `useChat` decode the stream as `toolInvocations` and renders the chat interface.
+The `streamText` function streams the props data as response to the client, while `useChat` decode the stream as `parts` and renders the chat interface.
 
 ```ts filename="@/app/api/chat/route.ts"
 import { z } from 'zod';
@@ -263,7 +263,7 @@ export default function Page() {
           <div>{message.content}</div>
 
           <div>
-            {message.toolInvocations.map(toolInvocation => {
+            {message.parts.map(toolInvocation => {
               const { toolName, toolCallId, state } = toolInvocation;
 
               if (state === 'result') {
@@ -410,15 +410,15 @@ With AI SDK UI, you can use the tool invocation state to show a loading indicato
 ```tsx filename="@/app/components/message.tsx"
 'use client';
 
-export function Message({ role, content, toolInvocations }) {
+export function Message({ role, content, parts }) {
   return (
     <div>
       <div>{role}</div>
       <div>{content}</div>
 
-      {toolInvocations && (
+      {parts && (
         <div>
-          {toolInvocations.map(toolInvocation => {
+          {parts.map(toolInvocation => {
             const { toolName, toolCallId, state } = toolInvocation;
 
             if (state === 'result') {
