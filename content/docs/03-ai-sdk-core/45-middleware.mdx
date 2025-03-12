@@ -75,6 +75,20 @@ When set to `true`, the reasoning tag will be prepended to the generated text.
 This is useful for models that do not include the reasoning tag at the beginning of the response.
 For more details, see the [DeepSeek R1 guide](https://sdk.vercel.ai/docs/guides/r1#deepseek-r1-middleware).
 
+### Simulate Streaming
+
+The `simulateStreamingMiddleware` function can be used to simulate streaming behavior with responses from non-streaming language models.
+This is useful when you want to maintain a consistent streaming interface even when using models that only provide complete responses.
+
+```ts
+import { wrapLanguageModel, simulateStreamingMiddleware } from 'ai';
+
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: simulateStreamingMiddleware(),
+});
+```
+
 ## Implementing Language Model Middleware
 
 <Note>
