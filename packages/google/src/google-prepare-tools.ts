@@ -46,7 +46,8 @@ export function prepareTools(
   const toolWarnings: LanguageModelV1CallWarning[] = [];
 
   const isGemini2 = modelId.includes('gemini-2');
-  const supportsDynamicRetrieval = modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
+  const supportsDynamicRetrieval =
+    modelId.includes('gemini-1.5-flash') && !modelId.includes('-8b');
 
   if (useSearchGrounding) {
     return {
