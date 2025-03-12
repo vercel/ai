@@ -84,10 +84,10 @@ importers:
         specifier: 0.1.15
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.1.25
+        specifier: 2.1.26
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
         specifier: 1.1.13
@@ -433,7 +433,7 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 2.1.25
+        specifier: 2.1.26
         version: link:../../packages/google-vertex
       ai:
         specifier: 4.1.58
@@ -543,7 +543,7 @@ importers:
         specifier: 0.1.15
         version: link:../../packages/fireworks
       '@ai-sdk/google-vertex':
-        specifier: 2.1.25
+        specifier: 2.1.26
         version: link:../../packages/google-vertex
       '@ai-sdk/openai':
         specifier: 1.2.3
@@ -1507,7 +1507,7 @@ importers:
         specifier: 1.1.16
         version: link:../anthropic
       '@ai-sdk/google':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../google
       '@ai-sdk/provider':
         specifier: 1.0.10
