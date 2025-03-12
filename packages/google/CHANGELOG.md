@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.1.22
+
+### Patch Changes
+
+- 62f46fd: feat (provider/google): add support for dynamic retrieval
+
 ## 1.1.21
 
 ### Patch Changes
