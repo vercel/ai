@@ -1035,6 +1035,41 @@ describe('doGenerate', () => {
         },
       ),
     );
+
+    it(
+      'should use dynamic retrieval for gemini-1-5',
+      withTestServer(
+        prepareJsonResponse({
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+        }),
+        async ({ call }) => {
+          const geminiPro = provider.languageModel('gemini-1.5-flash', {
+            useSearchGrounding: true,
+            dynamicRetrievalConfig: {
+              mode: 'MODE_DYNAMIC',
+              dynamicThreshold: 1,
+            },
+          });
+
+          await geminiPro.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: {
+              googleSearchRetrieval: {
+                dynamicRetrievalConfig: {
+                  mode: 'MODE_DYNAMIC',
+                  dynamicThreshold: 1,
+                },
+              },
+            },
+          });
+        },
+      ),
+    );
   });
 });
 
@@ -1490,6 +1525,42 @@ describe('doStream', () => {
 
           expect(await call(0).getRequestBodyJson()).toMatchObject({
             tools: { googleSearchRetrieval: {} },
+          });
+        },
+      ),
+    );
+
+    it(
+      'should use dynamic retrieval for gemini-1-5',
+      withTestServer(
+        prepareStreamResponse({
+          content: [''],
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent',
+        }),
+        async ({ call }) => {
+          const geminiPro = provider.languageModel('gemini-1.5-flash', {
+            useSearchGrounding: true,
+            dynamicRetrievalConfig: {
+              mode: 'MODE_DYNAMIC',
+              dynamicThreshold: 1,
+            },
+          });
+
+          await geminiPro.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: {
+              googleSearchRetrieval: {
+                dynamicRetrievalConfig: {
+                  mode: 'MODE_DYNAMIC',
+                  dynamicThreshold: 1,
+                },
+              },
+            },
           });
         },
       ),
