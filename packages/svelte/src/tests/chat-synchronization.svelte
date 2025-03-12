@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Chat } from '$lib/chat.svelte.js';
-  import { createAIContext } from '$lib/context-provider.js';
+  import { Chat } from '../chat.svelte.js';
+  import { createAIContext } from '../context-provider.js';
 
   let { id }: { id?: string } = $props();
 

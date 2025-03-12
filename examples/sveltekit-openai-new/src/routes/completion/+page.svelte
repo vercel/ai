@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Textarea } from '$demo-lib/components/ui/textarea/index.js';
-  import { Completion } from '$lib/index.js';
+  import { Textarea } from '$lib/components/ui/textarea/index.js';
+  import { Completion } from '@ai-sdk/svelte';
 
   const completion = new Completion();
 
@@ -15,6 +15,7 @@
     submit(event);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function debounced<T extends (...args: any[]) => void>(
     fn: T,
     delay: number,
@@ -27,7 +28,7 @@
   }
 </script>
 
-<main class="flex h-dvh w-dvw flex-col items-center">
+<main class="flex flex-col items-center h-dvh w-dvw">
   <div
     class="relative m-3 flex h-full w-full max-w-4xl grid-cols-1 grid-rows-[1fr,120px]"
   >

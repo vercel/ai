@@ -42,20 +42,16 @@ export class Chat {
   readonly #options: ChatOptions = {};
   readonly #api = $derived(this.#options.api ?? '/api/chat');
   readonly #generateId = $derived(this.#options.generateId ?? generateId);
-  readonly #id = $derived(this.#options.id ?? this.#generateId());
   readonly #maxSteps = $derived(this.#options.maxSteps ?? 1);
   readonly #streamProtocol = $derived(this.#options.streamProtocol ?? 'data');
   readonly #keyedStore = $state<KeyedChatStore>()!;
-  readonly #store = $derived(this.#keyedStore.get(this.#id));
-  #abortController: AbortController | undefined;
-
   /**
    * The id of the chat. If not provided through the constructor, a random ID will be generated
    * using the provided `generateId` function, or a built-in function if not provided.
    */
-  get id() {
-    return this.#id;
-  }
+  readonly id = $derived(this.#options.id ?? this.#generateId());
+  readonly #store = $derived(this.#keyedStore.get(this.id));
+  #abortController: AbortController | undefined;
 
   /**
    * Additional data added on the server via StreamData.

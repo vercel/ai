@@ -1,8 +1,8 @@
 <script lang="ts">
-  import ArrowUp from '$demo-lib/components/icons/arrow-up.svelte';
-  import { Button } from '$demo-lib/components/ui/button/index.js';
-  import { Textarea } from '$demo-lib/components/ui/textarea/index.js';
-  import { Experimental_StructuredObject } from '$lib/index.js';
+  import ArrowUp from '$lib/components/icons/arrow-up.svelte';
+  import { Button } from '$lib/components/ui/button/index.js';
+  import { Textarea } from '$lib/components/ui/textarea/index.js';
+  import { Experimental_StructuredObject } from '@ai-sdk/svelte';
   import { notificationSchema } from './schema.js';
 
   const structuredObject = new Experimental_StructuredObject({
@@ -20,11 +20,11 @@
   }
 </script>
 
-<main class="flex h-dvh w-dvw flex-col items-center">
+<main class="flex flex-col items-center h-dvh w-dvw">
   <div
     class="grid h-full w-full max-w-4xl grid-cols-1 grid-rows-[1fr,120px] p-2"
   >
-    <div class="h-full w-full overflow-y-auto">
+    <div class="w-full h-full overflow-y-auto">
       {#if userMessage}
         <div
           class="my-2 max-w-[80%] justify-self-end rounded-md bg-secondary p-2 text-primary"

@@ -7,10 +7,10 @@
     "baseColor": "zinc"
   },
   "aliases": {
-    "components": "$demo-lib/components",
-    "utils": "$demo-lib/utils",
-    "ui": "$demo-lib/components/ui",
-    "hooks": "$demo-lib/hooks"
+    "components": "$lib/components",
+    "utils": "$lib/utils",
+    "ui": "$lib/components/ui",
+    "hooks": "$lib/hooks"
   },
   "typescript": true,
   "registry": "https://next.shadcn-svelte.com/registry"

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import ArrowUp from '$demo-lib/components/icons/arrow-up.svelte';
-  import Button from '$demo-lib/components/ui/button/button.svelte';
-  import { Textarea } from '$demo-lib/components/ui/textarea/index.js';
-  import { Chat } from '$lib/index.js';
+  import ArrowUp from '$lib/components/icons/arrow-up.svelte';
+  import Button from '$lib/components/ui/button/button.svelte';
+  import { Textarea } from '$lib/components/ui/textarea/index.js';
+  import { Chat } from '@ai-sdk/svelte';
 
   const chat = new Chat();
   const disabled = $derived(chat.status !== 'ready');
@@ -14,11 +14,11 @@
   }
 </script>
 
-<main class="flex h-dvh w-dvw flex-col items-center">
+<main class="flex flex-col items-center h-dvh w-dvw">
   <div
     class="grid h-full w-full max-w-4xl grid-cols-1 grid-rows-[1fr,120px] p-2"
   >
-    <div class="h-full w-full overflow-y-auto">
+    <div class="w-full h-full overflow-y-auto">
       {#each chat.messages as message (message.id)}
         <div class="{mapRoleToClass(message.role)} my-2 max-w-[80%] p-2">
           {message.content}
