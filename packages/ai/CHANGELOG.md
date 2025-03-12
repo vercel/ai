@@ -1,5 +1,15 @@
 # ai
 
+## 4.1.55
+
+### Patch Changes
+
+- 1531959: feat (ai/core): add MCP client for using MCP tools
+- Updated dependencies [1531959]
+  - @ai-sdk/provider-utils@2.1.12
+  - @ai-sdk/react@1.1.22
+  - @ai-sdk/ui-utils@1.1.18
+
 ## 4.1.54
 
 ### Patch Changes

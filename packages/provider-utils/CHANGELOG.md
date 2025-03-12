@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.1.12
+
+### Patch Changes
+
+- 1531959: feat (provider-utils): add readable-stream to unified test server
+
 ## 2.1.11
 
 ### Patch Changes
