@@ -2,11 +2,11 @@ import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MCPClientError } from '../../../errors';
+import { createChildProcess } from './create-child-process';
 import { StdioClientTransport } from './mcp-stdio-transport';
 import { JSONRPCMessage } from './types';
-import { createChildProcess } from './utils';
 
-vi.mock('./utils', { spy: true });
+vi.mock('./create-child-process', { spy: true });
 
 interface MockChildProcess {
   stdin: EventEmitter & { write?: ReturnType<typeof vi.fn> };

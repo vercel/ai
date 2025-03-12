@@ -1,12 +1,12 @@
 import type { ChildProcess } from 'node:child_process';
 import { MCPClientError } from '../../../errors';
+import { createChildProcess } from './create-child-process';
 import {
   JSONRPCMessage,
   JSONRPCMessageSchema,
   MCPTransport,
   McpStdioServerConfig,
 } from './types';
-import { createChildProcess } from './utils';
 
 export class StdioClientTransport implements MCPTransport {
   private process?: ChildProcess;

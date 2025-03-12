@@ -2,18 +2,6 @@ import type { ChildProcess } from 'node:child_process';
 import { MCPClientError } from '../../../errors';
 import { McpStdioServerConfig } from './types';
 
-function detectRuntime() {
-  if (typeof window !== 'undefined') {
-    return 'browser';
-  }
-
-  if (globalThis.process?.release?.name === 'node') {
-    return 'node';
-  }
-
-  return null;
-}
-
 export async function createChildProcess(
   config: McpStdioServerConfig,
   signal: AbortSignal,
@@ -49,33 +37,45 @@ export async function createChildProcess(
     stdio: ['pipe', 'pipe', config.stderr ?? 'inherit'],
     shell: false,
     signal,
-    windowsHide: process.platform === 'win32' && isElectron(),
+    windowsHide: globalThis.process.platform === 'win32' && isElectron(),
     cwd: config.cwd,
   });
 }
 
-const DEFAULT_INHERITED_ENV_VARS =
-  process.platform === 'win32'
-    ? [
-        'APPDATA',
-        'HOMEDRIVE',
-        'HOMEPATH',
-        'LOCALAPPDATA',
-        'PATH',
-        'PROCESSOR_ARCHITECTURE',
-        'SYSTEMDRIVE',
-        'SYSTEMROOT',
-        'TEMP',
-        'USERNAME',
-        'USERPROFILE',
-      ]
-    : ['HOME', 'LOGNAME', 'PATH', 'SHELL', 'TERM', 'USER'];
+function detectRuntime() {
+  if (typeof window !== 'undefined') {
+    return 'browser';
+  }
 
-export function getDefaultEnvironment(): Record<string, string> {
+  if (globalThis.process?.release?.name === 'node') {
+    return 'node';
+  }
+
+  return null;
+}
+
+function getDefaultEnvironment(): Record<string, string> {
+  const DEFAULT_INHERITED_ENV_VARS =
+    globalThis.process.platform === 'win32'
+      ? [
+          'APPDATA',
+          'HOMEDRIVE',
+          'HOMEPATH',
+          'LOCALAPPDATA',
+          'PATH',
+          'PROCESSOR_ARCHITECTURE',
+          'SYSTEMDRIVE',
+          'SYSTEMROOT',
+          'TEMP',
+          'USERNAME',
+          'USERPROFILE',
+        ]
+      : ['HOME', 'LOGNAME', 'PATH', 'SHELL', 'TERM', 'USER'];
+
   const env: Record<string, string> = {};
 
   for (const key of DEFAULT_INHERITED_ENV_VARS) {
-    const value = process.env[key];
+    const value = globalThis.process.env[key];
     if (value === undefined) {
       continue;
     }
@@ -90,6 +90,6 @@ export function getDefaultEnvironment(): Record<string, string> {
   return env;
 }
 
-export function isElectron() {
-  return 'type' in process;
+function isElectron() {
+  return 'type' in globalThis.process;
 }
