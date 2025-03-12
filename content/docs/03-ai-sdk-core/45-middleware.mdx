@@ -52,6 +52,12 @@ const wrappedLanguageModel = wrapLanguageModel({
 
 ## Built-in Middleware
 
+The AI SDK comes with several built-in middlewares that you can use to configure language models:
+
+- `extractReasoningMiddleware`: Extracts reasoning information from the generated text and exposes it as a `reasoning` property on the result.
+- `simulateStreamingMiddleware`: Simulates streaming behavior with responses from non-streaming language models.
+- `defaultSettingsMiddleware`: Applies default settings to a language model.
+
 ### Extract Reasoning
 
 Some providers and models expose reasoning information in the generated text using special tags,
@@ -86,6 +92,26 @@ import { wrapLanguageModel, simulateStreamingMiddleware } from 'ai';
 const model = wrapLanguageModel({
   model: yourModel,
   middleware: simulateStreamingMiddleware(),
+});
+```
+
+### Default Settings
+
+The `defaultSettingsMiddleware` function can be used to apply default settings to a language model.
+
+```ts
+import { wrapLanguageModel, defaultSettingsMiddleware } from 'ai';
+
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: defaultSettingsMiddleware({
+    settings: {
+      temperature: 0.5,
+      maxTokens: 800,
+      // note: use providerMetadata instead of providerOptions here:
+      providerMetadata: { openai: { store: false } },
+    },
+  }),
 });
 ```
 
