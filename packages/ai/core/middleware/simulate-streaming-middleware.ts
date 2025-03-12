@@ -28,6 +28,12 @@ export function simulateStreamingMiddleware(): LanguageModelV1Middleware {
                       type: 'reasoning',
                       textDelta: reasoning.text,
                     });
+                    if (reasoning.signature != null) {
+                      controller.enqueue({
+                        type: 'reasoning-signature',
+                        signature: reasoning.signature,
+                      });
+                    }
                     break;
                   }
                   case 'redacted': {

@@ -75,7 +75,7 @@ describe('simulateStreamingMiddleware', () => {
           text: 'This is a test response',
           reasoning: [
             { type: 'text', text: 'First reasoning step' },
-            { type: 'text', text: 'Second reasoning step' },
+            { type: 'text', text: 'Second reasoning step', signature: 'abc' },
           ],
           finishReason: 'stop',
           usage: { promptTokens: 10, completionTokens: 10 },

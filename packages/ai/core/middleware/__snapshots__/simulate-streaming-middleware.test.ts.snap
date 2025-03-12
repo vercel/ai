@@ -212,6 +212,10 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "type": "reasoning",
   },
   {
+    "signature": "abc",
+    "type": "reasoning-signature",
+  },
+  {
     "textDelta": "This is a test response",
     "type": "text-delta",
   },
