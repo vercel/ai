@@ -24,7 +24,22 @@ export type OpenAIResponsesUserMessage = {
 
 export type OpenAIResponsesAssistantMessage = {
   role: 'assistant';
-  content: Array<{ type: 'output_text'; text: string }>;
+  content: Array<{ 
+    type: 'output_text'; 
+    text: string; 
+    annotations?: Array<{
+      type: 'file_citation';
+      index: number;
+      file_id: string;
+      filename: string;
+    } | {
+      type: 'url_citation';
+      start_index: number;
+      end_index: number;
+      url: string;
+      title: string;
+    }>;
+  }>;
 };
 
 export type OpenAIResponsesFunctionCall = {
