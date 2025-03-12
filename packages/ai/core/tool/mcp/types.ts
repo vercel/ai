@@ -1,5 +1,5 @@
-import { IOType } from 'node:child_process';
-import { Stream } from 'node:stream';
+import type { IOType } from 'node:child_process';
+import type { Stream } from 'node:stream';
 import { z } from 'zod';
 import {
   inferParameters,
