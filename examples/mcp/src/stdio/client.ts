@@ -3,17 +3,11 @@ import { experimental_createMCPClient, generateText } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
-const stdioToolSchemas = {
-  'get-pokemon': {
-    parameters: z.object({ name: z.string() }),
-  },
-};
-
 async function main() {
-  let client;
+  let mcpClient;
 
   try {
-    client = await experimental_createMCPClient({
+    mcpClient = await experimental_createMCPClient({
       transport: {
         type: 'stdio',
         command: 'node',
@@ -21,13 +15,15 @@ async function main() {
       },
     });
 
-    const tools = await client.tools({
-      schemas: stdioToolSchemas,
-    });
-
     const { text: answer } = await generateText({
       model: openai('gpt-4o-mini', { structuredOutputs: true }),
-      tools,
+      tools: await mcpClient.tools({
+        schemas: {
+          'get-pokemon': {
+            parameters: z.object({ name: z.string() }),
+          },
+        },
+      }),
       maxSteps: 10,
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
@@ -39,7 +35,7 @@ async function main() {
 
     console.log(`FINAL ANSWER: ${answer}`);
   } finally {
-    await client?.close();
+    await mcpClient?.close();
   }
 }
 

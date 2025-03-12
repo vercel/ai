@@ -4,24 +4,22 @@ import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
-  const client = await experimental_createMCPClient({
+  const mcpClient = await experimental_createMCPClient({
     transport: {
       type: 'sse',
       url: 'http://localhost:8080/sse',
     },
   });
 
-  const tools = await client.tools({
-    schemas: {
-      'find-product': {
-        parameters: z.object({}),
-      },
-    },
-  });
-
   const { text: answer } = await generateText({
     model: openai('gpt-4o-mini', { structuredOutputs: true }),
-    tools,
+    tools: await mcpClient.tools({
+      schemas: {
+        'find-product': {
+          parameters: z.object({}),
+        },
+      },
+    }),
     maxSteps: 10,
     onStepFinish: async ({ toolResults }) => {
       console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
@@ -30,7 +28,7 @@ async function main() {
     prompt: 'Can you find a product called The Product?',
   });
 
-  await client.close();
+  await mcpClient.close();
 
   console.log(`FINAL ANSWER: ${answer}`);
 }
