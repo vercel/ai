@@ -5,6 +5,8 @@ export function createContext<T>(name: string) {
   const key = Symbol(name);
   return {
     hasContext: () => {
+      // At the time of writing there's no way to determine if we're
+      // currently initializing a component without a try-catch
       try {
         return hasContext(key);
       } catch (e) {
