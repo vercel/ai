@@ -56,4 +56,9 @@ export type OpenAIResponsesTool =
         city: string;
         region: string;
       };
+    }
+  | {
+      type: 'file_search';
+      vector_store_ids: string[];
     };
+
