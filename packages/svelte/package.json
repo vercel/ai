@@ -44,6 +44,10 @@
   "peerDependencies": {
     "svelte": "^5.0.0"
   },
+  "dependencies": {
+    "@ai-sdk/provider-utils": "2.1.12",
+    "@ai-sdk/ui-utils": "1.1.18"
+  },
   "devDependencies": {
     "@ai-sdk/openai": "1.2.0",
     "@eslint/compat": "^1.2.5",
@@ -91,9 +95,5 @@
   "keywords": [
     "ai",
     "svelte"
-  ],
-  "dependencies": {
-    "@ai-sdk/provider-utils": "2.1.12",
-    "@ai-sdk/ui-utils": "1.1.18"
-  }
+  ]
 }
