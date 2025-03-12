@@ -1,4 +1,4 @@
-# MCP + AI SDK Example - TODO: REVISE
+# MCP + AI SDK Example
 
 You can use the AI SDK with MCP to convert between MCP and AI SDK tool calls.
 This example demonstrates tool conversion from both SSE and `stdio` MCP servers.

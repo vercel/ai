@@ -37,7 +37,7 @@ try {
 
   const tools = {
     ...toolSetOne,
-    ...toolSetTwo,
+    ...toolSetTwo, // note: this overrides tools from toolSetOne when there are naming collisions
   };
 
   const response = await generateText({

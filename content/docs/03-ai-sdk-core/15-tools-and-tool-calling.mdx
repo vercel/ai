@@ -626,7 +626,12 @@ export const weatherTool = tool({
 
 ## MCP Tools
 
-The AI SDK supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers to access their tools. This enables your AI applications to discover and use tools across various services through a standardized interface.
+<Note type="warning">
+  The MCP tools feature is experimental and may change in the future.
+</Note>
+
+The AI SDK supports connecting to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers to access their tools.
+This enables your AI applications to discover and use tools across various services through a standardized interface.
 
 ### Initializing an MCP Client
 
@@ -637,7 +642,7 @@ Create an MCP client using either:
 
 ```typescript
 // Example of using MCP with stdio
-const client = await createMCPClient({
+const mcpClient = await createMCPClient({
   transport: {
     type: 'stdio',
     command: 'node',
@@ -646,7 +651,7 @@ const client = await createMCPClient({
 });
 
 // Example of using MCP with SSE
-const client = await createMCPClient({
+const mcpClient = await createMCPClient({
   transport: {
     type: 'sse',
     url: 'https://my-server.com/sse',
@@ -658,8 +663,8 @@ After initialization, always close the MCP client when you're done to prevent re
 
 ```typescript
   try {
-    const client = await createMCPClient({...});
-    const tools = await client.tools();
+    const mcpClient = await createMCPClient({...});
+    const tools = await mcpClient.tools();
     // use tools...
   } finally {
     await client?.close();
@@ -670,12 +675,12 @@ After initialization, always close the MCP client when you're done to prevent re
 
 The client's `tools` method acts as an adapter between MCP tools and AI SDK tools. It supports two approaches for working with tool schemas:
 
-#### Runtime Schema Discovery
+#### Schema Discovery
 
 The simplest approach where all tools offered by the server are listed, and input parameter types are inferred based the schemas provided by the server:
 
 ```typescript
-const tools = await client.tools();
+const tools = await mcpClient.tools();
 ```
 
 **Pros:**
@@ -688,28 +693,30 @@ const tools = await client.tools();
 - No TypeScript type safety during development
 - No IDE autocompletion for tool parameters
 - Errors only surface at runtime
+- Loads all tools from the server
 
-#### Compile-Time Schema Definition
+#### Schema Definition
 
-Define the tools and their input schemas explicitly in your client code:
+You can also define the tools and their input schemas explicitly in your client code:
 
 ```typescript
 import { z } from 'zod';
 
-const toolSchemas = {
-  'get-data': {
-    parameters: z.object({
-      query: z.string().describe('The data query'),
-      format: z.enum(['json', 'text']).optional(),
-    }),
+const tools = await mcpClient.tools({
+  schemas: {
+    'get-data': {
+      parameters: z.object({
+        query: z.string().describe('The data query'),
+        format: z.enum(['json', 'text']).optional(),
+      }),
+    },
   },
-} as const;
-
-const tools = await client.tools({ schemas: toolSchemas });
+});
 ```
 
 **Pros:**
 
+- Control over which tools are loaded
 - Full TypeScript type safety
 - Better IDE support with autocompletion
 - Catch parameter mismatches during development
@@ -733,19 +740,15 @@ You can see tools in action using various frameworks in the following examples:
   examples={[
     {
       title: 'Learn to use tools in Node.js',
-      link: '/examples/node/tools/call-tool',
+      link: '/cookbook/node/call-tools',
     },
     {
-      title: 'Learn to use tools in Next.js with Route Handlers (AI SDK UI)',
-      link: '/examples/next-pages/tools/call-tool',
-    },
-    {
-      title: 'Learn to use tools in Next.js with Server Actions (AI SDK RSC)',
-      link: '/examples/next-app/tools/call-tool',
+      title: 'Learn to use tools in Next.js with Route Handlers',
+      link: '/cookbook/next/call-tools',
     },
     {
       title: 'Learn to use MCP tools in Node.js',
-      link: '/examples/node/tools/mcp',
+      link: '/cookbook/node/tools/mcp',
     },
   ]}
 />

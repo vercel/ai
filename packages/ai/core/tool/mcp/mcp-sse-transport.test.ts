@@ -1,6 +1,6 @@
-import { SSEClientTransport } from './mcp-sse-transport';
-import { createTestServer } from '../../../../provider-utils/src/test/unified-test-server'; // TODO: update import
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { MCPClientError } from '../../../errors';
+import { SSEClientTransport } from './mcp-sse-transport';
 
 describe('SSEClientTransport', () => {
   const server = createTestServer({

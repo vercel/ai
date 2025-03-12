@@ -38,8 +38,6 @@ async function main() {
     });
 
     console.log(`FINAL ANSWER: ${answer}`);
-  } catch (error) {
-    throw error;
   } finally {
     await client?.close();
   }
