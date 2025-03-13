@@ -926,6 +926,12 @@ To see `generateText` in action, check out [these examples](#examples).
               description: 'Optional response headers.',
             },
             {
+              name: 'body',
+              isOptional: true,
+              type: 'unknown',
+              description: 'Optional response body.',
+            },
+            {
               name: 'messages',
               type: 'Array<ResponseMessage>',
               description:
@@ -1161,6 +1167,12 @@ To see `generateText` in action, check out [these examples](#examples).
                       isOptional: true,
                       type: 'Record<string, string>',
                       description: 'Optional response headers.',
+                    },
+                    {
+                      name: 'body',
+                      isOptional: true,
+                      type: 'unknown',
+                      description: 'Optional response body.',
                     },
                     {
                       name: 'messages',

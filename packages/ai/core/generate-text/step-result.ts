@@ -94,6 +94,11 @@ Response messages can be either assistant messages or tool messages.
 They contain a generated id.
 */
     readonly messages: Array<ResponseMessage>;
+
+    /**
+Response body (available only for providers that use HTTP requests).
+     */
+    body?: unknown;
   };
 
   /**
