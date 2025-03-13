@@ -444,6 +444,87 @@ describe('convertToLanguageModelPrompt', () => {
           },
         ]);
       });
+
+      it('should handle file parts with filename', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            type: 'messages',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: 'SGVsbG8sIFdvcmxkIQ==', // "Hello, World!" in base64
+                    mimeType: 'text/plain',
+                    filename: 'hello.txt',
+                  },
+                ],
+              },
+            ],
+          },
+          modelSupportsImageUrls: true,
+          modelSupportsUrl: undefined,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: 'SGVsbG8sIFdvcmxkIQ==',
+                mimeType: 'text/plain',
+                filename: 'hello.txt',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should preserve filename when downloading file from URL', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            type: 'messages',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: new URL('https://example.com/document.pdf'),
+                    mimeType: 'application/pdf',
+                    filename: 'important-document.pdf',
+                  },
+                ],
+              },
+            ],
+          },
+          modelSupportsImageUrls: false,
+          modelSupportsUrl: () => false,
+          downloadImplementation: async ({ url }) => {
+            expect(url).toEqual(new URL('https://example.com/document.pdf'));
+            return {
+              data: new Uint8Array([0, 1, 2, 3]),
+              mimeType: 'application/pdf',
+            };
+          },
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mimeType: 'application/pdf',
+                data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
+                filename: 'important-document.pdf',
+              },
+            ],
+          },
+        ]);
+      });
     });
 
     describe('provider metadata', async () => {

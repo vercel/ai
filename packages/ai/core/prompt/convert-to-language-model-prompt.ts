@@ -323,6 +323,7 @@ function convertPartToLanguageModelPart(
           normalizedData instanceof Uint8Array
             ? convertDataContentToBase64String(normalizedData)
             : normalizedData,
+        filename: part.filename,
         mimeType,
         providerMetadata:
           part.providerOptions ?? part.experimental_providerMetadata,
