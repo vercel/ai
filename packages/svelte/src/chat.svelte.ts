@@ -206,7 +206,7 @@ export class Chat {
     await request;
   };
 
-  addToolResult = ({
+  addToolResult = async ({
     toolCallId,
     result,
   }: {
@@ -221,7 +221,7 @@ export class Chat {
 
     const lastMessage = this.messages[this.messages.length - 1];
     if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
-      this.#triggerRequest({ messages: this.messages });
+      await this.#triggerRequest({ messages: this.messages });
     }
   };
 
@@ -288,20 +288,24 @@ export class Chat {
         onUpdate: ({ message, data, replaceLastMessage }) => {
           this.#store.status = 'streaming';
 
-          this.messages = [
-            ...(replaceLastMessage ? messages.slice(0, -1) : messages),
-            message,
-          ];
+          this.messages = messages;
+          if (replaceLastMessage) {
+            this.messages[this.messages.length - 1] = message;
+          } else {
+            this.messages.push(message);
+          }
 
           if (data?.length) {
-            this.data = [...existingData, ...data];
+            this.data = existingData;
+            this.data.push(...data);
           }
         },
         onToolCall: this.#options.onToolCall,
         onFinish: this.#options.onFinish,
         generateId: this.#generateId,
         fetch: this.#options.fetch,
-        lastMessage: messages[messages.length - 1],
+        // callChatApi calls structuredClone on the message
+        lastMessage: $state.snapshot(this.messages[this.messages.length - 1]),
       });
 
       this.#abortController = undefined;
@@ -331,7 +335,7 @@ export class Chat {
         messages: this.messages,
       })
     ) {
-      await this.#triggerRequest({ messages });
+      await this.#triggerRequest({ messages: this.messages });
     }
   };
 }
