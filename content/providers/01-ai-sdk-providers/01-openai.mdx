@@ -527,6 +527,9 @@ The following provider options are available:
 - **reasoningEffort** _'low' | 'medium' | 'high'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
+- **strictSchemas** _boolean_
+  Whether to use strict JSON schemas in tools and when generating JSON outputs. Defaults to `true`.
+
 The OpenAI responses provider also returns provider-specific metadata:
 
 ```ts

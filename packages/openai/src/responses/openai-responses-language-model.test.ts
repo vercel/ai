@@ -578,7 +578,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send object-json json_schema format with strictJsonSchema false', async () => {
+      it('should send object-json json_schema format with strictSchemas false', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
           mode: {
@@ -596,7 +596,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerMetadata: {
             openai: {
-              strictJsonSchema: false,
+              strictSchemas: false,
             },
           },
         });
