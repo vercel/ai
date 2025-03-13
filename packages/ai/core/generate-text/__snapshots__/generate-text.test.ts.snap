@@ -12,6 +12,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": undefined,
       "id": "test-id-1-from-model",
       "messages": [
@@ -90,6 +91,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": {
         "custom-response-header": "response-header-value",
       },
@@ -211,6 +213,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": undefined,
       "id": "test-id-1-from-model",
       "messages": [
@@ -289,6 +292,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": {
         "custom-response-header": "response-header-value",
       },
@@ -365,6 +369,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": undefined,
       "id": "test-id-1-from-model",
       "messages": [
@@ -406,6 +411,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": {
         "custom-response-header": "response-header-value",
       },
@@ -464,6 +470,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": undefined,
       "id": "test-id-3-from-model",
       "messages": [
@@ -535,6 +542,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": undefined,
       "id": "test-id-4-from-model",
       "messages": [
@@ -632,6 +640,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": undefined,
       "id": "test-id-1-from-model",
       "messages": [
@@ -673,6 +682,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": {
         "custom-response-header": "response-header-value",
       },
@@ -731,6 +741,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": undefined,
       "id": "test-id-3-from-model",
       "messages": [
@@ -802,6 +813,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": undefined,
       "id": "test-id-4-from-model",
       "messages": [
@@ -849,7 +861,31 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
 ]
 `;
 
-exports[`result.response > should contain response information 1`] = `
+exports[`result.response > should contain response body and headers 1`] = `
+{
+  "body": "test body",
+  "headers": {
+    "custom-response-header": "response-header-value",
+  },
+  "id": "test-id-from-model",
+  "messages": [
+    {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
+      "id": "msg-0",
+      "role": "assistant",
+    },
+  ],
+  "modelId": "test-response-model-id",
+  "timestamp": 1970-01-01T00:00:10.000Z,
+}
+`;
+
+exports[`result.response > should contain response body and headers 2`] = `
 {
   "body": "test body",
   "headers": {
@@ -996,6 +1032,7 @@ exports[`result.steps > should add the reasoning from the model response to the 
     ],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": undefined,
       "id": "id-0",
       "messages": [
@@ -1049,6 +1086,7 @@ exports[`result.steps > should contain sources 1`] = `
     "reasoningDetails": [],
     "request": {},
     "response": {
+      "body": undefined,
       "headers": undefined,
       "id": "id-0",
       "messages": [

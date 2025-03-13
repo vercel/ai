@@ -68,13 +68,16 @@ function createServer({
 }) {
   // group responses by url
   const responsesArray = Array.isArray(responses) ? responses : [responses];
-  const responsesByUrl = responsesArray.reduce((responsesByUrl, response) => {
-    if (!responsesByUrl[response.url]) {
-      responsesByUrl[response.url] = [];
-    }
-    responsesByUrl[response.url].push(response);
-    return responsesByUrl;
-  }, {} as Record<string, Array<TestServerResponse>>);
+  const responsesByUrl = responsesArray.reduce(
+    (responsesByUrl, response) => {
+      if (!responsesByUrl[response.url]) {
+        responsesByUrl[response.url] = [];
+      }
+      responsesByUrl[response.url].push(response);
+      return responsesByUrl;
+    },
+    {} as Record<string, Array<TestServerResponse>>,
+  );
 
   // create stream/streamController pairs for controlled-stream responses
   const streams = {} as Record<string, ReadableStream<string>>;

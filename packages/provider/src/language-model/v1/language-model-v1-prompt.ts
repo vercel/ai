@@ -144,6 +144,11 @@ export interface LanguageModelV1FilePart {
   type: 'file';
 
   /**
+   * Optional filename of the file.
+   */
+  filename?: string;
+
+  /**
 File data as base64 encoded string or as a URL.
    */
   // Note: base64-encoded strings are used to prevent

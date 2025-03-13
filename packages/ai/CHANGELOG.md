@@ -1,5 +1,28 @@
 # ai
 
+## 4.1.61
+
+### Patch Changes
+
+- 2e1101a: feat (provider/openai): pdf input support
+- Updated dependencies [2e1101a]
+  - @ai-sdk/provider@1.0.11
+  - @ai-sdk/provider-utils@2.1.13
+  - @ai-sdk/ui-utils@1.1.19
+  - @ai-sdk/react@1.1.23
+
+## 4.1.60
+
+### Patch Changes
+
+- 0b8797f: feat (ai/core): expose response body for each generateText step
+
+## 4.1.59
+
+### Patch Changes
+
+- dd18049: fix (ai/core): suppress next.js warnings for node.js specific code path
+
 ## 4.1.58
 
 ### Patch Changes

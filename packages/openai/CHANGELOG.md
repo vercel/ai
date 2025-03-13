@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 1.2.5
+
+### Patch Changes
+
+- 2e1101a: feat (provider/openai): pdf input support
+- Updated dependencies [2e1101a]
+  - @ai-sdk/provider@1.0.11
+  - @ai-sdk/provider-utils@2.1.13
+
+## 1.2.4
+
+### Patch Changes
+
+- 523f128: feat (provider/openai): add strictSchemas option to responses model
+
 ## 1.2.3
 
 ### Patch Changes

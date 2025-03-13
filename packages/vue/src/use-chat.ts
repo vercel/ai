@@ -104,7 +104,7 @@ export type UseChatHelpers = {
 };
 
 // @ts-expect-error - some issues with the default export of useSWRV
-const useSWRV = (swrv.default as typeof import('swrv')['default']) || swrv;
+const useSWRV = (swrv.default as (typeof import('swrv'))['default']) || swrv;
 const store: Record<string, UIMessage[] | undefined> = {};
 
 export function useChat(
