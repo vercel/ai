@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.60
+
+### Patch Changes
+
+- 0b8797f: feat (ai/core): expose response body for each generateText step
+
 ## 4.1.59
 
 ### Patch Changes
