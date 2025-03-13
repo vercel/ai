@@ -158,10 +158,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
           : typeof this.settings.logprobs === 'boolean'
-          ? this.settings.logprobs
-            ? 0
-            : undefined
-          : undefined,
+            ? this.settings.logprobs
+              ? 0
+              : undefined
+            : undefined,
       user: this.settings.user,
       parallel_tool_calls: this.settings.parallelToolCalls,
 

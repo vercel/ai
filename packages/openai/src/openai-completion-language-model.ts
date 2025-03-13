@@ -108,10 +108,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
         typeof this.settings.logprobs === 'number'
           ? this.settings.logprobs
           : typeof this.settings.logprobs === 'boolean'
-          ? this.settings.logprobs
-            ? 0
-            : undefined
-          : undefined,
+            ? this.settings.logprobs
+              ? 0
+              : undefined
+            : undefined,
       suffix: this.settings.suffix,
       user: this.settings.user,
 
