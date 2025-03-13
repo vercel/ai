@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.1.23
+
+### Patch Changes
+
+- 413f5a7: feat (providers/google): add gemma 3 model id
+
 ## 1.1.22
 
 ### Patch Changes
