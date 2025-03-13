@@ -1,7 +1,6 @@
 import { ServerResponse } from 'node:http';
 import { StreamData } from '../../streams/stream-data';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
-import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import {
   CallWarning,
   FinishReason,
@@ -14,7 +13,7 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { ReasoningDetail } from './reasoning-detail';
-import { StepResult } from './step-result';
+import { ResponseMessage, StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -167,7 +166,7 @@ When there are tool results, there is an additional tool message with the tool r
 If there are tools that do not have execute functions, they are not included in the tool results and
 need to be added separately.
        */
-      messages: Array<CoreAssistantMessage | CoreToolMessage>;
+      messages: Array<ResponseMessage>;
     }
   >;
 

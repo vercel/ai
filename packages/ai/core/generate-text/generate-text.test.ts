@@ -403,7 +403,7 @@ describe('result.response.messages', () => {
 });
 
 describe('result.request', () => {
-  it('should contain request information', async () => {
+  it('should contain request body', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async ({}) => ({
@@ -424,7 +424,7 @@ describe('result.request', () => {
 });
 
 describe('result.response', () => {
-  it('should contain response information', async () => {
+  it('should contain response body and headers', async () => {
     const result = await generateText({
       model: new MockLanguageModelV1({
         doGenerate: async ({}) => ({
@@ -447,6 +447,7 @@ describe('result.response', () => {
       experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
+    expect(result.steps[0].response).toMatchSnapshot();
     expect(result.response).toMatchSnapshot();
   });
 });
