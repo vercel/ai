@@ -1,4 +1,3 @@
-import { CoreAssistantMessage, CoreToolMessage } from '../prompt';
 import {
   CallWarning,
   FinishReason,
