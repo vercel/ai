@@ -6,7 +6,7 @@ describe('system messages', () => {
       prompt: [{ role: 'system', content: 'You are a helpful assistant.' }],
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       { role: 'system', content: 'You are a helpful assistant.' },
     ]);
   });
@@ -17,7 +17,7 @@ describe('system messages', () => {
       systemMessageMode: 'developer',
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       { role: 'developer', content: 'You are a helpful assistant.' },
     ]);
   });
@@ -28,7 +28,7 @@ describe('system messages', () => {
       systemMessageMode: 'remove',
     });
 
-    expect(result).toEqual([]);
+    expect(result.messages).toEqual([]);
   });
 });
 
@@ -43,7 +43,7 @@ describe('user messages', () => {
       ],
     });
 
-    expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
+    expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
   });
 
   it('should convert messages with image parts', async () => {
@@ -63,7 +63,7 @@ describe('user messages', () => {
       ],
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       {
         role: 'user',
         content: [
@@ -98,7 +98,7 @@ describe('user messages', () => {
       ],
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       {
         role: 'user',
         content: [
@@ -169,7 +169,7 @@ describe('user messages', () => {
         ],
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'user',
           content: [
@@ -198,7 +198,7 @@ describe('user messages', () => {
         ],
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'user',
           content: [
@@ -227,7 +227,7 @@ describe('user messages', () => {
         ],
       });
 
-      expect(result).toEqual([
+      expect(result.messages).toEqual([
         {
           role: 'user',
           content: [
@@ -271,7 +271,7 @@ describe('tool calls', () => {
       ],
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       {
         role: 'assistant',
         content: '',
@@ -323,7 +323,7 @@ describe('tool calls', () => {
       useLegacyFunctionCalling: true,
     });
 
-    expect(result).toEqual([
+    expect(result.messages).toEqual([
       {
         role: 'assistant',
         content: '',

@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "1.2.1",
+    "@ai-sdk/openai": "1.2.3",
     "@hono/node-server": "1.13.7",
-    "ai": "4.1.54",
+    "ai": "4.1.58",
     "dotenv": "16.4.5",
     "hono": "4.6.9"
   },

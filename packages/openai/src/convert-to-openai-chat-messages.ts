@@ -1,4 +1,5 @@
 import {
+  LanguageModelV1CallWarning,
   LanguageModelV1Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -13,8 +14,12 @@ export function convertToOpenAIChatMessages({
   prompt: LanguageModelV1Prompt;
   useLegacyFunctionCalling?: boolean;
   systemMessageMode?: 'system' | 'developer' | 'remove';
-}): OpenAIChatPrompt {
+}): {
+  messages: OpenAIChatPrompt;
+  warnings: Array<LanguageModelV1CallWarning>;
+} {
   const messages: OpenAIChatPrompt = [];
+  const warnings: Array<LanguageModelV1CallWarning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -29,6 +34,10 @@ export function convertToOpenAIChatMessages({
             break;
           }
           case 'remove': {
+            warnings.push({
+              type: 'other',
+              message: 'system messages are removed for this model',
+            });
             break;
           }
           default: {
@@ -194,5 +203,5 @@ export function convertToOpenAIChatMessages({
     }
   }
 
-  return messages;
+  return { messages, warnings };
 }

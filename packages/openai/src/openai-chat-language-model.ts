@@ -133,15 +133,15 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    if (
-      getSystemMessageMode(this.modelId) === 'remove' &&
-      prompt.some(message => message.role === 'system')
-    ) {
-      warnings.push({
-        type: 'other',
-        message: 'system messages are removed for this model',
-      });
-    }
+    const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
+      {
+        prompt,
+        useLegacyFunctionCalling,
+        systemMessageMode: getSystemMessageMode(this.modelId),
+      },
+    );
+
+    warnings.push(...messageWarnings);
 
     const baseArgs = {
       // model id:
@@ -199,11 +199,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
         this.settings.reasoningEffort,
 
       // messages:
-      messages: convertToOpenAIChatMessages({
-        prompt,
-        useLegacyFunctionCalling,
-        systemMessageMode: getSystemMessageMode(this.modelId),
-      }),
+      messages,
     };
 
     if (isReasoningModel(this.modelId)) {

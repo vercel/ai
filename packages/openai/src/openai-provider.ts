@@ -26,6 +26,9 @@ import {
   OpenAIImageModelId,
   OpenAIImageSettings,
 } from './openai-image-settings';
+import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
+import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
+import { openaiTools } from './openai-tools';
 
 export interface OpenAIProvider extends ProviderV1 {
   (
@@ -53,6 +56,11 @@ Creates an OpenAI chat model for text generation.
     modelId: OpenAIChatModelId,
     settings?: OpenAIChatSettings,
   ): LanguageModelV1;
+
+  /**
+Creates an OpenAI responses API model for text generation.
+   */
+  responses(modelId: OpenAIResponsesModelId): LanguageModelV1;
 
   /**
 Creates an OpenAI completion model for text generation.
@@ -103,6 +111,11 @@ Creates a model for image generation.
     modelId: OpenAIImageModelId,
     settings?: OpenAIImageSettings,
   ): ImageModelV1;
+
+  /**
+OpenAI-specific tools.
+   */
+  tools: typeof openaiTools;
 }
 
 export interface OpenAIProviderSettings {
@@ -241,6 +254,15 @@ export function createOpenAI(
     return createChatModel(modelId, settings as OpenAIChatSettings);
   };
 
+  const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
+    return new OpenAIResponsesLanguageModel(modelId, {
+      provider: `${providerName}.responses`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
   const provider = function (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
@@ -251,12 +273,15 @@ export function createOpenAI(
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
+  provider.responses = createResponsesModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+
+  provider.tools = openaiTools;
 
   return provider as OpenAIProvider;
 }
