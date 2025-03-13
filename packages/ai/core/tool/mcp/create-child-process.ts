@@ -18,7 +18,7 @@ export async function createChildProcess(
   let childProcess;
 
   // note: split to prevent detection by next.js (suppresses warnings)
-  const nodePrefix = 'node:child_process';
+  const nodePrefix = 'node:';
   try {
     childProcess = await import(`${nodePrefix}child_process`);
   } catch (error) {
