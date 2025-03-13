@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.0.11
+
+### Patch Changes
+
+- 2e1101a: feat (provider/openai): pdf input support
+
 ## 1.0.10
 
 ### Patch Changes
