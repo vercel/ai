@@ -700,6 +700,15 @@ type ResponsesModelConfig = {
 };
 
 function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
+  // computer use preview model:
+  if (modelId.startsWith('computer-use')) {
+    return {
+      isReasoningModel: true,
+      systemMessageMode: 'system',
+      requiredAutoTruncation: true,
+    };
+  }
+
   // o series reasoning models:
   if (modelId.startsWith('o')) {
     if (modelId.startsWith('o1-mini') || modelId.startsWith('o1-preview')) {
