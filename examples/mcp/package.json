@@ -10,9 +10,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.2.3",
+    "@ai-sdk/openai": "1.2.5",
     "@modelcontextprotocol/sdk": "^1.7.0",
-    "ai": "4.1.58",
+    "ai": "4.1.61",
     "dotenv": "16.4.5",
     "express": "5.0.1",
     "zod": "3.23.8"

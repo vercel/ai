@@ -60,70 +60,70 @@ importers:
   examples/ai-core:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 2.1.2
+        specifier: 2.1.3
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 1.1.16
+        specifier: 1.1.17
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/azure
       '@ai-sdk/cerebras':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
-        specifier: 1.1.14
+        specifier: 1.1.15
         version: link:../../packages/cohere
       '@ai-sdk/deepinfra':
-        specifier: 0.1.15
+        specifier: 0.1.16
         version: link:../../packages/deepinfra
       '@ai-sdk/deepseek':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../../packages/deepseek
       '@ai-sdk/fal':
-        specifier: 0.0.8
+        specifier: 0.0.9
         version: link:../../packages/fal
       '@ai-sdk/fireworks':
-        specifier: 0.1.15
+        specifier: 0.1.16
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 1.1.22
+        specifier: 1.1.25
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.1.26
+        specifier: 2.1.29
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 1.1.13
+        specifier: 1.1.14
         version: link:../../packages/groq
       '@ai-sdk/luma':
-        specifier: 0.0.10
+        specifier: 0.0.11
         version: link:../../packages/luma
       '@ai-sdk/mistral':
-        specifier: 1.1.16
+        specifier: 1.1.17
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../../packages/openai-compatible
       '@ai-sdk/perplexity':
-        specifier: 1.0.5
+        specifier: 1.0.6
         version: link:../../packages/perplexity
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../../packages/provider
       '@ai-sdk/replicate':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../../packages/replicate
       '@ai-sdk/togetherai':
-        specifier: 0.1.15
+        specifier: 0.1.16
         version: link:../../packages/togetherai
       '@ai-sdk/valibot':
-        specifier: 0.0.25
+        specifier: 0.0.28
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 1.1.14
+        specifier: 1.1.15
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
@@ -138,7 +138,7 @@ importers:
         specifier: 1.28.0
         version: 1.28.0(@opentelemetry/api@1.9.0)
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -178,10 +178,10 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -206,10 +206,10 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -231,13 +231,13 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -259,13 +259,13 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.7.0
         version: 1.7.0
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -293,7 +293,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -305,7 +305,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.9(@nestjs/common@10.4.15(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -381,13 +381,13 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/react':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../../packages/react
       '@ai-sdk/ui-utils':
-        specifier: 1.1.18
+        specifier: 1.1.19
         version: link:../../packages/ui-utils
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -436,10 +436,10 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 2.1.26
+        specifier: 2.1.29
         version: link:../../packages/google-vertex
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -482,7 +482,7 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/react':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../../packages/react
       '@langchain/core':
         specifier: 0.1.63
@@ -491,7 +491,7 @@ importers:
         specifier: 0.0.28
         version: 0.0.28
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       langchain:
         specifier: 0.1.36
@@ -537,34 +537,34 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: 1.1.16
+        specifier: 1.1.17
         version: link:../../packages/anthropic
       '@ai-sdk/deepseek':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 0.1.15
+        specifier: 0.1.16
         version: link:../../packages/fireworks
       '@ai-sdk/google-vertex':
-        specifier: 2.1.26
+        specifier: 2.1.29
         version: link:../../packages/google-vertex
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
-        specifier: 1.0.5
+        specifier: 1.0.6
         version: link:../../packages/perplexity
       '@ai-sdk/react':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../../packages/react
       '@ai-sdk/ui-utils':
-        specifier: 1.1.18
+        specifier: 1.1.19
         version: link:../../packages/ui-utils
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -616,16 +616,16 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../../packages/react
       '@vercel/functions':
         specifier: latest
         version: 2.0.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0))
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -671,13 +671,13 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../../packages/react
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -726,10 +726,10 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -744,7 +744,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.29.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -793,10 +793,10 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -817,7 +817,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -866,10 +866,10 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -878,7 +878,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -924,10 +924,10 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -952,13 +952,13 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@ai-sdk/vue':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/vue
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       zod:
         specifier: 3.23.8
@@ -1007,13 +1007,13 @@ importers:
   examples/solidstart-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@ai-sdk/solid':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../../packages/solid
       '@ai-sdk/ui-utils':
-        specifier: 1.1.18
+        specifier: 1.1.19
         version: link:../../packages/ui-utils
       '@solidjs/meta':
         specifier: 0.29.4
@@ -1025,7 +1025,7 @@ importers:
         specifier: ^1.0.10
         version: 1.0.10(@testing-library/jest-dom@6.6.3)(solid-js@1.9.3)(vinxi@0.4.3(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.4.1)(terser@5.31.3)(typescript@5.6.3))(vite@6.0.3(@types/node@22.7.4)(jiti@2.4.0)(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0))
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       solid-js:
         specifier: ^1.9.3
@@ -1050,13 +1050,13 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../../packages/openai
       '@ai-sdk/svelte':
-        specifier: 1.1.23
-        version: 1.1.23(svelte@5.2.9)(zod@3.23.8)
+        specifier: 1.1.24
+        version: link:../../packages/svelte
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../../packages/ai
       openai:
         specifier: 4.52.6
@@ -1186,16 +1186,16 @@ importers:
   packages/ai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../react
       '@ai-sdk/ui-utils':
-        specifier: 1.1.18
+        specifier: 1.1.19
         version: link:../ui-utils
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1239,7 +1239,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       react-server-dom-webpack:
         specifier: 18.3.0-canary-eb33bd747-20240312
-        version: 18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(webpack@5.96.1)
+        version: 18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(webpack@5.96.1(esbuild@0.18.20))
       tsup:
         specifier: ^7.2.0
         version: 7.2.0(postcss@8.5.3)(ts-node@10.9.2(@types/node@18.19.43)(typescript@5.6.3))(typescript@5.6.3)
@@ -1268,10 +1268,10 @@ importers:
   packages/amazon-bedrock:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
       '@smithy/eventstream-codec':
         specifier: ^4.0.1
@@ -1302,10 +1302,10 @@ importers:
   packages/anthropic:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1327,13 +1327,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.3
+        specifier: 1.2.5
         version: link:../openai
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1355,13 +1355,13 @@ importers:
   packages/cerebras:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1432,10 +1432,10 @@ importers:
   packages/cohere:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1457,13 +1457,13 @@ importers:
   packages/deepinfra:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1485,13 +1485,13 @@ importers:
   packages/deepseek:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1513,10 +1513,10 @@ importers:
   packages/fal:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1538,13 +1538,13 @@ importers:
   packages/fireworks:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1566,10 +1566,10 @@ importers:
   packages/google:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1591,16 +1591,16 @@ importers:
   packages/google-vertex:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: 1.1.16
+        specifier: 1.1.17
         version: link:../anthropic
       '@ai-sdk/google':
-        specifier: 1.1.22
+        specifier: 1.1.25
         version: link:../google
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
       google-auth-library:
         specifier: ^9.15.0
@@ -1625,10 +1625,10 @@ importers:
   packages/groq:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1650,10 +1650,10 @@ importers:
   packages/luma:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1675,10 +1675,10 @@ importers:
   packages/mistral:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1700,10 +1700,10 @@ importers:
   packages/openai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1725,10 +1725,10 @@ importers:
   packages/openai-compatible:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1750,10 +1750,10 @@ importers:
   packages/perplexity:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1797,7 +1797,7 @@ importers:
   packages/provider-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       eventsource-parser:
         specifier: ^3.0.0
@@ -1831,10 +1831,10 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.18
+        specifier: 1.1.19
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
@@ -1895,10 +1895,10 @@ importers:
   packages/replicate:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1920,10 +1920,10 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.18
+        specifier: 1.1.19
         version: link:../ui-utils
       '@solid-primitives/trigger':
         specifier: ^1.1.0
@@ -1952,7 +1952,7 @@ importers:
         version: link:../../tools/tsconfig
       '@vitejs/plugin-vue':
         specifier: 5.2.0
-        version: 5.2.0(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))(vue@3.5.13(typescript@5.6.3))
+        version: 5.2.0(vite@5.4.11(@types/node@18.18.9)(terser@5.31.3))(vue@3.5.13(typescript@5.6.3))
       eslint:
         specifier: 8.57.1
         version: 8.57.1
@@ -1973,7 +1973,7 @@ importers:
         version: 5.6.3
       vite-plugin-solid:
         specifier: 2.7.2
-        version: 2.7.2(solid-js@1.8.7)(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
+        version: 2.7.2(solid-js@1.8.7)
       vitest:
         specifier: 2.1.4
         version: 2.1.4(@edge-runtime/vm@5.0.0)(@types/node@18.18.9)(jsdom@24.0.0)(msw@2.6.4(@types/node@18.18.9)(typescript@5.6.3))(terser@5.31.3)
@@ -1981,10 +1981,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.18
+        specifier: 1.1.19
         version: link:../ui-utils
     devDependencies:
       '@eslint/compat':
@@ -2045,13 +2045,13 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -2073,10 +2073,10 @@ importers:
   packages/ui-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
       zod-to-json-schema:
         specifier: ^3.24.1
@@ -2110,7 +2110,7 @@ importers:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.0.0-rc.0(valibot@1.0.0-rc.0(typescript@5.6.3))
       ai:
-        specifier: 4.1.58
+        specifier: 4.1.61
         version: link:../ai
     devDependencies:
       '@types/node':
@@ -2132,10 +2132,10 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.18
+        specifier: 1.1.19
         version: link:../ui-utils
       swrv:
         specifier: ^1.0.4
@@ -2187,13 +2187,13 @@ importers:
   packages/xai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.10
+        specifier: 1.0.11
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.12
+        specifier: 2.1.13
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -2251,37 +2251,6 @@ packages:
 
   '@adobe/css-tools@4.4.0':
     resolution: {integrity: sha512-Ff9+ksdQQB3rMncgqDK78uLznstjyfIf2Arnh22pW8kBpLs6rpKDwgnZT46hin5Hl1WzazzK64DOrhSwYpS7bQ==}
-
-  '@ai-sdk/provider-utils@2.1.12':
-    resolution: {integrity: sha512-NLm2Ypkv419jR5TNOvZ057ciSYFKzSDEIIwE8cRyeR1Y5RbuX+auZveqGg6GWsDzvUnn6Xra7BJmr0422v60UA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
-  '@ai-sdk/provider@1.0.10':
-    resolution: {integrity: sha512-pco8Zl9U0xwXI+nCLc0woMtxbvjU8hRmGTseAUiPHFLYAAL8trRPCukg69IDeinOvIeo1SmXxAIdWWPZOLb4Cg==}
-    engines: {node: '>=18'}
-
-  '@ai-sdk/svelte@1.1.23':
-    resolution: {integrity: sha512-AERWd4gZJoT+oQwa3+XXzes0W2mCRD+qPnVOCFU35/Oz401qotwHHidKrMqrGGUBK6QCjXeG5idGvm/5MrXIpg==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      svelte: ^3.0.0 || ^4.0.0 || ^5.0.0
-    peerDependenciesMeta:
-      svelte:
-        optional: true
-
-  '@ai-sdk/ui-utils@1.1.18':
-    resolution: {integrity: sha512-PCDXKKKHqA8Oqm5LsXl3Byxmit0r0Gg3nMPI3bdEriDIExoQikULX2T6/IS5u1qNeoC3UK5F2acpCyl5Q+aIuQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -2443,10 +2412,6 @@ packages:
       aws-crt:
         optional: true
 
-  '@babel/code-frame@7.24.7':
-    resolution: {integrity: sha512-BcYH1CVJBO9tvyIZ2jVeXgSIMvGZ2FDRvDdOIVQyuklNKSsx+eppDEBq/g47Ayw+RqNFE+URvOShmf+f/qwAlA==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/code-frame@7.25.7':
     resolution: {integrity: sha512-0xZJFNE5XMpENsgfHYTw8FbX4kv53mFLn2i3XPoq69LyhYSCBJtitaHx9QnsVTrsogI4Z3+HtEfZ2/GFPOtf5g==}
     engines: {node: '>=6.9.0'}
@@ -2455,20 +2420,8 @@ packages:
     resolution: {integrity: sha512-RJlIHRueQgwWitWgF8OdFYGZX328Ax5BCemNGlqHfplnRT9ESi8JkFlvaVYbS+UubVY6dpv87Fs2u5M29iNFVQ==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/compat-data@7.24.7':
-    resolution: {integrity: sha512-qJzAIcv03PyaWqxRgO4mSU3lihncDT296vnyuE2O8uA4w3UHWI4S3hgeZd1L8W1Bft40w9JxJ2b412iDUFFRhw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/compat-data@7.25.2':
-    resolution: {integrity: sha512-bYcppcpKBvX4znYaPEeFau03bp89ShqNMLs+rmdptMw+heSZh9+z84d2YG+K7cYLbWwzdjtDoW/uqZmPjulClQ==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/compat-data@7.26.2':
     resolution: {integrity: sha512-Z0WgzSEa+aUcdiJuCIqgujCshpMWgUpgOxXotrYPSA53hA3qopNaqcJpyr0hVb1FeWdnqFA35/fUtXgBK8srQg==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/core@7.23.3':
-    resolution: {integrity: sha512-Jg+msLuNuCJDyBvFv5+OKOUjWMZgd85bKjbICd3zWrKAo+bJ49HJufi7CQE0q0uR8NGyO6xkCACScNqyjHSZew==}
     engines: {node: '>=6.9.0'}
 
   '@babel/core@7.25.2':
@@ -2479,28 +2432,12 @@ packages:
     resolution: {integrity: sha512-i1SLeK+DzNnQ3LL/CswPCa/E5u4lh1k6IAEphON8F+cXt0t9euTshDru0q7/IqMa1PMPz5RnHuHscF8/ZJsStg==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/generator@7.24.7':
-    resolution: {integrity: sha512-oipXieGC3i45Y1A41t4tAqpnEZWgB/lC6Ehh6+rOviR5XWpTtMmLN+fGjz9vOiNRt0p6RtO6DtD0pdU3vpqdSA==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/generator@7.25.0':
-    resolution: {integrity: sha512-3LEEcj3PVW8pW2R1SR1M89g/qrYk/m/mB/tLqn7dn4sbBUQyTqnlod+II2U4dqiGtUmkcnAmkMDralTFZttRiw==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/generator@7.26.2':
     resolution: {integrity: sha512-zevQbhbau95nkoxSq3f/DC/SC+EEOUZd3DYqfSkMhY2/wfSeaHV1Ew4vk8e+x8lja31IbyuUa2uQ3JONqKbysw==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/helper-annotate-as-pure@7.22.5':
-    resolution: {integrity: sha512-LvBTxu8bQSQkcyKOU+a1btnNFQ1dMAd0R6PyW3arXes06F6QLWLIrd681bxRPIXlrMGR3XYnW9JyML7dP3qgxg==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/helper-annotate-as-pure@7.25.9':
     resolution: {integrity: sha512-gv7320KBUFJz1RnylIg5WWYPRXKZ884AGkYpgpWW02TH66Dl+HaC1t1CKd0z3R4b6hdYEcmrNZHUmfCP+1u3/g==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-compilation-targets@7.24.7':
-    resolution: {integrity: sha512-ctSdRHBi20qWOfy27RUb4Fhp07KSJ3sXcuSvTrXrc4aG8NSYDo1ici3Vhg9bg69y5bj0Mr1lh0aeEgTvc12rMg==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-compilation-targets@7.25.2':
@@ -2511,33 +2448,11 @@ packages:
     resolution: {integrity: sha512-j9Db8Suy6yV/VHa4qzrj9yZfZxhLWQdVnRlXxmKLYlhWUVB1sB2G5sxuWYXk/whHD9iW76PmNzxZ4UCnTQTVEQ==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/helper-create-class-features-plugin@7.22.15':
-    resolution: {integrity: sha512-jKkwA59IXcvSaiK2UN45kKwSC9o+KuoXsBDvHvU/7BecYIp8GQ2UwrVvFgJASUT+hBnwJx6MhvMCuMzwZZ7jlg==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0
-
   '@babel/helper-create-class-features-plugin@7.25.9':
     resolution: {integrity: sha512-UTZQMvt0d/rSz6KI+qdu7GQze5TIajwTS++GUozlw8VBJDEOAqSXwm1WvmYEZwqdqSGQshRocPDqrt4HBZB3fQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0
-
-  '@babel/helper-environment-visitor@7.24.7':
-    resolution: {integrity: sha512-DoiN84+4Gnd0ncbBOM9AZENV4a5ZiL39HYMyZJGZ/AZEykHYdJw0wW3kdcsh9/Kn+BRXHLkkklZ51ecPKmI1CQ==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-function-name@7.24.7':
-    resolution: {integrity: sha512-FyoJTsj/PEUWu1/TYRiXTIHc8lbw+TDYkZuoE43opPS5TrI7MyONBE1oNvfguEXAD9yhQRrVBnXdXzSLQl9XnA==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-hoist-variables@7.24.7':
-    resolution: {integrity: sha512-MJJwhkoGy5c4ehfoRyrJ/owKeMl19U54h27YYftT0o2teQ3FJ3nQUf/I3LlJsX4l3qlw7WRXUmiyajvHXoTubQ==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-member-expression-to-functions@7.23.0':
-    resolution: {integrity: sha512-6gfrPwh7OuT6gZyJZvd6WbTfrqAo7vm4xCzAXOusKqq/vWdKXphTpj5klHKNmRUU6/QRGlBsyU9mAIPaWHlqJA==}
-    engines: {node: '>=6.9.0'}
 
   '@babel/helper-member-expression-to-functions@7.25.9':
     resolution: {integrity: sha512-wbfdZ9w5vk0C0oyHqAJbc62+vet5prjj01jjJ8sKn3j9h3MQQlflEdXYvuqRWjHnM12coDEqiC1IRCi0U/EKwQ==}
@@ -2547,19 +2462,9 @@ packages:
     resolution: {integrity: sha512-0NFvs3VkuSYbFi1x2Vd6tKrywq+z/cLeYC/RJNFrIX/30Bf5aiGYbtvGXolEktzJH8o5E5KJ3tT+nkxuuZFVlA==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/helper-module-imports@7.24.7':
-    resolution: {integrity: sha512-8AyH3C+74cgCVVXow/myrynrAGv+nTVg5vKu2nZph9x7RcRwzmh0VFallJuFTZ9mx6u4eSdXZfcOzSqTUm0HCA==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/helper-module-imports@7.25.9':
     resolution: {integrity: sha512-tnUA4RsrmflIM6W6RFTLFSXITtl0wKjgpnLgXyowocVPrbYrLUXSBXDgTs8BlbmIzIdlBySRQjINYs2BAkiLtw==}
     engines: {node: '>=6.9.0'}
-
-  '@babel/helper-module-transforms@7.24.7':
-    resolution: {integrity: sha512-1fuJEwIrp+97rM4RWdO+qrRsZlAeL1lQJoPqtCYWv0NL115XM93hIH4CSRln2w52SqvmY5hqdtauB6QFCDiZNQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0
 
   '@babel/helper-module-transforms@7.25.2':
     resolution: {integrity: sha512-BjyRAbix6j/wv83ftcVJmBt72QtHI56C7JXZoG2xATiLpmoC7dpd8WnkikExHDVPpi/3qCmO6WY1EaXOluiecQ==}
@@ -2573,16 +2478,8 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0
 
-  '@babel/helper-optimise-call-expression@7.22.5':
-    resolution: {integrity: sha512-HBwaojN0xFRx4yIvpwGqxiV2tUfl7401jlok564NgB9EHS1y6QT17FmKWm4ztqjeVdXLuC4fSvHc5ePpQjoTbw==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/helper-optimise-call-expression@7.25.9':
     resolution: {integrity: sha512-FIpuNaz5ow8VyrYcnXQTDRGvV6tTjkNtCK/RYNDXGSLlUD6cBuQTSw43CShGxjvfBTfcUA/r6UhUCbtYqkhcuQ==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-plugin-utils@7.24.7':
-    resolution: {integrity: sha512-Rq76wjt7yz9AAc1KnlRKNAi/dMSVWgDRx43FHoJEbcYU6xOWaE2dVPwcdTukJrjxS65GITyfbvEYHvkirZ6uEg==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-plugin-utils@7.25.9':
@@ -2594,10 +2491,6 @@ packages:
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0
-
-  '@babel/helper-simple-access@7.24.7':
-    resolution: {integrity: sha512-zBAIvbCMh5Ts+b86r/CjU+4XGYIs+R1j951gxI3KmmxBMhCg4oQMsv6ZXQ64XOm/cvzfU1FmoCyt6+owc5QMYg==}
-    engines: {node: '>=6.9.0'}
 
   '@babel/helper-simple-access@7.25.9':
     resolution: {integrity: sha512-c6WHXuiaRsJTyHYLJV75t9IqsmTbItYfdj99PnzYGQZkYKvan5/2jKJ7gu31J3/BJ/A18grImSPModuyG/Eo0Q==}
@@ -2619,20 +2512,8 @@ packages:
     resolution: {integrity: sha512-Ed61U6XJc3CVRfkERJWDz4dJwKe7iLmmJsbOGu9wSloNSFttHV0I8g6UAgb7qnK5ly5bGLPd4oXZlxCdANBOWQ==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/helper-validator-option@7.24.7':
-    resolution: {integrity: sha512-yy1/KvjhV/ZCL+SM7hBrvnZJ3ZuT9OuZgIJAGpPEToANvc3iM6iDvBnRjtElWibHU6n8/LPR/EjX9EtIEYO3pw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-validator-option@7.24.8':
-    resolution: {integrity: sha512-xb8t9tD1MHLungh/AIoWYN+gVHaB9kwlu8gffXGSt3FFEIT7RjS+xWbc2vUD1UTZdIpKj/ab3rdqJ7ufngyi2Q==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/helper-validator-option@7.25.9':
     resolution: {integrity: sha512-e/zv1co8pp55dNdEcCynfj9X7nyUKUXoUEwfXqaZt0omVOmDe9oOTdKStH4GmAw6zxMFs50ZayuMfHDKlO7Tfw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helpers@7.24.7':
-    resolution: {integrity: sha512-NlmJJtvcw72yRJRcnCmGvSi+3jDEg8qFu3z0AFoymmzLx5ERVWyzd9kVXr7Th9/8yIJi2Zc6av4Tqz3wFs8QWg==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helpers@7.25.0':
@@ -2641,10 +2522,6 @@ packages:
 
   '@babel/helpers@7.26.0':
     resolution: {integrity: sha512-tbhNuIxNcVb21pInl3ZSjksLCvgdZy9KwJ8brv993QtIVKJBBkYXz4q4ZbAv31GdnC+R90np23L5FbEBlthAEw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/highlight@7.24.7':
-    resolution: {integrity: sha512-EStJpq4OuY8xYfhGVXngigBJRWxftKX9ksiGDnmlY3o7B/V7KIAc9X4oiK87uPJSc/vs5L869bem5fhZa8caZw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/highlight@7.25.7':
@@ -2777,12 +2654,6 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
 
-  '@babel/plugin-transform-modules-commonjs@7.23.3':
-    resolution: {integrity: sha512-aVS0F65LKsdNOtcz6FRCpE4OgsP2OFnW46qNxNIX9h3wuzaNcSQsJysuMwqSibC98HPrf2vCgtxKNwS0DAlgcA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-
   '@babel/plugin-transform-modules-commonjs@7.25.9':
     resolution: {integrity: sha512-dwh2Ol1jWwL2MgkCzUSOvfmKElqQcuswAZypBSUsScMXvgdT8Ekq5YA6TtqpTVWH+4903NmboMuH1o9i8Rxlyg==}
     engines: {node: '>=6.9.0'}
@@ -2819,12 +2690,6 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0
 
-  '@babel/plugin-transform-typescript@7.23.3':
-    resolution: {integrity: sha512-ogV0yWnq38CFwH20l2Afz0dfKuZBx9o/Y2Rmh5vuSS0YD1hswgEgTfyTzuSrT2q9btmHRSqYoSfwFUVaC1M1Jw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-
   '@babel/plugin-transform-typescript@7.25.9':
     resolution: {integrity: sha512-7PbZQZP50tzv2KGGnhh82GSyMB01yKY9scIjf1a+GfZCtInOWqUH5+1EBU4t9fyR5Oykkkc9vFTs4OHrhHXljQ==}
     engines: {node: '>=6.9.0'}
@@ -2833,12 +2698,6 @@ packages:
 
   '@babel/preset-flow@7.25.9':
     resolution: {integrity: sha512-EASHsAhE+SSlEzJ4bzfusnXSHiU+JfAYzj+jbw2vgQKgq5HrUr8qs+vgtiEL5dOH6sEweI+PNt2D7AqrDSHyqQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-
-  '@babel/preset-typescript@7.23.3':
-    resolution: {integrity: sha512-17oIGVlqz6CchO9RFYn5U6ZpWRZIngayYCtrPRSgANSwC2V1Jb+iP74nVxzzXJte8b8BYxrL1yY96xfhTBrNNQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -2863,24 +2722,12 @@ packages:
     resolution: {integrity: sha512-i2VbegsRfwa9yq3xmfDX3tG2yh9K0cCqwpSyVG2nPxifh0EOnucAZUeO/g4lW2Zfg03aPJNtPfxQbDHzXc7H+w==}
     engines: {node: '>=6.9.0'}
 
-  '@babel/template@7.24.7':
-    resolution: {integrity: sha512-jYqfPrU9JTF0PmPy1tLYHW4Mp4KlgxJD9l2nP9fD6yT/ICi554DmrWBAEYpIelzjHf1msDP3PxJIRt/nFNfBig==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/template@7.25.0':
     resolution: {integrity: sha512-aOOgh1/5XzKvg1jvVz7AVrx2piJ2XBi227DHmbY6y+bM9H2FlN+IfecYu4Xl0cNiiVejlsCri89LUsbj8vJD9Q==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.25.9':
     resolution: {integrity: sha512-9DGttpmPvIxBb/2uwpVo3dqJ+O6RooAFOS+lB+xDqoE2PVCE8nfoHMdZLpfCQRLwvohzXISPZcgxt80xLfsuwg==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/traverse@7.24.7':
-    resolution: {integrity: sha512-yb65Ed5S/QAcewNPh0nZczy9JdYXkkAbIsEo+P7BE7yO3txAY30Y/oPa3QkQ5It3xVG2kpKMg9MsdxZaO31uKA==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/traverse@7.25.3':
-    resolution: {integrity: sha512-HefgyP1x754oGCsKmV5reSmtV7IXj/kpaE1XYY+D9G5PvKKoFfSbiS4M77MdjuwlZKDIKFCffq9rPU+H/s3ZdQ==}
     engines: {node: '>=6.9.0'}
 
   '@babel/traverse@7.25.9':
@@ -7526,23 +7373,14 @@ packages:
   '@types/aws-lambda@8.10.143':
     resolution: {integrity: sha512-u5vzlcR14ge/4pMTTMDQr3MF0wEe38B2F9o84uC4F43vN5DGTy63npRrB6jQhyt+C0lGv4ZfiRcRkqJoZuPnmg==}
 
-  '@types/babel__core@7.20.4':
-    resolution: {integrity: sha512-mLnSC22IC4vcWiuObSRjrLd9XcBTGf59vUSoq2jkQDJ/QQ8PMI9rSuzE+aEV8karUMbskw07bKYoUJCKTUaygg==}
-
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
-
-  '@types/babel__generator@7.6.7':
-    resolution: {integrity: sha512-6Sfsq+EaaLrw4RmdFWE9Onp63TOUue71AWb4Gpa6JxzgTYtimbM086WnYTy2U67AofR++QKCo08ZP6pwx8YFHQ==}
 
   '@types/babel__generator@7.6.8':
     resolution: {integrity: sha512-ASsj+tpEDsEiFr1arWrlN6V3mdfjRMZt6LtK/Vp/kreFLnr5QH5+DhvD5nINYZXzwJvXeGq+05iUXcAzVrqWtw==}
 
   '@types/babel__template@7.4.4':
     resolution: {integrity: sha512-h/NUaSyG5EyxBIp8YRxo4RMe2/qQgvyowRwVMzhYhBCONbW8PUsg4lkFMrhgZhUe5z3L3MiLDuvyJ/CaPa2A8A==}
-
-  '@types/babel__traverse@7.20.4':
-    resolution: {integrity: sha512-mSM/iKUk5fDDrEV/e83qY+Cr3I1+Q3qqTuEn++HAWYjEa1+NxZr6CNrcJGf2ZTnq4HoFGC3zaTPZTobCzCFukA==}
 
   '@types/babel__traverse@7.20.6':
     resolution: {integrity: sha512-r1bzfrm0tomOI8g1SzvCaQHo6Lcv6zu0EA+W2kHrt8dyrHQxGzBBL4kdkzIS+jBMV+EYcMAEAqXqYaLJq5rOZg==}
@@ -11440,11 +11278,6 @@ packages:
     peerDependenciesMeta:
       canvas:
         optional: true
-
-  jsesc@2.5.2:
-    resolution: {integrity: sha512-OYu7XEzjkCQ3C5Ps3QIZsQfNpqoJyZZA99wd9aWd05NCtC5pWOkShK2mkL6HXQR6/Cy2lbNdPlZBpuQHXE63gA==}
-    engines: {node: '>=4'}
-    hasBin: true
 
   jsesc@3.0.2:
     resolution: {integrity: sha512-xKqzzWXDttJuOcawBt4KnKHHIf5oQ/Cxax+0PWFG+DFDgHNAdi+TXECADI+RYiFUMmx8792xsMbbgXj4CwnP4g==}
@@ -15644,36 +15477,6 @@ snapshots:
 
   '@adobe/css-tools@4.4.0': {}
 
-  '@ai-sdk/provider-utils@2.1.12(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.10
-      eventsource-parser: 3.0.0
-      nanoid: 3.3.8
-      secure-json-parse: 2.7.0
-    optionalDependencies:
-      zod: 3.23.8
-
-  '@ai-sdk/provider@1.0.10':
-    dependencies:
-      json-schema: 0.4.0
-
-  '@ai-sdk/svelte@1.1.23(svelte@5.2.9)(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider-utils': 2.1.12(zod@3.23.8)
-      '@ai-sdk/ui-utils': 1.1.18(zod@3.23.8)
-    optionalDependencies:
-      svelte: 5.2.9
-    transitivePeerDependencies:
-      - zod
-
-  '@ai-sdk/ui-utils@1.1.18(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 1.0.10
-      '@ai-sdk/provider-utils': 2.1.12(zod@3.23.8)
-      zod-to-json-schema: 3.24.1(zod@3.23.8)
-    optionalDependencies:
-      zod: 3.23.8
-
   '@alloc/quick-lru@5.2.0': {}
 
   '@ampproject/remapping@2.3.0':
@@ -16157,11 +15960,6 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@babel/code-frame@7.24.7':
-    dependencies:
-      '@babel/highlight': 7.24.7
-      picocolors: 1.1.1
-
   '@babel/code-frame@7.25.7':
     dependencies:
       '@babel/highlight': 7.25.7
@@ -16173,43 +15971,19 @@ snapshots:
       js-tokens: 4.0.0
       picocolors: 1.1.1
 
-  '@babel/compat-data@7.24.7': {}
-
-  '@babel/compat-data@7.25.2': {}
-
   '@babel/compat-data@7.26.2': {}
-
-  '@babel/core@7.23.3':
-    dependencies:
-      '@ampproject/remapping': 2.3.0
-      '@babel/code-frame': 7.24.7
-      '@babel/generator': 7.24.7
-      '@babel/helper-compilation-targets': 7.24.7
-      '@babel/helper-module-transforms': 7.24.7(@babel/core@7.23.3)
-      '@babel/helpers': 7.24.7
-      '@babel/parser': 7.26.2
-      '@babel/template': 7.24.7
-      '@babel/traverse': 7.24.7
-      '@babel/types': 7.26.0
-      convert-source-map: 2.0.0
-      debug: 4.4.0(supports-color@9.4.0)
-      gensync: 1.0.0-beta.2
-      json5: 2.2.3
-      semver: 6.3.1
-    transitivePeerDependencies:
-      - supports-color
 
   '@babel/core@7.25.2':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@babel/code-frame': 7.25.7
-      '@babel/generator': 7.25.0
+      '@babel/generator': 7.26.2
       '@babel/helper-compilation-targets': 7.25.2
       '@babel/helper-module-transforms': 7.25.2(@babel/core@7.25.2)
       '@babel/helpers': 7.25.0
       '@babel/parser': 7.26.2
       '@babel/template': 7.25.0
-      '@babel/traverse': 7.25.3
+      '@babel/traverse': 7.25.9
       '@babel/types': 7.26.0
       convert-source-map: 2.0.0
       debug: 4.4.0(supports-color@9.4.0)
@@ -16239,20 +16013,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/generator@7.24.7':
-    dependencies:
-      '@babel/types': 7.26.0
-      '@jridgewell/gen-mapping': 0.3.8
-      '@jridgewell/trace-mapping': 0.3.25
-      jsesc: 2.5.2
-
-  '@babel/generator@7.25.0':
-    dependencies:
-      '@babel/types': 7.26.0
-      '@jridgewell/gen-mapping': 0.3.8
-      '@jridgewell/trace-mapping': 0.3.25
-      jsesc: 2.5.2
-
   '@babel/generator@7.26.2':
     dependencies:
       '@babel/parser': 7.26.2
@@ -16261,27 +16021,15 @@ snapshots:
       '@jridgewell/trace-mapping': 0.3.25
       jsesc: 3.0.2
 
-  '@babel/helper-annotate-as-pure@7.22.5':
-    dependencies:
-      '@babel/types': 7.26.0
-
   '@babel/helper-annotate-as-pure@7.25.9':
     dependencies:
       '@babel/types': 7.26.0
 
-  '@babel/helper-compilation-targets@7.24.7':
-    dependencies:
-      '@babel/compat-data': 7.24.7
-      '@babel/helper-validator-option': 7.24.7
-      browserslist: 4.23.1
-      lru-cache: 5.1.1
-      semver: 6.3.1
-
   '@babel/helper-compilation-targets@7.25.2':
     dependencies:
-      '@babel/compat-data': 7.25.2
-      '@babel/helper-validator-option': 7.24.8
-      browserslist: 4.23.3
+      '@babel/compat-data': 7.26.2
+      '@babel/helper-validator-option': 7.25.9
+      browserslist: 4.24.0
       lru-cache: 5.1.1
       semver: 6.3.1
 
@@ -16292,21 +16040,6 @@ snapshots:
       browserslist: 4.24.0
       lru-cache: 5.1.1
       semver: 6.3.1
-
-  '@babel/helper-create-class-features-plugin@7.22.15(@babel/core@7.23.3)':
-    dependencies:
-      '@babel/core': 7.23.3
-      '@babel/helper-annotate-as-pure': 7.25.9
-      '@babel/helper-environment-visitor': 7.24.7
-      '@babel/helper-function-name': 7.24.7
-      '@babel/helper-member-expression-to-functions': 7.23.0
-      '@babel/helper-optimise-call-expression': 7.22.5
-      '@babel/helper-replace-supers': 7.25.9(@babel/core@7.23.3)
-      '@babel/helper-skip-transparent-expression-wrappers': 7.25.9
-      '@babel/helper-split-export-declaration': 7.24.7
-      semver: 6.3.1
-    transitivePeerDependencies:
-      - supports-color
 
   '@babel/helper-create-class-features-plugin@7.25.9(@babel/core@7.25.2)':
     dependencies:
@@ -16334,23 +16067,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/helper-environment-visitor@7.24.7':
-    dependencies:
-      '@babel/types': 7.26.0
-
-  '@babel/helper-function-name@7.24.7':
-    dependencies:
-      '@babel/template': 7.25.9
-      '@babel/types': 7.26.0
-
-  '@babel/helper-hoist-variables@7.24.7':
-    dependencies:
-      '@babel/types': 7.26.0
-
-  '@babel/helper-member-expression-to-functions@7.23.0':
-    dependencies:
-      '@babel/types': 7.26.0
-
   '@babel/helper-member-expression-to-functions@7.25.9':
     dependencies:
       '@babel/traverse': 7.25.9
@@ -16362,13 +16078,6 @@ snapshots:
     dependencies:
       '@babel/types': 7.26.0
 
-  '@babel/helper-module-imports@7.24.7':
-    dependencies:
-      '@babel/traverse': 7.25.9
-      '@babel/types': 7.26.0
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/helper-module-imports@7.25.9':
     dependencies:
       '@babel/traverse': 7.25.9
@@ -16376,31 +16085,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/helper-module-transforms@7.24.7(@babel/core@7.23.3)':
-    dependencies:
-      '@babel/core': 7.23.3
-      '@babel/helper-environment-visitor': 7.24.7
-      '@babel/helper-module-imports': 7.24.7
-      '@babel/helper-simple-access': 7.24.7
-      '@babel/helper-split-export-declaration': 7.24.7
-      '@babel/helper-validator-identifier': 7.25.9
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/helper-module-transforms@7.25.2(@babel/core@7.25.2)':
     dependencies:
       '@babel/core': 7.25.2
-      '@babel/helper-module-imports': 7.24.7
-      '@babel/helper-simple-access': 7.24.7
-      '@babel/helper-validator-identifier': 7.25.9
-      '@babel/traverse': 7.25.9
-    transitivePeerDependencies:
-      - supports-color
-
-  '@babel/helper-module-transforms@7.26.0(@babel/core@7.23.3)':
-    dependencies:
-      '@babel/core': 7.23.3
       '@babel/helper-module-imports': 7.25.9
+      '@babel/helper-simple-access': 7.25.9
       '@babel/helper-validator-identifier': 7.25.9
       '@babel/traverse': 7.25.9
     transitivePeerDependencies:
@@ -16424,26 +16113,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/helper-optimise-call-expression@7.22.5':
-    dependencies:
-      '@babel/types': 7.26.0
-
   '@babel/helper-optimise-call-expression@7.25.9':
     dependencies:
       '@babel/types': 7.26.0
 
-  '@babel/helper-plugin-utils@7.24.7': {}
-
   '@babel/helper-plugin-utils@7.25.9': {}
-
-  '@babel/helper-replace-supers@7.25.9(@babel/core@7.23.3)':
-    dependencies:
-      '@babel/core': 7.23.3
-      '@babel/helper-member-expression-to-functions': 7.25.9
-      '@babel/helper-optimise-call-expression': 7.25.9
-      '@babel/traverse': 7.25.9
-    transitivePeerDependencies:
-      - supports-color
 
   '@babel/helper-replace-supers@7.25.9(@babel/core@7.25.2)':
     dependencies:
@@ -16460,13 +16134,6 @@ snapshots:
       '@babel/helper-member-expression-to-functions': 7.25.9
       '@babel/helper-optimise-call-expression': 7.25.9
       '@babel/traverse': 7.25.9
-    transitivePeerDependencies:
-      - supports-color
-
-  '@babel/helper-simple-access@7.24.7':
-    dependencies:
-      '@babel/traverse': 7.25.9
-      '@babel/types': 7.26.0
     transitivePeerDependencies:
       - supports-color
 
@@ -16492,16 +16159,7 @@ snapshots:
 
   '@babel/helper-validator-identifier@7.25.9': {}
 
-  '@babel/helper-validator-option@7.24.7': {}
-
-  '@babel/helper-validator-option@7.24.8': {}
-
   '@babel/helper-validator-option@7.25.9': {}
-
-  '@babel/helpers@7.24.7':
-    dependencies:
-      '@babel/template': 7.25.9
-      '@babel/types': 7.26.0
 
   '@babel/helpers@7.25.0':
     dependencies:
@@ -16512,13 +16170,6 @@ snapshots:
     dependencies:
       '@babel/template': 7.25.9
       '@babel/types': 7.26.0
-
-  '@babel/highlight@7.24.7':
-    dependencies:
-      '@babel/helper-validator-identifier': 7.25.9
-      chalk: 2.4.2
-      js-tokens: 4.0.0
-      picocolors: 1.1.1
 
   '@babel/highlight@7.25.7':
     dependencies:
@@ -16587,11 +16238,6 @@ snapshots:
       '@babel/core': 7.26.0
       '@babel/helper-plugin-utils': 7.25.9
 
-  '@babel/plugin-syntax-jsx@7.25.9(@babel/core@7.23.3)':
-    dependencies:
-      '@babel/core': 7.23.3
-      '@babel/helper-plugin-utils': 7.25.9
-
   '@babel/plugin-syntax-jsx@7.25.9(@babel/core@7.25.2)':
     dependencies:
       '@babel/core': 7.25.2
@@ -16642,11 +16288,6 @@ snapshots:
       '@babel/core': 7.26.0
       '@babel/helper-plugin-utils': 7.25.9
 
-  '@babel/plugin-syntax-typescript@7.25.9(@babel/core@7.23.3)':
-    dependencies:
-      '@babel/core': 7.23.3
-      '@babel/helper-plugin-utils': 7.25.9
-
   '@babel/plugin-syntax-typescript@7.25.9(@babel/core@7.25.2)':
     dependencies:
       '@babel/core': 7.25.2
@@ -16671,19 +16312,19 @@ snapshots:
       '@babel/helper-plugin-utils': 7.25.9
       '@babel/plugin-syntax-flow': 7.26.0(@babel/core@7.25.2)
 
-  '@babel/plugin-transform-modules-commonjs@7.23.3(@babel/core@7.23.3)':
-    dependencies:
-      '@babel/core': 7.23.3
-      '@babel/helper-module-transforms': 7.26.0(@babel/core@7.23.3)
-      '@babel/helper-plugin-utils': 7.25.9
-      '@babel/helper-simple-access': 7.24.7
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/plugin-transform-modules-commonjs@7.25.9(@babel/core@7.25.2)':
     dependencies:
       '@babel/core': 7.25.2
       '@babel/helper-module-transforms': 7.26.0(@babel/core@7.25.2)
+      '@babel/helper-plugin-utils': 7.25.9
+      '@babel/helper-simple-access': 7.25.9
+    transitivePeerDependencies:
+      - supports-color
+
+  '@babel/plugin-transform-modules-commonjs@7.25.9(@babel/core@7.26.0)':
+    dependencies:
+      '@babel/core': 7.26.0
+      '@babel/helper-module-transforms': 7.26.0(@babel/core@7.26.0)
       '@babel/helper-plugin-utils': 7.25.9
       '@babel/helper-simple-access': 7.25.9
     transitivePeerDependencies:
@@ -16720,16 +16361,6 @@ snapshots:
       '@babel/core': 7.25.2
       '@babel/helper-plugin-utils': 7.25.9
 
-  '@babel/plugin-transform-typescript@7.23.3(@babel/core@7.23.3)':
-    dependencies:
-      '@babel/core': 7.23.3
-      '@babel/helper-annotate-as-pure': 7.22.5
-      '@babel/helper-create-class-features-plugin': 7.22.15(@babel/core@7.23.3)
-      '@babel/helper-plugin-utils': 7.25.9
-      '@babel/plugin-syntax-typescript': 7.25.9(@babel/core@7.23.3)
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/plugin-transform-typescript@7.25.9(@babel/core@7.25.2)':
     dependencies:
       '@babel/core': 7.25.2
@@ -16759,17 +16390,6 @@ snapshots:
       '@babel/helper-validator-option': 7.25.9
       '@babel/plugin-transform-flow-strip-types': 7.25.9(@babel/core@7.25.2)
 
-  '@babel/preset-typescript@7.23.3(@babel/core@7.23.3)':
-    dependencies:
-      '@babel/core': 7.23.3
-      '@babel/helper-plugin-utils': 7.24.7
-      '@babel/helper-validator-option': 7.24.7
-      '@babel/plugin-syntax-jsx': 7.25.9(@babel/core@7.23.3)
-      '@babel/plugin-transform-modules-commonjs': 7.23.3(@babel/core@7.23.3)
-      '@babel/plugin-transform-typescript': 7.23.3(@babel/core@7.23.3)
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/preset-typescript@7.26.0(@babel/core@7.25.2)':
     dependencies:
       '@babel/core': 7.25.2
@@ -16778,6 +16398,17 @@ snapshots:
       '@babel/plugin-syntax-jsx': 7.25.9(@babel/core@7.25.2)
       '@babel/plugin-transform-modules-commonjs': 7.25.9(@babel/core@7.25.2)
       '@babel/plugin-transform-typescript': 7.25.9(@babel/core@7.25.2)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@babel/preset-typescript@7.26.0(@babel/core@7.26.0)':
+    dependencies:
+      '@babel/core': 7.26.0
+      '@babel/helper-plugin-utils': 7.25.9
+      '@babel/helper-validator-option': 7.25.9
+      '@babel/plugin-syntax-jsx': 7.25.9(@babel/core@7.26.0)
+      '@babel/plugin-transform-modules-commonjs': 7.25.9(@babel/core@7.26.0)
+      '@babel/plugin-transform-typescript': 7.25.9(@babel/core@7.26.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -16796,12 +16427,6 @@ snapshots:
 
   '@babel/standalone@7.26.2': {}
 
-  '@babel/template@7.24.7':
-    dependencies:
-      '@babel/code-frame': 7.26.2
-      '@babel/parser': 7.26.2
-      '@babel/types': 7.26.0
-
   '@babel/template@7.25.0':
     dependencies:
       '@babel/code-frame': 7.26.2
@@ -16813,33 +16438,6 @@ snapshots:
       '@babel/code-frame': 7.26.2
       '@babel/parser': 7.26.2
       '@babel/types': 7.26.0
-
-  '@babel/traverse@7.24.7':
-    dependencies:
-      '@babel/code-frame': 7.26.2
-      '@babel/generator': 7.26.2
-      '@babel/helper-environment-visitor': 7.24.7
-      '@babel/helper-function-name': 7.24.7
-      '@babel/helper-hoist-variables': 7.24.7
-      '@babel/helper-split-export-declaration': 7.24.7
-      '@babel/parser': 7.26.2
-      '@babel/types': 7.26.0
-      debug: 4.4.0(supports-color@9.4.0)
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
-
-  '@babel/traverse@7.25.3':
-    dependencies:
-      '@babel/code-frame': 7.26.2
-      '@babel/generator': 7.26.2
-      '@babel/parser': 7.26.2
-      '@babel/template': 7.25.9
-      '@babel/types': 7.26.0
-      debug: 4.4.0(supports-color@9.4.0)
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
 
   '@babel/traverse@7.25.9':
     dependencies:
@@ -21784,14 +21382,6 @@ snapshots:
 
   '@types/aws-lambda@8.10.143': {}
 
-  '@types/babel__core@7.20.4':
-    dependencies:
-      '@babel/parser': 7.26.2
-      '@babel/types': 7.26.0
-      '@types/babel__generator': 7.6.7
-      '@types/babel__template': 7.4.4
-      '@types/babel__traverse': 7.20.4
-
   '@types/babel__core@7.20.5':
     dependencies:
       '@babel/parser': 7.26.2
@@ -21800,10 +21390,6 @@ snapshots:
       '@types/babel__template': 7.4.4
       '@types/babel__traverse': 7.20.6
 
-  '@types/babel__generator@7.6.7':
-    dependencies:
-      '@babel/types': 7.26.0
-
   '@types/babel__generator@7.6.8':
     dependencies:
       '@babel/types': 7.26.0
@@ -21811,10 +21397,6 @@ snapshots:
   '@types/babel__template@7.4.4':
     dependencies:
       '@babel/parser': 7.26.2
-      '@babel/types': 7.26.0
-
-  '@types/babel__traverse@7.20.4':
-    dependencies:
       '@babel/types': 7.26.0
 
   '@types/babel__traverse@7.20.6':
@@ -22523,11 +22105,6 @@ snapshots:
       vite: 5.4.11(@types/node@18.18.9)(terser@5.31.3)
       vue: 3.5.13(typescript@5.6.3)
 
-  '@vitejs/plugin-vue@5.2.0(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))(vue@3.5.13(typescript@5.6.3))':
-    dependencies:
-      vite: 5.4.11(@types/node@22.7.4)(terser@5.31.3)
-      vue: 3.5.13(typescript@5.6.3)
-
   '@vitejs/plugin-vue@5.2.0(vite@6.0.3(@types/node@18.18.9)(jiti@2.4.0)(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0))(vue@3.3.8(typescript@5.6.3))':
     dependencies:
       vite: 6.0.3(@types/node@18.18.9)(jiti@2.4.0)(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0)
@@ -22547,23 +22124,23 @@ snapshots:
       chai: 5.2.0
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@2.1.4(msw@2.6.4(@types/node@18.18.9)(typescript@5.6.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))':
+  '@vitest/mocker@2.1.4(msw@2.6.4(@types/node@18.18.9)(typescript@5.6.3))(vite@5.4.11(@types/node@18.18.9)(terser@5.31.3))':
     dependencies:
       '@vitest/spy': 2.1.4
       estree-walker: 3.0.3
       magic-string: 0.30.17
     optionalDependencies:
       msw: 2.6.4(@types/node@18.18.9)(typescript@5.6.3)
-      vite: 5.4.11(@types/node@22.7.4)(terser@5.31.3)
+      vite: 5.4.11(@types/node@18.18.9)(terser@5.31.3)
 
-  '@vitest/mocker@2.1.4(msw@2.6.4(@types/node@18.19.54)(typescript@5.6.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))':
+  '@vitest/mocker@2.1.4(msw@2.6.4(@types/node@18.19.54)(typescript@5.6.3))(vite@5.4.11(@types/node@18.19.54)(terser@5.31.3))':
     dependencies:
       '@vitest/spy': 2.1.4
       estree-walker: 3.0.3
       magic-string: 0.30.17
     optionalDependencies:
       msw: 2.6.4(@types/node@18.19.54)(typescript@5.6.3)
-      vite: 5.4.11(@types/node@22.7.4)(terser@5.31.3)
+      vite: 5.4.11(@types/node@18.19.54)(terser@5.31.3)
 
   '@vitest/mocker@2.1.4(msw@2.7.0(@types/node@22.7.4)(typescript@5.6.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))':
     dependencies:
@@ -23353,15 +22930,6 @@ snapshots:
       '@types/babel__core': 7.20.5
       '@types/babel__traverse': 7.20.6
 
-  babel-plugin-jsx-dom-expressions@0.37.8(@babel/core@7.23.3):
-    dependencies:
-      '@babel/core': 7.23.3
-      '@babel/helper-module-imports': 7.18.6
-      '@babel/plugin-syntax-jsx': 7.25.9(@babel/core@7.23.3)
-      '@babel/types': 7.26.0
-      html-entities: 2.3.3
-      validate-html-nesting: 1.2.2
-
   babel-plugin-jsx-dom-expressions@0.37.8(@babel/core@7.26.0):
     dependencies:
       '@babel/core': 7.26.0
@@ -23395,11 +22963,6 @@ snapshots:
       '@babel/core': 7.26.0
       babel-plugin-jest-hoist: 29.6.3
       babel-preset-current-node-syntax: 1.1.0(@babel/core@7.26.0)
-
-  babel-preset-solid@1.8.4(@babel/core@7.23.3):
-    dependencies:
-      '@babel/core': 7.23.3
-      babel-plugin-jsx-dom-expressions: 0.37.8(@babel/core@7.23.3)
 
   babel-preset-solid@1.8.4(@babel/core@7.26.0):
     dependencies:
@@ -24811,8 +24374,8 @@ snapshots:
       '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.6.3)
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.35.0(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
@@ -24882,13 +24445,13 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.57.1):
+  eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       debug: 4.4.0(supports-color@9.4.0)
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
-      eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.2
       is-core-module: 2.13.1
@@ -24927,14 +24490,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-module-utils@2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.6.3)
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.57.1)
+      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -24960,14 +24523,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.6.3)
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.57.1)
+      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -25009,7 +24572,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -25019,7 +24582,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       hasown: 2.0.2
       is-core-module: 2.15.0
       is-glob: 4.0.3
@@ -27202,8 +26765,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  jsesc@2.5.2: {}
-
   jsesc@3.0.2: {}
 
   json-bigint@1.0.0:
@@ -28097,7 +27658,7 @@ snapshots:
 
   mlly@1.7.2:
     dependencies:
-      acorn: 8.14.0
+      acorn: 8.14.1
       pathe: 1.1.2
       pkg-types: 1.2.1
       ufo: 1.5.4
@@ -29657,13 +29218,13 @@ snapshots:
 
   react-refresh@0.14.2: {}
 
-  react-server-dom-webpack@18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(webpack@5.96.1):
+  react-server-dom-webpack@18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(webpack@5.96.1(esbuild@0.18.20)):
     dependencies:
       acorn-loose: 8.4.0
       neo-async: 2.6.2
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
-      webpack: 5.96.1
+      webpack: 5.96.1(esbuild@0.18.20)
 
   react@18.2.0:
     dependencies:
@@ -30346,8 +29907,8 @@ snapshots:
 
   solid-refresh@0.5.3(solid-js@1.8.7):
     dependencies:
-      '@babel/generator': 7.24.7
-      '@babel/helper-module-imports': 7.24.7
+      '@babel/generator': 7.26.2
+      '@babel/helper-module-imports': 7.25.9
       '@babel/types': 7.26.0
       solid-js: 1.8.7
     transitivePeerDependencies:
@@ -30988,6 +30549,17 @@ snapshots:
       solid-js: 1.9.3
       solid-use: 0.8.0(solid-js@1.9.3)
 
+  terser-webpack-plugin@5.3.10(esbuild@0.18.20)(webpack@5.96.1(esbuild@0.18.20)):
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.25
+      jest-worker: 27.5.1
+      schema-utils: 3.3.0
+      serialize-javascript: 6.0.2
+      terser: 5.31.3
+      webpack: 5.96.1(esbuild@0.18.20)
+    optionalDependencies:
+      esbuild: 0.18.20
+
   terser-webpack-plugin@5.3.10(webpack@5.96.1):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
@@ -31621,7 +31193,7 @@ snapshots:
   unimport@3.13.1(rollup@4.34.9)(webpack-sources@3.2.3):
     dependencies:
       '@rollup/pluginutils': 5.1.3(rollup@4.34.9)
-      acorn: 8.14.0
+      acorn: 8.14.1
       escape-string-regexp: 5.0.0
       estree-walker: 3.0.3
       fast-glob: 3.3.2
@@ -31719,14 +31291,14 @@ snapshots:
 
   unplugin@1.11.0:
     dependencies:
-      acorn: 8.12.1
+      acorn: 8.14.1
       chokidar: 3.6.0
       webpack-sources: 3.2.3
       webpack-virtual-modules: 0.6.2
 
   unplugin@1.15.0(webpack-sources@3.2.3):
     dependencies:
-      acorn: 8.14.0
+      acorn: 8.14.1
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
       webpack-sources: 3.2.3
@@ -32059,16 +31631,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  vite-plugin-solid@2.7.2(solid-js@1.8.7)(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3)):
+  vite-plugin-solid@2.7.2(solid-js@1.8.7):
     dependencies:
-      '@babel/core': 7.23.3
-      '@babel/preset-typescript': 7.23.3(@babel/core@7.23.3)
-      '@types/babel__core': 7.20.4
-      babel-preset-solid: 1.8.4(@babel/core@7.23.3)
+      '@babel/core': 7.26.0
+      '@babel/preset-typescript': 7.26.0(@babel/core@7.26.0)
+      '@types/babel__core': 7.20.5
+      babel-preset-solid: 1.8.4(@babel/core@7.26.0)
       merge-anything: 5.1.7
       solid-js: 1.8.7
       solid-refresh: 0.5.3(solid-js@1.8.7)
-      vite: 5.4.11(@types/node@22.7.4)(terser@5.31.3)
       vitefu: 0.2.5(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
     transitivePeerDependencies:
       - supports-color
@@ -32172,7 +31743,7 @@ snapshots:
   vitest@2.1.4(@edge-runtime/vm@5.0.0)(@types/node@18.18.9)(jsdom@24.0.0)(msw@2.6.4(@types/node@18.18.9)(typescript@5.6.3))(terser@5.31.3):
     dependencies:
       '@vitest/expect': 2.1.4
-      '@vitest/mocker': 2.1.4(msw@2.6.4(@types/node@18.18.9)(typescript@5.6.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
+      '@vitest/mocker': 2.1.4(msw@2.6.4(@types/node@18.18.9)(typescript@5.6.3))(vite@5.4.11(@types/node@18.18.9)(terser@5.31.3))
       '@vitest/pretty-format': 2.1.4
       '@vitest/runner': 2.1.4
       '@vitest/snapshot': 2.1.4
@@ -32209,7 +31780,7 @@ snapshots:
   vitest@2.1.4(@edge-runtime/vm@5.0.0)(@types/node@18.19.54)(jsdom@26.0.0)(msw@2.6.4(@types/node@18.19.54)(typescript@5.6.3))(terser@5.31.3):
     dependencies:
       '@vitest/expect': 2.1.4
-      '@vitest/mocker': 2.1.4(msw@2.6.4(@types/node@18.19.54)(typescript@5.6.3))(vite@5.4.11(@types/node@22.7.4)(terser@5.31.3))
+      '@vitest/mocker': 2.1.4(msw@2.6.4(@types/node@18.19.54)(typescript@5.6.3))(vite@5.4.11(@types/node@18.19.54)(terser@5.31.3))
       '@vitest/pretty-format': 2.1.4
       '@vitest/runner': 2.1.4
       '@vitest/snapshot': 2.1.4
@@ -32437,6 +32008,36 @@ snapshots:
       schema-utils: 3.3.0
       tapable: 2.2.1
       terser-webpack-plugin: 5.3.10(webpack@5.96.1)
+      watchpack: 2.4.2
+      webpack-sources: 3.2.3
+    transitivePeerDependencies:
+      - '@swc/core'
+      - esbuild
+      - uglify-js
+
+  webpack@5.96.1(esbuild@0.18.20):
+    dependencies:
+      '@types/eslint-scope': 3.7.7
+      '@types/estree': 1.0.6
+      '@webassemblyjs/ast': 1.12.1
+      '@webassemblyjs/wasm-edit': 1.12.1
+      '@webassemblyjs/wasm-parser': 1.12.1
+      acorn: 8.14.1
+      browserslist: 4.24.0
+      chrome-trace-event: 1.0.4
+      enhanced-resolve: 5.17.1
+      es-module-lexer: 1.5.4
+      eslint-scope: 5.1.1
+      events: 3.3.0
+      glob-to-regexp: 0.4.1
+      graceful-fs: 4.2.11
+      json-parse-even-better-errors: 2.3.1
+      loader-runner: 4.3.0
+      mime-types: 2.1.35
+      neo-async: 2.6.2
+      schema-utils: 3.3.0
+      tapable: 2.2.1
+      terser-webpack-plugin: 5.3.10(esbuild@0.18.20)(webpack@5.96.1(esbuild@0.18.20))
       watchpack: 2.4.2
       webpack-sources: 3.2.3
     transitivePeerDependencies:

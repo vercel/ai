@@ -305,7 +305,7 @@ Example response:
 
 With [dynamic retrieval](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-with-google-search#dynamic-retrieval), you can configure how the model decides when to turn on Grounding with Google Search. This gives you more control over when and how the model grounds its responses.
 
-```ts highlight="7-11"
+```ts highlight="7-10"
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
@@ -323,12 +323,12 @@ const { text, providerMetadata } = await generateText({
 
 The `dynamicRetrievalConfig` describes the options to customize dynamic retrieval:
 
-- `mode`: The mode of the predictor to be used in dynamic retrieval
+- `mode`: The mode of the predictor to be used in dynamic retrieval. The following modes are supported:
 
   - `MODE_DYNAMIC`: Run retrieval only when system decides it is necessary
   - `MODE_UNSPECIFIED`: Always trigger retrieval
 
-- `dynamicThreshold`: The threshold to be used in dynamic retrieval (if not set, a system default value is used)
+- `dynamicThreshold`: The threshold to be used in dynamic retrieval (if not set, a system default value is used).
 
 <Note>
   Dynamic retrieval is only available with Gemini 1.5 Flash models and is not

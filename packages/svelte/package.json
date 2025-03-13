@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "1.1.19",
+  "version": "1.1.24",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -45,8 +45,8 @@
     "svelte": "^5.0.0"
   },
   "dependencies": {
-    "@ai-sdk/provider-utils": "2.1.12",
-    "@ai-sdk/ui-utils": "1.1.18"
+    "@ai-sdk/provider-utils": "2.1.13",
+    "@ai-sdk/ui-utils": "1.1.19"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.5",

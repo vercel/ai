@@ -1,5 +1,25 @@
 # @ai-sdk/google
 
+## 1.1.25
+
+### Patch Changes
+
+- Updated dependencies [2e1101a]
+  - @ai-sdk/provider@1.0.11
+  - @ai-sdk/provider-utils@2.1.13
+
+## 1.1.24
+
+### Patch Changes
+
+- 5261762: fix (provider/google): ensure correct finishReason for tool calls in streaming response
+
+## 1.1.23
+
+### Patch Changes
+
+- 413f5a7: feat (providers/google): add gemma 3 model id
+
 ## 1.1.22
 
 ### Patch Changes
