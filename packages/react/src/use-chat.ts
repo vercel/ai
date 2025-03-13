@@ -1,4 +1,3 @@
-'use client';
 import {
   LanguageModelV1,
   LanguageModelV1Message,
