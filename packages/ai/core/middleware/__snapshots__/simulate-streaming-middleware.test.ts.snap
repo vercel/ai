@@ -1,0 +1,440 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
+[
+  {
+    "messageId": "msg-6",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-6",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-13",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 0,
+      "promptTokens": 10,
+      "totalTokens": 10,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "id-13",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 0,
+      "promptTokens": 10,
+      "totalTokens": 10,
+    },
+  },
+]
+`;
+
+exports[`simulateStreamingMiddleware > should pass through warnings from the model 1`] = `
+[
+  {
+    "code": "test_warning",
+    "message": "Test warning",
+    "type": "other",
+  },
+]
+`;
+
+exports[`simulateStreamingMiddleware > should preserve additional metadata in the response 1`] = `
+[
+  {
+    "messageId": "msg-5",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "textDelta": "This is a test response",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": {
+      "custom": {
+        "key": "value",
+      },
+    },
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-5",
+    "providerMetadata": {
+      "custom": {
+        "key": "value",
+      },
+    },
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-11",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": {
+      "custom": {
+        "key": "value",
+      },
+    },
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "providerMetadata": {
+      "custom": {
+        "key": "value",
+      },
+    },
+    "response": {
+      "headers": undefined,
+      "id": "id-11",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+  },
+]
+`;
+
+exports[`simulateStreamingMiddleware > should simulate streaming with reasoning as array of mixed objects 1`] = `
+[
+  {
+    "messageId": "msg-3",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "textDelta": "First reasoning step",
+    "type": "reasoning",
+  },
+  {
+    "data": "data",
+    "type": "redacted-reasoning",
+  },
+  {
+    "textDelta": "This is a test response",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-3",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-7",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "id-7",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+  },
+]
+`;
+
+exports[`simulateStreamingMiddleware > should simulate streaming with reasoning as array of text objects 1`] = `
+[
+  {
+    "messageId": "msg-2",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "textDelta": "First reasoning step",
+    "type": "reasoning",
+  },
+  {
+    "textDelta": "Second reasoning step",
+    "type": "reasoning",
+  },
+  {
+    "signature": "abc",
+    "type": "reasoning-signature",
+  },
+  {
+    "textDelta": "This is a test response",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-2",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-5",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "id-5",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+  },
+]
+`;
+
+exports[`simulateStreamingMiddleware > should simulate streaming with reasoning as string 1`] = `
+[
+  {
+    "messageId": "msg-1",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "textDelta": "This is the reasoning process",
+    "type": "reasoning",
+  },
+  {
+    "textDelta": "This is a test response",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-1",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-3",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "id-3",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+  },
+]
+`;
+
+exports[`simulateStreamingMiddleware > should simulate streaming with text response 1`] = `
+[
+  {
+    "messageId": "msg-0",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "textDelta": "This is a test response",
+    "type": "text-delta",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-0",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "stop",
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "id-1",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+  },
+]
+`;
+
+exports[`simulateStreamingMiddleware > should simulate streaming with tool calls 1`] = `
+[
+  {
+    "messageId": "msg-4",
+    "request": {},
+    "type": "step-start",
+    "warnings": [],
+  },
+  {
+    "textDelta": "This is a test response",
+    "type": "text-delta",
+  },
+  {
+    "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'calculator'. No tools are available.],
+    "type": "error",
+  },
+  {
+    "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. No tools are available.],
+    "type": "error",
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "tool-calls",
+    "isContinued": false,
+    "logprobs": undefined,
+    "messageId": "msg-4",
+    "providerMetadata": undefined,
+    "request": {},
+    "response": {
+      "headers": undefined,
+      "id": "id-9",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "step-finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "finishReason": "tool-calls",
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "response": {
+      "headers": undefined,
+      "id": "id-9",
+      "modelId": "mock-model-id",
+      "timestamp": 2025-01-01T00:00:00.000Z,
+    },
+    "type": "finish",
+    "usage": {
+      "completionTokens": 10,
+      "promptTokens": 10,
+      "totalTokens": 20,
+    },
+  },
+]
+`;

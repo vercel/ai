@@ -52,6 +52,12 @@ const wrappedLanguageModel = wrapLanguageModel({
 
 ## Built-in Middleware
 
+The AI SDK comes with several built-in middlewares that you can use to configure language models:
+
+- `extractReasoningMiddleware`: Extracts reasoning information from the generated text and exposes it as a `reasoning` property on the result.
+- `simulateStreamingMiddleware`: Simulates streaming behavior with responses from non-streaming language models.
+- `defaultSettingsMiddleware`: Applies default settings to a language model.
+
 ### Extract Reasoning
 
 Some providers and models expose reasoning information in the generated text using special tags,
@@ -74,6 +80,40 @@ The `extractReasoningMiddleware` function also includes a `startWithReasoning` o
 When set to `true`, the reasoning tag will be prepended to the generated text.
 This is useful for models that do not include the reasoning tag at the beginning of the response.
 For more details, see the [DeepSeek R1 guide](https://sdk.vercel.ai/docs/guides/r1#deepseek-r1-middleware).
+
+### Simulate Streaming
+
+The `simulateStreamingMiddleware` function can be used to simulate streaming behavior with responses from non-streaming language models.
+This is useful when you want to maintain a consistent streaming interface even when using models that only provide complete responses.
+
+```ts
+import { wrapLanguageModel, simulateStreamingMiddleware } from 'ai';
+
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: simulateStreamingMiddleware(),
+});
+```
+
+### Default Settings
+
+The `defaultSettingsMiddleware` function can be used to apply default settings to a language model.
+
+```ts
+import { wrapLanguageModel, defaultSettingsMiddleware } from 'ai';
+
+const model = wrapLanguageModel({
+  model: yourModel,
+  middleware: defaultSettingsMiddleware({
+    settings: {
+      temperature: 0.5,
+      maxTokens: 800,
+      // note: use providerMetadata instead of providerOptions here:
+      providerMetadata: { openai: { store: false } },
+    },
+  }),
+});
+```
 
 ## Implementing Language Model Middleware
 

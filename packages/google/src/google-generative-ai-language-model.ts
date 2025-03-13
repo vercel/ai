@@ -118,7 +118,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         const { tools, toolConfig, toolWarnings } = prepareTools(
           mode,
           this.settings.useSearchGrounding ?? false,
-          this.modelId.includes('gemini-2'),
+          this.settings.dynamicRetrievalConfig,
+          this.modelId,
         );
 
         return {

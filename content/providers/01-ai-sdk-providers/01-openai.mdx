@@ -5,8 +5,7 @@ description: Learn how to use the OpenAI provider for the AI SDK.
 
 # OpenAI Provider
 
-The [OpenAI](https://openai.com/) provider contains language model support for the OpenAI chat and completion APIs
-and embedding model support for the OpenAI embeddings API.
+The [OpenAI](https://openai.com/) provider contains language model support for the OpenAI responses, chat, and completion APIs, as well as embedding model support for the OpenAI embeddings API.
 
 ## Setup
 
@@ -481,6 +480,97 @@ const result = await generateText({
     },
   ],
 });
+```
+
+### Responses Models
+
+You can use the OpenAI responses API with the `openai.responses(modelId)` factory method.
+
+```ts
+const model = openai.responses('gpt-4o-mini');
+```
+
+Further configuration can be done using OpenAI provider options:
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-4o-mini'),
+  providerOptions: {
+    openai: {
+      parallelToolCalls: false,
+      store: false,
+      user: 'user_123',
+      // ...
+    },
+  },
+  // ...
+});
+```
+
+The following provider options are available:
+
+- **parallelToolCalls** _boolean_
+  Whether to use parallel tool calls. Defaults to `true`.
+
+- **store** _boolean_
+  Whether to store the generation. Defaults to `true`.
+
+- **metadata** _Record&lt;string, string&gt;_
+  Additional metadata to store with the generation.
+
+- **previousResponseId** _string_
+  The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
+
+- **user** _string_
+  A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
+
+- **reasoningEffort** _'low' | 'medium' | 'high'_
+  Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
+
+The OpenAI responses provider also returns provider-specific metadata:
+
+```ts
+const { providerMetadata } = await generateText({
+  model: openai.responses('gpt-4o-mini'),
+});
+
+const openaiMetadata = providerMetadata?.openai;
+```
+
+The following OpenAI-specific metadata is returned:
+
+- **responseId** _string_
+  The ID of the response. Can be used to continue a conversation.
+
+- **cachedPromptTokens** _number_
+  The number of prompt tokens that were a cache hit.
+
+- **reasoningTokens** _number_
+  The number of reasoning tokens that the model generated.
+
+#### Web Search
+
+The OpenAI responses provider supports web search through the `openai.tools.webSearchPreview` tool.
+
+```ts
+const result = await generateText({
+  model: openai.responses('gpt-4o-mini'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search_preview: openai.tools.webSearchPreview({
+      // optional configuration:
+      searchContextSize: 'high',
+      userLocation: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+      },
+    }),
+  },
+});
+
+// URL sources
+const sources = result.sources;
 ```
 
 ### Completion Models

@@ -28,13 +28,13 @@ import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-wh
 import { GenerateTextResult } from './generate-text-result';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
+import { asReasoningText, ReasoningDetail } from './reasoning-detail';
 import { ResponseMessage, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
-import { asReasoningText, ReasoningDetail } from './reasoning-detail';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',

@@ -33,8 +33,11 @@ importers:
         specifier: ^1.44.1
         version: 1.46.0
       prettier:
-        specifier: 2.8.8
-        version: 2.8.8
+        specifier: ^3.3.3
+        version: 3.3.3
+      prettier-plugin-svelte:
+        specifier: ^3.3.3
+        version: 3.3.3(prettier@3.3.3)(svelte@5.2.9)
       publint:
         specifier: 0.2.12
         version: 0.2.12
@@ -57,70 +60,70 @@ importers:
   examples/ai-core:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 2.1.1
+        specifier: 2.1.2
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 1.1.15
+        specifier: 1.1.16
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/azure
       '@ai-sdk/cerebras':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
-        specifier: 1.1.13
+        specifier: 1.1.14
         version: link:../../packages/cohere
       '@ai-sdk/deepinfra':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../../packages/deepinfra
       '@ai-sdk/deepseek':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../../packages/deepseek
       '@ai-sdk/fal':
-        specifier: 0.0.7
+        specifier: 0.0.8
         version: link:../../packages/fal
       '@ai-sdk/fireworks':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 1.1.20
+        specifier: 1.1.23
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.1.24
+        specifier: 2.1.27
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 1.1.12
+        specifier: 1.1.13
         version: link:../../packages/groq
       '@ai-sdk/luma':
-        specifier: 0.0.9
+        specifier: 0.0.10
         version: link:../../packages/luma
       '@ai-sdk/mistral':
-        specifier: 1.1.15
+        specifier: 1.1.16
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../../packages/openai-compatible
       '@ai-sdk/perplexity':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/perplexity
       '@ai-sdk/provider':
         specifier: 1.0.10
         version: link:../../packages/provider
       '@ai-sdk/replicate':
-        specifier: 0.1.12
+        specifier: 0.1.13
         version: link:../../packages/replicate
       '@ai-sdk/togetherai':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../../packages/togetherai
       '@ai-sdk/valibot':
-        specifier: 0.0.21
+        specifier: 0.0.25
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 1.1.13
+        specifier: 1.1.14
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
@@ -135,7 +138,7 @@ importers:
         specifier: 1.28.0
         version: 1.28.0(@opentelemetry/api@1.9.0)
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -175,10 +178,10 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -203,10 +206,10 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -228,13 +231,13 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -253,10 +256,44 @@ importers:
         specifier: 5.6.3
         version: 5.6.3
 
+  examples/mcp:
+    dependencies:
+      '@ai-sdk/openai':
+        specifier: 1.2.3
+        version: link:../../packages/openai
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.7.0
+        version: 1.7.0
+      ai:
+        specifier: 4.1.58
+        version: link:../../packages/ai
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      express:
+        specifier: 5.0.1
+        version: 5.0.1
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+    devDependencies:
+      '@types/express':
+        specifier: 5.0.0
+        version: 5.0.0
+      '@types/node':
+        specifier: 20.11.20
+        version: 20.11.20
+      tsx:
+        specifier: 4.19.2
+        version: 4.19.2
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -268,7 +305,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.9(@nestjs/common@10.4.15(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -344,20 +381,20 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/react':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/react
       '@ai-sdk/ui-utils':
-        specifier: 1.1.17
+        specifier: 1.1.18
         version: link:../../packages/ui-utils
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
-        version: 1.3.1(next@15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))
+        version: 1.3.1(next@15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))
       next:
         specifier: latest
-        version: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react:
         specifier: ^18
         version: 18.2.0
@@ -399,17 +436,17 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 2.1.24
+        specifier: 2.1.27
         version: link:../../packages/google-vertex
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
-        version: 1.3.1(next@15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        version: 1.3.1(next@15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       next:
         specifier: latest
-        version: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -445,7 +482,7 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/react':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/react
       '@langchain/core':
         specifier: 0.1.63
@@ -454,14 +491,14 @@ importers:
         specifier: 0.0.28
         version: 0.0.28
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       langchain:
         specifier: 0.1.36
         version: 0.1.36(@aws-crypto/sha256-js@5.2.0)(@aws-sdk/client-bedrock-runtime@3.663.0)(@aws-sdk/credential-provider-node@3.662.0(@aws-sdk/client-sso-oidc@3.662.0(@aws-sdk/client-sts@3.662.0))(@aws-sdk/client-sts@3.662.0))(@smithy/util-utf8@2.3.0)(@upstash/redis@1.34.3)(@vercel/kv@0.2.4)(fast-xml-parser@4.4.1)(ignore@5.3.2)(ioredis@5.4.1)(jsdom@24.0.0)(lodash@4.17.21)(openai@4.52.6)(playwright@1.46.0)(ws@8.18.0)
       next:
         specifier: latest
-        version: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react:
         specifier: ^18
         version: 18.2.0
@@ -500,38 +537,38 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: 1.1.15
+        specifier: 1.1.16
         version: link:../../packages/anthropic
       '@ai-sdk/deepseek':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 0.1.14
+        specifier: 0.1.15
         version: link:../../packages/fireworks
       '@ai-sdk/google-vertex':
-        specifier: 2.1.24
+        specifier: 2.1.27
         version: link:../../packages/google-vertex
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
-        specifier: 1.0.4
+        specifier: 1.0.5
         version: link:../../packages/perplexity
       '@ai-sdk/react':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/react
       '@ai-sdk/ui-utils':
-        specifier: 1.1.17
+        specifier: 1.1.18
         version: link:../../packages/ui-utils
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       next:
         specifier: latest
-        version: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       openai:
         specifier: 4.52.6
         version: 4.52.6
@@ -579,20 +616,20 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/react
       '@vercel/functions':
         specifier: latest
         version: 2.0.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0))
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       next:
         specifier: latest
-        version: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -634,17 +671,17 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/react
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       next:
         specifier: latest
-        version: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       openai:
         specifier: 4.52.6
         version: 4.52.6
@@ -689,10 +726,10 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -707,11 +744,11 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.29.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       next:
         specifier: latest
-        version: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       openai:
         specifier: 4.52.6
         version: 4.52.6
@@ -756,10 +793,10 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -772,7 +809,7 @@ importers:
         version: 0.55.0(@opentelemetry/api@1.9.0)
       '@sentry/nextjs':
         specifier: ^8.42.0
-        version: 8.42.0(@opentelemetry/core@1.28.0(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))(next@15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react@18.2.0)(webpack@5.96.1)
+        version: 8.42.0(@opentelemetry/core@1.28.0(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))(next@15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react@18.2.0)(webpack@5.96.1)
       '@sentry/opentelemetry':
         specifier: 8.22.0
         version: 8.22.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@1.28.0(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))(@opentelemetry/semantic-conventions@1.27.0)
@@ -780,11 +817,11 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       next:
         specifier: latest
-        version: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        version: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       openai:
         specifier: 4.52.6
         version: 4.52.6
@@ -829,10 +866,10 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -841,11 +878,11 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       next:
         specifier: latest
-        version: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18
         version: 18.3.1
@@ -887,10 +924,10 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -915,13 +952,13 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@ai-sdk/vue':
-        specifier: 1.1.20
+        specifier: 1.1.21
         version: link:../../packages/vue
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       zod:
         specifier: 3.23.8
@@ -970,13 +1007,13 @@ importers:
   examples/solidstart-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@ai-sdk/solid':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../../packages/solid
       '@ai-sdk/ui-utils':
-        specifier: 1.1.17
+        specifier: 1.1.18
         version: link:../../packages/ui-utils
       '@solidjs/meta':
         specifier: 0.29.4
@@ -988,7 +1025,7 @@ importers:
         specifier: ^1.0.10
         version: 1.0.10(@testing-library/jest-dom@6.6.3)(solid-js@1.9.3)(vinxi@0.4.3(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.4.1)(terser@5.31.3)(typescript@5.6.3))(vite@6.0.3(@types/node@22.7.4)(jiti@2.4.0)(terser@5.31.3)(tsx@4.19.2)(yaml@2.5.0))
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       solid-js:
         specifier: ^1.9.3
@@ -1013,13 +1050,13 @@ importers:
   examples/sveltekit-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../../packages/openai
       '@ai-sdk/svelte':
-        specifier: 1.1.22
+        specifier: 1.1.23
         version: link:../../packages/svelte
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../../packages/ai
       openai:
         specifier: 4.52.6
@@ -1068,17 +1105,20 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 1.1.21
+        specifier: 1.1.22
         version: link:../react
       '@ai-sdk/ui-utils':
-        specifier: 1.1.17
+        specifier: 1.1.18
         version: link:../ui-utils
       '@opentelemetry/api':
         specifier: 1.9.0
         version: 1.9.0
+      eventsource-parser:
+        specifier: ^3.0.0
+        version: 3.0.0
       jsondiffpatch:
         specifier: 0.6.0
         version: 0.6.0
@@ -1133,7 +1173,7 @@ importers:
         version: link:../../..
       next:
         specifier: canary
-        version: 15.2.1-canary.6(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@19.0.0-rc.1(react@19.0.0-rc.1))(react@19.0.0-rc.1)
+        version: 15.3.0-canary.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@19.0.0-rc.1(react@19.0.0-rc.1))(react@19.0.0-rc.1)
       react:
         specifier: rc
         version: 19.0.0-rc.1
@@ -1147,7 +1187,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
       '@smithy/eventstream-codec':
         specifier: ^4.0.1
@@ -1181,7 +1221,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1203,13 +1243,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.1
+        specifier: 1.2.3
         version: link:../openai
       '@ai-sdk/provider':
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1231,13 +1271,13 @@ importers:
   packages/cerebras:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1311,7 +1351,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1333,13 +1373,13 @@ importers:
   packages/deepinfra:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1361,13 +1401,13 @@ importers:
   packages/deepseek:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1392,7 +1432,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1414,13 +1454,13 @@ importers:
   packages/fireworks:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1445,7 +1485,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1467,16 +1507,16 @@ importers:
   packages/google-vertex:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: 1.1.15
+        specifier: 1.1.16
         version: link:../anthropic
       '@ai-sdk/google':
-        specifier: 1.1.20
+        specifier: 1.1.23
         version: link:../google
       '@ai-sdk/provider':
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
       google-auth-library:
         specifier: ^9.15.0
@@ -1504,7 +1544,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1529,7 +1569,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1554,7 +1594,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1579,7 +1619,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1604,7 +1644,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1629,7 +1669,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1707,10 +1747,10 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.17
+        specifier: 1.1.18
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
@@ -1774,7 +1814,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1796,10 +1836,10 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.17
+        specifier: 1.1.18
         version: link:../ui-utils
       '@solid-primitives/trigger':
         specifier: ^1.1.0
@@ -1857,10 +1897,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.17
+        specifier: 1.1.18
         version: link:../ui-utils
       svelte:
         specifier: ^3.0.0 || ^4.0.0 || ^5.0.0
@@ -1888,13 +1928,13 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1919,7 +1959,7 @@ importers:
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
       zod-to-json-schema:
         specifier: ^3.24.1
@@ -1953,7 +1993,7 @@ importers:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.0.0-rc.0(valibot@1.0.0-rc.0(typescript@5.6.3))
       ai:
-        specifier: 4.1.54
+        specifier: 4.1.58
         version: link:../ai
     devDependencies:
       '@types/node':
@@ -1975,10 +2015,10 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.17
+        specifier: 1.1.18
         version: link:../ui-utils
       swrv:
         specifier: ^1.0.4
@@ -2030,13 +2070,13 @@ importers:
   packages/xai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.13
+        specifier: 0.1.14
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.0.10
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.11
+        specifier: 2.1.12
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -4744,6 +4784,10 @@ packages:
     resolution: {integrity: sha512-Yhlar6v9WQgUp/He7BdgzOz8lqMQ8sU+jkCq7Wx8Myc5YFJLbEe7lgui/V7G1qB1DJykHSGwreceSaD60Y0PUQ==}
     hasBin: true
 
+  '@modelcontextprotocol/sdk@1.7.0':
+    resolution: {integrity: sha512-IYPe/FLpvF3IZrd/f5p5ffmWhMc3aEMuM2wGJASDqC2Ge7qatVCdbfPx3n/5xFeb19xN0j/911M2AaFuircsWA==}
+    engines: {node: '>=18'}
+
   '@mswjs/interceptors@0.36.10':
     resolution: {integrity: sha512-GXrJgakgJW3DWKueebkvtYgGKkxA7s0u5B0P5syJM5rvQUnrpLPigvci8Hukl7yEM+sU06l+er2Fgvx/gmiRgg==}
     engines: {node: '>=18'}
@@ -4837,11 +4881,11 @@ packages:
   '@next/env@15.0.0-canary.23':
     resolution: {integrity: sha512-lTWE0vMuSo2Vu4lj2NT5VFdFoRIDrc4cDhAKVT3At1LS10nKWKgjTtjE2uw4X1OXDEbvSNlDSe+asa5d/5O2Dg==}
 
-  '@next/env@15.2.1':
-    resolution: {integrity: sha512-JmY0qvnPuS2NCWOz2bbby3Pe0VzdAQ7XpEB6uLIHmtXNfAsAO0KLQLkuAoc42Bxbo3/jMC3dcn9cdf+piCcG2Q==}
+  '@next/env@15.2.2':
+    resolution: {integrity: sha512-yWgopCfA9XDR8ZH3taB5nRKtKJ1Q5fYsTOuYkzIIoS8TJ0UAUKAGF73JnGszbjk2ufAQDj6mDdgsJAFx5CLtYQ==}
 
-  '@next/env@15.2.1-canary.6':
-    resolution: {integrity: sha512-7tiTu5qmtuu6pUmXVzFg10egzCNvULK7+qi/ZgUilGp/n+/U9+apfN1CaXWC0EZC7DcxMU1PdpnyMxJUaR5c5w==}
+  '@next/env@15.3.0-canary.2':
+    resolution: {integrity: sha512-A1xTJZDwhMOMGg/Xq8po7jZURB6KqwHTl/nBMMLkhvVvko7yToFU1vQLbrebEz8wnrssROjNZLy6k9usL+OQdQ==}
 
   '@next/eslint-plugin-next@14.2.3':
     resolution: {integrity: sha512-L3oDricIIjgj1AVnRdRor21gI7mShlSwU/1ZGHmqM3LzHhXXhdkrfeNY5zif25Bi5Dd7fiJHsbhoZCHfXYvlAw==}
@@ -4852,14 +4896,14 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@next/swc-darwin-arm64@15.2.1':
-    resolution: {integrity: sha512-aWXT+5KEREoy3K5AKtiKwioeblmOvFFjd+F3dVleLvvLiQ/mD//jOOuUcx5hzcO9ISSw4lrqtUPntTpK32uXXQ==}
+  '@next/swc-darwin-arm64@15.2.2':
+    resolution: {integrity: sha512-HNBRnz+bkZ+KfyOExpUxTMR0Ow8nkkcE6IlsdEa9W/rI7gefud19+Sn1xYKwB9pdCdxIP1lPru/ZfjfA+iT8pw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
 
-  '@next/swc-darwin-arm64@15.2.1-canary.6':
-    resolution: {integrity: sha512-u+dBhJtxzF8E5bvfTJxzDPsVzXXFZcOgZVrg8IKMrEdYEN2alol9GNEDGRN19UBkLVWp/rXe0pQS/HYjMFCNxA==}
+  '@next/swc-darwin-arm64@15.3.0-canary.2':
+    resolution: {integrity: sha512-Lwx6e+XGEHi6hHp7Iis5dtUSc27zxYDLjMgXVGvTmlSN1NrPyg+CLiRQdbuYCWyqbQ6d1V1SCnchXFQ6hMG8/A==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
@@ -4870,14 +4914,14 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@next/swc-darwin-x64@15.2.1':
-    resolution: {integrity: sha512-E/w8ervu4fcG5SkLhvn1NE/2POuDCDEy5gFbfhmnYXkyONZR68qbUlJlZwuN82o7BrBVAw+tkR8nTIjGiMW1jQ==}
+  '@next/swc-darwin-x64@15.2.2':
+    resolution: {integrity: sha512-mJOUwp7al63tDpLpEFpKwwg5jwvtL1lhRW2fI1Aog0nYCPAhxbJsaZKdoVyPZCy8MYf/iQVNDuk/+i29iLCzIA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
 
-  '@next/swc-darwin-x64@15.2.1-canary.6':
-    resolution: {integrity: sha512-uGZ0cs/S1IgV0SvUQIFT8OB6Te911gEl4/c9ruNkSPe2yQjwcsRsAA3wk8pS5sEc09hcZ4cQ7LGGXpYzzqoF2g==}
+  '@next/swc-darwin-x64@15.3.0-canary.2':
+    resolution: {integrity: sha512-s3LXlSgzd8kGbzvzYiFlKPDnnBVhNxf8mvgEteIULWHq7zW9yM1yJ/CKzIfz8qXySnEkEEaRir5+Zo1/egaKeA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
@@ -4888,14 +4932,14 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-gnu@15.2.1':
-    resolution: {integrity: sha512-gXDX5lIboebbjhiMT6kFgu4svQyjoSed6dHyjx5uZsjlvTwOAnZpn13w9XDaIMFFHw7K8CpBK7HfDKw0VZvUXQ==}
+  '@next/swc-linux-arm64-gnu@15.2.2':
+    resolution: {integrity: sha512-5ZZ0Zwy3SgMr7MfWtRE7cQWVssfOvxYfD9O7XHM7KM4nrf5EOeqwq67ZXDgo86LVmffgsu5tPO57EeFKRnrfSQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-gnu@15.2.1-canary.6':
-    resolution: {integrity: sha512-DBNxRB9b4USdpxmsNBEmS3Emmu4BLI1hyBOfl3LmCinojpNEARE3e5/aUBmenTv69pJgCvOrwsvnGQXueuNB+Q==}
+  '@next/swc-linux-arm64-gnu@15.3.0-canary.2':
+    resolution: {integrity: sha512-Y+aRnKi6czA0XlqBl+RJu+52IbOeOOoYAecgYX5aqU/738x0P/qkQayl3ewp8LFn6rtS+T4REf4bGwM5lZdHXA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -4906,14 +4950,14 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-musl@15.2.1':
-    resolution: {integrity: sha512-3v0pF/adKZkBWfUffmB/ROa+QcNTrnmYG4/SS+r52HPwAK479XcWoES2I+7F7lcbqc7mTeVXrIvb4h6rR/iDKg==}
+  '@next/swc-linux-arm64-musl@15.2.2':
+    resolution: {integrity: sha512-cgKWBuFMLlJ4TWcFHl1KOaVVUAF8vy4qEvX5KsNd0Yj5mhu989QFCq1WjuaEbv/tO1ZpsQI6h/0YR8bLwEi+nA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
 
-  '@next/swc-linux-arm64-musl@15.2.1-canary.6':
-    resolution: {integrity: sha512-GbK2y9bqEwV5K0MFHUXS8SgQldxuV2vzHAe1x/6ApysS2Xxm5TosjBeFzZoFdsyV4VTl4QhtQj1sO1AI2UNMjQ==}
+  '@next/swc-linux-arm64-musl@15.3.0-canary.2':
+    resolution: {integrity: sha512-o/1SnMRtNdPn36+cHXYgr3MJqGBco0HEYoTCEsZ6I1s1zPu9hRT/yWuG9qzQzfz3lJiSieaVcKo32f0Z5HhUWQ==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -4924,14 +4968,14 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-gnu@15.2.1':
-    resolution: {integrity: sha512-RbsVq2iB6KFJRZ2cHrU67jLVLKeuOIhnQB05ygu5fCNgg8oTewxweJE8XlLV+Ii6Y6u4EHwETdUiRNXIAfpBww==}
+  '@next/swc-linux-x64-gnu@15.2.2':
+    resolution: {integrity: sha512-c3kWSOSsVL8rcNBBfOq1+/j2PKs2nsMwJUV4icUxRgGBwUOfppeh7YhN5s79enBQFU+8xRgVatFkhHU1QW7yUA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-gnu@15.2.1-canary.6':
-    resolution: {integrity: sha512-PoxUMqN0dsrABASCyoixDhAYW30F7f0a0TwP4l7bIkSWfhVLBwlqk48amEttm92UsixQPZ0fsvez9I5g36n9dQ==}
+  '@next/swc-linux-x64-gnu@15.3.0-canary.2':
+    resolution: {integrity: sha512-3TiAAStJcuCZQYQBt+sXJSy7so+xb1EvkLDBpfrDJ59fo2gNV6E8puDUfI/3Ff7/s8szcvShGnvaDbWuOFZd8A==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -4942,14 +4986,14 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-musl@15.2.1':
-    resolution: {integrity: sha512-QHsMLAyAIu6/fWjHmkN/F78EFPKmhQlyX5C8pRIS2RwVA7z+t9cTb0IaYWC3EHLOTjsU7MNQW+n2xGXr11QPpg==}
+  '@next/swc-linux-x64-musl@15.2.2':
+    resolution: {integrity: sha512-PXTW9PLTxdNlVYgPJ0equojcq1kNu5NtwcNjRjHAB+/sdoKZ+X8FBu70fdJFadkxFIGekQTyRvPMFF+SOJaQjw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
 
-  '@next/swc-linux-x64-musl@15.2.1-canary.6':
-    resolution: {integrity: sha512-ugQgQTKwEDfxNFGI8NPuXFs/+BE8VGUVtPCdGybJ9fLXn2l02cmQxz9104m38T5CAgeccRvzBlpGASePrexBug==}
+  '@next/swc-linux-x64-musl@15.3.0-canary.2':
+    resolution: {integrity: sha512-eFrxEPN/sCj6ln43KFIZ4NZNNf64mcC2d7O1lvgTXCU19INp3+LKN4W9bTxoBsaS+rvs4FOI88Ew/jZO245qlw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -4960,14 +5004,14 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  '@next/swc-win32-arm64-msvc@15.2.1':
-    resolution: {integrity: sha512-Gk42XZXo1cE89i3hPLa/9KZ8OuupTjkDmhLaMKFohjf9brOeZVEa3BQy1J9s9TWUqPhgAEbwv6B2+ciGfe54Vw==}
+  '@next/swc-win32-arm64-msvc@15.2.2':
+    resolution: {integrity: sha512-nG644Es5llSGEcTaXhnGWR/aThM/hIaz0jx4MDg4gWC8GfTCp8eDBWZ77CVuv2ha/uL9Ce+nPTfYkSLG67/sHg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
 
-  '@next/swc-win32-arm64-msvc@15.2.1-canary.6':
-    resolution: {integrity: sha512-rHE7JFm1DHwBtL2RKp6j65nm7TmgYFQh8f0uNPBNx7ExpxjNpn2mknVJoY4qV6ahn9hxUdM5ZhXHo/TMW86XMg==}
+  '@next/swc-win32-arm64-msvc@15.3.0-canary.2':
+    resolution: {integrity: sha512-an3ocWGTBiLkqySNfQUUzGWmNYSLwNAA1gAcFL3ODjqvB3qd7Zmm2bWowgo3kRuAHxRQGHAdc9tdfgDZckmNHg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
@@ -4984,14 +5028,14 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@next/swc-win32-x64-msvc@15.2.1':
-    resolution: {integrity: sha512-YjqXCl8QGhVlMR8uBftWk0iTmvtntr41PhG1kvzGp0sUP/5ehTM+cwx25hKE54J0CRnHYjSGjSH3gkHEaHIN9g==}
+  '@next/swc-win32-x64-msvc@15.2.2':
+    resolution: {integrity: sha512-52nWy65S/R6/kejz3jpvHAjZDPKIbEQu4x9jDBzmB9jJfuOy5rspjKu4u77+fI4M/WzLXrrQd57hlFGzz1ubcQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
 
-  '@next/swc-win32-x64-msvc@15.2.1-canary.6':
-    resolution: {integrity: sha512-j+g4a4nJY+gcqfsaE2z4dXuKlwEQtvIcHzm/W3OSNbApHX2KmcU3TLWi8tsIWszpTivRUdnqgaCR4RUR4DKwJQ==}
+  '@next/swc-win32-x64-msvc@15.3.0-canary.2':
+    resolution: {integrity: sha512-qriXTohG91MhJNQlDlzSMzRd2HxaQmW35CHmjAL3DhFaiMgOUDOu3koqsQ+zWG1iVMoKUsvGta2kJ5DwGV5BoQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -9099,27 +9143,6 @@ packages:
       eslint: '*'
       eslint-plugin-import: '*'
 
-  eslint-module-utils@2.8.0:
-    resolution: {integrity: sha512-aWajIYfsqCKRDgUfjEXNN/JlrzauMuSEy5sbd7WXbtW3EH6A6MpwEh42c7qD+MqQo9QMJ6fWLAeIJynx0g6OAw==}
-    engines: {node: '>=4'}
-    peerDependencies:
-      '@typescript-eslint/parser': '*'
-      eslint: '*'
-      eslint-import-resolver-node: '*'
-      eslint-import-resolver-typescript: '*'
-      eslint-import-resolver-webpack: '*'
-    peerDependenciesMeta:
-      '@typescript-eslint/parser':
-        optional: true
-      eslint:
-        optional: true
-      eslint-import-resolver-node:
-        optional: true
-      eslint-import-resolver-typescript:
-        optional: true
-      eslint-import-resolver-webpack:
-        optional: true
-
   eslint-module-utils@2.8.1:
     resolution: {integrity: sha512-rXDXR3h7cs7dy9RNpUlQf80nX31XWJEyGq1tRMo+6GsO5VmTe4UTwtmonAD4ZkAsrfMVDA2wlGJ3790Ys+D49Q==}
     engines: {node: '>=4'}
@@ -9278,6 +9301,10 @@ packages:
     resolution: {integrity: sha512-T1C0XCUimhxVQzW4zFipdx0SficT651NnkR0ZSH3yQwh+mFMdLfgjABVi4YtMTtaL4s168593DaoaRLMqryavA==}
     engines: {node: '>=18.0.0'}
 
+  eventsource@3.0.5:
+    resolution: {integrity: sha512-LT/5J605bx5SNyE+ITBDiM3FxffBiq9un7Vx0EwMDM3vg8sWKx/tO2zC+LMqZ+smAM0F2hblaDZUVZF0te2pSw==}
+    engines: {node: '>=18.0.0'}
+
   execa@5.1.1:
     resolution: {integrity: sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==}
     engines: {node: '>=10'}
@@ -9307,6 +9334,12 @@ packages:
 
   expr-eval@2.0.2:
     resolution: {integrity: sha512-4EMSHGOPSwAfBiibw3ndnP0AvjDWLsMvGOvWEZ2F96IGk0bIVdjQisOHxReSkE13mHcfbuCiXw+G4y0zv6N8Eg==}
+
+  express-rate-limit@7.5.0:
+    resolution: {integrity: sha512-eB5zbQh5h+VenMPM3fh+nw1YExi5nMr6HUCR62ELSP11huvxm/Uir1H1QEyTkk5QX6A58pX6NmaTMceKZ0Eodg==}
+    engines: {node: '>= 16'}
+    peerDependencies:
+      express: ^4.11 || 5 || ^5.0.0-beta.1
 
   express@4.21.1:
     resolution: {integrity: sha512-YSFlK1Ee0/GC8QaO91tHcDxJiE/X4FbpAyQWkxAvG6AXCuR65YzK8ua6D9hvi/TzUfZMpc+BwuM1IPw8fmQBiQ==}
@@ -9644,9 +9677,6 @@ packages:
   get-symbol-description@1.0.2:
     resolution: {integrity: sha512-g0QYk1dZBxGwk+Ngc+ltRH2IBp2f7zBkBMBJZCDerh6EhlhSR6+9irMCuT/09zD6qkarHUSn529sK/yL4S27mg==}
     engines: {node: '>= 0.4'}
-
-  get-tsconfig@4.7.2:
-    resolution: {integrity: sha512-wuMsz4leaj5hbGgg4IvDU0bqJagpftG5l5cXIAvo8uZrqn0NJqwtfupTN00VnkQJPcIRrxYrm1Ue24btpCha2A==}
 
   get-tsconfig@4.8.1:
     resolution: {integrity: sha512-k9PN+cFBmaLWtVz29SkUoqU5O0slLuHJXt/2P+tMVFT+phsSGXGkp9t3rQIqdz0e+06EHNGs3oM6ZX1s2zHxRg==}
@@ -11434,8 +11464,8 @@ packages:
       sass:
         optional: true
 
-  next@15.2.1:
-    resolution: {integrity: sha512-zxbsdQv3OqWXybK5tMkPCBKyhIz63RstJ+NvlfkaLMc/m5MwXgz2e92k+hSKcyBpyADhMk2C31RIiaDjUZae7g==}
+  next@15.2.2:
+    resolution: {integrity: sha512-dgp8Kcx5XZRjMw2KNwBtUzhngRaURPioxoNIVl5BOyJbhi9CUgEtKDO7fx5wh8Z8vOVX1nYZ9meawJoRrlASYA==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
     peerDependencies:
@@ -11455,8 +11485,8 @@ packages:
       sass:
         optional: true
 
-  next@15.2.1-canary.6:
-    resolution: {integrity: sha512-e2T+fINdt+RzOzzklf+p4EKRZIaN2B4r8o3u2RrH4I1PIKNfMnTAOXWENkat3pBBcnDC0cbr6GyTU1Gzc0Ox4w==}
+  next@15.3.0-canary.2:
+    resolution: {integrity: sha512-nZ3pmDkM0R1HTPxrKujJokQzWmkkN/JGwMbMmERm7Lj/lsSdmBevr2q8lH6a3xGpxWjt+YRzsrTF1vHtZPOy3A==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
     peerDependencies:
@@ -11986,6 +12016,10 @@ packages:
     resolution: {integrity: sha512-J8B6xqiO37sU/gkcMglv6h5Jbd9xNER7aHzpfRdNmV4IbQBzBpe4l9XmbG+xPF/znacgu2jfEw+wHffaq/YkXA==}
     hasBin: true
 
+  pkce-challenge@4.1.0:
+    resolution: {integrity: sha512-ZBmhE1C9LcPoH9XZSdwiPtbPHZROwAnMy+kIFQVrnMCxY4Cudlz3gBOpzilgc0jOgRaiT3sIWfpMomW2ar2orQ==}
+    engines: {node: '>=16.20.0'}
+
   pkg-dir@3.0.0:
     resolution: {integrity: sha512-/E57AYkoeQ25qkxMj5PBOVgF8Kiu/h7cYS30Z5+R7WaiCCBfLq58ZI/dSeaEKb9WVJV5n/03QwrN3IeWIFllvw==}
     engines: {node: '>=6'}
@@ -12297,6 +12331,12 @@ packages:
   prettier-linter-helpers@1.0.0:
     resolution: {integrity: sha512-GbK2cP9nraSSUF9N2XwUwqfzlAFlMNYYl+ShE/V+H8a9uNl/oUqB1w2EL54Jh0OlyRSd8RfWYJ3coVS4TROP2w==}
     engines: {node: '>=6.0.0'}
+
+  prettier-plugin-svelte@3.3.3:
+    resolution: {integrity: sha512-yViK9zqQ+H2qZD1w/bH7W8i+bVfKrD8GIFjkFe4Thl6kCT9SlAsXVNmt3jCvQOCsnOhcvYgsoVlRV/Eu6x5nNw==}
+    peerDependencies:
+      prettier: ^3.0.0
+      svelte: ^3.2.0 || ^4.0.0-next.0 || ^5.0.0-next.0
 
   prettier@2.8.8:
     resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
@@ -17404,6 +17444,20 @@ snapshots:
       - encoding
       - supports-color
 
+  '@modelcontextprotocol/sdk@1.7.0':
+    dependencies:
+      content-type: 1.0.5
+      cors: 2.8.5
+      eventsource: 3.0.5
+      express: 5.0.1
+      express-rate-limit: 7.5.0(express@5.0.1)
+      pkce-challenge: 4.1.0
+      raw-body: 3.0.0
+      zod: 3.23.8
+      zod-to-json-schema: 3.24.1(zod@3.23.8)
+    transitivePeerDependencies:
+      - supports-color
+
   '@mswjs/interceptors@0.36.10':
     dependencies:
       '@open-draft/deferred-promise': 2.2.0
@@ -17529,9 +17583,9 @@ snapshots:
 
   '@next/env@15.0.0-canary.23': {}
 
-  '@next/env@15.2.1': {}
+  '@next/env@15.2.2': {}
 
-  '@next/env@15.2.1-canary.6': {}
+  '@next/env@15.3.0-canary.2': {}
 
   '@next/eslint-plugin-next@14.2.3':
     dependencies:
@@ -17540,64 +17594,64 @@ snapshots:
   '@next/swc-darwin-arm64@15.0.0-canary.23':
     optional: true
 
-  '@next/swc-darwin-arm64@15.2.1':
+  '@next/swc-darwin-arm64@15.2.2':
     optional: true
 
-  '@next/swc-darwin-arm64@15.2.1-canary.6':
+  '@next/swc-darwin-arm64@15.3.0-canary.2':
     optional: true
 
   '@next/swc-darwin-x64@15.0.0-canary.23':
     optional: true
 
-  '@next/swc-darwin-x64@15.2.1':
+  '@next/swc-darwin-x64@15.2.2':
     optional: true
 
-  '@next/swc-darwin-x64@15.2.1-canary.6':
+  '@next/swc-darwin-x64@15.3.0-canary.2':
     optional: true
 
   '@next/swc-linux-arm64-gnu@15.0.0-canary.23':
     optional: true
 
-  '@next/swc-linux-arm64-gnu@15.2.1':
+  '@next/swc-linux-arm64-gnu@15.2.2':
     optional: true
 
-  '@next/swc-linux-arm64-gnu@15.2.1-canary.6':
+  '@next/swc-linux-arm64-gnu@15.3.0-canary.2':
     optional: true
 
   '@next/swc-linux-arm64-musl@15.0.0-canary.23':
     optional: true
 
-  '@next/swc-linux-arm64-musl@15.2.1':
+  '@next/swc-linux-arm64-musl@15.2.2':
     optional: true
 
-  '@next/swc-linux-arm64-musl@15.2.1-canary.6':
+  '@next/swc-linux-arm64-musl@15.3.0-canary.2':
     optional: true
 
   '@next/swc-linux-x64-gnu@15.0.0-canary.23':
     optional: true
 
-  '@next/swc-linux-x64-gnu@15.2.1':
+  '@next/swc-linux-x64-gnu@15.2.2':
     optional: true
 
-  '@next/swc-linux-x64-gnu@15.2.1-canary.6':
+  '@next/swc-linux-x64-gnu@15.3.0-canary.2':
     optional: true
 
   '@next/swc-linux-x64-musl@15.0.0-canary.23':
     optional: true
 
-  '@next/swc-linux-x64-musl@15.2.1':
+  '@next/swc-linux-x64-musl@15.2.2':
     optional: true
 
-  '@next/swc-linux-x64-musl@15.2.1-canary.6':
+  '@next/swc-linux-x64-musl@15.3.0-canary.2':
     optional: true
 
   '@next/swc-win32-arm64-msvc@15.0.0-canary.23':
     optional: true
 
-  '@next/swc-win32-arm64-msvc@15.2.1':
+  '@next/swc-win32-arm64-msvc@15.2.2':
     optional: true
 
-  '@next/swc-win32-arm64-msvc@15.2.1-canary.6':
+  '@next/swc-win32-arm64-msvc@15.3.0-canary.2':
     optional: true
 
   '@next/swc-win32-ia32-msvc@15.0.0-canary.23':
@@ -17606,10 +17660,10 @@ snapshots:
   '@next/swc-win32-x64-msvc@15.0.0-canary.23':
     optional: true
 
-  '@next/swc-win32-x64-msvc@15.2.1':
+  '@next/swc-win32-x64-msvc@15.2.2':
     optional: true
 
-  '@next/swc-win32-x64-msvc@15.2.1-canary.6':
+  '@next/swc-win32-x64-msvc@15.3.0-canary.2':
     optional: true
 
   '@nodelib/fs.scandir@2.1.5':
@@ -19541,7 +19595,7 @@ snapshots:
 
   '@sentry/core@8.42.0': {}
 
-  '@sentry/nextjs@8.42.0(@opentelemetry/core@1.28.0(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))(next@15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react@18.2.0)(webpack@5.96.1)':
+  '@sentry/nextjs@8.42.0(@opentelemetry/core@1.28.0(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))(next@15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(react@18.2.0)(webpack@5.96.1)':
     dependencies:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/instrumentation-http': 0.53.0(@opentelemetry/api@1.9.0)
@@ -19555,7 +19609,7 @@ snapshots:
       '@sentry/vercel-edge': 8.42.0
       '@sentry/webpack-plugin': 2.22.6(webpack@5.96.1)
       chalk: 3.0.0
-      next: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      next: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       resolve: 1.22.8
       rollup: 3.29.5
       stacktrace-parser: 0.1.10
@@ -23017,11 +23071,11 @@ snapshots:
       debug: 4.3.7(supports-color@9.4.0)
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
-      eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.4.5))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
       fast-glob: 3.3.2
-      get-tsconfig: 4.7.2
-      is-core-module: 2.13.1
+      get-tsconfig: 4.8.1
+      is-core-module: 2.15.0
       is-glob: 4.0.3
     transitivePeerDependencies:
       - '@typescript-eslint/parser'
@@ -23034,38 +23088,16 @@ snapshots:
       debug: 4.3.7(supports-color@9.4.0)
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
-      eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
+      eslint-module-utils: 2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       fast-glob: 3.3.2
-      get-tsconfig: 4.7.2
-      is-core-module: 2.13.1
+      get-tsconfig: 4.8.1
+      is-core-module: 2.15.0
       is-glob: 4.0.3
     transitivePeerDependencies:
       - '@typescript-eslint/parser'
       - eslint-import-resolver-node
       - eslint-import-resolver-webpack
-      - supports-color
-
-  eslint-module-utils@2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
-    dependencies:
-      debug: 3.2.7
-    optionalDependencies:
-      '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.4.5)
-      eslint: 8.57.1
-      eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1)(eslint@8.57.1)
-    transitivePeerDependencies:
-      - supports-color
-
-  eslint-module-utils@2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
-    dependencies:
-      debug: 3.2.7
-    optionalDependencies:
-      '@typescript-eslint/parser': 7.2.0(eslint@8.57.1)(typescript@5.6.3)
-      eslint: 8.57.1
-      eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
-    transitivePeerDependencies:
       - supports-color
 
   eslint-module-utils@2.8.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.4.5))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
@@ -23331,6 +23363,10 @@ snapshots:
 
   eventsource-parser@3.0.0: {}
 
+  eventsource@3.0.5:
+    dependencies:
+      eventsource-parser: 3.0.0
+
   execa@5.1.1:
     dependencies:
       cross-spawn: 7.0.3
@@ -23382,6 +23418,10 @@ snapshots:
       jest-util: 29.7.0
 
   expr-eval@2.0.2: {}
+
+  express-rate-limit@7.5.0(express@5.0.1):
+    dependencies:
+      express: 5.0.1
 
   express@4.21.1:
     dependencies:
@@ -23803,13 +23843,13 @@ snapshots:
       - encoding
       - supports-color
 
-  geist@1.3.1(next@15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)):
+  geist@1.3.1(next@15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)):
     dependencies:
-      next: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      next: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
 
-  geist@1.3.1(next@15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)):
+  geist@1.3.1(next@15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)):
     dependencies:
-      next: 15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      next: 15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
   gensync@1.0.0-beta.2: {}
 
@@ -23838,10 +23878,6 @@ snapshots:
       call-bind: 1.0.7
       es-errors: 1.3.0
       get-intrinsic: 1.2.4
-
-  get-tsconfig@4.7.2:
-    dependencies:
-      resolve-pkg-maps: 1.0.0
 
   get-tsconfig@4.8.1:
     dependencies:
@@ -26136,9 +26172,9 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+  next@15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
-      '@next/env': 15.2.1
+      '@next/env': 15.2.2
       '@swc/counter': 0.1.3
       '@swc/helpers': 0.5.15
       busboy: 1.6.0
@@ -26148,14 +26184,14 @@ snapshots:
       react-dom: 18.2.0(react@18.2.0)
       styled-jsx: 5.1.6(react@18.2.0)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 15.2.1
-      '@next/swc-darwin-x64': 15.2.1
-      '@next/swc-linux-arm64-gnu': 15.2.1
-      '@next/swc-linux-arm64-musl': 15.2.1
-      '@next/swc-linux-x64-gnu': 15.2.1
-      '@next/swc-linux-x64-musl': 15.2.1
-      '@next/swc-win32-arm64-msvc': 15.2.1
-      '@next/swc-win32-x64-msvc': 15.2.1
+      '@next/swc-darwin-arm64': 15.2.2
+      '@next/swc-darwin-x64': 15.2.2
+      '@next/swc-linux-arm64-gnu': 15.2.2
+      '@next/swc-linux-arm64-musl': 15.2.2
+      '@next/swc-linux-x64-gnu': 15.2.2
+      '@next/swc-linux-x64-musl': 15.2.2
+      '@next/swc-win32-arm64-msvc': 15.2.2
+      '@next/swc-win32-x64-msvc': 15.2.2
       '@opentelemetry/api': 1.9.0
       '@playwright/test': 1.46.0
       sharp: 0.33.5
@@ -26163,9 +26199,9 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@15.2.1(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  next@15.2.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
-      '@next/env': 15.2.1
+      '@next/env': 15.2.2
       '@swc/counter': 0.1.3
       '@swc/helpers': 0.5.15
       busboy: 1.6.0
@@ -26175,14 +26211,14 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       styled-jsx: 5.1.6(react@18.3.1)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 15.2.1
-      '@next/swc-darwin-x64': 15.2.1
-      '@next/swc-linux-arm64-gnu': 15.2.1
-      '@next/swc-linux-arm64-musl': 15.2.1
-      '@next/swc-linux-x64-gnu': 15.2.1
-      '@next/swc-linux-x64-musl': 15.2.1
-      '@next/swc-win32-arm64-msvc': 15.2.1
-      '@next/swc-win32-x64-msvc': 15.2.1
+      '@next/swc-darwin-arm64': 15.2.2
+      '@next/swc-darwin-x64': 15.2.2
+      '@next/swc-linux-arm64-gnu': 15.2.2
+      '@next/swc-linux-arm64-musl': 15.2.2
+      '@next/swc-linux-x64-gnu': 15.2.2
+      '@next/swc-linux-x64-musl': 15.2.2
+      '@next/swc-win32-arm64-msvc': 15.2.2
+      '@next/swc-win32-x64-msvc': 15.2.2
       '@opentelemetry/api': 1.9.0
       '@playwright/test': 1.46.0
       sharp: 0.33.5
@@ -26190,9 +26226,9 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@15.2.1-canary.6(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@19.0.0-rc.1(react@19.0.0-rc.1))(react@19.0.0-rc.1):
+  next@15.3.0-canary.2(@opentelemetry/api@1.9.0)(@playwright/test@1.46.0)(react-dom@19.0.0-rc.1(react@19.0.0-rc.1))(react@19.0.0-rc.1):
     dependencies:
-      '@next/env': 15.2.1-canary.6
+      '@next/env': 15.3.0-canary.2
       '@swc/counter': 0.1.3
       '@swc/helpers': 0.5.15
       busboy: 1.6.0
@@ -26202,14 +26238,14 @@ snapshots:
       react-dom: 19.0.0-rc.1(react@19.0.0-rc.1)
       styled-jsx: 5.1.6(react@19.0.0-rc.1)
     optionalDependencies:
-      '@next/swc-darwin-arm64': 15.2.1-canary.6
-      '@next/swc-darwin-x64': 15.2.1-canary.6
-      '@next/swc-linux-arm64-gnu': 15.2.1-canary.6
-      '@next/swc-linux-arm64-musl': 15.2.1-canary.6
-      '@next/swc-linux-x64-gnu': 15.2.1-canary.6
-      '@next/swc-linux-x64-musl': 15.2.1-canary.6
-      '@next/swc-win32-arm64-msvc': 15.2.1-canary.6
-      '@next/swc-win32-x64-msvc': 15.2.1-canary.6
+      '@next/swc-darwin-arm64': 15.3.0-canary.2
+      '@next/swc-darwin-x64': 15.3.0-canary.2
+      '@next/swc-linux-arm64-gnu': 15.3.0-canary.2
+      '@next/swc-linux-arm64-musl': 15.3.0-canary.2
+      '@next/swc-linux-x64-gnu': 15.3.0-canary.2
+      '@next/swc-linux-x64-musl': 15.3.0-canary.2
+      '@next/swc-win32-arm64-msvc': 15.3.0-canary.2
+      '@next/swc-win32-x64-msvc': 15.3.0-canary.2
       '@opentelemetry/api': 1.9.0
       '@playwright/test': 1.46.0
       sharp: 0.33.5
@@ -26913,6 +26949,8 @@ snapshots:
     dependencies:
       pngjs: 3.4.0
 
+  pkce-challenge@4.1.0: {}
+
   pkg-dir@3.0.0:
     dependencies:
       find-up: 3.0.0
@@ -27224,6 +27262,11 @@ snapshots:
   prettier-linter-helpers@1.0.0:
     dependencies:
       fast-diff: 1.3.0
+
+  prettier-plugin-svelte@3.3.3(prettier@3.3.3)(svelte@5.2.9):
+    dependencies:
+      prettier: 3.3.3
+      svelte: 5.2.9
 
   prettier@2.8.8: {}
 
@@ -28391,7 +28434,7 @@ snapshots:
       esrap: 1.2.2
       is-reference: 3.0.3
       locate-character: 3.0.0
-      magic-string: 0.30.12
+      magic-string: 0.30.14
       zimmerframe: 1.1.2
 
   svg-tags@1.0.0: {}

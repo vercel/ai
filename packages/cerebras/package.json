@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/cerebras",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,9 +30,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "0.1.13",
+    "@ai-sdk/openai-compatible": "0.1.14",
     "@ai-sdk/provider": "1.0.10",
-    "@ai-sdk/provider-utils": "2.1.11"
+    "@ai-sdk/provider-utils": "2.1.12"
   },
   "devDependencies": {
     "@types/node": "^18",

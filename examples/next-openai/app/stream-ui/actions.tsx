@@ -41,7 +41,7 @@ export async function submitUserMessage(content: string) {
     system: 'You are a weather assistant.',
     messages: aiState
       .get()
-      .messages.map(({ role, content }) => ({ role, content } as CoreMessage)),
+      .messages.map(({ role, content }) => ({ role, content }) as CoreMessage),
 
     text: ({ content, done, delta }) => {
       if (!textStream) {
