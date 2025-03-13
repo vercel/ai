@@ -25,7 +25,7 @@
             message.role,
           )} my-2 max-w-[80%] p-2 flex flex-col gap-2"
         >
-          {#each message.parts as part}
+          {#each message.parts as part, i (i)}
             {#if part.type === 'text'}
               {part.text}
             {:else if part.type === 'tool-invocation'}

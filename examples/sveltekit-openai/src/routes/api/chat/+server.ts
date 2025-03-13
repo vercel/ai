@@ -44,9 +44,9 @@ export const POST = async ({ request }) => {
         parameters: z.object({}),
       },
     },
-    onError: (error) => {
+    onError: error => {
       console.error(error);
-    }
+    },
   });
 
   return result.toDataStreamResponse();
