@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.59
+
+### Patch Changes
+
+- dd18049: fix (ai/core): suppress next.js warnings for node.js specific code path
+
 ## 4.1.58
 
 ### Patch Changes

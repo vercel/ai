@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.1.24
+
+### Patch Changes
+
+- 5261762: fix (provider/google): ensure correct finishReason for tool calls in streaming response
+
 ## 1.1.23
 
 ### Patch Changes
