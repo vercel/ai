@@ -17,11 +17,13 @@ export async function createChildProcess(
 
   let childProcess;
 
+  // note: split to prevent detection by next.js (suppresses warnings)
+  const nodePrefix = 'node:child_process';
   try {
-    childProcess = await import('node:child_process');
+    childProcess = await import(`${nodePrefix}child_process`);
   } catch (error) {
     try {
-      childProcess = require('node:child_process');
+      childProcess = require(`${nodePrefix}child_process`);
     } catch (innerError) {
       throw new MCPClientError({
         message: 'Failed to load child_process module dynamically',
