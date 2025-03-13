@@ -71,9 +71,34 @@ export function convertToOpenAIResponsesMessages({
                 };
               }
               case 'file': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'Image content parts in user messages',
-                });
+                if (part.data instanceof URL) {
+                  // The AI SDK automatically downloads files for user file parts with URLs
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'File URLs in user messages',
+                  });
+                }
+
+                switch (part.mimeType) {
+                  case 'application/pdf': {
+                    if (part.filename == null) {
+                      throw new UnsupportedFunctionalityError({
+                        functionality: 'Filename is required for PDF files',
+                      });
+                    }
+
+                    return {
+                      type: 'input_file',
+                      filename: part.filename,
+                      file_data: `data:application/pdf;base64,${part.data}`,
+                    };
+                  }
+                  default: {
+                    throw new UnsupportedFunctionalityError({
+                      functionality:
+                        'Only PDF files are supported in user messages',
+                    });
+                  }
+                }
               }
             }
           }),
