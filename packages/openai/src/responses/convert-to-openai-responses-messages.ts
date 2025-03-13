@@ -51,7 +51,7 @@ export function convertToOpenAIResponsesMessages({
       case 'user': {
         messages.push({
           role: 'user',
-          content: content.map(part => {
+          content: content.map((part, index) => {
             switch (part.type) {
               case 'text': {
                 return { type: 'input_text', text: part.text };
@@ -80,15 +80,9 @@ export function convertToOpenAIResponsesMessages({
 
                 switch (part.mimeType) {
                   case 'application/pdf': {
-                    if (part.filename == null) {
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'Filename is required for PDF files',
-                      });
-                    }
-
                     return {
                       type: 'input_file',
-                      filename: part.filename,
+                      filename: part.filename ?? `part-${index}.pdf`,
                       file_data: `data:application/pdf;base64,${part.data}`,
                     };
                   }
