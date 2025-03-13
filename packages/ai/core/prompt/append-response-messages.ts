@@ -37,7 +37,7 @@ Internal. For test use only. May change without notice.
 
     // check if the last message is an assistant message:
     const lastMessage = clonedMessages[clonedMessages.length - 1];
-    const isLastMessageAssistant = lastMessage.role === 'assistant';
+    const isLastMessageAssistant = lastMessage?.role === 'assistant';
 
     switch (role) {
       case 'assistant': {
