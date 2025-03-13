@@ -10,6 +10,7 @@ async function main() {
     providerOptions: {
       openai: {
         reasoningEffort: 'low',
+        reasoningSummary: 'concise',
       },
     },
   });

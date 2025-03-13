@@ -442,7 +442,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send reasoningEffort provider option', async () => {
+      it('should send reasoningEffort and reasoningSummary provider options', async () => {
         const { warnings } = await createModel('o3').doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
@@ -450,6 +450,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           providerMetadata: {
             openai: {
               reasoningEffort: 'low',
+              reasoningSummary: 'concise',
             },
           },
         });
@@ -461,6 +462,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
           reasoning: {
             effort: 'low',
+            generate_summary: 'concise',
           },
         });
 
