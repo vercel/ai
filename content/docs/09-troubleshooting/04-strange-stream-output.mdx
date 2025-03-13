@@ -34,14 +34,3 @@ You have several options:
    ```
 
 2. Pin the AI SDK version to `3.0.19` . This will keep the raw text stream.
-3. Process the stream data stream using `readDataStream`.
-
-   ```tsx
-   for await (const { type, value } of readDataStream(reader, {
-     isAborted: () => abortControllerRef?.current === null,
-   })) {
-     if (type === 'text') {
-       doSomething(value);
-     }
-   }
-   ```
