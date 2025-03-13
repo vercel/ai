@@ -102,6 +102,11 @@ File data. Can either be:
   data: DataContent | URL;
 
   /**
+Optional filename of the file.
+   */
+  filename?: string;
+
+  /**
 Mime type of the file.
    */
   mimeType: string;
@@ -125,6 +130,7 @@ functionality that can be fully encapsulated in the provider.
 export const filePartSchema: z.ZodType<FilePart> = z.object({
   type: z.literal('file'),
   data: z.union([dataContentSchema, z.instanceof(URL)]),
+  filename: z.string().optional(),
   mimeType: z.string(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional(),
