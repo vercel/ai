@@ -1,3 +1,10 @@
+'use client';
+import {
+  LanguageModelV1,
+  LanguageModelV1Message,
+  LanguageModelV1Prompt,
+  LanguageModelV1StreamPart,
+} from '@ai-sdk/provider';
 import type {
   ChatRequest,
   ChatRequestOptions,
@@ -111,6 +118,7 @@ export type UseChatHelpers = {
 
 export function useChat({
   api = '/api/chat',
+  model,
   id,
   initialMessages,
   initialInput = '',
@@ -131,6 +139,17 @@ export function useChat({
   experimental_throttle: throttleWaitMs,
 }: UseChatOptions & {
   key?: string;
+
+  /**
+   * The AI provider model instance.  For example, `google('gemini-pro')`.
+   */
+  model?: LanguageModelV1;
+
+  /**
+   * The API endpoint to use. Defaults to "/api/chat".
+   * If a model is provided, this option is ignored.
+   */
+  api?: string;
 
   /**
    * Experimental (React only). When a function is provided, it will be used
@@ -177,7 +196,10 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
   const chatId = id ?? hookId;
-  const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
+  const chatKey =
+    typeof (model ? model : api) === 'string'
+      ? [model ? model : api, chatId]
+      : chatId;
 
   // Store array of the processed initial messages to avoid re-renders:
   const stableInitialMessages = useStableValue(initialMessages ?? []);
@@ -287,62 +309,152 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
         const existingData = streamDataRef.current;
 
-        await callChatApi({
-          api,
-          body: experimental_prepareRequestBody?.({
-            id: chatId,
-            messages: chatMessages,
-            requestData: chatRequest.data,
-            requestBody: chatRequest.body,
-          }) ?? {
-            id: chatId,
-            messages: constructedMessagesPayload,
-            data: chatRequest.data,
-            ...extraMetadataRef.current.body,
-            ...chatRequest.body,
-          },
-          streamProtocol,
-          credentials: extraMetadataRef.current.credentials,
-          headers: {
-            ...extraMetadataRef.current.headers,
-            ...chatRequest.headers,
-          },
-          abortController: () => abortControllerRef.current,
-          restoreMessagesOnFailure() {
-            if (!keepLastMessageOnError) {
-              throttledMutate(previousMessages, false);
-            }
-          },
-          onResponse,
-          onUpdate({ message, data, replaceLastMessage }) {
-            mutateStatus('streaming');
+        const restoreMessagesOnFailure = () => {
+          if (!keepLastMessageOnError && previousMessages) {
+            throttledMutate(previousMessages, false);
+          }
+        };
 
-            throttledMutate(
-              [
-                ...(replaceLastMessage
-                  ? chatMessages.slice(0, chatMessages.length - 1)
-                  : chatMessages),
-                message,
-              ],
-              false,
-            );
+        if (model) {
+          // Streaming implementation using TransformStream
+          const promptForModel: LanguageModelV1Prompt = chatMessages.map(
+            message => {
+              const baseMessage = {
+                role: message.role as Extract<
+                  UIMessage['role'],
+                  'user' | 'assistant' | 'system' | 'tool'
+                >,
+              };
 
-            if (data?.length) {
-              throttledMutateStreamData(
-                [...(existingData ?? []), ...data],
+              if (message.role === 'system') {
+                return {
+                  ...baseMessage,
+                  content: message.content,
+                } as LanguageModelV1Message;
+              }
+
+              return {
+                ...baseMessage,
+                content: [{ type: 'text', text: message.content }],
+              } as LanguageModelV1Message;
+            },
+          );
+
+          const streamResult = await model.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: promptForModel,
+            abortSignal: abortController.signal,
+          });
+
+          const initialMessage: UIMessage = {
+            id: generateId(),
+            createdAt: new Date(),
+            role: 'assistant',
+            content: '',
+            parts: [],
+          };
+
+          throttledMutate([...chatMessages, initialMessage], false);
+
+          // This variable will hold the complete, accumulated text
+          let accumulatedText = '';
+
+          const transformStream =
+            new TransformStream<LanguageModelV1StreamPart>({
+              transform: (chunk: LanguageModelV1StreamPart, controller) => {
+                if (chunk.type === 'text-delta') {
+                  accumulatedText += chunk.textDelta;
+                  const updatedMessage: UIMessage = {
+                    ...initialMessage,
+                    content: accumulatedText,
+                    parts: [{ type: 'text', text: accumulatedText }],
+                  };
+                  throttledMutate([...chatMessages, updatedMessage], false);
+                } else {
+                  // Handle other stream types as needed (tool-call-delta, etc.)
+                  console.warn('Unhandled stream type:', chunk.type);
+                }
+              },
+            });
+
+          streamResult.stream
+            .pipeThrough(transformStream)
+            .pipeTo(
+              new WritableStream({
+                close() {
+                  mutateStatus('ready');
+                },
+                abort(reason) {
+                  console.error('Stream aborted:', reason);
+                  restoreMessagesOnFailure();
+                  setError(new Error('Stream aborted'));
+                  mutateStatus('error');
+                },
+              }),
+            )
+            .catch(e => {
+              console.error('Error during stream processing', e);
+              restoreMessagesOnFailure();
+              setError(e as Error);
+            });
+        } else {
+          await callChatApi({
+            api,
+            body: experimental_prepareRequestBody?.({
+              id: chatId,
+              messages: chatMessages,
+              requestData: chatRequest.data,
+              requestBody: chatRequest.body,
+            }) ?? {
+              id: chatId,
+              messages: constructedMessagesPayload,
+              data: chatRequest.data,
+              ...extraMetadataRef.current.body,
+              ...chatRequest.body,
+            },
+            streamProtocol,
+            credentials: extraMetadataRef.current.credentials,
+            headers: {
+              ...extraMetadataRef.current.headers,
+              ...chatRequest.headers,
+            },
+            abortController: () => abortControllerRef.current,
+            restoreMessagesOnFailure() {
+              if (!keepLastMessageOnError) {
+                throttledMutate(previousMessages, false);
+              }
+            },
+            onResponse,
+            onUpdate({ message, data, replaceLastMessage }) {
+              mutateStatus('streaming');
+
+              throttledMutate(
+                [
+                  ...(replaceLastMessage
+                    ? chatMessages.slice(0, chatMessages.length - 1)
+                    : chatMessages),
+                  message,
+                ],
                 false,
               );
-            }
-          },
-          onToolCall,
-          onFinish,
-          generateId,
-          fetch,
-          lastMessage: chatMessages[chatMessages.length - 1],
-        });
+
+              if (data?.length) {
+                throttledMutateStreamData(
+                  [...(existingData ?? []), ...data],
+                  false,
+                );
+              }
+            },
+            onToolCall,
+            onFinish,
+            generateId,
+            fetch,
+            lastMessage: chatMessages[chatMessages.length - 1],
+          });
+        }
 
         abortControllerRef.current = null;
-
         mutateStatus('ready');
       } catch (err) {
         // Ignore abort errors as they are expected.
@@ -397,6 +509,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       keepLastMessageOnError,
       throttleWaitMs,
       chatId,
+      model,
     ],
   );
 
