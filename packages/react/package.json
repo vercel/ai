@@ -29,6 +29,7 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
+    "@ai-sdk/provider": "workspace:1.0.11",
     "@ai-sdk/provider-utils": "2.1.13",
     "@ai-sdk/ui-utils": "1.1.19",
     "swr": "^2.2.5",
@@ -36,8 +37,8 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/user-event": "^14.5.2",
     "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
     "@types/node": "^18",
     "@types/react": "^18",
     "@types/react-dom": "^18",
