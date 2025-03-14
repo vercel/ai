@@ -3,22 +3,21 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 
 const MOCK_API_RESPONSE = {
-    name: "Animal Series Ver. 1",
-    items: [
-        "Rabbit",
-        "Monkey",
-        "Chicken",
-        "Elephant",
-        "Panda",
-        "Koala",
-        "Tiger",
-        "Dalmatian",
-        "Frog",
-        "Sloth",
-        "Owl",
-        "Polar Bear"
-    ]
-
+  name: 'Animal Series Ver. 1',
+  items: [
+    'Rabbit',
+    'Monkey',
+    'Chicken',
+    'Elephant',
+    'Panda',
+    'Koala',
+    'Tiger',
+    'Dalmatian',
+    'Frog',
+    'Sloth',
+    'Owl',
+    'Polar Bear',
+  ],
 };
 
 const server = new McpServer({
@@ -34,13 +33,15 @@ server.tool(
   },
   async ({ name }) => {
     return {
-        content: [
-          {
-            type: 'text',
-            text: "The Sonny Angel Animal Series Ver. 1 includes the following items: " + MOCK_API_RESPONSE.items.join(", "),
-          },
-        ],
-      };
+      content: [
+        {
+          type: 'text',
+          text:
+            'The Sonny Angel Animal Series Ver. 1 includes the following items: ' +
+            MOCK_API_RESPONSE.items.join(', '),
+        },
+      ],
+    };
   },
 );
 

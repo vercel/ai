@@ -22,9 +22,9 @@ async function main() {
         'get-sonny-angel-series': {
           parameters: z.object({ name: z.string() }),
         },
-      }
+      },
     });
-    
+
     const { text: answer } = await generateText({
       model: openai('gpt-4o-mini', { structuredOutputs: true }),
       tools,
@@ -33,8 +33,7 @@ async function main() {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },
       system: 'You are an expert in Sonny Angels',
-      prompt:
-        'Can you tell me more about Sonny Angel Animal Series Ver. 1?',
+      prompt: 'Can you tell me more about Sonny Angel Animal Series Ver. 1?',
     });
 
     console.log(`FINAL ANSWER: ${answer}`);
