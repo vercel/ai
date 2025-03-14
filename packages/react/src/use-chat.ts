@@ -385,7 +385,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
                   mutateStatus('ready');
                 },
                 abort(reason) {
-                  console.error('Stream aborted:', reason);
+                  //console.error('Stream aborted:', reason);
                   restoreMessagesOnFailure();
                   setError(new Error('Stream aborted'));
                   mutateStatus('error');
@@ -393,7 +393,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
               }),
             )
             .catch(e => {
-              console.error('Error during stream processing', e);
+              //console.error('Error during stream processing', e);
               restoreMessagesOnFailure();
               setError(e as Error);
             });
