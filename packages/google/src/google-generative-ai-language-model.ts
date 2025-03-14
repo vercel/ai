@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
@@ -15,6 +16,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
+  safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -78,10 +80,28 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
     const warnings: LanguageModelV1CallWarning[] = [];
+
+    // parse and validate provider options:
+    const parsedProviderOptions =
+      providerMetadata != null
+        ? safeValidateTypes({
+            value: providerMetadata,
+            schema: providerOptionsSchema,
+          })
+        : { success: true as const, value: undefined };
+    if (!parsedProviderOptions.success) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message: 'invalid provider options',
+        cause: parsedProviderOptions.error,
+      });
+    }
+    const googleOptions = parsedProviderOptions.value?.google;
 
     const generationConfig = {
       // standardized settings:
@@ -109,8 +129,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         audioTimestamp: this.settings.audioTimestamp,
       }),
 
-      // response modalities:
-      responseModalities: ['TEXT', 'IMAGE'],
+      // provider options:
+      responseModalities: googleOptions?.responseModalities,
     };
 
     const { contents, systemInstruction } =
@@ -597,6 +617,14 @@ const chunkSchema = z.object({
       promptTokenCount: z.number().nullish(),
       candidatesTokenCount: z.number().nullish(),
       totalTokenCount: z.number().nullish(),
+    })
+    .nullish(),
+});
+
+const providerOptionsSchema = z.object({
+  google: z
+    .object({
+      responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).nullish(),
     })
     .nullish(),
 });
