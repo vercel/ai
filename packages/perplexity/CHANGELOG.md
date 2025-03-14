@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 1.0.7
+
+### Patch Changes
+
+- 08f7fec: fix (provider/perplexity): increase resilience against null values
+
 ## 1.0.6
 
 ### Patch Changes

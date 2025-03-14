@@ -176,15 +176,15 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
       toolCalls: [],
       finishReason: mapPerplexityFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
+        promptTokens: response.usage?.prompt_tokens ?? Number.NaN,
+        completionTokens: response.usage?.completion_tokens ?? Number.NaN,
       },
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders, body: rawResponse },
       request: { body: JSON.stringify(args) },
       response: getResponseMetadata(response),
       warnings,
-      sources: response.citations.map(url => ({
+      sources: response.citations?.map(url => ({
         sourceType: 'url',
         id: this.config.generateId(),
         url,
@@ -199,8 +199,8 @@ export class PerplexityLanguageModel implements LanguageModelV1 {
               width: image.width,
             })) ?? null,
           usage: {
-            citationTokens: response.usage.citation_tokens ?? null,
-            numSearchQueries: response.usage.num_search_queries ?? null,
+            citationTokens: response.usage?.citation_tokens ?? null,
+            numSearchQueries: response.usage?.num_search_queries ?? null,
           },
         },
       },
@@ -397,12 +397,12 @@ const perplexityResponseSchema = z.object({
         role: z.literal('assistant'),
         content: z.string(),
       }),
-      finish_reason: z.string(),
+      finish_reason: z.string().nullish(),
     }),
   ),
-  citations: z.array(z.string()),
+  citations: z.array(z.string()).nullish(),
   images: z.array(perplexityImageSchema).nullish(),
-  usage: perplexityUsageSchema,
+  usage: perplexityUsageSchema.nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
