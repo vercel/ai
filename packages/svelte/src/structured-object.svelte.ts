@@ -192,11 +192,7 @@ export class StructuredObject<RESULT, INPUT = unknown> {
             if (this.#options.onFinish != null) {
               const validationResult = safeValidateTypes({
                 value: latestObject,
-                // This is a lot of types, but it's creating an infinite recursion issue in the type system
-                // so the casts are necessary to tell it to quit trying
-                schema: asSchema<RESULT>(
-                  this.#options.schema as Schema<RESULT>,
-                ) as Schema<RESULT>,
+                schema: asSchema(this.#options.schema),
               });
 
               this.#options.onFinish(
