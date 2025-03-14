@@ -1,3 +1,4 @@
+import { GeneratedImage } from '../generate-image/generated-image';
 import {
   CallWarning,
   FinishReason,
@@ -30,6 +31,11 @@ has only generated text.
    */
   // TODO v5: rename to `reasoningText`
   readonly reasoning: string | undefined;
+
+  /**
+The images that were generated. Empty array if no images were generated.
+     */
+  readonly images: Array<GeneratedImage>;
 
   /**
 The full reasoning that the model has generated.

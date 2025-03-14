@@ -234,16 +234,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         ? []
         : candidate.content.parts;
 
-    const inlineDataParts = parts?.filter(
-      part => 'inlineData' in part,
-    ) as Array<
-      GoogleGenerativeAIContentPart & {
-        inlineData: { mimeType: string; data: string };
-      }
-    >;
-
-    console.log(inlineDataParts);
-
     const toolCalls = getToolCallsFromParts({
       parts,
       generateId: this.config.generateId,
@@ -253,6 +243,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     return {
       text: getTextFromParts(parts),
+      images: getImagesFromParts(parts)?.map(part => part.inlineData.data),
       toolCalls,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
@@ -463,6 +454,40 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
     : textParts.map(part => part.text).join('');
 }
 
+function getImagesFromParts(parts: z.infer<typeof contentSchema>['parts']) {
+  return parts?.filter(
+    part =>
+      'inlineData' in part && part.inlineData.mimeType.startsWith('image/'),
+  ) as Array<
+    GoogleGenerativeAIContentPart & {
+      inlineData: { mimeType: `image/${string}`; data: string };
+    }
+  >;
+}
+
+function extractSources({
+  groundingMetadata,
+  generateId,
+}: {
+  groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null;
+  generateId: () => string;
+}): undefined | LanguageModelV1Source[] {
+  return groundingMetadata?.groundingChunks
+    ?.filter(
+      (
+        chunk,
+      ): chunk is z.infer<typeof groundingChunkSchema> & {
+        web: { uri: string; title?: string };
+      } => chunk.web != null,
+    )
+    .map(chunk => ({
+      sourceType: 'url',
+      id: generateId(),
+      url: chunk.web.uri,
+      title: chunk.web.title,
+    }));
+}
+
 const contentSchema = z.object({
   role: z.string(),
   parts: z
@@ -575,26 +600,3 @@ const chunkSchema = z.object({
     })
     .nullish(),
 });
-
-function extractSources({
-  groundingMetadata,
-  generateId,
-}: {
-  groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null;
-  generateId: () => string;
-}): undefined | LanguageModelV1Source[] {
-  return groundingMetadata?.groundingChunks
-    ?.filter(
-      (
-        chunk,
-      ): chunk is z.infer<typeof groundingChunkSchema> & {
-        web: { uri: string; title?: string };
-      } => chunk.web != null,
-    )
-    .map(chunk => ({
-      sourceType: 'url',
-      id: generateId(),
-      url: chunk.web.uri,
-      title: chunk.web.title,
-    }));
-}

@@ -3,6 +3,7 @@ import { Tracer } from '@opentelemetry/api';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { ToolExecutionError } from '../../errors/tool-execution-error';
+import { DefaultGeneratedImage } from '../generate-image/default-generated-image';
 import { CoreAssistantMessage, CoreMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -562,6 +563,10 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
+        images:
+          currentModelResponse?.images?.map(
+            image => new DefaultGeneratedImage({ image }),
+          ) ?? [],
         reasoning: asReasoningText(currentReasoningDetails),
         reasoningDetails: currentReasoningDetails,
         sources,
@@ -692,6 +697,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
+  readonly images: GenerateTextResult<TOOLS, OUTPUT>['images'];
   readonly reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
   readonly reasoningDetails: GenerateTextResult<
     TOOLS,
@@ -723,6 +729,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 
   constructor(options: {
     text: GenerateTextResult<TOOLS, OUTPUT>['text'];
+    images: GenerateTextResult<TOOLS, OUTPUT>['images'];
     reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
     reasoningDetails: GenerateTextResult<TOOLS, OUTPUT>['reasoningDetails'];
     toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
@@ -742,6 +749,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
   }) {
     this.text = options.text;
+    this.images = options.images;
     this.reasoning = options.reasoning;
     this.reasoningDetails = options.reasoningDetails;
     this.toolCalls = options.toolCalls;
