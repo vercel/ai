@@ -32,7 +32,7 @@ const CLIENT_VERSION = '1.0.0';
 
 interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
-  transport: TransportConfig;
+  transport: TransportConfig | MCPTransport;
   /** Optional callback for uncaught errors */
   onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
@@ -78,7 +78,13 @@ class MCPClient {
     onUncaughtError,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
-    this.transport = createMcpTransport(transportConfig);
+
+    if ('type' in transportConfig) {
+      this.transport = createMcpTransport(transportConfig);
+    } else {
+      this.transport = transportConfig;
+    }
+
     this.transport.onClose = () => this.onClose();
     this.transport.onError = (error: Error) => this.onError(error);
     this.transport.onMessage = message => {
