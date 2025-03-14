@@ -594,6 +594,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedFullText = '';
 
     let stepReasoning: Array<ReasoningDetail> = [];
+    let stepImages: Array<string | Uint8Array> = [];
     let activeReasoningText: undefined | (ReasoningDetail & { type: 'text' }) =
       undefined;
 
@@ -688,6 +689,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (part.type === 'step-finish') {
           const stepMessages = toResponseMessages({
             text: recordedContinuationText,
+            images: stepImages,
             reasoning: stepReasoning,
             tools: tools ?? ({} as TOOLS),
             toolCalls: recordedToolCalls,
@@ -1043,6 +1045,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepToolResults: ToolResultUnion<TOOLS>[] = [];
 
           const stepReasoning: Array<ReasoningDetail> = [];
+          const stepImages: Array<string | Uint8Array> = [];
           let activeReasoningText:
             | undefined
             | (ReasoningDetail & { type: 'text' }) = undefined;
@@ -1407,6 +1410,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       responseMessages.push(
                         ...toResponseMessages({
                           text: stepText,
+                          images: stepImages,
                           reasoning: stepReasoning,
                           tools: tools ?? ({} as TOOLS),
                           toolCalls: stepToolCalls,
