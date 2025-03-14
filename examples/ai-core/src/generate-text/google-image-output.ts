@@ -1,6 +1,7 @@
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import 'dotenv/config';
+import { presentImages } from '../lib/present-image';
 
 async function main() {
   const result = await generateText({
@@ -9,9 +10,12 @@ async function main() {
   });
 
   console.log(result.text);
-  console.log();
-  console.log('Token usage:', result.usage);
-  console.log('Finish reason:', result.finishReason);
+
+  if (result.images.length > 0) {
+    for (const image of result.images) {
+      await presentImages([image]);
+    }
+  }
 }
 
 main().catch(console.error);
