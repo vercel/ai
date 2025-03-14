@@ -108,6 +108,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       ...(this.settings.audioTimestamp && {
         audioTimestamp: this.settings.audioTimestamp,
       }),
+
+      // response modalities:
+      responseModalities: ['TEXT', 'IMAGE'],
     };
 
     const { contents, systemInstruction } =
@@ -230,6 +233,16 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       !('parts' in candidate.content)
         ? []
         : candidate.content.parts;
+
+    const inlineDataParts = parts?.filter(
+      part => 'inlineData' in part,
+    ) as Array<
+      GoogleGenerativeAIContentPart & {
+        inlineData: { mimeType: string; data: string };
+      }
+    >;
+
+    console.log(inlineDataParts);
 
     const toolCalls = getToolCallsFromParts({
       parts,
@@ -462,6 +475,12 @@ const contentSchema = z.object({
           functionCall: z.object({
             name: z.string(),
             args: z.unknown(),
+          }),
+        }),
+        z.object({
+          inlineData: z.object({
+            mimeType: z.string(),
+            data: z.string(),
           }),
         }),
       ]),
