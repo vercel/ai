@@ -23,6 +23,7 @@ You can find the changelogs for the individual packages in their respective `CHA
 - [@ai-sdk/openai](./packages/openai/CHANGELOG.md)
 - [@ai-sdk/openai-compatible](./packages/openai-compatible/CHANGELOG.md)
 - [@ai-sdk/perplexity](./packages/perplexity/CHANGELOG.md)
+- [@ai-sdk/sambanova](./packages/sambanova/CHANGELOG.md)
 - [@ai-sdk/togetherai](./packages/togetherai/CHANGELOG.md)
 - [@ai-sdk/xai](./packages/xai/CHANGELOG.md)
 

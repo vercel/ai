@@ -1,0 +1,10 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": ["**/dist/**"]
+    }
+  },
+  "globalEnv": ["LLM_API_KEY"],
+  "globalDependencies": [".env.local"]
+}
