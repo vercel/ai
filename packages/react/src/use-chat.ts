@@ -372,7 +372,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
                   throttledMutate([...chatMessages, updatedMessage], false);
                 } else {
                   // Handle other stream types as needed (tool-call-delta, etc.)
-                  console.warn('Unhandled stream type:', chunk.type);
+                  //console.warn('Unhandled stream type:', chunk.type);
                 }
               },
             });
