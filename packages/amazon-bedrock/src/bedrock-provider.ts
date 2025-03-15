@@ -26,7 +26,7 @@ import {
   BedrockImageModelId,
   BedrockImageSettings,
 } from './bedrock-image-settings';
-import { createSigV4FetchFunction } from './bedrock-sigv4-fetch';
+import { BedrockCredentials, createSigV4FetchFunction } from './bedrock-sigv4-fetch';
 
 export interface AmazonBedrockProviderSettings {
   /**
@@ -68,6 +68,12 @@ or to provide a custom fetch implementation for e.g. testing.
 */
   fetch?: FetchFunction;
 
+
+  /**
+The AWS credential provider to use for the Bedrock provider to get dynamic credentials similar to the AWS SDK.
+   */
+  credentialProvider?: () => Promise<Omit<BedrockCredentials, "region">>;
+
   // for testing
   generateId?: () => string;
 }
@@ -106,30 +112,40 @@ export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
   const sigv4Fetch = createSigV4FetchFunction(
-    () => ({
-      region: loadSetting({
+    async () => {
+      const region = loadSetting({
         settingValue: options.region,
         settingName: 'region',
         environmentVariableName: 'AWS_REGION',
         description: 'AWS region',
-      }),
-      accessKeyId: loadSetting({
-        settingValue: options.accessKeyId,
-        settingName: 'accessKeyId',
-        environmentVariableName: 'AWS_ACCESS_KEY_ID',
-        description: 'AWS access key ID',
-      }),
-      secretAccessKey: loadSetting({
-        settingValue: options.secretAccessKey,
-        settingName: 'secretAccessKey',
-        environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
-        description: 'AWS secret access key',
-      }),
-      sessionToken: loadOptionalSetting({
-        settingValue: options.sessionToken,
-        environmentVariableName: 'AWS_SESSION_TOKEN',
-      }),
-    }),
+      })
+      // If a credential provider is provided, use it to get the credentials.
+      if (options.credentialProvider) {
+        return {
+          ...await options.credentialProvider(),
+          region,
+        }
+      }
+      return {
+        region,
+        accessKeyId: loadSetting({
+          settingValue: options.accessKeyId,
+          settingName: 'accessKeyId',
+          environmentVariableName: 'AWS_ACCESS_KEY_ID',
+          description: 'AWS access key ID',
+        }),
+        secretAccessKey: loadSetting({
+          settingValue: options.secretAccessKey,
+          settingName: 'secretAccessKey',
+          environmentVariableName: 'AWS_SECRET_ACCESS_KEY',
+          description: 'AWS secret access key',
+        }),
+        sessionToken: loadOptionalSetting({
+          settingValue: options.sessionToken,
+          environmentVariableName: 'AWS_SESSION_TOKEN',
+        }),
+      }
+    },
     options.fetch,
   );
 
