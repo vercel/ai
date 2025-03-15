@@ -62,6 +62,18 @@ export function prepareResponsesTools({
               },
             });
             break;
+          case 'openai.computer_use_preview':
+            openaiTools.push({
+              type: 'computer_use_preview',
+              display_width: tool.args.displayWidth as number,
+              display_height: tool.args.displayHeight as number,
+              environment: tool.args.environment as
+                | 'mac'
+                | 'windows'
+                | 'linux'
+                | 'browser',
+            });
+            break;
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
