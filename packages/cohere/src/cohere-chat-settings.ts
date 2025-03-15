@@ -1,5 +1,6 @@
 // https://docs.cohere.com/docs/models
 export type CohereChatModelId =
+  | 'command-a-03-2025'
   | 'command-r-plus'
   | 'command-r-plus-08-2024'
   | 'command-r'
