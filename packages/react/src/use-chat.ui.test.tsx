@@ -11,6 +11,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from './use-chat';
+import { LanguageModelV1ObjectGenerationMode } from '@ai-sdk/provider';
 
 describe('data protocol stream', () => {
   let onFinishCalls: Array<{
@@ -1723,6 +1724,62 @@ describe('should append message with attachments', () => {
       },
     ),
   );
+});
+
+describe('model prop', () => {
+  const mockModel = {
+    id: 'test-model',
+    doStream: vi.fn(() => Promise.resolve({ stream: new ReadableStream() })),
+  } as any; // Missing many props, so we cast to any
+
+  const TestComponent = () => {
+    const { messages, append } = useChat({ model: mockModel });
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        ))}
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({ role: 'user', content: 'hi' });
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+    mockModel.doStream.mockClear(); // Reset mock before each test
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('should call model.doStream when append is called', async () => {
+    await userEvent.click(screen.getByTestId('do-append'));
+    expect(mockModel.doStream).toHaveBeenCalled();
+  });
+
+  it('should call model.doStream with correct messages', async () => {
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    const expectedPrompt = [
+      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+    ];
+    expect(mockModel.doStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputFormat: 'prompt',
+        prompt: expectedPrompt,
+      }),
+    );
+  });
 });
 
 describe('reload', () => {
