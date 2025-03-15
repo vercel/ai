@@ -7,6 +7,8 @@
     "sse:client": "tsx src/sse/client.ts",
     "stdio:build": "tsc src/stdio/server.ts --outDir src/stdio/dist --target es2023 --module nodenext",
     "stdio:client": "tsx src/stdio/client.ts",
+    "custom-transport:build": "tsc src/custom-transport/server.ts --outDir src/custom-transport/dist --target es2023 --module nodenext",
+    "custom-transport:client": "tsx src/custom-transport/client.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
