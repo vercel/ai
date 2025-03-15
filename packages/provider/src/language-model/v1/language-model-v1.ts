@@ -83,7 +83,8 @@ Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
   doGenerate(options: LanguageModelV1CallOptions): PromiseLike<{
-    // TODO v2: switch to a composite content array with text, tool calls, reasoning
+    // TODO v2: switch to a composite content array with text, tool calls, reasoning, images, ...
+
     /**
 Text that the model has generated.
 Can be undefined if the model did not generate any text.
@@ -112,6 +113,15 @@ An optional signature for verifying that the reasoning originated from the model
               data: string;
             }
         >;
+
+    /**
+Generated images as base64 encoded strings or binary data.
+The images should be returned without any unnecessary conversion.
+If the API returns base64 encoded strings, the images should be returned
+as base64 encoded strings. If the API returns binary data, the images should
+be returned as binary data.
+     */
+    images?: Array<string> | Array<Uint8Array>;
 
     /**
 Tool calls that the model has generated.

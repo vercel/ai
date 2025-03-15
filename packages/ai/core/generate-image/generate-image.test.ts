@@ -322,9 +322,6 @@ describe('generateImage', () => {
               }),
           }),
           prompt,
-          _internal: {
-            currentDate: () => testDate,
-          },
         }),
       ).rejects.toMatchObject({
         name: 'AI_NoImageGeneratedError',
@@ -352,9 +349,6 @@ describe('generateImage', () => {
               }),
           }),
           prompt,
-          _internal: {
-            currentDate: () => testDate,
-          },
         }),
       ).rejects.toMatchObject({
         name: 'AI_NoImageGeneratedError',
