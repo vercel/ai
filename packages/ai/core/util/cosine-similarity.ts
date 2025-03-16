@@ -22,8 +22,7 @@ export function cosineSimilarity(
   } = {
     throwErrorForEmptyVectors: false,
   },
-) {
-  // TODO: In the next major version, change the default value of throwErrorForEmptyVectors to true
+): number {
   const { throwErrorForEmptyVectors } = options;
 
   if (vector1.length !== vector2.length) {
@@ -40,35 +39,26 @@ export function cosineSimilarity(
     });
   }
 
-  const magnitude1 = magnitude(vector1);
-  const magnitude2 = magnitude(vector2);
+  if (vector1.length === 0) {
+    return 0; // Return 0 for empty vectors if no error is thrown
+  }
 
-  if (magnitude1 === 0 || magnitude2 === 0) {
+  let dot = 0;
+  let norm1 = 0;
+  let norm2 = 0;
+
+  // Single-pass loop: compute dot product and squared norms concurrently
+  for (let i = 0; i < vector1.length; i++) {
+    const a = vector1[i];
+    const b = vector2[i];
+    dot += a * b;
+    norm1 += a * a;
+    norm2 += b * b;
+  }
+
+  if (norm1 === 0 || norm2 === 0) {
     return 0;
   }
 
-  return dotProduct(vector1, vector2) / (magnitude1 * magnitude2);
-}
-
-/**
- * Calculates the dot product of two vectors.
- * @param vector1 - The first vector.
- * @param vector2 - The second vector.
- * @returns The dot product of vector1 and vector2.
- */
-function dotProduct(vector1: number[], vector2: number[]) {
-  return vector1.reduce(
-    (accumulator: number, value: number, index: number) =>
-      accumulator + value * vector2[index]!,
-    0,
-  );
-}
-
-/**
- * Calculates the magnitude of a vector.
- * @param vector - The vector.
- * @returns The magnitude of the vector.
- */
-function magnitude(vector: number[]) {
-  return Math.sqrt(dotProduct(vector, vector));
+  return dot / (Math.sqrt(norm1) * Math.sqrt(norm2));
 }
