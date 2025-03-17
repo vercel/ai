@@ -370,7 +370,7 @@ This means that, if you want arguments to your class to be reactive, you need to
 <script>
   import { Chat } from '@ai-sdk/svelte';
 
-  let { id } = $props;
+  let { id } = $props();
 
   // won't work; the class instance will be created once, `id` will be copied by value, and won't update when $props.id changes
   let chat = new Chat({ id });
