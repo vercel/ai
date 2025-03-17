@@ -307,7 +307,7 @@ ANTHROPIC_API_KEY=xxxxxxxxx
 ```tsx filename="app/api/chat/route.ts" highlight="2,10-15,18-20"
 import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
-import { streamText } from 'ai';
+import { streamText, type Message } from 'ai';
 
 export const maxDuration = 30;
 
