@@ -268,6 +268,7 @@ describe('MCPClient', () => {
       close: vi.fn(),
     };
     await expect(
+      // @ts-expect-error - invalid transport
       createMCPClient({ transport: invalidTransport }),
     ).rejects.toThrow();
   });
