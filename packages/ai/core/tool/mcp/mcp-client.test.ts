@@ -28,7 +28,7 @@ describe('MCPClient', () => {
 
   it('should return AI SDK compatible tool set', async () => {
     client = await createMCPClient({
-      transport: { type: 'stdio', command: 'node', args: ['test.js'] },
+      transport: { type: 'sse', url: 'https://example.com/sse' },
     });
     const tools = await client.tools();
     expect(tools).toHaveProperty('mock-tool');
@@ -66,7 +66,7 @@ describe('MCPClient', () => {
 
   it('should return typed AI SDK compatible tool set', async () => {
     client = await createMCPClient({
-      transport: { type: 'stdio', command: 'node', args: ['test.js'] },
+      transport: { type: 'sse', url: 'https://example.com/sse' },
     });
     const tools = await client.tools({
       schemas: {
@@ -96,7 +96,7 @@ describe('MCPClient', () => {
 
   it('should not return user-defined tool if it is nonexistent', async () => {
     client = await createMCPClient({
-      transport: { type: 'stdio', command: 'node', args: ['test.js'] },
+      transport: { type: 'sse', url: 'https://example.com/sse' },
     });
     const tools = await client.tools({
       schemas: {
@@ -117,7 +117,7 @@ describe('MCPClient', () => {
         }),
     );
     client = await createMCPClient({
-      transport: { type: 'stdio', command: 'node', args: ['test.js'] },
+      transport: { type: 'sse', url: 'https://example.com/sse' },
     });
     const tools = await client.tools({
       schemas: {
@@ -141,7 +141,7 @@ describe('MCPClient', () => {
     );
 
     client = await createMCPClient({
-      transport: { type: 'stdio', command: 'node', args: ['test.js'] },
+      transport: { type: 'sse', url: 'https://example.com/sse' },
     });
 
     await expect(client.tools()).rejects.toThrow(MCPClientError);
@@ -157,7 +157,7 @@ describe('MCPClient', () => {
 
     await expect(
       createMCPClient({
-        transport: { type: 'stdio', command: 'node', args: ['test.js'] },
+        transport: { type: 'sse', url: 'https://example.com/sse' },
       }),
     ).rejects.toThrowError(MCPClientError);
   });
@@ -179,7 +179,7 @@ describe('MCPClient', () => {
 
     await expect(
       createMCPClient({
-        transport: { type: 'stdio', command: 'node', args: ['test.js'] },
+        transport: { type: 'sse', url: 'https://example.com/sse' },
       }),
     ).rejects.toThrowError(MCPClientError);
   });
@@ -189,7 +189,7 @@ describe('MCPClient', () => {
     const closeSpy = vi.spyOn(mockTransport, 'close');
     createMockTransport.mockImplementation(() => mockTransport);
     const client = await createMCPClient({
-      transport: { type: 'stdio', command: 'node', args: ['test.js'] },
+      transport: { type: 'sse', url: 'https://example.com/sse' },
     });
     await client.close();
     expect(closeSpy).toHaveBeenCalled();
@@ -197,7 +197,7 @@ describe('MCPClient', () => {
 
   it('should throw Abort Error if tool call request is aborted', async () => {
     client = await createMCPClient({
-      transport: { type: 'stdio', command: 'node', args: ['test.js'] },
+      transport: { type: 'sse', url: 'https://example.com/sse' },
     });
     const tools = await client.tools();
     const tool = tools['mock-tool'];
@@ -224,9 +224,51 @@ describe('MCPClient', () => {
     });
     createMockTransport.mockImplementation(() => mockTransport);
     client = await createMCPClient({
-      transport: { type: 'stdio', command: 'node', args: ['test.js'] },
+      transport: { type: 'sse', url: 'https://example.com/sse' },
       onUncaughtError,
     });
     expect(onUncaughtError).toHaveBeenCalled();
+  });
+
+  it('should support custom transports', async () => {
+    const mockTransport = new MockMCPTransport();
+    client = await createMCPClient({
+      transport: mockTransport,
+    });
+    const tools = await client.tools({
+      schemas: {
+        'mock-tool': {
+          parameters: z.object({
+            foo: z.string(),
+          }),
+        },
+      },
+    });
+    expect(tools).toHaveProperty('mock-tool');
+    const tool = tools['mock-tool'];
+
+    type ToolParams = Parameters<typeof tool.execute>[0];
+    expectTypeOf<ToolParams>().toEqualTypeOf<{ foo: string }>();
+
+    const result = await tool.execute(
+      { foo: 'bar' },
+      {
+        messages: [],
+        toolCallId: '1',
+      },
+    );
+
+    expectTypeOf<typeof result>().toEqualTypeOf<CallToolResult>();
+  });
+
+  // what's the expected behavior if the transport is invalid?
+  it('should throw if transport is missing required methods', async () => {
+    const invalidTransport = {
+      start: vi.fn(),
+      close: vi.fn(),
+    };
+    await expect(
+      createMCPClient({ transport: invalidTransport }),
+    ).rejects.toThrow();
   });
 });
