@@ -359,7 +359,7 @@ This simple example demonstrates how tools can expand your model's capabilities.
 
 ## How does `@ai-sdk/svelte` differ from `@ai-sdk/react`?
 
-The surface-level difference is that Svelte uses classes to manage state, whereas React uses hooks, so `useChat` in React is `Chat` in Svelte. Other than that, there are two main things to keep in mind:
+The surface-level difference is that Svelte uses classes to manage state, whereas React uses hooks, so `useChat` in React is `Chat` in Svelte. Other than that, there are a few things to keep in mind:
 
 ### 1. Arguments to classes aren't reactive by default
 
@@ -413,6 +413,25 @@ The same is true of classes in Svelte:
     console.log(chat.messages); // [{ content: 'Hello, world!', role: 'user' }] (plus some other stuff)
   });
 </script>
+```
+
+### 3. Instance synchronization requires context
+
+In React, hook instances with the same `id` are synchronized -- so two instances of `useChat` will have the same `messages`, `status`, etc. if they have the same `id`.
+For most use cases, you probably don't need this behavior -- but if you do, you can create a context in your root layout file using `createAIContext`:
+
+```svelte
+<script>
+  import { createAIContext } from '@ai-sdk/svelte';
+
+  let { children } = $props();
+
+  createAIContext();
+  // all hooks created after this or in components that are children of this component
+  // will have synchronized state
+</script>
+
+{@render children()}
 ```
 
 ## Where to Next?
