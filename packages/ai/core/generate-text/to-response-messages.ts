@@ -1,4 +1,6 @@
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import { ToolResultPart } from '../prompt';
+import { detectImageMimeType } from '../util/detect-image-mimetype';
 import { ReasoningDetail } from './reasoning-detail';
 import { ResponseMessage } from './step-result';
 import { ToolCallArray } from './tool-call';
@@ -38,7 +40,16 @@ export function toResponseMessages<TOOLS extends ToolSet>({
           : { ...part, type: 'redacted-reasoning' as const },
       ),
       // TODO language model v2: switch to order response content (instead of type-based ordering)
-      ...images.map(image => ({ type: 'image' as const, image })),
+      ...images.map(image => ({
+        type: 'file' as const,
+        data: image,
+        mimeType:
+          detectImageMimeType(
+            image instanceof Uint8Array
+              ? image
+              : convertBase64ToUint8Array(image),
+          ) ?? 'image/png', // TODO throw error if mime type is not supported?
+      })),
       { type: 'text' as const, text },
       ...toolCalls,
     ],

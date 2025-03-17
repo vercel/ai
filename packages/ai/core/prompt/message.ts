@@ -115,7 +115,7 @@ export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
       z.array(
         z.union([
           textPartSchema,
-          imagePartSchema,
+          filePartSchema,
           reasoningPartSchema,
           redactedReasoningPartSchema,
           toolCallPartSchema,
@@ -133,11 +133,7 @@ It can be a string or an array of text, image, reasoning, redacted reasoning, an
 export type AssistantContent =
   | string
   | Array<
-      | TextPart
-      | ImagePart
-      | ReasoningPart
-      | RedactedReasoningPart
-      | ToolCallPart
+      TextPart | FilePart | ReasoningPart | RedactedReasoningPart | ToolCallPart
     >;
 
 /**

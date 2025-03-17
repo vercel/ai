@@ -17,6 +17,7 @@ import {
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { splitDataUrl } from './split-data-url';
 import { StandardizedPrompt } from './standardize-prompt';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 export async function convertToLanguageModelPrompt({
   prompt,
@@ -114,13 +115,14 @@ export function convertToLanguageModelMessage(
               part.providerOptions ?? part.experimental_providerMetadata;
 
             switch (part.type) {
-              case 'image': {
+              case 'file': {
                 return {
-                  type: 'image',
-                  image:
-                    part.image instanceof URL
-                      ? part.image // TODO download support
-                      : convertDataContentToUint8Array(part.image),
+                  type: 'file',
+                  data:
+                    part.data instanceof URL
+                      ? part.data // TODO download support
+                      : convertDataContentToBase64String(part.data),
+                  filename: part.filename,
                   mimeType: part.mimeType,
                   providerMetadata: providerOptions,
                 };

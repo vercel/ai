@@ -32,7 +32,7 @@ export type LanguageModelV1Message =
         role: 'assistant';
         content: Array<
           | LanguageModelV1TextPart
-          | LanguageModelV1ImagePart
+          | LanguageModelV1FilePart
           | LanguageModelV1ReasoningPart
           | LanguageModelV1RedactedReasoningPart
           | LanguageModelV1ToolCallPart
