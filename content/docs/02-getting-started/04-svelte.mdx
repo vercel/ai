@@ -178,7 +178,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `src/routes/api/chat/+server.ts` file to include the new weather tool:
 
-```tsx filename="src/routes/api/chat/+server.ts" highlight="2,4,18-32"
+```tsx filename="src/routes/api/chat/+server.ts" highlight="2,3,17-31"
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
@@ -280,7 +280,7 @@ Modify your `src/routes/+page.svelte` file to include the `maxSteps` option:
 <script>
   import { Chat } from '@ai-sdk/svelte';
 
-  const { messages, input, handleSubmit } = new Chat({ maxSteps: 5 });
+  const chat = new Chat({ maxSteps: 5 });
 </script>
 
 <!-- ... rest of your component code -->
