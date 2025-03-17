@@ -81,13 +81,6 @@ export function convertToGoogleGenerativeAIMessages(
 
               break;
             }
-
-            default: {
-              const _exhaustiveCheck: never = part;
-              throw new UnsupportedFunctionalityError({
-                functionality: `prompt part: ${_exhaustiveCheck}`,
-              });
-            }
           }
         }
 
@@ -108,6 +101,7 @@ export function convertToGoogleGenerativeAIMessages(
                     ? undefined
                     : { text: part.text };
                 }
+
                 case 'file': {
                   if (part.mimeType !== 'image/png') {
                     throw new UnsupportedFunctionalityError({
@@ -130,6 +124,7 @@ export function convertToGoogleGenerativeAIMessages(
                     },
                   };
                 }
+
                 case 'tool-call': {
                   return {
                     functionCall: {
@@ -161,10 +156,6 @@ export function convertToGoogleGenerativeAIMessages(
           })),
         });
         break;
-      }
-      default: {
-        const _exhaustiveCheck: never = role;
-        throw new Error(`Unsupported role: ${_exhaustiveCheck}`);
       }
     }
   }
