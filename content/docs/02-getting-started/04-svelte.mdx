@@ -305,7 +305,7 @@ const openai = createOpenAI({
   apiKey: OPENAI_API_KEY,
 });
 
-export const POST = async ({ request }) => {
+export async function POST({ request }) {
   const { messages } = await request.json();
 
   const result = streamText({
