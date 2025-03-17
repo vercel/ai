@@ -24,9 +24,9 @@ Start by creating a new Next.js application. This command will create a new dire
 
 <div className="mb-4">
   <Note>
-    Be sure to select yes when prompted to use the App Router. If you are
-    looking for the Next.js Pages Router quickstart guide, you can find it
-    [here](/docs/getting-started/nextjs-pages-router).
+    Be sure to select yes when prompted to use the App Router and Tailwind CSS.
+    If you are looking for the Next.js Pages Router quickstart guide, you can
+    find it [here](/docs/getting-started/nextjs-pages-router).
   </Note>
 </div>
 
@@ -134,7 +134,7 @@ export default function Chat() {
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.parts.map(part => {
+          {message.parts.map((part, i) => {
             switch (part.type) {
               case 'text':
                 return <div key={`${message.id}-${i}`}>{part.text}</div>;
