@@ -126,7 +126,7 @@ export class Chat {
 
     const messages = this.messages.concat({
       ...message,
-      id: message.id ?? generateId(),
+      id: message.id ?? this.#generateId(),
       createdAt: message.createdAt ?? new Date(),
       experimental_attachments:
         attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,

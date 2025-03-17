@@ -1465,3 +1465,40 @@ describe('synchronization', () => {
     ),
   );
 });
+
+describe('generateId function', () => {
+  it(
+    'should use the provided generateId function for both user and assistant messages',
+    withTestServer(
+      {
+        url: '/api/chat',
+        type: 'stream-values',
+        content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      },
+      async () => {
+        const mockGenerateId = vi.fn().mockReturnValue('custom-id');
+        const chatWithCustomId = new Chat({
+          generateId: mockGenerateId,
+        });
+
+        await chatWithCustomId.append({ role: 'user', content: 'hi' });
+
+        expect(chatWithCustomId.messages.at(1)).toStrictEqual(
+          expect.objectContaining({
+            id: 'custom-id',
+            role: 'assistant',
+            content: 'Hello, world.',
+          }),
+        );
+
+        expect(chatWithCustomId.messages.at(0)).toStrictEqual(
+          expect.objectContaining({
+            id: 'custom-id',
+            role: 'user',
+            content: 'hi',
+          }),
+        );
+      },
+    ),
+  );
+});
