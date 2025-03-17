@@ -97,7 +97,7 @@ describe('SSEClientTransport', () => {
     });
 
     const messagePromise = new Promise(resolve => {
-      transport.onMessage = msg => resolve(msg);
+      transport.onmessage = msg => resolve(msg);
     });
 
     const connectPromise = transport.start();
@@ -141,11 +141,7 @@ describe('SSEClientTransport', () => {
     });
 
     const errorPromise = new Promise<unknown>(resolve => {
-      transport.onError = err => resolve(err);
-    });
-
-    const messagePromise = new Promise<unknown>(resolve => {
-      transport.onMessage = msg => resolve(msg);
+      transport.onerror = err => resolve(err);
     });
 
     const connectPromise = transport.start();
@@ -232,7 +228,7 @@ describe('SSEClientTransport', () => {
     });
 
     const errorPromise = new Promise<unknown>(resolve => {
-      transport.onError = err => resolve(err);
+      transport.onerror = err => resolve(err);
     });
 
     const connectPromise = transport.start();
@@ -265,7 +261,7 @@ describe('SSEClientTransport', () => {
     });
 
     const errorPromise = new Promise<unknown>(resolve => {
-      transport.onError = err => resolve(err);
+      transport.onerror = err => resolve(err);
     });
 
     const connectPromise = transport.start();

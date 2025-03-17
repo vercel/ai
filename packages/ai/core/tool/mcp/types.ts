@@ -1,5 +1,3 @@
-import type { IOType } from 'node:child_process';
-import type { Stream } from 'node:stream';
 import { z } from 'zod';
 import {
   inferParameters,
@@ -42,11 +40,14 @@ export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
         };
       };
 
-export interface McpStdioServerConfig {
+/**
+ * @deprecated Use custom transports instead. Import stdio transport from 'ai/mcp-stdio' or implement your own transport using @modelcontextprotocol/sdk.
+ */
+interface McpStdioServerConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;
-  stderr?: IOType | Stream | number;
+  stderr?: any | number;
   cwd?: string;
   type: 'stdio';
 }
@@ -139,13 +140,40 @@ export const JSONRPCMessageSchema = z.union([
 ]);
 export type JSONRPCMessage = z.infer<typeof JSONRPCMessageSchema>;
 
+/**
+ * Transport interface for MCP (Model Context Protocol) communication.
+ */
 export interface MCPTransport {
+  /**
+   * Initialize and start the transport
+   */
   start(): Promise<void>;
+
+  /**
+   * Send a JSON-RPC message through the transport
+   * @param message The JSON-RPC message to send
+   */
   send(message: JSONRPCMessage): Promise<void>;
+
+  /**
+   * Clean up and close the transport
+   */
   close(): Promise<void>;
-  onClose?: () => void;
-  onError?: (error: Error) => void;
-  onMessage?: (message: JSONRPCMessage) => void;
+
+  /**
+   * Event handler for transport closure
+   */
+  onclose?: () => void;
+
+  /**
+   * Event handler for transport errors
+   */
+  onerror?: (error: Error) => void;
+
+  /**
+   * Event handler for received messages
+   */
+  onmessage?: (message: JSONRPCMessage) => void;
 }
 
 const ServerCapabilitiesSchema = z

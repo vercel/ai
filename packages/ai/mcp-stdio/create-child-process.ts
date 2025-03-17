@@ -1,6 +1,6 @@
 import type { ChildProcess } from 'node:child_process';
-import { MCPClientError } from '../../../errors';
-import { McpStdioServerConfig } from './types';
+import { MCPClientError } from '../errors';
+import { McpStdioServerConfig } from './mcp-stdio-transport';
 
 export async function createChildProcess(
   config: McpStdioServerConfig,

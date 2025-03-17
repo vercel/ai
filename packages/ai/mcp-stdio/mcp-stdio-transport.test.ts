@@ -1,10 +1,10 @@
 import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MCPClientError } from '../../../errors';
+import { JSONRPCMessage } from '../core/tool/mcp/types';
+import { MCPClientError } from '../errors';
 import { createChildProcess } from './create-child-process';
 import { StdioClientTransport } from './mcp-stdio-transport';
-import { JSONRPCMessage } from './types';
 
 vi.mock('./create-child-process', { spy: true });
 
@@ -42,7 +42,6 @@ describe('MCPStdIOTransport', () => {
     transport = new StdioClientTransport({
       command: 'test-command',
       args: ['--test'],
-      type: 'stdio',
     });
   });
 
@@ -101,7 +100,7 @@ describe('MCPStdIOTransport', () => {
     it('should handle spawn errors', async () => {
       const error = new Error('Spawn failed');
       const onErrorSpy = vi.fn();
-      transport.onError = onErrorSpy;
+      transport.onerror = onErrorSpy;
 
       // simulate `spawn` failure by emitting error event after returning child process
       mockChildProcess.on.mockImplementation(
@@ -202,7 +201,7 @@ describe('MCPStdIOTransport', () => {
           }
         },
       );
-      transport.onMessage = onMessageSpy;
+      transport.onmessage = onMessageSpy;
       await transport.start();
     });
 
@@ -246,7 +245,7 @@ describe('MCPStdIOTransport', () => {
           }
         },
       );
-      transport.onClose = onCloseSpy;
+      transport.onclose = onCloseSpy;
       await transport.start();
     });
 

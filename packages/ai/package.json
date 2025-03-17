@@ -56,6 +56,11 @@
       "react-server": "./react/dist/index.server.mjs",
       "import": "./react/dist/index.mjs",
       "require": "./react/dist/index.js"
+    },
+    "./mcp-stdio": {
+      "types": "./mcp-stdio/dist/index.d.ts",
+      "import": "./mcp-stdio/dist/index.mjs",
+      "require": "./mcp-stdio/dist/index.js"
     }
   },
   "dependencies": {

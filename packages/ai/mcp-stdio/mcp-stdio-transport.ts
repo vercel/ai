@@ -1,12 +1,20 @@
-import type { ChildProcess } from 'node:child_process';
-import { MCPClientError } from '../../../errors';
-import { createChildProcess } from './create-child-process';
+import type { ChildProcess, IOType } from 'node:child_process';
+import { Stream } from 'node:stream';
 import {
   JSONRPCMessage,
   JSONRPCMessageSchema,
   MCPTransport,
-  McpStdioServerConfig,
-} from './types';
+} from '../core/tool/mcp/types';
+import { MCPClientError } from '../errors';
+import { createChildProcess } from './create-child-process';
+
+export interface McpStdioServerConfig {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  stderr?: IOType | Stream | number;
+  cwd?: string;
+}
 
 export class StdioClientTransport implements MCPTransport {
   private process?: ChildProcess;
@@ -14,9 +22,9 @@ export class StdioClientTransport implements MCPTransport {
   private readBuffer: ReadBuffer = new ReadBuffer();
   private serverParams: McpStdioServerConfig;
 
-  onClose?: () => void;
-  onError?: (error: unknown) => void;
-  onMessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: unknown) => void;
+  onmessage?: (message: JSONRPCMessage) => void;
 
   constructor(server: McpStdioServerConfig) {
     this.serverParams = server;
@@ -40,12 +48,12 @@ export class StdioClientTransport implements MCPTransport {
 
         this.process.on('error', error => {
           if (error.name === 'AbortError') {
-            this.onClose?.();
+            this.onclose?.();
             return;
           }
 
           reject(error);
-          this.onError?.(error);
+          this.onerror?.(error);
         });
 
         this.process.on('spawn', () => {
@@ -54,11 +62,11 @@ export class StdioClientTransport implements MCPTransport {
 
         this.process.on('close', _code => {
           this.process = undefined;
-          this.onClose?.();
+          this.onclose?.();
         });
 
         this.process.stdin?.on('error', error => {
-          this.onError?.(error);
+          this.onerror?.(error);
         });
 
         this.process.stdout?.on('data', chunk => {
@@ -67,11 +75,11 @@ export class StdioClientTransport implements MCPTransport {
         });
 
         this.process.stdout?.on('error', error => {
-          this.onError?.(error);
+          this.onerror?.(error);
         });
       } catch (error) {
         reject(error);
-        this.onError?.(error);
+        this.onerror?.(error);
       }
     });
   }
@@ -84,9 +92,9 @@ export class StdioClientTransport implements MCPTransport {
           break;
         }
 
-        this.onMessage?.(message);
+        this.onmessage?.(message);
       } catch (error) {
-        this.onError?.(error as Error);
+        this.onerror?.(error as Error);
       }
     }
   }
