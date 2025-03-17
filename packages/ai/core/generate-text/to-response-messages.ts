@@ -1,3 +1,4 @@
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import { ToolResultPart } from '../prompt';
 import { detectImageMimeType } from '../util/detect-image-mimetype';
@@ -48,7 +49,13 @@ export function toResponseMessages<TOOLS extends ToolSet>({
             image instanceof Uint8Array
               ? image
               : convertBase64ToUint8Array(image),
-          ) ?? 'image/png', // TODO throw error if mime type is not supported?
+          ) ??
+          (() => {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'assistant-image-mime-type',
+              message: 'Unsupported image mime type for assistant message.',
+            });
+          })(),
       })),
       { type: 'text' as const, text },
       ...toolCalls,
