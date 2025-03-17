@@ -120,7 +120,7 @@ export function convertToLanguageModelMessage(
                   type: 'file',
                   data:
                     part.data instanceof URL
-                      ? part.data // TODO download support
+                      ? part.data
                       : convertDataContentToBase64String(part.data),
                   filename: part.filename,
                   mimeType: part.mimeType,
