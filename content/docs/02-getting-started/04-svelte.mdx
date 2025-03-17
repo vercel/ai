@@ -102,7 +102,7 @@ export const POST = async ({ request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
-    model: openai("gpt-4o"),
+    model: openai('gpt-4o'),
     messages,
   });
 
@@ -193,13 +193,13 @@ export const POST = async ({ request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
-    model: openai("gpt-4o"),
+    model: openai('gpt-4o'),
     messages,
     tools: {
       weather: tool({
-        description: "Get the weather in a location (fahrenheit)",
+        description: 'Get the weather in a location (fahrenheit)',
         parameters: z.object({
-          location: z.string().describe("The location to get the weather for"),
+          location: z.string().describe('The location to get the weather for'),
         }),
         execute: async ({ location }) => {
           const temperature = Math.round(Math.random() * (90 - 32) + 32);
