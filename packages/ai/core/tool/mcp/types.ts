@@ -53,6 +53,7 @@ export interface McpStdioServerConfig {
 export interface McpSSEServerConfig {
   type: 'sse';
   url: string;
+  headers?: Record<string, string>;
 }
 export type TransportConfig = McpStdioServerConfig | McpSSEServerConfig;
 

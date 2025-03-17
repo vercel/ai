@@ -12,6 +12,7 @@ export class SSEClientTransport implements MCPTransport {
   private abortController?: AbortController;
   private url: URL;
   private connected = false;
+  private headers?: Record<string, string>;
   private sseConnection?: {
     close: () => void;
   };
@@ -20,8 +21,9 @@ export class SSEClientTransport implements MCPTransport {
   onError?: (error: unknown) => void;
   onMessage?: (message: JSONRPCMessage) => void;
 
-  constructor({ url }: McpSSEServerConfig) {
+  constructor({ url, headers }: McpSSEServerConfig) {
     this.url = new URL(url);
+    this.headers = headers;
   }
 
   async start(): Promise<void> {
@@ -37,6 +39,7 @@ export class SSEClientTransport implements MCPTransport {
           const response = await fetch(this.url.href, {
             headers: {
               Accept: 'text/event-stream',
+              ...this.headers,
             },
             signal: this.abortController?.signal,
           });
@@ -147,6 +150,9 @@ export class SSEClientTransport implements MCPTransport {
     try {
       const headers = new Headers();
       headers.set('Content-Type', 'application/json');
+      Object.entries(this.headers ?? {}).forEach(([key, value]) => {
+        headers.set(key, value);
+      });
       const init = {
         method: 'POST',
         headers,
