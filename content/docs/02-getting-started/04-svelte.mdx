@@ -20,13 +20,13 @@ To follow this quickstart, you'll need:
 
 If you haven't obtained your OpenAI API key, you can do so by [signing up](https://platform.openai.com/signup/) on the OpenAI website.
 
-## Setup Your Application
+## Set Up Your Application
 
 <Note>This guide applies to SvelteKit versions 4 and below.</Note>
 
 Start by creating a new SvelteKit application. This command will create a new directory named `my-ai-app` and set up a basic SvelteKit application inside it.
 
-<Snippet text="pnpm create svelte@6.3.2 my-ai-app" />
+<Snippet text="npx sv create my-ai-app" />
 
 Navigate to the newly created directory:
 
@@ -46,13 +46,16 @@ Install `ai` and `@ai-sdk/openai`, the AI SDK's OpenAI provider.
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add ai @ai-sdk/openai @ai-sdk/svelte zod" dark />
+      <Snippet text="pnpm add -D ai @ai-sdk/openai @ai-sdk/svelte zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/openai @ai-sdk/svelte zod" dark />
+      <Snippet
+        text="npm install -D ai @ai-sdk/openai @ai-sdk/svelte zod"
+        dark
+      />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/openai @ai-sdk/svelte zod" dark />
+      <Snippet text="yarn add -D ai @ai-sdk/openai @ai-sdk/svelte zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -76,8 +79,9 @@ OPENAI_API_KEY=xxxxxxxxx
 Replace `xxxxxxxxx` with your actual OpenAI API key.
 
 <Note className="mb-4">
-  The AI SDK's OpenAI Provider will default to using the `OPENAI_API_KEY`
-  environment variable.
+  Vite does not automatically load environment variables onto `process.env`, so
+  you'll need to import `OPENAI_API_KEY` from `$env/static/private` in your code
+  (see below).
 </Note>
 
 ## Create an API route
@@ -87,15 +91,14 @@ Create a SvelteKit Endpoint, `src/routes/api/chat/+server.ts` and add the follow
 ```tsx filename="src/routes/api/chat/+server.ts"
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
-import type { RequestHandler } from './$types';
 
-import { env } from '$env/dynamic/private';
+import { OPENAI_API_KEY } from '$env/static/private';
 
 const openai = createOpenAI({
-  apiKey: env.OPENAI_API_KEY ?? '',
+  apiKey: OPENAI_API_KEY,
 });
 
-export const POST = (async ({ request }) => {
+export function POST(async ({ request }) {
   const { messages } = await request.json();
 
   const result = streamText({
@@ -104,12 +107,12 @@ export const POST = (async ({ request }) => {
   });
 
   return result.toDataStreamResponse();
-}) satisfies RequestHandler;
+});
 ```
 
 <Note>
-  You may see an error with the `./$types` import. This will be resolved as soon
-  as you run the dev server.
+  If you see type errors with `OPENAI_API_KEY` or your `POST` function, run the
+  dev server.
 </Note>
 
 Let's take a look at what is happening in this code:
@@ -122,31 +125,32 @@ Let's take a look at what is happening in this code:
 
 ## Wire up the UI
 
-Now that you have an API route that can query an LLM, it's time to setup your frontend. The AI SDK's [ UI ](/docs/ai-sdk-ui) package abstract the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+Now that you have an API route that can query an LLM, it's time to set up your frontend. The AI SDK's [UI](/docs/ai-sdk-ui) package abstracts the complexity of a chat interface into one class, `Chat`.
+Its properties and API are largely the same as React's [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
 
 Update your root page (`src/routes/+page.svelte`) with the following code to show a list of chat messages and provide a user message input:
 
 ```svelte filename="src/routes/+page.svelte"
 <script>
-  import { useChat } from '@ai-sdk/svelte';
+  import { Chat } from '@ai-sdk/svelte';
 
-  const { input, handleSubmit, messages } = useChat();
+  const chat = new Chat();
 </script>
 
 <main>
   <ul>
-    {#each $messages as message}
+    {#each chat.messages as message}
       <li>{message.role}: {message.content}</li>
     {/each}
   </ul>
-  <form on:submit={handleSubmit}>
-    <input bind:value={$input} />
+  <form on:submit={chat.handleSubmit}>
+    <input bind:value={chat.input} />
     <button type="submit">Send</button>
   </form>
 </main>
 ```
 
-This page utilizes the `useChat` hook, which will, by default, use the `POST` route handler you created earlier. The hook provides functions and state for handling user input and form submission. The `useChat` hook provides multiple utility functions and state variables:
+This page utilizes the `Chat` class, which will, by default, use the `POST` route handler you created earlier. The hook provides functions and state for handling user input and form submission. The `Chat` class provides multiple utility functions and state variables:
 
 - `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
 - `input` - the current value of the user's input field.
@@ -177,16 +181,15 @@ Modify your `src/routes/api/chat/+server.ts` file to include the new weather too
 ```tsx filename="src/routes/api/chat/+server.ts" highlight="2,4,18-32"
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
-import type { RequestHandler } from './$types';
 import { z } from 'zod';
 
-import { env } from '$env/dynamic/private';
+import { OPENAI_API_KEY } from '$env/static/private';
 
 const openai = createOpenAI({
-  apiKey: env.OPENAI_API_KEY ?? '',
+  apiKey: OPENAI_API_KEY,
 });
 
-export const POST = (async ({ request }) => {
+export function POST(async ({ request }) {
   const { messages } = await request.json();
 
   const result = streamText({
@@ -210,7 +213,7 @@ export const POST = (async ({ request }) => {
   });
 
   return result.toDataStreamResponse();
-}) satisfies RequestHandler;
+});
 ```
 
 In this updated code:
@@ -234,14 +237,14 @@ To display the tool invocations in your UI, update your `src/routes/+page.svelte
 
 ```svelte filename="src/routes/+page.svelte"
 <script>
-  import { useChat } from '@ai-sdk/svelte';
+  import { Chat } from '@ai-sdk/svelte';
 
-  const { input, handleSubmit, messages } = useChat();
+  const chat = new Chat();
 </script>
 
 <main>
   <ul>
-    {#each $messages as message}
+    {#each chat.messages as message}
       <li>
         {message.role}:
         {#if message.toolInvocations}
@@ -252,8 +255,8 @@ To display the tool invocations in your UI, update your `src/routes/+page.svelte
       </li>
     {/each}
   </ul>
-  <form on:submit={handleSubmit}>
-    <input bind:value={$input} />
+  <form on:submit={chat.handleSubmit}>
+    <input bind:value={chat.input} />
     <button type="submit">Send</button>
   </form>
 </main>
@@ -267,7 +270,7 @@ Now, when you ask about the weather, you'll see the tool invocation and its resu
 
 You may have noticed that while the tool results are visible in the chat interface, the model isn't using this information to answer your original query. This is because once the model generates a tool call, it has technically completed its generation.
 
-To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `useChat` hook. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
+To solve this, you can enable multi-step tool calls using the `maxSteps` option in your `Chat` class. This feature will automatically send tool results back to the model to trigger an additional generation. In this case, you want the model to answer your question using the results from the weather tool.
 
 ### Update Your UI
 
@@ -275,9 +278,9 @@ Modify your `src/routes/+page.svelte` file to include the `maxSteps` option:
 
 ```svelte filename="src/routes/+page.svelte" highlight="4"
 <script>
-  import { useChat } from '@ai-sdk/svelte';
+  import { Chat } from '@ai-sdk/svelte';
 
-  const { messages, input, handleSubmit } = useChat({ maxSteps: 5 });
+  const { messages, input, handleSubmit } = new Chat({ maxSteps: 5 });
 </script>
 
 <!-- ... rest of your component code -->
@@ -291,19 +294,18 @@ By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for
 
 Update your `src/routes/api/chat/+server.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
-```tsx filename="src/routes/api/chat/+server.ts" highlight="32-45"
+```tsx filename="src/routes/api/chat/+server.ts" highlight="31-44"
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
-import type { RequestHandler } from './$types';
 import { z } from 'zod';
 
-import { env } from '$env/dynamic/private';
+import { OPENAI_API_KEY } from '$env/static/private';
 
 const openai = createOpenAI({
-  apiKey: env.OPENAI_API_KEY ?? '',
+  apiKey: OPENAI_API_KEY,
 });
 
-export const POST = (async ({ request }) => {
+export function POST(async ({ request }) {
   const { messages } = await request.json();
 
   const result = streamText({
@@ -341,7 +343,7 @@ export const POST = (async ({ request }) => {
   });
 
   return result.toDataStreamResponse();
-}) satisfies RequestHandler;
+});
 ```
 
 Now, when you ask "What's the weather in New York in celsius?", you should see a more complete interaction:
@@ -355,6 +357,83 @@ This multi-step approach allows the model to gather information and use it to pr
 
 This simple example demonstrates how tools can expand your model's capabilities. You can create more complex tools to integrate with real APIs, databases, or any other external systems, allowing the model to access and process real-world data in real-time. Tools bridge the gap between the model's knowledge cutoff and current information.
 
+## How does `@ai-sdk/svelte` differ from `@ai-sdk/react`?
+
+The surface-level difference is that Svelte uses classes to manage state, whereas React uses hooks, so `useChat` in React is `Chat` in Svelte. Other than that, there are a few things to keep in mind:
+
+### 1. Arguments to classes aren't reactive by default
+
+Unlike in React, where hooks are rerun any time their containing component is invalidated, code in the `script` block of a Svelte component is only run once when the component is created.
+This means that, if you want arguments to your class to be reactive, you need to make sure you pass a _reference_ into the class, rather than a value:
+
+```svelte
+<script>
+  import { Chat } from '@ai-sdk/svelte';
+
+  let { id } = $props();
+
+  // won't work; the class instance will be created once, `id` will be copied by value, and won't update when $props.id changes
+  let chat = new Chat({ id });
+
+  // will work; passes `id` by reference, so `Chat` always has the latest value
+  let chat = new Chat({
+    get id() {
+      return id;
+    },
+  });
+</script>
+```
+
+Keep in mind that this normally doesn't matter; most parameters you'll pass into the Chat class are static (for example, you typically wouldn't expect your `onError` handler to change).
+
+### 2. You can't destructure class properties
+
+In vanilla JavaScript, destructuring class properties copies them by value and "disconnects" them from their class instance:
+
+```js
+const classInstance = new Whatever();
+classInstance.foo = 'bar';
+const { foo } = classInstance;
+classInstance.foo = 'baz';
+
+console.log(foo); // 'bar'
+```
+
+The same is true of classes in Svelte:
+
+```svelte
+<script>
+  import { Chat } from '@ai-sdk/svelte';
+
+  const chat = new Chat();
+  let { messages } = chat;
+
+  chat.append({ content: 'Hello, world!', role: 'user' }).then(() => {
+    console.log(messages); // []
+    console.log(chat.messages); // [{ content: 'Hello, world!', role: 'user' }] (plus some other stuff)
+  });
+</script>
+```
+
+### 3. Instance synchronization requires context
+
+In React, hook instances with the same `id` are synchronized -- so two instances of `useChat` will have the same `messages`, `status`, etc. if they have the same `id`.
+For most use cases, you probably don't need this behavior -- but if you do, you can create a context in your root layout file using `createAIContext`:
+
+```svelte
+<script>
+  import { createAIContext } from '@ai-sdk/svelte';
+
+  let { children } = $props();
+
+  createAIContext();
+  // all hooks created after this or in components that are children of this component
+  // will have synchronized state
+</script>
+
+{@render children()}
+```
+
 ## Where to Next?
 
 You've built an AI chatbot using the AI SDK! From here, you have several paths to explore:
@@ -362,3 +441,4 @@ You've built an AI chatbot using the AI SDK! From here, you have several paths t
 - To learn more about the AI SDK, read through the [documentation](/docs).
 - If you're interested in diving deeper with guides, check out the [RAG (retrieval-augmented generation)](/docs/guides/rag-chatbot) and [multi-modal chatbot](/docs/guides/multi-modal-chatbot) guides.
 - To jumpstart your first AI project, explore available [templates](https://vercel.com/templates?type=ai).
+- To learn more about Svelte, check out the [official documentation](https://svelte.dev/docs/svelte).
