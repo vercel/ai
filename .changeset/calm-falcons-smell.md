@@ -2,4 +2,4 @@
 '@ai-sdk/svelte': major
 ---
 
-breaking: Modern Svelte 5 support
+feat(ui/svelte): Modern Svelte 5 (**breaking change**)
