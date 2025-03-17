@@ -17,11 +17,12 @@ let clientTwo;
 
 try {
   // Initialize an MCP client to connect to a `stdio` MCP server:
+  const transport = new StdioClientTransport({
+    command: 'node',
+    args: ['src/stdio/dist/server.js'],
+  });
   clientOne = await experimental_createMCPClient({
-    transport: {
-      type: 'stdio',
-      command: 'node server.js',
-    },
+    transport,
   });
 
   // Alternatively, you can connect to a Server-Sent Events (SSE) MCP server:
@@ -32,12 +33,21 @@ try {
     },
   });
 
+  // Similarly to the stdio example, you can pass in your own custom transport as long as it implements the `MCPTransport` interface:
+  const transport = new MyCustomTransport({
+    // ...
+  });
+  clientThree = await experimental_createMCPClient({
+    transport,
+  });
+
   const toolSetOne = await clientOne.tools();
   const toolSetTwo = await clientTwo.tools();
-
+  const toolSetThree = await clientThree.tools();
   const tools = {
     ...toolSetOne,
-    ...toolSetTwo, // note: this overrides tools from toolSetOne when there are naming collisions
+    ...toolSetTwo,
+    ...toolSetThree, // note: this approach causes subsequent tool sets to override tools with the same name
   };
 
   const response = await generateText({

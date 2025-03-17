@@ -639,23 +639,32 @@ Create an MCP client using either:
 
 - `stdio`: Uses standard input and output streams for communication, ideal for local tool servers running on the same machine (like CLI tools or local services)
 - `SSE` (Server-Sent Events): Uses HTTP-based real-time communication, better suited for remote servers that need to send data over the network
+- Custom transport: Bring your own transport by implementing the `McpTransport` interface
 
 ```typescript
 // Example of using MCP with stdio
-const mcpClient = await createMCPClient({
-  transport: {
-    type: 'stdio',
-    command: 'node',
-    args: ['src/stdio/dist/server.js'],
-  },
+const transport = new StdioClientTransport({
+  command: 'node',
+  args: ['src/stdio/dist/server.js'],
+});
+const mcpClient = await experimental_createMCPClient({
+  transport,
 });
 
 // Example of using MCP with SSE
-const mcpClient = await createMCPClient({
+const mcpClient = await experimental_createMCPClient({
   transport: {
     type: 'sse',
     url: 'https://my-server.com/sse',
   },
+});
+
+// Example of using a custom transport
+const transport = new MyCustomTransport({
+  // ...
+});
+const mcpClient = await experimental_createMCPClient({
+  transport,
 });
 ```
 
@@ -663,11 +672,11 @@ After initialization, always close the MCP client when you're done to prevent re
 
 ```typescript
   try {
-    const mcpClient = await createMCPClient({...});
+    const mcpClient = await experimental_createMCPClient({...});
     const tools = await mcpClient.tools();
     // use tools...
   } finally {
-    await client?.close();
+    await mcpClient?.close();
   }
 ```
 
