@@ -98,16 +98,16 @@ const openai = createOpenAI({
   apiKey: OPENAI_API_KEY,
 });
 
-export function POST(async ({ request }) {
+export const POST = async ({ request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai("gpt-4o"),
     messages,
   });
 
   return result.toDataStreamResponse();
-});
+};
 ```
 
 <Note>
@@ -143,7 +143,7 @@ Update your root page (`src/routes/+page.svelte`) with the following code to sho
       <li>{message.role}: {message.content}</li>
     {/each}
   </ul>
-  <form on:submit={chat.handleSubmit}>
+  <form onsubmit={chat.handleSubmit}>
     <input bind:value={chat.input} />
     <button type="submit">Send</button>
   </form>
@@ -189,17 +189,17 @@ const openai = createOpenAI({
   apiKey: OPENAI_API_KEY,
 });
 
-export function POST(async ({ request }) {
+export const POST = async ({ request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai("gpt-4o"),
     messages,
     tools: {
       weather: tool({
-        description: 'Get the weather in a location (fahrenheit)',
+        description: "Get the weather in a location (fahrenheit)",
         parameters: z.object({
-          location: z.string().describe('The location to get the weather for'),
+          location: z.string().describe("The location to get the weather for"),
         }),
         execute: async ({ location }) => {
           const temperature = Math.round(Math.random() * (90 - 32) + 32);
@@ -213,7 +213,7 @@ export function POST(async ({ request }) {
   });
 
   return result.toDataStreamResponse();
-});
+};
 ```
 
 In this updated code:
@@ -255,7 +255,7 @@ To display the tool invocations in your UI, update your `src/routes/+page.svelte
       </li>
     {/each}
   </ul>
-  <form on:submit={chat.handleSubmit}>
+  <form onsubmit={chat.handleSubmit}>
     <input bind:value={chat.input} />
     <button type="submit">Send</button>
   </form>
@@ -305,7 +305,7 @@ const openai = createOpenAI({
   apiKey: OPENAI_API_KEY,
 });
 
-export function POST(async ({ request }) {
+export const POST = async ({ request }) => {
   const { messages } = await request.json();
 
   const result = streamText({
@@ -343,7 +343,7 @@ export function POST(async ({ request }) {
   });
 
   return result.toDataStreamResponse();
-});
+};
 ```
 
 Now, when you ask "What's the weather in New York in celsius?", you should see a more complete interaction:
