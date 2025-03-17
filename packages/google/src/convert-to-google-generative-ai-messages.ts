@@ -108,6 +108,20 @@ export function convertToGoogleGenerativeAIMessages(
                     ? undefined
                     : { text: part.text };
                 }
+                case 'image': {
+                  if (part.image instanceof URL) {
+                    throw new UnsupportedFunctionalityError({
+                      functionality:
+                        'image URLs in assistant messages are not supported',
+                    });
+                  }
+                  return {
+                    inlineData: {
+                      mimeType: part.mimeType ?? 'image/png',
+                      data: part.image,
+                    },
+                  };
+                }
                 case 'tool-call': {
                   return {
                     functionCall: {
