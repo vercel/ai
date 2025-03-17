@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 2.0.0
+
+### Major Changes
+
+- 9e2cb6f: feat (ui/svelte): Modern Svelte 5 (**breaking change**)
+
 ## 1.1.24
 
 ### Patch Changes
