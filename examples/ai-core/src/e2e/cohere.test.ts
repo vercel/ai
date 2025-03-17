@@ -12,10 +12,10 @@ createFeatureTestSuite({
   name: 'Cohere',
   models: {
     languageModels: [
-      // createChatModel('command-a-03-2025'),
-      // createChatModel('command-r-plus'),
-      // createChatModel('command-r'),
-      // createChatModel('command'),
+      createChatModel('command-a-03-2025'),
+      createChatModel('command-r-plus'),
+      createChatModel('command-r'),
+      createChatModel('command'),
       createChatModel('command-light'),
     ],
   },
