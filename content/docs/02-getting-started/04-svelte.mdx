@@ -98,7 +98,7 @@ const openai = createOpenAI({
   apiKey: OPENAI_API_KEY,
 });
 
-export function POST(async ({ request }) {
+export async function POST({ request }) {
   const { messages } = await request.json();
 
   const result = streamText({
@@ -107,7 +107,7 @@ export function POST(async ({ request }) {
   });
 
   return result.toDataStreamResponse();
-});
+}
 ```
 
 <Note>
@@ -143,7 +143,7 @@ Update your root page (`src/routes/+page.svelte`) with the following code to sho
       <li>{message.role}: {message.content}</li>
     {/each}
   </ul>
-  <form on:submit={chat.handleSubmit}>
+  <form onsubmit={chat.handleSubmit}>
     <input bind:value={chat.input} />
     <button type="submit">Send</button>
   </form>
@@ -178,7 +178,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `src/routes/api/chat/+server.ts` file to include the new weather tool:
 
-```tsx filename="src/routes/api/chat/+server.ts" highlight="2,4,18-32"
+```tsx filename="src/routes/api/chat/+server.ts" highlight="2,3,17-31"
 import { createOpenAI } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { z } from 'zod';
@@ -189,7 +189,7 @@ const openai = createOpenAI({
   apiKey: OPENAI_API_KEY,
 });
 
-export function POST(async ({ request }) {
+export async function POST({ request }) {
   const { messages } = await request.json();
 
   const result = streamText({
@@ -213,7 +213,7 @@ export function POST(async ({ request }) {
   });
 
   return result.toDataStreamResponse();
-});
+}
 ```
 
 In this updated code:
@@ -255,7 +255,7 @@ To display the tool invocations in your UI, update your `src/routes/+page.svelte
       </li>
     {/each}
   </ul>
-  <form on:submit={chat.handleSubmit}>
+  <form onsubmit={chat.handleSubmit}>
     <input bind:value={chat.input} />
     <button type="submit">Send</button>
   </form>
@@ -280,7 +280,7 @@ Modify your `src/routes/+page.svelte` file to include the `maxSteps` option:
 <script>
   import { Chat } from '@ai-sdk/svelte';
 
-  const { messages, input, handleSubmit } = new Chat({ maxSteps: 5 });
+  const chat = new Chat({ maxSteps: 5 });
 </script>
 
 <!-- ... rest of your component code -->
@@ -305,7 +305,7 @@ const openai = createOpenAI({
   apiKey: OPENAI_API_KEY,
 });
 
-export function POST(async ({ request }) {
+export async function POST({ request }) {
   const { messages } = await request.json();
 
   const result = streamText({
@@ -343,7 +343,7 @@ export function POST(async ({ request }) {
   });
 
   return result.toDataStreamResponse();
-});
+}
 ```
 
 Now, when you ask "What's the weather in New York in celsius?", you should see a more complete interaction:

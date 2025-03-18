@@ -72,7 +72,7 @@ importers:
         specifier: 0.1.15
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
-        specifier: 1.1.15
+        specifier: 1.1.16
         version: link:../../packages/cohere
       '@ai-sdk/deepinfra':
         specifier: 0.1.16
@@ -1053,7 +1053,7 @@ importers:
         specifier: 2.1.13
         version: link:../../packages/provider-utils
       '@ai-sdk/svelte':
-        specifier: 1.1.24
+        specifier: 2.0.0
         version: link:../../packages/svelte
       '@ai-sdk/ui-utils':
         specifier: 1.1.19
