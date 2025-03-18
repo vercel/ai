@@ -516,6 +516,7 @@ A function that attempts to repair a tool call that failed to parse.
           // TODO v5: rename reasoning to reasoningText (and use reasoning for composite array)
           reasoning: asReasoningText(currentReasoningDetails),
           reasoningDetails: currentReasoningDetails,
+          files: asFiles(currentModelResponse.files),
           sources: currentModelResponse.sources ?? [],
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
