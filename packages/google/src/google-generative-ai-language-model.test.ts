@@ -1812,6 +1812,44 @@ describe('doStream', () => {
   );
 
   it(
+    'should stream files',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+        type: 'stream-values',
+        content: [
+          `data: {"candidates": [{"content": {"parts": [{"inlineData": {"data": "test","mimeType": "text/plain"}}]` +
+            `,"role": "model"},` +
+            `"finishReason": "STOP","index": 0,"safetyRatings": [` +
+            `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}]}\n\n`,
+          `data: {"usageMetadata": {"promptTokenCount": 294,"candidatesTokenCount": 233,"totalTokenCount": 527}}\n\n`,
+        ],
+      },
+      async () => {
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(events.filter(event => event.type === 'error')).toEqual([]); // no errors
+        expect(events.filter(event => event.type === 'file')).toEqual([
+          {
+            type: 'file',
+            mimeType: 'text/plain',
+            data: 'test',
+          },
+        ]);
+      },
+    ),
+  );
+
+  it(
     'should set finishReason to tool-calls when chunk contains functionCall',
     withTestServer(
       {
