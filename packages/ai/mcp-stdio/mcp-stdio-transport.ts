@@ -1,31 +1,39 @@
-import type { ChildProcess } from 'node:child_process';
-import { MCPClientError } from '../../../errors';
-import { createChildProcess } from './create-child-process';
+import type { ChildProcess, IOType } from 'node:child_process';
+import { Stream } from 'node:stream';
 import {
   JSONRPCMessage,
   JSONRPCMessageSchema,
-  MCPTransport,
-  McpStdioServerConfig,
-} from './types';
+} from '../core/tool/mcp/json-rpc-message';
+import { MCPTransport } from '../core/tool/mcp/mcp-transport';
+import { MCPClientError } from '../errors';
+import { createChildProcess } from './create-child-process';
 
-export class StdioClientTransport implements MCPTransport {
+export interface StdioConfig {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  stderr?: IOType | Stream | number;
+  cwd?: string;
+}
+
+export class StdioMCPTransport implements MCPTransport {
   private process?: ChildProcess;
   private abortController: AbortController = new AbortController();
   private readBuffer: ReadBuffer = new ReadBuffer();
-  private serverParams: McpStdioServerConfig;
+  private serverParams: StdioConfig;
 
-  onClose?: () => void;
-  onError?: (error: unknown) => void;
-  onMessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: unknown) => void;
+  onmessage?: (message: JSONRPCMessage) => void;
 
-  constructor(server: McpStdioServerConfig) {
+  constructor(server: StdioConfig) {
     this.serverParams = server;
   }
 
   async start(): Promise<void> {
     if (this.process) {
       throw new MCPClientError({
-        message: 'StdioClientTransport already started.',
+        message: 'StdioMCPTransport already started.',
       });
     }
 
@@ -40,12 +48,12 @@ export class StdioClientTransport implements MCPTransport {
 
         this.process.on('error', error => {
           if (error.name === 'AbortError') {
-            this.onClose?.();
+            this.onclose?.();
             return;
           }
 
           reject(error);
-          this.onError?.(error);
+          this.onerror?.(error);
         });
 
         this.process.on('spawn', () => {
@@ -54,11 +62,11 @@ export class StdioClientTransport implements MCPTransport {
 
         this.process.on('close', _code => {
           this.process = undefined;
-          this.onClose?.();
+          this.onclose?.();
         });
 
         this.process.stdin?.on('error', error => {
-          this.onError?.(error);
+          this.onerror?.(error);
         });
 
         this.process.stdout?.on('data', chunk => {
@@ -67,11 +75,11 @@ export class StdioClientTransport implements MCPTransport {
         });
 
         this.process.stdout?.on('error', error => {
-          this.onError?.(error);
+          this.onerror?.(error);
         });
       } catch (error) {
         reject(error);
-        this.onError?.(error);
+        this.onerror?.(error);
       }
     });
   }
@@ -84,9 +92,9 @@ export class StdioClientTransport implements MCPTransport {
           break;
         }
 
-        this.onMessage?.(message);
+        this.onmessage?.(message);
       } catch (error) {
-        this.onError?.(error as Error);
+        this.onerror?.(error as Error);
       }
     }
   }
