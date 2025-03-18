@@ -1839,11 +1839,7 @@ describe('doStream', () => {
 
         expect(events.filter(event => event.type === 'error')).toEqual([]); // no errors
         expect(events.filter(event => event.type === 'file')).toEqual([
-          {
-            type: 'file',
-            mimeType: 'text/plain',
-            data: 'test',
-          },
+          { type: 'file', mimeType: 'text/plain', data: 'test' },
         ]);
       },
     ),
