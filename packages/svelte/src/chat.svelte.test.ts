@@ -1483,19 +1483,19 @@ describe('generateId function', () => {
 
         await chatWithCustomId.append({ role: 'user', content: 'hi' });
 
-        expect(chatWithCustomId.messages.at(1)).toStrictEqual(
-          expect.objectContaining({
-            id: 'custom-id',
-            role: 'assistant',
-            content: 'Hello, world.',
-          }),
-        );
-
         expect(chatWithCustomId.messages.at(0)).toStrictEqual(
           expect.objectContaining({
             id: 'custom-id',
             role: 'user',
             content: 'hi',
+          }),
+        );
+
+        expect(chatWithCustomId.messages.at(1)).toStrictEqual(
+          expect.objectContaining({
+            id: 'custom-id',
+            role: 'assistant',
+            content: 'Hello, world.',
           }),
         );
       },
