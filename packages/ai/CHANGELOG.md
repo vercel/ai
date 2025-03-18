@@ -1,5 +1,12 @@
 # ai
 
+## 4.1.62
+
+### Patch Changes
+
+- c9ed3c4: feat: enable custom mcp transports
+  breaking change: remove internal stdio transport creation
+
 ## 4.1.61
 
 ### Patch Changes
