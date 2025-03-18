@@ -87,6 +87,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": undefined,
+  "files": [],
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": undefined,
@@ -151,6 +152,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   "steps": [
     {
       "experimental_providerMetadata": undefined,
+      "files": [],
       "finishReason": "tool-calls",
       "isContinued": false,
       "logprobs": undefined,
@@ -240,6 +242,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     },
     {
       "experimental_providerMetadata": undefined,
+      "files": [],
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
@@ -330,6 +333,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
 [
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
@@ -419,6 +423,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   },
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -791,6 +796,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
 [
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
@@ -880,6 +886,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
   },
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -959,6 +966,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onFinish should send correct information 1`] = `
 {
   "experimental_providerMetadata": undefined,
+  "files": [],
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": undefined,
@@ -991,6 +999,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   "steps": [
     {
       "experimental_providerMetadata": undefined,
+      "files": [],
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
@@ -1032,6 +1041,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     {
       "experimental_providerMetadata": undefined,
+      "files": [],
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
@@ -1084,6 +1094,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     {
       "experimental_providerMetadata": undefined,
+      "files": [],
       "finishReason": "length",
       "isContinued": true,
       "logprobs": undefined,
@@ -1149,6 +1160,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     {
       "experimental_providerMetadata": undefined,
+      "files": [],
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
@@ -1210,6 +1222,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 [
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
@@ -1251,6 +1264,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   },
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
@@ -1303,6 +1317,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   },
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
@@ -1368,6 +1383,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   },
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -1915,6 +1931,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 [
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
@@ -1956,6 +1973,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   },
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
@@ -2008,6 +2026,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   },
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "length",
     "isContinued": true,
     "logprobs": undefined,
@@ -2073,6 +2092,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   },
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -2196,6 +2216,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       "testKey": "testValue",
     },
   },
+  "files": [],
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": {
@@ -2254,6 +2275,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
           "testKey": "testValue",
         },
       },
+      "files": [],
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
@@ -2371,6 +2393,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
 exports[`streamText > options.onFinish > should send sources 1`] = `
 {
   "experimental_providerMetadata": undefined,
+  "files": [],
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": undefined,
@@ -2422,6 +2445,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
   "steps": [
     {
       "experimental_providerMetadata": undefined,
+      "files": [],
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
@@ -2498,6 +2522,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
 exports[`streamText > options.output > object output > should call onFinish with the correct content 1`] = `
 {
   "experimental_providerMetadata": undefined,
+  "files": [],
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": undefined,
@@ -2526,6 +2551,7 @@ exports[`streamText > options.output > object output > should call onFinish with
   "steps": [
     {
       "experimental_providerMetadata": undefined,
+      "files": [],
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
@@ -2583,6 +2609,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
       "testKey": "TEST VALUE",
     },
   },
+  "files": [],
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": {
@@ -2641,6 +2668,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
           "testKey": "TEST VALUE",
         },
       },
+      "files": [],
       "finishReason": "stop",
       "isContinued": false,
       "logprobs": undefined,
@@ -2762,6 +2790,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
       "testKey": "TEST VALUE",
     },
   },
+  "files": [],
   "finishReason": "stop",
   "isContinued": false,
   "logprobs": undefined,
@@ -2850,6 +2879,7 @@ exports[`streamText > options.transform > with base transformation > result.step
 [
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -3015,6 +3045,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
 exports[`streamText > options.transform > with transformation that aborts stream > options.onStepFinish should be called 1`] = `
 {
   "experimental_providerMetadata": undefined,
+  "files": [],
   "finishReason": "stop",
   "isContinued": false,
   "logprobs": undefined,
@@ -4105,6 +4136,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
 [
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -4178,6 +4210,7 @@ exports[`streamText > result.steps > should add the sources from the model respo
 [
   {
     "experimental_providerMetadata": undefined,
+    "files": [],
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,

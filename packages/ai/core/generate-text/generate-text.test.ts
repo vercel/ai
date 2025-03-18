@@ -40,6 +40,24 @@ const modelWithSources = new MockLanguageModelV1({
   }),
 });
 
+const modelWithFiles = new MockLanguageModelV1({
+  doGenerate: async () => ({
+    ...dummyResponseValues,
+    files: [
+      {
+        data: new Uint8Array([1, 2, 3]),
+        mimeType: 'image/png',
+        filename: 'test.png',
+      },
+      {
+        data: 'QkFVRw==',
+        mimeType: 'image/jpeg',
+        filename: 'test.jpeg',
+      },
+    ],
+  }),
+});
+
 const modelWithReasoning = new MockLanguageModelV1({
   doGenerate: async () => ({
     ...dummyResponseValues,
@@ -114,6 +132,17 @@ describe('result.sources', () => {
   });
 });
 
+describe('result.files', () => {
+  it('should contain files', async () => {
+    const result = await generateText({
+      model: modelWithFiles,
+      prompt: 'prompt',
+    });
+
+    expect(result.files).toMatchSnapshot();
+  });
+});
+
 describe('result.steps', () => {
   it('should add the reasoning from the model response to the step result', async () => {
     const result = await generateText({
@@ -134,6 +163,20 @@ describe('result.steps', () => {
   it('should contain sources', async () => {
     const result = await generateText({
       model: modelWithSources,
+      prompt: 'prompt',
+      experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      _internal: {
+        generateId: mockId({ prefix: 'id' }),
+        currentDate: () => new Date(0),
+      },
+    });
+
+    expect(result.steps).toMatchSnapshot();
+  });
+
+  it('should contain files', async () => {
+    const result = await generateText({
+      model: modelWithFiles,
       prompt: 'prompt',
       experimental_generateMessageId: mockId({ prefix: 'msg' }),
       _internal: {
@@ -732,6 +775,13 @@ describe('options.maxSteps', () => {
                       providerMetadata: { provider: { custom: 'value' } },
                     },
                   ],
+                  files: [
+                    {
+                      data: new Uint8Array([1, 2, 3]),
+                      mimeType: 'image/png',
+                      filename: 'test.png',
+                    },
+                  ],
                   usage: { completionTokens: 5, promptTokens: 30 },
                   // test handling of custom response headers:
                   rawResponse: {
@@ -841,6 +891,13 @@ describe('options.maxSteps', () => {
                   // (for models such as Anthropic that trim trailing whitespace in their inputs):
                   text: '  final value keep all whitespace\n end',
                   finishReason: 'stop',
+                  files: [
+                    {
+                      data: 'QkFVRw==',
+                      mimeType: 'image/jpeg',
+                      filename: 'test.jpeg',
+                    },
+                  ],
                   response: {
                     id: 'test-id-4-from-model',
                     timestamp: new Date(20000),
@@ -915,6 +972,10 @@ describe('options.maxSteps', () => {
 
     it('result.sources should contain sources from all steps', () => {
       expect(result.sources).toMatchSnapshot();
+    });
+
+    it('result.files should contain files from last step', () => {
+      expect(result.files).toMatchSnapshot();
     });
   });
 });
