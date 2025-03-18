@@ -1251,6 +1251,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     // forward:
+                    case 'file':
                     case 'source':
                     case 'tool-call-streaming-start':
                     case 'tool-call-delta': {
@@ -1648,6 +1649,11 @@ However, the LLM results are expected to be small enough to not cause issues.
                   }),
                 );
               }
+              break;
+            }
+
+            case 'file': {
+              // ignored
               break;
             }
 

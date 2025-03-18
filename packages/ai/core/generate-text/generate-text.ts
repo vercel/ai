@@ -3,7 +3,7 @@ import { Tracer } from '@opentelemetry/api';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { ToolExecutionError } from '../../errors/tool-execution-error';
-import { DefaultGeneratedImage } from '../generate-image/default-generated-image';
+import { DefaultGeneratedImage } from '../generate-image/generated-image';
 import { CoreAssistantMessage, CoreMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';

@@ -1,6 +1,7 @@
 export { generateText } from './generate-text';
 export type { GenerateTextOnStepFinishCallback } from './generate-text';
 export type { GenerateTextResult } from './generate-text-result';
+export type { GeneratedFile } from './generated-file';
 export * as Output from './output';
 export { smoothStream } from './smooth-stream';
 export type { StepResult } from './step-result';

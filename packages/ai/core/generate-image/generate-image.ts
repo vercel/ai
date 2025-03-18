@@ -3,9 +3,8 @@ import { NoImageGeneratedError } from '../../errors/no-image-generated-error';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { DefaultGeneratedImage } from './default-generated-image';
 import { GenerateImageResult } from './generate-image-result';
-import { GeneratedImage } from './generated-image';
+import { DefaultGeneratedImage, GeneratedImage } from './generated-image';
 
 /**
 Generates images using an image model.

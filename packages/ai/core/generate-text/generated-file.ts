@@ -3,27 +3,43 @@ import {
   convertUint8ArrayToBase64,
 } from '@ai-sdk/provider-utils';
 
-export interface GeneratedImage {
+/**
+ * A generated file.
+ */
+export interface GeneratedFile {
   /**
-  Image as a base64 encoded string.
+File as a base64 encoded string.
      */
   readonly base64: string;
 
   /**
-  Image as a Uint8Array.
+File as a Uint8Array.
      */
   readonly uint8Array: Uint8Array;
+
+  /**
+MIME type of the file
+   */
+  readonly mimeType: string;
 }
 
-export class DefaultGeneratedImage implements GeneratedImage {
+export class DefaultGeneratedFile implements GeneratedFile {
   private base64Data: string | undefined;
   private uint8ArrayData: Uint8Array | undefined;
 
-  constructor({ image }: { image: string | Uint8Array }) {
-    const isUint8Array = image instanceof Uint8Array;
+  readonly mimeType: string;
 
-    this.base64Data = isUint8Array ? undefined : image;
-    this.uint8ArrayData = isUint8Array ? image : undefined;
+  constructor({
+    file,
+    mimeType,
+  }: {
+    file: string | Uint8Array;
+    mimeType: string;
+  }) {
+    const isUint8Array = file instanceof Uint8Array;
+    this.base64Data = isUint8Array ? undefined : file;
+    this.uint8ArrayData = isUint8Array ? file : undefined;
+    this.mimeType = mimeType;
   }
 
   // lazy conversion with caching to avoid unnecessary conversion overhead:
@@ -40,5 +56,13 @@ export class DefaultGeneratedImage implements GeneratedImage {
       this.uint8ArrayData = convertBase64ToUint8Array(this.base64Data!);
     }
     return this.uint8ArrayData;
+  }
+}
+
+export class DefaultGeneratedFileWithType extends DefaultGeneratedFile {
+  readonly type = 'file';
+
+  constructor(options: { file: string | Uint8Array; mimeType: string }) {
+    super(options);
   }
 }

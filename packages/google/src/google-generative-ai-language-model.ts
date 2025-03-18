@@ -263,7 +263,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     return {
       text: getTextFromParts(parts),
-      images: getImagesFromParts(parts)?.map(part => part.inlineData.data),
+      images: getImageParts(parts)?.map(part => part.inlineData.data),
       toolCalls,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
@@ -366,6 +366,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                   type: 'text-delta',
                   textDelta: deltaText,
                 });
+              }
+
+              const imageParts = getImageParts(content.parts);
+              if (imageParts != null) {
+                for (const part of imageParts) {
+                  controller.enqueue({
+                    type: 'file',
+                    mimeType: part.inlineData.mimeType,
+                    data: part.inlineData.data,
+                  });
+                }
               }
 
               const toolCallDeltas = getToolCallsFromParts({
@@ -474,15 +485,14 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
     : textParts.map(part => part.text).join('');
 }
 
-function getImagesFromParts(parts: z.infer<typeof contentSchema>['parts']) {
+function getImageParts(parts: z.infer<typeof contentSchema>['parts']) {
   return parts?.filter(
-    part =>
-      'inlineData' in part && part.inlineData.mimeType.startsWith('image/'),
-  ) as Array<
-    GoogleGenerativeAIContentPart & {
+    (
+      part,
+    ): part is GoogleGenerativeAIContentPart & {
       inlineData: { mimeType: `image/${string}`; data: string };
-    }
-  >;
+    } => 'inlineData' in part && part.inlineData.mimeType.startsWith('image/'),
+  );
 }
 
 function extractSources({

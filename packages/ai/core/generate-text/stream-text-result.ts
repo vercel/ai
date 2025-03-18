@@ -12,6 +12,7 @@ import { Source } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
+import { GeneratedFile } from './generated-file';
 import { ReasoningDetail } from './reasoning-detail';
 import { ResponseMessage, StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
@@ -308,6 +309,9 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'source';
       source: Source;
     }
+  | ({
+      type: 'file';
+    } & GeneratedFile)
   | ({
       type: 'tool-call';
     } & ToolCallUnion<TOOLS>)

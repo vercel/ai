@@ -301,6 +301,21 @@ export type LanguageModelV1StreamPart =
   // Sources:
   | { type: 'source'; source: LanguageModelV1Source }
 
+  // Files:
+  | {
+      type: 'file';
+      mimeType: string;
+
+      /**
+Generated file data as base64 encoded strings or binary data.
+The file data should be returned without any unnecessary conversion.
+If the API returns base64 encoded strings, the file data should be returned
+as base64 encoded strings. If the API returns binary data, the file data should
+be returned as binary data.
+       */
+      data: string | Uint8Array;
+    }
+
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV1FunctionToolCall)
 
