@@ -591,11 +591,11 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   outputStrategy.jsonSchema == null
                     ? injectJsonInstruction({ prompt: system })
                     : model.supportsStructuredOutputs
-                    ? system
-                    : injectJsonInstruction({
-                        prompt: system,
-                        schema: outputStrategy.jsonSchema,
-                      }),
+                      ? system
+                      : injectJsonInstruction({
+                          prompt: system,
+                          schema: outputStrategy.jsonSchema,
+                        }),
                 prompt,
                 messages,
               },

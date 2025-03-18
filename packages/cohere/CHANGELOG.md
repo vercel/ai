@@ -1,5 +1,19 @@
 # @ai-sdk/cohere
 
+## 1.1.16
+
+### Patch Changes
+
+- 4473677: feat (providers/cohere): add command-a model id to chat settings
+
+## 1.1.15
+
+### Patch Changes
+
+- Updated dependencies [2e1101a]
+  - @ai-sdk/provider@1.0.11
+  - @ai-sdk/provider-utils@2.1.13
+
 ## 1.1.14
 
 ### Patch Changes

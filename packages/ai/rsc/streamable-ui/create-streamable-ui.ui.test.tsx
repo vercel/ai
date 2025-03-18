@@ -79,8 +79,8 @@ async function simulateFlightServerRender(node: React.ReactNode) {
         typeof children === 'string'
           ? children
           : Array.isArray(children)
-          ? children.map(traverse)
-          : await traverse(children),
+            ? children.map(traverse)
+            : await traverse(children),
     };
   }
 

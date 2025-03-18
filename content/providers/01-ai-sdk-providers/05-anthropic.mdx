@@ -207,6 +207,13 @@ const result = await generateText({
 });
 ```
 
+The minimum cacheable prompt length is:
+
+- 1024 tokens for Claude 3.7 Sonnet, Claude 3.5 Sonnet and Claude 3 Opus
+- 2048 tokens for Claude 3.5 Haiku and Claude 3 Haiku
+
+Shorter prompts cannot be cached, even if marked with `cacheControl`. Any requests to cache fewer than this number of tokens will be processed without caching.
+
 For more on prompt caching with Anthropic, see [Anthropic's Cache Control documentation](https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching).
 
 ### Computer Use
@@ -267,6 +274,19 @@ Parameters:
 - `new_str` (string, optional): New string for `str_replace` or `insert` commands.
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
+
+When using the Text Editor Tool, make sure to name the key in the tools object `str_replace_editor`.
+
+```ts
+const response = await generateText({
+  model: anthropic('claude-3-5-sonnet-20241022'),
+  prompt:
+    "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
+  tools: {
+    str_replace_editor: textEditorTool,
+  },
+});
+```
 
 #### Computer Tool
 

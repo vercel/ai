@@ -201,8 +201,8 @@ const result = await generateText({
   Generative AI](/providers/ai-sdk-providers/google-generative-ai), [Google
   Vertex AI](/providers/ai-sdk-providers/google-vertex),
   [OpenAI](/providers/ai-sdk-providers/openai) (for `wav` and `mp3` audio with
-  `gpt-4o-audio-preview`), [Anthropic](/providers/ai-sdk-providers/anthropic)
-  (for `pdf`).
+  `gpt-4o-audio-preview`), [Anthropic](/providers/ai-sdk-providers/anthropic),
+  [OpenAI responses](/providers/ai-sdk-providers/openai) (for `pdf`).
 </Note>
 
 User messages can include file parts. A file can be one of the following:
@@ -237,6 +237,7 @@ const result = await generateText({
           type: 'file',
           mimeType: 'application/pdf',
           data: fs.readFileSync('./data/example.pdf'),
+          filename: 'example.pdf', // optional, not used by all providers
         },
       ],
     },

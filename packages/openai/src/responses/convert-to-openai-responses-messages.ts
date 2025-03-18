@@ -51,7 +51,7 @@ export function convertToOpenAIResponsesMessages({
       case 'user': {
         messages.push({
           role: 'user',
-          content: content.map(part => {
+          content: content.map((part, index) => {
             switch (part.type) {
               case 'text': {
                 return { type: 'input_text', text: part.text };
@@ -71,9 +71,28 @@ export function convertToOpenAIResponsesMessages({
                 };
               }
               case 'file': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'Image content parts in user messages',
-                });
+                if (part.data instanceof URL) {
+                  // The AI SDK automatically downloads files for user file parts with URLs
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'File URLs in user messages',
+                  });
+                }
+
+                switch (part.mimeType) {
+                  case 'application/pdf': {
+                    return {
+                      type: 'input_file',
+                      filename: part.filename ?? `part-${index}.pdf`,
+                      file_data: `data:application/pdf;base64,${part.data}`,
+                    };
+                  }
+                  default: {
+                    throw new UnsupportedFunctionalityError({
+                      functionality:
+                        'Only PDF files are supported in user messages',
+                    });
+                  }
+                }
               }
             }
           }),

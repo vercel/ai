@@ -7,9 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 async function main() {
   const result = await generateText({
-    model: anthropic('claude-3-5-sonnet-20240620', {
-      cacheControl: true,
-    }),
+    model: anthropic('claude-3-5-sonnet-20240620'),
     messages: [
       {
         role: 'user',
