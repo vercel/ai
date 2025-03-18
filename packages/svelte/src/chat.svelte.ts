@@ -185,7 +185,7 @@ export class Chat {
     );
 
     const messages = this.messages.concat({
-      id: generateId(),
+      id: this.#generateId(),
       createdAt: new Date(),
       role: 'user',
       content: this.input,
