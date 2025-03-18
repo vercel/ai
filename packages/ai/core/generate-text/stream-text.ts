@@ -4,6 +4,7 @@ import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { InvalidStreamPartError } from '../../errors/invalid-stream-part-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { StreamData } from '../../streams/stream-data';
 import { asArray } from '../../util/as-array';
@@ -43,6 +44,7 @@ import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-header
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { writeToServerResponse } from '../util/write-to-server-response';
+import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { asReasoningText, ReasoningDetail } from './reasoning-detail';
 import {
@@ -60,7 +62,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { InvalidStreamPartError } from '../../errors/invalid-stream-part-error';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -594,10 +595,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedFullText = '';
 
     let stepReasoning: Array<ReasoningDetail> = [];
-    let stepFiles: Array<{
-      data: string | Uint8Array;
-      mimeType: string;
-    }> = [];
+    let stepFiles: Array<GeneratedFile> = [];
     let activeReasoningText: undefined | (ReasoningDetail & { type: 'text' }) =
       undefined;
 
@@ -674,6 +672,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
         if (part.type === 'redacted-reasoning') {
           stepReasoning.push({ type: 'redacted', data: part.data });
+        }
+
+        if (part.type === 'file') {
+          stepFiles.push(part);
         }
 
         if (part.type === 'source') {
@@ -754,6 +756,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedStepText = '';
           recordedStepSources = [];
           stepReasoning = [];
+          stepFiles = [];
           activeReasoningText = undefined;
 
           if (nextStepType !== 'done') {
@@ -1048,10 +1051,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepToolResults: ToolResultUnion<TOOLS>[] = [];
 
           const stepReasoning: Array<ReasoningDetail> = [];
-          const stepFiles: Array<{
-            data: string | Uint8Array;
-            mimeType: string;
-          }> = [];
+          const stepFiles: Array<GeneratedFile> = [];
           let activeReasoningText:
             | undefined
             | (ReasoningDetail & { type: 'text' }) = undefined;
@@ -1256,8 +1256,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
+                    case 'file': {
+                      stepFiles.push(chunk);
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
                     // forward:
-                    case 'file':
                     case 'source':
                     case 'tool-call-streaming-start':
                     case 'tool-call-delta': {

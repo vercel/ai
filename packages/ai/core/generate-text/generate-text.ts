@@ -3,7 +3,6 @@ import { Tracer } from '@opentelemetry/api';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { ToolExecutionError } from '../../errors/tool-execution-error';
-import { DefaultGeneratedImage } from '../generate-image/generated-image';
 import { CoreAssistantMessage, CoreMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -27,6 +26,7 @@ import {
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
 import { GenerateTextResult } from './generate-text-result';
+import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { asReasoningText, ReasoningDetail } from './reasoning-detail';
@@ -36,7 +36,6 @@ import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
-import { DefaultGeneratedFile } from './generated-file';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -499,7 +498,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               text,
-              files: currentModelResponse.files ?? [],
+              files: asFiles(currentModelResponse.files),
               reasoning: asReasoningDetails(currentModelResponse.reasoning),
               tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
@@ -565,10 +564,7 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        files:
-          currentModelResponse?.files?.map(
-            file => new DefaultGeneratedFile(file),
-          ) ?? [],
+        files: asFiles(currentModelResponse.files),
         reasoning: asReasoningText(currentReasoningDetails),
         reasoningDetails: currentReasoningDetails,
         sources,
@@ -795,4 +791,15 @@ function asReasoningDetails(
   }
 
   return reasoning;
+}
+
+function asFiles(
+  files:
+    | Array<{
+        data: string | Uint8Array;
+        mimeType: string;
+      }>
+    | undefined,
+): Array<GeneratedFile> {
+  return files?.map(file => new DefaultGeneratedFile(file)) ?? [];
 }

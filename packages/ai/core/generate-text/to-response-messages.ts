@@ -1,4 +1,5 @@
 import { ToolResultPart } from '../prompt';
+import { GeneratedFile } from './generated-file';
 import { ReasoningDetail } from './reasoning-detail';
 import { ResponseMessage } from './step-result';
 import { ToolCallArray } from './tool-call';
@@ -19,7 +20,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   generateMessageId,
 }: {
   text: string | undefined;
-  files: Array<{ data: string | Uint8Array; mimeType: string }>;
+  files: Array<GeneratedFile>;
   reasoning: Array<ReasoningDetail>;
   tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
@@ -40,7 +41,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
       // TODO language model v2: switch to order response content (instead of type-based ordering)
       ...files.map(file => ({
         type: 'file' as const,
-        data: file.data,
+        data: file.base64,
         mimeType: file.mimeType,
       })),
       { type: 'text' as const, text },

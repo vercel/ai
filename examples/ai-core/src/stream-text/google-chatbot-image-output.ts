@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { CoreMessage, generateText } from 'ai';
+import { CoreMessage, streamText } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { presentImages } from '../lib/present-image';
@@ -15,7 +15,7 @@ async function main() {
   while (true) {
     messages.push({ role: 'user', content: await terminal.question('You: ') });
 
-    const result = await generateText({
+    const result = streamText({
       model: google('gemini-2.0-flash-exp'),
       providerOptions: {
         google: {
@@ -25,21 +25,25 @@ async function main() {
       messages,
     });
 
-    if (result.text) {
-      process.stdout.write(`\nAssistant: ${result.text}`);
-    }
+    process.stdout.write('\nAssistant: ');
+    for await (const delta of result.fullStream) {
+      switch (delta.type) {
+        case 'text-delta': {
+          process.stdout.write(delta.textDelta);
+          break;
+        }
 
-    if (result.files.length > 0) {
-      for (const file of result.files) {
-        if (file.mimeType.startsWith('image/')) {
-          await presentImages([file]);
+        case 'file': {
+          if (delta.mimeType.startsWith('image/')) {
+            console.log();
+            await presentImages([delta]);
+          }
         }
       }
     }
-
     process.stdout.write('\n\n');
 
-    messages.push(...result.response.messages);
+    messages.push(...(await result.response).messages);
   }
 }
 
