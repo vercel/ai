@@ -83,7 +83,7 @@ Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
   doGenerate(options: LanguageModelV1CallOptions): PromiseLike<{
-    // TODO v2: switch to a composite content array with text, tool calls, reasoning, images, ...
+    // TODO v2: switch to a composite content array with text, tool calls, reasoning, files
 
     /**
 Text that the model has generated.
