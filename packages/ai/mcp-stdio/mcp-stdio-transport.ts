@@ -3,12 +3,12 @@ import { Stream } from 'node:stream';
 import {
   JSONRPCMessage,
   JSONRPCMessageSchema,
-  MCPTransport,
-} from '../core/tool/mcp/types';
+} from '../core/tool/mcp/json-rpc-message';
+import { MCPTransport } from '../core/tool/mcp/mcp-transport';
 import { MCPClientError } from '../errors';
 import { createChildProcess } from './create-child-process';
 
-export interface McpStdioServerConfig {
+export interface StdioConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;
@@ -16,24 +16,24 @@ export interface McpStdioServerConfig {
   cwd?: string;
 }
 
-export class StdioClientTransport implements MCPTransport {
+export class StdioMCPTransport implements MCPTransport {
   private process?: ChildProcess;
   private abortController: AbortController = new AbortController();
   private readBuffer: ReadBuffer = new ReadBuffer();
-  private serverParams: McpStdioServerConfig;
+  private serverParams: StdioConfig;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
   onmessage?: (message: JSONRPCMessage) => void;
 
-  constructor(server: McpStdioServerConfig) {
+  constructor(server: StdioConfig) {
     this.serverParams = server;
   }
 
   async start(): Promise<void> {
     if (this.process) {
       throw new MCPClientError({
-        message: 'StdioClientTransport already started.',
+        message: 'StdioMCPTransport already started.',
       });
     }
 

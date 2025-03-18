@@ -3,21 +3,27 @@ import { jsonSchema } from '@ai-sdk/ui-utils';
 import { z, ZodType } from 'zod';
 import { MCPClientError } from '../../../errors';
 import { inferParameters, tool, Tool, ToolExecutionOptions } from '../tool';
-import { createMcpTransport } from './mcp-transport';
+import {
+  JSONRPCError,
+  JSONRPCNotification,
+  JSONRPCRequest,
+  JSONRPCResponse,
+} from './json-rpc-message';
+import {
+  createMcpTransport,
+  isCustomMcpTransport,
+  MCPTransport,
+  MCPTransportConfig,
+} from './mcp-transport';
 import {
   CallToolResult,
   CallToolResultSchema,
   Configuration as ClientConfiguration,
   InitializeResultSchema,
-  JSONRPCError,
-  JSONRPCNotification,
-  JSONRPCRequest,
-  JSONRPCResponse,
   LATEST_PROTOCOL_VERSION,
   ListToolsResult,
   ListToolsResultSchema,
   McpToolSet,
-  MCPTransport,
   Notification,
   PaginatedRequest,
   Request,
@@ -25,14 +31,13 @@ import {
   ServerCapabilities,
   SUPPORTED_PROTOCOL_VERSIONS,
   ToolSchemas,
-  TransportConfig,
 } from './types';
 
 const CLIENT_VERSION = '1.0.0';
 
 interface MCPClientConfig {
   /** Transport configuration for connecting to the MCP server */
-  transport: TransportConfig | MCPTransport;
+  transport: MCPTransportConfig | MCPTransport;
   /** Optional callback for uncaught errors */
   onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
@@ -79,10 +84,10 @@ class MCPClient {
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
 
-    if ('type' in transportConfig) {
-      this.transport = createMcpTransport(transportConfig);
-    } else {
+    if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
+    } else {
+      this.transport = createMcpTransport(transportConfig);
     }
 
     this.transport.onclose = () => this.onClose();

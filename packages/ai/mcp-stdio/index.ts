@@ -1,4 +1,1 @@
-export {
-  StdioClientTransport,
-  type McpStdioServerConfig,
-} from './mcp-stdio-transport';
+export { StdioMCPTransport, type StdioConfig } from './mcp-stdio-transport';

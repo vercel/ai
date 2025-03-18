@@ -1,39 +1,10 @@
-import type { ChildProcess } from 'node:child_process';
-import { MCPClientError } from '../errors';
-import { McpStdioServerConfig } from './mcp-stdio-transport';
+import { ChildProcess, spawn } from 'node:child_process';
+import { StdioConfig } from './mcp-stdio-transport';
 
 export async function createChildProcess(
-  config: McpStdioServerConfig,
+  config: StdioConfig,
   signal: AbortSignal,
 ): Promise<ChildProcess> {
-  const runtime = detectRuntime();
-
-  if (runtime !== 'node') {
-    throw new MCPClientError({
-      message:
-        'Attempted to use child_process module outside of Node.js environment',
-    });
-  }
-
-  let childProcess;
-
-  // note: split to prevent detection by next.js (suppresses warnings)
-  const nodePrefix = 'node:';
-  try {
-    childProcess = await import(`${nodePrefix}child_process`);
-  } catch (error) {
-    try {
-      childProcess = require(`${nodePrefix}child_process`);
-    } catch (innerError) {
-      throw new MCPClientError({
-        message: 'Failed to load child_process module dynamically',
-        cause: innerError,
-      });
-    }
-  }
-
-  const { spawn } = childProcess;
-
   return spawn(config.command, config.args ?? [], {
     env: config.env ?? getDefaultEnvironment(),
     stdio: ['pipe', 'pipe', config.stderr ?? 'inherit'],
@@ -42,18 +13,6 @@ export async function createChildProcess(
     windowsHide: globalThis.process.platform === 'win32' && isElectron(),
     cwd: config.cwd,
   });
-}
-
-function detectRuntime() {
-  if (typeof window !== 'undefined') {
-    return 'browser';
-  }
-
-  if (globalThis.process?.release?.name === 'node') {
-    return 'node';
-  }
-
-  return null;
 }
 
 function getDefaultEnvironment(): Record<string, string> {

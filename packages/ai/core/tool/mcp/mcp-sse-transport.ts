@@ -1,13 +1,9 @@
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { MCPClientError } from '../../../errors';
-import {
-  JSONRPCMessage,
-  JSONRPCMessageSchema,
-  MCPTransport,
-  McpSSEServerConfig,
-} from './types';
+import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
+import { MCPTransport } from './mcp-transport';
 
-export class SSEClientTransport implements MCPTransport {
+export class SSEMCPTransport implements MCPTransport {
   private endpoint?: URL;
   private abortController?: AbortController;
   private url: URL;
@@ -20,7 +16,7 @@ export class SSEClientTransport implements MCPTransport {
   onerror?: (error: unknown) => void;
   onmessage?: (message: JSONRPCMessage) => void;
 
-  constructor({ url }: McpSSEServerConfig) {
+  constructor({ url }: { url: string }) {
     this.url = new URL(url);
   }
 

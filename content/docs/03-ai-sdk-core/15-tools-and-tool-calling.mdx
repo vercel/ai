@@ -639,16 +639,15 @@ Create an MCP client using either:
 
 - `stdio`: Uses standard input and output streams for communication, ideal for local tool servers running on the same machine (like CLI tools or local services)
 - `SSE` (Server-Sent Events): Uses HTTP-based real-time communication, better suited for remote servers that need to send data over the network
-- Custom transport: Bring your own transport by implementing the `McpTransport` interface
+- Custom transport: Bring your own transport by implementing the `MCPTransport` interface
 
 ```typescript
 // Example of using MCP with stdio
-const transport = new StdioClientTransport({
-  command: 'node',
-  args: ['src/stdio/dist/server.js'],
-});
 const mcpClient = await experimental_createMCPClient({
-  transport,
+  transport: new StdioClientTransport({
+    command: 'node',
+    args: ['src/stdio/dist/server.js'],
+  }),
 });
 
 // Example of using MCP with SSE
@@ -657,6 +656,12 @@ const mcpClient = await experimental_createMCPClient({
     type: 'sse',
     url: 'https://my-server.com/sse',
   },
+});
+// Can also be written as:
+const mcpClient = await experimental_createMCPClient({
+  transport: new SSEMCPTransport({
+    url: 'https://my-server.com/sse',
+  }),
 });
 
 // Example of using a custom transport

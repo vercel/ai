@@ -1,10 +1,10 @@
 import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { JSONRPCMessage } from '../core/tool/mcp/types';
+import { JSONRPCMessage } from '../core/tool/mcp/json-rpc-message';
 import { MCPClientError } from '../errors';
 import { createChildProcess } from './create-child-process';
-import { StdioClientTransport } from './mcp-stdio-transport';
+import { StdioMCPTransport } from './mcp-stdio-transport';
 
 vi.mock('./create-child-process', { spy: true });
 
@@ -17,7 +17,7 @@ interface MockChildProcess {
 }
 
 describe('MCPStdIOTransport', () => {
-  let transport: StdioClientTransport;
+  let transport: StdioMCPTransport;
   let mockChildProcess: MockChildProcess;
   let mockStdin: EventEmitter & { write?: ReturnType<typeof vi.fn> };
   let mockStdout: EventEmitter;
@@ -39,7 +39,7 @@ describe('MCPStdIOTransport', () => {
       mockChildProcess as unknown as ChildProcess,
     );
 
-    transport = new StdioClientTransport({
+    transport = new StdioMCPTransport({
       command: 'test-command',
       args: ['--test'],
     });

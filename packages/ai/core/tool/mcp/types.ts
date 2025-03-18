@@ -11,7 +11,6 @@ export const SUPPORTED_PROTOCOL_VERSIONS = [
   LATEST_PROTOCOL_VERSION,
   '2024-10-07',
 ];
-const JSONRPC_VERSION = '2.0';
 
 export type ToolSchemas =
   | Record<string, { parameters: ToolParameters }>
@@ -40,23 +39,6 @@ export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
         };
       };
 
-/**
- * @deprecated Use custom transports instead. Import stdio transport from 'ai/mcp-stdio' or implement your own transport using @modelcontextprotocol/sdk.
- */
-interface McpStdioServerConfig {
-  command: string;
-  args?: string[];
-  env?: Record<string, string>;
-  stderr?: any | number;
-  cwd?: string;
-  type: 'stdio';
-}
-export interface McpSSEServerConfig {
-  type: 'sse';
-  url: string;
-}
-export type TransportConfig = McpStdioServerConfig | McpSSEServerConfig;
-
 const ClientOrServerImplementationSchema = z
   .object({
     name: z.string(),
@@ -65,116 +47,26 @@ const ClientOrServerImplementationSchema = z
   .passthrough();
 export type Configuration = z.infer<typeof ClientOrServerImplementationSchema>;
 
-const BaseParamsSchema = z
+export const BaseParamsSchema = z
   .object({
     _meta: z.optional(z.object({}).passthrough()),
   })
   .passthrough();
 type BaseParams = z.infer<typeof BaseParamsSchema>;
+export const ResultSchema = BaseParamsSchema;
 
-export interface Request {
-  method: string;
-  params?: BaseParams;
-}
-
+export const RequestSchema = z.object({
+  method: z.string(),
+  params: z.optional(BaseParamsSchema),
+});
+export type Request = z.infer<typeof RequestSchema>;
 export type RequestOptions = {
   signal?: AbortSignal;
   timeout?: number;
   maxTotalTimeout?: number;
 };
 
-const RequestSchema = z.object({
-  method: z.string(),
-  params: z.optional(BaseParamsSchema),
-});
-const ResultSchema = BaseParamsSchema;
-const NotificationSchema = z.object({
-  method: z.string(),
-  params: z.optional(BaseParamsSchema),
-});
-
-export type Notification = z.infer<typeof NotificationSchema>;
-
-const RequestIdSchema = z.union([z.string(), z.number().int()]);
-const JSONRPCRequestSchema = z
-  .object({
-    jsonrpc: z.literal(JSONRPC_VERSION),
-    id: RequestIdSchema,
-  })
-  .merge(RequestSchema)
-  .strict();
-export type JSONRPCRequest = z.infer<typeof JSONRPCRequestSchema>;
-const JSONRPCResponseSchema = z
-  .object({
-    jsonrpc: z.literal(JSONRPC_VERSION),
-    id: RequestIdSchema,
-    result: ResultSchema,
-  })
-  .strict();
-export type JSONRPCResponse = z.infer<typeof JSONRPCResponseSchema>;
-const JSONRPCErrorSchema = z
-  .object({
-    jsonrpc: z.literal(JSONRPC_VERSION),
-    id: RequestIdSchema,
-    error: z.object({
-      code: z.number().int(),
-      message: z.string(),
-      data: z.optional(z.unknown()),
-    }),
-  })
-  .strict();
-export type JSONRPCError = z.infer<typeof JSONRPCErrorSchema>;
-const JSONRPCNotificationSchema = z
-  .object({
-    jsonrpc: z.literal(JSONRPC_VERSION),
-  })
-  .merge(NotificationSchema)
-  .strict();
-export type JSONRPCNotification = z.infer<typeof JSONRPCNotificationSchema>;
-
-export const JSONRPCMessageSchema = z.union([
-  JSONRPCRequestSchema,
-  JSONRPCNotificationSchema,
-  JSONRPCResponseSchema,
-  JSONRPCErrorSchema,
-]);
-export type JSONRPCMessage = z.infer<typeof JSONRPCMessageSchema>;
-
-/**
- * Transport interface for MCP (Model Context Protocol) communication.
- */
-export interface MCPTransport {
-  /**
-   * Initialize and start the transport
-   */
-  start(): Promise<void>;
-
-  /**
-   * Send a JSON-RPC message through the transport
-   * @param message The JSON-RPC message to send
-   */
-  send(message: JSONRPCMessage): Promise<void>;
-
-  /**
-   * Clean up and close the transport
-   */
-  close(): Promise<void>;
-
-  /**
-   * Event handler for transport closure
-   */
-  onclose?: () => void;
-
-  /**
-   * Event handler for transport errors
-   */
-  onerror?: (error: Error) => void;
-
-  /**
-   * Event handler for received messages
-   */
-  onmessage?: (message: JSONRPCMessage) => void;
-}
+export type Notification = z.infer<typeof RequestSchema>;
 
 const ServerCapabilitiesSchema = z
   .object({
@@ -205,6 +97,7 @@ const ServerCapabilitiesSchema = z
   })
   .passthrough();
 export type ServerCapabilities = z.infer<typeof ServerCapabilitiesSchema>;
+
 export const InitializeResultSchema = ResultSchema.extend({
   protocolVersion: z.string(),
   capabilities: ServerCapabilitiesSchema,
