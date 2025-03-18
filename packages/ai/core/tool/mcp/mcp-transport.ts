@@ -1,6 +1,6 @@
 import { MCPClientError } from '../../../errors';
 import { JSONRPCMessage } from './json-rpc-message';
-import { SSEMCPTransport } from './mcp-sse-transport';
+import { SseMCPTransport } from './mcp-sse-transport';
 
 /**
  * Transport interface for MCP (Model Context Protocol) communication.
@@ -49,11 +49,11 @@ export function createMcpTransport(config: MCPTransportConfig): MCPTransport {
   if (config.type !== 'sse') {
     throw new MCPClientError({
       message:
-        'Unsupported transport configuration. Use a custom transport instead.',
+        'Unsupported or invalid transport configuration. If you are using a custom transport, make sure it implements the MCPTransport interface.',
     });
   }
 
-  return new SSEMCPTransport(config);
+  return new SseMCPTransport(config);
 }
 
 export function isCustomMcpTransport(

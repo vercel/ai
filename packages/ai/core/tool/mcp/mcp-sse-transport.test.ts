@@ -1,8 +1,8 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { MCPClientError } from '../../../errors';
-import { SSEMCPTransport } from './mcp-sse-transport';
+import { SseMCPTransport } from './mcp-sse-transport';
 
-describe('SSEMCPTransport', () => {
+describe('SseMCPTransport', () => {
   const server = createTestServer({
     'http://localhost:3000/sse': {
       response: undefined,
@@ -35,7 +35,7 @@ describe('SSEMCPTransport', () => {
       },
     };
 
-    const transport = new SSEMCPTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
     });
     const connectPromise = transport.start();
@@ -65,7 +65,7 @@ describe('SSEMCPTransport', () => {
       body: 'Internal Server Error',
     };
 
-    const transport = new SSEMCPTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
     });
     const connectPromise = transport.start();
@@ -89,7 +89,7 @@ describe('SSEMCPTransport', () => {
       },
     };
 
-    const transport = new SSEMCPTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
     });
 
@@ -132,7 +132,7 @@ describe('SSEMCPTransport', () => {
       },
     };
 
-    const transport = new SSEMCPTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
     });
 
@@ -173,7 +173,7 @@ describe('SSEMCPTransport', () => {
       },
     };
 
-    const transport = new SSEMCPTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
     });
 
@@ -217,7 +217,7 @@ describe('SSEMCPTransport', () => {
       body: 'Internal Server Error',
     };
 
-    const transport = new SSEMCPTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
     });
 
@@ -249,7 +249,7 @@ describe('SSEMCPTransport', () => {
   });
 
   it('should handle invalid endpoint URLs', async () => {
-    const transport = new SSEMCPTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3333/sse',
     });
 

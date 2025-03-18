@@ -16,7 +16,7 @@ interface MockChildProcess {
   removeAllListeners: ReturnType<typeof vi.fn>;
 }
 
-describe('MCPStdIOTransport', () => {
+describe('StdioMCPTransport', () => {
   let transport: StdioMCPTransport;
   let mockChildProcess: MockChildProcess;
   let mockStdin: EventEmitter & { write?: ReturnType<typeof vi.fn> };

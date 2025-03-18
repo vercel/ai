@@ -3,7 +3,7 @@ import { MCPClientError } from '../../../errors';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
 
-export class SSEMCPTransport implements MCPTransport {
+export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
   private abortController?: AbortController;
   private url: URL;

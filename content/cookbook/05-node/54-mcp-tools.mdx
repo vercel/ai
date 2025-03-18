@@ -10,7 +10,7 @@ The AI SDK supports Model Context Protocol (MCP) tools by offering a lightweight
 
 ```ts
 import { experimental_createMCPClient, generateText } from 'ai';
-import { StdioClientTransport } from 'ai/mcp-stdio';
+import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
 import { openai } from '@ai-sdk/openai';
 
 let clientOne;
@@ -19,7 +19,7 @@ let clientThree;
 
 try {
   // Initialize an MCP client to connect to a `stdio` MCP server:
-  const transport = new StdioClientTransport({
+  const transport = new Experimental_StdioMCPTransport({
     command: 'node',
     args: ['src/stdio/dist/server.js'],
   });

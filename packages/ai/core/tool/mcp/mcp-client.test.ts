@@ -6,8 +6,10 @@ import { CallToolResult } from './types';
 
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
 
-vi.mock('./mcp-transport.ts', () => {
+vi.mock('./mcp-transport.ts', async importOriginal => {
+  const actual = await importOriginal<typeof import('./mcp-transport')>();
   return {
+    ...actual,
     createMcpTransport: vi.fn(config => {
       return createMockTransport(config);
     }),
@@ -261,12 +263,14 @@ describe('MCPClient', () => {
     expectTypeOf<typeof result>().toEqualTypeOf<CallToolResult>();
   });
 
-  // what's the expected behavior if the transport is invalid?
   it('should throw if transport is missing required methods', async () => {
+    // Because isCustomMcpTransport will return false, the client will fallback to createMcpTransport, but it will throw because the transport is invalid:
     const invalidTransport = {
       start: vi.fn(),
       close: vi.fn(),
     };
+    // @ts-expect-error - invalid transport
+    createMockTransport.mockImplementation(() => invalidTransport);
     await expect(
       // @ts-expect-error - invalid transport
       createMCPClient({ transport: invalidTransport }),
