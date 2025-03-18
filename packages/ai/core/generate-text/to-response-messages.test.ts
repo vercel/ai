@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { mockValues } from '../test/mock-values';
 import { tool } from '../tool';
 import { toResponseMessages } from './to-response-messages';
+import { DefaultGeneratedFile } from './generated-file';
 
 describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
@@ -253,11 +254,14 @@ describe('toResponseMessages', () => {
   });
 
   it('should include images in the assistant message', () => {
-    const pngData = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const pngFile = new DefaultGeneratedFile({
+      data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+      mimeType: 'image/png',
+    });
 
     const result = toResponseMessages({
       text: 'Here is an image',
-      files: [{ data: pngData, mimeType: 'image/png' }],
+      files: [pngFile],
       reasoning: [],
       tools: {},
       toolCalls: [],
@@ -271,7 +275,7 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          { type: 'file', data: pngData, mimeType: 'image/png' },
+          { type: 'file', data: pngFile.base64, mimeType: pngFile.mimeType },
           { type: 'text', text: 'Here is an image' },
         ],
       },
@@ -279,15 +283,18 @@ describe('toResponseMessages', () => {
   });
 
   it('should handle multiple images in the assistant message', () => {
-    const pngData = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-    const jpegData = new Uint8Array([255, 216, 255]);
+    const pngFile = new DefaultGeneratedFile({
+      data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+      mimeType: 'image/png',
+    });
+    const jpegFile = new DefaultGeneratedFile({
+      data: new Uint8Array([255, 216, 255]),
+      mimeType: 'image/jpeg',
+    });
 
     const result = toResponseMessages({
       text: 'Here are multiple images',
-      files: [
-        { data: pngData, mimeType: 'image/png' },
-        { data: jpegData, mimeType: 'image/jpeg' },
-      ],
+      files: [pngFile, jpegFile],
       reasoning: [],
       tools: {},
       toolCalls: [],
@@ -301,8 +308,8 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          { type: 'file', data: pngData, mimeType: 'image/png' },
-          { type: 'file', data: jpegData, mimeType: 'image/jpeg' },
+          { type: 'file', data: pngFile.base64, mimeType: pngFile.mimeType },
+          { type: 'file', data: jpegFile.base64, mimeType: jpegFile.mimeType },
           { type: 'text', text: 'Here are multiple images' },
         ],
       },
@@ -310,11 +317,14 @@ describe('toResponseMessages', () => {
   });
 
   it('should handle Uint8Array images', () => {
-    const pngData = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const pngFile = new DefaultGeneratedFile({
+      data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+      mimeType: 'image/png',
+    });
 
     const result = toResponseMessages({
       text: 'Here is a binary image',
-      files: [{ data: pngData, mimeType: 'image/png' }],
+      files: [pngFile],
       reasoning: [],
       tools: {},
       toolCalls: [],
@@ -328,7 +338,7 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          { type: 'file', data: pngData, mimeType: 'image/png' },
+          { type: 'file', data: pngFile.base64, mimeType: pngFile.mimeType },
           { type: 'text', text: 'Here is a binary image' },
         ],
       },
@@ -336,11 +346,14 @@ describe('toResponseMessages', () => {
   });
 
   it('should include images, reasoning, and tool calls in the correct order', () => {
-    const pngData = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const pngFile = new DefaultGeneratedFile({
+      data: new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]),
+      mimeType: 'image/png',
+    });
 
     const result = toResponseMessages({
       text: 'Combined response',
-      files: [{ data: pngData, mimeType: 'image/png' }],
+      files: [pngFile],
       reasoning: [{ type: 'text', text: 'Thinking text', signature: 'sig' }],
       tools: {
         testTool: {
@@ -367,7 +380,7 @@ describe('toResponseMessages', () => {
         id: 'msg-123',
         content: [
           { type: 'reasoning', text: 'Thinking text', signature: 'sig' },
-          { type: 'file', data: pngData, mimeType: 'image/png' },
+          { type: 'file', data: pngFile.base64, mimeType: pngFile.mimeType },
           { type: 'text', text: 'Combined response' },
           {
             type: 'tool-call',
