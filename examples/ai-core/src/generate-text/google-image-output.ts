@@ -8,9 +8,7 @@ async function main() {
     model: google('gemini-2.0-flash-exp'),
     prompt: 'Generate an image of a comic cat',
     providerOptions: {
-      google: {
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
+      google: { responseModalities: ['TEXT', 'IMAGE'] },
     },
   });
 

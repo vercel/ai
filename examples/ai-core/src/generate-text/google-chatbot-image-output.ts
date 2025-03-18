@@ -18,9 +18,7 @@ async function main() {
     const result = await generateText({
       model: google('gemini-2.0-flash-exp'),
       providerOptions: {
-        google: {
-          responseModalities: ['TEXT', 'IMAGE'],
-        },
+        google: { responseModalities: ['TEXT', 'IMAGE'] },
       },
       messages,
     });

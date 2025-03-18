@@ -1666,7 +1666,12 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'file': {
-              // ignored
+              controller.enqueue(
+                formatDataStreamPart('file', {
+                  mimeType: chunk.mimeType,
+                  data: chunk.base64,
+                }),
+              );
               break;
             }
 
