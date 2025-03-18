@@ -4,7 +4,10 @@ import {
   ProviderV1,
 } from '@ai-sdk/provider';
 import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
-import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
+import {
+  OpenAICompatibleChatConfigOverride,
+  OpenAICompatibleChatLanguageModel,
+} from './openai-compatible-chat-language-model';
 import { OpenAICompatibleChatSettings } from './openai-compatible-chat-settings';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 import { OpenAICompatibleCompletionSettings } from './openai-compatible-completion-settings';
@@ -19,16 +22,19 @@ export interface OpenAICompatibleProvider<
   (
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
+    config?: OpenAICompatibleChatConfigOverride,
   ): LanguageModelV1;
 
   languageModel(
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
+    config?: OpenAICompatibleChatConfigOverride,
   ): LanguageModelV1;
 
   chatModel(
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
+    config?: OpenAICompatibleChatConfigOverride,
   ): LanguageModelV1;
 
   completionModel(
@@ -123,15 +129,18 @@ export function createOpenAICompatible<
   const createLanguageModel = (
     modelId: CHAT_MODEL_IDS,
     settings: OpenAICompatibleChatSettings = {},
-  ) => createChatModel(modelId, settings);
+    config: OpenAICompatibleChatConfigOverride = {},
+  ) => createChatModel(modelId, settings, config);
 
   const createChatModel = (
     modelId: CHAT_MODEL_IDS,
     settings: OpenAICompatibleChatSettings = {},
+    config: OpenAICompatibleChatConfigOverride = {},
   ) =>
     new OpenAICompatibleChatLanguageModel(modelId, settings, {
       ...getCommonModelConfig('chat'),
       defaultObjectGenerationMode: 'tool',
+      ...config,
     });
 
   const createCompletionModel = (
@@ -157,7 +166,8 @@ export function createOpenAICompatible<
   const provider = (
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
-  ) => createLanguageModel(modelId, settings);
+    config?: OpenAICompatibleChatConfigOverride,
+  ) => createLanguageModel(modelId, settings, config);
 
   provider.languageModel = createLanguageModel;
   provider.chatModel = createChatModel;
