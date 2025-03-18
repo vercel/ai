@@ -642,16 +642,19 @@ Create an MCP client using either:
 - Custom transport: Bring your own transport by implementing the `MCPTransport` interface
 
 ```typescript
+import { experimental_createMCPClient as createMCPClient } from 'ai';
+import { Experimental_StdioMCPTransport as StdioMCPTransport } from 'ai/mcp-stdio';
+
 // Example of using MCP with stdio
-const mcpClient = await experimental_createMCPClient({
-  transport: new Experimental_StdioMCPTransport({
+const mcpClient = await createMCPClient({
+  transport: new StdioMCPTransport({
     command: 'node',
     args: ['src/stdio/dist/server.js'],
   }),
 });
 
 // Example of using MCP with SSE
-const mcpClient = await experimental_createMCPClient({
+const mcpClient = await createMCPClient({
   transport: {
     type: 'sse',
     url: 'https://my-server.com/sse',
@@ -662,7 +665,7 @@ const mcpClient = await experimental_createMCPClient({
 const transport = new MyCustomTransport({
   // ...
 });
-const mcpClient = await experimental_createMCPClient({
+const mcpClient = await createMCPClient({
   transport,
 });
 ```
