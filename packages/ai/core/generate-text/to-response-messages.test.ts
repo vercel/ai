@@ -7,7 +7,7 @@ describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
     const result = toResponseMessages({
       text: 'Hello, world!',
-      images: [],
+      files: [],
       reasoning: [],
       tools: {
         testTool: {
@@ -33,7 +33,7 @@ describe('toResponseMessages', () => {
   it('should include tool calls in the assistant message', () => {
     const result = toResponseMessages({
       text: 'Using a tool',
-      images: [],
+      files: [],
       reasoning: [],
       tools: {
         testTool: {
@@ -74,7 +74,7 @@ describe('toResponseMessages', () => {
   it('should include tool results as a separate message', () => {
     const result = toResponseMessages({
       text: 'Tool used',
-      images: [],
+      files: [],
       reasoning: [],
       tools: {
         testTool: {
@@ -136,7 +136,7 @@ describe('toResponseMessages', () => {
   it('should handle undefined text', () => {
     const result = toResponseMessages({
       text: undefined,
-      images: [],
+      files: [],
       reasoning: [],
       tools: {},
       toolCalls: [],
@@ -157,7 +157,7 @@ describe('toResponseMessages', () => {
   it('should include reasoning array with redacted reasoning in the assistant message', () => {
     const result = toResponseMessages({
       text: 'Final text',
-      images: [],
+      files: [],
       reasoning: [
         { type: 'redacted', data: 'redacted-data' },
         { type: 'text', text: 'Thinking text', signature: 'sig' },
@@ -185,7 +185,7 @@ describe('toResponseMessages', () => {
   it('should handle multipart tool results', () => {
     const result = toResponseMessages({
       text: 'multipart tool result',
-      images: [],
+      files: [],
       reasoning: [],
       tools: {
         testTool: tool({
@@ -253,11 +253,11 @@ describe('toResponseMessages', () => {
   });
 
   it('should include images in the assistant message', () => {
-    // Mock a PNG image with valid header
-    const pngHeader = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const pngData = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+
     const result = toResponseMessages({
       text: 'Here is an image',
-      images: [pngHeader],
+      files: [{ data: pngData, mimeType: 'image/png' }],
       reasoning: [],
       tools: {},
       toolCalls: [],
@@ -271,7 +271,7 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          { type: 'file', data: pngHeader, mimeType: 'image/png' },
+          { type: 'file', data: pngData, mimeType: 'image/png' },
           { type: 'text', text: 'Here is an image' },
         ],
       },
@@ -279,13 +279,15 @@ describe('toResponseMessages', () => {
   });
 
   it('should handle multiple images in the assistant message', () => {
-    // Mock PNG and JPEG images with valid headers
-    const pngHeader = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-    const jpegHeader = new Uint8Array([255, 216, 255]);
+    const pngData = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const jpegData = new Uint8Array([255, 216, 255]);
 
     const result = toResponseMessages({
       text: 'Here are multiple images',
-      images: [pngHeader, jpegHeader],
+      files: [
+        { data: pngData, mimeType: 'image/png' },
+        { data: jpegData, mimeType: 'image/jpeg' },
+      ],
       reasoning: [],
       tools: {},
       toolCalls: [],
@@ -299,8 +301,8 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          { type: 'file', data: pngHeader, mimeType: 'image/png' },
-          { type: 'file', data: jpegHeader, mimeType: 'image/jpeg' },
+          { type: 'file', data: pngData, mimeType: 'image/png' },
+          { type: 'file', data: jpegData, mimeType: 'image/jpeg' },
           { type: 'text', text: 'Here are multiple images' },
         ],
       },
@@ -308,12 +310,11 @@ describe('toResponseMessages', () => {
   });
 
   it('should handle Uint8Array images', () => {
-    // Mock a PNG image with valid header
-    const pngHeader = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const pngData = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 
     const result = toResponseMessages({
       text: 'Here is a binary image',
-      images: [pngHeader],
+      files: [{ data: pngData, mimeType: 'image/png' }],
       reasoning: [],
       tools: {},
       toolCalls: [],
@@ -327,7 +328,7 @@ describe('toResponseMessages', () => {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          { type: 'file', data: pngHeader, mimeType: 'image/png' },
+          { type: 'file', data: pngData, mimeType: 'image/png' },
           { type: 'text', text: 'Here is a binary image' },
         ],
       },
@@ -335,12 +336,11 @@ describe('toResponseMessages', () => {
   });
 
   it('should include images, reasoning, and tool calls in the correct order', () => {
-    // Mock a PNG image with valid header
-    const pngHeader = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+    const pngData = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
 
     const result = toResponseMessages({
       text: 'Combined response',
-      images: [pngHeader],
+      files: [{ data: pngData, mimeType: 'image/png' }],
       reasoning: [{ type: 'text', text: 'Thinking text', signature: 'sig' }],
       tools: {
         testTool: {
@@ -367,7 +367,7 @@ describe('toResponseMessages', () => {
         id: 'msg-123',
         content: [
           { type: 'reasoning', text: 'Thinking text', signature: 'sig' },
-          { type: 'file', data: pngHeader, mimeType: 'image/png' },
+          { type: 'file', data: pngData, mimeType: 'image/png' },
           { type: 'text', text: 'Combined response' },
           {
             type: 'tool-call',
