@@ -105,3 +105,14 @@ it('should detect mixed core messages and simple messages as valid messages', ()
   ];
   expect(detectPromptType(messages)).toBe('messages');
 });
+
+it('should detect UI messages with parts array', () => {
+  const messages: Omit<Message, 'id'>[] = [
+    {
+      role: 'assistant',
+      content: 'Hello',
+      parts: [{ type: 'text', text: 'Hello' }],
+    },
+  ];
+  expect(detectPromptType(messages)).toBe('ui-messages');
+});
