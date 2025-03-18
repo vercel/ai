@@ -36,6 +36,7 @@ import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
+import { DefaultGeneratedFile } from './generated-file';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -498,7 +499,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               text,
-              images: currentModelResponse.images ?? [],
+              files: currentModelResponse.files ?? [],
               reasoning: asReasoningDetails(currentModelResponse.reasoning),
               tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
@@ -564,9 +565,9 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        images:
-          currentModelResponse?.images?.map(
-            image => new DefaultGeneratedImage({ image }),
+        files:
+          currentModelResponse?.files?.map(
+            file => new DefaultGeneratedFile(file),
           ) ?? [],
         reasoning: asReasoningText(currentReasoningDetails),
         reasoningDetails: currentReasoningDetails,
@@ -698,7 +699,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
-  readonly images: GenerateTextResult<TOOLS, OUTPUT>['images'];
+  readonly files: GenerateTextResult<TOOLS, OUTPUT>['files'];
   readonly reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
   readonly reasoningDetails: GenerateTextResult<
     TOOLS,
@@ -730,7 +731,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 
   constructor(options: {
     text: GenerateTextResult<TOOLS, OUTPUT>['text'];
-    images: GenerateTextResult<TOOLS, OUTPUT>['images'];
+    files: GenerateTextResult<TOOLS, OUTPUT>['files'];
     reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
     reasoningDetails: GenerateTextResult<TOOLS, OUTPUT>['reasoningDetails'];
     toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
@@ -750,7 +751,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
   }) {
     this.text = options.text;
-    this.images = options.images;
+    this.files = options.files;
     this.reasoning = options.reasoning;
     this.reasoningDetails = options.reasoningDetails;
     this.toolCalls = options.toolCalls;

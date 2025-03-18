@@ -168,7 +168,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'file': {
           controller.enqueue(
             new DefaultGeneratedFileWithType({
-              file: chunk.data,
+              data: chunk.data,
               mimeType: chunk.mimeType,
             }),
           );

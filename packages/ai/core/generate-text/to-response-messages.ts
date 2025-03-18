@@ -1,7 +1,4 @@
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
-import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import { ToolResultPart } from '../prompt';
-import { detectImageMimeType } from '../util/detect-image-mimetype';
 import { ReasoningDetail } from './reasoning-detail';
 import { ResponseMessage } from './step-result';
 import { ToolCallArray } from './tool-call';
@@ -13,7 +10,7 @@ Converts the result of a `generateText` call to a list of response messages.
  */
 export function toResponseMessages<TOOLS extends ToolSet>({
   text = '',
-  images,
+  files,
   reasoning,
   tools,
   toolCalls,
@@ -22,7 +19,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
   generateMessageId,
 }: {
   text: string | undefined;
-  images: Array<string | Uint8Array>;
+  files: Array<{ data: string | Uint8Array; mimeType: string }>;
   reasoning: Array<ReasoningDetail>;
   tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
@@ -41,21 +38,10 @@ export function toResponseMessages<TOOLS extends ToolSet>({
           : { ...part, type: 'redacted-reasoning' as const },
       ),
       // TODO language model v2: switch to order response content (instead of type-based ordering)
-      ...images.map(image => ({
+      ...files.map(file => ({
         type: 'file' as const,
-        data: image,
-        mimeType:
-          detectImageMimeType(
-            image instanceof Uint8Array
-              ? image
-              : convertBase64ToUint8Array(image),
-          ) ??
-          (() => {
-            throw new UnsupportedFunctionalityError({
-              functionality: 'assistant-image-mime-type',
-              message: 'Unsupported image mime type for assistant message.',
-            });
-          })(),
+        data: file.data,
+        mimeType: file.mimeType,
       })),
       { type: 'text' as const, text },
       ...toolCalls,

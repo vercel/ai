@@ -16,9 +16,11 @@ async function main() {
 
   console.log(result.text);
 
-  if (result.images.length > 0) {
-    for (const image of result.images) {
-      await presentImages([image]);
+  if (result.files.length > 0) {
+    for (const file of result.files) {
+      if (file.mimeType.startsWith('image/')) {
+        await presentImages([file]);
+      }
     }
   }
 }

@@ -1073,7 +1073,7 @@ describe('doGenerate', () => {
   });
 
   it(
-    'should extract image outputs',
+    'should extract image fil outputs',
     withTestServer(
       {
         url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
@@ -1114,16 +1114,22 @@ describe('doGenerate', () => {
         },
       },
       async () => {
-        const { text, images } = await model.doGenerate({
+        const { text, files } = await model.doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
         });
 
         expect(text).toStrictEqual('Here is an image:And another image:');
-        expect(images).toStrictEqual([
-          'base64encodedimagedata',
-          'anotherbase64encodedimagedata',
+        expect(files).toStrictEqual([
+          {
+            data: 'base64encodedimagedata',
+            mimeType: 'image/jpeg',
+          },
+          {
+            data: 'anotherbase64encodedimagedata',
+            mimeType: 'image/png',
+          },
         ]);
       },
     ),
@@ -1169,14 +1175,23 @@ describe('doGenerate', () => {
         },
       },
       async () => {
-        const { text, images } = await model.doGenerate({
+        const { text, files } = await model.doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
         });
 
         expect(text).toBeUndefined();
-        expect(images).toStrictEqual(['imagedata1', 'imagedata2']);
+        expect(files).toStrictEqual([
+          {
+            data: 'imagedata1',
+            mimeType: 'image/jpeg',
+          },
+          {
+            data: 'imagedata2',
+            mimeType: 'image/png',
+          },
+        ]);
       },
     ),
   );
@@ -1204,7 +1219,7 @@ describe('doGenerate', () => {
   );
 
   it(
-    'should filter non-image inlineData parts',
+    'should include non-image inlineData parts',
     withTestServer(
       {
         url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
@@ -1239,15 +1254,23 @@ describe('doGenerate', () => {
         },
       },
       async () => {
-        const { text, images } = await model.doGenerate({
+        const { text, files } = await model.doGenerate({
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
         });
 
         expect(text).toStrictEqual('Here is content:');
-        expect(images).toStrictEqual(['validimagedata']);
-        // PDF data should be filtered out as it's not an image
+        expect(files).toStrictEqual([
+          {
+            data: 'validimagedata',
+            mimeType: 'image/jpeg',
+          },
+          {
+            data: 'pdfdata',
+            mimeType: 'application/pdf',
+          },
+        ]);
       },
     ),
   );

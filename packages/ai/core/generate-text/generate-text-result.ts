@@ -1,4 +1,3 @@
-import { GeneratedImage } from '../generate-image/generated-image';
 import {
   CallWarning,
   FinishReason,
@@ -9,6 +8,7 @@ import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { GeneratedFile } from './generated-file';
 import { ReasoningDetail } from './reasoning-detail';
 import { ResponseMessage, StepResult } from './step-result';
 import { ToolCallArray } from './tool-call';
@@ -33,9 +33,9 @@ has only generated text.
   readonly reasoning: string | undefined;
 
   /**
-The images that were generated. Empty array if no images were generated.
+The files that were generated. Empty array if no files were generated.
      */
-  readonly images: Array<GeneratedImage>;
+  readonly files: Array<GeneratedFile>;
 
   /**
 The full reasoning that the model has generated.

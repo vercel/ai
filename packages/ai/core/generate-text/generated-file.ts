@@ -30,15 +30,15 @@ export class DefaultGeneratedFile implements GeneratedFile {
   readonly mimeType: string;
 
   constructor({
-    file,
+    data,
     mimeType,
   }: {
-    file: string | Uint8Array;
+    data: string | Uint8Array;
     mimeType: string;
   }) {
-    const isUint8Array = file instanceof Uint8Array;
-    this.base64Data = isUint8Array ? undefined : file;
-    this.uint8ArrayData = isUint8Array ? file : undefined;
+    const isUint8Array = data instanceof Uint8Array;
+    this.base64Data = isUint8Array ? undefined : data;
+    this.uint8ArrayData = isUint8Array ? data : undefined;
     this.mimeType = mimeType;
   }
 
@@ -62,7 +62,7 @@ export class DefaultGeneratedFile implements GeneratedFile {
 export class DefaultGeneratedFileWithType extends DefaultGeneratedFile {
   readonly type = 'file';
 
-  constructor(options: { file: string | Uint8Array; mimeType: string }) {
+  constructor(options: { data: string | Uint8Array; mimeType: string }) {
     super(options);
   }
 }

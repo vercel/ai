@@ -115,13 +115,16 @@ An optional signature for verifying that the reasoning originated from the model
         >;
 
     /**
-Generated images as base64 encoded strings or binary data.
-The images should be returned without any unnecessary conversion.
-If the API returns base64 encoded strings, the images should be returned
-as base64 encoded strings. If the API returns binary data, the images should
+Generated files as base64 encoded strings or binary data.
+The files should be returned without any unnecessary conversion.
+If the API returns base64 encoded strings, the files should be returned
+as base64 encoded strings. If the API returns binary data, the files should
 be returned as binary data.
      */
-    images?: Array<string> | Array<Uint8Array>;
+    files?: Array<{
+      data: string | Uint8Array;
+      mimeType: string;
+    }>;
 
     /**
 Tool calls that the model has generated.

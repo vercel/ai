@@ -263,7 +263,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     return {
       text: getTextFromParts(parts),
-      images: getImageParts(parts)?.map(part => part.inlineData.data),
+      files: getInlineDataParts(parts)?.map(part => ({
+        data: part.inlineData.data,
+        mimeType: part.inlineData.mimeType,
+      })),
       toolCalls,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
@@ -368,9 +371,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 });
               }
 
-              const imageParts = getImageParts(content.parts);
-              if (imageParts != null) {
-                for (const part of imageParts) {
+              const inlineDataParts = getInlineDataParts(content.parts);
+              if (inlineDataParts != null) {
+                for (const part of inlineDataParts) {
                   controller.enqueue({
                     type: 'file',
                     mimeType: part.inlineData.mimeType,
@@ -485,13 +488,13 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
     : textParts.map(part => part.text).join('');
 }
 
-function getImageParts(parts: z.infer<typeof contentSchema>['parts']) {
+function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
   return parts?.filter(
     (
       part,
-    ): part is GoogleGenerativeAIContentPart & {
-      inlineData: { mimeType: `image/${string}`; data: string };
-    } => 'inlineData' in part && part.inlineData.mimeType.startsWith('image/'),
+    ): part is {
+      inlineData: { mimeType: string; data: string };
+    } => 'inlineData' in part,
   );
 }
 
