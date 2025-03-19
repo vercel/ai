@@ -72,7 +72,10 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 
   /**
-The AWS credential provider to use for the Bedrock provider to get dynamic credentials similar to the AWS SDK.
+The AWS credential provider to use for the Bedrock provider to get dynamic
+credentials similar to the AWS SDK. Setting a provider here will cause its
+credential values to be used instead of the `accessKeyId`, `secretAccessKey`,
+and `sessionToken` settings.
    */
   credentialProvider?: () => PromiseLike<Omit<BedrockCredentials, 'region'>>;
 
