@@ -1470,6 +1470,7 @@ describe('reactivity', () => {
   it('should be able to render as a derived', () => {
     const chat = $derived(new Chat());
     // If this isn't handled correctly, it'd show a `state_unsafe_mutation` error.
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     chat.messages;
   });
 });
