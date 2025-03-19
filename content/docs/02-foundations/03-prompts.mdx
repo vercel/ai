@@ -324,6 +324,32 @@ const result = await generateText({
 });
 ```
 
+#### Example: Assistant message with file content
+
+<Note>
+  This content part is for model-generated files. Only a few models support
+  this, and only for file types that they can generate.
+</Note>
+
+```ts
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    { role: 'user', content: 'Generate an image of a roquefort cheese!' },
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'file',
+          mimeType: 'image/png',
+          data: fs.readFileSync('./data/roquefort.jpg'),
+        },
+      ],
+    },
+  ],
+});
+```
+
 ### Tool messages
 
 <Note>

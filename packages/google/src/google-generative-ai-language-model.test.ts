@@ -1071,6 +1071,209 @@ describe('doGenerate', () => {
       ),
     );
   });
+
+  it(
+    'should extract image fil outputs',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: 'Here is an image:' },
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: 'base64encodedimagedata',
+                    },
+                  },
+                  { text: 'And another image:' },
+                  {
+                    inlineData: {
+                      mimeType: 'image/png',
+                      data: 'anotherbase64encodedimagedata',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        },
+      },
+      async () => {
+        const { text, files } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toStrictEqual('Here is an image:And another image:');
+        expect(files).toStrictEqual([
+          {
+            data: 'base64encodedimagedata',
+            mimeType: 'image/jpeg',
+          },
+          {
+            data: 'anotherbase64encodedimagedata',
+            mimeType: 'image/png',
+          },
+        ]);
+      },
+    ),
+  );
+
+  it(
+    'should handle responses with only images and no text',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: 'imagedata1',
+                    },
+                  },
+                  {
+                    inlineData: {
+                      mimeType: 'image/png',
+                      data: 'imagedata2',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        },
+      },
+      async () => {
+        const { text, files } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toBeUndefined();
+        expect(files).toStrictEqual([
+          {
+            data: 'imagedata1',
+            mimeType: 'image/jpeg',
+          },
+          {
+            data: 'imagedata2',
+            mimeType: 'image/png',
+          },
+        ]);
+      },
+    ),
+  );
+
+  it(
+    'should pass responseModalities in provider options',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        providerMetadata: {
+          google: {
+            responseModalities: ['TEXT', 'IMAGE'],
+          },
+        },
+      });
+
+      expect(await call(0).getRequestBodyJson()).toMatchObject({
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      });
+    }),
+  );
+
+  it(
+    'should include non-image inlineData parts',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: 'Here is content:' },
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: 'validimagedata',
+                    },
+                  },
+                  {
+                    inlineData: {
+                      mimeType: 'application/pdf',
+                      data: 'pdfdata',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        },
+      },
+      async () => {
+        const { text, files } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toStrictEqual('Here is content:');
+        expect(files).toStrictEqual([
+          {
+            data: 'validimagedata',
+            mimeType: 'image/jpeg',
+          },
+          {
+            data: 'pdfdata',
+            mimeType: 'application/pdf',
+          },
+        ]);
+      },
+    ),
+  );
 });
 
 describe('doStream', () => {
@@ -1603,6 +1806,40 @@ describe('doStream', () => {
               url: 'https://source.example.com',
             },
           },
+        ]);
+      },
+    ),
+  );
+
+  it(
+    'should stream files',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+        type: 'stream-values',
+        content: [
+          `data: {"candidates": [{"content": {"parts": [{"inlineData": {"data": "test","mimeType": "text/plain"}}]` +
+            `,"role": "model"},` +
+            `"finishReason": "STOP","index": 0,"safetyRatings": [` +
+            `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}]}\n\n`,
+          `data: {"usageMetadata": {"promptTokenCount": 294,"candidatesTokenCount": 233,"totalTokenCount": 527}}\n\n`,
+        ],
+      },
+      async () => {
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(events.filter(event => event.type === 'error')).toEqual([]); // no errors
+        expect(events.filter(event => event.type === 'file')).toEqual([
+          { type: 'file', mimeType: 'text/plain', data: 'test' },
         ]);
       },
     ),
