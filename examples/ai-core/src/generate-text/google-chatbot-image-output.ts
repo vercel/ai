@@ -27,11 +27,9 @@ async function main() {
       process.stdout.write(`\nAssistant: ${result.text}`);
     }
 
-    if (result.files.length > 0) {
-      for (const file of result.files) {
-        if (file.mimeType.startsWith('image/')) {
-          await presentImages([file]);
-        }
+    for (const file of result.files) {
+      if (file.mimeType.startsWith('image/')) {
+        await presentImages([file]);
       }
     }
 
