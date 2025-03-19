@@ -1779,7 +1779,7 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider':
-        specifier: workspace:1.0.11
+        specifier: workspace:1.0.12
         version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: 2.1.14
