@@ -943,6 +943,33 @@ To see `streamText` in action, check out [these examples](#examples).
               ],
             },
             {
+              name: 'files',
+              type: 'Array<GeneratedFile>',
+              description: 'All files that were generated in this step.',
+              properties: [
+                {
+                  type: 'GeneratedFile',
+                  parameters: [
+                    {
+                      name: 'base64',
+                      type: 'string',
+                      description: 'File as a base64 encoded string.',
+                    },
+                    {
+                      name: 'uint8Array',
+                      type: 'Uint8Array',
+                      description: 'File as a Uint8Array.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      description: 'MIME type of the file.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
               name: 'toolCalls',
               type: 'ToolCall[]',
               description: 'The tool calls that have been executed.',
@@ -1154,6 +1181,33 @@ To see `streamText` in action, check out [these examples](#examples).
                       isOptional: true,
                       description:
                         'Additional provider metadata for the source.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'files',
+              type: 'Array<GeneratedFile>',
+              description: 'Files that were generated in the final step.',
+              properties: [
+                {
+                  type: 'GeneratedFile',
+                  parameters: [
+                    {
+                      name: 'base64',
+                      type: 'string',
+                      description: 'File as a base64 encoded string.',
+                    },
+                    {
+                      name: 'uint8Array',
+                      type: 'Uint8Array',
+                      description: 'File as a Uint8Array.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      description: 'MIME type of the file.',
                     },
                   ],
                 },
@@ -1374,6 +1428,34 @@ To see `streamText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'files',
+      type: 'Promise<Array<GeneratedFile>>',
+      description:
+        'Files that were generated in the final step. Resolved when the response is finished.',
+      properties: [
+        {
+          type: 'GeneratedFile',
+          parameters: [
+            {
+              name: 'base64',
+              type: 'string',
+              description: 'File as a base64 encoded string.',
+            },
+            {
+              name: 'uint8Array',
+              type: 'Uint8Array',
+              description: 'File as a Uint8Array.',
+            },
+            {
+              name: 'mimeType',
+              type: 'string',
+              description: 'MIME type of the file.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'toolCalls',
       type: 'Promise<ToolCall[]>',
       description:
@@ -1515,6 +1597,33 @@ To see `streamText` in action, check out [these examples](#examples).
                       isOptional: true,
                       description:
                         'Additional provider metadata for the source.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'files',
+              type: 'Array<GeneratedFile>',
+              description: 'Files that were generated in this step.',
+              properties: [
+                {
+                  type: 'GeneratedFile',
+                  parameters: [
+                    {
+                      name: 'base64',
+                      type: 'string',
+                      description: 'File as a base64 encoded string.',
+                    },
+                    {
+                      name: 'uint8Array',
+                      type: 'Uint8Array',
+                      description: 'File as a Uint8Array.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      description: 'MIME type of the file.',
                     },
                   ],
                 },
@@ -1735,6 +1844,31 @@ To see `streamText` in action, check out [these examples](#examples).
               name: 'source',
               type: 'Source',
               description: 'The source.',
+            },
+          ],
+        },
+        {
+          type: 'TextStreamPart',
+          parameters: [
+            {
+              name: 'type',
+              type: "'file'",
+              description: 'The type to identify the object as file.',
+            },
+            {
+              name: 'base64',
+              type: 'string',
+              description: 'File as a base64 encoded string.',
+            },
+            {
+              name: 'uint8Array',
+              type: 'Uint8Array',
+              description: 'File as a Uint8Array.',
+            },
+            {
+              name: 'mimeType',
+              type: 'string',
+              description: 'MIME type of the file.',
             },
           ],
         },

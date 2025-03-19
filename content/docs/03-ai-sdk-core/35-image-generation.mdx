@@ -27,6 +27,8 @@ const base64 = image.base64; // base64 image data
 const uint8Array = image.uint8Array; // Uint8Array image data
 ```
 
+## Settings
+
 ### Size and Aspect Ratio
 
 Depending on the model, you can either specify the size or the aspect ratio.
@@ -204,6 +206,30 @@ try {
     console.log('NoImageGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
+  }
+}
+```
+
+## Generating Images with Language Models
+
+Some language models such as Google `gemini-2.0-flash-exp` support multi-modal outputs including images.
+With such models, you can access the generated images using the `files` property of the response.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google('gemini-2.0-flash-exp'),
+  providerOptions: {
+    google: { responseModalities: ['TEXT', 'IMAGE'] },
+  },
+  prompt: 'Generate an image of a comic cat',
+});
+
+for (const file of result.files) {
+  if (file.mimeType.startsWith('image/')) {
+    // show the image
   }
 }
 ```
