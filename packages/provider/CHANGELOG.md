@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.0.12
+
+### Patch Changes
+
+- 0bd5bc6: feat (ai): support model-generated files
+
 ## 1.0.11
 
 ### Patch Changes

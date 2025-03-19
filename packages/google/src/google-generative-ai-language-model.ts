@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
@@ -15,6 +16,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
+  safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -78,10 +80,28 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
     const warnings: LanguageModelV1CallWarning[] = [];
+
+    // parse and validate provider options:
+    const parsedProviderOptions =
+      providerMetadata != null
+        ? safeValidateTypes({
+            value: providerMetadata,
+            schema: providerOptionsSchema,
+          })
+        : { success: true as const, value: undefined };
+    if (!parsedProviderOptions.success) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message: 'invalid provider options',
+        cause: parsedProviderOptions.error,
+      });
+    }
+    const googleOptions = parsedProviderOptions.value?.google;
 
     const generationConfig = {
       // standardized settings:
@@ -108,6 +128,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       ...(this.settings.audioTimestamp && {
         audioTimestamp: this.settings.audioTimestamp,
       }),
+
+      // provider options:
+      responseModalities: googleOptions?.responseModalities,
     };
 
     const { contents, systemInstruction } =
@@ -240,6 +263,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     return {
       text: getTextFromParts(parts),
+      files: getInlineDataParts(parts)?.map(part => ({
+        data: part.inlineData.data,
+        mimeType: part.inlineData.mimeType,
+      })),
       toolCalls,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
@@ -342,6 +369,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                   type: 'text-delta',
                   textDelta: deltaText,
                 });
+              }
+
+              const inlineDataParts = getInlineDataParts(content.parts);
+              if (inlineDataParts != null) {
+                for (const part of inlineDataParts) {
+                  controller.enqueue({
+                    type: 'file',
+                    mimeType: part.inlineData.mimeType,
+                    data: part.inlineData.data,
+                  });
+                }
               }
 
               const toolCallDeltas = getToolCallsFromParts({
@@ -450,6 +488,39 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
     : textParts.map(part => part.text).join('');
 }
 
+function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
+  return parts?.filter(
+    (
+      part,
+    ): part is {
+      inlineData: { mimeType: string; data: string };
+    } => 'inlineData' in part,
+  );
+}
+
+function extractSources({
+  groundingMetadata,
+  generateId,
+}: {
+  groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null;
+  generateId: () => string;
+}): undefined | LanguageModelV1Source[] {
+  return groundingMetadata?.groundingChunks
+    ?.filter(
+      (
+        chunk,
+      ): chunk is z.infer<typeof groundingChunkSchema> & {
+        web: { uri: string; title?: string };
+      } => chunk.web != null,
+    )
+    .map(chunk => ({
+      sourceType: 'url',
+      id: generateId(),
+      url: chunk.web.uri,
+      title: chunk.web.title,
+    }));
+}
+
 const contentSchema = z.object({
   role: z.string(),
   parts: z
@@ -462,6 +533,12 @@ const contentSchema = z.object({
           functionCall: z.object({
             name: z.string(),
             args: z.unknown(),
+          }),
+        }),
+        z.object({
+          inlineData: z.object({
+            mimeType: z.string(),
+            data: z.string(),
           }),
         }),
       ]),
@@ -557,25 +634,10 @@ const chunkSchema = z.object({
     .nullish(),
 });
 
-function extractSources({
-  groundingMetadata,
-  generateId,
-}: {
-  groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null;
-  generateId: () => string;
-}): undefined | LanguageModelV1Source[] {
-  return groundingMetadata?.groundingChunks
-    ?.filter(
-      (
-        chunk,
-      ): chunk is z.infer<typeof groundingChunkSchema> & {
-        web: { uri: string; title?: string };
-      } => chunk.web != null,
-    )
-    .map(chunk => ({
-      sourceType: 'url',
-      id: generateId(),
-      url: chunk.web.uri,
-      title: chunk.web.title,
-    }));
-}
+const providerOptionsSchema = z.object({
+  google: z
+    .object({
+      responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).nullish(),
+    })
+    .nullish(),
+});

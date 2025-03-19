@@ -252,6 +252,29 @@ describe('convertToCoreMessages', () => {
       ] satisfies CoreMessage[]);
     });
 
+    it('should convert an assistant message with file parts', () => {
+      const result = convertToCoreMessages([
+        {
+          role: 'assistant',
+          content: '', // empty content
+          parts: [
+            {
+              type: 'file',
+              mimeType: 'image/png',
+              data: 'dGVzdA==',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [{ type: 'file', mimeType: 'image/png', data: 'dGVzdA==' }],
+        },
+      ] satisfies CoreMessage[]);
+    });
+
     it('should handle assistant message with tool invocations', () => {
       const result = convertToCoreMessages([
         {
