@@ -22,6 +22,7 @@ import {
   getChatContext,
   hasChatContext,
 } from './chat-context.svelte.js';
+import { untrack } from 'svelte';
 
 export type ChatOptions = Readonly<
   Omit<UseChatOptions, 'keepLastMessageOnError'> & {
@@ -95,7 +96,7 @@ export class Chat {
     return this.#store.messages;
   }
   set messages(value: Message[]) {
-    this.#store.messages = fillMessageParts(value);
+    untrack(() => (this.#store.messages = fillMessageParts(value)));
   }
 
   constructor(options: ChatOptions = {}) {
