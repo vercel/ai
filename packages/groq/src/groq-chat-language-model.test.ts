@@ -249,6 +249,9 @@ describe('doGenerate', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      providerMetadata: {
+        groq: { reasoningFormat: 'hidden' },
+      },
     });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
@@ -256,6 +259,7 @@ describe('doGenerate', () => {
       messages: [{ role: 'user', content: 'Hello' }],
       parallel_tool_calls: false,
       user: 'test-user-id',
+      reasoning_format: 'hidden',
     });
   });
 
