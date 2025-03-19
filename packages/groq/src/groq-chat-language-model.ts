@@ -1,4 +1,5 @@
 import {
+  InvalidArgumentError,
   InvalidResponseDataError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
@@ -15,6 +16,7 @@ import {
   generateId,
   isParsableJson,
   postJsonToApi,
+  safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
@@ -74,6 +76,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
     responseFormat,
     seed,
     stream,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0] & {
     stream: boolean;
   }) {
@@ -100,6 +103,24 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    // parse and validate provider options:
+    const parsedProviderOptions =
+      providerMetadata != null
+        ? safeValidateTypes({
+            value: providerMetadata,
+            schema: providerOptionsSchema,
+          })
+        : { success: true as const, value: undefined };
+    if (!parsedProviderOptions.success) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message: 'invalid provider options',
+        cause: parsedProviderOptions.error,
+      });
+    }
+
+    const groqOptions = parsedProviderOptions.value?.groq;
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -123,6 +144,9 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
         stream === false && responseFormat?.type === 'json'
           ? { type: 'json_object' }
           : undefined,
+
+      // provider options:
+      reasoning_format: groqOptions?.reasoningFormat,
 
       // messages:
       messages: convertToGroqChatMessages(prompt),
@@ -214,6 +238,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
 
     return {
       text: choice.message.content ?? undefined,
+      reasoning: choice.message.reasoning ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
         toolCallId: toolCall.id ?? generateId(),
@@ -481,6 +506,7 @@ const groqChatResponseSchema = z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
+        reasoning: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
@@ -519,6 +545,7 @@ const groqChatChunkSchema = z.union([
           .object({
             role: z.enum(['assistant']).nullish(),
             content: z.string().nullish(),
+            reasoning: z.string().nullish(),
             tool_calls: z
               .array(
                 z.object({
@@ -551,3 +578,11 @@ const groqChatChunkSchema = z.union([
   }),
   groqErrorDataSchema,
 ]);
+
+const providerOptionsSchema = z.object({
+  groq: z
+    .object({
+      reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).nullish(),
+    })
+    .nullish(),
+});
