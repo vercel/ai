@@ -492,6 +492,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   private readonly sourcesPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['sources']>
   >();
+  private readonly filesPromise = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['files']>
+  >();
   private readonly toolCallsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolCalls']>
   >();
@@ -815,6 +818,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // aggregate results:
           self.textPromise.resolve(recordedFullText);
           self.sourcesPromise.resolve(recordedSources);
+          self.filesPromise.resolve(lastStep.files);
           self.stepsPromise.resolve(recordedSteps);
 
           // call onFinish callback:
@@ -1518,6 +1522,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   get sources() {
     return this.sourcesPromise.value;
+  }
+
+  get files() {
+    return this.filesPromise.value;
   }
 
   get toolCalls() {

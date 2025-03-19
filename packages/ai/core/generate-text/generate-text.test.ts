@@ -47,12 +47,10 @@ const modelWithFiles = new MockLanguageModelV1({
       {
         data: new Uint8Array([1, 2, 3]),
         mimeType: 'image/png',
-        filename: 'test.png',
       },
       {
         data: 'QkFVRw==',
         mimeType: 'image/jpeg',
-        filename: 'test.jpeg',
       },
     ],
   }),
