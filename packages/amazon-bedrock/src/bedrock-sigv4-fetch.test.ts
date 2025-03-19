@@ -222,4 +222,69 @@ describe('createSigV4FetchFunction', () => {
     expect(dummyFetch).toHaveBeenCalledWith('http://example.com', undefined);
     expect(response).toBe(dummyResponse);
   });
+
+  it('should correctly handle async credential providers', async () => {
+    const dummyResponse = new Response('Signed', { status: 200 });
+    const dummyFetch = vi.fn().mockResolvedValue(dummyResponse);
+
+    // Create a function that returns a Promise of credentials
+    const asyncCredentialsProvider = () =>
+      Promise.resolve({
+        region: 'us-east-1',
+        accessKeyId: 'async-access-key',
+        secretAccessKey: 'async-secret-key',
+        sessionToken: 'async-session-token',
+      });
+
+    const fetchFn = createSigV4FetchFunction(
+      asyncCredentialsProvider,
+      dummyFetch,
+    );
+
+    await fetchFn('http://example.com', {
+      method: 'POST',
+      body: '{"test": "async"}',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    // Verify the request was properly signed
+    expect(dummyFetch).toHaveBeenCalled();
+    const calledInit = dummyFetch.mock.calls[0][1] as RequestInit;
+    const headers = calledInit.headers as Record<string, string>;
+
+    // Check that the signing headers were added
+    expect(headers['x-amz-date']).toEqual('20240315T000000Z');
+    expect(headers['authorization']).toEqual(
+      'AWS4-HMAC-SHA256 Credential=test',
+    );
+    expect(headers['x-amz-security-token']).toEqual('async-session-token');
+    expect(headers['content-type']).toEqual('application/json');
+  });
+
+  it('should handle async credential providers that reject', async () => {
+    const dummyFetch = vi.fn();
+    const errorMessage = 'Failed to get credentials';
+
+    // Create a function that returns a rejected Promise
+    const failingCredentialsProvider = () =>
+      Promise.reject(new Error(errorMessage));
+
+    const fetchFn = createSigV4FetchFunction(
+      failingCredentialsProvider,
+      dummyFetch,
+    );
+
+    // The fetch call should propagate the rejection
+    await expect(
+      fetchFn('http://example.com', {
+        method: 'POST',
+        body: '{"test": "data"}',
+      }),
+    ).rejects.toThrow(errorMessage);
+
+    // The underlying fetch should not be called
+    expect(dummyFetch).not.toHaveBeenCalled();
+  });
 });

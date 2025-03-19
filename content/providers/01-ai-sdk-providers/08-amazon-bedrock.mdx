@@ -31,6 +31,8 @@ See the [Model Access Docs](https://docs.aws.amazon.com/bedrock/latest/userguide
 
 ### Authentication
 
+#### Using IAM Access Key and Secret Key
+
 **Step 1: Creating AWS Access Key and Secret Key**
 
 To get started, you'll need to create an AWS access key and secret key. Here's how:
@@ -70,6 +72,36 @@ AWS_REGION=YOUR_REGION
 </Note>
 
 Remember to replace `YOUR_ACCESS_KEY_ID`, `YOUR_SECRET_ACCESS_KEY`, and `YOUR_REGION` with the actual values from your AWS account.
+
+#### Using AWS SDK Credentials Chain (instance profiles, instance roles, ECS roles, EKS Service Accounts, etc.)
+
+When using AWS SDK, the SDK will automatically use the credentials chain to determine the credentials to use. This includes instance profiles, instance roles, ECS roles, EKS Service Accounts, etc. A similar behavior is possible using the AI SDK by not specifying the `accessKeyId` and `secretAccessKey`, `sessionToken` properties in the provider settings and instead passing a `credentialProvider` property.
+
+_Usage:_
+
+`@aws-sdk/credential-providers` package provides a set of credential providers that can be used to create a credential provider chain.
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @aws-sdk/credential-providers" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @aws-sdk/credential-providers" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @aws-sdk/credential-providers" dark />
+  </Tab>
+</Tabs>
+
+```ts
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+
+const bedrock = createAmazonBedrock({
+  region: 'us-east-1',
+  credentialProvider: fromNodeProviderChain(),
+});
+```
 
 ## Provider Instance
 
@@ -122,6 +154,11 @@ You can use the following optional settings to customize the Amazon Bedrock prov
 
   Optional. The AWS session token that you want to use for the API calls.
   It uses the `AWS_SESSION_TOKEN` environment variable by default.
+
+- **credentialProvider** _() => Promise<{ accessKeyId: string; secretAccessKey: string; sessionToken?: string; }>_
+
+  Optional. The AWS credential provider chain that you want to use for the API calls.
+  It uses the specified credentials by default.
 
 ## Language Models
 
