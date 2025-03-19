@@ -1,5 +1,7 @@
 import { delay } from '@ai-sdk/provider-utils';
-import { JSONRPCMessage, MCPTool, MCPTransport } from './types';
+import { JSONRPCMessage } from './json-rpc-message';
+import { MCPTransport } from './mcp-transport';
+import { MCPTool } from './types';
 
 const DEFAULT_TOOLS: MCPTool[] = [
   {
@@ -20,9 +22,9 @@ export class MockMCPTransport implements MCPTransport {
   private initializeResult;
   private sendError;
 
-  onMessage?: (message: JSONRPCMessage) => void;
-  onClose?: () => void;
-  onError?: (error: Error) => void;
+  onmessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
 
   constructor({
     overrideTools = DEFAULT_TOOLS,
@@ -43,7 +45,7 @@ export class MockMCPTransport implements MCPTransport {
 
   async start(): Promise<void> {
     if (this.sendError) {
-      this.onError?.({
+      this.onerror?.({
         name: 'UnknownError',
         message: 'Unknown error',
       });
@@ -55,7 +57,7 @@ export class MockMCPTransport implements MCPTransport {
     if ('method' in message && 'id' in message) {
       if (message.method === 'initialize') {
         await delay(10);
-        this.onMessage?.({
+        this.onmessage?.({
           jsonrpc: '2.0',
           id: message.id,
           result: this.initializeResult || {
@@ -73,7 +75,7 @@ export class MockMCPTransport implements MCPTransport {
 
       if (message.method === 'tools/list') {
         await delay(10);
-        this.onMessage?.({
+        this.onmessage?.({
           jsonrpc: '2.0',
           id: message.id,
           result: {
@@ -88,7 +90,7 @@ export class MockMCPTransport implements MCPTransport {
         const tool = this.tools.find(t => t.name === toolName);
 
         if (!tool) {
-          this.onMessage?.({
+          this.onmessage?.({
             jsonrpc: '2.0',
             id: message.id,
             error: {
@@ -100,7 +102,7 @@ export class MockMCPTransport implements MCPTransport {
         }
 
         if (this.failOnInvalidToolParams) {
-          this.onMessage?.({
+          this.onmessage?.({
             jsonrpc: '2.0',
             id: message.id,
             error: {
@@ -113,7 +115,7 @@ export class MockMCPTransport implements MCPTransport {
           return;
         }
 
-        this.onMessage?.({
+        this.onmessage?.({
           jsonrpc: '2.0',
           id: message.id,
           result: {
@@ -130,6 +132,6 @@ export class MockMCPTransport implements MCPTransport {
   }
 
   async close(): Promise<void> {
-    this.onClose?.();
+    this.onclose?.();
   }
 }
