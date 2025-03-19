@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 2.0.2
+
+### Patch Changes
+
+- d1ea22e: fix(ui/svelte): Allow class instances to be created as deriveds
+
 ## 2.0.1
 
 ### Patch Changes
