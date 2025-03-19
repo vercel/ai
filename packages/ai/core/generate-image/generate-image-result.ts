@@ -1,6 +1,6 @@
+import { GeneratedFile } from '../generate-text';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { GeneratedImage } from './generated-image';
 
 /**
 The result of a `generateImage` call.
@@ -10,12 +10,12 @@ export interface GenerateImageResult {
   /**
 The first image that was generated.
    */
-  readonly image: GeneratedImage;
+  readonly image: GeneratedFile;
 
   /**
 The images that were generated.
      */
-  readonly images: Array<GeneratedImage>;
+  readonly images: Array<GeneratedFile>;
 
   /**
 Warnings for the call, e.g. unsupported settings.

@@ -1,10 +1,14 @@
-import { ImageModelV1, JSONValue } from '@ai-sdk/provider';
+import { AISDKError, ImageModelV1, JSONValue } from '@ai-sdk/provider';
 import { NoImageGeneratedError } from '../../errors/no-image-generated-error';
+import {
+  DefaultGeneratedFile,
+  GeneratedFile,
+} from '../generate-text/generated-file';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
-import { DefaultGeneratedImage, GeneratedImage } from './generated-image';
+import { detectImageMimeType } from '../util/detect-image-mimetype';
 
 /**
 Generates images using an image model.
@@ -133,12 +137,18 @@ Only applicable for HTTP-based providers.
   );
 
   // collect result images, warnings, and response metadata
-  const images: Array<DefaultGeneratedImage> = [];
+  const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
   for (const result of results) {
     images.push(
-      ...result.images.map(image => new DefaultGeneratedImage({ image })),
+      ...result.images.map(
+        image =>
+          new DefaultGeneratedFile({
+            data: image,
+            mimeType: detectImageMimeType(image) ?? 'image/png',
+          }),
+      ),
     );
     warnings.push(...result.warnings);
     responses.push(result.response);
@@ -152,12 +162,12 @@ Only applicable for HTTP-based providers.
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {
-  readonly images: Array<GeneratedImage>;
+  readonly images: Array<GeneratedFile>;
   readonly warnings: Array<ImageGenerationWarning>;
   readonly responses: Array<ImageModelResponseMetadata>;
 
   constructor(options: {
-    images: Array<DefaultGeneratedImage>;
+    images: Array<GeneratedFile>;
     warnings: Array<ImageGenerationWarning>;
     responses: Array<ImageModelResponseMetadata>;
   }) {
