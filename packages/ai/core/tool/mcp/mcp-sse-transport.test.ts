@@ -264,6 +264,58 @@ describe('SseMCPTransport', () => {
     const error = await errorPromise;
     expect((error as Error).message).toContain('fetch failed');
   });
+
+  it('should send custom headers with all requests', async () => {
+    const controller = new TransformStreamController();
+    const stream = controller.readable;
+
+    server.urls['http://localhost:3000/sse'].response = {
+      type: 'readable-stream',
+      stream,
+      headers: {
+        'Content-Type': 'text/event-stream',
+      },
+    };
+
+    const customHeaders = {
+      'authorization': 'Bearer test-token',
+      'x-custom-header': 'test-value',
+    };
+
+    const transport = new SseMCPTransport({
+      url: 'http://localhost:3000/sse',
+      headers: customHeaders,
+    });
+
+    const connectPromise = transport.start();
+    controller.enqueue(
+      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
+    );
+    await connectPromise;
+
+    const message = {
+      jsonrpc: '2.0' as const,
+      method: 'test',
+      params: { foo: 'bar' },
+      id: '1',
+    };
+
+    await transport.send(message);
+
+    // Verify SSE connection headers
+    expect(server.calls[0].requestHeaders).toEqual({
+      accept: 'text/event-stream',
+      ...customHeaders,
+    });
+
+    // Verify POST request headers
+    expect(server.calls[1].requestHeaders).toEqual({
+      'content-type': 'application/json',
+      ...customHeaders,
+    });
+
+    await transport.close();
+  });
 });
 
 class TransformStreamController {
