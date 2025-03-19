@@ -20,30 +20,10 @@ export type GoogleGenerativeAIContent = {
 
 export type GoogleGenerativeAIContentPart =
   | { text: string }
-  | {
-      inlineData: {
-        mimeType: string;
-        data: string;
-      };
-    }
-  | {
-      functionCall: {
-        name: string;
-        args: unknown;
-      };
-    }
-  | {
-      functionResponse: {
-        name: string;
-        response: unknown;
-      };
-    }
-  | {
-      fileData: {
-        mimeType: string;
-        fileUri: string;
-      };
-    };
+  | { inlineData: { mimeType: string; data: string } }
+  | { functionCall: { name: string; args: unknown } }
+  | { functionResponse: { name: string; response: unknown } }
+  | { fileData: { mimeType: string; fileUri: string } };
 
 export type GoogleGenerativeAIGroundingMetadata = z.infer<
   typeof groundingMetadataSchema

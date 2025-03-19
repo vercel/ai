@@ -1,5 +1,23 @@
 # ai
 
+## 4.1.63
+
+### Patch Changes
+
+- 0bd5bc6: feat (ai): support model-generated files
+- Updated dependencies [0bd5bc6]
+  - @ai-sdk/provider@1.0.12
+  - @ai-sdk/provider-utils@2.1.14
+  - @ai-sdk/ui-utils@1.1.20
+  - @ai-sdk/react@1.1.24
+
+## 4.1.62
+
+### Patch Changes
+
+- c9ed3c4: feat: enable custom mcp transports
+  breaking change: remove internal stdio transport creation
+
 ## 4.1.61
 
 ### Patch Changes

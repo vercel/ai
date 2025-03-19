@@ -350,6 +350,30 @@ const { sources } = await generateText({
 });
 ```
 
+### Image Outputs
+
+The model `gemini-2.0-flash-exp` supports image generation. Images are exposed as files in the response.
+You need to enable image output in the provider options using the `responseModalities` option.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google('gemini-2.0-flash-exp'),
+  providerOptions: {
+    google: { responseModalities: ['TEXT', 'IMAGE'] },
+  },
+  prompt: 'Generate an image of a comic cat',
+});
+
+for (const file of result.files) {
+  if (file.mimeType.startsWith('image/')) {
+    // show the image
+  }
+}
+```
+
 ### Safety Ratings
 
 The safety ratings provide insight into the safety of the model's response.

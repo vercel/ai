@@ -420,6 +420,33 @@ const reasoningSignatureStreamPart: DataStreamPart<
   },
 };
 
+const fileStreamPart: DataStreamPart<
+  'k',
+  'file',
+  {
+    data: string; // base64 encoded data
+    mimeType: string;
+  }
+> = {
+  code: 'k',
+  name: 'file',
+  parse: (value: JSONValue) => {
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('data' in value) ||
+      typeof value.data !== 'string' ||
+      !('mimeType' in value) ||
+      typeof value.mimeType !== 'string'
+    ) {
+      throw new Error(
+        '"file" parts expect an object with a "data" and "mimeType" property.',
+      );
+    }
+    return { type: 'file', value: value as { data: string; mimeType: string } };
+  },
+};
+
 const dataStreamParts = [
   textStreamPart,
   dataStreamPart,
@@ -436,6 +463,7 @@ const dataStreamParts = [
   sourcePart,
   redactedReasoningStreamPart,
   reasoningSignatureStreamPart,
+  fileStreamPart,
 ] as const;
 
 export const dataStreamPartsByCode = Object.fromEntries(

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/anthropic",
-  "version": "1.1.17",
+  "version": "1.1.18",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -37,8 +37,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.11",
-    "@ai-sdk/provider-utils": "2.1.13"
+    "@ai-sdk/provider": "1.0.12",
+    "@ai-sdk/provider-utils": "2.1.14"
   },
   "devDependencies": {
     "@types/node": "^18",

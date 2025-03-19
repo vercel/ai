@@ -1,10 +1,10 @@
 import type { ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MCPClientError } from '../../../errors';
+import { JSONRPCMessage } from '../core/tool/mcp/json-rpc-message';
+import { MCPClientError } from '../errors';
 import { createChildProcess } from './create-child-process';
-import { StdioClientTransport } from './mcp-stdio-transport';
-import { JSONRPCMessage } from './types';
+import { StdioMCPTransport } from './mcp-stdio-transport';
 
 vi.mock('./create-child-process', { spy: true });
 
@@ -16,8 +16,8 @@ interface MockChildProcess {
   removeAllListeners: ReturnType<typeof vi.fn>;
 }
 
-describe('MCPStdIOTransport', () => {
-  let transport: StdioClientTransport;
+describe('StdioMCPTransport', () => {
+  let transport: StdioMCPTransport;
   let mockChildProcess: MockChildProcess;
   let mockStdin: EventEmitter & { write?: ReturnType<typeof vi.fn> };
   let mockStdout: EventEmitter;
@@ -39,10 +39,9 @@ describe('MCPStdIOTransport', () => {
       mockChildProcess as unknown as ChildProcess,
     );
 
-    transport = new StdioClientTransport({
+    transport = new StdioMCPTransport({
       command: 'test-command',
       args: ['--test'],
-      type: 'stdio',
     });
   });
 
@@ -101,7 +100,7 @@ describe('MCPStdIOTransport', () => {
     it('should handle spawn errors', async () => {
       const error = new Error('Spawn failed');
       const onErrorSpy = vi.fn();
-      transport.onError = onErrorSpy;
+      transport.onerror = onErrorSpy;
 
       // simulate `spawn` failure by emitting error event after returning child process
       mockChildProcess.on.mockImplementation(
@@ -202,7 +201,7 @@ describe('MCPStdIOTransport', () => {
           }
         },
       );
-      transport.onMessage = onMessageSpy;
+      transport.onmessage = onMessageSpy;
       await transport.start();
     });
 
@@ -246,7 +245,7 @@ describe('MCPStdIOTransport', () => {
           }
         },
       );
-      transport.onClose = onCloseSpy;
+      transport.onclose = onCloseSpy;
       await transport.start();
     });
 

@@ -9,6 +9,12 @@ import {
 const prompt = 'sunny day at the beach';
 const testDate = new Date(2024, 0, 1);
 
+const pngBase64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg=='; // 1x1 transparent PNG
+const jpegBase64 =
+  '/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k='; // 1x1 black JPEG
+const gifBase64 = 'R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='; // 1x1 transparent GIF
+
 const createMockResponse = (options: {
   images: string[] | Uint8Array[];
   warnings?: ImageModelV1CallWarning[];
@@ -26,10 +32,6 @@ const createMockResponse = (options: {
 });
 
 describe('generateImage', () => {
-  // 1x1 transparent PNG
-  const mockBase64Image =
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
-
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
@@ -41,7 +43,7 @@ describe('generateImage', () => {
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
-            images: [mockBase64Image],
+            images: [pngBase64],
           });
         },
       }),
@@ -71,7 +73,7 @@ describe('generateImage', () => {
       model: new MockImageModelV1({
         doGenerate: async () =>
           createMockResponse({
-            images: [mockBase64Image],
+            images: [pngBase64],
             warnings: [
               {
                 type: 'other',
@@ -92,17 +94,12 @@ describe('generateImage', () => {
   });
 
   describe('base64 image data', () => {
-    it('should return generated images', async () => {
-      const base64Images = [
-        'SGVsbG8gV29ybGQ=', // "Hello World" in base64
-        'VGVzdGluZw==', // "Testing" in base64
-      ];
-
+    it('should return generated images with correct mime types', async () => {
       const result = await generateImage({
         model: new MockImageModelV1({
           doGenerate: async () =>
             createMockResponse({
-              images: base64Images,
+              images: [pngBase64, jpegBase64],
             }),
         }),
         prompt,
@@ -112,27 +109,28 @@ describe('generateImage', () => {
         result.images.map(image => ({
           base64: image.base64,
           uint8Array: image.uint8Array,
+          mimeType: image.mimeType,
         })),
       ).toStrictEqual([
         {
-          base64: base64Images[0],
-          uint8Array: convertBase64ToUint8Array(base64Images[0]),
+          base64: pngBase64,
+          uint8Array: convertBase64ToUint8Array(pngBase64),
+          mimeType: 'image/png',
         },
         {
-          base64: base64Images[1],
-          uint8Array: convertBase64ToUint8Array(base64Images[1]),
+          base64: jpegBase64,
+          uint8Array: convertBase64ToUint8Array(jpegBase64),
+          mimeType: 'image/jpeg',
         },
       ]);
     });
 
-    it('should return the first image', async () => {
-      const base64Image = 'SGVsbG8gV29ybGQ='; // "Hello World" in base64
-
+    it('should return the first image with correct mime type', async () => {
       const result = await generateImage({
         model: new MockImageModelV1({
           doGenerate: async () =>
             createMockResponse({
-              images: [base64Image, 'base64-image-2'],
+              images: [pngBase64, jpegBase64],
             }),
         }),
         prompt,
@@ -141,9 +139,11 @@ describe('generateImage', () => {
       expect({
         base64: result.image.base64,
         uint8Array: result.image.uint8Array,
+        mimeType: result.image.mimeType,
       }).toStrictEqual({
-        base64: base64Image,
-        uint8Array: convertBase64ToUint8Array(base64Image),
+        base64: pngBase64,
+        uint8Array: convertBase64ToUint8Array(pngBase64),
+        mimeType: 'image/png',
       });
     });
   });
@@ -151,8 +151,8 @@ describe('generateImage', () => {
   describe('uint8array image data', () => {
     it('should return generated images', async () => {
       const uint8ArrayImages = [
-        convertBase64ToUint8Array('SGVsbG8gV29ybGQ='), // "Hello World" in base64
-        convertBase64ToUint8Array('VGVzdGluZw=='), // "Testing" in base64
+        convertBase64ToUint8Array(pngBase64),
+        convertBase64ToUint8Array(jpegBase64),
       ];
 
       const result = await generateImage({
@@ -185,11 +185,7 @@ describe('generateImage', () => {
 
   describe('when several calls are required', () => {
     it('should generate images', async () => {
-      const base64Images = [
-        'SGVsbG8gV29ybGQ=', // "Hello World" in base64
-        'VGVzdGluZw==', // "Testing" in base64
-        'MTIz', // "123" in base64
-      ];
+      const base64Images = [pngBase64, jpegBase64, gifBase64];
 
       let callCount = 0;
 
@@ -246,11 +242,7 @@ describe('generateImage', () => {
     });
 
     it('should aggregate warnings', async () => {
-      const base64Images = [
-        'SGVsbG8gV29ybGQ=', // "Hello World" in base64
-        'VGVzdGluZw==', // "Testing" in base64
-        'MTIz', // "123" in base64
-      ];
+      const base64Images = [pngBase64, jpegBase64, gifBase64];
 
       let callCount = 0;
 
@@ -322,9 +314,6 @@ describe('generateImage', () => {
               }),
           }),
           prompt,
-          _internal: {
-            currentDate: () => testDate,
-          },
         }),
       ).rejects.toMatchObject({
         name: 'AI_NoImageGeneratedError',
@@ -352,9 +341,6 @@ describe('generateImage', () => {
               }),
           }),
           prompt,
-          _internal: {
-            currentDate: () => testDate,
-          },
         }),
       ).rejects.toMatchObject({
         name: 'AI_NoImageGeneratedError',
@@ -379,7 +365,7 @@ describe('generateImage', () => {
       model: new MockImageModelV1({
         doGenerate: async () =>
           createMockResponse({
-            images: [mockBase64Image],
+            images: [pngBase64],
             timestamp: testDate,
             modelId: 'test-model',
             headers: testHeaders,

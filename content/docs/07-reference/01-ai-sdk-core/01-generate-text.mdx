@@ -14,7 +14,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: openai('gpt-4-turbo'),
+  model: openai('gpt-4o'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
@@ -36,7 +36,7 @@ To see `generateText` in action, check out [these examples](#examples).
     {
       name: 'model',
       type: 'LanguageModel',
-      description: "The language model to use. Example: openai('gpt-4-turbo')",
+      description: "The language model to use. Example: openai('gpt-4o')",
     },
     {
       name: 'system',
@@ -831,6 +831,33 @@ To see `generateText` in action, check out [these examples](#examples).
       ],
     },
     {
+      name: 'files',
+      type: 'Array<GeneratedFile>',
+      description: 'Files that were generated in the final step.',
+      properties: [
+        {
+          type: 'GeneratedFile',
+          parameters: [
+            {
+              name: 'base64',
+              type: 'string',
+              description: 'File as a base64 encoded string.',
+            },
+            {
+              name: 'uint8Array',
+              type: 'Uint8Array',
+              description: 'File as a Uint8Array.',
+            },
+            {
+              name: 'mimeType',
+              type: 'string',
+              description: 'MIME type of the file.',
+            },
+          ],
+        },
+      ],
+    },
+    {
       name: 'toolCalls',
       type: 'array',
       description: 'A list of tool calls made by the model.',
@@ -1067,6 +1094,33 @@ To see `generateText` in action, check out [these examples](#examples).
                       isOptional: true,
                       description:
                         'Additional provider metadata for the source.',
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: 'files',
+              type: 'Array<GeneratedFile>',
+              description: 'Files that were generated in this step.',
+              properties: [
+                {
+                  type: 'GeneratedFile',
+                  parameters: [
+                    {
+                      name: 'base64',
+                      type: 'string',
+                      description: 'File as a base64 encoded string.',
+                    },
+                    {
+                      name: 'uint8Array',
+                      type: 'Uint8Array',
+                      description: 'File as a Uint8Array.',
+                    },
+                    {
+                      name: 'mimeType',
+                      type: 'string',
+                      description: 'MIME type of the file.',
                     },
                   ],
                 },
