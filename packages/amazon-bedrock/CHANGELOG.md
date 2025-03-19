@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.1.4
+
+### Patch Changes
+
+- d65df9d: feat (provider/amazon-bedrock): support AWS credential providers
+
 ## 2.1.3
 
 ### Patch Changes
