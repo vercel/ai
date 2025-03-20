@@ -1,6 +1,6 @@
 ---
 title: SambaNova
-description: Learn how to use SambaNova provider for the AI SDK.
+description: Learn how to use the SambaNova provider for the AI SDK.
 ---
 # SambaNova Provider
 
@@ -13,20 +13,17 @@ API keys can be obtained from the [SambaNova Cloud Platform](https://cloud.samba
 
 The SambaNova provider is available via the `sambanova-ai-provider` module. You can install it with:
 
-```bash
-# With npm
-npm install sambanova-ai-provider
-```
-
-```bash
-# With yarn
-yarn add sambanova-ai-provider
-```
-
-```bash
-# With pnpm
-pnpm add sambanova-ai-provider
-```
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add sambanova-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install sambanova-ai-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add sambanova-ai-provider" dark />
+  </Tab>
+</Tabs>
 
 ### Environment variables
 
@@ -88,9 +85,9 @@ This provider is capable of generating and streaming text, and interpreting imag
 
 At least it has been tested with the following features (which use the `/chat/completion` endpoint):
 
-| Chat completion    | Image input        |
-| ------------------ | ------------------ |
-| :white_check_mark: | :white_check_mark: |
+| Chat completion     | Image input         |
+| ------------------- | ------------------- |
+| <Check size={18} /> | <Check size={18} /> |
 
 ### Image input
 
@@ -105,7 +102,7 @@ SambaNova does not support URLs, but the ai-sdk is able to download the file and
 
 Basic demonstration of text generation using the SambaNova provider.
 
-```js
+```ts
 import { createSambaNova } from 'sambanova-ai-provider';
 import { generateText } from 'ai';
 
@@ -135,7 +132,7 @@ This provider supports [Intercepting Fetch Requests](https://sdk.vercel.ai/examp
 
 ### Example
 
-```js
+```ts
 import { createSambaNova } from 'sambanova-ai-provider';
 import { generateText } from 'ai';
 
@@ -151,7 +148,7 @@ const sambanovaProvider = createSambaNova({
 
 const model = sambanovaProvider('Meta-Llama-3.1-70B-Instruct');
 
-await generateText({
+const { text } = await generateText({
   model,
   prompt: 'Hello, nice to meet you.',
 });
