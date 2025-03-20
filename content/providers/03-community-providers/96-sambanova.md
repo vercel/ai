@@ -4,8 +4,7 @@ description: Learn how to use the SambaNova provider for the AI SDK.
 ---
 # SambaNova Provider
 
-<!-- TODO: add github repo url -->
-[sambanova-ai-provider]() provider contains language model support for the [SambaNova API](https://cloud.sambanova.ai/).
+[sambanova-ai-provider](https://github.com/sambanova/sambanova-ai-provider) contains language model support for the SambaNova API.
 
 API keys can be obtained from the [SambaNova Cloud Platform](https://cloud.sambanova.ai/apis).
 
