@@ -346,6 +346,13 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
 
             const delta = choice.delta;
 
+            if (delta.reasoning != null) {
+              controller.enqueue({
+                type: 'reasoning',
+                textDelta: delta.reasoning,
+              });
+            }
+
             if (delta.content != null) {
               controller.enqueue({
                 type: 'text-delta',
@@ -493,7 +500,6 @@ const groqChatResponseSchema = z.object({
   choices: z.array(
     z.object({
       message: z.object({
-        role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
         reasoning: z.string().nullish(),
         tool_calls: z
@@ -532,7 +538,6 @@ const groqChatChunkSchema = z.union([
       z.object({
         delta: z
           .object({
-            role: z.enum(['assistant']).nullish(),
             content: z.string().nullish(),
             reasoning: z.string().nullish(),
             tool_calls: z
