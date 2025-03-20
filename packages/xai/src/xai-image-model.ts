@@ -1,41 +1,28 @@
-import {
-  APICallError,
-  ImageModelV1,
-  ImageModelV1CallWarning,
-} from '@ai-sdk/provider';
+import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
   postJsonToApi,
-  ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import {
-  defaultOpenAICompatibleErrorStructure,
-  ProviderErrorStructure,
-} from './openai-compatible-error';
-import {
-  OpenAICompatibleImageModelId,
-  OpenAICompatibleImageSettings,
-} from './openai-compatible-image-settings';
+import { XaiImageModelId } from './xai-image-settings';
+import { XaiImageSettings } from './xai-image-settings';
+import { xaiErrorSchema } from './xai-error';
 
-export type OpenAICompatibleImageModelConfig = {
+export type XaiImageModelConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
-  errorStructure?: ProviderErrorStructure<any>;
   _internal?: {
     currentDate?: () => Date;
   };
 };
 
-export class OpenAICompatibleImageModel implements ImageModelV1 {
+export class XaiImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
-
-  private readonly failedResponseHandler: ResponseHandler<APICallError>;
 
   get maxImagesPerCall(): number {
     return this.settings.maxImagesPerCall ?? 10;
@@ -46,15 +33,10 @@ export class OpenAICompatibleImageModel implements ImageModelV1 {
   }
 
   constructor(
-    readonly modelId: OpenAICompatibleImageModelId,
-    private readonly settings: OpenAICompatibleImageSettings,
-    private readonly config: OpenAICompatibleImageModelConfig,
-  ) {
-    // initialize error handling:
-    const errorStructure =
-      config.errorStructure ?? defaultOpenAICompatibleErrorStructure;
-    this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure);
-  }
+    readonly modelId: XaiImageModelId,
+    private readonly settings: XaiImageSettings,
+    private readonly config: XaiImageModelConfig,
+  ) {}
 
   async doGenerate({
     prompt,
@@ -98,7 +80,10 @@ export class OpenAICompatibleImageModel implements ImageModelV1 {
         ...(providerOptions.openai ?? {}),
         response_format: 'b64_json',
       },
-      failedResponseHandler: this.failedResponseHandler,
+      failedResponseHandler: createJsonErrorResponseHandler({
+        errorSchema: xaiErrorSchema,
+        errorToMessage: data => data.error,
+      }),
       successfulResponseHandler: createJsonResponseHandler(
         openaiCompatibleImageResponseSchema,
       ),
@@ -107,7 +92,8 @@ export class OpenAICompatibleImageModel implements ImageModelV1 {
     });
 
     return {
-      images: response.data.map(item => maybeStripDataUriPrefix(item.b64_json)),
+      // xAI image generation returns a data URI scheme prefix we must strip.
+      images: response.data.map(item => item.b64_json.split(',')[1]),
       warnings,
       response: {
         timestamp: currentDate,
@@ -117,10 +103,6 @@ export class OpenAICompatibleImageModel implements ImageModelV1 {
     };
   }
 }
-
-const maybeStripDataUriPrefix = (dataUri: string) => {
-  return dataUri.startsWith('data:image') ? dataUri.split(',')[1] : dataUri;
-};
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
