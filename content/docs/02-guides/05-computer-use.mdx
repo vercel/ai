@@ -212,8 +212,8 @@ const response = await generateText({
   prompt: "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
   tools: {
     computer: computerTool,
-    textEditor: textEditorTool,
     bash: bashTool
+    str_replace_editor: textEditorTool,
   },
 });
 ```

@@ -83,7 +83,8 @@ Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
   doGenerate(options: LanguageModelV1CallOptions): PromiseLike<{
-    // TODO v2: switch to a composite content array with text, tool calls, reasoning
+    // TODO v2: switch to a composite content array with text, tool calls, reasoning, files
+
     /**
 Text that the model has generated.
 Can be undefined if the model did not generate any text.
@@ -112,6 +113,18 @@ An optional signature for verifying that the reasoning originated from the model
               data: string;
             }
         >;
+
+    /**
+Generated files as base64 encoded strings or binary data.
+The files should be returned without any unnecessary conversion.
+If the API returns base64 encoded strings, the files should be returned
+as base64 encoded strings. If the API returns binary data, the files should
+be returned as binary data.
+     */
+    files?: Array<{
+      data: string | Uint8Array;
+      mimeType: string;
+    }>;
 
     /**
 Tool calls that the model has generated.
@@ -290,6 +303,21 @@ export type LanguageModelV1StreamPart =
 
   // Sources:
   | { type: 'source'; source: LanguageModelV1Source }
+
+  // Files:
+  | {
+      type: 'file';
+      mimeType: string;
+
+      /**
+Generated file data as base64 encoded strings or binary data.
+The file data should be returned without any unnecessary conversion.
+If the API returns base64 encoded strings, the file data should be returned
+as base64 encoded strings. If the API returns binary data, the file data should
+be returned as binary data.
+       */
+      data: string | Uint8Array;
+    }
 
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV1FunctionToolCall)

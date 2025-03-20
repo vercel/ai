@@ -1,5 +1,22 @@
 # @ai-sdk/google
 
+## 1.1.27
+
+### Patch Changes
+
+- d0c4659: feat (provider-utils): parseProviderOptions function
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+
+## 1.1.26
+
+### Patch Changes
+
+- 0bd5bc6: feat (ai): support model-generated files
+- Updated dependencies [0bd5bc6]
+  - @ai-sdk/provider@1.0.12
+  - @ai-sdk/provider-utils@2.1.14
+
 ## 1.1.25
 
 ### Patch Changes

@@ -107,11 +107,11 @@ console.log(images);
   content={[
     {
       name: 'image',
-      type: 'GeneratedImage',
+      type: 'GeneratedFile',
       description: 'The first image that was generated.',
       properties: [
         {
-          type: 'GeneratedImage',
+          type: 'GeneratedFile',
           parameters: [
             {
               name: 'base64',
@@ -122,6 +122,11 @@ console.log(images);
               name: 'uint8Array',
               type: 'Uint8Array',
               description: 'Image as a Uint8Array.',
+            },
+            {
+              name: 'mimeType',
+              type: 'string',
+              description: 'MIME type of the image.',
             },
           ],
         },
@@ -129,11 +134,11 @@ console.log(images);
     },
     {
       name: 'images',
-      type: 'Array<GeneratedImage>',
+      type: 'Array<GeneratedFile>',
       description: 'All images that were generated.',
       properties: [
         {
-          type: 'GeneratedImage',
+          type: 'GeneratedFile',
           parameters: [
             {
               name: 'base64',
@@ -144,6 +149,11 @@ console.log(images);
               name: 'uint8Array',
               type: 'Uint8Array',
               description: 'Image as a Uint8Array.',
+            },
+            {
+              name: 'mimeType',
+              type: 'string',
+              description: 'MIME type of the image.',
             },
           ],
         },

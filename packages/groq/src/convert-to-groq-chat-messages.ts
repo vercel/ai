@@ -69,10 +69,6 @@ export function convertToGroqChatMessages(
               text += part.text;
               break;
             }
-            case 'redacted-reasoning':
-            case 'reasoning': {
-              break; // ignored
-            }
             case 'tool-call': {
               toolCalls.push({
                 id: part.toolCallId,
@@ -83,10 +79,6 @@ export function convertToGroqChatMessages(
                 },
               });
               break;
-            }
-            default: {
-              const _exhaustiveCheck: never = part;
-              throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
             }
           }
         }
