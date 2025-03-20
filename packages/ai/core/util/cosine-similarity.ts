@@ -31,34 +31,35 @@ export function cosineSimilarity(
     );
   }
 
-  if (throwErrorForEmptyVectors && vector1.length === 0) {
-    throw new InvalidArgumentError({
-      parameter: 'vector1',
-      value: vector1,
-      message: 'Vectors cannot be empty',
-    });
-  }
+  const n = vector1.length;
 
-  if (vector1.length === 0) {
+  if (n === 0) {
+    if (throwErrorForEmptyVectors) {
+      throw new InvalidArgumentError({
+        parameter: 'vector1',
+        value: vector1,
+        message: 'Vectors cannot be empty',
+      });
+    }
+
     return 0; // Return 0 for empty vectors if no error is thrown
   }
 
-  let dot = 0;
-  let norm1 = 0;
-  let norm2 = 0;
+  let magnitudeSquared1 = 0;
+  let magnitudeSquared2 = 0;
+  let dotProduct = 0;
 
-  // Single-pass loop: compute dot product and squared norms concurrently
-  for (let i = 0; i < vector1.length; i++) {
-    const a = vector1[i];
-    const b = vector2[i];
-    dot += a * b;
-    norm1 += a * a;
-    norm2 += b * b;
+  for (let i = 0; i < n; i++) {
+    const value1 = vector1[i];
+    const value2 = vector2[i];
+
+    magnitudeSquared1 += value1 * value1;
+    magnitudeSquared2 += value2 * value2;
+    dotProduct += value1 * value2;
   }
 
-  if (norm1 === 0 || norm2 === 0) {
-    return 0;
-  }
-
-  return dot / (Math.sqrt(norm1) * Math.sqrt(norm2));
+  return magnitudeSquared1 === 0 || magnitudeSquared2 === 0
+    ? 0
+    : dotProduct /
+        (Math.sqrt(magnitudeSquared1) * Math.sqrt(magnitudeSquared2));
 }
