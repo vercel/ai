@@ -1,5 +1,4 @@
 import {
-  InvalidArgumentError,
   InvalidResponseDataError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
@@ -15,8 +14,8 @@ import {
   createJsonResponseHandler,
   generateId,
   isParsableJson,
+  parseProviderOptions,
   postJsonToApi,
-  safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
@@ -103,23 +102,13 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
       });
     }
 
-    // parse and validate provider options:
-    const parsedProviderOptions =
-      providerMetadata != null
-        ? safeValidateTypes({
-            value: providerMetadata,
-            schema: providerOptionsSchema,
-          })
-        : { success: true as const, value: undefined };
-    if (!parsedProviderOptions.success) {
-      throw new InvalidArgumentError({
-        argument: 'providerOptions',
-        message: 'invalid provider options',
-        cause: parsedProviderOptions.error,
-      });
-    }
-
-    const groqOptions = parsedProviderOptions.value?.groq;
+    const groqOptions = parseProviderOptions({
+      provider: 'groq',
+      providerOptions: providerMetadata,
+      schema: z.object({
+        reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).nullish(),
+      }),
+    });
 
     const baseArgs = {
       // model id:
@@ -578,11 +567,3 @@ const groqChatChunkSchema = z.union([
   }),
   groqErrorDataSchema,
 ]);
-
-const providerOptionsSchema = z.object({
-  groq: z
-    .object({
-      reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).nullish(),
-    })
-    .nullish(),
-});
