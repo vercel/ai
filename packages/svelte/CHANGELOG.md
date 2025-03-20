@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 2.0.3
+
+### Patch Changes
+
+- 62b327e: fix: Use instance-specific generateId for user messages
+
 ## 2.0.2
 
 ### Patch Changes
