@@ -5,7 +5,7 @@ import 'dotenv/config';
 
 async function main() {
   const { image } = await generateImage({
-    model: xai.imageModel('grok-2-image'),
+    model: xai.image('grok-2-image'),
     prompt: 'A salamander at dusk in a forest pond surrounded by fireflies.',
   });
 

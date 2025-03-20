@@ -53,6 +53,11 @@ Creates an Xai chat model for text generation.
   /**
 Creates an Xai image model for image generation.
    */
+  image(modelId: XaiImageModelId, settings?: XaiImageSettings): ImageModelV1;
+
+  /**
+Creates an Xai image model for image generation.
+   */
   imageModel(
     modelId: XaiImageModelId,
     settings?: XaiImageSettings,
@@ -132,6 +137,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
   provider.imageModel = createImageModel;
+  provider.image = createImageModel;
 
   return provider;
 }
