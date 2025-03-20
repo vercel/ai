@@ -46,6 +46,7 @@ describe('doGenerate', () => {
 
   function prepareJsonResponse({
     content = '',
+    reasoning,
     tool_calls,
     function_call,
     usage = {
@@ -59,6 +60,7 @@ describe('doGenerate', () => {
     model = 'gemma2-9b-it',
   }: {
     content?: string;
+    reasoning?: string;
     tool_calls?: Array<{
       id: string;
       type: 'function';
@@ -92,6 +94,7 @@ describe('doGenerate', () => {
           message: {
             role: 'assistant',
             content,
+            reasoning,
             tool_calls,
             function_call,
           },
@@ -113,6 +116,20 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Hello, World!');
+  });
+
+  it('should extract reasoning', async () => {
+    prepareJsonResponse({
+      reasoning: 'This is a test reasoning',
+    });
+
+    const { reasoning } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(reasoning).toStrictEqual('This is a test reasoning');
   });
 
   it('should extract usage', async () => {
