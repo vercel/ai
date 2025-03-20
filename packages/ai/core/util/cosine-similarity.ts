@@ -17,9 +17,7 @@ import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 export function cosineSimilarity(
   vector1: number[],
   vector2: number[],
-  {
-    throwErrorForEmptyVectors = false,
-  }: { throwErrorForEmptyVectors?: boolean } = {},
+  options?: { throwErrorForEmptyVectors?: boolean },
 ): number {
   if (vector1.length !== vector2.length) {
     throw new InvalidArgumentError({
@@ -32,7 +30,7 @@ export function cosineSimilarity(
   const n = vector1.length;
 
   if (n === 0) {
-    if (throwErrorForEmptyVectors) {
+    if (options?.throwErrorForEmptyVectors) {
       throw new InvalidArgumentError({
         parameter: 'vector1',
         value: vector1,
