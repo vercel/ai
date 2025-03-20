@@ -7,7 +7,7 @@ async function main() {
   const { images } = await generateImage({
     model: xai.imageModel('grok-2-image'),
     n: 3,
-    prompt: 'A salamander at dusk in a forest pond surrounded by fireflies.',
+    prompt: 'A chicken flying into the sunset in the style of anime.',
   });
 
   await presentImages(images);
