@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.1.15
+
+### Patch Changes
+
+- d0c4659: feat (provider-utils): parseProviderOptions function
+
 ## 2.1.14
 
 ### Patch Changes
