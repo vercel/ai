@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "4.1.65",
+  "version": "4.1.66",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -75,7 +75,7 @@
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
-    "@types/node": "^18",
+    "@types/node": "20.17.24",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@vercel/ai-tsconfig": "workspace:*",

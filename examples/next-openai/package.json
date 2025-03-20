@@ -19,7 +19,7 @@
     "@ai-sdk/ui-utils": "1.1.21",
     "@ai-sdk/react": "1.1.25",
     "@vercel/blob": "^0.26.0",
-    "ai": "4.1.65",
+    "ai": "4.1.66",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",
@@ -28,7 +28,7 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^17.0.12",
+    "@types/node": "20.17.24",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",
