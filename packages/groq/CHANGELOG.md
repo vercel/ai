@@ -1,5 +1,15 @@
 # @ai-sdk/groq
 
+## 1.1.16
+
+### Patch Changes
+
+- d0c4659: feat (provider-utils): parseProviderOptions function
+- d0c4659: fix (provider/groq): skip empty text deltas
+- d0c4659: feat (provider/groq): reasoning format support
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+
 ## 1.1.15
 
 ### Patch Changes

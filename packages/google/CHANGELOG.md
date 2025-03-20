@@ -1,5 +1,13 @@
 # @ai-sdk/google
 
+## 1.1.27
+
+### Patch Changes
+
+- d0c4659: feat (provider-utils): parseProviderOptions function
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+
 ## 1.1.26
 
 ### Patch Changes

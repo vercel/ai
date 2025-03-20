@@ -1,5 +1,14 @@
 # ai
 
+## 4.1.64
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+  - @ai-sdk/react@1.1.25
+  - @ai-sdk/ui-utils@1.1.21
+
 ## 4.1.63
 
 ### Patch Changes

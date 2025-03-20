@@ -1,5 +1,13 @@
 # @ai-sdk/solid
 
+## 1.1.25
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+  - @ai-sdk/ui-utils@1.1.21
+
 ## 1.1.24
 
 ### Patch Changes
