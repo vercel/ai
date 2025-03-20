@@ -23,7 +23,7 @@ export function cosineSimilarity(
   if (vector1.length !== vector2.length) {
     throw new InvalidArgumentError({
       parameter: 'vector1,vector2',
-      value: { vector1, vector2 },
+      value: { vector1Length: vector1.length, vector2Length: vector2.length },
       message: `Vectors must have the same length`,
     });
   }
