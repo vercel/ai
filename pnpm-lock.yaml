@@ -1056,7 +1056,7 @@ importers:
         specifier: 2.1.14
         version: link:../../packages/provider-utils
       '@ai-sdk/svelte':
-        specifier: 2.0.2
+        specifier: 2.0.3
         version: link:../../packages/svelte
       '@ai-sdk/ui-utils':
         specifier: 1.1.20
