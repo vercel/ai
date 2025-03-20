@@ -12,7 +12,7 @@ import { InvalidArgumentError } from '../../errors/invalid-argument-error';
  * @returns The cosine similarity between vector1 and vector2.
  * @returns 0 if either vector is the zero vector.
  * @throws {InvalidArgumentError} If throwErrorForEmptyVectors is true and vectors are empty.
- * @throws {Error} If the vectors do not have the same length.
+ * @throws {InvalidArgumentError} If the vectors do not have the same length.
  */
 export function cosineSimilarity(
   vector1: number[],
@@ -26,9 +26,11 @@ export function cosineSimilarity(
   const { throwErrorForEmptyVectors } = options;
 
   if (vector1.length !== vector2.length) {
-    throw new Error(
-      `Vectors must have the same length (vector1: ${vector1.length} elements, vector2: ${vector2.length} elements)`,
-    );
+    throw new InvalidArgumentError({
+      parameter: 'vector1,vector2',
+      value: [vector1, vector2],
+      message: `Vectors must have the same length`,
+    });
   }
 
   const n = vector1.length;
