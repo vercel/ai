@@ -14,3 +14,5 @@ export type {
   OpenAICompatibleProvider,
   OpenAICompatibleProviderSettings,
 } from './openai-compatible-provider';
+export { OpenAICompatibleImageModel } from './openai-compatible-image-model';
+export type { OpenAICompatibleImageSettings } from './openai-compatible-image-settings';
