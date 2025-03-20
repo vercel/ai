@@ -77,20 +77,24 @@ const model = groq('gemma2-9b-it');
 
 ### Reasoning Models
 
-Groq exposes the thinking of `deepseek-r1-distill-llama-70b` in the generated text using the `<think>` tag.
-You can use the `extractReasoningMiddleware` to extract this reasoning and expose it as a `reasoning` property on the result:
+Groq offers several reasoning models such as `qwen-qwq-32b` and `deepseek-r1-distill-llama-70b`.
+You can configure how the reasoning is exposed in the generated text by using the `reasoningFormat` option.
+It supports the options `parsed`, `hidden`, and `raw`.
 
 ```ts
 import { groq } from '@ai-sdk/groq';
-import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
+import { generateText } from 'ai';
 
-const enhancedModel = wrapLanguageModel({
-  model: groq('deepseek-r1-distill-llama-70b'),
-  middleware: extractReasoningMiddleware({ tagName: 'think' }),
+const result = await generateText({
+  model: groq('qwen-qwq-32b'),
+  providerOptions: {
+    groq: { reasoningFormat: 'parsed' },
+  },
+  prompt: 'How many "r"s are in the word "strawberry"?',
 });
 ```
 
-You can then use that enhanced model in functions like `generateText` and `streamText`.
+<Note>Only Groq reasoning models support the `reasoningFormat` option.</Note>
 
 ### Example
 
