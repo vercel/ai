@@ -9,6 +9,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "mcp-stdio/**/*",
     "react/dist/**/*",
     "rsc/dist/**/*",
     "test/dist/**/*",
