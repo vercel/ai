@@ -1,8 +1,8 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { MCPClientError } from '../../../errors';
-import { SSEClientTransport } from './mcp-sse-transport';
+import { SseMCPTransport } from './mcp-sse-transport';
 
-describe('SSEClientTransport', () => {
+describe('SseMCPTransport', () => {
   const server = createTestServer({
     'http://localhost:3000/sse': {
       response: undefined,
@@ -35,9 +35,8 @@ describe('SSEClientTransport', () => {
       },
     };
 
-    const transport = new SSEClientTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
-      type: 'sse',
     });
     const connectPromise = transport.start();
 
@@ -66,9 +65,8 @@ describe('SSEClientTransport', () => {
       body: 'Internal Server Error',
     };
 
-    const transport = new SSEClientTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
-      type: 'sse',
     });
     const connectPromise = transport.start();
 
@@ -91,13 +89,12 @@ describe('SSEClientTransport', () => {
       },
     };
 
-    const transport = new SSEClientTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
-      type: 'sse',
     });
 
     const messagePromise = new Promise(resolve => {
-      transport.onMessage = msg => resolve(msg);
+      transport.onmessage = msg => resolve(msg);
     });
 
     const connectPromise = transport.start();
@@ -135,17 +132,12 @@ describe('SSEClientTransport', () => {
       },
     };
 
-    const transport = new SSEClientTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
-      type: 'sse',
     });
 
     const errorPromise = new Promise<unknown>(resolve => {
-      transport.onError = err => resolve(err);
-    });
-
-    const messagePromise = new Promise<unknown>(resolve => {
-      transport.onMessage = msg => resolve(msg);
+      transport.onerror = err => resolve(err);
     });
 
     const connectPromise = transport.start();
@@ -181,9 +173,8 @@ describe('SSEClientTransport', () => {
       },
     };
 
-    const transport = new SSEClientTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
-      type: 'sse',
     });
 
     const connectPromise = transport.start();
@@ -226,13 +217,12 @@ describe('SSEClientTransport', () => {
       body: 'Internal Server Error',
     };
 
-    const transport = new SSEClientTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
-      type: 'sse',
     });
 
     const errorPromise = new Promise<unknown>(resolve => {
-      transport.onError = err => resolve(err);
+      transport.onerror = err => resolve(err);
     });
 
     const connectPromise = transport.start();
@@ -259,13 +249,12 @@ describe('SSEClientTransport', () => {
   });
 
   it('should handle invalid endpoint URLs', async () => {
-    const transport = new SSEClientTransport({
+    const transport = new SseMCPTransport({
       url: 'http://localhost:3333/sse',
-      type: 'sse',
     });
 
     const errorPromise = new Promise<unknown>(resolve => {
-      transport.onError = err => resolve(err);
+      transport.onerror = err => resolve(err);
     });
 
     const connectPromise = transport.start();

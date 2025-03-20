@@ -1,13 +1,9 @@
 import { EventSourceParserStream } from 'eventsource-parser/stream';
 import { MCPClientError } from '../../../errors';
-import {
-  JSONRPCMessage,
-  JSONRPCMessageSchema,
-  MCPTransport,
-  McpSSEServerConfig,
-} from './types';
+import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
+import { MCPTransport } from './mcp-transport';
 
-export class SSEClientTransport implements MCPTransport {
+export class SseMCPTransport implements MCPTransport {
   private endpoint?: URL;
   private abortController?: AbortController;
   private url: URL;
@@ -16,11 +12,11 @@ export class SSEClientTransport implements MCPTransport {
     close: () => void;
   };
 
-  onClose?: () => void;
-  onError?: (error: unknown) => void;
-  onMessage?: (message: JSONRPCMessage) => void;
+  onclose?: () => void;
+  onerror?: (error: unknown) => void;
+  onmessage?: (message: JSONRPCMessage) => void;
 
-  constructor({ url }: McpSSEServerConfig) {
+  constructor({ url }: { url: string }) {
     this.url = new URL(url);
   }
 
@@ -45,7 +41,7 @@ export class SSEClientTransport implements MCPTransport {
             const error = new MCPClientError({
               message: `MCP SSE Transport Error: ${response.status} ${response.statusText}`,
             });
-            this.onError?.(error);
+            this.onerror?.(error);
             return reject(error);
           }
 
@@ -89,14 +85,14 @@ export class SSEClientTransport implements MCPTransport {
                     const message = JSONRPCMessageSchema.parse(
                       JSON.parse(data),
                     );
-                    this.onMessage?.(message);
+                    this.onmessage?.(message);
                   } catch (error) {
                     const e = new MCPClientError({
                       message:
                         'MCP SSE Transport Error: Failed to parse message',
                       cause: error,
                     });
-                    this.onError?.(e);
+                    this.onerror?.(e);
                     // We do not throw here so we continue processing events after reporting the error
                   }
                 }
@@ -106,7 +102,7 @@ export class SSEClientTransport implements MCPTransport {
                 return;
               }
 
-              this.onError?.(error);
+              this.onerror?.(error);
               reject(error);
             }
           };
@@ -121,7 +117,7 @@ export class SSEClientTransport implements MCPTransport {
             return;
           }
 
-          this.onError?.(error);
+          this.onerror?.(error);
           reject(error);
         }
       };
@@ -134,7 +130,7 @@ export class SSEClientTransport implements MCPTransport {
     this.connected = false;
     this.sseConnection?.close();
     this.abortController?.abort();
-    this.onClose?.();
+    this.onclose?.();
   }
 
   async send(message: JSONRPCMessage): Promise<void> {
@@ -161,11 +157,11 @@ export class SSEClientTransport implements MCPTransport {
         const error = new MCPClientError({
           message: `MCP SSE Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`,
         });
-        this.onError?.(error);
+        this.onerror?.(error);
         return;
       }
     } catch (error) {
-      this.onError?.(error);
+      this.onerror?.(error);
       return;
     }
   }

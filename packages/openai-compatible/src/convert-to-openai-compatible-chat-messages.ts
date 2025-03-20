@@ -84,10 +84,6 @@ export function convertToOpenAICompatibleChatMessages(
               text += part.text;
               break;
             }
-            case 'redacted-reasoning':
-            case 'reasoning': {
-              break; // ignored
-            }
             case 'tool-call': {
               toolCalls.push({
                 id: part.toolCallId,
@@ -99,10 +95,6 @@ export function convertToOpenAICompatibleChatMessages(
                 ...partMetadata,
               });
               break;
-            }
-            default: {
-              const _exhaustiveCheck: never = part;
-              throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
             }
           }
         }

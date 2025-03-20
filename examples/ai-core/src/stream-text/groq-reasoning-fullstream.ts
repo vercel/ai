@@ -1,13 +1,13 @@
 import { groq } from '@ai-sdk/groq';
-import { extractReasoningMiddleware, streamText, wrapLanguageModel } from 'ai';
+import { streamText } from 'ai';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: wrapLanguageModel({
-      model: groq('deepseek-r1-distill-llama-70b'),
-      middleware: extractReasoningMiddleware({ tagName: 'think' }),
-    }),
+    model: groq('deepseek-r1-distill-llama-70b'),
+    providerOptions: {
+      groq: { reasoningFormat: 'parsed' },
+    },
     prompt: 'How many "r"s are in the word "strawberry"?',
   });
 

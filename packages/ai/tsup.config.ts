@@ -62,4 +62,12 @@ export default defineConfig([
       };
     },
   },
+  // MCP stdio
+  {
+    entry: ['mcp-stdio/index.ts'],
+    outDir: 'mcp-stdio/dist',
+    format: ['cjs', 'esm'],
+    dts: true,
+    sourcemap: true,
+  },
 ]);

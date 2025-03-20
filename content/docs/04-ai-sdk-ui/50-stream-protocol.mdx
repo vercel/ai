@@ -143,6 +143,14 @@ Format: `h:Source\n`
 
 Example: `h:{"sourceType":"url","id":"source-id","url":"https://example.com","title":"Example"}\n`
 
+### File Part
+
+The file parts contain binary data encoded as base64 strings along with their MIME type. The file part is available through `file`.
+
+Format: `k:{data:string; mimeType:string}\n`
+
+Example: `k:{"data":"base64EncodedData","mimeType":"image/png"}\n`
+
 ### Data Part
 
 The data parts are parsed as JSON and appended to the data array as they are received. The data is available through `data`.

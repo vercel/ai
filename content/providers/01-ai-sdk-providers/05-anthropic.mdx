@@ -275,6 +275,19 @@ Parameters:
 - `old_str` (string, optional): Required for `str_replace` command, containing the string to replace.
 - `view_range` (number[], optional): Optional for `view` command to specify line range to show.
 
+When using the Text Editor Tool, make sure to name the key in the tools object `str_replace_editor`.
+
+```ts
+const response = await generateText({
+  model: anthropic('claude-3-5-sonnet-20241022'),
+  prompt:
+    "Create a new file called example.txt, write 'Hello World' to it, and run 'cat example.txt' in the terminal",
+  tools: {
+    str_replace_editor: textEditorTool,
+  },
+});
+```
+
 #### Computer Tool
 
 The Computer Tool enables control of keyboard and mouse actions on a computer:

@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "4.1.61",
+  "version": "4.1.65",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -9,6 +9,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "mcp-stdio/**/*",
     "react/dist/**/*",
     "rsc/dist/**/*",
     "test/dist/**/*",
@@ -56,13 +57,18 @@
       "react-server": "./react/dist/index.server.mjs",
       "import": "./react/dist/index.mjs",
       "require": "./react/dist/index.js"
+    },
+    "./mcp-stdio": {
+      "types": "./mcp-stdio/dist/index.d.ts",
+      "import": "./mcp-stdio/dist/index.mjs",
+      "require": "./mcp-stdio/dist/index.js"
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.11",
-    "@ai-sdk/provider-utils": "2.1.13",
-    "@ai-sdk/react": "1.1.23",
-    "@ai-sdk/ui-utils": "1.1.19",
+    "@ai-sdk/provider": "1.0.12",
+    "@ai-sdk/provider-utils": "2.1.15",
+    "@ai-sdk/react": "1.1.25",
+    "@ai-sdk/ui-utils": "1.1.21",
     "@opentelemetry/api": "1.9.0",
     "eventsource-parser": "^3.0.0",
     "jsondiffpatch": "0.6.0"
