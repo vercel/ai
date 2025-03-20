@@ -23,7 +23,7 @@ import { XaiImageModelId } from './xai-image-settings';
 import { XaiErrorData, xaiErrorSchema } from './xai-error';
 import { XaiImageModel } from './xai-image-model';
 
-export const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
+const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorSchema,
   errorToMessage: data => data.error,
 };
