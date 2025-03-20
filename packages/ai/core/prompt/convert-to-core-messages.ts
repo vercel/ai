@@ -1,4 +1,5 @@
 import {
+  FileUIPart,
   Message,
   ReasoningUIPart,
   TextUIPart,
@@ -57,7 +58,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
           let currentStep = 0;
           let blockHasToolInvocations = false;
           let block: Array<
-            TextUIPart | ToolInvocationUIPart | ReasoningUIPart
+            TextUIPart | ToolInvocationUIPart | ReasoningUIPart | FileUIPart
           > = [];
 
           function processBlock() {
@@ -65,12 +66,11 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
 
             for (const part of block) {
               switch (part.type) {
-                case 'text':
-                  content.push({
-                    type: 'text' as const,
-                    text: part.text,
-                  });
+                case 'file':
+                case 'text': {
+                  content.push(part);
                   break;
+                }
                 case 'reasoning': {
                   for (const detail of part.details) {
                     switch (detail.type) {
@@ -115,7 +115,11 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
             const stepInvocations = block
               .filter(
                 (
-                  part: TextUIPart | ToolInvocationUIPart | ReasoningUIPart,
+                  part:
+                    | TextUIPart
+                    | ToolInvocationUIPart
+                    | ReasoningUIPart
+                    | FileUIPart,
                 ): part is ToolInvocationUIPart =>
                   part.type === 'tool-invocation',
               )
@@ -167,13 +171,15 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
 
           for (const part of message.parts) {
             switch (part.type) {
-              case 'reasoning':
-                block.push(part);
-                break;
               case 'text': {
                 if (blockHasToolInvocations) {
                   processBlock(); // text must come before tool invocations
                 }
+                block.push(part);
+                break;
+              }
+              case 'file':
+              case 'reasoning': {
                 block.push(part);
                 break;
               }

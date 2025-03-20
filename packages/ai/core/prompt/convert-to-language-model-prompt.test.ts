@@ -911,6 +911,103 @@ describe('convertToLanguageModelMessage', () => {
         });
       });
     });
+
+    describe('file parts', () => {
+      it('should convert file data correctly', async () => {
+        const result = convertToLanguageModelMessage(
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'file',
+                data: 'dGVzdA==', // "test" in base64
+                mimeType: 'application/pdf',
+              },
+            ],
+          },
+          {},
+        );
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              data: 'dGVzdA==',
+              mimeType: 'application/pdf',
+            },
+          ],
+        });
+      });
+
+      it('should preserve filename when present', async () => {
+        const result = convertToLanguageModelMessage(
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'file',
+                data: 'dGVzdA==',
+                mimeType: 'application/pdf',
+                filename: 'test-document.pdf',
+              },
+            ],
+          },
+          {},
+        );
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              data: 'dGVzdA==',
+              mimeType: 'application/pdf',
+              filename: 'test-document.pdf',
+            },
+          ],
+        });
+      });
+
+      it('should handle provider metadata', async () => {
+        const result = convertToLanguageModelMessage(
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'file',
+                data: 'dGVzdA==',
+                mimeType: 'application/pdf',
+                providerOptions: {
+                  'test-provider': {
+                    'key-a': 'test-value-1',
+                    'key-b': 'test-value-2',
+                  },
+                },
+              },
+            ],
+          },
+          {},
+        );
+
+        expect(result).toEqual({
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              data: 'dGVzdA==',
+              mimeType: 'application/pdf',
+              providerMetadata: {
+                'test-provider': {
+                  'key-a': 'test-value-1',
+                  'key-b': 'test-value-2',
+                },
+              },
+            },
+          ],
+        });
+      });
+    });
   });
 
   describe('tool message', () => {

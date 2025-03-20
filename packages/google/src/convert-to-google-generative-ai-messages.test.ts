@@ -121,3 +121,59 @@ describe('tool messages', () => {
     });
   });
 });
+
+describe('assistant messages', () => {
+  it('should add PNG image parts for base64 encoded files', async () => {
+    const result = convertToGoogleGenerativeAIMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'file', data: 'AAECAw==', mimeType: 'image/png' }],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'model',
+          parts: [
+            {
+              inlineData: {
+                data: 'AAECAw==',
+                mimeType: 'image/png',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should throw error for non-PNG images in assistant messages', async () => {
+    expect(() =>
+      convertToGoogleGenerativeAIMessages([
+        {
+          role: 'assistant',
+          content: [{ type: 'file', data: 'AAECAw==', mimeType: 'image/jpeg' }],
+        },
+      ]),
+    ).toThrow('Only PNG images are supported in assistant messages');
+  });
+
+  it('should throw error for URL file data in assistant messages', async () => {
+    expect(() =>
+      convertToGoogleGenerativeAIMessages([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'file',
+              data: new URL('https://example.com/image.png'),
+              mimeType: 'image/png',
+            },
+          ],
+        },
+      ]),
+    ).toThrow('File data URLs in assistant messages are not supported');
+  });
+});

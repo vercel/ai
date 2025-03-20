@@ -21,9 +21,7 @@ describe('appendResponseMessages', () => {
             id: '123',
           },
         ],
-        _internal: {
-          currentDate: () => new Date(789),
-        },
+        _internal: { currentDate: () => new Date(789) },
       });
 
       expect(result).toMatchSnapshot();
@@ -57,9 +55,37 @@ describe('appendResponseMessages', () => {
             id: '123',
           },
         ],
-        _internal: {
-          currentDate: () => new Date(789),
-        },
+        _internal: { currentDate: () => new Date(789) },
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('appends assistant messages with generated files', () => {
+      const result = appendResponseMessages({
+        messages: [
+          {
+            role: 'user',
+            id: '1',
+            content: 'Generate an image of a cat',
+            createdAt: new Date(123),
+            parts: [{ type: 'text', text: 'Generate an image of a cat' }],
+          },
+        ],
+        responseMessages: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'file',
+                mimeType: 'image/png',
+                data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=',
+              },
+            ],
+            id: '123',
+          },
+        ],
+        _internal: { currentDate: () => new Date(789) },
       });
 
       expect(result).toMatchSnapshot();
@@ -91,9 +117,7 @@ describe('appendResponseMessages', () => {
             id: '123',
           },
         ],
-        _internal: {
-          currentDate: () => new Date(789),
-        },
+        _internal: { currentDate: () => new Date(789) },
       });
 
       expect(result).toMatchSnapshot();
@@ -165,9 +189,7 @@ describe('appendResponseMessages', () => {
             id: '6',
           },
         ],
-        _internal: {
-          currentDate: () => new Date(789),
-        },
+        _internal: { currentDate: () => new Date(789) },
       });
 
       expect(result).toMatchSnapshot();

@@ -200,6 +200,15 @@ export async function processChatResponse({
 
       execUpdate();
     },
+    onFilePart(value) {
+      message.parts.push({
+        type: 'file',
+        mimeType: value.mimeType,
+        data: value.data,
+      });
+
+      execUpdate();
+    },
     onSourcePart(value) {
       message.parts.push({
         type: 'source',
