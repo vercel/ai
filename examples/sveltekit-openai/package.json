@@ -18,7 +18,7 @@
   "devDependencies": {
     "@ai-sdk/openai": "1.2.6",
     "@ai-sdk/provider-utils": "2.1.14",
-    "@ai-sdk/svelte": "2.0.1",
+    "@ai-sdk/svelte": "2.0.3",
     "@ai-sdk/ui-utils": "1.1.20",
     "@eslint/compat": "^1.2.5",
     "@eslint/js": "^9.18.0",
