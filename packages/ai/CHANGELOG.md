@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.66
+
+### Patch Changes
+
+- 5d0fc29: chore (ai): improve cosine similarity calculation
+
 ## 4.1.65
 
 ### Patch Changes
