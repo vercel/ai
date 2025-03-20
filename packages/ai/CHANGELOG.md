@@ -1,5 +1,11 @@
 # ai
 
+## 4.1.65
+
+### Patch Changes
+
+- 16c444f: fix (ai): expose ai/mcp-stdio
+
 ## 4.1.64
 
 ### Patch Changes
