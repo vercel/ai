@@ -346,14 +346,14 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
 
             const delta = choice.delta;
 
-            if (delta.reasoning != null) {
+            if (delta.reasoning != null && delta.reasoning.length > 0) {
               controller.enqueue({
                 type: 'reasoning',
                 textDelta: delta.reasoning,
               });
             }
 
-            if (delta.content != null) {
+            if (delta.content != null && delta.content.length > 0) {
               controller.enqueue({
                 type: 'text-delta',
                 textDelta: delta.content,
