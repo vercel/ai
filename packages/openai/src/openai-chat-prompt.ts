@@ -26,7 +26,8 @@ export interface ChatCompletionUserMessage {
 export type ChatCompletionContentPart =
   | ChatCompletionContentPartText
   | ChatCompletionContentPartImage
-  | ChatCompletionContentPartInputAudio;
+  | ChatCompletionContentPartInputAudio
+  | ChatCompletionContentPartFile;
 
 export interface ChatCompletionContentPartText {
   type: 'text';
@@ -41,6 +42,11 @@ export interface ChatCompletionContentPartImage {
 export interface ChatCompletionContentPartInputAudio {
   type: 'input_audio';
   input_audio: { data: string; format: 'wav' | 'mp3' };
+}
+
+export interface ChatCompletionContentPartFile {
+  type: 'file';
+  file: { filename: string; file_data: string };
 }
 
 export interface ChatCompletionAssistantMessage {

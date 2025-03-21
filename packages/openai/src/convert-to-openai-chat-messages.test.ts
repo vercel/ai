@@ -239,6 +239,123 @@ describe('user messages', () => {
         },
       ]);
     });
+
+    it('should convert messages with PDF file parts', async () => {
+      const base64Data = 'AQIDBAU='; // Base64 encoding of pdfData
+
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mimeType: 'application/pdf',
+                data: base64Data,
+                filename: 'document.pdf',
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'document.pdf',
+                file_data: 'data:application/pdf;base64,AQIDBAU=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should use default filename for PDF file parts when not provided', async () => {
+      const base64Data = 'AQIDBAU=';
+
+      const result = convertToOpenAIChatMessages({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mimeType: 'application/pdf',
+                data: base64Data,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              file: {
+                filename: 'part-0.pdf',
+                file_data: 'data:application/pdf;base64,AQIDBAU=',
+              },
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should throw error for unsupported file types', async () => {
+      const base64Data = 'AQIDBAU=';
+
+      expect(() => {
+        convertToOpenAIChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mimeType: 'text/plain',
+                  data: base64Data,
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+      }).toThrow(
+        "'File content part type text/plain in user messages' functionality not supported.",
+      );
+    });
+
+    it('should throw error for file URLs', async () => {
+      expect(() => {
+        convertToOpenAIChatMessages({
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mimeType: 'application/pdf',
+                  data: new URL('https://example.com/document.pdf'),
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+        });
+      }).toThrow(
+        "'File content parts with URL data' functionality not supported.",
+      );
+    });
   });
 });
 
