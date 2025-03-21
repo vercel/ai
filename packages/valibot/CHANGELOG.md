@@ -1,5 +1,16 @@
 # @ai-sdk/valibot
 
+## 0.1.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - ai@4.2.0
+
 ## 0.0.33
 
 ### Patch Changes
