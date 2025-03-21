@@ -1,5 +1,17 @@
 # @ai-sdk/replicate
 
+## 0.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+
 ## 0.1.16
 
 ### Patch Changes
