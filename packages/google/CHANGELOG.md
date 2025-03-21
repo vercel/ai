@@ -1,11 +1,5 @@
 # @ai-sdk/google
 
-## 1.2.1
-
-### Patch Changes
-
-- 994a13b: feat (provider/google): support IMAGE_SAFETY finish reason
-
 ## 1.2.0
 
 ### Minor Changes
