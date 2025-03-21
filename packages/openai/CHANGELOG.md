@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.2.8
+
+### Patch Changes
+
+- 9f4f1bc: feat (provider/openai): pdf support for chat language models
+
 ## 1.2.7
 
 ### Patch Changes

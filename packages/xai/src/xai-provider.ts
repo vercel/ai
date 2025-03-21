@@ -1,9 +1,13 @@
 import {
+  ImageModelV1,
   LanguageModelV1,
   NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
-import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
+import {
+  OpenAICompatibleChatLanguageModel,
+  ProviderErrorStructure,
+} from '@ai-sdk/openai-compatible';
 import {
   FetchFunction,
   loadApiKey,
@@ -14,16 +18,10 @@ import {
   XaiChatSettings,
   supportsStructuredOutputs,
 } from './xai-chat-settings';
-import { z } from 'zod';
-import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
-
-// Add error schema and structure
-const xaiErrorSchema = z.object({
-  code: z.string(),
-  error: z.string(),
-});
-
-export type XaiErrorData = z.infer<typeof xaiErrorSchema>;
+import { XaiImageSettings } from './xai-image-settings';
+import { XaiImageModelId } from './xai-image-settings';
+import { XaiErrorData, xaiErrorSchema } from './xai-error';
+import { XaiImageModel } from './xai-image-model';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorSchema,
@@ -51,6 +49,19 @@ Creates an Xai chat model for text generation.
     modelId: XaiChatModelId,
     settings?: XaiChatSettings,
   ) => LanguageModelV1;
+
+  /**
+Creates an Xai image model for image generation.
+   */
+  image(modelId: XaiImageModelId, settings?: XaiImageSettings): ImageModelV1;
+
+  /**
+Creates an Xai image model for image generation.
+   */
+  imageModel(
+    modelId: XaiImageModelId,
+    settings?: XaiImageSettings,
+  ): ImageModelV1;
 }
 
 export interface XaiProviderSettings {
@@ -105,6 +116,18 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
+  const createImageModel = (
+    modelId: XaiImageModelId,
+    settings: XaiImageSettings = {},
+  ) => {
+    return new XaiImageModel(modelId, settings, {
+      provider: 'xai.image',
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
   const provider = (modelId: XaiChatModelId, settings?: XaiChatSettings) =>
     createLanguageModel(modelId, settings);
 
@@ -113,6 +136,8 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
   };
+  provider.imageModel = createImageModel;
+  provider.image = createImageModel;
 
   return provider;
 }
