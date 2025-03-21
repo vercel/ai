@@ -3,6 +3,7 @@
 ## 1.2.1
 
 ### Patch Changes
+
 - 591d42d: feat (provider/cohere): support tool calls finish reason
 
 ## 1.2.0
