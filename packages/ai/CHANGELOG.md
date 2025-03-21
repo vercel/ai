@@ -1,5 +1,19 @@
 # ai
 
+## 4.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+  - @ai-sdk/react@1.2.0
+  - @ai-sdk/ui-utils@1.2.0
+
 ## 4.1.66
 
 ### Patch Changes

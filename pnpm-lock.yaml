@@ -60,70 +60,70 @@ importers:
   examples/ai-core:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 2.1.6
+        specifier: 2.2.0
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 1.1.19
+        specifier: 1.2.0
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/azure
       '@ai-sdk/cerebras':
-        specifier: 0.1.17
+        specifier: 0.2.0
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
-        specifier: 1.1.18
+        specifier: 1.2.0
         version: link:../../packages/cohere
       '@ai-sdk/deepinfra':
-        specifier: 0.1.18
+        specifier: 0.2.0
         version: link:../../packages/deepinfra
       '@ai-sdk/deepseek':
-        specifier: 0.1.17
+        specifier: 0.2.0
         version: link:../../packages/deepseek
       '@ai-sdk/fal':
-        specifier: 0.0.11
+        specifier: 0.1.0
         version: link:../../packages/fal
       '@ai-sdk/fireworks':
-        specifier: 0.1.18
+        specifier: 0.2.0
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 1.1.27
+        specifier: 1.2.0
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.1.31
+        specifier: 2.2.0
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 1.1.16
+        specifier: 1.2.0
         version: link:../../packages/groq
       '@ai-sdk/luma':
-        specifier: 0.0.13
+        specifier: 0.1.0
         version: link:../../packages/luma
       '@ai-sdk/mistral':
-        specifier: 1.1.19
+        specifier: 1.2.0
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.17
+        specifier: 0.2.0
         version: link:../../packages/openai-compatible
       '@ai-sdk/perplexity':
-        specifier: 1.0.9
+        specifier: 1.1.0
         version: link:../../packages/perplexity
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../../packages/provider
       '@ai-sdk/replicate':
-        specifier: 0.1.16
+        specifier: 0.2.0
         version: link:../../packages/replicate
       '@ai-sdk/togetherai':
-        specifier: 0.1.18
+        specifier: 0.2.0
         version: link:../../packages/togetherai
       '@ai-sdk/valibot':
-        specifier: 0.0.33
+        specifier: 0.1.0
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 1.1.18
+        specifier: 1.2.0
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
@@ -138,7 +138,7 @@ importers:
         specifier: 1.28.0
         version: 1.28.0(@opentelemetry/api@1.9.0)
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -178,10 +178,10 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -206,10 +206,10 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -231,13 +231,13 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -259,13 +259,13 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.7.0
         version: 1.7.0
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -293,7 +293,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -305,7 +305,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.15(@nestjs/common@10.4.15(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@10.4.15)
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -381,13 +381,13 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/react':
-        specifier: 1.1.25
+        specifier: 1.2.0
         version: link:../../packages/react
       '@ai-sdk/ui-utils':
-        specifier: 1.1.21
+        specifier: 1.2.0
         version: link:../../packages/ui-utils
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -436,10 +436,10 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 2.1.31
+        specifier: 2.2.0
         version: link:../../packages/google-vertex
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -479,7 +479,7 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/react':
-        specifier: 1.1.25
+        specifier: 1.2.0
         version: link:../../packages/react
       '@langchain/core':
         specifier: 0.1.63
@@ -488,7 +488,7 @@ importers:
         specifier: 0.0.28
         version: 0.0.28
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       langchain:
         specifier: 0.1.36
@@ -534,37 +534,37 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: 1.1.19
+        specifier: 1.2.0
         version: link:../../packages/anthropic
       '@ai-sdk/deepseek':
-        specifier: 0.1.17
+        specifier: 0.2.0
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 0.1.18
+        specifier: 0.2.0
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 1.1.27
+        specifier: 1.2.0
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 2.1.31
+        specifier: 2.2.0
         version: link:../../packages/google-vertex
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
-        specifier: 1.0.9
+        specifier: 1.1.0
         version: link:../../packages/perplexity
       '@ai-sdk/react':
-        specifier: 1.1.25
+        specifier: 1.2.0
         version: link:../../packages/react
       '@ai-sdk/ui-utils':
-        specifier: 1.1.21
+        specifier: 1.2.0
         version: link:../../packages/ui-utils
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -616,16 +616,16 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.25
+        specifier: 1.2.0
         version: link:../../packages/react
       '@vercel/functions':
         specifier: latest
         version: 2.0.0
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -671,13 +671,13 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.25
+        specifier: 1.2.0
         version: link:../../packages/react
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -726,10 +726,10 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.25
+        specifier: 1.2.0
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -744,7 +744,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -793,10 +793,10 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.25
+        specifier: 1.2.0
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -817,7 +817,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.30.1(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.30.1(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -866,10 +866,10 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.1.25
+        specifier: 1.2.0
         version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -878,7 +878,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -924,10 +924,10 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -952,13 +952,13 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@ai-sdk/vue':
-        specifier: 1.1.24
+        specifier: 1.2.0
         version: link:../../packages/vue
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       zod:
         specifier: 3.23.8
@@ -1007,13 +1007,13 @@ importers:
   examples/solidstart-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@ai-sdk/solid':
-        specifier: 1.1.25
+        specifier: 1.2.0
         version: link:../../packages/solid
       '@ai-sdk/ui-utils':
-        specifier: 1.1.21
+        specifier: 1.2.0
         version: link:../../packages/ui-utils
       '@solidjs/meta':
         specifier: 0.29.4
@@ -1025,7 +1025,7 @@ importers:
         specifier: ^1.0.10
         version: 1.1.3(@testing-library/jest-dom@6.6.3)(@types/node@20.17.24)(jiti@2.4.2)(solid-js@1.9.5)(terser@5.39.0)(tsx@4.19.2)(vinxi@0.4.3(@types/node@20.17.24)(@upstash/redis@1.34.5)(aws4fetch@1.0.20)(db0@0.3.1)(ioredis@5.6.0)(terser@5.39.0)(typescript@5.7.2))(vite@6.2.2(@types/node@20.17.24)(jiti@2.4.2)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.0))(yaml@2.7.0)
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       solid-js:
         specifier: ^1.9.3
@@ -1050,16 +1050,16 @@ importers:
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../../packages/openai
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../../packages/provider-utils
       '@ai-sdk/svelte':
-        specifier: 2.0.4
+        specifier: 2.1.0
         version: link:../../packages/svelte
       '@ai-sdk/ui-utils':
-        specifier: 1.1.21
+        specifier: 1.2.0
         version: link:../../packages/ui-utils
       '@eslint/compat':
         specifier: ^1.2.5
@@ -1077,7 +1077,7 @@ importers:
         specifier: ^5.0.0
         version: 5.0.3(svelte@5.23.1)(vite@6.2.2(@types/node@20.17.24)(jiti@2.4.2)(terser@5.39.0)(tsx@4.19.2)(yaml@2.7.0))
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../../packages/ai
       autoprefixer:
         specifier: ^10.4.20
@@ -1134,16 +1134,16 @@ importers:
   packages/ai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 1.1.25
+        specifier: 1.2.0
         version: link:../react
       '@ai-sdk/ui-utils':
-        specifier: 1.1.21
+        specifier: 1.2.0
         version: link:../ui-utils
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1216,10 +1216,10 @@ importers:
   packages/amazon-bedrock:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
       '@smithy/eventstream-codec':
         specifier: ^4.0.1
@@ -1250,10 +1250,10 @@ importers:
   packages/anthropic:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1275,13 +1275,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 1.2.7
+        specifier: 1.3.0
         version: link:../openai
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1303,13 +1303,13 @@ importers:
   packages/cerebras:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.17
+        specifier: 0.2.0
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1380,10 +1380,10 @@ importers:
   packages/cohere:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1405,13 +1405,13 @@ importers:
   packages/deepinfra:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.17
+        specifier: 0.2.0
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1433,13 +1433,13 @@ importers:
   packages/deepseek:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.17
+        specifier: 0.2.0
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1461,10 +1461,10 @@ importers:
   packages/fal:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1486,13 +1486,13 @@ importers:
   packages/fireworks:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.17
+        specifier: 0.2.0
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1514,10 +1514,10 @@ importers:
   packages/google:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1539,16 +1539,16 @@ importers:
   packages/google-vertex:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: 1.1.19
+        specifier: 1.2.0
         version: link:../anthropic
       '@ai-sdk/google':
-        specifier: 1.1.27
+        specifier: 1.2.0
         version: link:../google
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
       google-auth-library:
         specifier: ^9.15.0
@@ -1573,10 +1573,10 @@ importers:
   packages/groq:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1598,10 +1598,10 @@ importers:
   packages/luma:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1623,10 +1623,10 @@ importers:
   packages/mistral:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1648,10 +1648,10 @@ importers:
   packages/openai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1673,10 +1673,10 @@ importers:
   packages/openai-compatible:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1698,10 +1698,10 @@ importers:
   packages/perplexity:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1745,7 +1745,7 @@ importers:
   packages/provider-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       eventsource-parser:
         specifier: ^3.0.0
@@ -1779,13 +1779,13 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider':
-        specifier: workspace:1.0.12
+        specifier: workspace:1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.21
+        specifier: 1.2.0
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
@@ -1846,10 +1846,10 @@ importers:
   packages/replicate:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1871,10 +1871,10 @@ importers:
   packages/solid:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.21
+        specifier: 1.2.0
         version: link:../ui-utils
       '@solid-primitives/trigger':
         specifier: ^1.1.0
@@ -1932,10 +1932,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.21
+        specifier: 1.2.0
         version: link:../ui-utils
     devDependencies:
       '@eslint/compat':
@@ -1996,13 +1996,13 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.17
+        specifier: 0.2.0
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -2024,10 +2024,10 @@ importers:
   packages/ui-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
       zod-to-json-schema:
         specifier: ^3.24.1
@@ -2061,7 +2061,7 @@ importers:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.0.0-rc.0(valibot@1.0.0-rc.4(typescript@5.6.3))
       ai:
-        specifier: 4.1.66
+        specifier: 4.2.0
         version: link:../ai
     devDependencies:
       '@types/node':
@@ -2083,10 +2083,10 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.1.21
+        specifier: 1.2.0
         version: link:../ui-utils
       swrv:
         specifier: ^1.0.4
@@ -2138,13 +2138,13 @@ importers:
   packages/xai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.1.17
+        specifier: 0.2.0
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 1.0.12
+        specifier: 1.1.0
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 2.1.15
+        specifier: 2.2.0
         version: link:../provider-utils
     devDependencies:
       '@types/node':

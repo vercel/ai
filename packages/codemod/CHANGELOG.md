@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 1.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
 ## 1.1.0
 
 ### Minor Changes
