@@ -271,6 +271,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       warnings,
       providerMetadata: {
         google: {
+          promptFeedback: response.promptFeedback ?? null,
           groundingMetadata: candidate.groundingMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
         },
@@ -418,6 +419,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
               providerMetadata = {
                 google: {
+                  promptFeedback: value.promptFeedback ?? null,
                   groundingMetadata: candidate.groundingMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
                 },
@@ -593,6 +595,12 @@ const responseSchema = z.object({
       groundingMetadata: groundingMetadataSchema.nullish(),
     }),
   ),
+  promptFeedback: z
+    .object({
+      blockReason: z.string().nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
+    })
+    .nullish(),
   usageMetadata: z
     .object({
       promptTokenCount: z.number().nullish(),
@@ -614,6 +622,12 @@ const chunkSchema = z.object({
         groundingMetadata: groundingMetadataSchema.nullish(),
       }),
     )
+    .nullish(),
+  promptFeedback: z
+    .object({
+      blockReason: z.string().nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
+    })
     .nullish(),
   usageMetadata: z
     .object({
