@@ -201,6 +201,40 @@ describe('XaiImageModel', () => {
       expect(result.images[1]).toBe('test5678');
     });
 
+    it('should handle b64 content without data URI scheme prefix', async () => {
+      server.urls[
+        'https://api.example.com/grok-2-image/images/generations'
+      ].response = {
+        type: 'json-value',
+        body: {
+          data: [
+            {
+              b64_json: 'SGVsbG8gV29ybGQh', // Base64 for "Hello World!"
+            },
+            {
+              b64_json: 'QUkgU0RLIFRlc3Rpbmc=', // Base64 for "AI SDK Testing"
+            },
+          ],
+        },
+      };
+
+      const model = createBasicModel();
+      const result = await model.doGenerate({
+        prompt,
+        n: 2,
+        size: '1024x1024',
+        providerOptions: {},
+        headers: {},
+        abortSignal: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+      });
+
+      expect(result.images).toHaveLength(2);
+      expect(result.images[0]).toBe('SGVsbG8gV29ybGQh');
+      expect(result.images[1]).toBe('QUkgU0RLIFRlc3Rpbmc=');
+    });
+
     describe('response metadata', () => {
       it('should include timestamp, headers and modelId in response', async () => {
         const testDate = new Date('2024-01-01T00:00:00Z');

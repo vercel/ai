@@ -92,8 +92,12 @@ export class XaiImageModel implements ImageModelV1 {
     });
 
     return {
-      // xAI image generation returns a data URI scheme prefix we must strip.
-      images: response.data.map(item => item.b64_json.split(',')[1]),
+      images: response.data.map(item => {
+        const b64Data = item.b64_json;
+        return b64Data.startsWith('data:') && b64Data.includes(',')
+          ? b64Data.split(',')[1]
+          : b64Data;
+      }),
       warnings,
       response: {
         timestamp: currentDate,
