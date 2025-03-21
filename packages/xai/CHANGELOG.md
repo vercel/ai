@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 1.2.1
+
+### Patch Changes
+
+- 82b5620: fix (providers/xai): handle raw b64 image response data
+
 ## 1.2.0
 
 ### Minor Changes
