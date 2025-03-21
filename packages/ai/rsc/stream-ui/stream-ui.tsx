@@ -72,11 +72,7 @@ type RenderText = Renderer<
        /**
          * The provider metadata.
          */
-       providerMetadata: ProviderMetadata<{
-        perplexity: {
-          citations: string[]
-        }
-      }>;
+       providerMetadata: ProviderMetadata;
     },
   ]
 >;
