@@ -101,7 +101,19 @@ export function convertToOpenAIChatMessages({
                       input_audio: { data: part.data, format: 'mp3' },
                     };
                   }
-
+                  case "application/pdf": {
+                    const base64Prefix = "data:application/pdf;base64,";
+                    const fileData = part.data.startsWith(base64Prefix)
+                      ? part.data
+                      : `${base64Prefix}${part.data}`;
+                    return {
+                      type: "file",
+                      file: { 
+                        filename: part.filename || "document.pdf",
+                        file_data: fileData
+                       }
+                    };
+                  }
                   default: {
                     throw new UnsupportedFunctionalityError({
                       functionality: `File content part type ${part.mimeType} in user messages`,
