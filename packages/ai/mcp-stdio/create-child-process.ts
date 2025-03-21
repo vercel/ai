@@ -6,7 +6,7 @@ export async function createChildProcess(
   signal: AbortSignal,
 ): Promise<ChildProcess> {
   return spawn(config.command, config.args ?? [], {
-    env: config.env ?? getDefaultEnvironment(),
+    env: getEnv(config.env),
     stdio: ['pipe', 'pipe', config.stderr ?? 'inherit'],
     shell: false,
     signal,
@@ -15,7 +15,7 @@ export async function createChildProcess(
   });
 }
 
-function getDefaultEnvironment(): Record<string, string> {
+function getEnv(customEnv?: Record<string, string>): Record<string, string> {
   const DEFAULT_INHERITED_ENV_VARS =
     globalThis.process.platform === 'win32'
       ? [
@@ -33,7 +33,7 @@ function getDefaultEnvironment(): Record<string, string> {
         ]
       : ['HOME', 'LOGNAME', 'PATH', 'SHELL', 'TERM', 'USER'];
 
-  const env: Record<string, string> = {};
+  const env: Record<string, string> = customEnv ?? {};
 
   for (const key of DEFAULT_INHERITED_ENV_VARS) {
     const value = globalThis.process.env[key];
