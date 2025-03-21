@@ -51,12 +51,7 @@
     "zod": "3.23.8"
   },
   "peerDependencies": {
-    "zod": "^3.0.0"
-  },
-  "peerDependenciesMeta": {
-    "zod": {
-      "optional": true
-    }
+    "zod": "^3.23.8"
   },
   "engines": {
     "node": ">=18"
