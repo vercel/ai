@@ -4,12 +4,13 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: openai.responses('o3-mini'),
+    model: openai.responses('computer-use-preview'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     temperature: 0.5, // should get ignored (warning)
     providerOptions: {
       openai: {
-        reasoningEffort: 'low',
+        reasoningEffort: 'medium',
+        reasoningSummary: 'concise',
       },
     },
   });
