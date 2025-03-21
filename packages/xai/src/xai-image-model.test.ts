@@ -209,10 +209,10 @@ describe('XaiImageModel', () => {
         body: {
           data: [
             {
-              b64_json: 'rawBase64Data123',
+              b64_json: 'SGVsbG8gV29ybGQh', // Base64 for "Hello World!"
             },
             {
-              b64_json: 'anotherRawBase64String456',
+              b64_json: 'QUkgU0RLIFRlc3Rpbmc=', // Base64 for "AI SDK Testing"
             },
           ],
         },
@@ -231,8 +231,8 @@ describe('XaiImageModel', () => {
       });
 
       expect(result.images).toHaveLength(2);
-      expect(result.images[0]).toBe('rawBase64Data123');
-      expect(result.images[1]).toBe('anotherRawBase64String456');
+      expect(result.images[0]).toBe('SGVsbG8gV29ybGQh');
+      expect(result.images[1]).toBe('QUkgU0RLIFRlc3Rpbmc=');
     });
 
     describe('response metadata', () => {
