@@ -211,11 +211,7 @@ functionality that can be fully encapsulated in the provider.
     rawResponse?: {
       headers?: Record<string, string>;
     };
-    providerMetadata: ProviderMetadata<{
-      perplexity: {
-        citations: string[]
-      }
-    }>;
+    providerMetadata: ProviderMetadata;
   } | null = null;
 
   async function render({
