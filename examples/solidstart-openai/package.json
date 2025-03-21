@@ -14,13 +14,13 @@
     "vinxi": "^0.4.3"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.2.6",
-    "@ai-sdk/solid": "1.1.24",
-    "@ai-sdk/ui-utils": "1.1.20",
+    "@ai-sdk/openai": "1.2.7",
+    "@ai-sdk/solid": "1.1.25",
+    "@ai-sdk/ui-utils": "1.1.21",
     "@solidjs/meta": "0.29.4",
     "@solidjs/router": "^0.15.1",
     "@solidjs/start": "^1.0.10",
-    "ai": "4.1.63",
+    "ai": "4.1.66",
     "solid-js": "^1.9.3",
     "zod": "^3.23.8"
   },

@@ -3,7 +3,7 @@ import { ImageModelV1 } from '../../image-model/v1/image-model-v1';
 import { LanguageModelV1 } from '../../language-model/v1/language-model-v1';
 
 /**
- * Provider for language and text embedding models.
+ * Provider for language, text embedding, and image generation models.
  */
 export interface ProviderV1 {
   /**

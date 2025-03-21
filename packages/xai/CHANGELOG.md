@@ -1,5 +1,19 @@
 # @ai-sdk/xai
 
+## 1.1.18
+
+### Patch Changes
+
+- 6f0e741: feat (providers/xai): add xai image model support
+
+## 1.1.17
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+  - @ai-sdk/openai-compatible@0.1.17
+
 ## 1.1.16
 
 ### Patch Changes

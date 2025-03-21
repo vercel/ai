@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "1.2.6",
-    "ai": "4.1.63",
+    "@ai-sdk/openai": "1.2.7",
+    "ai": "4.1.66",
     "dotenv": "16.4.5",
     "fastify": "5.1.0"
   },
@@ -13,7 +13,7 @@
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "20.11.20",
+    "@types/node": "20.17.24",
     "tsx": "4.19.2",
     "typescript": "5.6.3"
   }

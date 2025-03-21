@@ -1,5 +1,25 @@
 # @ai-sdk/svelte
 
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+  - @ai-sdk/ui-utils@1.1.21
+
+## 2.0.3
+
+### Patch Changes
+
+- 62b327e: fix: Use instance-specific generateId for user messages
+
+## 2.0.2
+
+### Patch Changes
+
+- d1ea22e: fix(ui/svelte): Allow class instances to be created as deriveds
+
 ## 2.0.1
 
 ### Patch Changes

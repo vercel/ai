@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "1.1.24",
+  "version": "1.1.25",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,8 +30,8 @@
   ],
   "dependencies": {
     "@ai-sdk/provider": "workspace:1.0.12",
-    "@ai-sdk/provider-utils": "2.1.14",
-    "@ai-sdk/ui-utils": "1.1.20",
+    "@ai-sdk/provider-utils": "2.1.15",
+    "@ai-sdk/ui-utils": "1.1.21",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"
   },
@@ -39,7 +39,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",
     "@testing-library/user-event": "^14.5.2",
-    "@types/node": "^18",
+    "@types/node": "20.17.24",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@vercel/ai-tsconfig": "workspace:*",

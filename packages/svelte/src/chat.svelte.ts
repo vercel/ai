@@ -22,6 +22,7 @@ import {
   getChatContext,
   hasChatContext,
 } from './chat-context.svelte.js';
+import { untrack } from 'svelte';
 
 export type ChatOptions = Readonly<
   Omit<UseChatOptions, 'keepLastMessageOnError'> & {
@@ -95,7 +96,7 @@ export class Chat {
     return this.#store.messages;
   }
   set messages(value: Message[]) {
-    this.#store.messages = fillMessageParts(value);
+    untrack(() => (this.#store.messages = fillMessageParts(value)));
   }
 
   constructor(options: ChatOptions = {}) {
@@ -126,7 +127,7 @@ export class Chat {
 
     const messages = this.messages.concat({
       ...message,
-      id: message.id ?? generateId(),
+      id: message.id ?? this.#generateId(),
       createdAt: message.createdAt ?? new Date(),
       experimental_attachments:
         attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
@@ -185,7 +186,7 @@ export class Chat {
     );
 
     const messages = this.messages.concat({
-      id: generateId(),
+      id: this.#generateId(),
       createdAt: new Date(),
       role: 'user',
       content: this.input,

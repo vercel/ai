@@ -1,5 +1,12 @@
 # @ai-sdk/ui-utils
 
+## 1.1.21
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+
 ## 1.1.20
 
 ### Patch Changes
