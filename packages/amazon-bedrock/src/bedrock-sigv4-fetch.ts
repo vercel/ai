@@ -17,11 +17,11 @@ export interface BedrockCredentials {
 Creates a fetch function that applies AWS Signature Version 4 signing.
 
 @param getCredentials - Function that returns the AWS credentials to use when signing.
-@param originalFetch - Optional original fetch implementation to wrap. Defaults to global fetch.
+@param fetch - Optional original fetch implementation to wrap. Defaults to global fetch.
 @returns A FetchFunction that signs requests before passing them to the underlying fetch.
  */
 export function createSigV4FetchFunction(
-  getCredentials: () => BedrockCredentials,
+  getCredentials: () => BedrockCredentials | PromiseLike<BedrockCredentials>,
   fetch: FetchFunction = globalThis.fetch,
 ): FetchFunction {
   return async (
@@ -41,7 +41,7 @@ export function createSigV4FetchFunction(
 
     const originalHeaders = extractHeaders(init.headers);
     const body = prepareBodyString(init.body);
-    const credentials = getCredentials();
+    const credentials = await getCredentials();
     const signer = new AwsV4Signer({
       url,
       method: 'POST',

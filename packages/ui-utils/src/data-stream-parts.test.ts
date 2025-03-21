@@ -406,3 +406,44 @@ describe('reasoning_signature stream part', () => {
     );
   });
 });
+
+describe('file stream part', () => {
+  it('should format a file stream part', () => {
+    const file = {
+      data: 'file content',
+      mimeType: 'text/plain',
+    };
+
+    expect(formatDataStreamPart('file', file)).toEqual(
+      `k:${JSON.stringify(file)}\n`,
+    );
+  });
+
+  it('should parse a file stream part', () => {
+    const file = {
+      data: 'file content',
+      mimeType: 'text/plain',
+    };
+
+    const input = `k:${JSON.stringify(file)}`;
+    expect(parseDataStreamPart(input)).toEqual({
+      type: 'file',
+      value: file,
+    });
+  });
+
+  it('should throw an error if the file value is not an object', () => {
+    const input = 'k:"not an object"';
+    expect(() => parseDataStreamPart(input)).toThrow(
+      '"file" parts expect an object with a "data" and "mimeType" property.',
+    );
+  });
+
+  it('should throw an error if the file object is missing required properties', () => {
+    const invalidFile = { name: 'test.txt' };
+    const input = `k:${JSON.stringify(invalidFile)}`;
+    expect(() => parseDataStreamPart(input)).toThrow(
+      '"file" parts expect an object with a "data" and "mimeType" property.',
+    );
+  });
+});

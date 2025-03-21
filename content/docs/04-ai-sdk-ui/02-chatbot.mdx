@@ -610,6 +610,30 @@ messages.map(message => (
 ));
 ```
 
+## Image Generation
+
+Some models such as Google `gemini-2.0-flash-exp` support image generation.
+When images are generated, they are exposed as files to the client.
+On the client side, you can access file parts of the message object
+and render them as images.
+
+```tsx filename="app/page.tsx"
+messages.map(message => (
+  <div key={message.id}>
+    {message.role === 'user' ? 'User: ' : 'AI: '}
+    {message.parts.map((part, index) => {
+      if (part.type === 'text') {
+        return <div key={index}>{part.text}</div>;
+      } else if (part.type === 'file' && part.mimeType.startsWith('image/')) {
+        return (
+          <img key={index} src={`data:${part.mimeType};base64,${part.data}`} />
+        );
+      }
+    })}
+  </div>
+));
+```
+
 ## Attachments (Experimental)
 
 The `useChat` hook supports sending attachments along with a message as well as rendering them on the client. This can be useful for building applications that involve sending images, files, or other media content to the AI provider.

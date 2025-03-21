@@ -381,6 +381,134 @@ exports[`scenario: onToolCall is executed > should call the update function twic
 ]
 `;
 
+exports[`scenario: server provides file parts > should call the onFinish function with the correct arguments 1`] = `
+[
+  {
+    "finishReason": "stop",
+    "message": {
+      "content": "Here is a file:And another one:",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:And another one:",
+          "type": "text",
+        },
+        {
+          "data": "Hello World",
+          "mimeType": "text/plain",
+          "type": "file",
+        },
+        {
+          "data": "{"key": "value"}",
+          "mimeType": "application/json",
+          "type": "file",
+        },
+      ],
+      "role": "assistant",
+    },
+    "usage": {
+      "completionTokens": 7,
+      "promptTokens": 14,
+      "totalTokens": 21,
+    },
+  },
+]
+`;
+
+exports[`scenario: server provides file parts > should call the update function with the correct arguments 1`] = `
+[
+  {
+    "data": [],
+    "message": {
+      "content": "Here is a file:",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:",
+          "type": "text",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "Here is a file:",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:",
+          "type": "text",
+        },
+        {
+          "data": "Hello World",
+          "mimeType": "text/plain",
+          "type": "file",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "Here is a file:And another one:",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:And another one:",
+          "type": "text",
+        },
+        {
+          "data": "Hello World",
+          "mimeType": "text/plain",
+          "type": "file",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "Here is a file:And another one:",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:And another one:",
+          "type": "text",
+        },
+        {
+          "data": "Hello World",
+          "mimeType": "text/plain",
+          "type": "file",
+        },
+        {
+          "data": "{"key": "value"}",
+          "mimeType": "application/json",
+          "type": "file",
+        },
+      ],
+      "revisionId": "id-4",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+]
+`;
+
 exports[`scenario: server provides message ids > should call the onFinish function with the correct arguments 1`] = `
 [
   {

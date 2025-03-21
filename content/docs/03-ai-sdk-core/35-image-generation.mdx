@@ -27,6 +27,8 @@ const base64 = image.base64; // base64 image data
 const uint8Array = image.uint8Array; // Uint8Array image data
 ```
 
+## Settings
+
 ### Size and Aspect Ratio
 
 Depending on the model, you can either specify the size or the aspect ratio.
@@ -208,10 +210,35 @@ try {
 }
 ```
 
+## Generating Images with Language Models
+
+Some language models such as Google `gemini-2.0-flash-exp` support multi-modal outputs including images.
+With such models, you can access the generated images using the `files` property of the response.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google('gemini-2.0-flash-exp'),
+  providerOptions: {
+    google: { responseModalities: ['TEXT', 'IMAGE'] },
+  },
+  prompt: 'Generate an image of a comic cat',
+});
+
+for (const file of result.files) {
+  if (file.mimeType.startsWith('image/')) {
+    // show the image
+  }
+}
+```
+
 ## Image Models
 
 | Provider                                                                  | Model                                                        | Support sizes (`width x height`) or aspect ratios (`width : height`)                                                                                                |
 | ------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [xAI Grok](/providers/ai-sdk-providers/xai#image-models)                  | `grok-2-image`                                               | 1024x768 (default)                                                                                                                                                  |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                 | `dall-e-3`                                                   | 1024x1024, 1792x1024, 1024x1792                                                                                                                                     |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                 | `dall-e-2`                                                   | 256x256, 512x512, 1024x1024                                                                                                                                         |
 | [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock#image-models) | `amazon.nova-canvas-v1:0`                                    | 320-4096 (multiples of 16), 1:4 to 4:1, max 4.2M pixels                                                                                                             |

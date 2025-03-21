@@ -9,9 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "1.2.5",
-    "@ai-sdk/react": "1.1.23",
-    "ai": "4.1.62",
+    "@ai-sdk/openai": "1.2.7",
+    "@ai-sdk/react": "1.1.25",
+    "ai": "4.1.66",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",
@@ -19,7 +19,7 @@
     "zod": "3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^20.12.7",
+    "@types/node": "20.17.24",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",

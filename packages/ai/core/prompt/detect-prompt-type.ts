@@ -33,6 +33,7 @@ function detectSingleMessageCharacteristics(
     (message.role === 'function' || // UI-only role
       message.role === 'data' || // UI-only role
       'toolInvocations' in message || // UI-specific field
+      'parts' in message || // UI-specific field
       'experimental_attachments' in message)
   ) {
     return 'has-ui-specific-parts';

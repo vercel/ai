@@ -9,17 +9,17 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "1.1.23",
+    "@ai-sdk/react": "1.1.25",
     "@langchain/openai": "0.0.28",
     "@langchain/core": "0.1.63",
-    "ai": "4.1.62",
+    "ai": "4.1.66",
     "langchain": "0.1.36",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
-    "@types/node": "^17.0.12",
+    "@types/node": "20.17.24",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.14",

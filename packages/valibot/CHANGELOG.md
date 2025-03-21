@@ -1,5 +1,32 @@
 # @ai-sdk/valibot
 
+## 0.0.33
+
+### Patch Changes
+
+- Updated dependencies [5d0fc29]
+  - ai@4.1.66
+
+## 0.0.32
+
+### Patch Changes
+
+- Updated dependencies [16c444f]
+  - ai@4.1.65
+
+## 0.0.31
+
+### Patch Changes
+
+- ai@4.1.64
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [0bd5bc6]
+  - ai@4.1.63
+
 ## 0.0.29
 
 ### Patch Changes
