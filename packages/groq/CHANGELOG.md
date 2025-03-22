@@ -1,5 +1,27 @@
 # @ai-sdk/groq
 
+## 1.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+
+## 1.1.16
+
+### Patch Changes
+
+- d0c4659: feat (provider-utils): parseProviderOptions function
+- d0c4659: fix (provider/groq): skip empty text deltas
+- d0c4659: feat (provider/groq): reasoning format support
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+
 ## 1.1.15
 
 ### Patch Changes

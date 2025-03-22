@@ -1,5 +1,40 @@
 # ai
 
+## 4.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+  - @ai-sdk/react@1.2.0
+  - @ai-sdk/ui-utils@1.2.0
+
+## 4.1.66
+
+### Patch Changes
+
+- 5d0fc29: chore (ai): improve cosine similarity calculation
+
+## 4.1.65
+
+### Patch Changes
+
+- 16c444f: fix (ai): expose ai/mcp-stdio
+
+## 4.1.64
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+  - @ai-sdk/react@1.1.25
+  - @ai-sdk/ui-utils@1.1.21
+
 ## 4.1.63
 
 ### Patch Changes
