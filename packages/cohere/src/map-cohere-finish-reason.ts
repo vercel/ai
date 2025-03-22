@@ -21,6 +21,9 @@ export function mapCohereFinishReason(
     case 'USER_CANCEL':
       return 'other';
 
+    case 'TOOL_CALL':
+      return 'tool-calls';
+
     default:
       return 'unknown';
   }
