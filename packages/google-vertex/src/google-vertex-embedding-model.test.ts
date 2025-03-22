@@ -13,7 +13,11 @@ const testValues = ['test text one', 'test text two'];
 
 describe('GoogleVertexEmbeddingModel', () => {
   const mockModelId = 'textembedding-gecko@001';
-  const mockSettings = { outputDimensionality: 768 };
+  const mockSettings = {
+    outputDimensionality: 768,
+    taskType: 'RETRIEVAL_QUERY',
+    autoTruncate: true,
+  };
   const mockConfig = {
     provider: 'google-vertex',
     region: 'us-central1',
@@ -93,9 +97,13 @@ describe('GoogleVertexEmbeddingModel', () => {
     await model.doEmbed({ values: testValues });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
-      instances: testValues.map(value => ({ content: value })),
+      instances: testValues.map(value => ({
+        content: value,
+        task_type: mockSettings.taskType,
+      })),
       parameters: {
         outputDimensionality: mockSettings.outputDimensionality,
+        autoTruncate: mockSettings.autoTruncate,
       },
     });
   });
@@ -198,7 +206,11 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const modelWithCustomFetch = new GoogleVertexEmbeddingModel(
       'textembedding-gecko@001',
-      { outputDimensionality: 768 },
+      {
+        outputDimensionality: 768,
+        taskType: 'RETRIEVAL_QUERY',
+        autoTruncate: true,
+      },
       {
         headers: () => ({}),
         baseURL: customBaseURL,
@@ -222,9 +234,13 @@ describe('GoogleVertexEmbeddingModel', () => {
     const requestBody = JSON.parse(secondArgument.body);
 
     expect(requestBody).toStrictEqual({
-      instances: testValues.map(value => ({ content: value })),
+      instances: testValues.map(value => ({
+        content: value,
+        task_type: 'RETRIEVAL_QUERY',
+      })),
       parameters: {
         outputDimensionality: 768,
+        autoTruncate: true,
       },
     });
   });

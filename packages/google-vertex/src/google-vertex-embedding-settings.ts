@@ -19,6 +19,8 @@ export interface GoogleVertexEmbeddingSettings {
 
   /**
    * Optional. Specifies the task type for which the embeddings will be used.
+   * Used to convey intended downstream application to help the model produce better embeddings.
+   * If left blank, the default used is RETRIEVAL_QUERY.
    *
    * Values:
    * - RETRIEVAL_QUERY: Specifies the given text is a query in a search or retrieval setting.
@@ -38,7 +40,8 @@ export interface GoogleVertexEmbeddingSettings {
     | 'CLUSTERING'
     | 'QUESTION_ANSWERING'
     | 'FACT_VERIFICATION'
-    | 'CODE_RETRIEVAL_QUERY';
+    | 'CODE_RETRIEVAL_QUERY'
+    | (string & {});
 
   /**
    * Optional. If set to false, text that exceeds the token limit causes the request to fail.
