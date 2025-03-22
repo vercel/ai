@@ -4,11 +4,11 @@ import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
 
 export class SseMCPTransport implements MCPTransport {
-  private endpoint?: URL;
-  private abortController?: AbortController;
-  private url: URL;
-  private connected = false;
-  private sseConnection?: {
+  protected endpoint?: URL;
+  protected abortController?: AbortController;
+  protected url: URL;
+  protected connected = false;
+  protected sseConnection?: {
     close: () => void;
   };
 
