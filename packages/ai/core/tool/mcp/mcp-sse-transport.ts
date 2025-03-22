@@ -32,7 +32,7 @@ export class SseMCPTransport implements MCPTransport {
 
       const establishConnection = async () => {
         try {
-          const headers = new Headers({...this.headers});
+          const headers = new Headers(this.headers);
           headers.set('Accept', 'text/event-stream');
           const response = await fetch(this.url.href, {
             headers,
@@ -143,7 +143,7 @@ export class SseMCPTransport implements MCPTransport {
     }
 
     try {
-      const headers = new Headers({...this.headers});
+      const headers = new Headers(this.headers);
       headers.set('Content-Type', 'application/json');
       const init = {
         method: 'POST',
