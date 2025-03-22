@@ -278,7 +278,7 @@ describe('SseMCPTransport', () => {
     };
 
     const customHeaders = {
-      'authorization': 'Bearer test-token',
+      authorization: 'Bearer test-token',
       'x-custom-header': 'test-value',
     };
 

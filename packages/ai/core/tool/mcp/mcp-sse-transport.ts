@@ -17,7 +17,13 @@ export class SseMCPTransport implements MCPTransport {
   onerror?: (error: unknown) => void;
   onmessage?: (message: JSONRPCMessage) => void;
 
-  constructor({ url, headers }: { url: string; headers?: Record<string, string> }) {
+  constructor({
+    url,
+    headers,
+  }: {
+    url: string;
+    headers?: Record<string, string>;
+  }) {
     this.url = new URL(url);
     this.headers = headers;
   }
