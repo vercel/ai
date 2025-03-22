@@ -563,6 +563,8 @@ Google Vertex AI embedding models support additional settings. You can pass them
 ```ts
 const model = vertex.textEmbeddingModel('text-embedding-004', {
   outputDimensionality: 512, // optional, number of dimensions for the embedding
+  taskType: 'RETRIEVAL_DOCUMENT', // optional, task type for which embeddings will be used
+  autoTruncate: true, // optional, whether to auto-truncate text exceeding token limit
 });
 ```
 
@@ -571,6 +573,30 @@ The following optional settings are available for Google Vertex AI embedding mod
 - **outputDimensionality**: _number_
 
   Optional reduced dimension for the output embedding. If set, excessive values in the output embedding are truncated from the end.
+
+- **taskType**: _string_
+
+  Optional. Specifies the task type for which the embeddings will be used.
+  Used to convey intended downstream application to help the model produce better embeddings.
+  If left blank, the default used is RETRIEVAL_QUERY.
+
+  Values:
+
+  - `RETRIEVAL_QUERY`: Specifies the given text is a query in a search or retrieval setting.
+  - `RETRIEVAL_DOCUMENT`: Specifies the given text is a document in a search or retrieval setting.
+  - `SEMANTIC_SIMILARITY`: Specifies the given text is used for Semantic Textual Similarity (STS).
+  - `CLASSIFICATION`: Specifies that the embedding is used for classification.
+  - `CLUSTERING`: Specifies that the embedding is used for clustering.
+  - `QUESTION_ANSWERING`: Specifies that the query embedding is used for answering questions.
+  - `FACT_VERIFICATION`: Specifies that the query embedding is used for fact verification.
+  - `CODE_RETRIEVAL_QUERY`: Specifies that the query embedding is used for code retrieval for Java and Python.
+
+  For more information, see the [Google Vertex AI documentation on task types](https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/text-embeddings-api#tasktype).
+
+- **autoTruncate**: _boolean_
+
+  Optional. If set to false, text that exceeds the token limit causes the request to fail.
+  The default value is true.
 
 #### Model Capabilities
 
