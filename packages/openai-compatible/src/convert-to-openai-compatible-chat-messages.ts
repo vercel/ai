@@ -96,10 +96,6 @@ export function convertToOpenAICompatibleChatMessages(
               });
               break;
             }
-            default: {
-              const _exhaustiveCheck: never = part;
-              throw new Error(`Unsupported part: ${_exhaustiveCheck}`);
-            }
           }
         }
 

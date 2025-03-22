@@ -11,64 +11,58 @@ import { InvalidArgumentError } from '../../errors/invalid-argument-error';
  *
  * @returns The cosine similarity between vector1 and vector2.
  * @returns 0 if either vector is the zero vector.
+ *
  * @throws {InvalidArgumentError} If throwErrorForEmptyVectors is true and vectors are empty.
- * @throws {Error} If the vectors do not have the same length.
+ * @throws {InvalidArgumentError} If the vectors do not have the same length.
  */
 export function cosineSimilarity(
   vector1: number[],
   vector2: number[],
-  options: {
+  // TODO remove throw option in 5.0
+  options?: {
+    /**
+     * @deprecated will be removed in 5.0
+     */
     throwErrorForEmptyVectors?: boolean;
-  } = {
-    throwErrorForEmptyVectors: false,
   },
-) {
-  // TODO: In the next major version, change the default value of throwErrorForEmptyVectors to true
-  const { throwErrorForEmptyVectors } = options;
-
+): number {
   if (vector1.length !== vector2.length) {
-    throw new Error(
-      `Vectors must have the same length (vector1: ${vector1.length} elements, vector2: ${vector2.length} elements)`,
-    );
-  }
-
-  if (throwErrorForEmptyVectors && vector1.length === 0) {
     throw new InvalidArgumentError({
-      parameter: 'vector1',
-      value: vector1,
-      message: 'Vectors cannot be empty',
+      parameter: 'vector1,vector2',
+      value: { vector1Length: vector1.length, vector2Length: vector2.length },
+      message: `Vectors must have the same length`,
     });
   }
 
-  const magnitude1 = magnitude(vector1);
-  const magnitude2 = magnitude(vector2);
+  const n = vector1.length;
 
-  if (magnitude1 === 0 || magnitude2 === 0) {
-    return 0;
+  if (n === 0) {
+    if (options?.throwErrorForEmptyVectors) {
+      throw new InvalidArgumentError({
+        parameter: 'vector1',
+        value: vector1,
+        message: 'Vectors cannot be empty',
+      });
+    }
+
+    return 0; // Return 0 for empty vectors if no error is thrown
   }
 
-  return dotProduct(vector1, vector2) / (magnitude1 * magnitude2);
-}
+  let magnitudeSquared1 = 0;
+  let magnitudeSquared2 = 0;
+  let dotProduct = 0;
 
-/**
- * Calculates the dot product of two vectors.
- * @param vector1 - The first vector.
- * @param vector2 - The second vector.
- * @returns The dot product of vector1 and vector2.
- */
-function dotProduct(vector1: number[], vector2: number[]) {
-  return vector1.reduce(
-    (accumulator: number, value: number, index: number) =>
-      accumulator + value * vector2[index]!,
-    0,
-  );
-}
+  for (let i = 0; i < n; i++) {
+    const value1 = vector1[i];
+    const value2 = vector2[i];
 
-/**
- * Calculates the magnitude of a vector.
- * @param vector - The vector.
- * @returns The magnitude of the vector.
- */
-function magnitude(vector: number[]) {
-  return Math.sqrt(dotProduct(vector, vector));
+    magnitudeSquared1 += value1 * value1;
+    magnitudeSquared2 += value2 * value2;
+    dotProduct += value1 * value2;
+  }
+
+  return magnitudeSquared1 === 0 || magnitudeSquared2 === 0
+    ? 0
+    : dotProduct /
+        (Math.sqrt(magnitudeSquared1) * Math.sqrt(magnitudeSquared2));
 }

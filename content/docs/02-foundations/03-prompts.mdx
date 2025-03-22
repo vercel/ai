@@ -201,8 +201,8 @@ const result = await generateText({
   Generative AI](/providers/ai-sdk-providers/google-generative-ai), [Google
   Vertex AI](/providers/ai-sdk-providers/google-vertex),
   [OpenAI](/providers/ai-sdk-providers/openai) (for `wav` and `mp3` audio with
-  `gpt-4o-audio-preview`), [Anthropic](/providers/ai-sdk-providers/anthropic)
-  (for `pdf`).
+  `gpt-4o-audio-preview`), [Anthropic](/providers/ai-sdk-providers/anthropic),
+  [OpenAI](/providers/ai-sdk-providers/openai) (for `pdf`).
 </Note>
 
 User messages can include file parts. A file can be one of the following:
@@ -237,6 +237,7 @@ const result = await generateText({
           type: 'file',
           mimeType: 'application/pdf',
           data: fs.readFileSync('./data/example.pdf'),
+          filename: 'example.pdf', // optional, not used by all providers
         },
       ],
     },
@@ -271,7 +272,8 @@ const result = await generateText({
 ### Assistant Messages
 
 Assistant messages are messages that have a role of `assistant`.
-They are typically previous responses from the assistant and can contain text and tool call parts.
+They are typically previous responses from the assistant
+and can contain text, reasoning, and tool call parts.
 
 #### Example: Assistant message with text content
 
@@ -315,6 +317,32 @@ const result = await generateText({
           toolCallId: '12345',
           toolName: 'get-nutrition-data',
           args: { cheese: 'Roquefort' },
+        },
+      ],
+    },
+  ],
+});
+```
+
+#### Example: Assistant message with file content
+
+<Note>
+  This content part is for model-generated files. Only a few models support
+  this, and only for file types that they can generate.
+</Note>
+
+```ts
+const result = await generateText({
+  model: yourModel,
+  messages: [
+    { role: 'user', content: 'Generate an image of a roquefort cheese!' },
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'file',
+          mimeType: 'image/png',
+          data: fs.readFileSync('./data/roquefort.jpg'),
         },
       ],
     },

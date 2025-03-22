@@ -31,6 +31,8 @@ See the [Model Access Docs](https://docs.aws.amazon.com/bedrock/latest/userguide
 
 ### Authentication
 
+#### Using IAM Access Key and Secret Key
+
 **Step 1: Creating AWS Access Key and Secret Key**
 
 To get started, you'll need to create an AWS access key and secret key. Here's how:
@@ -70,6 +72,36 @@ AWS_REGION=YOUR_REGION
 </Note>
 
 Remember to replace `YOUR_ACCESS_KEY_ID`, `YOUR_SECRET_ACCESS_KEY`, and `YOUR_REGION` with the actual values from your AWS account.
+
+#### Using AWS SDK Credentials Chain (instance profiles, instance roles, ECS roles, EKS Service Accounts, etc.)
+
+When using AWS SDK, the SDK will automatically use the credentials chain to determine the credentials to use. This includes instance profiles, instance roles, ECS roles, EKS Service Accounts, etc. A similar behavior is possible using the AI SDK by not specifying the `accessKeyId` and `secretAccessKey`, `sessionToken` properties in the provider settings and instead passing a `credentialProvider` property.
+
+_Usage:_
+
+`@aws-sdk/credential-providers` package provides a set of credential providers that can be used to create a credential provider chain.
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @aws-sdk/credential-providers" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @aws-sdk/credential-providers" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @aws-sdk/credential-providers" dark />
+  </Tab>
+</Tabs>
+
+```ts
+import { createAmazonBedrock } from '@ai-sdk/amazon-bedrock';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+
+const bedrock = createAmazonBedrock({
+  region: 'us-east-1',
+  credentialProvider: fromNodeProviderChain(),
+});
+```
 
 ## Provider Instance
 
@@ -122,6 +154,11 @@ You can use the following optional settings to customize the Amazon Bedrock prov
 
   Optional. The AWS session token that you want to use for the API calls.
   It uses the `AWS_SESSION_TOKEN` environment variable by default.
+
+- **credentialProvider** _() =&gt; Promise&lt;&#123; accessKeyId: string; secretAccessKey: string; sessionToken?: string; &#125;&gt;_
+
+  Optional. The AWS credential provider chain that you want to use for the API calls.
+  It uses the specified credentials by default.
 
 ## Language Models
 
@@ -219,12 +256,141 @@ if (result.providerMetadata?.bedrock.trace) {
 
 See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html) for more information.
 
+### Cache Points
+
+<Note>
+  Amazon Bedrock prompt caching is currently in preview release. To request
+  access, visit the [Amazon Bedrock prompt caching
+  page](https://aws.amazon.com/bedrock/prompt-caching/).
+</Note>
+
+In messages, you can use the `providerOptions` property to set cache points. Set the `bedrock` property in the `providerOptions` object to `{ cachePoint: { type: 'default' } }` to create a cache point.
+
+Cache usage information is returned in the `providerMetadata` object`. See examples below.
+
+<Note>
+  Cache points have model-specific token minimums and limits. For example,
+  Claude 3.5 Sonnet v2 requires at least 1,024 tokens for a cache point and
+  allows up to 4 cache points. See the [Amazon Bedrock prompt caching
+  documentation](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html)
+  for details on supported models, regions, and limits.
+</Note>
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const cyberpunkAnalysis =
+  '... literary analysis of cyberpunk themes and concepts ...';
+
+const result = await generateText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  messages: [
+    {
+      role: 'system',
+      content: `You are an expert on William Gibson's cyberpunk literature and themes. You have access to the following academic analysis: ${cyberpunkAnalysis}`,
+      providerOptions: {
+        bedrock: { cachePoint: { type: 'default' } },
+      },
+    },
+    {
+      role: 'user',
+      content:
+        'What are the key cyberpunk themes that Gibson explores in Neuromancer?',
+    },
+  ],
+});
+
+console.log(result.text);
+console.log(result.providerMetadata?.bedrock?.usage);
+// Shows cache read/write token usage, e.g.:
+// {
+//   cacheReadInputTokens: 1337,
+//   cacheWriteInputTokens: 42,
+// }
+```
+
+Cache points also work with streaming responses:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { streamText } from 'ai';
+
+const cyberpunkAnalysis =
+  '... literary analysis of cyberpunk themes and concepts ...';
+
+const result = streamText({
+  model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  messages: [
+    {
+      role: 'assistant',
+      content: [
+        { type: 'text', text: 'You are an expert on cyberpunk literature.' },
+        { type: 'text', text: `Academic analysis: ${cyberpunkAnalysis}` },
+      ],
+      providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
+    },
+    {
+      role: 'user',
+      content:
+        'How does Gibson explore the relationship between humanity and technology?',
+    },
+  ],
+});
+
+for await (const textPart of result.textStream) {
+  process.stdout.write(textPart);
+}
+
+console.log(
+  'Cache token usage:',
+  (await result.providerMetadata)?.bedrock?.usage,
+);
+// Shows cache read/write token usage, e.g.:
+// {
+//   cacheReadInputTokens: 1337,
+//   cacheWriteInputTokens: 42,
+// }
+```
+
+## Reasoning
+
+Amazon Bedrock has reasoning support for the `claude-3-7-sonnet-20250219` model.
+
+You can enable it using the `reasoning_config` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { generateText } from 'ai';
+
+const { text, reasoning, reasoningDetails } = await generateText({
+  model: bedrock('us.anthropic.claude-3-7-sonnet-20250219-v1:0'),
+  prompt: 'How many people will live in the world in 2040?',
+  providerOptions: {
+    bedrock: {
+      reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
+    },
+  },
+});
+
+console.log(reasoning); // reasoning text
+console.log(reasoningDetails); // reasoning details including redacted reasoning
+console.log(text); // text response
+```
+
+See [AI SDK UI: Chatbot](/docs/ai-sdk-ui/chatbot#reasoning) for more details
+on how to integrate reasoning into your chatbot.
+
 ### Model Capabilities
 
 | Model                                       | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `amazon.titan-tg1-large`                    | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `amazon.titan-text-express-v1`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `amazon.nova-micro-v1:0`                    | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `amazon.nova-lite-v1:0`                     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `amazon.nova-pro-v1:0`                      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `anthropic.claude-3-7-sonnet-20250219-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20241022-v2:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-sonnet-20240620-v1:0` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `anthropic.claude-3-5-haiku-20241022-v1:0`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
@@ -234,6 +400,7 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
 | `anthropic.claude-v2:1`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `cohere.command-r-v1:0`                     | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `cohere.command-r-plus-v1:0`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `deepseek.r1-v1:0`                          | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama2-13b-chat-v1`                   | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama2-70b-chat-v1`                   | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `meta.llama3-8b-instruct-v1:0`              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
@@ -252,7 +419,7 @@ See the [Amazon Bedrock Guardrails documentation](https://docs.aws.amazon.com/be
 
 <Note>
   The table above lists popular models. Please see the [Amazon Bedrock
-  docs](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html#conversation-inference-supported-models-features)
+  docs](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference-supported-models-features.html)
   for a full list of available models. The table above lists popular models. You
   can also pass any available provider model ID as a string if needed.
 </Note>
@@ -292,6 +459,86 @@ The following optional settings are available for Bedrock Titan embedding models
 | ------------------------------ | ------------------ | ------------------- |
 | `amazon.titan-embed-text-v1`   | 1536               | <Cross size={18} /> |
 | `amazon.titan-embed-text-v2:0` | 1024               | <Check size={18} /> |
+
+## Image Models
+
+You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/nova/latest/userguide/image-generation.html)
+using the `.image()` factory method.
+
+For more on the Amazon Nova Canvas image model, see the [Nova Canvas
+Overview](https://docs.aws.amazon.com/ai/responsible-ai/nova-canvas/overview.html).
+
+<Note>
+  The `amazon.nova-canvas-v1:0` model is available in the `us-east-1` region.
+</Note>
+
+```ts
+const model = bedrock.image('amazon.nova-canvas-v1:0');
+```
+
+You can then generate images with the `experimental_generateImage` function:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  prompt: 'A beautiful sunset over a calm ocean',
+  size: '512x512',
+  seed: 42,
+});
+```
+
+You can also pass the `providerOptions` object to the `generateImage` function to customize the generation behavior:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  prompt: 'A beautiful sunset over a calm ocean',
+  size: '512x512',
+  seed: 42,
+  providerOptions: { bedrock: { quality: 'premium' } },
+});
+```
+
+Documentation for additional settings can be found within the [Amazon Bedrock
+User Guide for Amazon Nova
+Documentation](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html).
+
+### Image Model Settings
+
+When creating an image model, you can customize the generation behavior with optional settings:
+
+```ts
+const model = bedrock.imageModel('amazon.nova-canvas-v1:0', {
+  maxImagesPerCall: 1, // Maximum number of images to generate per API call
+});
+```
+
+- **maxImagesPerCall** _number_
+
+  Override the maximum number of images generated per API call. Default can vary
+  by model, with 5 as a common default.
+
+### Model Capabilities
+
+The Amazon Nova Canvas model supports custom sizes with constraints as follows:
+
+- Each side must be between 320-4096 pixels, inclusive.
+- Each side must be evenly divisible by 16.
+- The aspect ratio must be between 1:4 and 4:1. That is, one side can't be more than 4 times longer than the other side.
+- The total pixel count must be less than 4,194,304.
+
+For more, see [Image generation access and
+usage](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-access.html).
+
+| Model                     | Sizes                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `amazon.nova-canvas-v1:0` | Custom sizes: 320-4096px per side (must be divisible by 16), aspect ratio 1:4 to 4:1, max 4.2M pixels |
 
 ## Response Headers
 

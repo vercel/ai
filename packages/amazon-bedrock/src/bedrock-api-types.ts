@@ -1,12 +1,8 @@
 import { JSONObject } from '@ai-sdk/provider';
-import { Resolvable } from '@ai-sdk/provider-utils';
 
 export interface BedrockConverseInput {
-  system?: Array<{ text: string }>;
-  messages: Array<{
-    role: string;
-    content: Array<BedrockContentBlock>;
-  }>;
+  system?: BedrockSystemMessages;
+  messages: BedrockMessages;
   toolConfig?: BedrockToolConfiguration;
   inferenceConfig?: {
     maxTokens?: number;
@@ -20,6 +16,29 @@ export interface BedrockConverseInput {
     | BedrockGuardrailStreamConfiguration
     | undefined;
 }
+
+export type BedrockSystemMessages = Array<BedrockSystemContentBlock>;
+
+export type BedrockMessages = Array<
+  BedrockAssistantMessage | BedrockUserMessage
+>;
+
+export interface BedrockAssistantMessage {
+  role: 'assistant';
+  content: Array<BedrockContentBlock>;
+}
+
+export interface BedrockUserMessage {
+  role: 'user';
+  content: Array<BedrockContentBlock>;
+}
+
+export const BEDROCK_CACHE_POINT = {
+  cachePoint: { type: 'default' },
+} as const;
+
+export type BedrockCachePoint = { cachePoint: { type: 'default' } };
+export type BedrockSystemContentBlock = { text: string } | BedrockCachePoint;
 
 export interface BedrockGuardrailConfiguration {
   guardrails?: Array<{
@@ -44,7 +63,7 @@ export interface BedrockTool {
 }
 
 export interface BedrockToolConfiguration {
-  tools?: BedrockTool[];
+  tools?: Array<BedrockTool | BedrockCachePoint>;
   toolChoice?:
     | { tool: { name: string } }
     | { auto: {} }
@@ -112,10 +131,30 @@ export interface BedrockTextBlock {
   text: string;
 }
 
+export interface BedrockReasoningContentBlock {
+  reasoningContent: {
+    reasoningText: {
+      text: string;
+      signature?: string;
+    };
+  };
+}
+
+export interface BedrockRedactedReasoningContentBlock {
+  reasoningContent: {
+    redactedReasoning: {
+      data: string;
+    };
+  };
+}
+
 export type BedrockContentBlock =
   | BedrockDocumentBlock
   | BedrockGuardrailConverseContentBlock
   | BedrockImageBlock
   | BedrockTextBlock
   | BedrockToolResultBlock
-  | BedrockToolUseBlock;
+  | BedrockToolUseBlock
+  | BedrockReasoningContentBlock
+  | BedrockRedactedReasoningContentBlock
+  | BedrockCachePoint;

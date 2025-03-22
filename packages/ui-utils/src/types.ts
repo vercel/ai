@@ -108,7 +108,11 @@ that the assistant made as part of this message.
    */
   // note: optional on the Message type (which serves as input)
   parts?: Array<
-    TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart
+    | TextUIPart
+    | ReasoningUIPart
+    | ToolInvocationUIPart
+    | SourceUIPart
+    | FileUIPart
   >;
 }
 
@@ -120,7 +124,11 @@ export type UIMessage = Message & {
    * User messages can have text parts.
    */
   parts: Array<
-    TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart
+    | TextUIPart
+    | ReasoningUIPart
+    | ToolInvocationUIPart
+    | SourceUIPart
+    | FileUIPart
   >;
 };
 
@@ -145,7 +153,13 @@ export type ReasoningUIPart = {
   /**
    * The reasoning text.
    */
+  // TODO: v5 rename to `text`
   reasoning: string;
+
+  details: Array<
+    | { type: 'text'; text: string; signature?: string }
+    | { type: 'redacted'; data: string }
+  >;
 };
 
 /**
@@ -170,6 +184,15 @@ export type SourceUIPart = {
    * The source.
    */
   source: LanguageModelV1Source;
+};
+
+/**
+ * A file part of a message.
+ */
+export type FileUIPart = {
+  type: 'file';
+  mimeType: string;
+  data: string; // base64 encoded data
 };
 
 export type CreateMessage = Omit<Message, 'id'> & {

@@ -17,6 +17,7 @@ import {
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { splitDataUrl } from './split-data-url';
 import { StandardizedPrompt } from './standardize-prompt';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 export async function convertToLanguageModelPrompt({
   prompt,
@@ -110,13 +111,54 @@ export function convertToLanguageModelMessage(
             part => part.type !== 'text' || part.text !== '',
           )
           .map(part => {
-            const { experimental_providerMetadata, providerOptions, ...rest } =
-              part;
-            return {
-              ...rest,
-              providerMetadata:
-                providerOptions ?? experimental_providerMetadata,
-            };
+            const providerOptions =
+              part.providerOptions ?? part.experimental_providerMetadata;
+
+            switch (part.type) {
+              case 'file': {
+                return {
+                  type: 'file',
+                  data:
+                    part.data instanceof URL
+                      ? part.data
+                      : convertDataContentToBase64String(part.data),
+                  filename: part.filename,
+                  mimeType: part.mimeType,
+                  providerMetadata: providerOptions,
+                };
+              }
+              case 'reasoning': {
+                return {
+                  type: 'reasoning',
+                  text: part.text,
+                  signature: part.signature,
+                  providerMetadata: providerOptions,
+                };
+              }
+              case 'redacted-reasoning': {
+                return {
+                  type: 'redacted-reasoning',
+                  data: part.data,
+                  providerMetadata: providerOptions,
+                };
+              }
+              case 'text': {
+                return {
+                  type: 'text' as const,
+                  text: part.text,
+                  providerMetadata: providerOptions,
+                };
+              }
+              case 'tool-call': {
+                return {
+                  type: 'tool-call' as const,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  args: part.args,
+                  providerMetadata: providerOptions,
+                };
+              }
+            }
           }),
         providerMetadata:
           message.providerOptions ?? message.experimental_providerMetadata,
@@ -225,7 +267,8 @@ function convertPartToLanguageModelPart(
     return {
       type: 'text',
       text: part.text,
-      providerMetadata: part.experimental_providerMetadata,
+      providerMetadata:
+        part.providerOptions ?? part.experimental_providerMetadata,
     };
   }
 
@@ -305,7 +348,8 @@ function convertPartToLanguageModelPart(
         type: 'image',
         image: normalizedData,
         mimeType,
-        providerMetadata: part.experimental_providerMetadata,
+        providerMetadata:
+          part.providerOptions ?? part.experimental_providerMetadata,
       };
     }
 
@@ -321,8 +365,10 @@ function convertPartToLanguageModelPart(
           normalizedData instanceof Uint8Array
             ? convertDataContentToBase64String(normalizedData)
             : normalizedData,
+        filename: part.filename,
         mimeType,
-        providerMetadata: part.experimental_providerMetadata,
+        providerMetadata:
+          part.providerOptions ?? part.experimental_providerMetadata,
       };
     }
   }

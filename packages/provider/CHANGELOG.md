@@ -1,5 +1,41 @@
 # @ai-sdk/provider
 
+## 1.1.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+## 1.0.12
+
+### Patch Changes
+
+- 0bd5bc6: feat (ai): support model-generated files
+
+## 1.0.11
+
+### Patch Changes
+
+- 2e1101a: feat (provider/openai): pdf input support
+
+## 1.0.10
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+
+## 1.0.9
+
+### Patch Changes
+
+- ddf9740: feat (ai): add anthropic reasoning
+
+## 1.0.8
+
+### Patch Changes
+
+- 2761f06: fix (ai/provider): publish with LanguageModelV1Source
+
 ## 1.0.7
 
 ### Patch Changes

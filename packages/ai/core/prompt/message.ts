@@ -9,6 +9,10 @@ import {
   filePartSchema,
   ImagePart,
   imagePartSchema,
+  ReasoningPart,
+  reasoningPartSchema,
+  RedactedReasoningPart,
+  redactedReasoningPartSchema,
   TextPart,
   textPartSchema,
   ToolCallPart,
@@ -108,16 +112,29 @@ export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
     role: z.literal('assistant'),
     content: z.union([
       z.string(),
-      z.array(z.union([textPartSchema, toolCallPartSchema])),
+      z.array(
+        z.union([
+          textPartSchema,
+          filePartSchema,
+          reasoningPartSchema,
+          redactedReasoningPartSchema,
+          toolCallPartSchema,
+        ]),
+      ),
     ]),
     providerOptions: providerMetadataSchema.optional(),
     experimental_providerMetadata: providerMetadataSchema.optional(),
   });
 
 /**
-Content of an assistant message. It can be a string or an array of text and tool call parts.
+Content of an assistant message.
+It can be a string or an array of text, image, reasoning, redacted reasoning, and tool call parts.
  */
-export type AssistantContent = string | Array<TextPart | ToolCallPart>;
+export type AssistantContent =
+  | string
+  | Array<
+      TextPart | FilePart | ReasoningPart | RedactedReasoningPart | ToolCallPart
+    >;
 
 /**
 A tool message. It contains the result of one or more tool calls.

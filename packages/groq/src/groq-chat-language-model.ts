@@ -14,6 +14,7 @@ import {
   createJsonResponseHandler,
   generateId,
   isParsableJson,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -74,6 +75,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
     responseFormat,
     seed,
     stream,
+    providerMetadata,
   }: Parameters<LanguageModelV1['doGenerate']>[0] & {
     stream: boolean;
   }) {
@@ -100,6 +102,14 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
       });
     }
 
+    const groqOptions = parseProviderOptions({
+      provider: 'groq',
+      providerOptions: providerMetadata,
+      schema: z.object({
+        reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).nullish(),
+      }),
+    });
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -123,6 +133,9 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
         stream === false && responseFormat?.type === 'json'
           ? { type: 'json_object' }
           : undefined,
+
+      // provider options:
+      reasoning_format: groqOptions?.reasoningFormat,
 
       // messages:
       messages: convertToGroqChatMessages(prompt),
@@ -190,7 +203,11 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
 
     const body = JSON.stringify(args);
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
         modelId: this.modelId,
@@ -210,6 +227,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
 
     return {
       text: choice.message.content ?? undefined,
+      reasoning: choice.message.reasoning ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         toolCallType: 'function',
         toolCallId: toolCall.id ?? generateId(),
@@ -222,7 +240,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
       response: getResponseMetadata(response),
       warnings,
       request: { body },
@@ -328,7 +346,14 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
 
             const delta = choice.delta;
 
-            if (delta.content != null) {
+            if (delta.reasoning != null && delta.reasoning.length > 0) {
+              controller.enqueue({
+                type: 'reasoning',
+                textDelta: delta.reasoning,
+              });
+            }
+
+            if (delta.content != null && delta.content.length > 0) {
               controller.enqueue({
                 type: 'text-delta',
                 textDelta: delta.content,
@@ -475,8 +500,8 @@ const groqChatResponseSchema = z.object({
   choices: z.array(
     z.object({
       message: z.object({
-        role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
+        reasoning: z.string().nullish(),
         tool_calls: z
           .array(
             z.object({
@@ -513,8 +538,8 @@ const groqChatChunkSchema = z.union([
       z.object({
         delta: z
           .object({
-            role: z.enum(['assistant']).nullish(),
             content: z.string().nullish(),
+            reasoning: z.string().nullish(),
             tool_calls: z
               .array(
                 z.object({

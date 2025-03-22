@@ -30,7 +30,13 @@ export type LanguageModelV1Message =
       }
     | {
         role: 'assistant';
-        content: Array<LanguageModelV1TextPart | LanguageModelV1ToolCallPart>;
+        content: Array<
+          | LanguageModelV1TextPart
+          | LanguageModelV1FilePart
+          | LanguageModelV1ReasoningPart
+          | LanguageModelV1RedactedReasoningPart
+          | LanguageModelV1ToolCallPart
+        >;
       }
     | {
         role: 'tool';
@@ -65,6 +71,49 @@ The text content.
 }
 
 /**
+Reasoning content part of a prompt. It contains a string of reasoning text.
+ */
+export interface LanguageModelV1ReasoningPart {
+  type: 'reasoning';
+
+  /**
+The reasoning text.
+   */
+  text: string;
+
+  /**
+An optional signature for verifying that the reasoning originated from the model.
+   */
+  signature?: string;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+   */
+  providerMetadata?: LanguageModelV1ProviderMetadata;
+}
+
+/**
+Redacted reasoning content part of a prompt.
+ */
+export interface LanguageModelV1RedactedReasoningPart {
+  type: 'redacted-reasoning';
+
+  /**
+Redacted reasoning data.
+   */
+  data: string;
+
+  /**
+Additional provider-specific metadata. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+   */
+  providerMetadata?: LanguageModelV1ProviderMetadata;
+}
+
+/**
 Image content part of a prompt. It contains an image.
  */
 // TODO merge into file part in language model v2
@@ -94,6 +143,11 @@ File content part of a prompt. It contains a file.
  */
 export interface LanguageModelV1FilePart {
   type: 'file';
+
+  /**
+   * Optional filename of the file.
+   */
+  filename?: string;
 
   /**
 File data as base64 encoded string or as a URL.

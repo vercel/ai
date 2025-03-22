@@ -1,5 +1,98 @@
 # @ai-sdk/anthropic
 
+## 1.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+
+## 1.1.19
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+
+## 1.1.18
+
+### Patch Changes
+
+- Updated dependencies [0bd5bc6]
+  - @ai-sdk/provider@1.0.12
+  - @ai-sdk/provider-utils@2.1.14
+
+## 1.1.17
+
+### Patch Changes
+
+- Updated dependencies [2e1101a]
+  - @ai-sdk/provider@1.0.11
+  - @ai-sdk/provider-utils@2.1.13
+
+## 1.1.16
+
+### Patch Changes
+
+- Updated dependencies [1531959]
+  - @ai-sdk/provider-utils@2.1.12
+
+## 1.1.15
+
+### Patch Changes
+
+- e1d3d42: feat (ai): expose raw response body in generateText and generateObject
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+  - @ai-sdk/provider-utils@2.1.11
+
+## 1.1.14
+
+### Patch Changes
+
+- 0e8b66c: feat (provider/anthropic): support image urls
+
+## 1.1.13
+
+### Patch Changes
+
+- 3004b14: feat(provider/anthropic): add bash_20250124 and text_editor_20250124 tools
+
+## 1.1.12
+
+### Patch Changes
+
+- b3e5a15: fix (provider/anthropic): add model setting to allow omitting reasoning content from model requests
+
+## 1.1.11
+
+### Patch Changes
+
+- 00276ae: feat (provider/anthropic): update types for Anthropic computer_20250124 tool
+- a4f8714: feat (provider/anthropic): update beta flag for sonnet-3-7 when using new computer-use tool
+
+## 1.1.10
+
+### Patch Changes
+
+- ddf9740: feat (ai): add anthropic reasoning
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+  - @ai-sdk/provider-utils@2.1.10
+
+## 1.1.9
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+  - @ai-sdk/provider-utils@2.1.9
+
 ## 1.1.8
 
 ### Patch Changes

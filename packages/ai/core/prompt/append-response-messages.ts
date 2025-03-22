@@ -1,10 +1,15 @@
 import {
   extractMaxToolInvocationStep,
+  FileUIPart,
   Message,
+  ReasoningUIPart,
+  TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
 } from '@ai-sdk/ui-utils';
 import { ResponseMessage } from '../generate-text/step-result';
+import { convertDataContentToBase64String } from './data-content';
+import { AISDKError } from '@ai-sdk/provider';
 
 /**
  * Appends the ResponseMessage[] from the response to a Message[] (for useChat).
@@ -38,15 +43,7 @@ Internal. For test use only. May change without notice.
     const isLastMessageAssistant = lastMessage.role === 'assistant';
 
     switch (role) {
-      case 'assistant': // only include text in the content:
-        const textContent =
-          typeof message.content === 'string'
-            ? message.content
-            : message.content
-                .filter(part => part.type === 'text')
-                .map(part => part.text)
-                .join('');
-
+      case 'assistant': {
         function getToolInvocations(step: number) {
           return (
             typeof message.content === 'string'
@@ -61,6 +58,86 @@ Internal. For test use only. May change without notice.
           }));
         }
 
+        const parts: Array<
+          TextUIPart | ReasoningUIPart | ToolInvocationUIPart | FileUIPart
+        > = [];
+        let textContent = '';
+        let reasoningTextContent = undefined;
+
+        if (typeof message.content === 'string') {
+          textContent = message.content;
+          parts.push({
+            type: 'text' as const,
+            text: message.content,
+          });
+        } else {
+          let reasoningPart: ReasoningUIPart | undefined = undefined;
+          for (const part of message.content) {
+            switch (part.type) {
+              case 'text': {
+                reasoningPart = undefined; // reset the reasoning part
+
+                textContent += part.text;
+                parts.push({
+                  type: 'text' as const,
+                  text: part.text,
+                });
+                break;
+              }
+              case 'reasoning': {
+                if (reasoningPart == null) {
+                  reasoningPart = {
+                    type: 'reasoning' as const,
+                    reasoning: '',
+                    details: [],
+                  };
+                  parts.push(reasoningPart);
+                }
+
+                reasoningTextContent = (reasoningTextContent ?? '') + part.text;
+                reasoningPart.reasoning += part.text;
+                reasoningPart.details.push({
+                  type: 'text' as const,
+                  text: part.text,
+                  signature: part.signature,
+                });
+                break;
+              }
+              case 'redacted-reasoning': {
+                if (reasoningPart == null) {
+                  reasoningPart = {
+                    type: 'reasoning' as const,
+                    reasoning: '',
+                    details: [],
+                  };
+                  parts.push(reasoningPart);
+                }
+
+                reasoningPart.details.push({
+                  type: 'redacted' as const,
+                  data: part.data,
+                });
+                break;
+              }
+              case 'tool-call':
+                break;
+              case 'file':
+                if (part.data instanceof URL) {
+                  throw new AISDKError({
+                    name: 'InvalidAssistantFileData',
+                    message: 'File data cannot be a URL',
+                  });
+                }
+                parts.push({
+                  type: 'file' as const,
+                  mimeType: part.mimeType,
+                  data: convertDataContentToBase64String(part.data),
+                });
+                break;
+            }
+          }
+        }
+
         if (isLastMessageAssistant) {
           const maxStep = extractMaxToolInvocationStep(
             lastMessage.toolInvocations,
@@ -69,12 +146,8 @@ Internal. For test use only. May change without notice.
           lastMessage.parts ??= [];
 
           lastMessage.content = textContent;
-          if (textContent.length > 0) {
-            lastMessage.parts.push({
-              type: 'text' as const,
-              text: textContent,
-            });
-          }
+          lastMessage.reasoning = reasoningTextContent;
+          lastMessage.parts.push(...parts);
 
           lastMessage.toolInvocations = [
             ...(lastMessage.toolInvocations ?? []),
@@ -96,11 +169,10 @@ Internal. For test use only. May change without notice.
             id: message.id,
             createdAt: currentDate(), // generate a createdAt date for the message, will be overridden by the client
             content: textContent,
+            reasoning: reasoningTextContent,
             toolInvocations: getToolInvocations(0),
             parts: [
-              ...(textContent.length > 0
-                ? [{ type: 'text' as const, text: textContent }]
-                : []),
+              ...parts,
               ...getToolInvocations(0).map(call => ({
                 type: 'tool-invocation' as const,
                 toolInvocation: call,
@@ -110,6 +182,7 @@ Internal. For test use only. May change without notice.
         }
 
         break;
+      }
 
       case 'tool': {
         // for tool call results, add the result to previous message:

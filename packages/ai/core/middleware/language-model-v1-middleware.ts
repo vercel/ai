@@ -27,6 +27,7 @@ export type LanguageModelV1Middleware = {
    * Wraps the generate operation of the language model.
    * @param options - Object containing the generate function, parameters, and model.
    * @param options.doGenerate - The original generate function.
+   * @param options.doStream - The original stream function.
    * @param options.params - The parameters for the generate call. If the
    * `transformParams` middleware is used, this will be the transformed parameters.
    * @param options.model - The language model instance.
@@ -34,13 +35,16 @@ export type LanguageModelV1Middleware = {
    */
   wrapGenerate?: (options: {
     doGenerate: () => ReturnType<LanguageModelV1['doGenerate']>;
+    doStream: () => ReturnType<LanguageModelV1['doStream']>;
     params: LanguageModelV1CallOptions;
     model: LanguageModelV1;
   }) => Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>>;
 
   /**
    * Wraps the stream operation of the language model.
+   *
    * @param options - Object containing the stream function, parameters, and model.
+   * @param options.doGenerate - The original generate function.
    * @param options.doStream - The original stream function.
    * @param options.params - The parameters for the stream call. If the
    * `transformParams` middleware is used, this will be the transformed parameters.
@@ -48,6 +52,7 @@ export type LanguageModelV1Middleware = {
    * @returns A promise that resolves to the result of the stream operation.
    */
   wrapStream?: (options: {
+    doGenerate: () => ReturnType<LanguageModelV1['doGenerate']>;
     doStream: () => ReturnType<LanguageModelV1['doStream']>;
     params: LanguageModelV1CallOptions;
     model: LanguageModelV1;

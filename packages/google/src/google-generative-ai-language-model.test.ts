@@ -254,6 +254,45 @@ describe('doGenerate', () => {
   );
 
   it(
+    'should handle MALFORMED_FUNCTION_CALL finish reason and empty content object',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {},
+              finishReason: 'MALFORMED_FUNCTION_CALL',
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 9056,
+            totalTokenCount: 9056,
+            promptTokensDetails: [
+              {
+                modality: 'TEXT',
+                tokenCount: 9056,
+              },
+            ],
+          },
+          modelVersion: 'gemini-2.0-flash-lite',
+        },
+      },
+      async () => {
+        const { text, finishReason } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toBeUndefined();
+        expect(finishReason).toStrictEqual('error');
+      },
+    ),
+  );
+
+  it(
     'should extract tool calls',
     withTestServer(
       {
@@ -341,7 +380,7 @@ describe('doGenerate', () => {
   );
 
   it(
-    'should pass the model and the messages',
+    'should pass the model, messages, and options',
     withTestServer(prepareJsonResponse({}), async ({ call }) => {
       await model.doGenerate({
         inputFormat: 'prompt',
@@ -350,6 +389,8 @@ describe('doGenerate', () => {
           { role: 'system', content: 'test system instruction' },
           { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
         ],
+        seed: 123,
+        temperature: 0.5,
       });
 
       expect(await call(0).getRequestBodyJson()).toStrictEqual({
@@ -360,7 +401,10 @@ describe('doGenerate', () => {
           },
         ],
         systemInstruction: { parts: [{ text: 'test system instruction' }] },
-        generationConfig: {},
+        generationConfig: {
+          seed: 123,
+          temperature: 0.5,
+        },
       });
     }),
   );
@@ -991,7 +1035,245 @@ describe('doGenerate', () => {
         },
       ),
     );
+
+    it(
+      'should use dynamic retrieval for gemini-1-5',
+      withTestServer(
+        prepareJsonResponse({
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+        }),
+        async ({ call }) => {
+          const geminiPro = provider.languageModel('gemini-1.5-flash', {
+            useSearchGrounding: true,
+            dynamicRetrievalConfig: {
+              mode: 'MODE_DYNAMIC',
+              dynamicThreshold: 1,
+            },
+          });
+
+          await geminiPro.doGenerate({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: {
+              googleSearchRetrieval: {
+                dynamicRetrievalConfig: {
+                  mode: 'MODE_DYNAMIC',
+                  dynamicThreshold: 1,
+                },
+              },
+            },
+          });
+        },
+      ),
+    );
   });
+
+  it(
+    'should extract image fil outputs',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: 'Here is an image:' },
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: 'base64encodedimagedata',
+                    },
+                  },
+                  { text: 'And another image:' },
+                  {
+                    inlineData: {
+                      mimeType: 'image/png',
+                      data: 'anotherbase64encodedimagedata',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        },
+      },
+      async () => {
+        const { text, files } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toStrictEqual('Here is an image:And another image:');
+        expect(files).toStrictEqual([
+          {
+            data: 'base64encodedimagedata',
+            mimeType: 'image/jpeg',
+          },
+          {
+            data: 'anotherbase64encodedimagedata',
+            mimeType: 'image/png',
+          },
+        ]);
+      },
+    ),
+  );
+
+  it(
+    'should handle responses with only images and no text',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: 'imagedata1',
+                    },
+                  },
+                  {
+                    inlineData: {
+                      mimeType: 'image/png',
+                      data: 'imagedata2',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        },
+      },
+      async () => {
+        const { text, files } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toBeUndefined();
+        expect(files).toStrictEqual([
+          {
+            data: 'imagedata1',
+            mimeType: 'image/jpeg',
+          },
+          {
+            data: 'imagedata2',
+            mimeType: 'image/png',
+          },
+        ]);
+      },
+    ),
+  );
+
+  it(
+    'should pass responseModalities in provider options',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        providerMetadata: {
+          google: {
+            responseModalities: ['TEXT', 'IMAGE'],
+          },
+        },
+      });
+
+      expect(await call(0).getRequestBodyJson()).toMatchObject({
+        generationConfig: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      });
+    }),
+  );
+
+  it(
+    'should include non-image inlineData parts',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+        type: 'json-value',
+        content: {
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { text: 'Here is content:' },
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: 'validimagedata',
+                    },
+                  },
+                  {
+                    inlineData: {
+                      mimeType: 'application/pdf',
+                      data: 'pdfdata',
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          promptFeedback: { safetyRatings: SAFETY_RATINGS },
+        },
+      },
+      async () => {
+        const { text, files } = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(text).toStrictEqual('Here is content:');
+        expect(files).toStrictEqual([
+          {
+            data: 'validimagedata',
+            mimeType: 'image/jpeg',
+          },
+          {
+            data: 'pdfdata',
+            mimeType: 'application/pdf',
+          },
+        ]);
+      },
+    ),
+  );
 });
 
 describe('doStream', () => {
@@ -1450,6 +1732,42 @@ describe('doStream', () => {
         },
       ),
     );
+
+    it(
+      'should use dynamic retrieval for gemini-1-5',
+      withTestServer(
+        prepareStreamResponse({
+          content: [''],
+          url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent',
+        }),
+        async ({ call }) => {
+          const geminiPro = provider.languageModel('gemini-1.5-flash', {
+            useSearchGrounding: true,
+            dynamicRetrievalConfig: {
+              mode: 'MODE_DYNAMIC',
+              dynamicThreshold: 1,
+            },
+          });
+
+          await geminiPro.doStream({
+            inputFormat: 'prompt',
+            mode: { type: 'regular' },
+            prompt: TEST_PROMPT,
+          });
+
+          expect(await call(0).getRequestBodyJson()).toMatchObject({
+            tools: {
+              googleSearchRetrieval: {
+                dynamicRetrievalConfig: {
+                  mode: 'MODE_DYNAMIC',
+                  dynamicThreshold: 1,
+                },
+              },
+            },
+          });
+        },
+      ),
+    );
   });
 
   it(
@@ -1489,6 +1807,118 @@ describe('doStream', () => {
             },
           },
         ]);
+      },
+    ),
+  );
+
+  it(
+    'should stream files',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+        type: 'stream-values',
+        content: [
+          `data: {"candidates": [{"content": {"parts": [{"inlineData": {"data": "test","mimeType": "text/plain"}}]` +
+            `,"role": "model"},` +
+            `"finishReason": "STOP","index": 0,"safetyRatings": [` +
+            `{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_HATE_SPEECH","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_HARASSMENT","probability": "NEGLIGIBLE"},` +
+            `{"category": "HARM_CATEGORY_DANGEROUS_CONTENT","probability": "NEGLIGIBLE"}]}]}\n\n`,
+          `data: {"usageMetadata": {"promptTokenCount": 294,"candidatesTokenCount": 233,"totalTokenCount": 527}}\n\n`,
+        ],
+      },
+      async () => {
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(events.filter(event => event.type === 'error')).toEqual([]); // no errors
+        expect(events.filter(event => event.type === 'file')).toEqual([
+          { type: 'file', mimeType: 'text/plain', data: 'test' },
+        ]);
+      },
+    ),
+  );
+
+  it(
+    'should set finishReason to tool-calls when chunk contains functionCall',
+    withTestServer(
+      {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+        type: 'stream-values',
+        content: [
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: 'Initial text response' }],
+                  role: 'model',
+                },
+                index: 0,
+                safetyRatings: SAFETY_RATINGS,
+              },
+            ],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      functionCall: {
+                        name: 'test-tool',
+                        args: { value: 'example value' },
+                      },
+                    },
+                  ],
+                  role: 'model',
+                },
+                finishReason: 'STOP',
+                index: 0,
+                safetyRatings: SAFETY_RATINGS,
+              },
+            ],
+            usageMetadata: {
+              promptTokenCount: 10,
+              candidatesTokenCount: 20,
+              totalTokenCount: 30,
+            },
+          })}\n\n`,
+        ],
+      },
+      async () => {
+        const { stream } = await model.doStream({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'regular',
+            tools: [
+              {
+                type: 'function',
+                name: 'test-tool',
+                parameters: {
+                  type: 'object',
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  additionalProperties: false,
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                },
+              },
+            ],
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+        const finishEvent = events.find(event => event.type === 'finish');
+
+        expect(
+          finishEvent?.type === 'finish' && finishEvent.finishReason,
+        ).toEqual('tool-calls');
       },
     ),
   );

@@ -37,7 +37,7 @@ const defaultSettings = () =>
       generateId: mockId({ prefix: 'id' }),
       currentDate: () => new Date(0),
     },
-  } as const);
+  }) as const;
 
 function createTestModel({
   stream = convertArrayToReadableStream([
@@ -108,6 +108,31 @@ const modelWithSources = new MockLanguageModelV1({
   }),
 });
 
+const modelWithFiles = new MockLanguageModelV1({
+  doStream: async () => ({
+    stream: convertArrayToReadableStream([
+      {
+        type: 'file',
+        data: 'Hello World',
+        mimeType: 'text/plain',
+      },
+      { type: 'text-delta', textDelta: 'Hello!' },
+      {
+        type: 'file',
+        data: 'QkFVRw==',
+        mimeType: 'image/jpeg',
+      },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        logprobs: undefined,
+        usage: { completionTokens: 10, promptTokens: 3 },
+      },
+    ]),
+    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
+  }),
+});
+
 const modelWithReasoning = new MockLanguageModelV1({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
@@ -119,11 +144,14 @@ const modelWithReasoning = new MockLanguageModelV1({
       },
       { type: 'reasoning', textDelta: 'I will open the conversation' },
       { type: 'reasoning', textDelta: ' with witty banter. ' },
+      { type: 'reasoning-signature', signature: '1234567890' },
+      { type: 'redacted-reasoning', data: 'redacted-reasoning-data' },
       { type: 'reasoning', textDelta: 'Once the user has relaxed,' },
       {
         type: 'reasoning',
         textDelta: ' I will pry for valuable information.',
       },
+      { type: 'reasoning-signature', signature: '1234567890' },
       { type: 'text-delta', textDelta: 'Hi' },
       { type: 'text-delta', textDelta: ' there!' },
       {
@@ -285,7 +313,7 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should include reasoning content in fullStream', async () => {
+    it('should send reasoning deltas', async () => {
       const result = streamText({
         model: modelWithReasoning,
         ...defaultSettings(),
@@ -296,15 +324,21 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
-    it('should include sources in fullStream', async () => {
+    it('should send sources', async () => {
       const result = streamText({
         model: modelWithSources,
-        prompt: 'test-input',
-        _internal: {
-          currentDate: mockValues(new Date(2000)),
-          generateId: mockValues('id-2000'),
-        },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.fullStream),
+      ).toMatchSnapshot();
+    });
+
+    it('should send files', async () => {
+      const result = streamText({
+        model: modelWithFiles,
+        ...defaultSettings(),
       });
 
       expect(
@@ -934,6 +968,32 @@ describe('streamText', () => {
       expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
     });
 
+    it('should omit message finish event (d:) when sendFinish is false', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse, {
+        experimental_sendFinish: false,
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
     it('should write reasoning content to a Node.js response-like object', async () => {
       const mockResponse = createMockServerResponse();
 
@@ -967,6 +1027,26 @@ describe('streamText', () => {
       result.pipeDataStreamToResponse(mockResponse, {
         sendSources: true,
       });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.statusCode).toBe(200);
+      expect(mockResponse.headers).toEqual({
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1',
+      });
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should write file content to a Node.js response-like object', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: modelWithFiles,
+        ...defaultSettings(),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse);
 
       await mockResponse.waitForEnd();
 
@@ -1208,6 +1288,32 @@ describe('streamText', () => {
       ).toMatchSnapshot();
     });
 
+    it('should omit message finish event (d:) when sendFinish is false', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-delta', textDelta: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { promptTokens: 3, completionTokens: 10 },
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      const dataStream = result.toDataStream({
+        experimental_sendFinish: false,
+      });
+
+      expect(
+        await convertReadableStreamToArray(
+          dataStream.pipeThrough(new TextDecoderStream()),
+        ),
+      ).toMatchSnapshot();
+    });
+
     it('should send reasoning content when sendReasoning is true', async () => {
       const result = streamText({
         model: modelWithReasoning,
@@ -1230,6 +1336,21 @@ describe('streamText', () => {
       });
 
       const dataStream = result.toDataStream({ sendSources: true });
+
+      expect(
+        await convertReadableStreamToArray(
+          dataStream.pipeThrough(new TextDecoderStream()),
+        ),
+      ).toMatchSnapshot();
+    });
+
+    it('should send file content', async () => {
+      const result = streamText({
+        model: modelWithFiles,
+        ...defaultSettings(),
+      });
+
+      const dataStream = result.toDataStream();
 
       expect(
         await convertReadableStreamToArray(
@@ -1552,6 +1673,19 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.response.messages', () => {
+    it('should contain reasoning', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      result.consumeStream();
+
+      expect((await result.response).messages).toMatchSnapshot();
+    });
+  });
+
   describe('result.request', () => {
     it('should resolve with response information', async () => {
       const result = streamText({
@@ -1640,6 +1774,19 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.reasoningDetails', () => {
+    it('should contain reasoning from model response', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      result.consumeStream();
+
+      expect(await result.reasoningDetails).toMatchSnapshot();
+    });
+  });
+
   describe('result.sources', () => {
     it('should contain sources', async () => {
       const result = streamText({
@@ -1650,6 +1797,19 @@ describe('streamText', () => {
       result.consumeStream();
 
       expect(await result.sources).toMatchSnapshot();
+    });
+  });
+
+  describe('result.files', () => {
+    it('should contain files', async () => {
+      const result = streamText({
+        model: modelWithFiles,
+        ...defaultSettings(),
+      });
+
+      result.consumeStream();
+
+      expect(await result.files).toMatchSnapshot();
     });
   });
 
@@ -1668,6 +1828,17 @@ describe('streamText', () => {
     it('should add the sources from the model response to the step result', async () => {
       const result = streamText({
         model: modelWithSources,
+        ...defaultSettings(),
+      });
+
+      result.consumeStream();
+
+      expect(await result.steps).toMatchSnapshot();
+    });
+
+    it('should add the files from the model response to the step result', async () => {
+      const result = streamText({
+        model: modelWithFiles,
         ...defaultSettings(),
       });
 
@@ -1925,11 +2096,10 @@ describe('streamText', () => {
             execute: async ({ value }) => `${value}-result`,
           },
         },
-        prompt: 'test-input',
         onFinish: async event => {
           result = event as unknown as typeof result;
         },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+        ...defaultSettings(),
       });
 
       await resultObject.consumeStream();
@@ -1944,15 +2114,28 @@ describe('streamText', () => {
 
       const resultObject = streamText({
         model: modelWithSources,
-        prompt: 'test-input',
         onFinish: async event => {
           result = event as unknown as typeof result;
         },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-        _internal: {
-          generateId: mockId({ prefix: 'id' }),
-          currentDate: () => new Date(0),
+        ...defaultSettings(),
+      });
+
+      await resultObject.consumeStream();
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should send files', async () => {
+      let result!: Parameters<
+        Required<Parameters<typeof streamText>[0]>['onFinish']
+      >[0];
+
+      const resultObject = streamText({
+        model: modelWithFiles,
+        onFinish: async event => {
+          result = event as unknown as typeof result;
         },
+        ...defaultSettings(),
       });
 
       await resultObject.consumeStream();
@@ -2101,6 +2284,10 @@ describe('streamText', () => {
                         timestamp: new Date(0),
                       },
                       {
+                        type: 'reasoning',
+                        textDelta: 'thinking',
+                      },
+                      {
                         type: 'tool-call',
                         toolCallType: 'function',
                         toolCallId: 'call-1',
@@ -2147,6 +2334,12 @@ describe('streamText', () => {
                     {
                       role: 'assistant',
                       content: [
+                        {
+                          type: 'reasoning',
+                          text: 'thinking',
+                          providerMetadata: undefined,
+                          signature: undefined,
+                        },
                         {
                           type: 'tool-call',
                           toolCallId: 'call-1',

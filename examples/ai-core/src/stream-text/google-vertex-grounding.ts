@@ -4,9 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: vertex('gemini-1.5-pro', {
-      useSearchGrounding: true,
-    }),
+    model: vertex('gemini-1.5-pro', { useSearchGrounding: true }),
     prompt:
       'List the top 5 San Francisco news from the past week.' +
       'You must include the date of each article.',

@@ -24,9 +24,9 @@ Start by creating a new Next.js application. This command will create a new dire
 
 <div className="mb-4">
   <Note>
-    Be sure to select yes when prompted to use the App Router. If you are
-    looking for the Next.js Pages Router quickstart guide, you can find it
-    [here](/docs/getting-started/nextjs-pages-router).
+    Be sure to select yes when prompted to use the App Router and Tailwind CSS.
+    If you are looking for the Next.js Pages Router quickstart guide, you can
+    find it [here](/docs/getting-started/nextjs-pages-router).
   </Note>
 </div>
 
@@ -50,13 +50,13 @@ Install `ai`, `@ai-sdk/react`, and `@ai-sdk/openai`, the AI package, AI SDK's Re
 <div className="my-4">
   <Tabs items={['pnpm', 'npm', 'yarn']}>
     <Tab>
-      <Snippet text="pnpm add ai @ai-sdk/openai zod" dark />
+      <Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="npm install ai @ai-sdk/openai zod" dark />
+      <Snippet text="npm install ai @ai-sdk/react @ai-sdk/openai zod" dark />
     </Tab>
     <Tab>
-      <Snippet text="yarn add ai @ai-sdk/openai zod" dark />
+      <Snippet text="yarn add ai @ai-sdk/react @ai-sdk/openai zod" dark />
     </Tab>
   </Tabs>
 </div>
@@ -131,10 +131,15 @@ export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
+      {messages.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, i) => {
+            switch (part.type) {
+              case 'text':
+                return <div key={`${message.id}-${i}`}>{part.text}</div>;
+            }
+          })}
         </div>
       ))}
 
@@ -158,9 +163,11 @@ export default function Chat() {
 
 This page utilizes the `useChat` hook, which will, by default, use the `POST` API route you created earlier (`/api/chat`). The hook provides functions and state for handling user input and form submission. The `useChat` hook provides multiple utility functions and state variables:
 
-- `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
+- `messages` - the current chat messages (an array of objects with `id`, `role`, and `parts` properties).
 - `input` - the current value of the user's input field.
 - `handleInputChange` and `handleSubmit` - functions to handle user interactions (typing into the input field and submitting the form, respectively).
+
+The LLM's response is accessed through the message `parts` array. Each message contains an ordered array of `parts` that represents everything the model generated in its response. These parts can include plain text, reasoning tokens, and more that you will see later. The `parts` array preserves the sequence of the model's outputs, allowing you to display or process each component in the order it was generated.
 
 ## Running Your Application
 
@@ -237,7 +244,7 @@ Notice the blank response in the UI? This is because instead of generating a tex
 
 To display the tool invocations in your UI, update your `app/page.tsx` file:
 
-```tsx filename="app/page.tsx" highlight="12-16"
+```tsx filename="app/page.tsx" highlight="18-24"
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -246,14 +253,21 @@ export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat();
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.toolInvocations ? (
-            <pre>{JSON.stringify(m.toolInvocations, null, 2)}</pre>
-          ) : (
-            <p>{m.content}</p>
-          )}
+      {messages.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.parts.map((part, i) => {
+            switch (part.type) {
+              case 'text':
+                return <div key={`${message.id}-${i}`}>{part.text}</div>;
+              case 'tool-invocation':
+                return (
+                  <pre key={`${message.id}-${i}`}>
+                    {JSON.stringify(part.toolInvocation, null, 2)}
+                  </pre>
+                );
+            }
+          })}
         </div>
       ))}
 
@@ -270,7 +284,7 @@ export default function Chat() {
 }
 ```
 
-With this change, you check each message for any tool calls (`toolInvocations`). These tool calls will be displayed as stringified JSON. Otherwise, you show the message content as before.
+With this change, you're updating the UI to handle different message parts. For text parts, you display the text content as before. For tool invocations, you display a JSON representation of the tool call and its result.
 
 Now, when you ask about the weather, you'll see the tool invocation and its result displayed in your chat interface.
 

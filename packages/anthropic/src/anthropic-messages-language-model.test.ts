@@ -3,7 +3,6 @@ import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { AnthropicAssistantMessage } from './anthropic-api-types';
 import { createAnthropic } from './anthropic-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
@@ -20,7 +19,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
   describe('doGenerate', () => {
     function prepareJsonResponse({
-      content = [{ type: 'text', text: '', cache_control: undefined }],
+      content = [{ type: 'text', text: '' }],
       usage = {
         input_tokens: 4,
         output_tokens: 30,
@@ -30,7 +29,11 @@ describe('AnthropicMessagesLanguageModel', () => {
       model = 'claude-3-haiku-20240307',
       headers = {},
     }: {
-      content?: AnthropicAssistantMessage['content'];
+      content?: Array<
+        | { type: 'text'; text: string }
+        | { type: 'thinking'; thinking: string; signature: string }
+        | { type: 'tool_use'; id: string; name: string; input: unknown }
+      >;
       usage?: {
         input_tokens: number;
         output_tokens: number;
@@ -58,11 +61,61 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
     }
 
+    describe('reasoning (thinking enabled)', () => {
+      it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
+        prepareJsonResponse({
+          content: [{ type: 'text', text: 'Hello, World!' }],
+        });
+
+        const result = await model.doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          temperature: 0.5,
+          topP: 0.7,
+          topK: 0.1,
+          providerMetadata: {
+            anthropic: {
+              thinking: { type: 'enabled', budgetTokens: 1000 },
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'claude-3-haiku-20240307',
+          messages: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Hello' }],
+            },
+          ],
+          max_tokens: 4096 + 1000,
+          thinking: { type: 'enabled', budget_tokens: 1000 },
+        });
+
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'temperature',
+            details: 'temperature is not supported when thinking is enabled',
+          },
+          {
+            type: 'unsupported-setting',
+            details: 'topK is not supported when thinking is enabled',
+            setting: 'topK',
+          },
+          {
+            type: 'unsupported-setting',
+            details: 'topP is not supported when thinking is enabled',
+            setting: 'topP',
+          },
+        ]);
+      });
+    });
+
     it('should extract text response', async () => {
       prepareJsonResponse({
-        content: [
-          { type: 'text', text: 'Hello, World!', cache_control: undefined },
-        ],
+        content: [{ type: 'text', text: 'Hello, World!' }],
       });
 
       const { text } = await provider('claude-3-haiku-20240307').doGenerate({
@@ -74,20 +127,59 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(text).toStrictEqual('Hello, World!');
     });
 
-    it('should extract tool calls', async () => {
+    it('should extract reasoning response', async () => {
       prepareJsonResponse({
         content: [
           {
-            type: 'text',
-            text: 'Some text\n\n',
-            cache_control: undefined,
+            type: 'thinking',
+            thinking: 'I am thinking...',
+            signature: '1234567890',
           },
+          { type: 'text', text: 'Hello, World!' },
+        ],
+      });
+
+      const { reasoning, text } = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(reasoning).toStrictEqual([
+        {
+          type: 'text',
+          text: 'I am thinking...',
+          signature: '1234567890',
+        },
+      ]);
+      expect(text).toStrictEqual('Hello, World!');
+    });
+
+    it('should return undefined reasoning when no thinking is present', async () => {
+      prepareJsonResponse({
+        content: [{ type: 'text', text: 'Hello, World!' }],
+      });
+
+      const { reasoning } = await provider(
+        'claude-3-haiku-20240307',
+      ).doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(reasoning).toBeUndefined();
+    });
+
+    it('should extract tool calls', async () => {
+      prepareJsonResponse({
+        content: [
+          { type: 'text', text: 'Some text\n\n' },
           {
             type: 'tool_use',
             id: 'toolu_1',
             name: 'test-tool',
             input: { value: 'example value' },
-            cache_control: undefined,
           },
         ],
         stopReason: 'tool_use',
@@ -129,17 +221,12 @@ describe('AnthropicMessagesLanguageModel', () => {
     it('should support object-tool mode', async () => {
       prepareJsonResponse({
         content: [
-          {
-            type: 'text',
-            text: 'Some text\n\n',
-            cache_control: undefined,
-          },
+          { type: 'text', text: 'Some text\n\n' },
           {
             type: 'tool_use',
             id: 'toolu_1',
             name: 'json',
             input: { value: 'example value' },
-            cache_control: undefined,
           },
         ],
         stopReason: 'tool_use',
@@ -438,32 +525,20 @@ describe('AnthropicMessagesLanguageModel', () => {
   });
 
   describe('doStream', () => {
-    function prepareStreamResponse({
-      content,
-      headers,
-    }: {
-      content: string[];
-      headers?: Record<string, string>;
-    }) {
+    it('should stream text deltas', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
-        headers,
         chunks: [
-          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}      }\n\n`,
-          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}          }\n\n`,
-          `data: {"type": "ping"}\n\n`,
-          ...content.map(text => {
-            return `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"${text}"}              }\n\n`;
-          }),
-          `data: {"type":"content_block_stop","index":0             }\n\n`,
-          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}          }\n\n`,
-          `data: {"type":"message_stop"           }\n\n`,
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello"}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":", "}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
         ],
       };
-    }
-
-    it('should stream text deltas', async () => {
-      prepareStreamResponse({ content: ['Hello', ', ', 'World!'] });
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
@@ -477,18 +552,150 @@ describe('AnthropicMessagesLanguageModel', () => {
           modelId: 'claude-3-haiku-20240307',
           type: 'response-metadata',
         },
+        { textDelta: 'Hello', type: 'text-delta' },
+        { textDelta: ', ', type: 'text-delta' },
+        { textDelta: 'World!', type: 'text-delta' },
         {
-          textDelta: 'Hello',
-          type: 'text-delta',
+          finishReason: 'stop',
+          providerMetadata: {
+            anthropic: {
+              cacheCreationInputTokens: null,
+              cacheReadInputTokens: null,
+            },
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 227,
+            promptTokens: 17,
+          },
         },
+      ]);
+    });
+
+    it('should stream reasoning deltas', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"I am"}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"thinking..."}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"1234567890"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"content_block_start","index":1,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":1}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
         {
-          textDelta: ', ',
-          type: 'text-delta',
+          type: 'response-metadata',
+          id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+          modelId: 'claude-3-haiku-20240307',
         },
+        { type: 'reasoning', textDelta: 'I am' },
+        { type: 'reasoning', textDelta: 'thinking...' },
+        { type: 'reasoning-signature', signature: '1234567890' },
+        { type: 'text-delta', textDelta: 'Hello, World!' },
         {
-          textDelta: 'World!',
-          type: 'text-delta',
+          finishReason: 'stop',
+          providerMetadata: {
+            anthropic: {
+              cacheCreationInputTokens: null,
+              cacheReadInputTokens: null,
+            },
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 227,
+            promptTokens: 17,
+          },
         },
+      ]);
+    });
+
+    it('should stream redacted reasoning', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"redacted_thinking","data":"redacted-thinking-data"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"content_block_start","index":1,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":1}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        {
+          type: 'response-metadata',
+          id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+          modelId: 'claude-3-haiku-20240307',
+        },
+        { type: 'redacted-reasoning', data: 'redacted-thinking-data' },
+        { type: 'text-delta', textDelta: 'Hello, World!' },
+        {
+          finishReason: 'stop',
+          providerMetadata: {
+            anthropic: {
+              cacheCreationInputTokens: null,
+              cacheReadInputTokens: null,
+            },
+          },
+          type: 'finish',
+          usage: {
+            completionTokens: 227,
+            promptTokens: 17,
+          },
+        },
+      ]);
+    });
+
+    it('should ignore signatures on text deltas', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"1234567890"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+        {
+          type: 'response-metadata',
+          id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
+          modelId: 'claude-3-haiku-20240307',
+        },
+        { type: 'text-delta', textDelta: 'Hello, World!' },
         {
           finishReason: 'stop',
           providerMetadata: {
@@ -658,10 +865,18 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should expose the raw response headers', async () => {
-      prepareStreamResponse({
-        content: [],
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
         headers: { 'test-header': 'test-value' },
-      });
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
 
       const { rawResponse } = await model.doStream({
         inputFormat: 'prompt',
@@ -681,7 +896,18 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should pass the messages and the model', async () => {
-      prepareStreamResponse({ content: [] });
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        headers: { 'test-header': 'test-value' },
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
 
       await model.doStream({
         inputFormat: 'prompt',
@@ -700,7 +926,18 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should pass headers', async () => {
-      prepareStreamResponse({ content: [] });
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        headers: { 'test-header': 'test-value' },
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
 
       const provider = createAnthropic({
         apiKey: 'test-api-key',
@@ -775,7 +1012,18 @@ describe('AnthropicMessagesLanguageModel', () => {
     });
 
     it('should send request body', async () => {
-      prepareStreamResponse({ content: [] });
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        headers: { 'test-header': 'test-value' },
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hello, World!"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":227}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
 
       const { request } = await model.doStream({
         inputFormat: 'prompt',

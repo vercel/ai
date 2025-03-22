@@ -1,5 +1,63 @@
 # @ai-sdk/provider-utils
 
+## 2.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+
+## 2.1.15
+
+### Patch Changes
+
+- d0c4659: feat (provider-utils): parseProviderOptions function
+
+## 2.1.14
+
+### Patch Changes
+
+- Updated dependencies [0bd5bc6]
+  - @ai-sdk/provider@1.0.12
+
+## 2.1.13
+
+### Patch Changes
+
+- Updated dependencies [2e1101a]
+  - @ai-sdk/provider@1.0.11
+
+## 2.1.12
+
+### Patch Changes
+
+- 1531959: feat (provider-utils): add readable-stream to unified test server
+
+## 2.1.11
+
+### Patch Changes
+
+- Updated dependencies [e1d3d42]
+  - @ai-sdk/provider@1.0.10
+
+## 2.1.10
+
+### Patch Changes
+
+- Updated dependencies [ddf9740]
+  - @ai-sdk/provider@1.0.9
+
+## 2.1.9
+
+### Patch Changes
+
+- Updated dependencies [2761f06]
+  - @ai-sdk/provider@1.0.8
+
 ## 2.1.8
 
 ### Patch Changes

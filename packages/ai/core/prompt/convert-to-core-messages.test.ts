@@ -2,6 +2,7 @@ import { Attachment, Message } from '@ai-sdk/ui-utils';
 import { convertToCoreMessages } from './convert-to-core-messages';
 import { tool } from '../tool/tool';
 import { z } from 'zod';
+import { CoreMessage } from './message';
 
 describe('convertToCoreMessages', () => {
   describe('system message', () => {
@@ -205,6 +206,73 @@ describe('convertToCoreMessages', () => {
           content: [{ type: 'text', text: 'Hello, human!' }],
         },
       ]);
+    });
+
+    it('should convert an assistant message with reasoning (parts)', () => {
+      const result = convertToCoreMessages([
+        {
+          role: 'assistant',
+          content: '', // empty content
+          parts: [
+            {
+              type: 'reasoning',
+              reasoning: 'Thinking...',
+              details: [
+                {
+                  type: 'text',
+                  text: 'Thinking',
+                  signature: '1234567890',
+                },
+                {
+                  type: 'redacted',
+                  data: 'redacted-data',
+                },
+                {
+                  type: 'text',
+                  text: '...',
+                  signature: 'abc123',
+                },
+              ],
+            },
+            { type: 'text', text: 'Hello, human!' },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning', text: 'Thinking', signature: '1234567890' },
+            { type: 'redacted-reasoning', data: 'redacted-data' },
+            { type: 'reasoning', text: '...', signature: 'abc123' },
+            { type: 'text', text: 'Hello, human!' },
+          ],
+        },
+      ] satisfies CoreMessage[]);
+    });
+
+    it('should convert an assistant message with file parts', () => {
+      const result = convertToCoreMessages([
+        {
+          role: 'assistant',
+          content: '', // empty content
+          parts: [
+            {
+              type: 'file',
+              mimeType: 'image/png',
+              data: 'dGVzdA==',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [{ type: 'file', mimeType: 'image/png', data: 'dGVzdA==' }],
+        },
+      ] satisfies CoreMessage[]);
     });
 
     it('should handle assistant message with tool invocations', () => {

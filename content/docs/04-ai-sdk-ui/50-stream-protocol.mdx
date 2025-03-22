@@ -119,6 +119,22 @@ Format: `g:string\n`
 
 Example: `g:"I will open the conversation with witty banter."\n`
 
+### Redacted Reasoning Part
+
+The redacted reasoning parts contain reasoning data that has been redacted. This is available through `redacted_reasoning`.
+
+Format: `i:{"data": string}\n`
+
+Example: `i:{"data": "This reasoning has been redacted for security purposes."}\n`
+
+### Reasoning Signature Part
+
+The reasoning signature parts contain a signature associated with the reasoning. This is available through `reasoning_signature`.
+
+Format: `j:{"signature": string}\n`
+
+Example: `j:{"signature": "abc123xyz"}\n`
+
 ### Source Part
 
 The source parts are appended to the message as they are received. The source part is available through `source`.
@@ -127,9 +143,17 @@ Format: `h:Source\n`
 
 Example: `h:{"sourceType":"url","id":"source-id","url":"https://example.com","title":"Example"}\n`
 
+### File Part
+
+The file parts contain binary data encoded as base64 strings along with their MIME type. The file part is available through `file`.
+
+Format: `k:{data:string; mimeType:string}\n`
+
+Example: `k:{"data":"base64EncodedData","mimeType":"image/png"}\n`
+
 ### Data Part
 
-The data parts are parsed as JSON and appended to the message as they are received. The data part is available through `data`.
+The data parts are parsed as JSON and appended to the data array as they are received. The data is available through `data`.
 
 Format: `2:Array<JSONValue>\n`
 
@@ -233,9 +257,9 @@ It includes the following metadata:
 
 - `messageId` to indicate the id of the message that this step belongs to.
 
-Format: `f:{id:string}\n`
+Format: `f:{messageId:string}\n`
 
-Example: `f:{"id":"step_123"}\n`
+Example: `f:{"messageId":"step_123"}\n`
 
 ### Finish Step Part
 

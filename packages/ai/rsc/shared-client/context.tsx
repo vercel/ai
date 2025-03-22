@@ -91,9 +91,8 @@ export function InternalAIProvider({
 
     return async () => {
       const aiStateSnapshot = aiStateRef.current;
-      const [aiStateDelta, uiState] = await wrappedSyncUIState!(
-        aiStateSnapshot,
-      );
+      const [aiStateDelta, uiState] =
+        await wrappedSyncUIState!(aiStateSnapshot);
 
       if (uiState !== undefined) {
         setUIState(uiState);

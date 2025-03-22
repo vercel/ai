@@ -246,7 +246,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const {
       responseHeaders,
       value: responseBody,
-      rawValue: parsedBody,
+      rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url({
         path: '/chat/completions',
@@ -265,7 +265,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = responseBody.choices[0];
     const providerMetadata = this.config.metadataExtractor?.extractMetadata?.({
-      parsedBody,
+      parsedBody: rawResponse,
     });
 
     return {
@@ -284,7 +284,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       },
       ...(providerMetadata && { providerMetadata }),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
       response: getResponseMetadata(responseBody),
       warnings,
       request: { body },
@@ -300,10 +300,21 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
           if (result.reasoning) {
-            controller.enqueue({
-              type: 'reasoning',
-              textDelta: result.reasoning,
-            });
+            if (Array.isArray(result.reasoning)) {
+              for (const part of result.reasoning) {
+                if (part.type === 'text') {
+                  controller.enqueue({
+                    type: 'reasoning',
+                    textDelta: part.text,
+                  });
+                }
+              }
+            } else {
+              controller.enqueue({
+                type: 'reasoning',
+                textDelta: result.reasoning,
+              });
+            }
           }
           if (result.text) {
             controller.enqueue({

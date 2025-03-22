@@ -4,11 +4,10 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: deepseek('deepseek-reasoner'),
+    model: deepseek('deepseek-chat'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
-  console.log(result);
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }

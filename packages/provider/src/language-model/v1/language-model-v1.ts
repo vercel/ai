@@ -64,7 +64,7 @@ use further optimizations if this flag is set to `true`.
 
 Defaults to `false`.
 */
-  // TODO rename to supportsGrammarGuidedGeneration in v2
+  // TODO v2: rename to supportsGrammarGuidedGeneration?
   readonly supportsStructuredOutputs?: boolean;
 
   /**
@@ -83,21 +83,52 @@ Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
   doGenerate(options: LanguageModelV1CallOptions): PromiseLike<{
+    // TODO v2: switch to a composite content array with text, tool calls, reasoning, files
+
     /**
-Text that the model has generated. Can be undefined if the model
-has only generated tool calls.
+Text that the model has generated.
+Can be undefined if the model did not generate any text.
      */
     text?: string;
 
     /**
-Reasoning text that the model has generated. Can be undefined if the model
-has only generated text.
+Reasoning that the model has generated.
+Can be undefined if the model does not support reasoning.
      */
-    reasoning?: string;
+    // TODO v2: remove string option
+    reasoning?:
+      | string
+      | Array<
+          | {
+              type: 'text';
+              text: string;
+
+              /**
+An optional signature for verifying that the reasoning originated from the model.
+   */
+              signature?: string;
+            }
+          | {
+              type: 'redacted';
+              data: string;
+            }
+        >;
 
     /**
-Tool calls that the model has generated. Can be undefined if the
-model has only generated text.
+Generated files as base64 encoded strings or binary data.
+The files should be returned without any unnecessary conversion.
+If the API returns base64 encoded strings, the files should be returned
+as base64 encoded strings. If the API returns binary data, the files should
+be returned as binary data.
+     */
+    files?: Array<{
+      data: string | Uint8Array;
+      mimeType: string;
+    }>;
+
+    /**
+Tool calls that the model has generated.
+Can be undefined if the model did not generate any tool calls.
      */
     toolCalls?: Array<LanguageModelV1FunctionToolCall>;
 
@@ -117,7 +148,7 @@ Finish reason.
     /**
 Raw prompt and setting information for observability provider integration.
      */
-    // TODO remove in v2 (there is now request)
+    // TODO v2: remove in v2 (now there is request)
     rawCall: {
       /**
 Raw prompt after expansion and conversion to the format that the
@@ -141,6 +172,11 @@ Optional response information for telemetry and debugging purposes.
 Response headers.
       */
       headers?: Record<string, string>;
+
+      /**
+Response body.
+      */
+      body?: unknown;
     };
 
     /**
@@ -262,9 +298,26 @@ export type LanguageModelV1StreamPart =
 
   // Reasoning text deltas:
   | { type: 'reasoning'; textDelta: string }
+  | { type: 'reasoning-signature'; signature: string }
+  | { type: 'redacted-reasoning'; data: string }
 
   // Sources:
   | { type: 'source'; source: LanguageModelV1Source }
+
+  // Files:
+  | {
+      type: 'file';
+      mimeType: string;
+
+      /**
+Generated file data as base64 encoded strings or binary data.
+The file data should be returned without any unnecessary conversion.
+If the API returns base64 encoded strings, the file data should be returned
+as base64 encoded strings. If the API returns binary data, the file data should
+be returned as binary data.
+       */
+      data: string | Uint8Array;
+    }
 
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV1FunctionToolCall)

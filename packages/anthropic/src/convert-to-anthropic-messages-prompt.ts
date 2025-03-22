@@ -1,4 +1,5 @@
 import {
+  LanguageModelV1CallWarning,
   LanguageModelV1Message,
   LanguageModelV1Prompt,
   LanguageModelV1ProviderMetadata,
@@ -14,8 +15,12 @@ import {
 
 export function convertToAnthropicMessagesPrompt({
   prompt,
+  sendReasoning,
+  warnings,
 }: {
   prompt: LanguageModelV1Prompt;
+  sendReasoning: boolean;
+  warnings: LanguageModelV1CallWarning[];
 }): {
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -96,20 +101,19 @@ export function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'image': {
-                    if (part.image instanceof URL) {
-                      // The AI SDK automatically downloads images for user image parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'Image URLs in user messages',
-                      });
-                    }
-
                     anthropicContent.push({
                       type: 'image',
-                      source: {
-                        type: 'base64',
-                        media_type: part.mimeType ?? 'image/jpeg',
-                        data: convertUint8ArrayToBase64(part.image),
-                      },
+                      source:
+                        part.image instanceof URL
+                          ? {
+                              type: 'url',
+                              url: part.image.toString(),
+                            }
+                          : {
+                              type: 'base64',
+                              media_type: part.mimeType ?? 'image/jpeg',
+                              data: convertUint8ArrayToBase64(part.image),
+                            },
                       cache_control: cacheControl,
                     });
 
@@ -245,6 +249,33 @@ export function convertToAnthropicMessagesPrompt({
                       ? part.text.trim()
                       : part.text,
 
+                  cache_control: cacheControl,
+                });
+                break;
+              }
+
+              case 'reasoning': {
+                if (sendReasoning) {
+                  anthropicContent.push({
+                    type: 'thinking',
+                    thinking: part.text,
+                    signature: part.signature!,
+                    cache_control: cacheControl,
+                  });
+                } else {
+                  warnings.push({
+                    type: 'other',
+                    message:
+                      'sending reasoning content is disabled for this model',
+                  });
+                }
+                break;
+              }
+
+              case 'redacted-reasoning': {
+                anthropicContent.push({
+                  type: 'redacted_thinking',
+                  data: part.data,
                   cache_control: cacheControl,
                 });
                 break;

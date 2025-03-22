@@ -15,6 +15,7 @@ import {
 } from '../types';
 import { Source } from '../types/language-model';
 import { calculateLanguageModelUsage } from '../types/usage';
+import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
@@ -30,6 +31,17 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       type: 'reasoning';
       textDelta: string;
     }
+  | {
+      type: 'reasoning-signature';
+      signature: string;
+    }
+  | {
+      type: 'redacted-reasoning';
+      data: string;
+    }
+  | ({
+      type: 'file';
+    } & GeneratedFile)
   | {
       type: 'source';
       source: Source;
@@ -144,10 +156,22 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         // forward:
         case 'text-delta':
         case 'reasoning':
+        case 'reasoning-signature':
+        case 'redacted-reasoning':
         case 'source':
         case 'response-metadata':
         case 'error': {
           controller.enqueue(chunk);
+          break;
+        }
+
+        case 'file': {
+          controller.enqueue(
+            new DefaultGeneratedFileWithType({
+              data: chunk.data,
+              mimeType: chunk.mimeType,
+            }),
+          );
           break;
         }
 

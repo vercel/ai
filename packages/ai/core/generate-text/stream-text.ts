@@ -1,8 +1,10 @@
+import { AISDKError, LanguageModelV1Source } from '@ai-sdk/provider';
 import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { InvalidStreamPartError } from '../../errors/invalid-stream-part-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { StreamData } from '../../streams/stream-data';
 import { asArray } from '../../util/as-array';
@@ -42,7 +44,9 @@ import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-header
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { writeToServerResponse } from '../util/write-to-server-response';
+import { GeneratedFile } from './generated-file';
 import { Output } from './output';
+import { asReasoningText, ReasoningDetail } from './reasoning-detail';
 import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
@@ -58,7 +62,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { LanguageModelV1Source } from '@ai-sdk/provider';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -483,8 +486,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   private readonly reasoningPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoning']>
   >();
+  private readonly reasoningDetailsPromise = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoningDetails']>
+  >();
   private readonly sourcesPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['sources']>
+  >();
+  private readonly filesPromise = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['files']>
   >();
   private readonly toolCallsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolCalls']>
@@ -587,7 +596,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedStepText = '';
     let recordedContinuationText = '';
     let recordedFullText = '';
-    let recordedReasoningText: string | undefined = undefined;
+
+    let stepReasoning: Array<ReasoningDetail> = [];
+    let stepFiles: Array<GeneratedFile> = [];
+    let activeReasoningText: undefined | (ReasoningDetail & { type: 'text' }) =
+      undefined;
+
     let recordedStepSources: LanguageModelV1Source[] = [];
     const recordedSources: LanguageModelV1Source[] = [];
 
@@ -639,8 +653,32 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'reasoning') {
-          recordedReasoningText =
-            (recordedReasoningText ?? '') + part.textDelta;
+          if (activeReasoningText == null) {
+            activeReasoningText = { type: 'text', text: part.textDelta };
+            stepReasoning.push(activeReasoningText);
+          } else {
+            activeReasoningText.text += part.textDelta;
+          }
+        }
+
+        if (part.type === 'reasoning-signature') {
+          if (activeReasoningText == null) {
+            throw new AISDKError({
+              name: 'InvalidStreamPart',
+              message: 'reasoning-signature without reasoning',
+            });
+          }
+
+          activeReasoningText.signature = part.signature;
+          activeReasoningText = undefined; // signature concludes reasoning part
+        }
+
+        if (part.type === 'redacted-reasoning') {
+          stepReasoning.push({ type: 'redacted', data: part.data });
+        }
+
+        if (part.type === 'file') {
+          stepFiles.push(part);
         }
 
         if (part.type === 'source') {
@@ -659,6 +697,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (part.type === 'step-finish') {
           const stepMessages = toResponseMessages({
             text: recordedContinuationText,
+            files: stepFiles,
+            reasoning: stepReasoning,
             tools: tools ?? ({} as TOOLS),
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
@@ -691,7 +731,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const currentStepResult: StepResult<TOOLS> = {
             stepType,
             text: recordedStepText,
-            reasoning: recordedReasoningText,
+            reasoning: asReasoningText(stepReasoning),
+            reasoningDetails: stepReasoning,
+            files: stepFiles,
             sources: recordedStepSources,
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
@@ -717,6 +759,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedToolResults = [];
           recordedStepText = '';
           recordedStepSources = [];
+          stepReasoning = [];
+          stepFiles = [];
+          activeReasoningText = undefined;
 
           if (nextStepType !== 'done') {
             stepType = nextStepType;
@@ -755,6 +800,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.providerMetadataPromise.resolve(
             lastStep.experimental_providerMetadata,
           );
+          self.reasoningPromise.resolve(lastStep.reasoning);
+          self.reasoningDetailsPromise.resolve(lastStep.reasoningDetails);
 
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
@@ -770,8 +817,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // aggregate results:
           self.textPromise.resolve(recordedFullText);
-          self.reasoningPromise.resolve(recordedReasoningText);
           self.sourcesPromise.resolve(recordedSources);
+          self.filesPromise.resolve(lastStep.files);
           self.stepsPromise.resolve(recordedSteps);
 
           // call onFinish callback:
@@ -781,6 +828,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             usage,
             text: recordedFullText,
             reasoning: lastStep.reasoning,
+            reasoningDetails: lastStep.reasoningDetails,
+            files: lastStep.files,
             sources: lastStep.sources,
             toolCalls: lastStep.toolCalls,
             toolResults: lastStep.toolResults,
@@ -1006,6 +1055,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepRequest = request ?? {};
           const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
           const stepToolResults: ToolResultUnion<TOOLS>[] = [];
+
+          const stepReasoning: Array<ReasoningDetail> = [];
+          const stepFiles: Array<GeneratedFile> = [];
+          let activeReasoningText:
+            | undefined
+            | (ReasoningDetail & { type: 'text' }) = undefined;
+
           let stepFinishReason: FinishReason = 'unknown';
           let stepUsage: LanguageModelUsage = {
             promptTokens: 0,
@@ -1015,7 +1071,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let stepText = '';
-          let stepReasoning = '';
           let fullStepText = stepType === 'continue' ? previousStepText : '';
           let stepLogProbs: LogProbs | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
@@ -1123,12 +1178,42 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'reasoning': {
                       controller.enqueue(chunk);
-                      stepReasoning += chunk.textDelta;
+
+                      if (activeReasoningText == null) {
+                        activeReasoningText = {
+                          type: 'text',
+                          text: chunk.textDelta,
+                        };
+                        stepReasoning.push(activeReasoningText);
+                      } else {
+                        activeReasoningText.text += chunk.textDelta;
+                      }
+
                       break;
                     }
 
-                    case 'source': {
+                    case 'reasoning-signature': {
                       controller.enqueue(chunk);
+
+                      if (activeReasoningText == null) {
+                        throw new InvalidStreamPartError({
+                          chunk,
+                          message: 'reasoning-signature without reasoning',
+                        });
+                      }
+
+                      activeReasoningText.signature = chunk.signature;
+                      activeReasoningText = undefined; // signature concludes reasoning part
+                      break;
+                    }
+
+                    case 'redacted-reasoning': {
+                      controller.enqueue(chunk);
+                      stepReasoning.push({
+                        type: 'redacted',
+                        data: chunk.data,
+                      });
+
                       break;
                     }
 
@@ -1177,6 +1262,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       break;
                     }
 
+                    case 'file': {
+                      stepFiles.push(chunk);
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
+                    // forward:
+                    case 'source':
                     case 'tool-call-streaming-start':
                     case 'tool-call-delta': {
                       controller.enqueue(chunk);
@@ -1335,6 +1428,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       responseMessages.push(
                         ...toResponseMessages({
                           text: stepText,
+                          files: stepFiles,
+                          reasoning: stepReasoning,
                           tools: tools ?? ({} as TOOLS),
                           toolCalls: stepToolCalls,
                           toolResults: stepToolResults,
@@ -1421,8 +1516,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     return this.reasoningPromise.value;
   }
 
+  get reasoningDetails() {
+    return this.reasoningDetailsPromise.value;
+  }
+
   get sources() {
     return this.sourcesPromise.value;
+  }
+
+  get files() {
+    return this.filesPromise.value;
   }
 
   get toolCalls() {
@@ -1521,11 +1624,13 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendUsage = true,
     sendReasoning = false,
     sendSources = false,
+    experimental_sendFinish = true,
   }: {
     getErrorMessage: ((error: unknown) => string) | undefined;
     sendUsage: boolean | undefined;
     sendReasoning: boolean | undefined;
     sendSources: boolean | undefined;
+    experimental_sendFinish: boolean | undefined;
   }): ReadableStream<DataStreamString> {
     return this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, DataStreamString>({
@@ -1543,6 +1648,38 @@ However, the LLM results are expected to be small enough to not cause issues.
                   formatDataStreamPart('reasoning', chunk.textDelta),
                 );
               }
+              break;
+            }
+
+            case 'redacted-reasoning': {
+              if (sendReasoning) {
+                controller.enqueue(
+                  formatDataStreamPart('redacted_reasoning', {
+                    data: chunk.data,
+                  }),
+                );
+              }
+              break;
+            }
+
+            case 'reasoning-signature': {
+              if (sendReasoning) {
+                controller.enqueue(
+                  formatDataStreamPart('reasoning_signature', {
+                    signature: chunk.signature,
+                  }),
+                );
+              }
+              break;
+            }
+
+            case 'file': {
+              controller.enqueue(
+                formatDataStreamPart('file', {
+                  mimeType: chunk.mimeType,
+                  data: chunk.base64,
+                }),
+              );
               break;
             }
 
@@ -1629,17 +1766,19 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             case 'finish': {
-              controller.enqueue(
-                formatDataStreamPart('finish_message', {
-                  finishReason: chunk.finishReason,
-                  usage: sendUsage
-                    ? {
-                        promptTokens: chunk.usage.promptTokens,
-                        completionTokens: chunk.usage.completionTokens,
-                      }
-                    : undefined,
-                }),
-              );
+              if (experimental_sendFinish) {
+                controller.enqueue(
+                  formatDataStreamPart('finish_message', {
+                    finishReason: chunk.finishReason,
+                    usage: sendUsage
+                      ? {
+                          promptTokens: chunk.usage.promptTokens,
+                          completionTokens: chunk.usage.completionTokens,
+                        }
+                      : undefined,
+                  }),
+                );
+              }
               break;
             }
 
@@ -1664,6 +1803,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendUsage,
       sendReasoning,
       sendSources,
+      experimental_sendFinish,
     }: ResponseInit &
       DataStreamOptions & {
         data?: StreamData;
@@ -1684,6 +1824,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendUsage,
         sendReasoning,
         sendSources,
+        experimental_sendFinish,
       }),
     });
   }
@@ -1712,6 +1853,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendUsage: options?.sendUsage,
       sendReasoning: options?.sendReasoning,
       sendSources: options?.sendSources,
+      experimental_sendFinish: options?.experimental_sendFinish,
     }).pipeThrough(new TextEncoderStream());
 
     return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
@@ -1724,6 +1866,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendUsage: options?.sendUsage,
         sendReasoning: options?.sendReasoning,
         sendSources: options?.sendSources,
+        experimental_sendFinish: options?.experimental_sendFinish,
       }),
     );
   }
@@ -1737,6 +1880,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendUsage,
     sendReasoning,
     sendSources,
+    experimental_sendFinish,
   }: ResponseInit &
     DataStreamOptions & {
       data?: StreamData;
@@ -1749,6 +1893,7 @@ However, the LLM results are expected to be small enough to not cause issues.
         sendUsage,
         sendReasoning,
         sendSources,
+        experimental_sendFinish,
       }),
       {
         status,

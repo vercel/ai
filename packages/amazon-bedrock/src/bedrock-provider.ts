@@ -1,5 +1,6 @@
 import {
   EmbeddingModelV1,
+  ImageModelV1,
   LanguageModelV1,
   ProviderV1,
 } from '@ai-sdk/provider';
@@ -20,7 +21,15 @@ import {
   BedrockEmbeddingModelId,
   BedrockEmbeddingSettings,
 } from './bedrock-embedding-settings';
-import { createSigV4FetchFunction } from './bedrock-sigv4-fetch';
+import { BedrockImageModel } from './bedrock-image-model';
+import {
+  BedrockImageModelId,
+  BedrockImageSettings,
+} from './bedrock-image-settings';
+import {
+  BedrockCredentials,
+  createSigV4FetchFunction,
+} from './bedrock-sigv4-fetch';
 
 export interface AmazonBedrockProviderSettings {
   /**
@@ -62,6 +71,14 @@ or to provide a custom fetch implementation for e.g. testing.
 */
   fetch?: FetchFunction;
 
+  /**
+The AWS credential provider to use for the Bedrock provider to get dynamic
+credentials similar to the AWS SDK. Setting a provider here will cause its
+credential values to be used instead of the `accessKeyId`, `secretAccessKey`,
+and `sessionToken` settings.
+   */
+  credentialProvider?: () => PromiseLike<Omit<BedrockCredentials, 'region'>>;
+
   // for testing
   generateId?: () => string;
 }
@@ -81,6 +98,16 @@ export interface AmazonBedrockProvider extends ProviderV1 {
     modelId: BedrockEmbeddingModelId,
     settings?: BedrockEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  image(
+    modelId: BedrockImageModelId,
+    settings?: BedrockImageSettings,
+  ): ImageModelV1;
+
+  imageModel(
+    modelId: BedrockImageModelId,
+    settings?: BedrockImageSettings,
+  ): ImageModelV1;
 }
 
 /**
@@ -89,14 +116,22 @@ Create an Amazon Bedrock provider instance.
 export function createAmazonBedrock(
   options: AmazonBedrockProviderSettings = {},
 ): AmazonBedrockProvider {
-  const sigv4Fetch = createSigV4FetchFunction(
-    () => ({
-      region: loadSetting({
-        settingValue: options.region,
-        settingName: 'region',
-        environmentVariableName: 'AWS_REGION',
-        description: 'AWS region',
-      }),
+  const sigv4Fetch = createSigV4FetchFunction(async () => {
+    const region = loadSetting({
+      settingValue: options.region,
+      settingName: 'region',
+      environmentVariableName: 'AWS_REGION',
+      description: 'AWS region',
+    });
+    // If a credential provider is provided, use it to get the credentials.
+    if (options.credentialProvider) {
+      return {
+        ...(await options.credentialProvider()),
+        region,
+      };
+    }
+    return {
+      region,
       accessKeyId: loadSetting({
         settingValue: options.accessKeyId,
         settingName: 'accessKeyId',
@@ -113,9 +148,8 @@ export function createAmazonBedrock(
         settingValue: options.sessionToken,
         environmentVariableName: 'AWS_SESSION_TOKEN',
       }),
-    }),
-    options.fetch,
-  );
+    };
+  }, options.fetch);
 
   const getBaseUrl = (): string =>
     withoutTrailingSlash(
@@ -162,10 +196,22 @@ export function createAmazonBedrock(
       fetch: sigv4Fetch,
     });
 
+  const createImageModel = (
+    modelId: BedrockImageModelId,
+    settings: BedrockImageSettings = {},
+  ) =>
+    new BedrockImageModel(modelId, settings, {
+      baseUrl: getBaseUrl,
+      headers: options.headers ?? {},
+      fetch: sigv4Fetch,
+    });
+
   provider.languageModel = createChatModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
   return provider;
 }
