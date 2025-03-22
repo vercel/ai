@@ -16,4 +16,33 @@ export interface GoogleVertexEmbeddingSettings {
    * If set, excessive values in the output embedding are truncated from the end.
    */
   outputDimensionality?: number;
+
+  /**
+   * Optional. Specifies the task type for which the embeddings will be used.
+   *
+   * Values:
+   * - RETRIEVAL_QUERY: Specifies the given text is a query in a search or retrieval setting.
+   * - RETRIEVAL_DOCUMENT: Specifies the given text is a document in a search or retrieval setting.
+   * - SEMANTIC_SIMILARITY: Specifies the given text is used for Semantic Textual Similarity (STS).
+   * - CLASSIFICATION: Specifies that the embedding is used for classification.
+   * - CLUSTERING: Specifies that the embedding is used for clustering.
+   * - QUESTION_ANSWERING: Specifies that the query embedding is used for answering questions.
+   * - FACT_VERIFICATION: Specifies that the query embedding is used for fact verification.
+   * - CODE_RETRIEVAL_QUERY: Specifies that the query embedding is used for code retrieval for Java and Python.
+   */
+  taskType?:
+    | 'RETRIEVAL_QUERY'
+    | 'RETRIEVAL_DOCUMENT'
+    | 'SEMANTIC_SIMILARITY'
+    | 'CLASSIFICATION'
+    | 'CLUSTERING'
+    | 'QUESTION_ANSWERING'
+    | 'FACT_VERIFICATION'
+    | 'CODE_RETRIEVAL_QUERY';
+
+  /**
+   * Optional. If set to false, text that exceeds the token limit causes the request to fail.
+   * The default value is true.
+   */
+  autoTruncate?: boolean;
 }
