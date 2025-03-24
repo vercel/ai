@@ -1,5 +1,15 @@
 # ai
 
+## 4.2.2
+
+### Patch Changes
+
+- f10f0fa: fix (provider-utils): improve event source stream parsing performance
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+  - @ai-sdk/react@1.2.1
+  - @ai-sdk/ui-utils@1.2.1
+
 ## 4.2.1
 
 ### Patch Changes
