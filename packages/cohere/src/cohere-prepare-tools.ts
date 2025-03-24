@@ -90,3 +90,38 @@ export function prepareTools(
     }
   }
 }
+
+/*
+  Remove `additionalProperties` and `$schema` from the `parameters` object of each tool.
+  Though these are part of JSON schema, Cohere chokes if we include them in the request.
+  */
+// TODO(shaper): Look at defining a type to simplify the params here and a couple of other places.
+function removeJsonSchemaExtras(
+  tools: Array<{
+    type: 'function';
+    function: {
+      name: string | undefined;
+      description: string | undefined;
+      parameters: unknown;
+    };
+  }>,
+) {
+  return tools.map(tool => {
+    if (
+      tool.type === 'function' &&
+      tool.function.parameters &&
+      typeof tool.function.parameters === 'object'
+    ) {
+      const { additionalProperties, $schema, ...restParameters } = tool.function
+        .parameters as Record<string, unknown>;
+      return {
+        ...tool,
+        function: {
+          ...tool.function,
+          parameters: restParameters,
+        },
+      };
+    }
+    return tool;
+  });
+}

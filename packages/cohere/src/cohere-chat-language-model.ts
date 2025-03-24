@@ -21,12 +21,6 @@ import { cohereFailedResponseHandler } from '../src/cohere-error';
 import { convertToCohereChatPrompt } from '../src/convert-to-cohere-chat-prompt';
 import { mapCohereFinishReason } from '../src/map-cohere-finish-reason';
 import { prepareTools } from './cohere-prepare-tools';
-import {
-  CohereChatPrompt,
-  CohereAssistantMessage,
-  CohereUserMessage,
-  CohereSystemMessage,
-} from './cohere-chat-prompt';
 
 type CohereChatConfig = {
   provider: string;
@@ -79,9 +73,6 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       // model id:
       model: this.modelId,
 
-      // model specific settings:
-      // none
-
       // standardized settings:
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
@@ -109,8 +100,10 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
         // explicit tool choice currently. In the future we may want to pass
         // along the `tool_choice` value in some manner.
         return {
-          ...baseArgs,
-          tools,
+          args: {
+            ...baseArgs,
+            tools,
+          },
           warnings: toolWarnings,
         };
       }
@@ -122,9 +115,23 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-tool mode',
-        });
+        return {
+          args: {
+            ...baseArgs,
+            tools: [
+              {
+                type: 'function',
+                function: {
+                  name: mode.tool.name,
+                  description: mode.tool.description ?? '',
+                  parameters: mode.tool.parameters,
+                },
+              },
+            ],
+            tool_choice: 'REQUIRED',
+          },
+          warnings: [],
+        };
       }
 
       default: {
@@ -136,60 +143,10 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     }
   }
 
-  concatenateMessageText(messages: CohereChatPrompt): string {
-    return messages
-      .filter(
-        (
-          message,
-        ): message is
-          | CohereSystemMessage
-          | CohereUserMessage
-          | CohereAssistantMessage => 'content' in message,
-      )
-      .map(message => message.content)
-      .join('');
-  }
-
-  /*
-  Remove `additionalProperties` and `$schema` from the `parameters` object of each tool.
-  Though these are part of JSON schema, Cohere chokes if we include them in the request.
-  */
-  // TODO(shaper): Look at defining a type to simplify the params here and a couple of other places.
-  removeJsonSchemaExtras(
-    tools: Array<{
-      type: 'function';
-      function: {
-        name: string | undefined;
-        description: string | undefined;
-        parameters: unknown;
-      };
-    }>,
-  ) {
-    return tools.map(tool => {
-      if (
-        tool.type === 'function' &&
-        tool.function.parameters &&
-        typeof tool.function.parameters === 'object'
-      ) {
-        const { additionalProperties, $schema, ...restParameters } = tool
-          .function.parameters as Record<string, unknown>;
-        return {
-          ...tool,
-          function: {
-            ...tool.function,
-            parameters: restParameters,
-          },
-        };
-      }
-      return tool;
-    });
-  }
-
   async doGenerate(
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
-    const { warnings, ...args } = this.getArgs(options);
-    args.tools = args.tools && this.removeJsonSchemaExtras(args.tools);
+    const { args, warnings } = this.getArgs(options);
 
     const {
       responseHeaders,
@@ -249,14 +206,12 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
   async doStream(
     options: Parameters<LanguageModelV1['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
-    const { warnings, ...args } = this.getArgs(options);
-    args.tools = args.tools && this.removeJsonSchemaExtras(args.tools);
-    const body = { ...args, stream: true };
+    const { args, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/chat`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body,
+      body: { ...args, stream: true },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         cohereChatChunkSchema,
@@ -416,7 +371,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       },
       rawResponse: { headers: responseHeaders },
       warnings,
-      request: { body: JSON.stringify(body) },
+      request: { body: JSON.stringify({ ...args, stream: true }) },
     };
   }
 }
