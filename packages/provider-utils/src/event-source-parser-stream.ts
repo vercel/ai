@@ -30,6 +30,7 @@ export function createEventSourceParserStream() {
   });
 }
 
+// performance: send in already scanned buffer separately, do not scan again
 function splitLines(buffer: string, chunk: string) {
   const lines: Array<string> = [];
   let currentLine = buffer;
