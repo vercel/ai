@@ -72,7 +72,7 @@ importers:
         specifier: 0.2.0
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
-        specifier: 1.2.0
+        specifier: 1.2.1
         version: link:../../packages/cohere
       '@ai-sdk/deepinfra':
         specifier: 0.2.0
