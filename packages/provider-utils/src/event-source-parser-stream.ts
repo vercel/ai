@@ -39,11 +39,6 @@ function splitLines(buffer: string, chunk: string) {
   for (let i = 0; i < chunk.length; ) {
     const char = chunk[i++];
 
-    // According to the spec, a line is terminated by either:
-    // - U+000D CARRIAGE RETURN U+000A LINE FEED (CRLF) character pair
-    // - a single U+000A LINE FEED(LF) character not preceded by a U+000D CARRIAGE RETURN(CR) character
-    // - a single U+000D CARRIAGE RETURN(CR) character not followed by a U+000A LINE FEED(LF) character
-    //
     // order is performance-optimized
     if (char === '\n') {
       // Standalone LF
