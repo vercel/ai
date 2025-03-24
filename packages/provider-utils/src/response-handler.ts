@@ -97,8 +97,8 @@ export const createEventSourceResponseHandler =
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(createEventSourceParserStream())
         .pipeThrough(
-          new TransformStream<string, ParseResult<T>>({
-            transform(data, controller) {
+          new TransformStream<{ data: string }, ParseResult<T>>({
+            transform({ data }, controller) {
               // ignore the 'DONE' event that e.g. OpenAI sends:
               if (data === '[DONE]') {
                 return;
