@@ -70,7 +70,6 @@
     "@ai-sdk/react": "1.2.0",
     "@ai-sdk/ui-utils": "1.2.0",
     "@opentelemetry/api": "1.9.0",
-    "eventsource-parser": "^3.0.0",
     "jsondiffpatch": "0.6.0"
   },
   "devDependencies": {

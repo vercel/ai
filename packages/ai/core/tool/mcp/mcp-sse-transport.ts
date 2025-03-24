@@ -1,4 +1,4 @@
-import { EventSourceParserStream } from 'eventsource-parser/stream';
+import { createEventSourceParserStream } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../../../errors';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
@@ -55,7 +55,7 @@ export class SseMCPTransport implements MCPTransport {
 
           const stream = response.body
             .pipeThrough(new TextDecoderStream())
-            .pipeThrough(new EventSourceParserStream());
+            .pipeThrough(createEventSourceParserStream());
 
           const reader = stream.getReader();
 

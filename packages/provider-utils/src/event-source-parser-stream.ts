@@ -1,14 +1,7 @@
-import { ZodSchema } from 'zod';
-import { safeParseJSON, ParseResult } from './parse-json';
-
-export function createEventSourceParserStream<T>({
-  schema,
-}: {
-  schema: ZodSchema<T>;
-}) {
+export function createEventSourceParserStream() {
   let buffer = '';
 
-  return new TransformStream<string, ParseResult<T>>({
+  return new TransformStream<string, string>({
     transform(chunk, controller) {
       const { lines, incompleteLine } = splitLines(buffer, chunk);
 
@@ -18,11 +11,9 @@ export function createEventSourceParserStream<T>({
         if (line.startsWith('data:')) {
           const text = line.slice(5).trim();
 
-          if (text === '' || text === '[DONE]') {
-            continue;
+          if (text !== '') {
+            controller.enqueue(text);
           }
-
-          controller.enqueue(safeParseJSON({ text, schema }));
         }
       }
     },

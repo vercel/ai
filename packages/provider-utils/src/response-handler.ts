@@ -93,11 +93,23 @@ export const createEventSourceResponseHandler =
 
     return {
       responseHeaders,
-      value: response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
-        createEventSourceParserStream({
-          schema: chunkSchema,
-        }),
-      ),
+      value: response.body
+        .pipeThrough(new TextDecoderStream())
+        .pipeThrough(createEventSourceParserStream())
+        .pipeThrough(
+          new TransformStream<string, ParseResult<T>>({
+            transform(data, controller) {
+              // ignore the 'DONE' event that e.g. OpenAI sends:
+              if (data === '[DONE]') {
+                return;
+              }
+
+              controller.enqueue(
+                safeParseJSON({ text: data, schema: chunkSchema }),
+              );
+            },
+          }),
+        ),
     };
   };
 
