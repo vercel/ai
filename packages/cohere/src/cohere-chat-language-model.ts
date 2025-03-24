@@ -37,7 +37,7 @@ type CohereChatConfig = {
 
 export class CohereChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = undefined;
+  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: CohereChatModelId;
   readonly settings: CohereChatSettings;
