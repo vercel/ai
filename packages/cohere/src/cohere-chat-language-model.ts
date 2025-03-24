@@ -31,7 +31,7 @@ type CohereChatConfig = {
 
 export class CohereChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
-  readonly defaultObjectGenerationMode = 'tool';
+  readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: CohereChatModelId;
   readonly settings: CohereChatSettings;
@@ -86,7 +86,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       // response format:
       response_format:
         responseFormat?.type === 'json'
-          ? { type: 'json_object', schema: responseFormat.schema }
+          ? { type: 'json_object', json_schema: responseFormat.schema }
           : undefined,
 
       // messages:
@@ -96,9 +96,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     switch (type) {
       case 'regular': {
         const { tools, toolChoice, toolWarnings } = prepareTools(mode);
-        // TODO(shaper): Cohere API doesn't appear to support any form of
-        // explicit tool choice currently. In the future we may want to pass
-        // along the `tool_choice` value in some manner.
+
         return {
           args: {
             ...baseArgs,
@@ -110,9 +108,16 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       }
 
       case 'object-json': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-json mode',
-        });
+        return {
+          args: {
+            ...baseArgs,
+            response_format:
+              mode.schema == null
+                ? { type: 'json_object' }
+                : { type: 'json_object', json_schema: mode.schema },
+          },
+          warnings: [],
+        };
       }
 
       case 'object-tool': {
