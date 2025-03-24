@@ -343,6 +343,24 @@ describe('doGenerate', () => {
           },
           { role: 'user', content: 'Hello' },
         ],
+        tool_choice: 'NONE',
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'test-tool',
+              parameters: {
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                },
+                required: ['value'],
+                additionalProperties: false,
+                $schema: 'http://json-schema.org/draft-07/schema#',
+              },
+            },
+          },
+        ],
       });
     });
   });

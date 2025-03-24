@@ -95,7 +95,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareTools(mode);
+        const { tools, toolChoice, toolWarnings } = prepareTools(mode);
         // TODO(shaper): Cohere API doesn't appear to support any form of
         // explicit tool choice currently. In the future we may want to pass
         // along the `tool_choice` value in some manner.
@@ -103,6 +103,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
           args: {
             ...baseArgs,
             tools,
+            tool_choice: toolChoice,
           },
           warnings: toolWarnings,
         };
