@@ -12,7 +12,7 @@
     "prettier-fix": "prettier --write .",
     "prettier-check": "prettier --check .",
     "lint": "eslint .",
-    "clean": "rm -rf .svelte-kit ** rm -rf .vercel"
+    "clean": "rm -rf .svelte-kit && rm -rf .vercel"
   },
   "type": "module",
   "devDependencies": {
