@@ -1,5 +1,12 @@
 # ai
 
+## 4.2.1
+
+### Patch Changes
+
+- b796152: feat (ai/core): add headers to MCP SSE transport
+- 06361d6: feat (ai/core): expose JSON RPC types (MCP)
+
 ## 4.2.0
 
 ### Minor Changes
