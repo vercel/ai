@@ -1,7 +1,11 @@
 export function createEventSourceParserStream() {
   let buffer = '';
+  let event: string | undefined = undefined;
 
-  return new TransformStream<string, { data: string }>({
+  return new TransformStream<
+    string,
+    { event: string | undefined; data: string }
+  >({
     transform(chunk, controller) {
       const { lines, incompleteLine } = splitLines(buffer, chunk);
 
@@ -9,24 +13,21 @@ export function createEventSourceParserStream() {
 
       // using for loop for performance
       for (let i = 0; i < lines.length; ) {
-        parseLine(lines[i++], controller);
+        const line = lines[i++];
+
+        if (line.startsWith('data:')) {
+          const text = line.slice(5).trim();
+
+          if (text !== '') {
+            controller.enqueue({ event, data: text });
+            event = undefined;
+          }
+        } else if (line.startsWith('event:')) {
+          event = line.slice(6).trim();
+        }
       }
     },
   });
-}
-
-// only support the 'data:' event for now
-function parseLine(
-  line: string,
-  controller: TransformStreamDefaultController<{ data: string }>,
-) {
-  if (line.startsWith('data:')) {
-    const text = line.slice(5).trim();
-
-    if (text !== '') {
-      controller.enqueue({ data: text });
-    }
-  }
 }
 
 function splitLines(buffer: string, chunk: string) {
