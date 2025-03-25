@@ -1,5 +1,6 @@
 import { LanguageModelV1CallOptions } from './language-model-v1-call-options';
 import { LanguageModelV1CallWarning } from './language-model-v1-call-warning';
+import { LanguageModelV1Citation } from './language-model-v1-citation';
 import { LanguageModelV1FinishReason } from './language-model-v1-finish-reason';
 import { LanguageModelV1FunctionToolCall } from './language-model-v1-function-tool-call';
 import { LanguageModelV1LogProbs } from './language-model-v1-logprobs';
@@ -223,6 +224,11 @@ results that can be fully encapsulated in the provider.
 Sources that have been used as input to generate the response.
      */
     sources?: LanguageModelV1Source[];
+
+    /**
+Citations that have been used as input to generate the response.
+     */
+    citations?: LanguageModelV1Citation[];
 
     /**
 Logprobs for the completion.
