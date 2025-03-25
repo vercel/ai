@@ -759,6 +759,13 @@ describe('options.maxSteps', () => {
                   // case where there is no leading nor trailing whitespace:
                   text: 'no-whitespace',
                   finishReason: 'length',
+                  files: [
+                    {
+                      data: new Uint8Array([1, 2, 3]),
+                      mimeType: 'image/png',
+                      filename: 'test.png',
+                    },
+                  ],
                   response: {
                     id: 'test-id-2-from-model',
                     timestamp: new Date(10000),
@@ -771,13 +778,6 @@ describe('options.maxSteps', () => {
                       url: 'https://example.com',
                       title: 'Example',
                       providerMetadata: { provider: { custom: 'value' } },
-                    },
-                  ],
-                  files: [
-                    {
-                      data: new Uint8Array([1, 2, 3]),
-                      mimeType: 'image/png',
-                      filename: 'test.png',
                     },
                   ],
                   usage: { completionTokens: 5, promptTokens: 30 },
@@ -824,22 +824,6 @@ describe('options.maxSteps', () => {
                   // set up trailing whitespace for next step:
                   text: 'immediatefollow  ',
                   finishReason: 'length',
-                  sources: [
-                    {
-                      sourceType: 'url' as const,
-                      id: '456',
-                      url: 'https://example.com/2',
-                      title: 'Example 2',
-                      providerMetadata: { provider: { custom: 'value2' } },
-                    },
-                    {
-                      sourceType: 'url' as const,
-                      id: '789',
-                      url: 'https://example.com/3',
-                      title: 'Example 3',
-                      providerMetadata: { provider: { custom: 'value3' } },
-                    },
-                  ],
                   response: {
                     id: 'test-id-3-from-model',
                     timestamp: new Date(20000),
@@ -894,6 +878,22 @@ describe('options.maxSteps', () => {
                       data: 'QkFVRw==',
                       mimeType: 'image/jpeg',
                       filename: 'test.jpeg',
+                    },
+                  ],
+                  sources: [
+                    {
+                      sourceType: 'url' as const,
+                      id: '456',
+                      url: 'https://example.com/2',
+                      title: 'Example 2',
+                      providerMetadata: { provider: { custom: 'value2' } },
+                    },
+                    {
+                      sourceType: 'url' as const,
+                      id: '789',
+                      url: 'https://example.com/3',
+                      title: 'Example 3',
+                      providerMetadata: { provider: { custom: 'value3' } },
                     },
                   ],
                   response: {
