@@ -13,7 +13,22 @@ export default function Page() {
 
       <div className="flex flex-col gap-2 p-4 mt-auto">
         {messages.map(message => (
-          <div key={message.id}>{message.content}</div>
+          <div key={message.id}>
+            <strong>{`${message.role}: `}</strong>
+            {message.parts.map((part, index) => {
+              switch (part.type) {
+                case 'text':
+                  return <span key={index}>{part.text}</span>;
+                case 'tool-invocation': {
+                  return (
+                    <pre key={index}>
+                      {JSON.stringify(part.toolInvocation, null, 2)}
+                    </pre>
+                  );
+                }
+              }
+            })}
+          </div>
         ))}
       </div>
 
