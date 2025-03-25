@@ -1,5 +1,11 @@
 # ai
 
+## 4.2.4
+
+### Patch Changes
+
+- 3d6d96d: fix (ai/core): validate that messages are not empty
+
 ## 4.2.3
 
 ### Patch Changes
