@@ -17,7 +17,6 @@ import {
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { splitDataUrl } from './split-data-url';
 import { StandardizedPrompt } from './standardize-prompt';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 export async function convertToLanguageModelPrompt({
   prompt,
