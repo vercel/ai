@@ -86,6 +86,13 @@ export default function Page() {
         'A headers object to be passed to the API endpoint. Optional.',
     },
     {
+      name: 'credentials',
+      type: 'RequestCredentials',
+      isOptional: true,
+      description:
+        'The credentials mode to be used for the fetch request. Possible values are: "omit", "same-origin", "include". Optional.',
+    },
+    {
       name: 'onError',
       type: '(error: Error) => void',
       isOptional: true,

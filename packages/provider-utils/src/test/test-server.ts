@@ -35,6 +35,11 @@ class TestServerCall {
     return JSON.parse(await this.request!.text());
   }
 
+  getRequestCredentials() {
+    expect(this.request).toBeDefined();
+    return this.request!.credentials;
+  }
+
   getRequestHeaders() {
     expect(this.request).toBeDefined();
     const requestHeaders = this.request!.headers;

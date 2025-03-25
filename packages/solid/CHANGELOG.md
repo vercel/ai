@@ -1,5 +1,25 @@
 # @ai-sdk/solid
 
+## 1.2.3
+
+### Patch Changes
+
+- d92fa29: feat: add credentials support to experimental useObject and StructuredObject
+
+## 1.2.2
+
+### Patch Changes
+
+- 5185bce: chore (ui/solid): deprecate ai-sdk/solid
+
+## 1.2.1
+
+### Patch Changes
+
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+  - @ai-sdk/ui-utils@1.2.1
+
 ## 1.2.0
 
 ### Minor Changes

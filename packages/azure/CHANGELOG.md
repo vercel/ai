@@ -1,5 +1,20 @@
 # @ai-sdk/azure
 
+## 1.3.2
+
+### Patch Changes
+
+- Updated dependencies [db15028]
+  - @ai-sdk/openai@1.3.2
+
+## 1.3.1
+
+### Patch Changes
+
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+  - @ai-sdk/openai@1.3.1
+
 ## 1.3.0
 
 ### Minor Changes

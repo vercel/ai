@@ -192,7 +192,7 @@ describe('rsc - streamUI() onFinish callback', () => {
   beforeEach(async () => {
     const ui = await streamUI({
       model: mockToolModel,
-      messages: [],
+      prompt: '',
       tools: {
         tool1: {
           description: 'test tool 1',

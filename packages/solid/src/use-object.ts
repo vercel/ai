@@ -72,6 +72,13 @@ export type Experimental_UseObjectOptions<RESULT> = {
    * Additional HTTP headers to be included in the request.
    */
   headers?: Record<string, string> | Headers;
+
+  /**
+   * The credentials mode to be used for the fetch request.
+   * Possible values are: 'omit', 'same-origin', 'include'.
+   * Defaults to 'same-origin'.
+   */
+  credentials?: RequestCredentials;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
@@ -103,6 +110,9 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
 
 const objectCache = new ReactiveLRU<string, DeepPartial<any>>();
 
+/**
+ * @deprecated `@ai-sdk/solid` has been deprecated and will be removed in AI SDK 5.
+ */
 function useObject<RESULT, INPUT = any>(
   rawUseObjectOptions:
     | Experimental_UseObjectOptions<RESULT>
@@ -112,7 +122,6 @@ function useObject<RESULT, INPUT = any>(
     convertToAccessorOptions(rawUseObjectOptions),
   );
 
-  const api = createMemo(() => useObjectOptions().api?.() ?? '/api/object');
   // Generate an unique id for the completion if not provided.
   const idKey = createMemo(
     () => useObjectOptions().id?.() ?? `object-${createUniqueId()}`,
@@ -161,6 +170,7 @@ function useObject<RESULT, INPUT = any>(
           'Content-Type': 'application/json',
           ...useObjectOptions().headers?.(),
         },
+        credentials: useObjectOptions().credentials?.(),
         signal: abortController.signal,
         body: JSON.stringify(input),
       });

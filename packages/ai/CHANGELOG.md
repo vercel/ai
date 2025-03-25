@@ -1,5 +1,41 @@
 # ai
 
+## 4.2.5
+
+### Patch Changes
+
+- Updated dependencies [d92fa29]
+  - @ai-sdk/react@1.2.2
+
+## 4.2.4
+
+### Patch Changes
+
+- 3d6d96d: fix (ai/core): validate that messages are not empty
+
+## 4.2.3
+
+### Patch Changes
+
+- 0b3bf29: fix (ai/core): custom env support for stdio MCP transport
+
+## 4.2.2
+
+### Patch Changes
+
+- f10f0fa: fix (provider-utils): improve event source stream parsing performance
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+  - @ai-sdk/react@1.2.1
+  - @ai-sdk/ui-utils@1.2.1
+
+## 4.2.1
+
+### Patch Changes
+
+- b796152: feat (ai/core): add headers to MCP SSE transport
+- 06361d6: feat (ai/core): expose JSON RPC types (MCP)
+
 ## 4.2.0
 
 ### Minor Changes

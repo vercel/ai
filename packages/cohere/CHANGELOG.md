@@ -1,5 +1,22 @@
 # @ai-sdk/cohere
 
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+
+## 1.2.1
+
+### Patch Changes
+
+- 724c0a1: chore (provider/cohere): update model versions
+- f1c34e0: feat (provider/cohere): support tool calls finish reason
+- 724c0a1: feat (provider/cohere): support all tool choice options
+- 724c0a1: feat (provider/cohere): support object generation (json mode)
+- 724c0a1: feat (provider/cohere): support object generation (tool mode)
+
 ## 1.2.0
 
 ### Minor Changes

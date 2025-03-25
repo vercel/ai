@@ -1,5 +1,18 @@
 # @ai-sdk/google
 
+## 1.2.3
+
+### Patch Changes
+
+- 871df87: feat (provider/google): add gemini-2.5-pro-exp-03-25 to model list
+
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+
 ## 1.2.1
 
 ### Patch Changes

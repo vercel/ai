@@ -637,49 +637,96 @@ This enables your AI applications to discover and use tools across various servi
 
 Create an MCP client using either:
 
-- `stdio`: Uses standard input and output streams for communication, ideal for local tool servers running on the same machine (like CLI tools or local services)
 - `SSE` (Server-Sent Events): Uses HTTP-based real-time communication, better suited for remote servers that need to send data over the network
+- `stdio`: Uses standard input and output streams for communication, ideal for local tool servers running on the same machine (like CLI tools or local services)
 - Custom transport: Bring your own transport by implementing the `MCPTransport` interface
+
+#### SSE Transport
+
+The SSE can be configured using a simple object with a `type` and `url` property:
+
+```typescript
+import { experimental_createMCPClient as createMCPClient } from 'ai';
+
+const mcpClient = await createMCPClient({
+  transport: {
+    type: 'sse',
+    url: 'https://my-server.com/sse',
+
+    // optional: configure HTTP headers, e.g. for authentication
+    headers: {
+      Authorization: 'Bearer my-api-key',
+    },
+  },
+});
+```
+
+#### Stdio Transport
+
+The Stdio transport requires importing the `StdioMCPTransport` class from the `ai/mcp-stdio` package:
 
 ```typescript
 import { experimental_createMCPClient as createMCPClient } from 'ai';
 import { Experimental_StdioMCPTransport as StdioMCPTransport } from 'ai/mcp-stdio';
 
-// Example of using MCP with stdio
 const mcpClient = await createMCPClient({
   transport: new StdioMCPTransport({
     command: 'node',
     args: ['src/stdio/dist/server.js'],
   }),
 });
+```
 
-// Example of using MCP with SSE
-const mcpClient = await createMCPClient({
-  transport: {
-    type: 'sse',
-    url: 'https://my-server.com/sse',
-  },
-});
+#### Custom Transport
 
-// Example of using a custom transport
-const transport = new MyCustomTransport({
-  // ...
-});
+You can also bring your own transport by implementing the `MCPTransport` interface:
+
+```typescript
+import { MCPTransport, createMCPClient } from 'ai';
+
 const mcpClient = await createMCPClient({
-  transport,
+  transport: new MyCustomTransport({
+    // ...
+  }),
 });
 ```
 
-After initialization, always close the MCP client when you're done to prevent resource leaks. Use try/finally or cleanup functions in your framework:
+#### Closing the MCP Client
+
+After initialization, you should close the MCP client based on your usage pattern:
+
+- For short-lived usage (e.g., single requests), close the client when the response is finished
+- For long-running clients (e.g., command line apps), keep the client open but ensure it's closed when the application terminates
+
+When streaming responses, you can close the client when the LLM response has finished. For example, when using `streamText`, you should use the `onFinish` callback:
 
 ```typescript
-  try {
-    const mcpClient = await experimental_createMCPClient({...});
-    const tools = await mcpClient.tools();
-    // use tools...
-  } finally {
-    await mcpClient?.close();
-  }
+const mcpClient = await experimental_createMCPClient({
+  // ...
+});
+
+const result = await streamText({
+  model: openai('gpt-4o'),
+  tools: mcpClient.tools(),
+  prompt: 'What is the weather in Brooklyn, New York?',
+  onFinish: async () => {
+    await mcpClient.close();
+  },
+});
+```
+
+When generating responses without streaming, you can use try/finally or cleanup functions in your framework:
+
+```typescript
+let mcpClient: MCPClient | undefined;
+
+try {
+  mcpClient = await experimental_createMCPClient({
+    // ...
+  });
+} finally {
+  await mcpClient?.close();
+}
 ```
 
 ### Using MCP Tools
