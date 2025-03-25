@@ -1,10 +1,10 @@
 import {
-  withTestServer,
   describeWithTestServer,
+  withTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { StructuredObject } from './structured-object.svelte.js';
 import { render } from '@testing-library/svelte';
 import { z } from 'zod';
+import { StructuredObject } from './structured-object.svelte.js';
 import StructuredObjectSynchronization from './tests/structured-object-synchronization.svelte';
 
 describe('text stream', () => {
@@ -200,6 +200,28 @@ describe('text stream', () => {
           authorization: 'Bearer TEST_TOKEN',
           'x-custom-header': 'CustomValue',
         });
+      },
+    ),
+  );
+
+  it(
+    'should send custom credentials',
+    withTestServer(
+      {
+        url: '/api/object',
+        type: 'stream-values',
+        content: ['{ ', '"content": "Hello, ', 'world', '!"', '}'],
+      },
+      async ({ call }) => {
+        const structuredObjectWithCustomCredentials = new StructuredObject({
+          api: '/api/object',
+          schema: z.object({ content: z.string() }),
+          credentials: 'include',
+        });
+
+        await structuredObjectWithCustomCredentials.submit('test-input');
+
+        expect(call(0).getRequestCredentials()).toBe('include');
       },
     ),
   );

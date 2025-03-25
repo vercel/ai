@@ -71,6 +71,13 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
    * Additional HTTP headers to be included in the request.
    */
   headers?: Record<string, string> | Headers;
+
+  /**
+   * The credentials mode to be used for the fetch request.
+   * Possible values are: 'omit', 'same-origin', 'include'.
+   * Defaults to 'same-origin'.
+   */
+  credentials?: RequestCredentials;
 };
 
 export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
@@ -109,6 +116,7 @@ function useObject<RESULT, INPUT = any>({
   onError,
   onFinish,
   headers,
+  credentials,
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
   RESULT,
   INPUT
@@ -156,6 +164,7 @@ function useObject<RESULT, INPUT = any>({
           'Content-Type': 'application/json',
           ...headers,
         },
+        credentials,
         signal: abortController.signal,
         body: JSON.stringify(input),
       });
