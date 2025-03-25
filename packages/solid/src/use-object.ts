@@ -103,6 +103,9 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
 
 const objectCache = new ReactiveLRU<string, DeepPartial<any>>();
 
+/**
+ * @deprecated `@ai-sdk/solid` has been deprecated and will be removed in AI SDK 5.
+ */
 function useObject<RESULT, INPUT = any>(
   rawUseObjectOptions:
     | Experimental_UseObjectOptions<RESULT>
@@ -112,7 +115,6 @@ function useObject<RESULT, INPUT = any>(
     convertToAccessorOptions(rawUseObjectOptions),
   );
 
-  const api = createMemo(() => useObjectOptions().api?.() ?? '/api/object');
   // Generate an unique id for the completion if not provided.
   const idKey = createMemo(
     () => useObjectOptions().id?.() ?? `object-${createUniqueId()}`,
