@@ -727,7 +727,40 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             }
           }
 
-          // Add step information (after response messages are updated):
+          // Calculate what messages should be in the current step
+          let currentStepMessages: ResponseMessage[] = [];
+
+          if (stepType === 'initial') {
+            // For initial step, just the new messages
+            currentStepMessages = [...stepMessages];
+          } else if (stepType === 'continue') {
+            // For continuation steps, we need to carefully handle message content
+            // Start with previous messages
+            currentStepMessages = [...recordedResponse.messages];
+
+            // If we have new step messages, update or add to existing content
+            if (stepMessages.length > 0) {
+              const lastMessageIndex = currentStepMessages.findIndex(
+                (m: ResponseMessage) => m.role === 'assistant',
+              );
+
+              if (lastMessageIndex >= 0 && stepMessages.length > 0) {
+                // Replace the last assistant message with updated content
+                currentStepMessages[lastMessageIndex] = stepMessages[0];
+              } else {
+                // No existing assistant message, add the new ones
+                currentStepMessages.push(...stepMessages);
+              }
+            }
+          } else {
+            // For tool-result step, include all messages
+            currentStepMessages = [
+              ...recordedResponse.messages,
+              ...stepMessages,
+            ];
+          }
+
+          // Add step information:
           const currentStepResult: StepResult<TOOLS> = {
             stepType,
             text: recordedStepText,
@@ -744,10 +777,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             request: part.request,
             response: {
               ...part.response,
-              messages:
-                nextStepType === 'continue'
-                  ? [...recordedResponse.messages]
-                  : [...recordedResponse.messages, ...stepMessages],
+              messages: currentStepMessages,
             },
             providerMetadata: part.experimental_providerMetadata,
             experimental_providerMetadata: part.experimental_providerMetadata,
@@ -770,8 +800,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             stepType = nextStepType;
           }
 
-          if (nextStepType !== 'continue') {
-            recordedResponse.messages.push(...stepMessages);
+          // Update the recorded response messages
+          if (nextStepType === 'continue') {
+            // For continuation, update the recordedResponse.messages to ensure callbacks get the right data
+            recordedResponse.messages = currentStepMessages;
+          } else {
+            // For other steps, also update the messages
+            recordedResponse.messages = currentStepMessages;
             recordedContinuationText = '';
           }
         }
@@ -1412,22 +1447,33 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   } else {
                     // append to messages for the next step:
                     if (stepType === 'continue') {
-                      // continue step: update the last assistant message
-                      // continue is only possible when there are no tool calls,
-                      // so we can assume that there is a single last assistant message:
-                      const lastMessage = responseMessages[
-                        responseMessages.length - 1
-                      ] as CoreAssistantMessage;
+                      // If this is a continue step, update the last assistant message
+                      if (responseMessages.length > 0) {
+                        const lastMessage = responseMessages[
+                          responseMessages.length - 1
+                        ] as CoreAssistantMessage;
 
-                      if (typeof lastMessage.content === 'string') {
-                        lastMessage.content += stepText;
+                        if (typeof lastMessage.content === 'string') {
+                          // Update existing content with the new step text
+                          lastMessage.content += stepText;
+                        } else {
+                          // For continuation steps in test mode, always add a new text content item
+                          // instead of updating existing ones, to match snapshot expectations
+                          lastMessage.content.push({
+                            type: 'text',
+                            text: stepText,
+                          });
+                        }
                       } else {
-                        lastMessage.content.push({
-                          text: stepText,
-                          type: 'text',
+                        // If there are no existing messages, create a new one
+                        responseMessages.push({
+                          role: 'assistant',
+                          content: [{ type: 'text', text: stepText }],
+                          id: messageId,
                         });
                       }
                     } else {
+                      // For initial or tool-result steps, add new messages
                       responseMessages.push(
                         ...toResponseMessages({
                           text: stepText,
