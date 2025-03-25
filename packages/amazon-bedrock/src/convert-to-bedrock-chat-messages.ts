@@ -3,9 +3,11 @@ import {
   BedrockAssistantMessage,
   BedrockCachePoint,
   BedrockDocumentFormat,
+  BedrockImageBlock,
   BedrockImageFormat,
   BedrockMessages,
   BedrockSystemMessages,
+  BedrockTextBlock,
   BedrockUserMessage,
 } from './bedrock-api-types';
 import {
@@ -132,22 +134,22 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
               for (let i = 0; i < content.length; i++) {
                 const part = content[i];
                 const toolResultContent =
-                  part.content !== undefined
+                  part.content != undefined
                     ? part.content.map(part => {
                         switch (part.type) {
                           case 'text':
                             return {
                               text: part.text,
-                            };
+                            } as BedrockTextBlock;
                           case 'image':
                             return {
                               image: {
-                                format: part.mimeType?.split(
-                                  '/',
-                                )?.[1] as BedrockDocumentFormat,
-                                source: part.data
-                              }
-                            };
+                                format: part.mimeType?.split('/')?.[1],
+                                source: {
+                                  bytes: part.data,
+                                },
+                              },
+                            } as BedrockImageBlock;
                         }
                       })
                     : [{ text: JSON.stringify(part.result) }];
