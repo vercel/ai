@@ -1,5 +1,12 @@
 # ai
 
+## 4.2.5
+
+### Patch Changes
+
+- Updated dependencies [d92fa29]
+  - @ai-sdk/react@1.2.2
+
 ## 4.2.4
 
 ### Patch Changes
