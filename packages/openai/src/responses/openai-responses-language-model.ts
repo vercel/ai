@@ -104,15 +104,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     const openaiOptions = parseProviderOptions({
       provider: 'openai',
       providerOptions: providerMetadata,
-      schema: z.object({
-        metadata: z.any().nullish(),
-        parallelToolCalls: z.boolean().nullish(),
-        previousResponseId: z.string().nullish(),
-        store: z.boolean().nullish(),
-        user: z.string().nullish(),
-        reasoningEffort: z.string().nullish(),
-        strictSchemas: z.boolean().nullish(),
-      }),
+      schema: openaiResponsesProviderOptionsSchema,
     });
 
     const isStrict = openaiOptions?.strictSchemas ?? true;
@@ -703,3 +695,17 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     requiredAutoTruncation: false,
   };
 }
+
+const openaiResponsesProviderOptionsSchema = z.object({
+  metadata: z.any().nullish(),
+  parallelToolCalls: z.boolean().nullish(),
+  previousResponseId: z.string().nullish(),
+  store: z.boolean().nullish(),
+  user: z.string().nullish(),
+  reasoningEffort: z.string().nullish(),
+  strictSchemas: z.boolean().nullish(),
+});
+
+export type OpenAIResponsesProviderOptions = z.infer<
+  typeof openaiResponsesProviderOptionsSchema
+>;

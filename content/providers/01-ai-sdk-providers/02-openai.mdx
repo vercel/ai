@@ -523,9 +523,13 @@ You can use the OpenAI responses API with the `openai.responses(modelId)` factor
 const model = openai.responses('gpt-4o-mini');
 ```
 
-Further configuration can be done using OpenAI provider options:
+Further configuration can be done using OpenAI provider options.
+You can validate the provider options using the `OpenAIResponsesProviderOptions` type.
 
 ```ts
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: openai.responses('gpt-4o-mini'),
   providerOptions: {
@@ -534,7 +538,7 @@ const result = await generateText({
       store: false,
       user: 'user_123',
       // ...
-    },
+    } satisfies OpenAIResponsesProviderOptions,
   },
   // ...
 });
