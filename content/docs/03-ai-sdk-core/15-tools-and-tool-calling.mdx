@@ -693,9 +693,12 @@ const mcpClient = await createMCPClient({
 
 #### Closing the MCP Client
 
-After initialization, always close the MCP client after the response is finished to prevent resource leaks. 
+After initialization, you should close the MCP client based on your usage pattern:
 
-When streaming responses, close the client when the LLM response has finished. For example, when using `streamText`, you can use the `onFinish` callback:
+- For short-lived usage (e.g., single requests), close the client when the response is finished
+- For long-running clients (e.g., command line apps), keep the client open but ensure it's closed when the application terminates
+
+When streaming responses, you can close the client when the LLM response has finished. For example, when using `streamText`, you should use the `onFinish` callback:
 
 ```typescript
 const mcpClient = await experimental_createMCPClient({
@@ -712,7 +715,7 @@ const result = await streamText({
 });
 ```
 
-When generating responses without streaming, use try/finally or cleanup functions in your framework:
+When generating responses without streaming, you can use try/finally or cleanup functions in your framework:
 
 ```typescript
 let mcpClient: MCPClient | undefined;
