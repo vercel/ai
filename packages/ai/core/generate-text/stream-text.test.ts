@@ -4564,4 +4564,58 @@ describe('streamText', () => {
       });
     });
   });
+
+  describe('callbacks with response.messages', () => {
+    it('should provide response.messages in both onFinish and onStepFinish callbacks', async () => {
+      let onFinishMessages: any[] = [];
+      let onStepFinishMessages: any[] = [];
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text-delta', textDelta: 'world!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              logprobs: undefined,
+              usage: { completionTokens: 10, promptTokens: 3 },
+            },
+          ]),
+        }),
+        onFinish: async event => {
+          onFinishMessages = event.response.messages;
+        },
+        onStepFinish: async event => {
+          onStepFinishMessages = event.response.messages;
+        },
+        ...defaultSettings(),
+      });
+
+      await resultObject.consumeStream();
+
+      // Verify that messages are available in both callbacks
+      expect(onFinishMessages).toHaveLength(1);
+      expect(onStepFinishMessages).toHaveLength(1);
+
+      // Verify message structure
+      const checkMessage = (messages: any[]) => {
+        expect(messages[0].role).toBe('assistant');
+        expect(messages[0].content).toContainEqual({
+          type: 'text',
+          text: 'Hello, world!',
+        });
+      };
+
+      checkMessage(onFinishMessages);
+      checkMessage(onStepFinishMessages);
+    });
+  });
 });

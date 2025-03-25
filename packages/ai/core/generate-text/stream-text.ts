@@ -744,7 +744,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             request: part.request,
             response: {
               ...part.response,
-              messages: [...recordedResponse.messages, ...stepMessages],
+              messages: nextStepType === 'continue' 
+                ? [...recordedResponse.messages] 
+                : [...recordedResponse.messages, ...stepMessages],
             },
             providerMetadata: part.experimental_providerMetadata,
             experimental_providerMetadata: part.experimental_providerMetadata,
