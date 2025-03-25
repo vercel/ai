@@ -1010,7 +1010,7 @@ importers:
         specifier: 1.3.1
         version: link:../../packages/openai
       '@ai-sdk/solid':
-        specifier: 1.2.1
+        specifier: 1.2.2
         version: link:../../packages/solid
       '@ai-sdk/ui-utils':
         specifier: 1.2.1
