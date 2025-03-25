@@ -1,5 +1,4 @@
 import { prepareTools } from './cohere-prepare-tools';
-import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 
 it('should return undefined tools when no tools are provided', () => {
   const result = prepareTools({
@@ -7,9 +6,9 @@ it('should return undefined tools when no tools are provided', () => {
     tools: [],
   });
 
-  expect(result).toEqual({
+  expect(result).toStrictEqual({
     tools: undefined,
-    tool_choice: undefined,
+    toolChoice: undefined,
     toolWarnings: [],
   });
 });
@@ -27,7 +26,7 @@ it('should process function tools correctly', () => {
     tools: [functionTool],
   });
 
-  expect(result).toEqual({
+  expect(result).toStrictEqual({
     tools: [
       {
         type: 'function',
@@ -38,7 +37,7 @@ it('should process function tools correctly', () => {
         },
       },
     ],
-    tool_choice: undefined,
+    toolChoice: undefined,
     toolWarnings: [],
   });
 });
@@ -56,9 +55,9 @@ it('should add warnings for provider-defined tools', () => {
     ],
   });
 
-  expect(result).toEqual({
+  expect(result).toStrictEqual({
     tools: [],
-    tool_choice: undefined,
+    toolChoice: undefined,
     toolWarnings: [
       {
         type: 'unsupported-tool',
@@ -88,40 +87,75 @@ describe('tool choice handling', () => {
       toolChoice: { type: 'auto' },
     });
 
-    expect(result.tool_choice).toBe('auto');
+    expect(result.toolChoice).toBe(undefined);
   });
 
-  it('should handle none tool choice by setting tools to undefined', () => {
+  it('should handle none tool choice', () => {
     const result = prepareTools({
       type: 'regular',
       tools: [basicTool],
       toolChoice: { type: 'none' },
     });
 
-    expect(result).toEqual({
-      tools: undefined,
-      tool_choice: 'any',
+    expect(result).toStrictEqual({
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'testFunction',
+            description: 'test description',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+      ],
+      toolChoice: 'NONE',
       toolWarnings: [],
     });
   });
 
-  it('should throw error for required tool choice', () => {
-    expect(() =>
-      prepareTools({
-        type: 'regular',
-        tools: [basicTool],
-        toolChoice: { type: 'required' },
-      }),
-    ).toThrow(UnsupportedFunctionalityError);
+  it('should handle required tool choice', () => {
+    const result = prepareTools({
+      type: 'regular',
+      tools: [basicTool],
+      toolChoice: { type: 'required' },
+    });
+
+    expect(result).toStrictEqual({
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'testFunction',
+            description: 'test description',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+      ],
+      toolChoice: 'REQUIRED',
+      toolWarnings: [],
+    });
   });
 
-  it('should throw error for tool type tool choice', () => {
-    expect(() =>
-      prepareTools({
-        type: 'regular',
-        tools: [basicTool],
-        toolChoice: { type: 'tool', toolName: 'testFunction' },
-      }),
-    ).toThrow(UnsupportedFunctionalityError);
+  it('should handle tool type tool choice by filtering tools', () => {
+    const result = prepareTools({
+      type: 'regular',
+      tools: [basicTool],
+      toolChoice: { type: 'tool', toolName: 'testFunction' },
+    });
+
+    expect(result).toStrictEqual({
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'testFunction',
+            description: 'test description',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+      ],
+      toolChoice: 'REQUIRED',
+      toolWarnings: [],
+    });
   });
 });

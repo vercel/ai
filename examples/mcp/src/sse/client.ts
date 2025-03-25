@@ -8,6 +8,9 @@ async function main() {
     transport: {
       type: 'sse',
       url: 'http://localhost:8080/sse',
+      headers: {
+        example: 'header',
+      },
     },
   });
 

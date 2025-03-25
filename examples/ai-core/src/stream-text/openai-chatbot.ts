@@ -13,9 +13,7 @@ const messages: CoreMessage[] = [];
 
 async function main() {
   while (true) {
-    const userInput = await terminal.question('You: ');
-
-    messages.push({ role: 'user', content: userInput });
+    messages.push({ role: 'user', content: await terminal.question('You: ') });
 
     const result = streamText({
       model: openai('gpt-4o'),
