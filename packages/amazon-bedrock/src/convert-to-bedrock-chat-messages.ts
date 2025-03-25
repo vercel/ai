@@ -131,11 +131,31 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
             case 'tool': {
               for (let i = 0; i < content.length; i++) {
                 const part = content[i];
+                const toolResultContent =
+                  part.content !== undefined
+                    ? part.content.map(part => {
+                        switch (part.type) {
+                          case 'text':
+                            return {
+                              text: part.text,
+                            };
+                          case 'image':
+                            return {
+                              image: {
+                                format: part.mimeType?.split(
+                                  '/',
+                                )?.[1] as BedrockDocumentFormat,
+                                source: part.data
+                              }
+                            };
+                        }
+                      })
+                    : [{ text: JSON.stringify(part.result) }];
 
                 bedrockContent.push({
                   toolResult: {
                     toolUseId: part.toolCallId,
-                    content: [{ text: JSON.stringify(part.result) }],
+                    content: toolResultContent,
                   },
                 });
               }
