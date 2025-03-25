@@ -1,5 +1,11 @@
 # ai
 
+## 4.2.3
+
+### Patch Changes
+
+- 0b3bf29: fix (ai/core): custom env support for stdio MCP transport
+
 ## 4.2.2
 
 ### Patch Changes
