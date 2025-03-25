@@ -94,8 +94,8 @@ import { voyage } from 'voyage-ai-provider';
 const embeddingModel = voyage.textEmbeddingModel('voyage-3', {
   inputType: 'document', // 'document' or 'query'
   truncation: false,
-  outputDimension: '1024', // the new model voyage-code-3, voyage-3-large has 4 different output dimensions: 256, 512, 1024 (default), 2048
-  output_dtype: 'float', // output data types - int8, uint8, binary, ubinary are supported by the new model voyage-code-3, voyage-3-large
+  outputDimension: 1024, // the new model voyage-code-3, voyage-3-large has 4 different output dimensions: 256, 512, 1024 (default), 2048
+  outputDtype: 'float', // output data types - int8, uint8, binary, ubinary are supported by the new model voyage-code-3, voyage-3-large
 });
 ```
 
