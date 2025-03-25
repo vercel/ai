@@ -129,7 +129,7 @@ The following optional settings are available for xAI chat models:
 
 ## Image Models
 
-You can create xAI image models using the `.imageModel()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+You can create xAI image models using the `.imageModel()` factory method. For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image). The image will be returned in base64 format.
 
 ```ts
 import { xai } from '@ai-sdk/xai';
@@ -154,7 +154,7 @@ You can customize the image generation behavior with model-specific settings:
 import { xai } from '@ai-sdk/xai';
 import { experimental_generateImage as generateImage } from 'ai';
 
-const { image } = await generateImage({
+const { images } = await generateImage({
   model: xai.image('grok-2-image', {
     maxImagesPerCall: 5, // Default is 10
   }),
