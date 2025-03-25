@@ -1,5 +1,5 @@
 import { ChildProcess, spawn } from 'node:child_process';
-import { getEnv } from './get-environment';
+import { getEnvironment } from './get-environment';
 import { StdioConfig } from './mcp-stdio-transport';
 
 export async function createChildProcess(
@@ -7,7 +7,7 @@ export async function createChildProcess(
   signal: AbortSignal,
 ): Promise<ChildProcess> {
   return spawn(config.command, config.args ?? [], {
-    env: getEnv(config.env),
+    env: getEnvironment(config.env),
     stdio: ['pipe', 'pipe', config.stderr ?? 'inherit'],
     shell: false,
     signal,

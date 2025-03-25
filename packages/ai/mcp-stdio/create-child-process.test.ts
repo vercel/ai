@@ -5,7 +5,7 @@ const DEFAULT_ENV = {
   PATH: 'path',
 };
 
-const mockGetEnv = vi
+const mockGetEnvironment = vi
   .fn()
   .mockImplementation((customEnv?: Record<string, string>) => {
     return {
@@ -13,7 +13,9 @@ const mockGetEnv = vi
       ...customEnv,
     };
   });
-vi.spyOn(getEnvironmentModule, 'getEnv').mockImplementation(mockGetEnv);
+vi.spyOn(getEnvironmentModule, 'getEnvironment').mockImplementation(
+  mockGetEnvironment,
+);
 
 // important: import after mocking getEnv
 const { createChildProcess } = await import('./create-child-process');
@@ -30,7 +32,7 @@ describe('createChildProcess', () => {
     );
 
     expect(childProcess.pid).toBeDefined();
-    expect(mockGetEnv).toHaveBeenCalledWith(undefined);
+    expect(mockGetEnvironment).toHaveBeenCalledWith(undefined);
     childProcess.kill();
   });
 
@@ -42,8 +44,8 @@ describe('createChildProcess', () => {
     );
 
     expect(childProcessWithCustomEnv.pid).toBeDefined();
-    expect(mockGetEnv).toHaveBeenCalledWith(customEnv);
-    expect(mockGetEnv).toHaveReturnedWith({
+    expect(mockGetEnvironment).toHaveBeenCalledWith(customEnv);
+    expect(mockGetEnvironment).toHaveReturnedWith({
       ...DEFAULT_ENV,
       ...customEnv,
     });

@@ -1,4 +1,10 @@
-export function getEnv(
+/**
+ * Constructs the environment variables for the child process.
+ *
+ * @param customEnv - Custom environment variables to merge with default environment variables.
+ * @returns The environment variables for the child process.
+ */
+export function getEnvironment(
   customEnv?: Record<string, string>,
 ): Record<string, string> {
   const DEFAULT_INHERITED_ENV_VARS =
