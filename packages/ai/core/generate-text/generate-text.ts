@@ -279,7 +279,8 @@ A function that attempts to repair a tool call that failed to parse.
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       let text = '';
-      const sources: GenerateTextResult<TOOLS, OUTPUT>['sources'] = [];
+      let currentSources: GenerateTextResult<TOOLS, OUTPUT>['sources'] = [];
+      let currentCitations: GenerateTextResult<TOOLS, OUTPUT>['citations'] = [];
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
       let usage: LanguageModelUsage = {
         completionTokens: 0,
@@ -474,8 +475,9 @@ A function that attempts to repair a tool call that failed to parse.
           currentModelResponse.reasoning,
         );
 
-        // sources:
-        sources.push(...(currentModelResponse.sources ?? []));
+        // sources and citations:
+        currentSources = currentModelResponse.sources ?? [];
+        currentCitations = currentModelResponse.citations ?? [];
 
         // append to messages for potential next step:
         if (stepType === 'continue') {
@@ -568,7 +570,8 @@ A function that attempts to repair a tool call that failed to parse.
         files: asFiles(currentModelResponse.files),
         reasoning: asReasoningText(currentReasoningDetails),
         reasoningDetails: currentReasoningDetails,
-        sources,
+        sources: currentSources,
+        citations: currentCitations,
         outputResolver: () => {
           if (output == null) {
             throw new NoOutputSpecifiedError();
@@ -720,7 +723,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
   readonly sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
-
+  readonly citations: GenerateTextResult<TOOLS, OUTPUT>['citations'];
   private readonly outputResolver: () => GenerateTextResult<
     TOOLS,
     OUTPUT
@@ -746,6 +749,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
       OUTPUT
     >['experimental_output'];
     sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
+    citations: GenerateTextResult<TOOLS, OUTPUT>['citations'];
   }) {
     this.text = options.text;
     this.files = options.files;
@@ -764,6 +768,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.logprobs = options.logprobs;
     this.outputResolver = options.outputResolver;
     this.sources = options.sources;
+    this.citations = options.citations;
   }
 
   get experimental_output() {

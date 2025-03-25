@@ -79,8 +79,8 @@ Resolved when the response is finished.
   readonly usage: Promise<LanguageModelUsage>;
 
   /**
-Sources that have been used as input to generate the response.
-For multi-step generation, the sources are accumulated from all steps.
+Sources that have been used as input to generate the response
+of the last step.
 
 Resolved when the response is finished.
    */
