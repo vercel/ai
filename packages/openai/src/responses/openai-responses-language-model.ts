@@ -22,6 +22,7 @@ import { convertToOpenAIResponsesMessages } from './convert-to-openai-responses-
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
+import { execPath } from 'process';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
@@ -268,10 +269,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                     annotations: z.array(
                       z.object({
                         type: z.literal('url_citation'),
-                        start_index: z.number(),
-                        end_index: z.number(),
                         url: z.string(),
                         title: z.string(),
+                        start_index: z.number(),
+                        end_index: z.number(),
                       }),
                     ),
                   }),
@@ -316,16 +317,32 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
         args: output.arguments,
       }));
 
+    const sourcesAndCitations = outputTextElements.flatMap(content =>
+      content.annotations.map(annotation => {
+        const id = this.config.generateId?.() ?? generateId();
+
+        return {
+          source: {
+            sourceType: 'url' as const,
+            id,
+            url: annotation.url,
+            title: annotation.title,
+          },
+          citation: [
+            {
+              sourceId: id,
+              startIndex: annotation.start_index,
+              endIndex: annotation.end_index,
+            },
+          ],
+        };
+      }),
+    );
+
     return {
       text: outputTextElements.map(content => content.text).join('\n'),
-      sources: outputTextElements.flatMap(content =>
-        content.annotations.map(annotation => ({
-          sourceType: 'url',
-          id: this.config.generateId?.() ?? generateId(),
-          url: annotation.url,
-          title: annotation.title,
-        })),
-      ),
+      sources: sourcesAndCitations.map(annotation => annotation.source),
+      citations: sourcesAndCitations.flatMap(annotation => annotation.citation),
       finishReason: mapOpenAIResponseFinishReason({
         finishReason: response.incomplete_details?.reason,
         hasToolCalls: toolCalls.length > 0,

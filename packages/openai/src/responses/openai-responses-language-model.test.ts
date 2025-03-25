@@ -955,45 +955,15 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.text).toStrictEqual(outputText);
       });
 
-      it('should return sources', async () => {
+      it('should return sources and citations', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
           mode: { type: 'regular' },
         });
 
-        expect(result.sources).toStrictEqual([
-          {
-            sourceType: 'url',
-            id: 'id-0',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com',
-            title: 'Bruce Lee statue to be installed in SF Chinatown',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-1',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com',
-            title: 'The Bay Area is set to make an office leasing comeback',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-2',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com',
-            title: 'Where to see spring blooms in the Bay Area',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-3',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com',
-            title: 'Oceanfront Great Highway park set to open in April',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-4',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com',
-            title: "San Francisco's spring seasons are getting warmer",
-          },
-        ]);
+        expect(result.sources).toMatchSnapshot();
+        expect(result.citations).toMatchSnapshot();
       });
     });
   });
