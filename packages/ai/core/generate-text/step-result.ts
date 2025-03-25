@@ -9,6 +9,7 @@ import {
 } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelUsage } from '../types/usage';
+import { GeneratedFile } from './generated-file';
 import { ReasoningDetail } from './reasoning-detail';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -42,6 +43,11 @@ The reasoning that was generated during the generation.
 
   // TODO v5: rename to `reasoning`
   readonly reasoningDetails: Array<ReasoningDetail>;
+
+  /**
+The files that were generated during the generation.
+*/
+  readonly files: GeneratedFile[];
 
   /**
 The sources that were used to generate the text.

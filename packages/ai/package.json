@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "4.1.61",
+  "version": "4.2.2",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -9,6 +9,7 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
+    "mcp-stdio/**/*",
     "react/dist/**/*",
     "rsc/dist/**/*",
     "test/dist/**/*",
@@ -56,20 +57,24 @@
       "react-server": "./react/dist/index.server.mjs",
       "import": "./react/dist/index.mjs",
       "require": "./react/dist/index.js"
+    },
+    "./mcp-stdio": {
+      "types": "./mcp-stdio/dist/index.d.ts",
+      "import": "./mcp-stdio/dist/index.mjs",
+      "require": "./mcp-stdio/dist/index.js"
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.11",
-    "@ai-sdk/provider-utils": "2.1.13",
-    "@ai-sdk/react": "1.1.23",
-    "@ai-sdk/ui-utils": "1.1.19",
+    "@ai-sdk/provider": "1.1.0",
+    "@ai-sdk/provider-utils": "2.2.1",
+    "@ai-sdk/react": "1.2.1",
+    "@ai-sdk/ui-utils": "1.2.1",
     "@opentelemetry/api": "1.9.0",
-    "eventsource-parser": "^3.0.0",
     "jsondiffpatch": "0.6.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
-    "@types/node": "^18",
+    "@types/node": "20.17.24",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@vercel/ai-tsconfig": "workspace:*",
@@ -84,13 +89,10 @@
   },
   "peerDependencies": {
     "react": "^18 || ^19 || ^19.0.0-rc",
-    "zod": "^3.0.0"
+    "zod": "^3.23.8"
   },
   "peerDependenciesMeta": {
     "react": {
-      "optional": true
-    },
-    "zod": {
       "optional": true
     }
   },

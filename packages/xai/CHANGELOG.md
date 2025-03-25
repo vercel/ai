@@ -1,5 +1,55 @@
 # @ai-sdk/xai
 
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+  - @ai-sdk/openai-compatible@0.2.1
+
+## 1.2.1
+
+### Patch Changes
+
+- 82b5620: fix (providers/xai): handle raw b64 image response data
+
+## 1.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/openai-compatible@0.2.0
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+
+## 1.1.18
+
+### Patch Changes
+
+- 6f0e741: feat (providers/xai): add xai image model support
+
+## 1.1.17
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+  - @ai-sdk/openai-compatible@0.1.17
+
+## 1.1.16
+
+### Patch Changes
+
+- Updated dependencies [0bd5bc6]
+  - @ai-sdk/provider@1.0.12
+  - @ai-sdk/openai-compatible@0.1.16
+  - @ai-sdk/provider-utils@2.1.14
+
 ## 1.1.15
 
 ### Patch Changes

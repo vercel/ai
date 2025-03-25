@@ -1,5 +1,75 @@
 # ai
 
+## 4.2.2
+
+### Patch Changes
+
+- f10f0fa: fix (provider-utils): improve event source stream parsing performance
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+  - @ai-sdk/react@1.2.1
+  - @ai-sdk/ui-utils@1.2.1
+
+## 4.2.1
+
+### Patch Changes
+
+- b796152: feat (ai/core): add headers to MCP SSE transport
+- 06361d6: feat (ai/core): expose JSON RPC types (MCP)
+
+## 4.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+  - @ai-sdk/react@1.2.0
+  - @ai-sdk/ui-utils@1.2.0
+
+## 4.1.66
+
+### Patch Changes
+
+- 5d0fc29: chore (ai): improve cosine similarity calculation
+
+## 4.1.65
+
+### Patch Changes
+
+- 16c444f: fix (ai): expose ai/mcp-stdio
+
+## 4.1.64
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+  - @ai-sdk/react@1.1.25
+  - @ai-sdk/ui-utils@1.1.21
+
+## 4.1.63
+
+### Patch Changes
+
+- 0bd5bc6: feat (ai): support model-generated files
+- Updated dependencies [0bd5bc6]
+  - @ai-sdk/provider@1.0.12
+  - @ai-sdk/provider-utils@2.1.14
+  - @ai-sdk/ui-utils@1.1.20
+  - @ai-sdk/react@1.1.24
+
+## 4.1.62
+
+### Patch Changes
+
+- c9ed3c4: feat: enable custom mcp transports
+  breaking change: remove internal stdio transport creation
+
 ## 4.1.61
 
 ### Patch Changes

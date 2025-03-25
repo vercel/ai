@@ -1,5 +1,6 @@
 import {
   extractMaxToolInvocationStep,
+  FileUIPart,
   Message,
   ReasoningUIPart,
   TextUIPart,
@@ -7,6 +8,8 @@ import {
   ToolInvocationUIPart,
 } from '@ai-sdk/ui-utils';
 import { ResponseMessage } from '../generate-text/step-result';
+import { convertDataContentToBase64String } from './data-content';
+import { AISDKError } from '@ai-sdk/provider';
 
 /**
  * Appends the ResponseMessage[] from the response to a Message[] (for useChat).
@@ -56,7 +59,7 @@ Internal. For test use only. May change without notice.
         }
 
         const parts: Array<
-          TextUIPart | ReasoningUIPart | ToolInvocationUIPart
+          TextUIPart | ReasoningUIPart | ToolInvocationUIPart | FileUIPart
         > = [];
         let textContent = '';
         let reasoningTextContent = undefined;
@@ -117,6 +120,19 @@ Internal. For test use only. May change without notice.
                 break;
               }
               case 'tool-call':
+                break;
+              case 'file':
+                if (part.data instanceof URL) {
+                  throw new AISDKError({
+                    name: 'InvalidAssistantFileData',
+                    message: 'File data cannot be a URL',
+                  });
+                }
+                parts.push({
+                  type: 'file' as const,
+                  mimeType: part.mimeType,
+                  data: convertDataContentToBase64String(part.data),
+                });
                 break;
             }
           }

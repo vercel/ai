@@ -161,6 +161,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
   }) => unknown;
 };
 
+/**
+ * @deprecated `@ai-sdk/solid` has been deprecated and will be removed in AI SDK 5.
+ */
 export function useChat(
   rawUseChatOptions: UseChatOptions | Accessor<UseChatOptions> = {},
 ): UseChatHelpers {

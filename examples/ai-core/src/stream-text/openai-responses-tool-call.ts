@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 import { streamText, tool } from 'ai';
@@ -24,8 +24,8 @@ async function main() {
     prompt: 'What is the weather in my current location and in Rome?',
     providerOptions: {
       openai: {
-        // parallelToolCalls: false,
-      },
+        parallelToolCalls: false,
+      } satisfies OpenAIResponsesProviderOptions,
     },
   });
 

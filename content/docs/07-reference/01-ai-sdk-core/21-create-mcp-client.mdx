@@ -34,47 +34,47 @@ This feature is experimental and may change or be removed in the future.
           parameters: [
             {
               name: 'transport',
-              type: 'TransportConfig = McpStdioServerConfig | McpSSEServerConfig',
+              type: 'TransportConfig = MCPTransport | McpSSEServerConfig',
               description: 'Configuration for the message transport layer.',
               properties: [
                 {
-                  type: 'McpStdioServerConfig',
+                  type: 'MCPTransport',
+                  description:
+                    'A client transport instance, used explicitly for stdio or custom transports',
                   parameters: [
                     {
-                      name: 'type',
-                      type: "'stdio'",
+                      name: 'start',
+                      type: '() => Promise<void>',
+                      description: 'A method that starts the transport',
+                    },
+                    {
+                      name: 'send',
+                      type: '(message: JSONRPCMessage) => Promise<void>',
                       description:
-                        'Use standard input/output streams for communication',
+                        'A method that sends a message through the transport',
                     },
                     {
-                      name: 'command',
-                      type: 'string',
-                      description: 'Command to start the server',
+                      name: 'close',
+                      type: '() => Promise<void>',
+                      description: 'A method that closes the transport',
                     },
                     {
-                      name: 'args',
-                      type: 'string[]',
-                      isOptional: true,
-                      description: 'Command line arguments',
-                    },
-                    {
-                      name: 'env',
-                      type: 'Record<string, string>',
-                      isOptional: true,
-                      description: 'Environment variables',
-                    },
-                    {
-                      name: 'cwd',
-                      type: 'string',
-                      isOptional: true,
-                      description: 'Working directory for the server process',
-                    },
-                    {
-                      name: 'stderr',
-                      type: 'IOType | Stream | number',
-                      isOptional: true,
+                      name: 'onclose',
+                      type: '() => void',
                       description:
-                        'Handler for stderr output. Defaults to "inherit".',
+                        'A method that is called when the transport is closed',
+                    },
+                    {
+                      name: 'onerror',
+                      type: '(error: Error) => void',
+                      description:
+                        'A method that is called when the transport encounters an error',
+                    },
+                    {
+                      name: 'onmessage',
+                      type: '(message: JSONRPCMessage) => void',
+                      description:
+                        'A method that is called when the transport receives a message',
                     },
                   ],
                 },
@@ -90,6 +90,13 @@ This feature is experimental and may change or be removed in the future.
                       name: 'url',
                       type: 'string',
                       description: 'URL of the MCP server',
+                    },
+                    {
+                      name: 'headers',
+                      type: 'Record<string, string>',
+                      isOptional: true,
+                      description:
+                        'Additional HTTP headers to be sent with requests.',
                     },
                   ],
                 },

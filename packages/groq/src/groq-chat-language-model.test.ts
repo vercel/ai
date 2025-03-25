@@ -46,6 +46,7 @@ describe('doGenerate', () => {
 
   function prepareJsonResponse({
     content = '',
+    reasoning,
     tool_calls,
     function_call,
     usage = {
@@ -59,6 +60,7 @@ describe('doGenerate', () => {
     model = 'gemma2-9b-it',
   }: {
     content?: string;
+    reasoning?: string;
     tool_calls?: Array<{
       id: string;
       type: 'function';
@@ -92,6 +94,7 @@ describe('doGenerate', () => {
           message: {
             role: 'assistant',
             content,
+            reasoning,
             tool_calls,
             function_call,
           },
@@ -113,6 +116,20 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Hello, World!');
+  });
+
+  it('should extract reasoning', async () => {
+    prepareJsonResponse({
+      reasoning: 'This is a test reasoning',
+    });
+
+    const { reasoning } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(reasoning).toStrictEqual('This is a test reasoning');
   });
 
   it('should extract usage', async () => {
@@ -249,6 +266,9 @@ describe('doGenerate', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
+      providerMetadata: {
+        groq: { reasoningFormat: 'hidden' },
+      },
     });
 
     expect(await server.getRequestBodyJson()).toStrictEqual({
@@ -256,6 +276,7 @@ describe('doGenerate', () => {
       messages: [{ role: 'user', content: 'Hello' }],
       parallel_tool_calls: false,
       user: 'test-user-id',
+      reasoning_format: 'hidden',
     });
   });
 
@@ -489,10 +510,53 @@ describe('doStream', () => {
         modelId: 'gemma2-9b-it',
         timestamp: new Date('2023-12-15T16:17:00.000Z'),
       },
-      { type: 'text-delta', textDelta: '' },
       { type: 'text-delta', textDelta: 'Hello' },
       { type: 'text-delta', textDelta: ', ' },
       { type: 'text-delta', textDelta: 'World!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        usage: { promptTokens: 18, completionTokens: 439 },
+      },
+    ]);
+  });
+
+  it('should stream reasoning deltas', async () => {
+    server.responseChunks = [
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+        `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+        `"system_fingerprint":null,"choices":[{"index":1,"delta":{"reasoning":"I think,"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+        `"system_fingerprint":null,"choices":[{"index":1,"delta":{"reasoning":"therefore I am."},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+        `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+        `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}],` +
+        `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+        `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
+      'data: [DONE]\n\n',
+    ];
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    // note: space moved to last chunk bc of trimming
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      {
+        type: 'response-metadata',
+        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
+        modelId: 'gemma2-9b-it',
+        timestamp: new Date('2023-12-15T16:17:00.000Z'),
+      },
+      { type: 'reasoning', textDelta: 'I think,' },
+      { type: 'reasoning', textDelta: 'therefore I am.' },
+      { type: 'text-delta', textDelta: 'Hello' },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -827,10 +891,6 @@ describe('doStream', () => {
         id: 'chat-2267f7e2910a4254bac0650ba74cfc1c',
         modelId: 'meta/llama-3.1-8b-instruct:fp8',
         timestamp: new Date('2024-12-02T17:57:21.000Z'),
-      },
-      {
-        type: 'text-delta',
-        textDelta: '',
       },
       {
         type: 'tool-call-delta',
