@@ -39,11 +39,19 @@ export interface MCPTransport {
   onmessage?: (message: JSONRPCMessage) => void;
 }
 
-export interface SSEConfig {
+export type MCPTransportConfig = {
   type: 'sse';
+
+  /**
+   * The URL of the MCP server.
+   */
   url: string;
-}
-export type MCPTransportConfig = SSEConfig;
+
+  /**
+   * Additional HTTP headers to be sent with requests.
+   */
+  headers?: Record<string, string>;
+};
 
 export function createMcpTransport(config: MCPTransportConfig): MCPTransport {
   if (config.type !== 'sse') {

@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.2.1
+
+### Patch Changes
+
+- f10f0fa: fix (provider-utils): improve event source stream parsing performance
+
 ## 2.2.0
 
 ### Minor Changes
