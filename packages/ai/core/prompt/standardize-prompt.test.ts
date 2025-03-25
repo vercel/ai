@@ -17,4 +17,15 @@ describe('message prompt', () => {
       });
     }).toThrow(InvalidPromptError);
   });
+
+  it('should throw InvalidPromptError when messages array is empty', () => {
+    expect(() => {
+      standardizePrompt({
+        prompt: {
+          messages: [],
+        },
+        tools: undefined,
+      });
+    }).toThrow(InvalidPromptError);
+  });
 });
