@@ -74,6 +74,9 @@ or to provide a custom fetch implementation for e.g. testing.
 
 const completionCache = new ReactiveLRU<string, string>();
 
+/**
+ * @deprecated `@ai-sdk/solid` has been deprecated and will be removed in AI SDK 5.
+ */
 export function useCompletion(
   rawUseCompletionOptions:
     | UseCompletionOptions
