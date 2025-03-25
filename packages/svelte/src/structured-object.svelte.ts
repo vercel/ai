@@ -73,6 +73,13 @@ export type Experimental_StructuredObjectOptions<RESULT> = {
    * Additional HTTP headers to be included in the request.
    */
   headers?: Record<string, string> | Headers;
+
+  /**
+   * The credentials mode to be used for the fetch request.
+   * Possible values are: 'omit', 'same-origin', 'include'.
+   * Defaults to 'same-origin'.
+   */
+  credentials?: RequestCredentials;
 };
 
 export class StructuredObject<RESULT, INPUT = unknown> {
@@ -150,6 +157,7 @@ export class StructuredObject<RESULT, INPUT = unknown> {
           'Content-Type': 'application/json',
           ...this.#options.headers,
         },
+        credentials: this.#options.credentials,
         signal: abortController.signal,
         body: JSON.stringify(input),
       });
