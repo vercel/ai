@@ -6,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
+  OpenAICompatibleImageModel,
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
@@ -21,7 +22,6 @@ import {
 import { XaiImageSettings } from './xai-image-settings';
 import { XaiImageModelId } from './xai-image-settings';
 import { XaiErrorData, xaiErrorSchema } from './xai-error';
-import { XaiImageModel } from './xai-image-model';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorSchema,
@@ -120,7 +120,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     modelId: XaiImageModelId,
     settings: XaiImageSettings = {},
   ) => {
-    return new XaiImageModel(modelId, settings, {
+    return new OpenAICompatibleImageModel(modelId, settings, {
       provider: 'xai.image',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,

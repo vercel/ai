@@ -1,7 +1,9 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
-import { XaiImageModel } from './xai-image-model';
+import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
+import { z } from 'zod';
+import { ProviderErrorStructure } from './openai-compatible-error';
 
 const prompt = 'A photorealistic astronaut riding a horse';
 
@@ -10,35 +12,38 @@ function createBasicModel({
   fetch,
   currentDate,
   settings,
+  errorStructure,
 }: {
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
   settings?: any;
+  errorStructure?: ProviderErrorStructure<any>;
 } = {}) {
-  return new XaiImageModel('grok-2-image', settings ?? {}, {
-    provider: 'xai',
+  return new OpenAICompatibleImageModel('dall-e-3', settings ?? {}, {
+    provider: 'openai-compatible',
     headers: headers ?? (() => ({ Authorization: 'Bearer test-key' })),
     url: ({ modelId, path }) => `https://api.example.com/${modelId}${path}`,
     fetch,
+    errorStructure,
     _internal: {
       currentDate,
     },
   });
 }
 
-describe('XaiImageModel', () => {
+describe('OpenAICompatibleImageModel', () => {
   const server = createTestServer({
-    'https://api.example.com/grok-2-image/images/generations': {
+    'https://api.example.com/dall-e-3/images/generations': {
       response: {
         type: 'json-value',
         body: {
           data: [
             {
-              b64_json: 'data:image/png;base64,test1234',
+              b64_json: 'test1234',
             },
             {
-              b64_json: 'data:image/png;base64,test5678',
+              b64_json: 'test5678',
             },
           ],
         },
@@ -50,8 +55,8 @@ describe('XaiImageModel', () => {
     it('should expose correct provider and model information', () => {
       const model = createBasicModel();
 
-      expect(model.provider).toBe('xai');
-      expect(model.modelId).toBe('grok-2-image');
+      expect(model.provider).toBe('openai-compatible');
+      expect(model.modelId).toBe('dall-e-3');
       expect(model.specificationVersion).toBe('v1');
       expect(model.maxImagesPerCall).toBe(10);
     });
@@ -89,7 +94,7 @@ describe('XaiImageModel', () => {
       });
 
       expect(await server.calls[0].requestBody).toStrictEqual({
-        model: 'grok-2-image',
+        model: 'dall-e-3',
         prompt,
         n: 2,
         size: '1024x1024',
@@ -152,19 +157,74 @@ describe('XaiImageModel', () => {
       });
     });
 
-    it('should handle API errors', async () => {
+    it('should handle API errors with custom error structure', async () => {
+      // Define a custom error schema different from OpenAI's format
+      const customErrorSchema = z.object({
+        status: z.string(),
+        details: z.object({
+          errorMessage: z.string(),
+          errorCode: z.number(),
+        }),
+      });
+
       server.urls[
-        'https://api.example.com/grok-2-image/images/generations'
+        'https://api.example.com/dall-e-3/images/generations'
       ].response = {
         type: 'error',
         status: 400,
         body: JSON.stringify({
-          code: 'invalid_request_error',
-          error: 'Invalid prompt content',
+          status: 'error',
+          details: {
+            errorMessage: 'Custom provider error format',
+            errorCode: 1234,
+          },
         }),
       };
 
-      const model = createBasicModel();
+      const model = createBasicModel({
+        errorStructure: {
+          errorSchema: customErrorSchema,
+          errorToMessage: data =>
+            `Error ${data.details.errorCode}: ${data.details.errorMessage}`,
+        },
+      });
+
+      await expect(
+        model.doGenerate({
+          prompt,
+          n: 1,
+          providerOptions: {},
+          size: '1024x1024',
+          seed: undefined,
+          aspectRatio: undefined,
+          headers: {},
+          abortSignal: undefined,
+        }),
+      ).rejects.toMatchObject({
+        message: 'Error 1234: Custom provider error format',
+        statusCode: 400,
+        url: 'https://api.example.com/dall-e-3/images/generations',
+      });
+    });
+
+    it('should handle API errors with default error structure', async () => {
+      server.urls[
+        'https://api.example.com/dall-e-3/images/generations'
+      ].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: {
+            message: 'Invalid prompt content',
+            type: 'invalid_request_error',
+            param: null,
+            code: null,
+          },
+        }),
+      };
+
+      const model = createBasicModel(); // Uses default error structure
+
       await expect(
         model.doGenerate({
           prompt,
@@ -179,11 +239,11 @@ describe('XaiImageModel', () => {
       ).rejects.toMatchObject({
         message: 'Invalid prompt content',
         statusCode: 400,
-        url: 'https://api.example.com/grok-2-image/images/generations',
+        url: 'https://api.example.com/dall-e-3/images/generations',
       });
     });
 
-    it('should strip data URI scheme prefix from b64 content', async () => {
+    it('should return the raw b64_json content', async () => {
       const model = createBasicModel();
       const result = await model.doGenerate({
         prompt,
@@ -199,40 +259,6 @@ describe('XaiImageModel', () => {
       expect(result.images).toHaveLength(2);
       expect(result.images[0]).toBe('test1234');
       expect(result.images[1]).toBe('test5678');
-    });
-
-    it('should handle b64 content without data URI scheme prefix', async () => {
-      server.urls[
-        'https://api.example.com/grok-2-image/images/generations'
-      ].response = {
-        type: 'json-value',
-        body: {
-          data: [
-            {
-              b64_json: 'SGVsbG8gV29ybGQh', // Base64 for "Hello World!"
-            },
-            {
-              b64_json: 'QUkgU0RLIFRlc3Rpbmc=', // Base64 for "AI SDK Testing"
-            },
-          ],
-        },
-      };
-
-      const model = createBasicModel();
-      const result = await model.doGenerate({
-        prompt,
-        n: 2,
-        size: '1024x1024',
-        providerOptions: {},
-        headers: {},
-        abortSignal: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-      });
-
-      expect(result.images).toHaveLength(2);
-      expect(result.images[0]).toBe('SGVsbG8gV29ybGQh');
-      expect(result.images[1]).toBe('QUkgU0RLIFRlc3Rpbmc=');
     });
 
     describe('response metadata', () => {
@@ -255,30 +281,20 @@ describe('XaiImageModel', () => {
 
         expect(result.response).toStrictEqual({
           timestamp: testDate,
-          modelId: 'grok-2-image',
+          modelId: 'dall-e-3',
           headers: expect.any(Object),
         });
       });
     });
 
-    it('should respect maxImagesPerCall setting', async () => {
-      const customModel = createBasicModel({
-        settings: { maxImagesPerCall: 5 },
-      });
-      expect(customModel.maxImagesPerCall).toBe(5);
-
-      const defaultModel = createBasicModel();
-      expect(defaultModel.maxImagesPerCall).toBe(10); // default for XAI models
-    });
-
     it('should use real date when no custom date provider is specified', async () => {
       const beforeDate = new Date();
 
-      const model = new XaiImageModel(
-        'grok-2-image',
+      const model = new OpenAICompatibleImageModel(
+        'dall-e-3',
         {},
         {
-          provider: 'xai',
+          provider: 'openai-compatible',
           headers: () => ({ Authorization: 'Bearer test-key' }),
           url: ({ modelId, path }) =>
             `https://api.example.com/${modelId}${path}`,
@@ -304,7 +320,7 @@ describe('XaiImageModel', () => {
       expect(result.response.timestamp.getTime()).toBeLessThanOrEqual(
         afterDate.getTime(),
       );
-      expect(result.response.modelId).toBe('grok-2-image');
+      expect(result.response.modelId).toBe('dall-e-3');
     });
   });
 });

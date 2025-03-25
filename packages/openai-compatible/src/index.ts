@@ -4,6 +4,8 @@ export { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-com
 export type { OpenAICompatibleCompletionSettings } from './openai-compatible-completion-settings';
 export { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
 export type { OpenAICompatibleEmbeddingSettings } from './openai-compatible-embedding-settings';
+export { OpenAICompatibleImageModel } from './openai-compatible-image-model';
+export type { OpenAICompatibleImageSettings } from './openai-compatible-image-settings';
 export type {
   OpenAICompatibleErrorData,
   ProviderErrorStructure,
