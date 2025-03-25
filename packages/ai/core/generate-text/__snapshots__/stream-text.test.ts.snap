@@ -1010,7 +1010,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "response": {
         "headers": undefined,
         "id": "id-0",
-        "messages": [],
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "part 1 
+ ",
+                "type": "text",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+        ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
@@ -1040,7 +1052,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "response": {
         "headers": undefined,
         "id": "id-1",
-        "messages": [],
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "part 1 
+ no-whitespace",
+                "type": "text",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+        ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
@@ -1083,7 +1107,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           "call": "3",
         },
         "id": "id-2",
-        "messages": [],
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "part 1 
+ no-whitespaceimmediatefollow  ",
+                "type": "text",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+        ],
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
@@ -1197,7 +1233,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "response": {
       "headers": undefined,
       "id": "id-0",
-      "messages": [],
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
@@ -1227,7 +1275,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "response": {
       "headers": undefined,
       "id": "id-1",
-      "messages": [],
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ no-whitespace",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
@@ -1270,7 +1330,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "call": "3",
       },
       "id": "id-2",
-      "messages": [],
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ no-whitespaceimmediatefollow  ",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
@@ -1870,7 +1942,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "response": {
       "headers": undefined,
       "id": "id-0",
-      "messages": [],
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ ",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
@@ -1900,7 +1984,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "response": {
       "headers": undefined,
       "id": "id-1",
-      "messages": [],
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ no-whitespace",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
@@ -1943,7 +2039,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         "call": "3",
       },
       "id": "id-2",
-      "messages": [],
+      "messages": [
+        {
+          "content": [
+            {
+              "text": "part 1 
+ no-whitespaceimmediatefollow  ",
+              "type": "text",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+      ],
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
