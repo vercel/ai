@@ -7,21 +7,25 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { XaiImageModelId } from './xai-image-settings';
-import { XaiImageSettings } from './xai-image-settings';
-import { xaiErrorSchema } from './xai-error';
+import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
+import { OpenAICompatibleImageSettings } from './openai-compatible-image-settings';
+import {
+  defaultOpenAICompatibleErrorStructure,
+  ProviderErrorStructure,
+} from './openai-compatible-error';
 
-export type XaiImageModelConfig = {
+export type OpenAICompatibleImageModelConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  errorStructure?: ProviderErrorStructure<any>;
   _internal?: {
     currentDate?: () => Date;
   };
 };
 
-export class XaiImageModel implements ImageModelV1 {
+export class OpenAICompatibleImageModel implements ImageModelV1 {
   readonly specificationVersion = 'v1';
 
   get maxImagesPerCall(): number {
@@ -33,9 +37,9 @@ export class XaiImageModel implements ImageModelV1 {
   }
 
   constructor(
-    readonly modelId: XaiImageModelId,
-    private readonly settings: XaiImageSettings,
-    private readonly config: XaiImageModelConfig,
+    readonly modelId: OpenAICompatibleImageModelId,
+    private readonly settings: OpenAICompatibleImageSettings,
+    private readonly config: OpenAICompatibleImageModelConfig,
   ) {}
 
   async doGenerate({
@@ -79,11 +83,11 @@ export class XaiImageModel implements ImageModelV1 {
         size,
         ...(providerOptions.openai ?? {}),
         response_format: 'b64_json',
+        ...(this.settings.user ? { user: this.settings.user } : {}),
       },
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: xaiErrorSchema,
-        errorToMessage: data => data.error,
-      }),
+      failedResponseHandler: createJsonErrorResponseHandler(
+        this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,
+      ),
       successfulResponseHandler: createJsonResponseHandler(
         openaiCompatibleImageResponseSchema,
       ),
@@ -92,12 +96,7 @@ export class XaiImageModel implements ImageModelV1 {
     });
 
     return {
-      images: response.data.map(item => {
-        const b64Data = item.b64_json;
-        return b64Data.startsWith('data:') && b64Data.includes(',')
-          ? b64Data.split(',')[1]
-          : b64Data;
-      }),
+      images: response.data.map(item => item.b64_json),
       warnings,
       response: {
         timestamp: currentDate,
