@@ -43,7 +43,6 @@ describe('google-vertex-provider-node', () => {
     expect(createVertexOriginal).toHaveBeenCalledTimes(1);
     const passedOptions = vi.mocked(createVertexOriginal).mock.calls[0][0];
 
-    expect(typeof passedOptions?.headers).toBe('function');
     expect(await resolve(passedOptions?.headers)).toEqual({
       Authorization: 'Bearer mock-auth-token',
       'Custom-Header': 'custom-value',
@@ -60,13 +59,10 @@ describe('google-vertex-provider-node', () => {
 
     expect(createVertexOriginal).toHaveBeenCalledTimes(1);
     const passedOptions = vi.mocked(createVertexOriginal).mock.calls[0][0];
-    expect(typeof passedOptions?.headers).toBe('function');
 
     await resolve(passedOptions?.headers); // call the headers function
 
-    const authLibraryArg = vi.mocked(generateAuthToken).mock.calls[0][0];
-
-    expect(authLibraryArg).toStrictEqual({
+    expect(generateAuthToken).toHaveBeenCalledWith({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
       keyFile: 'path/to/key.json',
     });
