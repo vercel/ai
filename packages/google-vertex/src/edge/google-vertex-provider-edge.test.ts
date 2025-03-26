@@ -1,5 +1,4 @@
 import { resolve } from '@ai-sdk/provider-utils';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createVertex as createVertexEdge } from './google-vertex-provider-edge';
 import { createVertex as createVertexOriginal } from '../google-vertex-provider';
 import * as edgeAuth from './google-vertex-auth-edge';
