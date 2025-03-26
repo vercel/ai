@@ -10,32 +10,33 @@ type ExtractLiteralUnion<T> = T extends string
 
 export interface ProviderRegistryProvider<
   PROVIDERS extends Record<string, ProviderV1> = Record<string, ProviderV1>,
+  SEPARATOR extends string = ':',
 > {
   languageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}:${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['languageModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['languageModel']>>[0]>}`
       : never,
   ): LanguageModel;
   languageModel<KEY extends keyof PROVIDERS>(
-    id: KEY extends string ? `${KEY & string}:${string}` : never,
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): LanguageModel;
 
   textEmbeddingModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}:${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['textEmbeddingModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['textEmbeddingModel']>>[0]>}`
       : never,
   ): EmbeddingModel<string>;
   textEmbeddingModel<KEY extends keyof PROVIDERS>(
-    id: KEY extends string ? `${KEY & string}:${string}` : never,
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): EmbeddingModel<string>;
 
   imageModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string
-      ? `${KEY & string}:${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['imageModel']>>[0]>}`
+      ? `${KEY & string}${SEPARATOR}${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['imageModel']>>[0]>}`
       : never,
   ): ImageModel;
   imageModel<KEY extends keyof PROVIDERS>(
-    id: KEY extends string ? `${KEY & string}:${string}` : never,
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): ImageModel;
 }
 
@@ -44,8 +45,18 @@ export interface ProviderRegistryProvider<
  */
 export function experimental_createProviderRegistry<
   PROVIDERS extends Record<string, ProviderV1>,
->(providers: PROVIDERS): ProviderRegistryProvider<PROVIDERS> {
-  const registry = new DefaultProviderRegistry<PROVIDERS>();
+  SEPARATOR extends string = ':',
+>(
+  providers: PROVIDERS,
+  {
+    separator = ':' as SEPARATOR,
+  }: {
+    separator?: SEPARATOR;
+  } = {},
+): ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
+  const registry = new DefaultProviderRegistry<PROVIDERS, SEPARATOR>({
+    separator,
+  });
 
   for (const [id, provider] of Object.entries(providers)) {
     registry.registerProvider({ id, provider } as {
@@ -57,10 +68,17 @@ export function experimental_createProviderRegistry<
   return registry;
 }
 
-class DefaultProviderRegistry<PROVIDERS extends Record<string, ProviderV1>>
-  implements ProviderRegistryProvider<PROVIDERS>
+class DefaultProviderRegistry<
+  PROVIDERS extends Record<string, ProviderV1>,
+  SEPARATOR extends string,
+> implements ProviderRegistryProvider<PROVIDERS, SEPARATOR>
 {
   private providers: PROVIDERS = {} as PROVIDERS;
+  private separator: SEPARATOR;
+
+  constructor({ separator }: { separator: SEPARATOR }) {
+    this.separator = separator;
+  }
 
   registerProvider<K extends keyof PROVIDERS>({
     id,
@@ -91,7 +109,7 @@ class DefaultProviderRegistry<PROVIDERS extends Record<string, ProviderV1>>
     id: string,
     modelType: 'languageModel' | 'textEmbeddingModel' | 'imageModel',
   ): [string, string] {
-    const index = id.indexOf(':');
+    const index = id.indexOf(this.separator);
 
     if (index === -1) {
       throw new NoSuchModelError({
@@ -99,7 +117,7 @@ class DefaultProviderRegistry<PROVIDERS extends Record<string, ProviderV1>>
         modelType,
         message:
           `Invalid ${modelType} id for registry: ${id} ` +
-          `(must be in the format "providerId:modelId")`,
+          `(must be in the format "providerId${this.separator}modelId")`,
       });
     }
 
@@ -107,7 +125,7 @@ class DefaultProviderRegistry<PROVIDERS extends Record<string, ProviderV1>>
   }
 
   languageModel<KEY extends keyof PROVIDERS>(
-    id: `${KEY & string}:${string}`,
+    id: `${KEY & string}${SEPARATOR}${string}`,
   ): LanguageModel {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
     const model = this.getProvider(providerId).languageModel?.(modelId);
@@ -120,7 +138,7 @@ class DefaultProviderRegistry<PROVIDERS extends Record<string, ProviderV1>>
   }
 
   textEmbeddingModel<KEY extends keyof PROVIDERS>(
-    id: `${KEY & string}:${string}`,
+    id: `${KEY & string}${SEPARATOR}${string}`,
   ): EmbeddingModel<string> {
     const [providerId, modelId] = this.splitId(id, 'textEmbeddingModel');
     const provider = this.getProvider(providerId);
@@ -138,7 +156,7 @@ class DefaultProviderRegistry<PROVIDERS extends Record<string, ProviderV1>>
   }
 
   imageModel<KEY extends keyof PROVIDERS>(
-    id: `${KEY & string}:${string}`,
+    id: `${KEY & string}${SEPARATOR}${string}`,
   ): ImageModel {
     const [providerId, modelId] = this.splitId(id, 'imageModel');
     const provider = this.getProvider(providerId);

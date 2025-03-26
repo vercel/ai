@@ -89,7 +89,7 @@ export const myProvider = customProvider({
 
 You can create a [provider registry](/docs/reference/ai-sdk-core/provider-registry) with multiple providers and models using `experimental_createProviderRegistry`.
 
-### Example: Setup
+### Setup
 
 ```ts filename={"registry.ts"}
 import { anthropic } from '@ai-sdk/anthropic';
@@ -107,6 +107,23 @@ export const registry = createProviderRegistry({
 });
 ```
 
+### Setup with Custom Separator
+
+By default, the registry uses `:` as the separator between provider and model IDs. You can customize this separator:
+
+```ts filename={"registry.ts"}
+import { anthropic } from '@ai-sdk/anthropic';
+import { openai } from '@ai-sdk/openai';
+
+export const customSeparatorRegistry = createProviderRegistry(
+  {
+    anthropic,
+    openai,
+  },
+  { separator: ' > ' },
+);
+```
+
 ### Example: Use language models
 
 You can access language models by using the `languageModel` method on the registry.
@@ -117,7 +134,9 @@ import { generateText } from 'ai';
 import { registry } from './registry';
 
 const { text } = await generateText({
-  model: registry.languageModel('openai:gpt-4-turbo'),
+  model: registry.languageModel('openai:gpt-4-turbo'), // default separator
+  // or with custom separator:
+  // model: customSeparatorRegistry.languageModel('openai > gpt-4-turbo'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 ```

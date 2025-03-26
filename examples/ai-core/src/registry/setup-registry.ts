@@ -41,6 +41,21 @@ export const registry = createProviderRegistry({
   groq,
 });
 
+registry.languageModel('anthropic:haiku');
+
+const registryWithCustomSeparator = createProviderRegistry(
+  {
+    mistral,
+    anthropic: myAnthropic,
+    openai: myOpenAI,
+    xai,
+    groq,
+  },
+  { separator: ' > ' },
+);
+
+registryWithCustomSeparator.languageModel('anthropic > haiku');
+
 export const myImageModels = customProvider({
   imageModels: {
     recraft: fal.imageModel('recraft-v3'),

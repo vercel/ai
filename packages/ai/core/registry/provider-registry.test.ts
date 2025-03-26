@@ -76,6 +76,27 @@ describe('languageModel', () => {
       NoSuchModelError,
     );
   });
+
+  it('should support custom separator', () => {
+    const model = new MockLanguageModelV1();
+
+    const modelRegistry = experimental_createProviderRegistry(
+      {
+        provider: {
+          languageModel: id => {
+            expect(id).toEqual('model');
+            return model;
+          },
+          textEmbeddingModel: () => {
+            return null as any;
+          },
+        },
+      },
+      { separator: '|' },
+    );
+
+    expect(modelRegistry.languageModel('provider|model')).toEqual(model);
+  });
 });
 
 describe('textEmbeddingModel', () => {
@@ -131,6 +152,27 @@ describe('textEmbeddingModel', () => {
       NoSuchModelError,
     );
   });
+
+  it('should support custom separator', () => {
+    const model = new MockEmbeddingModelV1<string>();
+
+    const modelRegistry = experimental_createProviderRegistry(
+      {
+        provider: {
+          textEmbeddingModel: id => {
+            expect(id).toEqual('model');
+            return model;
+          },
+          languageModel: () => {
+            return null as any;
+          },
+        },
+      },
+      { separator: '|' },
+    );
+
+    expect(modelRegistry.textEmbeddingModel('provider|model')).toEqual(model);
+  });
 });
 
 describe('imageModel', () => {
@@ -179,5 +221,25 @@ describe('imageModel', () => {
 
     // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.imageModel('model')).toThrowError(NoSuchModelError);
+  });
+
+  it('should support custom separator', () => {
+    const model = new MockImageModelV1();
+
+    const modelRegistry = experimental_createProviderRegistry(
+      {
+        provider: {
+          imageModel: id => {
+            expect(id).toEqual('model');
+            return model;
+          },
+          languageModel: () => null as any,
+          textEmbeddingModel: () => null as any,
+        },
+      },
+      { separator: '|' },
+    );
+
+    expect(modelRegistry.imageModel('provider|model')).toEqual(model);
   });
 });
