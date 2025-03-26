@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
 import { z } from 'zod';
 import { ProviderErrorStructure } from './openai-compatible-error';
+import { ImageModelV1CallOptions } from '@ai-sdk/provider';
 
 const prompt = 'A photorealistic astronaut riding a horse';
 
@@ -30,6 +31,20 @@ function createBasicModel({
       currentDate,
     },
   });
+}
+
+function createDefaultGenerateParams(overrides = {}): ImageModelV1CallOptions {
+  return {
+    prompt: 'A photorealistic astronaut riding a horse',
+    n: 1,
+    size: '1024x1024',
+    aspectRatio: undefined,
+    seed: undefined,
+    providerOptions: {},
+    headers: {},
+    abortSignal: undefined,
+    ...overrides,
+  };
 }
 
 describe('OpenAICompatibleImageModel', () => {
@@ -82,16 +97,12 @@ describe('OpenAICompatibleImageModel', () => {
     it('should pass the correct parameters', async () => {
       const model = createBasicModel();
 
-      await model.doGenerate({
-        prompt,
-        n: 2,
-        size: '1024x1024',
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: { openai: { quality: 'hd' } },
-        headers: {},
-        abortSignal: undefined,
-      });
+      await model.doGenerate(
+        createDefaultGenerateParams({
+          n: 2,
+          providerOptions: { openai: { quality: 'hd' } },
+        }),
+      );
 
       expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'dall-e-3',
@@ -106,16 +117,12 @@ describe('OpenAICompatibleImageModel', () => {
     it('should add warnings for unsupported settings', async () => {
       const model = createBasicModel();
 
-      const result = await model.doGenerate({
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        aspectRatio: '16:9',
-        seed: 123,
-        providerOptions: {},
-        headers: {},
-        abortSignal: undefined,
-      });
+      const result = await model.doGenerate(
+        createDefaultGenerateParams({
+          aspectRatio: '16:9',
+          seed: 123,
+        }),
+      );
 
       expect(result.warnings).toHaveLength(2);
       expect(result.warnings).toContainEqual({
@@ -137,18 +144,13 @@ describe('OpenAICompatibleImageModel', () => {
         }),
       });
 
-      await modelWithHeaders.doGenerate({
-        prompt,
-        n: 1,
-        providerOptions: {},
-        headers: {
-          'Custom-Request-Header': 'request-header-value',
-        },
-        size: '1024x1024',
-        seed: undefined,
-        aspectRatio: undefined,
-        abortSignal: undefined,
-      });
+      await modelWithHeaders.doGenerate(
+        createDefaultGenerateParams({
+          headers: {
+            'Custom-Request-Header': 'request-header-value',
+          },
+        }),
+      );
 
       expect(server.calls[0].requestHeaders).toStrictEqual({
         'content-type': 'application/json',
@@ -190,16 +192,7 @@ describe('OpenAICompatibleImageModel', () => {
       });
 
       await expect(
-        model.doGenerate({
-          prompt,
-          n: 1,
-          providerOptions: {},
-          size: '1024x1024',
-          seed: undefined,
-          aspectRatio: undefined,
-          headers: {},
-          abortSignal: undefined,
-        }),
+        model.doGenerate(createDefaultGenerateParams()),
       ).rejects.toMatchObject({
         message: 'Error 1234: Custom provider error format',
         statusCode: 400,
@@ -223,19 +216,10 @@ describe('OpenAICompatibleImageModel', () => {
         }),
       };
 
-      const model = createBasicModel(); // Uses default error structure
+      const model = createBasicModel();
 
       await expect(
-        model.doGenerate({
-          prompt,
-          n: 1,
-          providerOptions: {},
-          size: '1024x1024',
-          seed: undefined,
-          aspectRatio: undefined,
-          headers: {},
-          abortSignal: undefined,
-        }),
+        model.doGenerate(createDefaultGenerateParams()),
       ).rejects.toMatchObject({
         message: 'Invalid prompt content',
         statusCode: 400,
@@ -245,16 +229,11 @@ describe('OpenAICompatibleImageModel', () => {
 
     it('should return the raw b64_json content', async () => {
       const model = createBasicModel();
-      const result = await model.doGenerate({
-        prompt,
-        n: 2,
-        size: '1024x1024',
-        providerOptions: {},
-        headers: {},
-        abortSignal: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-      });
+      const result = await model.doGenerate(
+        createDefaultGenerateParams({
+          n: 2,
+        }),
+      );
 
       expect(result.images).toHaveLength(2);
       expect(result.images[0]).toBe('test1234');
@@ -268,16 +247,7 @@ describe('OpenAICompatibleImageModel', () => {
           currentDate: () => testDate,
         });
 
-        const result = await model.doGenerate({
-          prompt,
-          n: 1,
-          providerOptions: {},
-          size: '1024x1024',
-          seed: undefined,
-          aspectRatio: undefined,
-          headers: {},
-          abortSignal: undefined,
-        });
+        const result = await model.doGenerate(createDefaultGenerateParams());
 
         expect(result.response).toStrictEqual({
           timestamp: testDate,
@@ -301,16 +271,7 @@ describe('OpenAICompatibleImageModel', () => {
         },
       );
 
-      const result = await model.doGenerate({
-        prompt,
-        n: 1,
-        size: '1024x1024',
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {},
-        headers: {},
-        abortSignal: undefined,
-      });
+      const result = await model.doGenerate(createDefaultGenerateParams());
 
       const afterDate = new Date();
 
@@ -321,6 +282,43 @@ describe('OpenAICompatibleImageModel', () => {
         afterDate.getTime(),
       );
       expect(result.response.modelId).toBe('dall-e-3');
+    });
+
+    it('should pass the user setting in the request', async () => {
+      const model = createBasicModel({
+        settings: {
+          user: 'test-user-id',
+        },
+      });
+
+      await model.doGenerate(createDefaultGenerateParams());
+
+      expect(await server.calls[0].requestBody).toStrictEqual({
+        model: 'dall-e-3',
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        user: 'test-user-id',
+        response_format: 'b64_json',
+      });
+    });
+
+    it('should not include user field in request when setting is not provided', async () => {
+      const model = createBasicModel({
+        settings: {}, // explicitly empty settings
+      });
+
+      await model.doGenerate(createDefaultGenerateParams());
+
+      const requestBody = await server.calls[0].requestBody;
+      expect(requestBody).toStrictEqual({
+        model: 'dall-e-3',
+        prompt,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json',
+      });
+      expect(requestBody).not.toHaveProperty('user');
     });
   });
 });
