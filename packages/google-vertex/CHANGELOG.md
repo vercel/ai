@@ -1,5 +1,11 @@
 # @ai-sdk/google-vertex
 
+## 2.2.4
+
+### Patch Changes
+
+- e44989e: fix (provider/google-vertex): pass through auth options for vertex provider
+
 ## 2.2.3
 
 ### Patch Changes

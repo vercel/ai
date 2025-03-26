@@ -13,7 +13,7 @@
     "@ai-sdk/fal": "0.1.1",
     "@ai-sdk/fireworks": "0.2.2",
     "@ai-sdk/google": "1.2.3",
-    "@ai-sdk/google-vertex": "2.2.3",
+    "@ai-sdk/google-vertex": "2.2.4",
     "@ai-sdk/groq": "1.2.1",
     "@ai-sdk/luma": "0.1.1",
     "@ai-sdk/mistral": "1.2.1",
