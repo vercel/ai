@@ -33,6 +33,23 @@ export const registry = createProviderRegistry({
 });
 ```
 
+### Custom Separator
+
+By default, the registry uses `:` as the separator between provider and model IDs. You can customize this separator by passing a `separator` option:
+
+```ts
+const registry = createProviderRegistry(
+  {
+    anthropic,
+    openai,
+  },
+  { separator: ' > ' },
+);
+
+// Now you can use the custom separator
+const model = registry.languageModel('anthropic > claude-3-opus-20240229');
+```
+
 ### Language models
 
 You can access language models by using the `languageModel` method on the registry.
@@ -116,6 +133,24 @@ const { image } = await generateImage({
               name: 'imageModel',
               type: '(id: string) => ImageModel',
               description: 'A function that returns an image model by its id.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'options',
+      type: 'object',
+      description: 'Optional configuration for the registry.',
+      properties: [
+        {
+          type: 'Options',
+          parameters: [
+            {
+              name: 'separator',
+              type: 'string',
+              description:
+                'Custom separator between provider and model IDs. Defaults to ":".',
             },
           ],
         },
