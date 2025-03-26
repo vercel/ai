@@ -119,8 +119,8 @@ const { text } = await generateText({
 });
 ```
 
-OpenAI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
-(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+OpenAI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+(see [AI SDK Core](/docs/ai-sdk-core)).
 
 ### Chat Models
 
@@ -317,6 +317,39 @@ You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
 
+#### PDF support
+
+The OpenAI Chat API supports reading PDF files.
+You can pass PDF files as part of the message content using the `file` type:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'What is an embedding model?',
+        },
+        {
+          type: 'file',
+          data: fs.readFileSync('./data/ai.pdf'),
+          mimeType: 'application/pdf',
+          filename: 'ai.pdf', // optional
+        },
+      ],
+    },
+  ],
+});
+```
+
+The model will have access to the contents of the PDF file and
+respond to questions about it.
+The PDF file should be passed using the `data` field,
+and the `mimeType` should be set to `'application/pdf'`.
+
 #### Predicted Outputs
 
 OpenAI supports [predicted outputs](https://platform.openai.com/docs/guides/latency-optimization#use-predicted-outputs) for `gpt-4o` and `gpt-4o-mini`.
@@ -490,9 +523,13 @@ You can use the OpenAI responses API with the `openai.responses(modelId)` factor
 const model = openai.responses('gpt-4o-mini');
 ```
 
-Further configuration can be done using OpenAI provider options:
+Further configuration can be done using OpenAI provider options.
+You can validate the provider options using the `OpenAIResponsesProviderOptions` type.
 
 ```ts
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: openai.responses('gpt-4o-mini'),
   providerOptions: {
@@ -501,7 +538,7 @@ const result = await generateText({
       store: false,
       user: 'user_123',
       // ...
-    },
+    } satisfies OpenAIResponsesProviderOptions,
   },
   // ...
 });

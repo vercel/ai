@@ -1,5 +1,31 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.2.1
+
+### Patch Changes
+
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+
+## 2.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+
+## 2.1.6
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+
 ## 2.1.5
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/amazon-bedrock",
-  "version": "2.1.5",
+  "version": "2.2.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,14 +30,14 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.0.12",
-    "@ai-sdk/provider-utils": "2.1.14",
+    "@ai-sdk/provider": "1.1.0",
+    "@ai-sdk/provider-utils": "2.2.1",
     "@smithy/eventstream-codec": "^4.0.1",
     "@smithy/util-utf8": "^4.0.0",
     "aws4fetch": "^1.0.20"
   },
   "devDependencies": {
-    "@types/node": "^18.19.54",
+    "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8.3.0",
     "typescript": "5.6.3",

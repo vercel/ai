@@ -10,6 +10,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  parseProviderOptions,
   ParseResult,
   postJsonToApi,
   safeValidateTypes,
@@ -100,22 +101,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
     warnings.push(...messageWarnings);
 
-    // parse and validate provider options:
-    const parsedProviderOptions =
-      providerMetadata != null
-        ? safeValidateTypes({
-            value: providerMetadata,
-            schema: providerOptionsSchema,
-          })
-        : { success: true as const, value: undefined };
-    if (!parsedProviderOptions.success) {
-      throw new InvalidArgumentError({
-        argument: 'providerOptions',
-        message: 'invalid provider options',
-        cause: parsedProviderOptions.error,
-      });
-    }
-    const openaiOptions = parsedProviderOptions.value?.openai;
+    const openaiOptions = parseProviderOptions({
+      provider: 'openai',
+      providerOptions: providerMetadata,
+      schema: openaiResponsesProviderOptionsSchema,
+    });
 
     const isStrict = openaiOptions?.strictSchemas ?? true;
 
@@ -675,21 +665,6 @@ function isResponseAnnotationAddedChunk(
   return chunk.type === 'response.output_text.annotation.added';
 }
 
-const providerOptionsSchema = z.object({
-  openai: z
-    .object({
-      metadata: z.any().nullish(),
-      parallelToolCalls: z.boolean().nullish(),
-      previousResponseId: z.string().nullish(),
-      store: z.boolean().nullish(),
-      user: z.string().nullish(),
-      reasoningEffort: z.string().nullish(),
-      strictSchemas: z.boolean().nullish(),
-      instructions: z.string().nullish(),
-    })
-    .nullish(),
-});
-
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -721,3 +696,18 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     requiredAutoTruncation: false,
   };
 }
+
+const openaiResponsesProviderOptionsSchema = z.object({
+  metadata: z.any().nullish(),
+  parallelToolCalls: z.boolean().nullish(),
+  previousResponseId: z.string().nullish(),
+  store: z.boolean().nullish(),
+  user: z.string().nullish(),
+  reasoningEffort: z.string().nullish(),
+  strictSchemas: z.boolean().nullish(),
+  instructions: z.string().nullish(),
+});
+
+export type OpenAIResponsesProviderOptions = z.infer<
+  typeof openaiResponsesProviderOptionsSchema
+>;

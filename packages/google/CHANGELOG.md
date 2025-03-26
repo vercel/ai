@@ -1,5 +1,44 @@
 # @ai-sdk/google
 
+## 1.2.3
+
+### Patch Changes
+
+- 871df87: feat (provider/google): add gemini-2.5-pro-exp-03-25 to model list
+
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+
+## 1.2.1
+
+### Patch Changes
+
+- 994a13b: feat (provider/google): support IMAGE_SAFETY finish reason
+
+## 1.2.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider@1.1.0
+  - @ai-sdk/provider-utils@2.2.0
+
+## 1.1.27
+
+### Patch Changes
+
+- d0c4659: feat (provider-utils): parseProviderOptions function
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+
 ## 1.1.26
 
 ### Patch Changes

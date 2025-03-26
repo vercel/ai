@@ -1,5 +1,51 @@
 # @ai-sdk/svelte
 
+## 2.1.2
+
+### Patch Changes
+
+- d92fa29: feat: add credentials support to experimental useObject and StructuredObject
+
+## 2.1.1
+
+### Patch Changes
+
+- Updated dependencies [f10f0fa]
+  - @ai-sdk/provider-utils@2.2.1
+  - @ai-sdk/ui-utils@1.2.1
+
+## 2.1.0
+
+### Minor Changes
+
+- 5bc638d: AI SDK 4.2
+
+### Patch Changes
+
+- Updated dependencies [5bc638d]
+  - @ai-sdk/provider-utils@2.2.0
+  - @ai-sdk/ui-utils@1.2.0
+
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [d0c4659]
+  - @ai-sdk/provider-utils@2.1.15
+  - @ai-sdk/ui-utils@1.1.21
+
+## 2.0.3
+
+### Patch Changes
+
+- 62b327e: fix: Use instance-specific generateId for user messages
+
+## 2.0.2
+
+### Patch Changes
+
+- d1ea22e: fix(ui/svelte): Allow class instances to be created as deriveds
+
 ## 2.0.1
 
 ### Patch Changes

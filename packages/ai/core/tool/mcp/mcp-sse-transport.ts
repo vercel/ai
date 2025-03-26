@@ -1,4 +1,4 @@
-import { EventSourceParserStream } from 'eventsource-parser/stream';
+import { createEventSourceParserStream } from '@ai-sdk/provider-utils';
 import { MCPClientError } from '../../../errors';
 import { JSONRPCMessage, JSONRPCMessageSchema } from './json-rpc-message';
 import { MCPTransport } from './mcp-transport';
@@ -11,13 +11,21 @@ export class SseMCPTransport implements MCPTransport {
   private sseConnection?: {
     close: () => void;
   };
+  private headers?: Record<string, string>;
 
   onclose?: () => void;
   onerror?: (error: unknown) => void;
   onmessage?: (message: JSONRPCMessage) => void;
 
-  constructor({ url }: { url: string }) {
+  constructor({
+    url,
+    headers,
+  }: {
+    url: string;
+    headers?: Record<string, string>;
+  }) {
     this.url = new URL(url);
+    this.headers = headers;
   }
 
   async start(): Promise<void> {
@@ -30,10 +38,10 @@ export class SseMCPTransport implements MCPTransport {
 
       const establishConnection = async () => {
         try {
+          const headers = new Headers(this.headers);
+          headers.set('Accept', 'text/event-stream');
           const response = await fetch(this.url.href, {
-            headers: {
-              Accept: 'text/event-stream',
-            },
+            headers,
             signal: this.abortController?.signal,
           });
 
@@ -47,7 +55,7 @@ export class SseMCPTransport implements MCPTransport {
 
           const stream = response.body
             .pipeThrough(new TextDecoderStream())
-            .pipeThrough(new EventSourceParserStream());
+            .pipeThrough(createEventSourceParserStream());
 
           const reader = stream.getReader();
 
@@ -141,7 +149,7 @@ export class SseMCPTransport implements MCPTransport {
     }
 
     try {
-      const headers = new Headers();
+      const headers = new Headers(this.headers);
       headers.set('Content-Type', 'application/json');
       const init = {
         method: 'POST',

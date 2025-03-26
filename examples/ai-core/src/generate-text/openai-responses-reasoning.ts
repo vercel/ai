@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
@@ -10,7 +10,7 @@ async function main() {
     providerOptions: {
       openai: {
         reasoningEffort: 'low',
-      },
+      } satisfies OpenAIResponsesProviderOptions,
     },
   });
 
