@@ -125,6 +125,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      errorStructure: xaiErrorStructure,
     });
   };
 
