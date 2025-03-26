@@ -1,5 +1,4 @@
 import { resolve } from '@ai-sdk/provider-utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createVertex as createVertexOriginal } from './google-vertex-provider';
 import { createVertex as createVertexNode } from './google-vertex-provider-node';
 import { generateAuthToken } from './google-vertex-auth-google-auth-library';

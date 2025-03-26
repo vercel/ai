@@ -27,7 +27,6 @@ export function createVertex(
   return createVertexOriginal({
     ...options,
     headers: async () => ({
-      // generate auth token
       Authorization: `Bearer ${await generateAuthToken(
         options.googleCredentials,
       )}`,

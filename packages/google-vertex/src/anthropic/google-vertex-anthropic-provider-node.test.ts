@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createVertexAnthropic } from './google-vertex-anthropic-provider-node';
-import * as baseProvider from './google-vertex-anthropic-provider';
+import { resolve } from '@ai-sdk/provider-utils';
 import { createVertexAnthropic as createVertexAnthropicOriginal } from './google-vertex-anthropic-provider';
+import { createVertexAnthropic as createVertexAnthropicNode } from './google-vertex-anthropic-provider-node';
+import { generateAuthToken } from '../google-vertex-auth-google-auth-library';
 
 // Mock the imported modules
 vi.mock('../google-vertex-auth-google-auth-library', () => ({
@@ -19,63 +19,54 @@ describe('google-vertex-anthropic-provider-node', () => {
     vi.clearAllMocks();
   });
 
-  it('should set up default auth token header when no headers provided', () => {
-    createVertexAnthropic({ project: 'test-project' });
+  it('default headers function should return auth token', async () => {
+    createVertexAnthropicNode({ project: 'test-project' });
 
-    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
-    const passedOptions = mockCreateProvider.mock.calls[0][0];
+    expect(createVertexAnthropicOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
 
-    expect(mockCreateProvider).toHaveBeenCalledTimes(1);
     expect(typeof passedOptions?.headers).toBe('function');
-  });
-
-  it('default headers function should return auth token and anthropic version', async () => {
-    createVertexAnthropic({ project: 'test-project' });
-
-    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
-    const passedOptions = mockCreateProvider.mock.calls[0][0];
-    const headersFunction = passedOptions?.headers as () => Promise<
-      Record<string, string>
-    >;
-    const headers = await headersFunction();
-
-    expect(headers).toEqual({
+    expect(await resolve(passedOptions?.headers)).toStrictEqual({
       Authorization: 'Bearer mock-auth-token',
     });
   });
 
-  it('should pass through custom headers when provided', () => {
-    const customHeaders = async () => ({
+  it('should use custom headers in addition to auth token when provided', async () => {
+    createVertexAnthropicNode({
+      project: 'test-project',
+      headers: async () => ({
+        'Custom-Header': 'custom-value',
+      }),
+    });
+
+    expect(createVertexAnthropicOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
+
+    expect(await resolve(passedOptions?.headers)).toEqual({
+      Authorization: 'Bearer mock-auth-token',
       'Custom-Header': 'custom-value',
     });
-
-    createVertexAnthropic({
-      project: 'test-project',
-      headers: customHeaders,
-    });
-
-    const mockCreateProvider = vi.mocked(baseProvider.createVertexAnthropic);
-    const passedOptions = mockCreateProvider.mock.calls[0][0];
-
-    expect(mockCreateProvider).toHaveBeenCalledTimes(1);
-    expect(passedOptions?.headers).toBe(customHeaders);
   });
 
-  it('passes googleAuthOptions through to createGoogleVertexAnthropicOriginal', () => {
-    const mockAuthOptions = {
-      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-      keyFile: 'path/to/key.json',
-    };
-
-    createVertexAnthropic({
-      googleAuthOptions: mockAuthOptions,
+  it('passes googleAuthOptions to generateAuthToken', async () => {
+    createVertexAnthropicNode({
+      googleAuthOptions: {
+        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+        keyFile: 'path/to/key.json',
+      },
     });
 
-    expect(createVertexAnthropicOriginal).toHaveBeenCalledWith(
-      expect.objectContaining({
-        googleAuthOptions: mockAuthOptions,
-        headers: expect.any(Function),
-      }),
-    );
+    expect(createVertexAnthropicOriginal).toHaveBeenCalledTimes(1);
+    const passedOptions = vi.mocked(createVertexAnthropicOriginal).mock
+      .calls[0][0];
+
+    await resolve(passedOptions?.headers); // call the headers function
+
+    expect(generateAuthToken).toHaveBeenCalledWith({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      keyFile: 'path/to/key.json',
+    });
   });
 });
