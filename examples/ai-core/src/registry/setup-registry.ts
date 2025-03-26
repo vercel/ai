@@ -6,10 +6,7 @@ import { mistral } from '@ai-sdk/mistral';
 import { openai } from '@ai-sdk/openai';
 import { replicate } from '@ai-sdk/replicate';
 import { xai } from '@ai-sdk/xai';
-import {
-  experimental_createProviderRegistry as createProviderRegistry,
-  customProvider,
-} from 'ai';
+import { createProviderRegistry, customProvider } from 'ai';
 import 'dotenv/config';
 
 // custom provider with alias names:

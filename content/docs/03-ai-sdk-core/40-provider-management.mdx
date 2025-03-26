@@ -85,16 +85,14 @@ export const myProvider = customProvider({
 
 ## Provider Registry
 
-<Note type="warning">The provider registry is an experimental feature.</Note>
-
-You can create a [provider registry](/docs/reference/ai-sdk-core/provider-registry) with multiple providers and models using `experimental_createProviderRegistry`.
+You can create a [provider registry](/docs/reference/ai-sdk-core/provider-registry) with multiple providers and models using `createProviderRegistry`.
 
 ### Setup
 
 ```ts filename={"registry.ts"}
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_createProviderRegistry as createProviderRegistry } from 'ai';
+import { createProviderRegistry } from 'ai';
 
 export const registry = createProviderRegistry({
   // register provider with prefix and default setup:
