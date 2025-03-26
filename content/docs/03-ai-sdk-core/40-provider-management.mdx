@@ -9,10 +9,13 @@ When you work with multiple providers and models, it is often desirable to manag
 and access the models through simple string ids.
 
 The AI SDK offers [custom providers](/docs/reference/ai-sdk-core/custom-provider) and
-a [provider registry](/docs/reference/ai-sdk-core/provider-registry) for this purpose.
-With custom providers, you can **pre-configure model settings**, **provide model name aliases**,
-and **limit the available models** .
-The provider registry lets you mix **multiple providers** and access them through simple string ids.
+a [provider registry](/docs/reference/ai-sdk-core/provider-registry) for this purpose:
+
+- With **custom providers**, you can pre-configure model settings, provide model name aliases,
+  and limit the available models.
+- The **provider registry** lets you mix multiple providers and access them through simple string ids.
+
+You can mix and match custom providers, the provider registry, and [middleware](/docs/reference/ai-sdk-core/middleware) in your application.
 
 ## Custom Providers
 
@@ -85,16 +88,14 @@ export const myProvider = customProvider({
 
 ## Provider Registry
 
-<Note type="warning">The provider registry is an experimental feature.</Note>
-
-You can create a [provider registry](/docs/reference/ai-sdk-core/provider-registry) with multiple providers and models using `experimental_createProviderRegistry`.
+You can create a [provider registry](/docs/reference/ai-sdk-core/provider-registry) with multiple providers and models using `createProviderRegistry`.
 
 ### Setup
 
 ```ts filename={"registry.ts"}
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_createProviderRegistry as createProviderRegistry } from 'ai';
+import { createProviderRegistry } from 'ai';
 
 export const registry = createProviderRegistry({
   // register provider with prefix and default setup:

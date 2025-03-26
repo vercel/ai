@@ -43,7 +43,7 @@ export interface ProviderRegistryProvider<
 /**
  * Creates a registry for the given providers.
  */
-export function experimental_createProviderRegistry<
+export function createProviderRegistry<
   PROVIDERS extends Record<string, ProviderV1>,
   SEPARATOR extends string = ':',
 >(
@@ -67,6 +67,11 @@ export function experimental_createProviderRegistry<
 
   return registry;
 }
+
+/**
+ * @deprecated Use `createProviderRegistry` instead.
+ */
+export const experimental_createProviderRegistry = createProviderRegistry;
 
 class DefaultProviderRegistry<
   PROVIDERS extends Record<string, ProviderV1>,
