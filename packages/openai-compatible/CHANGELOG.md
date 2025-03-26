@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.2.2
+
+### Patch Changes
+
+- a6b55cc: feat (providers/openai-compatible): add openai-compatible image model and use as xai image model base
+
 ## 0.2.1
 
 ### Patch Changes
