@@ -15,6 +15,7 @@ packages/example/
 │   ├── example-chat-settings.ts       # Chat model types and settings
 │   ├── example-completion-settings.ts # Completion model types and settings
 │   ├── example-embedding-settings.ts  # Embedding model types and settings
+│   ├── example-image-settings.ts      # Image model types and settings
 │   ├── example-provider.ts            # Main provider implementation
 │   ├── example-provider.test.ts       # Provider tests
 │   └── index.ts                       # Public exports
@@ -41,7 +42,7 @@ export interface ExampleChatSettings extends OpenAICompatibleChatSettings {
 }
 ```
 
-The completion and embedding settings are implemented similarly to the chat settings.
+The completion, embedding, and image settings are implemented similarly to the chat settings.
 
 2. **example-provider.ts** - Main provider implementation:
 
@@ -51,6 +52,7 @@ import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleCompletionLanguageModel,
   OpenAICompatibleEmbeddingModel,
+  OpenAICompatibleImageModel,
 } from '@ai-sdk/openai-compatible';
 import {
   FetchFunction,
@@ -115,6 +117,14 @@ Creates a text embedding model for text generation.
     modelId: ExampleEmbeddingModelId,
     settings?: ExampleEmbeddingSettings,
   ): EmbeddingModelV1<string>;
+
+  /**
+Creates an image model for image generation.
+*/
+  imageModel(
+    modelId: ExampleImageModelId,
+    settings?: ExampleImageSettings,
+  ): ImageModelV1;
 }
 
 export function createExample(
@@ -182,6 +192,16 @@ export function createExample(
       getCommonModelConfig('embedding'),
     );
 
+  const createImageModel = (
+    modelId: ExampleImageModelId,
+    settings: ExampleImageSettings = {},
+  ) =>
+    new OpenAICompatibleImageModel(
+      modelId,
+      settings,
+      getCommonModelConfig('image'),
+    );
+
   const provider = (
     modelId: ExampleChatModelId,
     settings?: ExampleChatSettings,
@@ -190,6 +210,7 @@ export function createExample(
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
+  provider.imageModel = createImageModel;
 
   return provider;
 }

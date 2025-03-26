@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
@@ -15,7 +15,7 @@ async function main() {
       openai: {
         previousResponseId: result1.providerMetadata?.openai
           .responseId as string,
-      },
+      } satisfies OpenAIResponsesProviderOptions,
     },
   });
 

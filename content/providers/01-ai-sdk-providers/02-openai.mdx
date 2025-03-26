@@ -119,8 +119,8 @@ const { text } = await generateText({
 });
 ```
 
-OpenAI language models can also be used in the `streamText`, `generateObject`, `streamObject`, and `streamUI` functions
-(see [AI SDK Core](/docs/ai-sdk-core) and [AI SDK RSC](/docs/ai-sdk-rsc)).
+OpenAI language models can also be used in the `streamText`, `generateObject`, and `streamObject` functions
+(see [AI SDK Core](/docs/ai-sdk-core)).
 
 ### Chat Models
 
@@ -523,9 +523,13 @@ You can use the OpenAI responses API with the `openai.responses(modelId)` factor
 const model = openai.responses('gpt-4o-mini');
 ```
 
-Further configuration can be done using OpenAI provider options:
+Further configuration can be done using OpenAI provider options.
+You can validate the provider options using the `OpenAIResponsesProviderOptions` type.
 
 ```ts
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: openai.responses('gpt-4o-mini'),
   providerOptions: {
@@ -534,7 +538,7 @@ const result = await generateText({
       store: false,
       user: 'user_123',
       // ...
-    },
+    } satisfies OpenAIResponsesProviderOptions,
   },
   // ...
 });
@@ -553,6 +557,11 @@ The following provider options are available:
 
 - **previousResponseId** _string_
   The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
+
+- **instructions** _string_
+  Instructions for the model.
+  They can be used to change the system or developer message when continuing a conversation using the `previousResponseId` option.
+  Defaults to `undefined`.
 
 - **user** _string_
   A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.

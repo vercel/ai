@@ -95,6 +95,13 @@ export function standardizePrompt<TOOLS extends ToolSet>({
           })
         : (prompt.messages as CoreMessage[]);
 
+    if (messages.length === 0) {
+      throw new InvalidPromptError({
+        prompt,
+        message: 'messages must not be empty',
+      });
+    }
+
     const validationResult = safeValidateTypes({
       value: messages,
       schema: z.array(coreMessageSchema),

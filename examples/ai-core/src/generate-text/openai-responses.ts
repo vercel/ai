@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { openai, OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import 'dotenv/config';
 
@@ -16,7 +16,7 @@ async function main() {
           key2: 'value2',
         },
         user: 'user_123',
-      },
+      } satisfies OpenAIResponsesProviderOptions,
     },
   });
 

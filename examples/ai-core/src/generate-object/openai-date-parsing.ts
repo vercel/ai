@@ -19,7 +19,7 @@ async function main() {
         }),
       ),
     }),
-    prompt: 'List 5 important events from the the year 2000.',
+    prompt: 'List 5 important events from the year 2000.',
   });
 
   console.log(events);

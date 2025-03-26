@@ -1,5 +1,11 @@
 # @ai-sdk/svelte
 
+## 2.1.2
+
+### Patch Changes
+
+- d92fa29: feat: add credentials support to experimental useObject and StructuredObject
+
 ## 2.1.1
 
 ### Patch Changes

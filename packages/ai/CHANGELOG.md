@@ -1,5 +1,24 @@
 # ai
 
+## 4.2.5
+
+### Patch Changes
+
+- Updated dependencies [d92fa29]
+  - @ai-sdk/react@1.2.2
+
+## 4.2.4
+
+### Patch Changes
+
+- 3d6d96d: fix (ai/core): validate that messages are not empty
+
+## 4.2.3
+
+### Patch Changes
+
+- 0b3bf29: fix (ai/core): custom env support for stdio MCP transport
+
 ## 4.2.2
 
 ### Patch Changes

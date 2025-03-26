@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 1.3.3
+
+### Patch Changes
+
+- 24befd8: feat (provider/openai): add instructions to providerOptions
+
+## 1.3.2
+
+### Patch Changes
+
+- db15028: feat (provider/openai): expose type for validating OpenAI responses provider options
+
 ## 1.3.1
 
 ### Patch Changes

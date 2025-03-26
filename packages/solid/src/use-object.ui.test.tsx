@@ -2,8 +2,8 @@ import {
   describeWithTestServer,
   withTestServer,
 } from '@ai-sdk/provider-utils/test';
-import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, waitFor } from '@solidjs/testing-library';
+import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { z } from 'zod';
 import { experimental_useObject } from './use-object';
@@ -17,6 +17,7 @@ describe('text stream', () => {
 
   const TestComponent = (props: {
     headers?: Record<string, string> | Headers;
+    credentials?: RequestCredentials;
   }) => {
     const { object, error, submit, isLoading, stop } = experimental_useObject(
       () => ({
@@ -29,6 +30,7 @@ describe('text stream', () => {
           onFinishCalls.push(event);
         },
         headers: props.headers,
+        credentials: props.credentials,
       }),
     );
 
@@ -251,6 +253,22 @@ describe('text stream', () => {
           authorization: 'Bearer TEST_TOKEN',
           'x-custom-header': 'CustomValue',
         });
+      },
+    ),
+  );
+
+  it(
+    'should send custom credentials',
+    withTestServer(
+      {
+        url: '/api/use-object',
+        type: 'stream-values',
+        content: ['{ ', '"content": "Authenticated ', 'content', '!"', '}'],
+      },
+      async ({ call }) => {
+        render(() => <TestComponent credentials="include" />);
+        await userEvent.click(screen.getByTestId('submit-button'));
+        expect(call(0).getRequestCredentials()).toBe('include');
       },
     ),
   );

@@ -1,5 +1,4 @@
 import {
-  InvalidArgumentError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
@@ -10,9 +9,9 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { OpenAIConfig } from '../openai-config';
@@ -100,22 +99,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
     warnings.push(...messageWarnings);
 
-    // parse and validate provider options:
-    const parsedProviderOptions =
-      providerMetadata != null
-        ? safeValidateTypes({
-            value: providerMetadata,
-            schema: providerOptionsSchema,
-          })
-        : { success: true as const, value: undefined };
-    if (!parsedProviderOptions.success) {
-      throw new InvalidArgumentError({
-        argument: 'providerOptions',
-        message: 'invalid provider options',
-        cause: parsedProviderOptions.error,
-      });
-    }
-    const openaiOptions = parsedProviderOptions.value?.openai;
+    const openaiOptions = parseProviderOptions({
+      provider: 'openai',
+      providerOptions: providerMetadata,
+      schema: openaiResponsesProviderOptionsSchema,
+    });
 
     const isStrict = openaiOptions?.strictSchemas ?? true;
 
@@ -147,6 +135,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       previous_response_id: openaiOptions?.previousResponseId,
       store: openaiOptions?.store,
       user: openaiOptions?.user,
+      instructions: openaiOptions?.instructions,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -674,20 +663,6 @@ function isResponseAnnotationAddedChunk(
   return chunk.type === 'response.output_text.annotation.added';
 }
 
-const providerOptionsSchema = z.object({
-  openai: z
-    .object({
-      metadata: z.any().nullish(),
-      parallelToolCalls: z.boolean().nullish(),
-      previousResponseId: z.string().nullish(),
-      store: z.boolean().nullish(),
-      user: z.string().nullish(),
-      reasoningEffort: z.string().nullish(),
-      strictSchemas: z.boolean().nullish(),
-    })
-    .nullish(),
-});
-
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -719,3 +694,18 @@ function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
     requiredAutoTruncation: false,
   };
 }
+
+const openaiResponsesProviderOptionsSchema = z.object({
+  metadata: z.any().nullish(),
+  parallelToolCalls: z.boolean().nullish(),
+  previousResponseId: z.string().nullish(),
+  store: z.boolean().nullish(),
+  user: z.string().nullish(),
+  reasoningEffort: z.string().nullish(),
+  strictSchemas: z.boolean().nullish(),
+  instructions: z.string().nullish(),
+});
+
+export type OpenAIResponsesProviderOptions = z.infer<
+  typeof openaiResponsesProviderOptionsSchema
+>;

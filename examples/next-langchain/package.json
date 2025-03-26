@@ -9,10 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "1.2.1",
+    "@ai-sdk/react": "1.2.2",
     "@langchain/openai": "0.0.28",
     "@langchain/core": "0.1.63",
-    "ai": "4.2.2",
+    "ai": "4.2.5",
     "langchain": "0.1.36",
     "next": "latest",
     "react": "^18",
