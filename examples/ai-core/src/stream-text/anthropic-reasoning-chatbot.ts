@@ -1,4 +1,4 @@
-import { createAnthropic } from '@ai-sdk/anthropic';
+import { AnthropicProviderOptions, createAnthropic } from '@ai-sdk/anthropic';
 import { CoreMessage, streamText, tool } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
@@ -51,7 +51,7 @@ async function main() {
       providerOptions: {
         anthropic: {
           thinking: { type: 'enabled', budgetTokens: 12000 },
-        },
+        } satisfies AnthropicProviderOptions,
       },
       onError: error => {
         console.error(error);

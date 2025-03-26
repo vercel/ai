@@ -154,7 +154,7 @@ You can customize the image generation behavior with model-specific settings:
 import { xai } from '@ai-sdk/xai';
 import { experimental_generateImage as generateImage } from 'ai';
 
-const { image } = await generateImage({
+const { images } = await generateImage({
   model: xai.image('grok-2-image', {
     maxImagesPerCall: 5, // Default is 10
   }),

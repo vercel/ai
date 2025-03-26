@@ -2,20 +2,20 @@ import { NoSuchModelError } from '@ai-sdk/provider';
 import { MockEmbeddingModelV1 } from '../test/mock-embedding-model-v1';
 import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
 import { NoSuchProviderError } from './no-such-provider-error';
-import { experimental_createProviderRegistry } from './provider-registry';
+import { createProviderRegistry } from './provider-registry';
 import { MockImageModelV1 } from '../test/mock-image-model-v1';
 
 describe('languageModel', () => {
   it('should return language model from provider', () => {
     const model = new MockLanguageModelV1();
 
-    const modelRegistry = experimental_createProviderRegistry({
+    const modelRegistry = createProviderRegistry({
       provider: {
-        languageModel: id => {
+        languageModel: (id: string) => {
           expect(id).toEqual('model');
           return model;
         },
-        textEmbeddingModel: () => {
+        textEmbeddingModel: (id: string) => {
           return null as any;
         },
       },
@@ -27,7 +27,7 @@ describe('languageModel', () => {
   it('should return language model with additional colon from provider', () => {
     const model = new MockLanguageModelV1();
 
-    const modelRegistry = experimental_createProviderRegistry({
+    const modelRegistry = createProviderRegistry({
       provider: {
         languageModel: id => {
           expect(id).toEqual('model:part2');
@@ -43,15 +43,16 @@ describe('languageModel', () => {
   });
 
   it('should throw NoSuchProviderError if provider does not exist', () => {
-    const registry = experimental_createProviderRegistry({});
+    const registry = createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.languageModel('provider:model:part2')).toThrowError(
       NoSuchProviderError,
     );
   });
 
   it('should throw NoSuchModelError if provider does not return a model', () => {
-    const registry = experimental_createProviderRegistry({
+    const registry = createProviderRegistry({
       provider: {
         languageModel: () => {
           return null as any;
@@ -68,11 +69,33 @@ describe('languageModel', () => {
   });
 
   it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
-    const registry = experimental_createProviderRegistry({});
+    const registry = createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.languageModel('model')).toThrowError(
       NoSuchModelError,
     );
+  });
+
+  it('should support custom separator', () => {
+    const model = new MockLanguageModelV1();
+
+    const modelRegistry = createProviderRegistry(
+      {
+        provider: {
+          languageModel: id => {
+            expect(id).toEqual('model');
+            return model;
+          },
+          textEmbeddingModel: () => {
+            return null as any;
+          },
+        },
+      },
+      { separator: '|' },
+    );
+
+    expect(modelRegistry.languageModel('provider|model')).toEqual(model);
   });
 });
 
@@ -80,7 +103,7 @@ describe('textEmbeddingModel', () => {
   it('should return embedding model from provider using textEmbeddingModel', () => {
     const model = new MockEmbeddingModelV1<string>();
 
-    const modelRegistry = experimental_createProviderRegistry({
+    const modelRegistry = createProviderRegistry({
       provider: {
         textEmbeddingModel: id => {
           expect(id).toEqual('model');
@@ -96,15 +119,16 @@ describe('textEmbeddingModel', () => {
   });
 
   it('should throw NoSuchProviderError if provider does not exist', () => {
-    const registry = experimental_createProviderRegistry({});
+    const registry = createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.textEmbeddingModel('provider:model')).toThrowError(
       NoSuchProviderError,
     );
   });
 
   it('should throw NoSuchModelError if provider does not return a model', () => {
-    const registry = experimental_createProviderRegistry({
+    const registry = createProviderRegistry({
       provider: {
         textEmbeddingModel: () => {
           return null as any;
@@ -121,11 +145,33 @@ describe('textEmbeddingModel', () => {
   });
 
   it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
-    const registry = experimental_createProviderRegistry({});
+    const registry = createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.textEmbeddingModel('model')).toThrowError(
       NoSuchModelError,
     );
+  });
+
+  it('should support custom separator', () => {
+    const model = new MockEmbeddingModelV1<string>();
+
+    const modelRegistry = createProviderRegistry(
+      {
+        provider: {
+          textEmbeddingModel: id => {
+            expect(id).toEqual('model');
+            return model;
+          },
+          languageModel: () => {
+            return null as any;
+          },
+        },
+      },
+      { separator: '|' },
+    );
+
+    expect(modelRegistry.textEmbeddingModel('provider|model')).toEqual(model);
   });
 });
 
@@ -133,7 +179,7 @@ describe('imageModel', () => {
   it('should return image model from provider', () => {
     const model = new MockImageModelV1();
 
-    const modelRegistry = experimental_createProviderRegistry({
+    const modelRegistry = createProviderRegistry({
       provider: {
         imageModel: id => {
           expect(id).toEqual('model');
@@ -148,15 +194,16 @@ describe('imageModel', () => {
   });
 
   it('should throw NoSuchProviderError if provider does not exist', () => {
-    const registry = experimental_createProviderRegistry({});
+    const registry = createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.imageModel('provider:model')).toThrowError(
       NoSuchProviderError,
     );
   });
 
   it('should throw NoSuchModelError if provider does not return a model', () => {
-    const registry = experimental_createProviderRegistry({
+    const registry = createProviderRegistry({
       provider: {
         imageModel: () => null as any,
         languageModel: () => null as any,
@@ -170,8 +217,29 @@ describe('imageModel', () => {
   });
 
   it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
-    const registry = experimental_createProviderRegistry({});
+    const registry = createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.imageModel('model')).toThrowError(NoSuchModelError);
+  });
+
+  it('should support custom separator', () => {
+    const model = new MockImageModelV1();
+
+    const modelRegistry = createProviderRegistry(
+      {
+        provider: {
+          imageModel: id => {
+            expect(id).toEqual('model');
+            return model;
+          },
+          languageModel: () => null as any,
+          textEmbeddingModel: () => null as any,
+        },
+      },
+      { separator: '|' },
+    );
+
+    expect(modelRegistry.imageModel('provider|model')).toEqual(model);
   });
 });

@@ -2,16 +2,18 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createXai } from './xai-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import { XaiImageModel } from './xai-image-model';
+import { OpenAICompatibleImageModel } from '@ai-sdk/openai-compatible';
 
 const OpenAICompatibleChatLanguageModelMock =
   OpenAICompatibleChatLanguageModel as unknown as Mock;
-const XaiImageModelMock = XaiImageModel as unknown as Mock;
+const OpenAICompatibleImageModelMock =
+  OpenAICompatibleImageModel as unknown as Mock;
 
 vi.mock('@ai-sdk/openai-compatible', () => ({
   OpenAICompatibleChatLanguageModel: vi.fn(),
   OpenAICompatibleCompletionLanguageModel: vi.fn(),
   OpenAICompatibleEmbeddingModel: vi.fn(),
+  OpenAICompatibleImageModel: vi.fn(),
 }));
 
 vi.mock('./xai-image-model', () => ({
@@ -96,9 +98,9 @@ describe('xAIProvider', () => {
 
       const model = provider.imageModel(modelId, settings);
 
-      expect(model).toBeInstanceOf(XaiImageModel);
+      expect(model).toBeInstanceOf(OpenAICompatibleImageModel);
 
-      const constructorCall = XaiImageModelMock.mock.calls[0];
+      const constructorCall = OpenAICompatibleImageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
       expect(constructorCall[1]).toEqual(settings);
 
@@ -116,7 +118,7 @@ describe('xAIProvider', () => {
 
       provider.imageModel(modelId);
 
-      const constructorCall = XaiImageModelMock.mock.calls[0];
+      const constructorCall = OpenAICompatibleImageModelMock.mock.calls[0];
       const config = constructorCall[2];
       expect(config.url({ path: '/test-path' })).toBe(
         `${customBaseURL}/test-path`,
@@ -129,7 +131,7 @@ describe('xAIProvider', () => {
 
       provider.imageModel('grok-2-image');
 
-      const constructorCall = XaiImageModelMock.mock.calls[0];
+      const constructorCall = OpenAICompatibleImageModelMock.mock.calls[0];
       const config = constructorCall[2];
       const headers = config.headers();
 
