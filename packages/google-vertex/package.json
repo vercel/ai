@@ -22,8 +22,7 @@
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run",
-    "test:node:watch": "vitest --config vitest.node.config.js"
+    "test:node": "vitest --config vitest.node.config.js --run"
   },
   "exports": {
     "./package.json": "./package.json",
