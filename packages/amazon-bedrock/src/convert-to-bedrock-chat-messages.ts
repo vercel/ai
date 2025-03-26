@@ -3,11 +3,9 @@ import {
   BedrockAssistantMessage,
   BedrockCachePoint,
   BedrockDocumentFormat,
-  BedrockImageBlock,
   BedrockImageFormat,
   BedrockMessages,
   BedrockSystemMessages,
-  BedrockTextBlock,
   BedrockUserMessage,
 } from './bedrock-api-types';
 import {
@@ -140,16 +138,27 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
                           case 'text':
                             return {
                               text: part.text,
-                            } as BedrockTextBlock;
+                            };
                           case 'image':
+                            if (!part.mimeType) {
+                              throw new Error(
+                                'Image mime type is required in tool result part content',
+                              );
+                            }
+                            const format = part.mimeType.split('/')[1];
+                            if (!isBedrockImageFormat(format)) {
+                              throw new Error(
+                                `Unsupported image format: ${format}`,
+                              );
+                            }
                             return {
                               image: {
-                                format: part.mimeType?.split('/')?.[1],
+                                format,
                                 source: {
                                   bytes: part.data,
                                 },
                               },
-                            } as BedrockImageBlock;
+                            };
                         }
                       })
                     : [{ text: JSON.stringify(part.result) }];
@@ -271,6 +280,10 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
   }
 
   return { system, messages };
+}
+
+function isBedrockImageFormat(format: string): format is BedrockImageFormat {
+  return ['jpeg', 'png', 'gif'].includes(format);
 }
 
 function trimIfLast(
