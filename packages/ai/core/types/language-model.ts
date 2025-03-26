@@ -1,5 +1,6 @@
 import {
   LanguageModelV1,
+  LanguageModelV1_1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
@@ -25,12 +26,14 @@ export type {
   LanguageModelV1ToolCallPart,
   LanguageModelV1ToolChoice,
   LanguageModelV1ToolResultPart,
+  LanguageModelV1_1,
+  LanguageModelV1_1StreamPart,
 } from '@ai-sdk/provider';
 
 /**
 Language model that is used by the AI SDK Core functions.
 */
-export type LanguageModel = LanguageModelV1;
+export type LanguageModel = LanguageModelV1 | LanguageModelV1_1;
 
 /**
 Reason why a language model finished generating a response.
