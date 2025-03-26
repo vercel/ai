@@ -1,5 +1,4 @@
 import {
-  InvalidArgumentError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
@@ -13,7 +12,6 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { OpenAIConfig } from '../openai-config';
