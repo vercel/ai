@@ -5,8 +5,6 @@ description: Registry for managing multiple providers and models (API Reference)
 
 # `createProviderRegistry()`
 
-<Note type="warning">The provider registry is an experimental feature.</Note>
-
 When you work with multiple providers and models, it is often desirable to manage them
 in a central place and access the models through simple string ids.
 
@@ -15,12 +13,12 @@ can access by their ids in the format `providerId:modelId`.
 
 ### Setup
 
-You can create a registry with multiple providers and models using `experimental_createProviderRegistry`.
+You can create a registry with multiple providers and models using `createProviderRegistry`.
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_createProviderRegistry as createProviderRegistry } from 'ai';
+import { createProviderRegistry } from 'ai';
 
 export const registry = createProviderRegistry({
   // register provider with prefix and default setup:
@@ -97,10 +95,7 @@ const { image } = await generateImage({
 
 ## Import
 
-<Snippet
-  text={`import { experimental_createProviderRegistry as createProviderRegistry } from "ai"`}
-  prompt={false}
-/>
+<Snippet text={`import { createProviderRegistry } from "ai"`} prompt={false} />
 
 ## API Signature
 
