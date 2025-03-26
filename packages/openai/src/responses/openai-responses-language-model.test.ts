@@ -467,6 +467,29 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send instructions provider option', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          providerMetadata: {
+            openai: {
+              instructions: 'You are a friendly assistant.',
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+          instructions: 'You are a friendly assistant.',
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should send object-tool format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',

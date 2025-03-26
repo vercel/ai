@@ -1,5 +1,4 @@
 import {
-  InvalidArgumentError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
@@ -13,7 +12,6 @@ import {
   parseProviderOptions,
   ParseResult,
   postJsonToApi,
-  safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { OpenAIConfig } from '../openai-config';
@@ -137,6 +135,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       previous_response_id: openaiOptions?.previousResponseId,
       store: openaiOptions?.store,
       user: openaiOptions?.user,
+      instructions: openaiOptions?.instructions,
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
@@ -704,6 +703,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   user: z.string().nullish(),
   reasoningEffort: z.string().nullish(),
   strictSchemas: z.boolean().nullish(),
+  instructions: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
