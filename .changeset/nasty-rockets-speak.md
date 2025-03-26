@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-feat (ai/core): custom seperator support for provider registry
+feat (ai/core): custom separator support for provider registry
