@@ -1,37 +1,79 @@
 import { NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
-import { EmbeddingModel, ImageModel, LanguageModel, Provider } from '../types';
+import { EmbeddingModel, ImageModel, LanguageModel } from '../types';
 import { NoSuchProviderError } from './no-such-provider-error';
+
+type ExtractLiteralUnion<T> = T extends string
+  ? string extends T
+    ? never
+    : T
+  : never;
+
+export interface ProviderRegistryProvider<
+  PROVIDERS extends Record<string, ProviderV1> = Record<string, ProviderV1>,
+> {
+  languageModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}:${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['languageModel']>>[0]>}`
+      : never,
+  ): LanguageModel;
+  languageModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}:${string}` : never,
+  ): LanguageModel;
+
+  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}:${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['textEmbeddingModel']>>[0]>}`
+      : never,
+  ): EmbeddingModel<string>;
+  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}:${string}` : never,
+  ): EmbeddingModel<string>;
+
+  imageModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}:${ExtractLiteralUnion<Parameters<NonNullable<PROVIDERS[KEY]['imageModel']>>[0]>}`
+      : never,
+  ): ImageModel;
+  imageModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}:${string}` : never,
+  ): ImageModel;
+}
 
 /**
  * Creates a registry for the given providers.
  */
-export function experimental_createProviderRegistry(
-  providers: Record<string, ProviderV1>,
-): Provider {
-  const registry = new DefaultProviderRegistry();
+export function experimental_createProviderRegistry<
+  PROVIDERS extends Record<string, ProviderV1>,
+>(providers: PROVIDERS): ProviderRegistryProvider<PROVIDERS> {
+  const registry = new DefaultProviderRegistry<PROVIDERS>();
 
   for (const [id, provider] of Object.entries(providers)) {
-    registry.registerProvider({ id, provider });
+    registry.registerProvider({ id, provider } as {
+      id: keyof PROVIDERS;
+      provider: PROVIDERS[keyof PROVIDERS];
+    });
   }
 
   return registry;
 }
 
-class DefaultProviderRegistry implements Provider {
-  private providers: Record<string, ProviderV1> = {};
+class DefaultProviderRegistry<PROVIDERS extends Record<string, ProviderV1>>
+  implements ProviderRegistryProvider<PROVIDERS>
+{
+  private providers: PROVIDERS = {} as PROVIDERS;
 
-  registerProvider({
+  registerProvider<K extends keyof PROVIDERS>({
     id,
     provider,
   }: {
-    id: string;
-    provider: ProviderV1;
+    id: K;
+    provider: PROVIDERS[K];
   }): void {
     this.providers[id] = provider;
   }
 
   private getProvider(id: string): ProviderV1 {
-    const provider = this.providers[id];
+    const provider = this.providers[id as keyof PROVIDERS];
 
     if (provider == null) {
       throw new NoSuchProviderError({
@@ -64,7 +106,9 @@ class DefaultProviderRegistry implements Provider {
     return [id.slice(0, index), id.slice(index + 1)];
   }
 
-  languageModel(id: string): LanguageModel {
+  languageModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}:${string}`,
+  ): LanguageModel {
     const [providerId, modelId] = this.splitId(id, 'languageModel');
     const model = this.getProvider(providerId).languageModel?.(modelId);
 
@@ -75,7 +119,9 @@ class DefaultProviderRegistry implements Provider {
     return model;
   }
 
-  textEmbeddingModel(id: string): EmbeddingModel<string> {
+  textEmbeddingModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}:${string}`,
+  ): EmbeddingModel<string> {
     const [providerId, modelId] = this.splitId(id, 'textEmbeddingModel');
     const provider = this.getProvider(providerId);
 
@@ -91,7 +137,9 @@ class DefaultProviderRegistry implements Provider {
     return model;
   }
 
-  imageModel(id: string): ImageModel {
+  imageModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}:${string}`,
+  ): ImageModel {
     const [providerId, modelId] = this.splitId(id, 'imageModel');
     const provider = this.getProvider(providerId);
 
@@ -102,12 +150,5 @@ class DefaultProviderRegistry implements Provider {
     }
 
     return model;
-  }
-
-  /**
-   * @deprecated Use `textEmbeddingModel` instead.
-   */
-  textEmbedding(id: string): EmbeddingModel<string> {
-    return this.textEmbeddingModel(id);
   }
 }

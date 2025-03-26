@@ -11,11 +11,11 @@ describe('languageModel', () => {
 
     const modelRegistry = experimental_createProviderRegistry({
       provider: {
-        languageModel: id => {
+        languageModel: (id: string) => {
           expect(id).toEqual('model');
           return model;
         },
-        textEmbeddingModel: () => {
+        textEmbeddingModel: (id: string) => {
           return null as any;
         },
       },
@@ -45,6 +45,7 @@ describe('languageModel', () => {
   it('should throw NoSuchProviderError if provider does not exist', () => {
     const registry = experimental_createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.languageModel('provider:model:part2')).toThrowError(
       NoSuchProviderError,
     );
@@ -70,6 +71,7 @@ describe('languageModel', () => {
   it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
     const registry = experimental_createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.languageModel('model')).toThrowError(
       NoSuchModelError,
     );
@@ -98,6 +100,7 @@ describe('textEmbeddingModel', () => {
   it('should throw NoSuchProviderError if provider does not exist', () => {
     const registry = experimental_createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.textEmbeddingModel('provider:model')).toThrowError(
       NoSuchProviderError,
     );
@@ -123,6 +126,7 @@ describe('textEmbeddingModel', () => {
   it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
     const registry = experimental_createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.textEmbeddingModel('model')).toThrowError(
       NoSuchModelError,
     );
@@ -150,6 +154,7 @@ describe('imageModel', () => {
   it('should throw NoSuchProviderError if provider does not exist', () => {
     const registry = experimental_createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.imageModel('provider:model')).toThrowError(
       NoSuchProviderError,
     );
@@ -172,6 +177,7 @@ describe('imageModel', () => {
   it("should throw NoSuchModelError if model id doesn't contain a colon", () => {
     const registry = experimental_createProviderRegistry({});
 
+    // @ts-expect-error - should not accept arbitrary strings
     expect(() => registry.imageModel('model')).toThrowError(NoSuchModelError);
   });
 });
