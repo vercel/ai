@@ -15,6 +15,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -115,20 +116,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         warnings,
       });
 
-    const thinkingOptions = thinkingOptionsSchema.safeParse(
-      providerOptions?.anthropic?.thinking,
-    );
+    const anthropicOptions = parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions,
+      schema: anthropicProviderOptionsSchema,
+    });
 
-    if (!thinkingOptions.success) {
-      throw new InvalidArgumentError({
-        argument: 'providerOptions.anthropic.thinking',
-        message: 'invalid thinking options',
-        cause: thinkingOptions.error,
-      });
-    }
-
-    const isThinking = thinkingOptions.data?.type === 'enabled';
-    const thinkingBudget = thinkingOptions.data?.budgetTokens;
+    const isThinking = anthropicOptions?.thinking?.type === 'enabled';
+    const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
 
     const baseArgs = {
       // model id:
@@ -714,9 +709,15 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-const thinkingOptionsSchema = z
-  .object({
-    type: z.union([z.literal('enabled'), z.literal('disabled')]),
-    budgetTokens: z.number().optional(),
-  })
-  .optional();
+const anthropicProviderOptionsSchema = z.object({
+  thinking: z
+    .object({
+      type: z.union([z.literal('enabled'), z.literal('disabled')]),
+      budgetTokens: z.number().optional(),
+    })
+    .optional(),
+});
+
+export type AnthropicProviderOptions = z.infer<
+  typeof anthropicProviderOptionsSchema
+>;
