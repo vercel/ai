@@ -3,7 +3,7 @@ import { LanguageModelV2CallSettings } from './language-model-v2-call-settings';
 import { LanguageModelV2FunctionTool } from './language-model-v2-function-tool';
 import { LanguageModelV2Prompt } from './language-model-v2-prompt';
 import { LanguageModelV2ProviderDefinedTool } from './language-model-v2-provider-defined-tool';
-import { LanguageModelV2ProviderMetadata } from './language-model-v2-provider-metadata';
+import { LanguageModelV2ProviderOptions } from './language-model-v2-provider-options';
 import { LanguageModelV2ToolChoice } from './language-model-v2-tool-choice';
 
 export type LanguageModelV2CallOptions = LanguageModelV2CallSettings & {
@@ -76,15 +76,15 @@ A language mode prompt is a standardized prompt type.
 
 Note: This is **not** the user-facing prompt. The AI SDK methods will map the
 user-facing prompt types such as chat or instruction prompts to this format.
-That approach allows us to evolve the user  facing prompts without breaking
+That approach allows us to evolve the user-facing prompts without breaking
 the language model interface.
    */
   prompt: LanguageModelV2Prompt;
 
   /**
-Additional provider-specific metadata.
-The metadata is passed through to the provider from the AI SDK and enables
+Additional provider-specific options.
+The options are passed through to the provider from the AI SDK and enable
 provider-specific functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 };
