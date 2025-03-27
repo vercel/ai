@@ -16,9 +16,8 @@ async function main() {
           { type: 'text', text: 'Describe the image in detail.' },
           {
             type: 'image',
+            // Internally, MIME type is automatically detected:
             image: imageBase64_string,
-            // Even if you mislabel the mime type, internally the AI SDK will detect and use the correct mime type:
-            mimeType: 'image/svg+xml',
             providerOptions: {
               // When using the Azure OpenAI provider, the imageDetail option can be configured under the `openai` key:
               openai: {
