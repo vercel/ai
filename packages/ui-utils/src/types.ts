@@ -113,7 +113,7 @@ that the assistant made as part of this message.
     | ToolInvocationUIPart
     | SourceUIPart
     | FileUIPart
-    | StepBoundaryUIPart
+    | StepStartUIPart
   >;
 }
 
@@ -130,7 +130,7 @@ export type UIMessage = Message & {
     | ToolInvocationUIPart
     | SourceUIPart
     | FileUIPart
-    | StepBoundaryUIPart
+    | StepStartUIPart
   >;
 };
 
@@ -200,8 +200,8 @@ export type FileUIPart = {
 /**
  * A step boundary part of a message.
  */
-export type StepBoundaryUIPart = {
-  type: 'step-boundary';
+export type StepStartUIPart = {
+  type: 'step-start';
 };
 
 export type CreateMessage = Omit<Message, 'id'> & {

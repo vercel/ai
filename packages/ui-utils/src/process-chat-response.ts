@@ -362,17 +362,16 @@ export async function processChatResponse({
       currentTextPart = value.isContinued ? currentTextPart : undefined;
       currentReasoningPart = undefined;
       currentReasoningTextDetail = undefined;
-
-      // add a step boundary part to the message
-      message.parts.push({ type: 'step-boundary' });
-
-      execUpdate();
     },
     onStartStepPart(value) {
       // keep message id stable when we are updating an existing message:
       if (!replaceLastMessage) {
         message.id = value.messageId;
       }
+
+      // add a step boundary part to the message
+      message.parts.push({ type: 'step-start' });
+      execUpdate();
     },
     onFinishMessagePart(value) {
       finishReason = value.finishReason;
