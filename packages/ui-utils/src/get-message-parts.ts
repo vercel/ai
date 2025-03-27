@@ -4,6 +4,7 @@ import {
   Message,
   ReasoningUIPart,
   SourceUIPart,
+  StepBoundaryUIPart,
   TextUIPart,
   ToolInvocationUIPart,
   UIMessage,
@@ -17,6 +18,7 @@ export function getMessageParts(
   | ToolInvocationUIPart
   | SourceUIPart
   | FileUIPart
+  | StepBoundaryUIPart
 )[] {
   return (
     message.parts ?? [
