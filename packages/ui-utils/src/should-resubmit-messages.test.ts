@@ -1,7 +1,6 @@
 import { shouldResubmitMessages } from './should-resubmit-messages';
 
 describe('shouldResubmitMessages', () => {
-  // Scenario 1: Feature enablement check - when maxSteps <= 1 (feature disabled)
   it('should return false when maxSteps <= 1', () => {
     expect(
       shouldResubmitMessages({
@@ -28,7 +27,54 @@ describe('shouldResubmitMessages', () => {
     ).toBe(false);
   });
 
-  // Scenario 1: Feature enablement check - when maxSteps > 1 (feature enabled)
+  it('should allow resubmission when maxSteps > 1 and there are tool invocations with results', () => {
+    expect(
+      shouldResubmitMessages({
+        originalMaxToolInvocationStep: undefined,
+        originalMessageCount: 1,
+        maxSteps: 3,
+        messages: [
+          {
+            id: '1',
+            role: 'user',
+            content: 'Hello',
+            createdAt: new Date(),
+            parts: [{ type: 'text', text: 'Hello' }],
+          },
+          {
+            id: '2',
+            role: 'assistant' as const,
+            content: '',
+            createdAt: new Date(),
+            parts: [
+              {
+                type: 'tool-invocation' as const,
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'tool1',
+                  toolName: 'some-tool',
+                  args: {},
+                  result: 'some result',
+                  step: 1,
+                },
+              },
+            ],
+            toolInvocations: [
+              {
+                state: 'result',
+                toolCallId: 'tool1',
+                toolName: 'some-tool',
+                args: {},
+                result: 'some result',
+                step: 1,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
   // Scenario 2: Last message existence - when lastMessage is null/undefined
   // Scenario 2: Last message existence - when lastMessage exists
   // Scenario 3: New steps check - when messages.length <= originalMessageCount AND extractMaxToolInvocationStep matches
