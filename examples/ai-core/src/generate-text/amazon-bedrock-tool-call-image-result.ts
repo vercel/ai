@@ -24,7 +24,9 @@ async function main() {
           url: z.string().describe('The image URL'),
         }),
         execute: async ({ url }) => {
-          const bytes = await (await fetch(url)).bytes();
+          const response = await fetch(url);
+          const arrayBuffer = await response.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
           return { bytes };
         },
         experimental_toToolResultContent(result) {
