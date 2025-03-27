@@ -1,5 +1,13 @@
 # ai
 
+## 4.2.6
+
+### Patch Changes
+
+- 625591b: feat (ai/core): auto-complete for provider registry
+- 6a1506f: feat (ai/core): custom separator support for provider registry
+- ea3d998: chore (ai/core): move provider registry to stable
+
 ## 4.2.5
 
 ### Patch Changes
