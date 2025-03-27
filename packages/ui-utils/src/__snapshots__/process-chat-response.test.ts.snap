@@ -18,6 +18,9 @@ exports[`scenario: delayed message annotations in onFinish > should call the onF
           "text": "text",
           "type": "text",
         },
+        {
+          "type": "step-boundary",
+        },
       ],
       "role": "assistant",
     },
@@ -52,6 +55,26 @@ exports[`scenario: delayed message annotations in onFinish > should call the upd
   {
     "data": [],
     "message": {
+      "content": "text",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "text",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
       "annotations": [
         {
           "example": "annotation",
@@ -65,8 +88,11 @@ exports[`scenario: delayed message annotations in onFinish > should call the upd
           "text": "text",
           "type": "text",
         },
+        {
+          "type": "step-boundary",
+        },
       ],
-      "revisionId": "id-2",
+      "revisionId": "id-3",
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -90,6 +116,9 @@ exports[`scenario: message annotations in onChunk > should call the onFinish fun
         {
           "text": "t1t2",
           "type": "text",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -182,6 +211,30 @@ exports[`scenario: message annotations in onChunk > should call the update funct
     },
     "replaceLastMessage": false,
   },
+  {
+    "data": [],
+    "message": {
+      "annotations": [
+        "annotation1",
+        "annotation2",
+      ],
+      "content": "t1t2",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "t1t2",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-5",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
 ]
 `;
 
@@ -201,6 +254,9 @@ exports[`scenario: message annotations with existing assistant lastMessage > sho
         {
           "text": "t1",
           "type": "text",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -253,6 +309,30 @@ exports[`scenario: message annotations with existing assistant lastMessage > sho
     },
     "replaceLastMessage": true,
   },
+  {
+    "data": [],
+    "message": {
+      "annotations": [
+        "annotation0",
+        "annotation1",
+      ],
+      "content": "t1",
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "text": "t1",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": true,
+  },
 ]
 `;
 
@@ -277,6 +357,9 @@ exports[`scenario: onToolCall is executed > should call the onFinish function wi
             "toolName": "tool-name",
           },
           "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -378,6 +461,47 @@ exports[`scenario: onToolCall is executed > should call the update function twic
     },
     "replaceLastMessage": false,
   },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": "test-result",
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": "test-result",
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
 ]
 `;
 
@@ -403,6 +527,9 @@ exports[`scenario: server provides file parts > should call the onFinish functio
           "data": "{"key": "value"}",
           "mimeType": "application/json",
           "type": "file",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -506,6 +633,36 @@ exports[`scenario: server provides file parts > should call the update function 
     },
     "replaceLastMessage": false,
   },
+  {
+    "data": [],
+    "message": {
+      "content": "Here is a file:And another one:",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Here is a file:And another one:",
+          "type": "text",
+        },
+        {
+          "data": "Hello World",
+          "mimeType": "text/plain",
+          "type": "file",
+        },
+        {
+          "data": "{"key": "value"}",
+          "mimeType": "application/json",
+          "type": "file",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-5",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
 ]
 `;
 
@@ -521,6 +678,9 @@ exports[`scenario: server provides message ids > should call the onFinish functi
         {
           "text": "Hello, world!",
           "type": "text",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -570,6 +730,26 @@ exports[`scenario: server provides message ids > should call the update function
     },
     "replaceLastMessage": false,
   },
+  {
+    "data": [],
+    "message": {
+      "content": "Hello, world!",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
 ]
 `;
 
@@ -605,6 +785,9 @@ exports[`scenario: server provides reasoning > should call the onFinish function
         {
           "text": "Hi there!",
           "type": "text",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
@@ -802,6 +985,47 @@ exports[`scenario: server provides reasoning > should call the update function w
     },
     "replaceLastMessage": false,
   },
+  {
+    "data": [],
+    "message": {
+      "content": "Hi there!",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "details": [
+            {
+              "signature": "1234567890",
+              "text": "I will open the conversation with witty banter. ",
+              "type": "text",
+            },
+            {
+              "data": "redacted-data",
+              "type": "redacted",
+            },
+            {
+              "signature": "abc123",
+              "text": "Once the user has relaxed, I will pry for valuable information.",
+              "type": "text",
+            },
+          ],
+          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+          "type": "reasoning",
+        },
+        {
+          "text": "Hi there!",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+      "revisionId": "id-7",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
 ]
 `;
 
@@ -826,6 +1050,9 @@ exports[`scenario: server provides sources > should call the onFinish function w
             "url": "https://example.com",
           },
           "type": "source",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -884,6 +1111,35 @@ exports[`scenario: server provides sources > should call the update function wit
     },
     "replaceLastMessage": false,
   },
+  {
+    "data": [],
+    "message": {
+      "content": "The weather in London is sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+        {
+          "source": {
+            "id": "source-id",
+            "sourceType": "url",
+            "title": "Example",
+            "url": "https://example.com",
+          },
+          "type": "source",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
 ]
 `;
 
@@ -899,6 +1155,12 @@ exports[`scenario: server-side continue roundtrip > should call the onFinish fun
         {
           "text": "The weather in London is sunny.",
           "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -934,6 +1196,26 @@ exports[`scenario: server-side continue roundtrip > should call the update funct
   {
     "data": [],
     "message": {
+      "content": "The weather in London ",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "The weather in London ",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
       "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
@@ -942,8 +1224,34 @@ exports[`scenario: server-side continue roundtrip > should call the update funct
           "text": "The weather in London is sunny.",
           "type": "text",
         },
+        {
+          "type": "step-boundary",
+        },
       ],
-      "revisionId": "id-2",
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "The weather in London is sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-4",
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -976,8 +1284,14 @@ exports[`scenario: server-side tool roundtrip > should call the onFinish functio
           "type": "tool-invocation",
         },
         {
+          "type": "step-boundary",
+        },
+        {
           "text": "The weather in London is sunny.",
           "type": "text",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -1088,6 +1402,51 @@ exports[`scenario: server-side tool roundtrip > should call the update function 
   {
     "data": [],
     "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
       "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
@@ -1108,11 +1467,66 @@ exports[`scenario: server-side tool roundtrip > should call the update function 
           "type": "tool-invocation",
         },
         {
+          "type": "step-boundary",
+        },
+        {
           "text": "The weather in London is sunny.",
           "type": "text",
         },
       ],
-      "revisionId": "id-3",
+      "revisionId": "id-4",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "The weather in London is sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-5",
       "role": "assistant",
       "toolInvocations": [
         {
@@ -1172,8 +1586,14 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
           "type": "tool-invocation",
         },
         {
+          "type": "step-boundary",
+        },
+        {
           "text": "The weather in London is sunny.",
           "type": "text",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -1340,6 +1760,74 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
   {
     "data": [],
     "message": {
+      "content": "",
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {},
+            "result": {
+              "location": "Berlin",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id-original",
+            "toolName": "tool-name-original",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 1,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-2",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {},
+          "result": {
+            "location": "Berlin",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id-original",
+          "toolName": "tool-name-original",
+        },
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 1,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": true,
+  },
+  {
+    "data": [],
+    "message": {
       "content": "The weather in London is sunny.",
       "createdAt": 2023-01-02T00:00:00.000Z,
       "id": "original-id",
@@ -1373,11 +1861,89 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
           "type": "tool-invocation",
         },
         {
+          "type": "step-boundary",
+        },
+        {
           "text": "The weather in London is sunny.",
           "type": "text",
         },
       ],
-      "revisionId": "id-2",
+      "revisionId": "id-3",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {},
+          "result": {
+            "location": "Berlin",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id-original",
+          "toolName": "tool-name-original",
+        },
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 1,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": true,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "The weather in London is sunny.",
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {},
+            "result": {
+              "location": "Berlin",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id-original",
+            "toolName": "tool-name-original",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 1,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-4",
       "role": "assistant",
       "toolInvocations": [
         {
@@ -1445,6 +2011,9 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
+          "type": "step-boundary",
+        },
+        {
           "details": [
             {
               "signature": "abc123",
@@ -1458,6 +2027,9 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
         {
           "text": "The weather in London is sunny.",
           "type": "text",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "reasoning": "I will use a tool to get the weather in London.I know know the weather in London.",
@@ -1672,6 +2244,66 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
+          "type": "step-boundary",
+        },
+      ],
+      "reasoning": "I will use a tool to get the weather in London.",
+      "revisionId": "id-5",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "details": [
+            {
+              "signature": "1234567890",
+              "text": "I will use a tool to get the weather in London.",
+              "type": "text",
+            },
+          ],
+          "reasoning": "I will use a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
+        },
+        {
           "details": [
             {
               "text": "I know know the weather in London.",
@@ -1683,7 +2315,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
         },
       ],
       "reasoning": "I will use a tool to get the weather in London.I know know the weather in London.",
-      "revisionId": "id-5",
+      "revisionId": "id-6",
       "role": "assistant",
       "toolInvocations": [
         {
@@ -1736,6 +2368,9 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
+          "type": "step-boundary",
+        },
+        {
           "details": [
             {
               "signature": "abc123",
@@ -1752,7 +2387,82 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
         },
       ],
       "reasoning": "I will use a tool to get the weather in London.I know know the weather in London.",
-      "revisionId": "id-6",
+      "revisionId": "id-7",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "The weather in London is sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "details": [
+            {
+              "signature": "1234567890",
+              "text": "I will use a tool to get the weather in London.",
+              "type": "text",
+            },
+          ],
+          "reasoning": "I will use a tool to get the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
+        },
+        {
+          "details": [
+            {
+              "signature": "abc123",
+              "text": "I know know the weather in London.",
+              "type": "text",
+            },
+          ],
+          "reasoning": "I know know the weather in London.",
+          "type": "reasoning",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "reasoning": "I will use a tool to get the weather in London.I know know the weather in London.",
+      "revisionId": "id-8",
       "role": "assistant",
       "toolInvocations": [
         {
@@ -1803,8 +2513,14 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
           "type": "tool-invocation",
         },
         {
+          "type": "step-boundary",
+        },
+        {
           "text": "The weather in London is sunny.",
           "type": "text",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -1957,6 +2673,55 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
   {
     "data": [],
     "message": {
+      "content": "I will use a tool to get the weather in London.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I will use a tool to get the weather in London.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-5",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
       "content": "I will use a tool to get the weather in London.The weather in London ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
@@ -1981,11 +2746,14 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
           "type": "tool-invocation",
         },
         {
+          "type": "step-boundary",
+        },
+        {
           "text": "The weather in London ",
           "type": "text",
         },
       ],
-      "revisionId": "id-5",
+      "revisionId": "id-6",
       "role": "assistant",
       "toolInvocations": [
         {
@@ -2031,11 +2799,70 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
           "type": "tool-invocation",
         },
         {
+          "type": "step-boundary",
+        },
+        {
           "text": "The weather in London is sunny.",
           "type": "text",
         },
       ],
-      "revisionId": "id-6",
+      "revisionId": "id-7",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "city": "London",
+          },
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "I will use a tool to get the weather in London.The weather in London is sunny.",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "I will use a tool to get the weather in London.",
+          "type": "text",
+        },
+        {
+          "toolInvocation": {
+            "args": {
+              "city": "London",
+            },
+            "result": {
+              "weather": "sunny",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id",
+            "toolName": "tool-name",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
+        },
+        {
+          "text": "The weather in London is sunny.",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-8",
       "role": "assistant",
       "toolInvocations": [
         {
@@ -2069,6 +2896,9 @@ exports[`scenario: simple text response > should call the onFinish function with
         {
           "text": "Hello, world!",
           "type": "text",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -2118,6 +2948,26 @@ exports[`scenario: simple text response > should call the update function with t
     },
     "replaceLastMessage": false,
   },
+  {
+    "data": [],
+    "message": {
+      "content": "Hello, world!",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-3",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
 ]
 `;
 
@@ -2142,6 +2992,9 @@ exports[`scenario: tool call streaming > should call the onFinish function with 
             "toolName": "test-tool",
           },
           "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
         },
       ],
       "role": "assistant",
@@ -2331,6 +3184,47 @@ exports[`scenario: tool call streaming > should call the update function with th
         },
       ],
       "revisionId": "id-5",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {
+            "testArg": "test-value",
+          },
+          "result": "test-result",
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-0",
+          "toolName": "test-tool",
+        },
+      ],
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "id-0",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {
+              "testArg": "test-value",
+            },
+            "result": "test-result",
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-0",
+            "toolName": "test-tool",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-boundary",
+        },
+      ],
+      "revisionId": "id-6",
       "role": "assistant",
       "toolInvocations": [
         {
