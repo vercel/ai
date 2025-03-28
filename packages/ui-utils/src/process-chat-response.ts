@@ -368,6 +368,10 @@ export async function processChatResponse({
       if (!replaceLastMessage) {
         message.id = value.messageId;
       }
+
+      // add a step boundary part to the message
+      message.parts.push({ type: 'step-start' });
+      execUpdate();
     },
     onFinishMessagePart(value) {
       finishReason = value.finishReason;
