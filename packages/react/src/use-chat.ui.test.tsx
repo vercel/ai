@@ -751,7 +751,9 @@ describe('onToolCall', () => {
 
 describe('tool invocations', () => {
   createTestComponent(() => {
-    const { messages, append, addToolResult } = useChat();
+    const { messages, append, addToolResult } = useChat({
+      maxSteps: 2,
+    });
 
     return (
       <div>
@@ -947,6 +949,14 @@ describe('tool invocations', () => {
 
     await userEvent.click(screen.getByTestId('do-append'));
 
+    // start stream
+    controller1.write(
+      formatDataStreamPart('start_step', {
+        messageId: '1234',
+      }),
+    );
+
+    // tool call
     controller1.write(
       formatDataStreamPart('tool_call', {
         toolCallId: 'tool-call-0',
@@ -967,6 +977,18 @@ describe('tool invocations', () => {
     // should not have called the API yet
     expect(server.calls.length).toBe(1);
 
+    // finish stream
+    controller1.write(
+      formatDataStreamPart('finish_step', {
+        isContinued: false,
+        finishReason: 'tool-calls',
+      }),
+    );
+    controller1.write(
+      formatDataStreamPart('finish_message', {
+        finishReason: 'tool-calls',
+      }),
+    );
     await controller1.close();
 
     // UI should show the tool result
@@ -978,7 +1000,7 @@ describe('tool invocations', () => {
     });
 
     // call should happen after the stream is finished
-    // TODO expect(server.calls.length).toBe(2);
+    expect(server.calls.length).toBe(2);
   });
 });
 
