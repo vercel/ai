@@ -251,7 +251,7 @@ Allows you to easily create a conversational user interface for your chatbot app
             },
             {
               name: 'parts',
-              type: 'Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart>',
+              type: 'Array<TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | StepStartUIPart>',
               description:
                 'An array of message parts that are associated with the message.',
               properties: [
@@ -432,6 +432,16 @@ Allows you to easily create a conversational user interface for your chatbot app
                           ],
                         },
                       ],
+                    },
+                  ],
+                },
+                {
+                  type: 'StepStartUIPart',
+                  description: 'A step start part of the message.',
+                  parameters: [
+                    {
+                      name: 'type',
+                      type: '"step-start"',
                     },
                   ],
                 },

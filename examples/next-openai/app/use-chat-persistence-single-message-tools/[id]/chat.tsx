@@ -40,26 +40,30 @@ export default function Chat({
       {messages?.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           <strong>{`${message.role}: `}</strong>
-          {message.parts.map(part => {
+          {message.parts.map((part, index) => {
             switch (part.type) {
               case 'text':
-                return part.text;
+                return <div key={index}>{part.text}</div>;
+              case 'step-start':
+                return index > 0 ? (
+                  <div key={index} className="text-gray-500">
+                    <hr className="my-2 border-gray-300" />
+                  </div>
+                ) : null;
               case 'tool-invocation': {
-                const callId = part.toolInvocation.toolCallId;
-
                 switch (part.toolInvocation.toolName) {
                   case 'askForConfirmation': {
                     switch (part.toolInvocation.state) {
                       case 'call':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={index} className="text-gray-500">
                             {part.toolInvocation.args.message}
                             <div className="flex gap-2">
                               <button
                                 className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700"
                                 onClick={() =>
                                   addToolResult({
-                                    toolCallId: callId,
+                                    toolCallId: part.toolInvocation.toolCallId,
                                     result: 'Yes, confirmed.',
                                   })
                                 }
@@ -70,7 +74,7 @@ export default function Chat({
                                 className="px-4 py-2 font-bold text-white bg-red-500 rounded hover:bg-red-700"
                                 onClick={() =>
                                   addToolResult({
-                                    toolCallId: callId,
+                                    toolCallId: part.toolInvocation.toolCallId,
                                     result: 'No, denied',
                                   })
                                 }
@@ -82,29 +86,31 @@ export default function Chat({
                         );
                       case 'result':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={index} className="text-gray-500">
                             Location access allowed:{' '}
                             {part.toolInvocation.result}
                           </div>
                         );
                     }
+                    break;
                   }
 
                   case 'getLocation': {
                     switch (part.toolInvocation.state) {
                       case 'call':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={index} className="text-gray-500">
                             Getting location...
                           </div>
                         );
                       case 'result':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={index} className="text-gray-500">
                             Location: {part.toolInvocation.result}
                           </div>
                         );
                     }
+                    break;
                   }
 
                   case 'getWeatherInformation': {
@@ -112,25 +118,26 @@ export default function Chat({
                       // example of pre-rendering streaming tool calls:
                       case 'partial-call':
                         return (
-                          <pre key={callId}>
+                          <pre key={index}>
                             {JSON.stringify(part.toolInvocation, null, 2)}
                           </pre>
                         );
                       case 'call':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={index} className="text-gray-500">
                             Getting weather information for{' '}
                             {part.toolInvocation.args.city}...
                           </div>
                         );
                       case 'result':
                         return (
-                          <div key={callId} className="text-gray-500">
+                          <div key={index} className="text-gray-500">
                             Weather in {part.toolInvocation.args.city}:{' '}
                             {part.toolInvocation.result}
                           </div>
                         );
                     }
+                    break;
                   }
                 }
               }

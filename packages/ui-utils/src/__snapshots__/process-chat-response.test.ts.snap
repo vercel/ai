@@ -519,6 +519,9 @@ exports[`scenario: server provides message ids > should call the onFinish functi
       "id": "step_123",
       "parts": [
         {
+          "type": "step-start",
+        },
+        {
           "text": "Hello, world!",
           "type": "text",
         },
@@ -539,16 +542,35 @@ exports[`scenario: server provides message ids > should call the update function
   {
     "data": [],
     "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
+      ],
+      "revisionId": "id-1",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
       "content": "Hello, ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
         {
+          "type": "step-start",
+        },
+        {
           "text": "Hello, ",
           "type": "text",
         },
       ],
-      "revisionId": "id-1",
+      "revisionId": "id-2",
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -561,11 +583,14 @@ exports[`scenario: server provides message ids > should call the update function
       "id": "step_123",
       "parts": [
         {
+          "type": "step-start",
+        },
+        {
           "text": "Hello, world!",
           "type": "text",
         },
       ],
-      "revisionId": "id-2",
+      "revisionId": "id-3",
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -582,6 +607,9 @@ exports[`scenario: server provides reasoning > should call the onFinish function
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
+        {
+          "type": "step-start",
+        },
         {
           "details": [
             {
@@ -629,17 +657,9 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
-          "details": [
-            {
-              "text": "I will open the conversation",
-              "type": "text",
-            },
-          ],
-          "reasoning": "I will open the conversation",
-          "type": "reasoning",
+          "type": "step-start",
         },
       ],
-      "reasoning": "I will open the conversation",
       "revisionId": "id-1",
       "role": "assistant",
     },
@@ -653,17 +673,20 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
+          "type": "step-start",
+        },
+        {
           "details": [
             {
-              "text": "I will open the conversation with witty banter. ",
+              "text": "I will open the conversation",
               "type": "text",
             },
           ],
-          "reasoning": "I will open the conversation with witty banter. ",
+          "reasoning": "I will open the conversation",
           "type": "reasoning",
         },
       ],
-      "reasoning": "I will open the conversation with witty banter. ",
+      "reasoning": "I will open the conversation",
       "revisionId": "id-2",
       "role": "assistant",
     },
@@ -677,15 +700,13 @@ exports[`scenario: server provides reasoning > should call the update function w
       "id": "step_123",
       "parts": [
         {
+          "type": "step-start",
+        },
+        {
           "details": [
             {
-              "signature": "1234567890",
               "text": "I will open the conversation with witty banter. ",
               "type": "text",
-            },
-            {
-              "data": "redacted-data",
-              "type": "redacted",
             },
           ],
           "reasoning": "I will open the conversation with witty banter. ",
@@ -705,6 +726,41 @@ exports[`scenario: server provides reasoning > should call the update function w
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
+        {
+          "type": "step-start",
+        },
+        {
+          "details": [
+            {
+              "signature": "1234567890",
+              "text": "I will open the conversation with witty banter. ",
+              "type": "text",
+            },
+            {
+              "data": "redacted-data",
+              "type": "redacted",
+            },
+          ],
+          "reasoning": "I will open the conversation with witty banter. ",
+          "type": "reasoning",
+        },
+      ],
+      "reasoning": "I will open the conversation with witty banter. ",
+      "revisionId": "id-4",
+      "role": "assistant",
+    },
+    "replaceLastMessage": false,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-01T00:00:00.000Z,
+      "id": "step_123",
+      "parts": [
+        {
+          "type": "step-start",
+        },
         {
           "details": [
             {
@@ -726,7 +782,7 @@ exports[`scenario: server provides reasoning > should call the update function w
         },
       ],
       "reasoning": "I will open the conversation with witty banter. Once the user has relaxed,",
-      "revisionId": "id-4",
+      "revisionId": "id-5",
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -738,6 +794,9 @@ exports[`scenario: server provides reasoning > should call the update function w
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
+        {
+          "type": "step-start",
+        },
         {
           "details": [
             {
@@ -759,7 +818,7 @@ exports[`scenario: server provides reasoning > should call the update function w
         },
       ],
       "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
-      "revisionId": "id-5",
+      "revisionId": "id-6",
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -771,6 +830,9 @@ exports[`scenario: server provides reasoning > should call the update function w
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
+        {
+          "type": "step-start",
+        },
         {
           "details": [
             {
@@ -797,7 +859,7 @@ exports[`scenario: server provides reasoning > should call the update function w
         },
       ],
       "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
-      "revisionId": "id-6",
+      "revisionId": "id-7",
       "role": "assistant",
     },
     "replaceLastMessage": false,
@@ -1157,6 +1219,9 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
           "type": "tool-invocation",
         },
         {
+          "type": "step-start",
+        },
+        {
           "toolInvocation": {
             "args": {
               "city": "London",
@@ -1234,6 +1299,50 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
           "type": "tool-invocation",
         },
         {
+          "type": "step-start",
+        },
+      ],
+      "revisionId": "id-0",
+      "role": "assistant",
+      "toolInvocations": [
+        {
+          "args": {},
+          "result": {
+            "location": "Berlin",
+          },
+          "state": "result",
+          "step": 0,
+          "toolCallId": "tool-call-id-original",
+          "toolName": "tool-name-original",
+        },
+      ],
+    },
+    "replaceLastMessage": true,
+  },
+  {
+    "data": [],
+    "message": {
+      "content": "",
+      "createdAt": 2023-01-02T00:00:00.000Z,
+      "id": "original-id",
+      "parts": [
+        {
+          "toolInvocation": {
+            "args": {},
+            "result": {
+              "location": "Berlin",
+            },
+            "state": "result",
+            "step": 0,
+            "toolCallId": "tool-call-id-original",
+            "toolName": "tool-name-original",
+          },
+          "type": "tool-invocation",
+        },
+        {
+          "type": "step-start",
+        },
+        {
           "toolInvocation": {
             "args": {
               "city": "London",
@@ -1246,7 +1355,7 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
           "type": "tool-invocation",
         },
       ],
-      "revisionId": "id-0",
+      "revisionId": "id-1",
       "role": "assistant",
       "toolInvocations": [
         {
@@ -1293,6 +1402,9 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
           "type": "tool-invocation",
         },
         {
+          "type": "step-start",
+        },
+        {
           "toolInvocation": {
             "args": {
               "city": "London",
@@ -1308,7 +1420,7 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
           "type": "tool-invocation",
         },
       ],
-      "revisionId": "id-1",
+      "revisionId": "id-2",
       "role": "assistant",
       "toolInvocations": [
         {
@@ -1358,6 +1470,9 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
           "type": "tool-invocation",
         },
         {
+          "type": "step-start",
+        },
+        {
           "toolInvocation": {
             "args": {
               "city": "London",
@@ -1377,7 +1492,7 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
           "type": "text",
         },
       ],
-      "revisionId": "id-2",
+      "revisionId": "id-3",
       "role": "assistant",
       "toolInvocations": [
         {
