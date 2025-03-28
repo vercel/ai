@@ -540,8 +540,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const addToolResult = useCallback(
     ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
-      // check if there is ongoing streaming; if so, buffer the result
-
       const currentMessages = messagesRef.current;
 
       updateToolCallResult({
@@ -552,13 +550,18 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
       mutate(currentMessages, false);
 
+      // when the request is ongoing, the auto-submit will be triggered after the request is finished
+      if (status === 'submitted' || status === 'streaming') {
+        return;
+      }
+
       // auto-submit when all tool calls in the last assistant message have results:
       const lastMessage = currentMessages[currentMessages.length - 1];
       if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
         triggerRequest({ messages: currentMessages });
       }
     },
-    [mutate, triggerRequest],
+    [mutate, status, triggerRequest],
   );
 
   return {
