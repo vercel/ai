@@ -755,6 +755,8 @@ describe('tool invocations', () => {
       maxSteps: 2,
     });
 
+    console.log('messages', JSON.stringify(messages, null, 2));
+
     return (
       <div>
         {messages.map((m, idx) => (
@@ -989,10 +991,13 @@ describe('tool invocations', () => {
         finishReason: 'tool-calls',
       }),
     );
+
     await controller1.close();
 
     // UI should show the tool result
     // TODO this should immediately show the result after submitting the tool result
+    // however, this requires introducing a message store abstraction to sync streaming
+    // updates and the updates through user submitted tool results
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
         '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
