@@ -35,6 +35,9 @@ exports[`appendResponseMessages > after assistant message > adds assistant text 
         "type": "tool-invocation",
       },
       {
+        "type": "step-start",
+      },
+      {
         "text": "This is a response from the assistant.",
         "type": "text",
       },
@@ -92,6 +95,9 @@ exports[`appendResponseMessages > after assistant message > adds assistant tool 
           "toolName": "some-tool",
         },
         "type": "tool-invocation",
+      },
+      {
+        "type": "step-start",
       },
       {
         "toolInvocation": {
@@ -224,6 +230,9 @@ exports[`appendResponseMessages > after assistant message > appends assistant me
         "type": "tool-invocation",
       },
       {
+        "type": "step-start",
+      },
+      {
         "details": [
           {
             "signature": "sig-1",
@@ -298,6 +307,9 @@ exports[`appendResponseMessages > after user message > adds chain of assistant m
     "id": "2",
     "parts": [
       {
+        "type": "step-start",
+      },
+      {
         "toolInvocation": {
           "args": {
             "query": "some query",
@@ -313,6 +325,9 @@ exports[`appendResponseMessages > after user message > adds chain of assistant m
         "type": "tool-invocation",
       },
       {
+        "type": "step-start",
+      },
+      {
         "toolInvocation": {
           "args": {
             "query": "another query",
@@ -326,6 +341,9 @@ exports[`appendResponseMessages > after user message > adds chain of assistant m
           "toolName": "some-tool",
         },
         "type": "tool-invocation",
+      },
+      {
+        "type": "step-start",
       },
       {
         "text": "response",
@@ -384,6 +402,9 @@ exports[`appendResponseMessages > after user message > appends assistant message
     "id": "123",
     "parts": [
       {
+        "type": "step-start",
+      },
+      {
         "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
         "mimeType": "image/png",
         "type": "file",
@@ -415,6 +436,9 @@ exports[`appendResponseMessages > after user message > appends assistant message
     "createdAt": 1970-01-01T00:00:00.789Z,
     "id": "123",
     "parts": [
+      {
+        "type": "step-start",
+      },
       {
         "details": [
           {
@@ -477,6 +501,9 @@ exports[`appendResponseMessages > after user message > appends assistant message
     "id": "123",
     "parts": [
       {
+        "type": "step-start",
+      },
+      {
         "text": "This is a response from the assistant.",
         "type": "text",
       },
@@ -507,6 +534,9 @@ exports[`appendResponseMessages > after user message > handles tool calls and ma
     "createdAt": 1970-01-01T00:00:00.789Z,
     "id": "123",
     "parts": [
+      {
+        "type": "step-start",
+      },
       {
         "text": "Processing tool call...",
         "type": "text",
