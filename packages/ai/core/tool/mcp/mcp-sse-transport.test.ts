@@ -7,9 +7,7 @@ import { SseMCPTransport } from './mcp-sse-transport';
 
 describe('SseMCPTransport', () => {
   const server = createTestServer({
-    'http://localhost:3000/sse': {
-      response: undefined,
-    },
+    'http://localhost:3000/sse': {},
     'http://localhost:3000/messages': {
       response: {
         type: 'json-value',
