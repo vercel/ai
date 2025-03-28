@@ -2,48 +2,51 @@ import { http, HttpResponse, JsonBodyType } from 'msw';
 import { setupServer } from 'msw/node';
 import { convertArrayToReadableStream } from './convert-array-to-readable-stream';
 
+export type UrlResponse =
+  | {
+      type: 'json-value';
+      headers?: Record<string, string>;
+      body: JsonBodyType;
+    }
+  | {
+      type: 'stream-chunks';
+      headers?: Record<string, string>;
+      chunks: Array<string>;
+    }
+  | {
+      type: 'binary';
+      headers?: Record<string, string>;
+      body: Buffer;
+    }
+  | {
+      type: 'empty';
+      headers?: Record<string, string>;
+      status?: number;
+    }
+  | {
+      type: 'error';
+      headers?: Record<string, string>;
+      status?: number;
+      body?: string;
+    }
+  | {
+      type: 'controlled-stream';
+      headers?: Record<string, string>;
+      controller: TestResponseController;
+    };
+
 export type UrlHandler = {
-  response?:
-    | {
-        type: 'json-value';
-        headers?: Record<string, string>;
-        body: JsonBodyType;
-      }
-    | {
-        type: 'stream-chunks';
-        headers?: Record<string, string>;
-        chunks: Array<string>;
-      }
-    | {
-        type: 'binary';
-        headers?: Record<string, string>;
-        body: Buffer;
-      }
-    | {
-        type: 'empty';
-        headers?: Record<string, string>;
-        status?: number;
-      }
-    | {
-        type: 'error';
-        headers?: Record<string, string>;
-        status?: number;
-        body?: string;
-      }
-    | {
-        type: 'controlled-stream';
-        headers?: Record<string, string>;
-        controller: TestResponseController;
-      }
-    | undefined;
+  response: UrlResponse | undefined;
 };
 
-export type FullUrlHandler = {
-  response: UrlHandler['response']; // mandatory
-};
-
-export type FullHandlers<URLS extends { [url: string]: UrlHandler }> = {
-  [url in keyof URLS]: FullUrlHandler;
+export type UrlHandlers<
+  URLS extends {
+    [url: string]: {
+      response?: UrlResponse | undefined;
+    };
+  },
+> = {
+  [url in keyof URLS]: UrlHandler;
 };
 
 class TestServerCall {
@@ -78,10 +81,16 @@ class TestServerCall {
   }
 }
 
-export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
+export function createTestServer<
+  URLS extends {
+    [url: string]: {
+      response?: UrlResponse | undefined;
+    };
+  },
+>(
   routes: URLS,
 ): {
-  urls: FullHandlers<URLS>;
+  urls: UrlHandlers<URLS>;
   calls: TestServerCall[];
 } {
   const originalRoutes = structuredClone(routes); // deep copy
@@ -189,7 +198,7 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
   });
 
   return {
-    urls: routes as FullHandlers<URLS>,
+    urls: routes as UrlHandlers<URLS>,
     get calls() {
       return calls;
     },
