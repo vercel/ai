@@ -17,8 +17,10 @@ describe('text stream', () => {
 
   const TestComponent = ({
     headers,
+    credentials,
   }: {
     headers?: Record<string, string> | Headers;
+    credentials?: RequestCredentials;
   }) => {
     const { object, error, submit, isLoading, stop } = experimental_useObject({
       api: '/api/use-object',
@@ -30,6 +32,7 @@ describe('text stream', () => {
         onFinishCalls.push(event);
       },
       headers,
+      credentials,
     });
 
     return (
@@ -251,6 +254,22 @@ describe('text stream', () => {
           authorization: 'Bearer TEST_TOKEN',
           'x-custom-header': 'CustomValue',
         });
+      },
+    ),
+  );
+
+  it(
+    'should send custom credentials',
+    withTestServer(
+      {
+        url: '/api/use-object',
+        type: 'stream-values',
+        content: ['{ ', '"content": "Authenticated ', 'content', '!"', '}'],
+      },
+      async ({ call }) => {
+        render(<TestComponent credentials="include" />);
+        await userEvent.click(screen.getByTestId('submit-button'));
+        expect(call(0).getRequestCredentials()).toBe('include');
       },
     ),
   );

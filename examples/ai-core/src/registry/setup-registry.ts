@@ -6,10 +6,7 @@ import { mistral } from '@ai-sdk/mistral';
 import { openai } from '@ai-sdk/openai';
 import { replicate } from '@ai-sdk/replicate';
 import { xai } from '@ai-sdk/xai';
-import {
-  experimental_createProviderRegistry as createProviderRegistry,
-  customProvider,
-} from 'ai';
+import { createProviderRegistry, customProvider } from 'ai';
 import 'dotenv/config';
 
 // custom provider with alias names:
@@ -40,6 +37,21 @@ export const registry = createProviderRegistry({
   xai,
   groq,
 });
+
+registry.languageModel('anthropic:haiku');
+
+const registryWithCustomSeparator = createProviderRegistry(
+  {
+    mistral,
+    anthropic: myAnthropic,
+    openai: myOpenAI,
+    xai,
+    groq,
+  },
+  { separator: ' > ' },
+);
+
+registryWithCustomSeparator.languageModel('anthropic > haiku');
 
 export const myImageModels = customProvider({
   imageModels: {

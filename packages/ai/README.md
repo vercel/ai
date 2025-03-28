@@ -43,14 +43,20 @@ console.log(text);
 
 ### AI SDK UI
 
-The [AI SDK UI](https://sdk.vercel.ai/docs/ai-sdk-ui/overview) module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, Vue, and SolidJS.
+The [AI SDK UI](https://sdk.vercel.ai/docs/ai-sdk-ui/overview) module provides a set of hooks that help you build chatbots and generative user interfaces. These hooks are framework agnostic, so they can be used in Next.js, React, Svelte, and Vue.
+
+You need to install the package for your framework:
+
+```shell
+npm install @ai-sdk/react
+```
 
 ###### @/app/page.tsx (Next.js App Router)
 
 ```tsx
 'use client';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } =
@@ -60,8 +66,15 @@ export default function Page() {
     <div>
       {messages.map(message => (
         <div key={message.id}>
-          <div>{message.role}</div>
-          <div>{message.content}</div>
+          <strong>{`${message.role}: `}</strong>
+          {message.parts.map((part, index) => {
+            switch (part.type) {
+              case 'text':
+                return <span key={index}>{part.text}</span>;
+
+              // other cases can handle images, tool calls, etc
+            }
+          })}
         </div>
       ))}
 

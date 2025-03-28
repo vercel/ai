@@ -1,5 +1,32 @@
 # ai
 
+## 4.2.6
+
+### Patch Changes
+
+- 625591b: feat (ai/core): auto-complete for provider registry
+- 6a1506f: feat (ai/core): custom separator support for provider registry
+- ea3d998: chore (ai/core): move provider registry to stable
+
+## 4.2.5
+
+### Patch Changes
+
+- Updated dependencies [d92fa29]
+  - @ai-sdk/react@1.2.2
+
+## 4.2.4
+
+### Patch Changes
+
+- 3d6d96d: fix (ai/core): validate that messages are not empty
+
+## 4.2.3
+
+### Patch Changes
+
+- 0b3bf29: fix (ai/core): custom env support for stdio MCP transport
+
 ## 4.2.2
 
 ### Patch Changes

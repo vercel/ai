@@ -1,5 +1,11 @@
 # @ai-sdk/solid
 
+## 1.2.3
+
+### Patch Changes
+
+- d92fa29: feat: add credentials support to experimental useObject and StructuredObject
+
 ## 1.2.2
 
 ### Patch Changes

@@ -5,8 +5,6 @@ description: Registry for managing multiple providers and models (API Reference)
 
 # `createProviderRegistry()`
 
-<Note type="warning">The provider registry is an experimental feature.</Note>
-
 When you work with multiple providers and models, it is often desirable to manage them
 in a central place and access the models through simple string ids.
 
@@ -15,12 +13,12 @@ can access by their ids in the format `providerId:modelId`.
 
 ### Setup
 
-You can create a registry with multiple providers and models using `experimental_createProviderRegistry`.
+You can create a registry with multiple providers and models using `createProviderRegistry`.
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { experimental_createProviderRegistry as createProviderRegistry } from 'ai';
+import { createProviderRegistry } from 'ai';
 
 export const registry = createProviderRegistry({
   // register provider with prefix and default setup:
@@ -31,6 +29,23 @@ export const registry = createProviderRegistry({
     apiKey: process.env.OPENAI_API_KEY,
   }),
 });
+```
+
+### Custom Separator
+
+By default, the registry uses `:` as the separator between provider and model IDs. You can customize this separator by passing a `separator` option:
+
+```ts
+const registry = createProviderRegistry(
+  {
+    anthropic,
+    openai,
+  },
+  { separator: ' > ' },
+);
+
+// Now you can use the custom separator
+const model = registry.languageModel('anthropic > claude-3-opus-20240229');
 ```
 
 ### Language models
@@ -80,10 +95,7 @@ const { image } = await generateImage({
 
 ## Import
 
-<Snippet
-  text={`import { experimental_createProviderRegistry as createProviderRegistry } from "ai"`}
-  prompt={false}
-/>
+<Snippet text={`import { createProviderRegistry } from "ai"`} prompt={false} />
 
 ## API Signature
 
@@ -116,6 +128,24 @@ const { image } = await generateImage({
               name: 'imageModel',
               type: '(id: string) => ImageModel',
               description: 'A function that returns an image model by its id.',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'options',
+      type: 'object',
+      description: 'Optional configuration for the registry.',
+      properties: [
+        {
+          type: 'Options',
+          parameters: [
+            {
+              name: 'separator',
+              type: 'string',
+              description:
+                'Custom separator between provider and model IDs. Defaults to ":".',
             },
           ],
         },

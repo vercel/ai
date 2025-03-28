@@ -270,7 +270,7 @@ export default function Page() {
 
 ## Configure Request Options
 
-You can configure the API endpoint and optional headers using the `api` and `headers` settings.
+You can configure the API endpoint, optional headers and credentials using the `api`, `headers` and `credentials` settings.
 
 ```tsx highlight="2-5"
 const { submit, object } = useObject({
@@ -278,6 +278,7 @@ const { submit, object } = useObject({
   headers: {
     'X-Custom-Header': 'CustomValue',
   },
+  credentials: 'include',
   schema: yourSchema,
 });
 ```

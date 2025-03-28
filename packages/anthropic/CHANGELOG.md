@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 1.2.2
+
+### Patch Changes
+
+- aeaa92b: feat (provider/anthropic): expose type for validating Anthropic responses provider options
+
 ## 1.2.1
 
 ### Patch Changes

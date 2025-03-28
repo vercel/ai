@@ -131,11 +131,42 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
             case 'tool': {
               for (let i = 0; i < content.length; i++) {
                 const part = content[i];
+                const toolResultContent =
+                  part.content != undefined
+                    ? part.content.map(part => {
+                        switch (part.type) {
+                          case 'text':
+                            return {
+                              text: part.text,
+                            };
+                          case 'image':
+                            if (!part.mimeType) {
+                              throw new Error(
+                                'Image mime type is required in tool result part content',
+                              );
+                            }
+                            const format = part.mimeType.split('/')[1];
+                            if (!isBedrockImageFormat(format)) {
+                              throw new Error(
+                                `Unsupported image format: ${format}`,
+                              );
+                            }
+                            return {
+                              image: {
+                                format,
+                                source: {
+                                  bytes: part.data,
+                                },
+                              },
+                            };
+                        }
+                      })
+                    : [{ text: JSON.stringify(part.result) }];
 
                 bedrockContent.push({
                   toolResult: {
                     toolUseId: part.toolCallId,
-                    content: [{ text: JSON.stringify(part.result) }],
+                    content: toolResultContent,
                   },
                 });
               }
@@ -249,6 +280,10 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
   }
 
   return { system, messages };
+}
+
+function isBedrockImageFormat(format: string): format is BedrockImageFormat {
+  return ['jpeg', 'png', 'gif'].includes(format);
 }
 
 function trimIfLast(

@@ -112,7 +112,7 @@ You can enable it using the `thinking` provider option
 and specifying a thinking budget in tokens.
 
 ```ts
-import { anthropic } from '@ai-sdk/anthropic';
+import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, reasoning, reasoningDetails } = await generateText({
@@ -121,7 +121,7 @@ const { text, reasoning, reasoningDetails } = await generateText({
   providerOptions: {
     anthropic: {
       thinking: { type: 'enabled', budgetTokens: 12000 },
-    },
+    } satisfies AnthropicProviderOptions,
   },
 });
 
