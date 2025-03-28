@@ -2,7 +2,6 @@
 import {
   createTestServer,
   TestResponseController,
-  withTestServer,
 } from '@ai-sdk/provider-utils/test';
 import {
   formatDataStreamPart,
@@ -488,41 +487,35 @@ describe('form actions', () => {
     );
   });
 
-  it(
-    'should show streamed response using handleSubmit',
-    withTestServer(
-      [
-        {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: ['Hello', ',', ' world', '.'],
-        },
-        {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: ['How', ' can', ' I', ' help', ' you', '?'],
-        },
-      ],
-      async () => {
-        const firstInput = screen.getByTestId('do-input');
-        await userEvent.type(firstInput, 'hi');
-        await userEvent.keyboard('{Enter}');
-
-        await screen.findByTestId('message-0');
-        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
-
-        await screen.findByTestId('message-1');
-        expect(screen.getByTestId('message-1')).toHaveTextContent(
-          'AI: Hello, world.',
-        );
-
-        const secondInput = screen.getByTestId('do-input');
-        await userEvent.type(secondInput, '{Enter}');
-
-        expect(screen.queryByTestId('message-2')).not.toBeInTheDocument();
+  it('should show streamed response using handleSubmit', async () => {
+    server.urls['/api/chat'].response = [
+      {
+        type: 'stream-chunks',
+        chunks: ['Hello', ',', ' world', '.'],
       },
-    ),
-  );
+      {
+        type: 'stream-chunks',
+        chunks: ['How', ' can', ' I', ' help', ' you', '?'],
+      },
+    ];
+
+    const firstInput = screen.getByTestId('do-input');
+    await userEvent.type(firstInput, 'hi');
+    await userEvent.keyboard('{Enter}');
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    const secondInput = screen.getByTestId('do-input');
+    await userEvent.type(secondInput, '{Enter}');
+
+    expect(screen.queryByTestId('message-2')).not.toBeInTheDocument();
+  });
 });
 
 describe('form actions (with options)', () => {
@@ -558,64 +551,57 @@ describe('form actions (with options)', () => {
     );
   });
 
-  it(
-    'allowEmptySubmit',
-    withTestServer(
-      [
-        {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: ['Hello', ',', ' world', '.'],
-        },
-        {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: ['How', ' can', ' I', ' help', ' you', '?'],
-        },
-        {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: ['The', ' sky', ' is', ' blue', '.'],
-        },
-      ],
-      async () => {
-        const firstInput = screen.getByTestId('do-input');
-        await userEvent.type(firstInput, 'hi');
-        await userEvent.keyboard('{Enter}');
-
-        await screen.findByTestId('message-0');
-        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
-
-        await screen.findByTestId('message-1');
-        expect(screen.getByTestId('message-1')).toHaveTextContent(
-          'AI: Hello, world.',
-        );
-
-        const secondInput = screen.getByTestId('do-input');
-        await userEvent.type(secondInput, '{Enter}');
-
-        await screen.findByTestId('message-2');
-        expect(screen.getByTestId('message-2')).toHaveTextContent('User:');
-
-        expect(screen.getByTestId('message-3')).toHaveTextContent(
-          'AI: How can I help you?',
-        );
-
-        const thirdInput = screen.getByTestId('do-input');
-        await userEvent.type(thirdInput, 'what color is the sky?');
-        await userEvent.type(thirdInput, '{Enter}');
-
-        expect(screen.getByTestId('message-4')).toHaveTextContent(
-          'User: what color is the sky?',
-        );
-
-        await screen.findByTestId('message-5');
-        expect(screen.getByTestId('message-5')).toHaveTextContent(
-          'AI: The sky is blue.',
-        );
+  it('allowEmptySubmit', async () => {
+    server.urls['/api/chat'].response = [
+      {
+        type: 'stream-chunks',
+        chunks: ['Hello', ',', ' world', '.'],
       },
-    ),
-  );
+      {
+        type: 'stream-chunks',
+        chunks: ['How', ' can', ' I', ' help', ' you', '?'],
+      },
+      {
+        type: 'stream-chunks',
+        chunks: ['The', ' sky', ' is', ' blue', '.'],
+      },
+    ];
+
+    const firstInput = screen.getByTestId('do-input');
+    await userEvent.type(firstInput, 'hi');
+    await userEvent.keyboard('{Enter}');
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    const secondInput = screen.getByTestId('do-input');
+    await userEvent.type(secondInput, '{Enter}');
+
+    await screen.findByTestId('message-2');
+    expect(screen.getByTestId('message-2')).toHaveTextContent('User:');
+
+    expect(screen.getByTestId('message-3')).toHaveTextContent(
+      'AI: How can I help you?',
+    );
+
+    const thirdInput = screen.getByTestId('do-input');
+    await userEvent.type(thirdInput, 'what color is the sky?');
+    await userEvent.type(thirdInput, '{Enter}');
+
+    expect(screen.getByTestId('message-4')).toHaveTextContent(
+      'User: what color is the sky?',
+    );
+
+    await screen.findByTestId('message-5');
+    expect(screen.getByTestId('message-5')).toHaveTextContent(
+      'AI: The sky is blue.',
+    );
+  });
 });
 
 describe('prepareRequestBody', () => {
@@ -995,39 +981,31 @@ describe('maxSteps', () => {
       onToolCallInvoked = false;
     });
 
-    it(
-      'should automatically call api when tool call gets executed via onToolCall',
-      withTestServer(
-        [
-          {
-            url: '/api/chat',
-            type: 'stream-values',
-            content: [
-              formatDataStreamPart('tool_call', {
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
-                args: { testArg: 'test-value' },
-              }),
-            ],
-          },
-          {
-            url: '/api/chat',
-            type: 'stream-values',
-            content: [formatDataStreamPart('text', 'final result')],
-          },
-        ],
-        async () => {
-          await userEvent.click(screen.getByTestId('do-append'));
-
-          expect(onToolCallInvoked).toBe(true);
-
-          await screen.findByTestId('message-1');
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            'final result',
-          );
+    it('should automatically call api when tool call gets executed via onToolCall', async () => {
+      server.urls['/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatDataStreamPart('tool_call', {
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: { testArg: 'test-value' },
+            }),
+          ],
         },
-      ),
-    );
+        {
+          type: 'stream-chunks',
+          chunks: [formatDataStreamPart('text', 'final result')],
+        },
+      ];
+
+      await userEvent.click(screen.getByTestId('do-append'));
+
+      expect(onToolCallInvoked).toBe(true);
+
+      await screen.findByTestId('message-1');
+      expect(screen.getByTestId('message-1')).toHaveTextContent('final result');
+    });
   });
 
   describe('two steps with error response', () => {
@@ -1074,40 +1052,34 @@ describe('maxSteps', () => {
       onToolCallCounter = 0;
     });
 
-    it(
-      'should automatically call api when tool call gets executed via onToolCall',
-      withTestServer(
-        [
-          {
-            url: '/api/chat',
-            type: 'stream-values',
-            content: [
-              formatDataStreamPart('tool_call', {
-                toolCallId: 'tool-call-0',
-                toolName: 'test-tool',
-                args: { testArg: 'test-value' },
-              }),
-            ],
-          },
-          {
-            url: '/api/chat',
-            type: 'error',
-            status: 400,
-            content: 'call failure',
-          },
-        ],
-        async () => {
-          await userEvent.click(screen.getByTestId('do-append'));
-
-          await screen.findByTestId('error');
-          expect(screen.getByTestId('error')).toHaveTextContent(
-            'Error: call failure',
-          );
-
-          expect(onToolCallCounter).toBe(1);
+    it('should automatically call api when tool call gets executed via onToolCall', async () => {
+      server.urls['/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatDataStreamPart('tool_call', {
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: { testArg: 'test-value' },
+            }),
+          ],
         },
-      ),
-    );
+        {
+          type: 'error',
+          status: 400,
+          body: 'call failure',
+        },
+      ];
+
+      await userEvent.click(screen.getByTestId('do-append'));
+
+      await screen.findByTestId('error');
+      expect(screen.getByTestId('error')).toHaveTextContent(
+        'Error: call failure',
+      );
+
+      expect(onToolCallCounter).toBe(1);
+    });
   });
 });
 
@@ -1617,57 +1589,51 @@ describe('reload', () => {
     );
   });
 
-  it(
-    'should show streamed response',
-    withTestServer(
-      [
+  it('should show streamed response', async () => {
+    server.urls['/api/chat'].response = [
+      {
+        type: 'stream-chunks',
+        chunks: ['0:"first response"\n'],
+      },
+      {
+        type: 'stream-chunks',
+        chunks: ['0:"second response"\n'],
+      },
+    ];
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await screen.findByTestId('message-1');
+
+    // setup done, click reload:
+    await userEvent.click(screen.getByTestId('do-reload'));
+
+    expect(await server.calls[1].requestBody).toStrictEqual({
+      id: expect.any(String),
+      messages: [
         {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: ['0:"first response"\n'],
-        },
-        {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: ['0:"second response"\n'],
+          content: 'hi',
+          role: 'user',
+          parts: [{ text: 'hi', type: 'text' }],
         },
       ],
-      async ({ call }) => {
-        await userEvent.click(screen.getByTestId('do-append'));
+      data: { 'test-data-key': 'test-data-value' },
+      'request-body-key': 'request-body-value',
+    });
 
-        await screen.findByTestId('message-0');
-        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+    expect(server.calls[1].requestHeaders).toStrictEqual({
+      'content-type': 'application/json',
+      'header-key': 'header-value',
+    });
 
-        await screen.findByTestId('message-1');
-
-        // setup done, click reload:
-        await userEvent.click(screen.getByTestId('do-reload'));
-
-        expect(await call(1).getRequestBodyJson()).toStrictEqual({
-          id: expect.any(String),
-          messages: [
-            {
-              content: 'hi',
-              role: 'user',
-              parts: [{ text: 'hi', type: 'text' }],
-            },
-          ],
-          data: { 'test-data-key': 'test-data-value' },
-          'request-body-key': 'request-body-value',
-        });
-
-        expect(call(1).getRequestHeaders()).toStrictEqual({
-          'content-type': 'application/json',
-          'header-key': 'header-value',
-        });
-
-        await screen.findByTestId('message-1');
-        expect(screen.getByTestId('message-1')).toHaveTextContent(
-          'AI: second response',
-        );
-      },
-    ),
-  );
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: second response',
+    );
+  });
 });
 
 describe('test sending additional fields during message submission', () => {

@@ -33,16 +33,22 @@ export type UrlResponse =
       type: 'controlled-stream';
       headers?: Record<string, string>;
       controller: TestResponseController;
-    };
+    }
+  | undefined;
+
+type UrlResponseParameter =
+  | UrlResponse
+  | UrlResponse[]
+  | ((options: { callNumber: number }) => UrlResponse);
 
 export type UrlHandler = {
-  response: UrlResponse | undefined;
+  response: UrlResponseParameter;
 };
 
 export type UrlHandlers<
   URLS extends {
     [url: string]: {
-      response?: UrlResponse | undefined;
+      response?: UrlResponseParameter;
     };
   },
 > = {
@@ -84,7 +90,7 @@ class TestServerCall {
 export function createTestServer<
   URLS extends {
     [url: string]: {
-      response?: UrlResponse | undefined;
+      response?: UrlResponseParameter;
     };
   },
 >(
@@ -97,10 +103,17 @@ export function createTestServer<
 
   const mswServer = setupServer(
     ...Object.entries(routes).map(([url, handler]) => {
-      return http.all(url, ({ request, params }) => {
+      return http.all(url, ({ request }) => {
+        const callNumber = calls.length;
+
         calls.push(new TestServerCall(request));
 
-        const response = handler.response;
+        const response =
+          typeof handler.response === 'function'
+            ? handler.response({ callNumber })
+            : Array.isArray(handler.response)
+              ? handler.response[callNumber]
+              : handler.response;
 
         if (response === undefined) {
           return HttpResponse.json({ error: 'Not Found' }, { status: 404 });
@@ -114,7 +127,7 @@ export function createTestServer<
               status: 200,
               headers: {
                 'Content-Type': 'application/json',
-                ...handler.response?.headers,
+                ...response.headers,
               },
             });
 
@@ -152,7 +165,7 @@ export function createTestServer<
           case 'binary': {
             return HttpResponse.arrayBuffer(response.body, {
               status: 200,
-              headers: handler.response?.headers,
+              headers: response.headers,
             });
           }
 
