@@ -1,4 +1,7 @@
-import { shouldResubmitMessages } from './should-resubmit-messages';
+import {
+  isAssistantMessageWithCompletedToolCalls,
+  shouldResubmitMessages,
+} from './should-resubmit-messages';
 
 describe('shouldResubmitMessages', () => {
   it('should return false when maxSteps <= 1', () => {
@@ -74,23 +77,73 @@ describe('shouldResubmitMessages', () => {
       }),
     ).toBe(true);
   });
+});
 
-  // Scenario 2: Last message existence - when lastMessage is null/undefined
-  // Scenario 2: Last message existence - when lastMessage exists
-  // Scenario 3: New steps check - when messages.length <= originalMessageCount AND extractMaxToolInvocationStep matches
-  // Scenario 3: New steps check - when messages.length > originalMessageCount
-  // Scenario 3: New steps check - when extractMaxToolInvocationStep differs from originalMaxToolInvocationStep
-  // Scenario 4: Next step possibility check - when isAssistantMessageWithCompletedToolCalls is true
-  // Scenario 4: Next step possibility check - when message role is not 'assistant'
-  // Scenario 4: Next step possibility check - when message has no tool invocation parts
-  // Scenario 4: Next step possibility check - when message has tool invocations without results
-  // Scenario 5: Text after tool invocation check - when isLastToolInvocationFollowedByText is true
-  // Scenario 5: Text after tool invocation check - when last part is a tool invocation
-  // Scenario 5: Text after tool invocation check - when last part is text
-  // Scenario 5: Text after tool invocation check - with mixed text and tool invocation ordering
-  // Scenario 6: Maximum steps limit check - when current step count < maxSteps
-  // Scenario 6: Maximum steps limit check - when current step count >= maxSteps
-  // Scenario 6: Maximum steps limit check - when current step count is undefined
-  // Scenario 7: All conditions satisfied - should return true
-  // Scenario 7: One condition failing - for each condition, should return false
+describe('isAssistantMessageWithCompletedToolCalls', () => {
+  it('should return false if the last step of a multi-step sequency only has text', () => {
+    expect(
+      isAssistantMessageWithCompletedToolCalls({
+        id: '1',
+        role: 'assistant',
+        content: '',
+        createdAt: new Date(),
+        parts: [
+          {
+            type: 'step-start',
+          },
+          {
+            type: 'tool-invocation',
+            toolInvocation: {
+              state: 'result',
+              step: 0,
+              toolCallId: 'call_bAixMXEJFvxvdvAo97WxLJEp',
+              toolName: 'askForConfirmation',
+              args: {
+                message:
+                  'Can I access your current location to provide the weather information?',
+              },
+              result: 'Yes, confirmed.',
+            },
+          },
+          {
+            type: 'step-start',
+          },
+          {
+            type: 'tool-invocation',
+            toolInvocation: {
+              state: 'result',
+              step: 1,
+              toolCallId: 'call_CuEdmzpx4ZldCkg5SVr3ikLz',
+              toolName: 'getLocation',
+              args: {},
+              result: 'New York',
+            },
+          },
+          {
+            type: 'step-start',
+          },
+          {
+            type: 'tool-invocation',
+            toolInvocation: {
+              state: 'result',
+              step: 2,
+              toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
+              toolName: 'getWeatherInformation',
+              args: {
+                city: 'New York',
+              },
+              result: 'windy',
+            },
+          },
+          {
+            type: 'step-start',
+          },
+          {
+            type: 'text',
+            text: 'The current weather in New York is windy.',
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
 });
