@@ -526,7 +526,7 @@ describe('form actions', () => {
 });
 
 describe('form actions (with options)', () => {
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({ streamProtocol: 'text' });
 
@@ -556,15 +556,6 @@ describe('form actions (with options)', () => {
         </form>
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it(
@@ -630,7 +621,7 @@ describe('form actions (with options)', () => {
 describe('prepareRequestBody', () => {
   let bodyOptions: any;
 
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, append, status } = useChat({
       experimental_prepareRequestBody(options) {
         bodyOptions = options;
@@ -662,16 +653,10 @@ describe('prepareRequestBody', () => {
         />
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
   });
 
   afterEach(() => {
     bodyOptions = undefined;
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it('should show streamed response', async () => {
@@ -714,7 +699,7 @@ describe('onToolCall', () => {
   let resolve: () => void;
   let toolCallPromise: Promise<void>;
 
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, append } = useChat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
@@ -744,19 +729,12 @@ describe('onToolCall', () => {
         />
       </div>
     );
-  };
+  });
 
   beforeEach(() => {
     toolCallPromise = new Promise(resolveArg => {
       resolve = resolveArg;
     });
-
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it("should invoke onToolCall when a tool call is received from the server's response", async () => {
@@ -789,7 +767,7 @@ describe('onToolCall', () => {
 });
 
 describe('tool invocations', () => {
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, append, addToolResult } = useChat();
 
     return (
@@ -827,174 +805,163 @@ describe('tool invocations', () => {
         />
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
+  it('should display partial tool call, tool call, and tool result', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    controller.write(
+      formatDataStreamPart('tool_call_streaming_start', {
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool"}',
+      );
+    });
+
+    controller.write(
+      formatDataStreamPart('tool_call_delta', {
+        toolCallId: 'tool-call-0',
+        argsTextDelta: '{"testArg":"t',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
+      );
+    });
+
+    controller.write(
+      formatDataStreamPart('tool_call_delta', {
+        toolCallId: 'tool-call-0',
+        argsTextDelta: 'est-value"}}',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+      );
+    });
+
+    controller.write(
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+      );
+    });
+
+    controller.write(
+      formatDataStreamPart('tool_result', {
+        toolCallId: 'tool-call-0',
+        result: 'test-result',
+      }),
+    );
+    controller.close();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+      );
+    });
   });
 
-  it(
-    'should display partial tool call, tool call, and tool result',
-    withTestServer(
-      { url: '/api/chat', type: 'controlled-stream' },
-      async ({ streamController }) => {
-        await userEvent.click(screen.getByTestId('do-append'));
+  it('should display partial tool call and tool result (when there is no tool call streaming)', async () => {
+    const controller = new TestResponseController();
 
-        streamController.enqueue(
-          formatDataStreamPart('tool_call_streaming_start', {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-          }),
-        );
-
-        await waitFor(() => {
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool"}',
-          );
-        });
-
-        streamController.enqueue(
-          formatDataStreamPart('tool_call_delta', {
-            toolCallId: 'tool-call-0',
-            argsTextDelta: '{"testArg":"t',
-          }),
-        );
-
-        await waitFor(() => {
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"t"}}',
-          );
-        });
-
-        streamController.enqueue(
-          formatDataStreamPart('tool_call_delta', {
-            toolCallId: 'tool-call-0',
-            argsTextDelta: 'est-value"}}',
-          }),
-        );
-
-        await waitFor(() => {
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
-          );
-        });
-
-        streamController.enqueue(
-          formatDataStreamPart('tool_call', {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-          }),
-        );
-
-        await waitFor(() => {
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
-          );
-        });
-
-        streamController.enqueue(
-          formatDataStreamPart('tool_result', {
-            toolCallId: 'tool-call-0',
-            result: 'test-result',
-          }),
-        );
-        streamController.close();
-
-        await waitFor(() => {
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
-          );
-        });
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+      headers: {
+        'Content-Type': 'text/event-stream',
       },
-    ),
-  );
+    };
 
-  it(
-    'should display partial tool call and tool result (when there is no tool call streaming)',
-    withTestServer(
-      { url: '/api/chat', type: 'controlled-stream' },
-      async ({ streamController }) => {
-        await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-append'));
 
-        streamController.enqueue(
-          formatDataStreamPart('tool_call', {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-          }),
-        );
+    controller.write(
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+      }),
+    );
 
-        await waitFor(() => {
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
-          );
-        });
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+      );
+    });
 
-        streamController.enqueue(
-          formatDataStreamPart('tool_result', {
-            toolCallId: 'tool-call-0',
-            result: 'test-result',
-          }),
-        );
-        streamController.close();
+    controller.write(
+      formatDataStreamPart('tool_result', {
+        toolCallId: 'tool-call-0',
+        result: 'test-result',
+      }),
+    );
+    controller.close();
 
-        await waitFor(() => {
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
-          );
-        });
-      },
-    ),
-  );
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+      );
+    });
+  });
 
-  it(
-    'should update tool call to result when addToolResult is called',
-    withTestServer(
-      [
-        {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: [
-            formatDataStreamPart('tool_call', {
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            }),
-          ],
-        },
+  it('should update tool call to result when addToolResult is called', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatDataStreamPart('tool_call', {
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        }),
       ],
-      async () => {
-        await userEvent.click(screen.getByTestId('do-append'));
+    };
 
-        await waitFor(() => {
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
-          );
-        });
+    await userEvent.click(screen.getByTestId('do-append'));
 
-        await userEvent.click(screen.getByTestId('add-result-0'));
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+      );
+    });
 
-        await waitFor(() => {
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
-          );
-        });
-      },
-    ),
-  );
+    await userEvent.click(screen.getByTestId('add-result-0'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+      );
+    });
+  });
 });
 
 describe('maxSteps', () => {
   describe('two steps with automatic tool call', () => {
     let onToolCallInvoked = false;
 
-    const TestComponent = () => {
+    createTestComponent(() => {
       const { messages, append } = useChat({
         async onToolCall({ toolCall }) {
           onToolCallInvoked = true;
@@ -1022,16 +989,10 @@ describe('maxSteps', () => {
           />
         </div>
       );
-    };
-
-    beforeEach(() => {
-      render(<TestComponent />);
-      onToolCallInvoked = false;
     });
 
-    afterEach(() => {
-      vi.restoreAllMocks();
-      cleanup();
+    beforeEach(() => {
+      onToolCallInvoked = false;
     });
 
     it(
@@ -1072,7 +1033,7 @@ describe('maxSteps', () => {
   describe('two steps with error response', () => {
     let onToolCallCounter = 0;
 
-    const TestComponent = () => {
+    createTestComponent(() => {
       const { messages, append, error } = useChat({
         async onToolCall({ toolCall }) {
           onToolCallCounter++;
@@ -1107,16 +1068,10 @@ describe('maxSteps', () => {
           />
         </div>
       );
-    };
-
-    beforeEach(() => {
-      render(<TestComponent />);
-      onToolCallCounter = 0;
     });
 
-    afterEach(() => {
-      vi.restoreAllMocks();
-      cleanup();
+    beforeEach(() => {
+      onToolCallCounter = 0;
     });
 
     it(
@@ -1157,7 +1112,7 @@ describe('maxSteps', () => {
 });
 
 describe('file attachments with data url', () => {
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat();
 
@@ -1228,137 +1183,118 @@ describe('file attachments with data url', () => {
         </form>
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
+  it('should handle text file attachment and submission', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: ['0:"Response to message with text attachment"\n'],
+    };
+
+    const file = new File(['test file content'], 'test.txt', {
+      type: 'text/plain',
+    });
+
+    const fileInput = screen.getByTestId('file-input');
+    await userEvent.upload(fileInput, file);
+
+    const messageInput = screen.getByTestId('message-input');
+    await userEvent.type(messageInput, 'Message with text attachment');
+
+    const submitButton = screen.getByTestId('submit-button');
+    await userEvent.click(submitButton);
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent(
+      'User: Message with text attachment',
+    );
+
+    await screen.findByTestId('attachment-0');
+    expect(screen.getByTestId('attachment-0')).toHaveTextContent(
+      'test file content',
+    );
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Response to message with text attachment',
+    );
+
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      id: expect.any(String),
+      messages: [
+        {
+          role: 'user',
+          content: 'Message with text attachment',
+          experimental_attachments: [
+            {
+              name: 'test.txt',
+              contentType: 'text/plain',
+              url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
+            },
+          ],
+          parts: [{ text: 'Message with text attachment', type: 'text' }],
+        },
+      ],
+    });
   });
 
-  it(
-    'should handle text file attachment and submission',
-    withTestServer(
-      {
-        url: '/api/chat',
-        type: 'stream-values',
-        content: ['0:"Response to message with text attachment"\n'],
-      },
-      async ({ call }) => {
-        const file = new File(['test file content'], 'test.txt', {
-          type: 'text/plain',
-        });
+  it('should handle image file attachment and submission', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: ['0:"Response to message with image attachment"\n'],
+    };
 
-        const fileInput = screen.getByTestId('file-input');
-        await userEvent.upload(fileInput, file);
+    const file = new File(['test image content'], 'test.png', {
+      type: 'image/png',
+    });
 
-        const messageInput = screen.getByTestId('message-input');
-        await userEvent.type(messageInput, 'Message with text attachment');
+    const fileInput = screen.getByTestId('file-input');
+    await userEvent.upload(fileInput, file);
 
-        const submitButton = screen.getByTestId('submit-button');
-        await userEvent.click(submitButton);
+    const messageInput = screen.getByTestId('message-input');
+    await userEvent.type(messageInput, 'Message with image attachment');
 
-        await screen.findByTestId('message-0');
-        expect(screen.getByTestId('message-0')).toHaveTextContent(
-          'User: Message with text attachment',
-        );
+    const submitButton = screen.getByTestId('submit-button');
+    await userEvent.click(submitButton);
 
-        await screen.findByTestId('attachment-0');
-        expect(screen.getByTestId('attachment-0')).toHaveTextContent(
-          'test file content',
-        );
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent(
+      'User: Message with image attachment',
+    );
 
-        await screen.findByTestId('message-1');
-        expect(screen.getByTestId('message-1')).toHaveTextContent(
-          'AI: Response to message with text attachment',
-        );
+    await screen.findByTestId('attachment-0');
+    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+      'src',
+      expect.stringContaining('data:image/png;base64'),
+    );
 
-        expect(await call(0).getRequestBodyJson()).toStrictEqual({
-          id: expect.any(String),
-          messages: [
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Response to message with image attachment',
+    );
+
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      id: expect.any(String),
+      messages: [
+        {
+          role: 'user',
+          content: 'Message with image attachment',
+          experimental_attachments: [
             {
-              role: 'user',
-              content: 'Message with text attachment',
-              experimental_attachments: [
-                {
-                  name: 'test.txt',
-                  contentType: 'text/plain',
-                  url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
-                },
-              ],
-              parts: [{ text: 'Message with text attachment', type: 'text' }],
+              name: 'test.png',
+              contentType: 'image/png',
+              url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
             },
           ],
-        });
-      },
-    ),
-  );
-
-  it(
-    'should handle image file attachment and submission',
-    withTestServer(
-      {
-        url: '/api/chat',
-        type: 'stream-values',
-        content: ['0:"Response to message with image attachment"\n'],
-      },
-      async ({ call }) => {
-        const file = new File(['test image content'], 'test.png', {
-          type: 'image/png',
-        });
-
-        const fileInput = screen.getByTestId('file-input');
-        await userEvent.upload(fileInput, file);
-
-        const messageInput = screen.getByTestId('message-input');
-        await userEvent.type(messageInput, 'Message with image attachment');
-
-        const submitButton = screen.getByTestId('submit-button');
-        await userEvent.click(submitButton);
-
-        await screen.findByTestId('message-0');
-        expect(screen.getByTestId('message-0')).toHaveTextContent(
-          'User: Message with image attachment',
-        );
-
-        await screen.findByTestId('attachment-0');
-        expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-          'src',
-          expect.stringContaining('data:image/png;base64'),
-        );
-
-        await screen.findByTestId('message-1');
-        expect(screen.getByTestId('message-1')).toHaveTextContent(
-          'AI: Response to message with image attachment',
-        );
-
-        expect(await call(0).getRequestBodyJson()).toStrictEqual({
-          id: expect.any(String),
-          messages: [
-            {
-              role: 'user',
-              content: 'Message with image attachment',
-              experimental_attachments: [
-                {
-                  name: 'test.png',
-                  contentType: 'image/png',
-                  url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
-                },
-              ],
-              parts: [{ text: 'Message with image attachment', type: 'text' }],
-            },
-          ],
-        });
-      },
-    ),
-  );
+          parts: [{ text: 'Message with image attachment', type: 'text' }],
+        },
+      ],
+    });
+  });
 });
 
 describe('file attachments with url', () => {
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat();
 
@@ -1418,15 +1354,6 @@ describe('file attachments with url', () => {
         </form>
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1478,7 +1405,7 @@ describe('file attachments with url', () => {
 });
 
 describe('attachments with empty submit', () => {
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, handleSubmit } = useChat();
 
     return (
@@ -1519,15 +1446,6 @@ describe('attachments with empty submit', () => {
         </form>
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1572,7 +1490,7 @@ describe('attachments with empty submit', () => {
 });
 
 describe('should append message with attachments', () => {
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, append } = useChat();
 
     return (
@@ -1620,15 +1538,6 @@ describe('should append message with attachments', () => {
         </form>
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1675,7 +1584,7 @@ describe('should append message with attachments', () => {
 });
 
 describe('reload', () => {
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, append, reload } = useChat();
 
     return (
@@ -1706,15 +1615,6 @@ describe('reload', () => {
         />
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it(
@@ -1771,7 +1671,7 @@ describe('reload', () => {
 });
 
 describe('test sending additional fields during message submission', () => {
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, append } = useChat();
 
     return (
@@ -1795,15 +1695,6 @@ describe('test sending additional fields during message submission', () => {
         />
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it('annotations', async () => {
@@ -1835,7 +1726,7 @@ describe('initialMessages', () => {
   describe('stability', () => {
     let renderCount = 0;
 
-    const TestComponent = () => {
+    createTestComponent(() => {
       renderCount++;
       const [derivedState, setDerivedState] = useState<string[]>([]);
 
@@ -1873,15 +1764,10 @@ describe('initialMessages', () => {
           ))}
         </div>
       );
-    };
+    });
 
     beforeEach(() => {
       renderCount = 0;
-      render(<TestComponent />);
-    });
-
-    afterEach(() => {
-      cleanup();
     });
 
     it('should not cause infinite rerenders when initialMessages is defined and messages is a dependency of useEffect', async () => {
@@ -1908,7 +1794,7 @@ describe('initialMessages', () => {
   });
 
   describe('changing initial messages', () => {
-    const TestComponent = () => {
+    createTestComponent(() => {
       const [initialMessages, setInitialMessages] = useState<Message[]>([
         {
           id: 'test-msg-1',
@@ -1941,14 +1827,6 @@ describe('initialMessages', () => {
           />
         </div>
       );
-    };
-
-    beforeEach(() => {
-      render(<TestComponent />);
-    });
-
-    afterEach(() => {
-      cleanup();
     });
 
     it('should update messages when initialMessages changes', async () => {
