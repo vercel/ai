@@ -2,80 +2,57 @@ import { http, HttpResponse, JsonBodyType } from 'msw';
 import { setupServer } from 'msw/node';
 import { convertArrayToReadableStream } from './convert-array-to-readable-stream';
 
+export type UrlResponse =
+  | {
+      type: 'json-value';
+      headers?: Record<string, string>;
+      body: JsonBodyType;
+    }
+  | {
+      type: 'stream-chunks';
+      headers?: Record<string, string>;
+      chunks: Array<string>;
+    }
+  | {
+      type: 'binary';
+      headers?: Record<string, string>;
+      body: Buffer;
+    }
+  | {
+      type: 'empty';
+      headers?: Record<string, string>;
+      status?: number;
+    }
+  | {
+      type: 'error';
+      headers?: Record<string, string>;
+      status?: number;
+      body?: string;
+    }
+  | {
+      type: 'controlled-stream';
+      headers?: Record<string, string>;
+      controller: TestResponseController;
+    }
+  | undefined;
+
+type UrlResponseParameter =
+  | UrlResponse
+  | UrlResponse[]
+  | ((options: { callNumber: number }) => UrlResponse);
+
 export type UrlHandler = {
-  response?:
-    | {
-        type: 'json-value';
-        headers?: Record<string, string>;
-        body: JsonBodyType;
-      }
-    | {
-        type: 'stream-chunks';
-        headers?: Record<string, string>;
-        chunks: Array<string>;
-      }
-    | {
-        type: 'binary';
-        headers?: Record<string, string>;
-        body: Buffer;
-      }
-    | {
-        type: 'empty';
-        headers?: Record<string, string>;
-        status?: number;
-      }
-    | {
-        type: 'error';
-        headers?: Record<string, string>;
-        status?: number;
-        body?: string;
-      }
-    | {
-        type: 'readable-stream';
-        headers?: Record<string, string>;
-        stream: ReadableStream;
-      }
-    | undefined;
+  response: UrlResponseParameter;
 };
 
-export type FullUrlHandler = {
-  response:
-    | {
-        type: 'json-value';
-        headers?: Record<string, string>;
-        body: JsonBodyType;
-      }
-    | {
-        type: 'stream-chunks';
-        headers?: Record<string, string>;
-        chunks: Array<string>;
-      }
-    | {
-        type: 'binary';
-        headers?: Record<string, string>;
-        body: Buffer;
-      }
-    | {
-        type: 'error';
-        headers?: Record<string, string>;
-        status: number;
-        body?: string;
-      }
-    | {
-        type: 'empty';
-        headers?: Record<string, string>;
-        status?: number;
-      }
-    | {
-        type: 'readable-stream';
-        headers?: Record<string, string>;
-        stream: ReadableStream;
-      }
-    | undefined;
-};
-
-export type FullHandlers<URLS extends { [url: string]: UrlHandler }> = {
-  [url in keyof URLS]: FullUrlHandler;
+export type UrlHandlers<
+  URLS extends {
+    [url: string]: {
+      response?: UrlResponseParameter;
+    };
+  },
+> = {
+  [url in keyof URLS]: UrlHandler;
 };
 
 class TestServerCall {
@@ -110,20 +87,33 @@ class TestServerCall {
   }
 }
 
-export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
+export function createTestServer<
+  URLS extends {
+    [url: string]: {
+      response?: UrlResponseParameter;
+    };
+  },
+>(
   routes: URLS,
 ): {
-  urls: FullHandlers<URLS>;
+  urls: UrlHandlers<URLS>;
   calls: TestServerCall[];
 } {
   const originalRoutes = structuredClone(routes); // deep copy
 
   const mswServer = setupServer(
     ...Object.entries(routes).map(([url, handler]) => {
-      return http.all(url, ({ request, params }) => {
+      return http.all(url, ({ request }) => {
+        const callNumber = calls.length;
+
         calls.push(new TestServerCall(request));
 
-        const response = handler.response;
+        const response =
+          typeof handler.response === 'function'
+            ? handler.response({ callNumber })
+            : Array.isArray(handler.response)
+              ? handler.response[callNumber]
+              : handler.response;
 
         if (response === undefined) {
           return HttpResponse.json({ error: 'Not Found' }, { status: 404 });
@@ -137,7 +127,7 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
               status: 200,
               headers: {
                 'Content-Type': 'application/json',
-                ...handler.response?.headers,
+                ...response.headers,
               },
             });
 
@@ -157,9 +147,9 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
               },
             );
 
-          case 'readable-stream': {
+          case 'controlled-stream': {
             return new HttpResponse(
-              response.stream.pipeThrough(new TextEncoderStream()),
+              response.controller.stream.pipeThrough(new TextEncoderStream()),
               {
                 status: 200,
                 headers: {
@@ -175,7 +165,7 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
           case 'binary': {
             return HttpResponse.arrayBuffer(response.body, {
               status: 200,
-              headers: handler.response?.headers,
+              headers: response.headers,
             });
           }
 
@@ -221,9 +211,31 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
   });
 
   return {
-    urls: routes as FullHandlers<URLS>,
+    urls: routes as UrlHandlers<URLS>,
     get calls() {
       return calls;
     },
   };
+}
+
+export class TestResponseController {
+  private readonly transformStream: TransformStream;
+  private readonly writer: WritableStreamDefaultWriter;
+
+  constructor() {
+    this.transformStream = new TransformStream();
+    this.writer = this.transformStream.writable.getWriter();
+  }
+
+  get stream(): ReadableStream {
+    return this.transformStream.readable;
+  }
+
+  async write(chunk: string): Promise<void> {
+    await this.writer.write(chunk);
+  }
+
+  async close(): Promise<void> {
+    await this.writer.close();
+  }
 }
