@@ -1,5 +1,11 @@
 # ai
 
+## 4.2.7
+
+### Patch Changes
+
+- e14c066: fix (ai/core): convert user ui messages with only parts (no content) to core messages
+
 ## 4.2.6
 
 ### Patch Changes

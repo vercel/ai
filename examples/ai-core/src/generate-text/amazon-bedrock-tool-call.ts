@@ -53,6 +53,7 @@ async function main() {
 
   console.log(result.text);
   console.log(JSON.stringify(result.toolCalls, null, 2));
+  console.log(JSON.stringify(result.toolResults, null, 2));
 }
 
 main().catch(console.error);

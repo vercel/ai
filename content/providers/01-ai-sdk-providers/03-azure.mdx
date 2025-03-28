@@ -132,6 +132,40 @@ OpenAI language models can also be used in the `streamText`, `generateObject`, a
   Stream](/docs/troubleshooting/common-issues/azure-stream-slow)
 </Note>
 
+### Provider Options
+
+When using OpenAI language models on Azure, you can configure provider-specific options using `providerOptions.openai`. More information on available configuration options are on [the OpenAI provider page](/providers/ai-sdk-providers/openai#language-models).
+
+```ts highlight="12-14,22-24"
+const messages = [
+  {
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: 'What is the capital of the moon?',
+      },
+      {
+        type: 'image',
+        image: 'https://example.com/image.png',
+        providerOptions: {
+          openai: { imageDetail: 'low' },
+        },
+      },
+    ],
+  },
+];
+
+const { text } = await generateText({
+  model: azure('your-deployment-name'),
+  providerOptions: {
+    openai: {
+      reasoningEffort: 'low',
+    },
+  },
+});
+```
+
 ### Chat Models
 
 <Note>
