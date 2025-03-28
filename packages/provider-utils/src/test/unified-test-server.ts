@@ -39,39 +39,7 @@ export type UrlHandler = {
 };
 
 export type FullUrlHandler = {
-  response:
-    | {
-        type: 'json-value';
-        headers?: Record<string, string>;
-        body: JsonBodyType;
-      }
-    | {
-        type: 'stream-chunks';
-        headers?: Record<string, string>;
-        chunks: Array<string>;
-      }
-    | {
-        type: 'binary';
-        headers?: Record<string, string>;
-        body: Buffer;
-      }
-    | {
-        type: 'error';
-        headers?: Record<string, string>;
-        status: number;
-        body?: string;
-      }
-    | {
-        type: 'empty';
-        headers?: Record<string, string>;
-        status?: number;
-      }
-    | {
-        type: 'controlled-stream';
-        headers?: Record<string, string>;
-        controller: TestResponseController;
-      }
-    | undefined;
+  response: UrlHandler['response']; // mandatory
 };
 
 export type FullHandlers<URLS extends { [url: string]: UrlHandler }> = {
