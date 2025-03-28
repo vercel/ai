@@ -24,6 +24,28 @@ describe('convertToCoreMessages', () => {
       expect(result).toEqual([{ role: 'user', content: 'Hello, AI!' }]);
     });
 
+    it('should prefer content in parts when content is empty', () => {
+      const result = convertToCoreMessages([
+        {
+          role: 'user',
+          content: '', // empty content
+          parts: [
+            {
+              type: 'text',
+              text: 'hey, how is it going?',
+            },
+          ],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'hey, how is it going?' }],
+        },
+      ]);
+    });
+
     it('should handle user message with attachments', () => {
       const attachment: Attachment = {
         contentType: 'image/jpeg',
@@ -660,14 +682,7 @@ describe('convertToCoreMessages', () => {
         },
       ]);
 
-      expect(result).toEqual([
-        { role: 'user', content: "What's the weather like?" },
-        {
-          role: 'assistant',
-          content: [{ type: 'text', text: "I'll check that for you." }],
-        },
-        { role: 'user', content: 'Thanks!' },
-      ]);
+      expect(result).toMatchSnapshot();
     });
 
     it('should convert fully typed Message[]', () => {
