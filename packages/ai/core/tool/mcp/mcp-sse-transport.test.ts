@@ -22,10 +22,6 @@ describe('SseMCPTransport', () => {
     },
   });
 
-  beforeEach(() => {
-    server.urls['http://localhost:3000/sse'].response = undefined;
-  });
-
   it('should establish connection and receive endpoint', async () => {
     const controller = new TestResponseController();
 

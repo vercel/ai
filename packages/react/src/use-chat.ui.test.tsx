@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { withTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer, withTestServer } from '@ai-sdk/provider-utils/test';
 import {
   formatDataStreamPart,
   generateId,
@@ -94,27 +94,28 @@ describe('data protocol stream', () => {
     onFinishCalls = [];
   });
 
-  it(
-    'should show streamed response',
-    withTestServer(
-      {
-        type: 'stream-values',
-        url: '/api/chat',
-        content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+  describe('streamed response', () => {
+    createTestServer({
+      '/api/chat': {
+        response: {
+          type: 'stream-chunks',
+          chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+        },
       },
-      async () => {
-        await userEvent.click(screen.getByTestId('do-append'));
+    });
 
-        await screen.findByTestId('message-0');
-        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+    it('should show streamed response', async () => {
+      await userEvent.click(screen.getByTestId('do-append'));
 
-        await screen.findByTestId('message-1');
-        expect(screen.getByTestId('message-1')).toHaveTextContent(
-          'AI: Hello, world.',
-        );
-      },
-    ),
-  );
+      await screen.findByTestId('message-0');
+      expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+      await screen.findByTestId('message-1');
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        'AI: Hello, world.',
+      );
+    });
+  });
 
   it(
     'should set stream data',
