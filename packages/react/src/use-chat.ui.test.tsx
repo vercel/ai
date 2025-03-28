@@ -1,5 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
-import { createTestServer, withTestServer } from '@ai-sdk/provider-utils/test';
+import {
+  createTestServer,
+  TestResponseController,
+  withTestServer,
+} from '@ai-sdk/provider-utils/test';
 import {
   formatDataStreamPart,
   generateId,
@@ -82,6 +86,10 @@ describe('data protocol stream', () => {
     );
   };
 
+  const server = createTestServer({
+    '/api/chat': {},
+  });
+
   beforeEach(() => {
     // use a random id to avoid conflicts:
     render(<TestComponent id={`first-id-${generateId()}`} />);
@@ -94,48 +102,37 @@ describe('data protocol stream', () => {
     onFinishCalls = [];
   });
 
-  describe('streamed response', () => {
-    createTestServer({
-      '/api/chat': {
-        response: {
-          type: 'stream-chunks',
-          chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
-        },
-      },
-    });
+  it('should show streamed response', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+    };
 
-    it('should show streamed response', async () => {
-      await userEvent.click(screen.getByTestId('do-append'));
+    await userEvent.click(screen.getByTestId('do-append'));
 
-      await screen.findByTestId('message-0');
-      expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
-      await screen.findByTestId('message-1');
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        'AI: Hello, world.',
-      );
-    });
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
   });
 
-  it(
-    'should set stream data',
-    withTestServer(
-      {
-        type: 'stream-values',
-        url: '/api/chat',
-        content: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
-      },
-      async () => {
-        await userEvent.click(screen.getByTestId('do-append'));
+  it('should set stream data', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
+    };
 
-        await screen.findByTestId('data');
-        expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
+    await userEvent.click(screen.getByTestId('do-append'));
 
-        await screen.findByTestId('message-1');
-        expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
-      },
-    ),
-  );
+    await screen.findByTestId('data');
+    expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+  });
 
   describe('setData', () => {
     it('should set data', async () => {
@@ -145,198 +142,178 @@ describe('data protocol stream', () => {
       expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"set"}]');
     });
 
-    it(
-      'should clear data',
-      withTestServer(
-        {
-          type: 'stream-values',
-          url: '/api/chat',
-          content: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
-        },
-        async () => {
-          await userEvent.click(screen.getByTestId('do-append'));
+    it('should clear data', async () => {
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
+      };
 
-          await screen.findByTestId('data');
-          expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
+      await userEvent.click(screen.getByTestId('do-append'));
 
-          await userEvent.click(screen.getByTestId('do-clear-data'));
+      await screen.findByTestId('data');
+      expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
 
-          await screen.findByTestId('data');
-          expect(screen.getByTestId('data')).toHaveTextContent('');
-        },
-      ),
-    );
+      await userEvent.click(screen.getByTestId('do-clear-data'));
+
+      await screen.findByTestId('data');
+      expect(screen.getByTestId('data')).toHaveTextContent('');
+    });
   });
 
-  it(
-    'should show error response when there is a server error',
-    withTestServer(
-      { type: 'error', url: '/api/chat', status: 404, content: 'Not found' },
-      async () => {
-        await userEvent.click(screen.getByTestId('do-append'));
+  it('should show error response when there is a server error', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'error',
+      status: 404,
+      body: 'Not found',
+    };
 
-        await screen.findByTestId('error');
-        expect(screen.getByTestId('error')).toHaveTextContent(
-          'Error: Not found',
-        );
-      },
-    ),
-  );
+    await userEvent.click(screen.getByTestId('do-append'));
 
-  it(
-    'should show error response when there is a streaming error',
-    withTestServer(
-      {
-        type: 'stream-values',
-        url: '/api/chat',
-        content: ['3:"custom error message"\n'],
-      },
-      async () => {
-        await userEvent.click(screen.getByTestId('do-append'));
+    await screen.findByTestId('error');
+    expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
+  });
 
-        await screen.findByTestId('error');
-        expect(screen.getByTestId('error')).toHaveTextContent(
-          'Error: custom error message',
-        );
-      },
-    ),
-  );
+  it('should show error response when there is a streaming error', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: ['3:"custom error message"\n'],
+    };
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    await screen.findByTestId('error');
+    expect(screen.getByTestId('error')).toHaveTextContent(
+      'Error: custom error message',
+    );
+  });
 
   describe('status', () => {
-    it(
-      'should show status',
-      withTestServer(
-        { url: '/api/chat', type: 'controlled-stream' },
-        async ({ streamController }) => {
-          await userEvent.click(screen.getByTestId('do-append'));
+    it('should show status', async () => {
+      const controller = new TestResponseController();
 
-          await waitFor(() => {
-            expect(screen.getByTestId('status')).toHaveTextContent('submitted');
-          });
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
 
-          streamController.enqueue('0:"Hello"\n');
+      await userEvent.click(screen.getByTestId('do-append'));
 
-          await waitFor(() => {
-            expect(screen.getByTestId('status')).toHaveTextContent('streaming');
-          });
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+      });
 
-          streamController.close();
+      controller.write('0:"Hello"\n');
 
-          await waitFor(() => {
-            expect(screen.getByTestId('status')).toHaveTextContent('ready');
-          });
-        },
-      ),
-    );
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+      });
 
-    it(
-      'should set status to error when there is a server error',
-      withTestServer(
-        { type: 'error', url: '/api/chat', status: 404, content: 'Not found' },
-        async () => {
-          await userEvent.click(screen.getByTestId('do-append'));
+      controller.close();
 
-          await waitFor(() => {
-            expect(screen.getByTestId('status')).toHaveTextContent('error');
-          });
-        },
-      ),
-    );
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      });
+    });
+
+    it('should set status to error when there is a server error', async () => {
+      server.urls['/api/chat'].response = {
+        type: 'error',
+        status: 404,
+        body: 'Not found',
+      };
+
+      await userEvent.click(screen.getByTestId('do-append'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('error');
+      });
+    });
   });
 
-  it(
-    'should invoke onFinish when the stream finishes',
-    withTestServer(
+  it('should invoke onFinish when the stream finishes', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+    };
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    controller.write(formatDataStreamPart('text', 'Hello'));
+    controller.write(formatDataStreamPart('text', ','));
+    controller.write(formatDataStreamPart('text', ' world'));
+    controller.write(formatDataStreamPart('text', '.'));
+    controller.write(
+      formatDataStreamPart('finish_message', {
+        finishReason: 'stop',
+        usage: { completionTokens: 1, promptTokens: 3 },
+      }),
+    );
+
+    controller.close();
+
+    await screen.findByTestId('message-1');
+
+    expect(onFinishCalls).toStrictEqual([
       {
-        url: '/api/chat',
-        type: 'stream-values',
-        content: [
-          formatDataStreamPart('text', 'Hello'),
-          formatDataStreamPart('text', ','),
-          formatDataStreamPart('text', ' world'),
-          formatDataStreamPart('text', '.'),
-          formatDataStreamPart('finish_message', {
-            finishReason: 'stop',
-            usage: { completionTokens: 1, promptTokens: 3 },
-          }),
-        ],
-      },
-      async () => {
-        await userEvent.click(screen.getByTestId('do-append'));
-
-        await screen.findByTestId('message-1');
-
-        expect(onFinishCalls).toStrictEqual([
-          {
-            message: {
-              id: expect.any(String),
-              createdAt: expect.any(Date),
-              role: 'assistant',
-              content: 'Hello, world.',
-              parts: [{ text: 'Hello, world.', type: 'text' }],
-            },
-            options: {
-              finishReason: 'stop',
-              usage: {
-                completionTokens: 1,
-                promptTokens: 3,
-                totalTokens: 4,
-              },
-            },
+        message: {
+          id: expect.any(String),
+          createdAt: expect.any(Date),
+          role: 'assistant',
+          content: 'Hello, world.',
+          parts: [{ text: 'Hello, world.', type: 'text' }],
+        },
+        options: {
+          finishReason: 'stop',
+          usage: {
+            completionTokens: 1,
+            promptTokens: 3,
+            totalTokens: 4,
           },
-        ]);
+        },
       },
-    ),
-  );
+    ]);
+  });
 
   describe('id', () => {
-    it(
-      'send the id to the server',
-      withTestServer(
-        {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
-        },
-        async ({ call }) => {
-          await userEvent.click(screen.getByTestId('do-append'));
+    it('send the id to the server', async () => {
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      };
 
-          expect(await call(0).getRequestBodyJson()).toStrictEqual({
-            id: screen.getByTestId('id').textContent,
-            messages: [
-              {
-                role: 'user',
-                content: 'hi',
-                parts: [{ text: 'hi', type: 'text' }],
-              },
-            ],
-          });
-        },
-      ),
-    );
+      await userEvent.click(screen.getByTestId('do-append'));
 
-    it(
-      'should clear out messages when the id changes',
-      withTestServer(
-        {
-          url: '/api/chat',
-          type: 'stream-values',
-          content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
-        },
-        async () => {
-          await userEvent.click(screen.getByTestId('do-append'));
+      expect(await server.calls[0].requestBody).toStrictEqual({
+        id: screen.getByTestId('id').textContent,
+        messages: [
+          {
+            role: 'user',
+            content: 'hi',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+        ],
+      });
+    });
 
-          await screen.findByTestId('message-1');
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            'AI: Hello, world.',
-          );
+    it('should clear out messages when the id changes', async () => {
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      };
 
-          await userEvent.click(screen.getByTestId('do-change-id'));
+      await userEvent.click(screen.getByTestId('do-append'));
 
-          expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
-        },
-      ),
-    );
+      await screen.findByTestId('message-1');
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        'AI: Hello, world.',
+      );
+
+      await userEvent.click(screen.getByTestId('do-change-id'));
+
+      expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+    });
   });
 });
 
