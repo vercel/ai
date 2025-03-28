@@ -161,7 +161,12 @@ exports[`convertToCoreMessages > assistant message > should handle assistant mes
 exports[`convertToCoreMessages > assistant message > should handle conversation with an assistant message that has empty tool invocations (parts) 1`] = `
 [
   {
-    "content": "text1",
+    "content": [
+      {
+        "text": "text1",
+        "type": "text",
+      },
+    ],
     "role": "user",
   },
   {
@@ -500,6 +505,38 @@ exports[`convertToCoreMessages > multiple messages > should convert fully typed 
 ]
 `;
 
+exports[`convertToCoreMessages > multiple messages > should handle a conversation with multiple messages (parts) 1`] = `
+[
+  {
+    "content": [
+      {
+        "text": "What's the weather like?",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "content": [
+      {
+        "text": "I'll check that for you.",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "text": "Thanks!",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+]
+`;
+
 exports[`convertToCoreMessages > multiple messages > should handle conversation with multiple tool invocations and user message at the end (parts) 1`] = `
 [
   {
@@ -598,7 +635,12 @@ exports[`convertToCoreMessages > multiple messages > should handle conversation 
     "role": "assistant",
   },
   {
-    "content": "Thanks!",
+    "content": [
+      {
+        "text": "Thanks!",
+        "type": "text",
+      },
+    ],
     "role": "user",
   },
 ]
