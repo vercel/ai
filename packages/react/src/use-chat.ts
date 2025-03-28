@@ -540,6 +540,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const addToolResult = useCallback(
     ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
+      // check if there is ongoing streaming; if so, buffer the result
+
       const currentMessages = messagesRef.current;
 
       updateToolCallResult({
