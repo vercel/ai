@@ -16,6 +16,10 @@ import userEvent from '@testing-library/user-event';
 import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from './use-chat';
 
+const server = createTestServer({
+  '/api/chat': {},
+});
+
 describe('data protocol stream', () => {
   let onFinishCalls: Array<{
     message: Message;
@@ -28,10 +32,6 @@ describe('data protocol stream', () => {
       };
     };
   }> = [];
-
-  const server = createTestServer({
-    '/api/chat': {},
-  });
 
   const TestComponent = ({ id: idParam }: { id: string }) => {
     const [id, setId] = React.useState<string>(idParam);
@@ -329,10 +329,6 @@ describe('text stream', () => {
       };
     };
   }> = [];
-
-  const server = createTestServer({
-    '/api/chat': {},
-  });
 
   const TestComponent = () => {
     const { messages, append } = useChat({
@@ -674,45 +670,40 @@ describe('prepareRequestBody', () => {
     cleanup();
   });
 
-  it(
-    'should show streamed response',
-    withTestServer(
-      {
-        url: '/api/chat',
-        type: 'stream-values',
-        content: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
-      },
-      async ({ call }) => {
-        await userEvent.click(screen.getByTestId('do-append'));
+  it('should show streamed response', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+    };
 
-        await screen.findByTestId('message-0');
-        expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+    await userEvent.click(screen.getByTestId('do-append'));
 
-        expect(bodyOptions).toStrictEqual({
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    expect(bodyOptions).toStrictEqual({
+      id: expect.any(String),
+      messages: [
+        {
+          role: 'user',
+          content: 'hi',
           id: expect.any(String),
-          messages: [
-            {
-              role: 'user',
-              content: 'hi',
-              id: expect.any(String),
-              experimental_attachments: undefined,
-              createdAt: expect.any(Date),
-              parts: [{ type: 'text', text: 'hi' }],
-            },
-          ],
-          requestData: { 'test-data-key': 'test-data-value' },
-          requestBody: { 'request-body-key': 'request-body-value' },
-        });
+          experimental_attachments: undefined,
+          createdAt: expect.any(Date),
+          parts: [{ type: 'text', text: 'hi' }],
+        },
+      ],
+      requestData: { 'test-data-key': 'test-data-value' },
+      requestBody: { 'request-body-key': 'request-body-value' },
+    });
 
-        expect(await call(0).getRequestBodyJson()).toBe('test-request-body');
+    expect(await server.calls[0].requestBody).toBe('test-request-body');
 
-        await screen.findByTestId('message-1');
-        expect(screen.getByTestId('message-1')).toHaveTextContent(
-          'AI: Hello, world.',
-        );
-      },
-    ),
-  );
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+  });
 });
 
 describe('onToolCall', () => {
@@ -764,38 +755,33 @@ describe('onToolCall', () => {
     cleanup();
   });
 
-  it(
-    "should invoke onToolCall when a tool call is received from the server's response",
-    withTestServer(
-      {
-        url: '/api/chat',
-        type: 'stream-values',
-        content: [
-          formatDataStreamPart('tool_call', {
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-          }),
-        ],
-      },
-      async () => {
-        await userEvent.click(screen.getByTestId('do-append'));
+  it("should invoke onToolCall when a tool call is received from the server's response", async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatDataStreamPart('tool_call', {
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        }),
+      ],
+    };
 
-        await screen.findByTestId('message-1');
-        expect(screen.getByTestId('message-1')).toHaveTextContent(
-          `{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}`,
-        );
+    await userEvent.click(screen.getByTestId('do-append'));
 
-        resolve();
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      `{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}`,
+    );
 
-        await waitFor(() => {
-          expect(screen.getByTestId('message-1')).toHaveTextContent(
-            `{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-tool-response: test-tool tool-call-0 {\\"testArg\\":\\"test-value\\"}"}`,
-          );
-        });
-      },
-    ),
-  );
+    resolve();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        `{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-tool-response: test-tool tool-call-0 {\\"testArg\\":\\"test-value\\"}"}`,
+      );
+    });
+  });
 });
 
 describe('tool invocations', () => {
