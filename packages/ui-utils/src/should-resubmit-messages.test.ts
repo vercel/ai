@@ -88,26 +88,7 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
         content: '',
         createdAt: new Date(),
         parts: [
-          {
-            type: 'step-start',
-          },
-          {
-            type: 'tool-invocation',
-            toolInvocation: {
-              state: 'result',
-              step: 0,
-              toolCallId: 'call_bAixMXEJFvxvdvAo97WxLJEp',
-              toolName: 'askForConfirmation',
-              args: {
-                message:
-                  'Can I access your current location to provide the weather information?',
-              },
-              result: 'Yes, confirmed.',
-            },
-          },
-          {
-            type: 'step-start',
-          },
+          { type: 'step-start' },
           {
             type: 'tool-invocation',
             toolInvocation: {
@@ -119,9 +100,25 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
               result: 'New York',
             },
           },
+          { type: 'step-start' },
           {
-            type: 'step-start',
+            type: 'text',
+            text: 'The current weather in New York is windy.',
           },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return true when there is a text part after the last tool result in the last step', () => {
+    expect(
+      isAssistantMessageWithCompletedToolCalls({
+        id: '1',
+        role: 'assistant',
+        content: '',
+        createdAt: new Date(),
+        parts: [
+          { type: 'step-start' },
           {
             type: 'tool-invocation',
             toolInvocation: {
@@ -136,14 +133,11 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
             },
           },
           {
-            type: 'step-start',
-          },
-          {
             type: 'text',
             text: 'The current weather in New York is windy.',
           },
         ],
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 });
