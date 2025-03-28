@@ -42,7 +42,7 @@ app.post('/stream-data', async c => {
 
   // Mark the response as a v1 data stream:
   c.header('X-Vercel-AI-Data-Stream', 'v1');
-  c.header('Content-Type', 'text/plain; charset=utf-8');
+  c.header('Content-Type', 'text/event-stream');
 
   return stream(c, stream =>
     stream.pipe(dataStream.pipeThrough(new TextEncoderStream())),
