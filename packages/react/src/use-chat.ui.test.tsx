@@ -406,9 +406,6 @@ describe('text stream', () => {
     server.urls['/api/chat'].response = {
       type: 'controlled-stream',
       controller,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
     };
 
     await userEvent.click(screen.getByTestId('do-append-text-stream'));
@@ -877,9 +874,6 @@ describe('tool invocations', () => {
     server.urls['/api/chat'].response = {
       type: 'controlled-stream',
       controller,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
     };
 
     await userEvent.click(screen.getByTestId('do-append'));
@@ -940,6 +934,50 @@ describe('tool invocations', () => {
         '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
       );
     });
+  });
+
+  it('should delay tool result submission until the stream is finished', async () => {
+    const controller1 = new TestResponseController();
+    const controller2 = new TestResponseController();
+
+    server.urls['/api/chat'].response = [
+      { type: 'controlled-stream', controller: controller1 },
+      { type: 'controlled-stream', controller: controller2 },
+    ];
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    controller1.write(
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+      );
+    });
+
+    // user submits the tool result
+    await userEvent.click(screen.getByTestId('add-result-0'));
+
+    // UI should show the tool result
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+      );
+    });
+
+    // should not have called the API yet
+    expect(server.calls.length).toBe(1);
+
+    await controller1.close();
+
+    // call should happen after the stream is finished
+    expect(server.calls.length).toBe(2);
   });
 });
 
