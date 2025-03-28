@@ -29,6 +29,10 @@ describe('data protocol stream', () => {
     };
   }> = [];
 
+  const server = createTestServer({
+    '/api/chat': {},
+  });
+
   const TestComponent = ({ id: idParam }: { id: string }) => {
     const [id, setId] = React.useState<string>(idParam);
     const {
@@ -85,10 +89,6 @@ describe('data protocol stream', () => {
       </div>
     );
   };
-
-  const server = createTestServer({
-    '/api/chat': {},
-  });
 
   beforeEach(() => {
     // use a random id to avoid conflicts:
@@ -330,6 +330,10 @@ describe('text stream', () => {
     };
   }> = [];
 
+  const server = createTestServer({
+    '/api/chat': {},
+  });
+
   const TestComponent = () => {
     const { messages, append } = useChat({
       streamProtocol: 'text',
@@ -371,89 +375,81 @@ describe('text stream', () => {
     onFinishCalls = [];
   });
 
-  it(
-    'should show streamed response',
-    withTestServer(
+  it('should show streamed response', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: ['Hello', ',', ' world', '.'],
+    };
+
+    await userEvent.click(screen.getByTestId('do-append-text-stream'));
+
+    await screen.findByTestId('message-0-content');
+    expect(screen.getByTestId('message-0-content')).toHaveTextContent('hi');
+
+    await screen.findByTestId('message-1-content');
+    expect(screen.getByTestId('message-1-content')).toHaveTextContent(
+      'Hello, world.',
+    );
+  });
+
+  it('should have stable message ids', async () => {
+    const controller = new TestResponseController();
+
+    server.urls['/api/chat'].response = {
+      type: 'controlled-stream',
+      controller,
+      headers: {
+        'Content-Type': 'text/event-stream',
+      },
+    };
+
+    await userEvent.click(screen.getByTestId('do-append-text-stream'));
+
+    controller.write('He');
+
+    await screen.findByTestId('message-1-content');
+    expect(screen.getByTestId('message-1-content')).toHaveTextContent('He');
+
+    const id = screen.getByTestId('message-1-id').textContent;
+
+    controller.write('llo');
+    controller.close();
+
+    await screen.findByTestId('message-1-content');
+    expect(screen.getByTestId('message-1-content')).toHaveTextContent('Hello');
+    expect(screen.getByTestId('message-1-id').textContent).toBe(id);
+  });
+
+  it('should invoke onFinish when the stream finishes', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: ['Hello', ',', ' world', '.'],
+    };
+
+    await userEvent.click(screen.getByTestId('do-append-text-stream'));
+
+    await screen.findByTestId('message-1-text-stream');
+
+    expect(onFinishCalls).toStrictEqual([
       {
-        url: '/api/chat',
-        type: 'stream-values',
-        content: ['Hello', ',', ' world', '.'],
-      },
-      async () => {
-        await userEvent.click(screen.getByTestId('do-append-text-stream'));
-
-        await screen.findByTestId('message-0-content');
-        expect(screen.getByTestId('message-0-content')).toHaveTextContent('hi');
-
-        await screen.findByTestId('message-1-content');
-        expect(screen.getByTestId('message-1-content')).toHaveTextContent(
-          'Hello, world.',
-        );
-      },
-    ),
-  );
-
-  it(
-    'should have stable message ids',
-    withTestServer(
-      { url: '/api/chat', type: 'controlled-stream' },
-      async ({ streamController }) => {
-        streamController.enqueue('He');
-
-        await userEvent.click(screen.getByTestId('do-append-text-stream'));
-
-        await screen.findByTestId('message-1-content');
-        expect(screen.getByTestId('message-1-content')).toHaveTextContent('He');
-
-        const id = screen.getByTestId('message-1-id').textContent;
-
-        streamController.enqueue('llo');
-        streamController.close();
-
-        await screen.findByTestId('message-1-content');
-        expect(screen.getByTestId('message-1-content')).toHaveTextContent(
-          'Hello',
-        );
-        expect(screen.getByTestId('message-1-id').textContent).toBe(id);
-      },
-    ),
-  );
-
-  it(
-    'should invoke onFinish when the stream finishes',
-    withTestServer(
-      {
-        url: '/api/chat',
-        type: 'stream-values',
-        content: ['Hello', ',', ' world', '.'],
-      },
-      async () => {
-        await userEvent.click(screen.getByTestId('do-append-text-stream'));
-
-        await screen.findByTestId('message-1-text-stream');
-
-        expect(onFinishCalls).toStrictEqual([
-          {
-            message: {
-              id: expect.any(String),
-              createdAt: expect.any(Date),
-              role: 'assistant',
-              content: 'Hello, world.',
-              parts: [{ text: 'Hello, world.', type: 'text' }],
-            },
-            options: {
-              finishReason: 'unknown',
-              usage: {
-                completionTokens: NaN,
-                promptTokens: NaN,
-                totalTokens: NaN,
-              },
-            },
+        message: {
+          id: expect.any(String),
+          createdAt: expect.any(Date),
+          role: 'assistant',
+          content: 'Hello, world.',
+          parts: [{ text: 'Hello, world.', type: 'text' }],
+        },
+        options: {
+          finishReason: 'unknown',
+          usage: {
+            completionTokens: NaN,
+            promptTokens: NaN,
+            totalTokens: NaN,
           },
-        ]);
+        },
       },
-    ),
-  );
+    ]);
+  });
 });
 
 describe('form actions', () => {
