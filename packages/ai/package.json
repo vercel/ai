@@ -29,6 +29,7 @@
     "test:node": "vitest --config vitest.node.config.js --run",
     "test:node:watch": "vitest --config vitest.node.config.js",
     "test:node:core": "pnpm vitest --config vitest.node.config.js --run ./core/",
+    "test:node:core:watch": "pnpm vitest --config vitest.node.config.js ./core/",
     "test:node:util": "pnpm vitest --config vitest.node.config.js --run ./util/",
     "test:ui": "pnpm test:ui:react",
     "test:ui:react": "vitest --config vitest.ui.react.config.js --run",
