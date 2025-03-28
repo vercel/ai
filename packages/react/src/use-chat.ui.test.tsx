@@ -20,6 +20,26 @@ const server = createTestServer({
   '/api/chat': {},
 });
 
+const createTestComponent = (
+  TestComponent: React.ComponentType<any>,
+  {
+    init,
+  }: {
+    init?: (TestComponent: React.ComponentType<any>) => React.ReactNode;
+  } = {},
+) => {
+  beforeEach(() => {
+    render(init?.(TestComponent) ?? <TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  return TestComponent;
+};
+
 describe('data protocol stream', () => {
   let onFinishCalls: Array<{
     message: Message;
@@ -33,72 +53,72 @@ describe('data protocol stream', () => {
     };
   }> = [];
 
-  const TestComponent = ({ id: idParam }: { id: string }) => {
-    const [id, setId] = React.useState<string>(idParam);
-    const {
-      messages,
-      append,
-      error,
-      data,
-      status,
-      setData,
-      id: idKey,
-    } = useChat({
-      id,
-      onFinish: (message, options) => {
-        onFinishCalls.push({ message, options });
-      },
-    });
+  createTestComponent(
+    ({ id: idParam }: { id: string }) => {
+      const [id, setId] = React.useState<string>(idParam);
+      const {
+        messages,
+        append,
+        error,
+        data,
+        status,
+        setData,
+        id: idKey,
+      } = useChat({
+        id,
+        onFinish: (message, options) => {
+          onFinishCalls.push({ message, options });
+        },
+      });
 
-    return (
-      <div>
-        <div data-testid="id">{idKey}</div>
-        <div data-testid="status">{status.toString()}</div>
-        {error && <div data-testid="error">{error.toString()}</div>}
-        <div data-testid="data">{data != null ? JSON.stringify(data) : ''}</div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
+      return (
+        <div>
+          <div data-testid="id">{idKey}</div>
+          <div data-testid="status">{status.toString()}</div>
+          {error && <div data-testid="error">{error.toString()}</div>}
+          <div data-testid="data">
+            {data != null ? JSON.stringify(data) : ''}
           </div>
-        ))}
-        <button
-          data-testid="do-append"
-          onClick={() => {
-            append({ role: 'user', content: 'hi' });
-          }}
-        />
-        <button
-          data-testid="do-change-id"
-          onClick={() => {
-            setId('second-id');
-          }}
-        />
-        <button
-          data-testid="do-set-data"
-          onClick={() => {
-            setData([{ t1: 'set' }]);
-          }}
-        />
-        <button
-          data-testid="do-clear-data"
-          onClick={() => {
-            setData(undefined);
-          }}
-        />
-      </div>
-    );
-  };
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))}
+          <button
+            data-testid="do-append"
+            onClick={() => {
+              append({ role: 'user', content: 'hi' });
+            }}
+          />
+          <button
+            data-testid="do-change-id"
+            onClick={() => {
+              setId('second-id');
+            }}
+          />
+          <button
+            data-testid="do-set-data"
+            onClick={() => {
+              setData([{ t1: 'set' }]);
+            }}
+          />
+          <button
+            data-testid="do-clear-data"
+            onClick={() => {
+              setData(undefined);
+            }}
+          />
+        </div>
+      );
+    },
+    {
+      // use a random id to avoid conflicts:
+      init: TestComponent => <TestComponent id={`first-id-${generateId()}`} />,
+    },
+  );
 
   beforeEach(() => {
-    // use a random id to avoid conflicts:
-    render(<TestComponent id={`first-id-${generateId()}`} />);
-    onFinishCalls = [];
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
     onFinishCalls = [];
   });
 
@@ -330,7 +350,7 @@ describe('text stream', () => {
     };
   }> = [];
 
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, append } = useChat({
       streamProtocol: 'text',
       onFinish: (message, options) => {
@@ -358,16 +378,9 @@ describe('text stream', () => {
         />
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-    onFinishCalls = [];
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
+  beforeEach(() => {
     onFinishCalls = [];
   });
 
@@ -449,7 +462,7 @@ describe('text stream', () => {
 });
 
 describe('form actions', () => {
-  const TestComponent = () => {
+  createTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({ streamProtocol: 'text' });
 
@@ -473,15 +486,6 @@ describe('form actions', () => {
         </form>
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it(
