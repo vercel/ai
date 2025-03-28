@@ -16,8 +16,6 @@ app.post('/', async c => {
   // Mark the response as a v1 data stream:
   c.header('X-Vercel-AI-Data-Stream', 'v1');
   c.header('Content-Type', 'text/plain; charset=utf-8');
-  // disable compression if you use Next.js proxy or other compression middleware
-  c.header("Content-Encoding", "none");
 
   return stream(c, stream => stream.pipe(result.toDataStream()));
 });
@@ -45,8 +43,6 @@ app.post('/stream-data', async c => {
   // Mark the response as a v1 data stream:
   c.header('X-Vercel-AI-Data-Stream', 'v1');
   c.header('Content-Type', 'text/plain; charset=utf-8');
-  // disable compression if you use Next.js proxy or other compression middleware
-  c.header("Content-Encoding", "none");
 
   return stream(c, stream =>
     stream.pipe(dataStream.pipeThrough(new TextEncoderStream())),
