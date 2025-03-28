@@ -24,41 +24,35 @@ export function shouldResubmitMessages({
         originalMaxToolInvocationStep) &&
     // check that next step is possible:
     isAssistantMessageWithCompletedToolCalls(lastMessage) &&
-    // check that assistant has not answered yet:
-    !isLastToolInvocationFollowedByText(lastMessage) &&
     // limit the number of automatic steps:
     (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) < maxSteps
   );
 }
 
-function isLastToolInvocationFollowedByText(message: UIMessage) {
-  let isLastToolInvocationFollowedByText = false;
-
-  message.parts.forEach(part => {
-    if (part.type === 'text') {
-      isLastToolInvocationFollowedByText = true;
-    }
-    if (part.type === 'tool-invocation') {
-      isLastToolInvocationFollowedByText = false;
-    }
-  });
-  return isLastToolInvocationFollowedByText;
-}
-
 /**
 Check if the message is an assistant message with completed tool calls.
-The message must have at least one tool invocation and all tool invocations
-must have a result.
+The last step of the message must have at least one tool invocation and
+all tool invocations must have a result.
  */
 export function isAssistantMessageWithCompletedToolCalls(
   message: UIMessage,
 ): message is UIMessage & {
   role: 'assistant';
 } {
+  if (message.role !== 'assistant') {
+    return false;
+  }
+
+  const lastStepStartIndex = message.parts.reduce((lastIndex, part, index) => {
+    return part.type === 'step-start' ? index : lastIndex;
+  }, -1);
+
+  const lastStepToolInvocations = message.parts
+    .slice(lastStepStartIndex + 1)
+    .filter(part => part.type === 'tool-invocation');
+
   return (
-    message.role === 'assistant' &&
-    message.parts
-      .filter(part => part.type === 'tool-invocation')
-      .every(part => 'result' in part.toolInvocation)
+    lastStepToolInvocations.length > 0 &&
+    lastStepToolInvocations.every(part => 'result' in part.toolInvocation)
   );
 }
