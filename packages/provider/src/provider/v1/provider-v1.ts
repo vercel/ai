@@ -1,6 +1,7 @@
 import { EmbeddingModelV1 } from '../../embedding-model/v1/embedding-model-v1';
 import { ImageModelV1 } from '../../image-model/v1/image-model-v1';
 import { LanguageModelV1 } from '../../language-model/v1/language-model-v1';
+import { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
 
 /**
  * Provider for language, text embedding, and image generation models.
@@ -16,7 +17,7 @@ The model id is then passed to the provider function to get the model.
 
 @throws {NoSuchModelError} If no such model exists.
    */
-  languageModel(modelId: string): LanguageModelV1;
+  languageModel(modelId: string): LanguageModelV1 | LanguageModelV2;
 
   /**
 Returns the text embedding model with the given id.
