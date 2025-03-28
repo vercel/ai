@@ -31,9 +31,9 @@ export type UrlHandler = {
         body?: string;
       }
     | {
-        type: 'readable-stream';
+        type: 'controlled-stream';
         headers?: Record<string, string>;
-        stream: ReadableStream;
+        controller: TestResponseController;
       }
     | undefined;
 };
@@ -67,9 +67,9 @@ export type FullUrlHandler = {
         status?: number;
       }
     | {
-        type: 'readable-stream';
+        type: 'controlled-stream';
         headers?: Record<string, string>;
-        stream: ReadableStream;
+        controller: TestResponseController;
       }
     | undefined;
 };
@@ -157,9 +157,9 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
               },
             );
 
-          case 'readable-stream': {
+          case 'controlled-stream': {
             return new HttpResponse(
-              response.stream.pipeThrough(new TextEncoderStream()),
+              response.controller.stream.pipeThrough(new TextEncoderStream()),
               {
                 status: 200,
                 headers: {
@@ -226,4 +226,26 @@ export function createTestServer<URLS extends { [url: string]: UrlHandler }>(
       return calls;
     },
   };
+}
+
+export class TestResponseController {
+  private readonly transformStream: TransformStream;
+  private readonly writer: WritableStreamDefaultWriter;
+
+  constructor() {
+    this.transformStream = new TransformStream();
+    this.writer = this.transformStream.writable.getWriter();
+  }
+
+  get stream(): ReadableStream {
+    return this.transformStream.readable;
+  }
+
+  async write(chunk: string): Promise<void> {
+    await this.writer.write(chunk);
+  }
+
+  async close(): Promise<void> {
+    await this.writer.close();
+  }
 }
