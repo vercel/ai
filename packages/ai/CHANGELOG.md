@@ -1,5 +1,14 @@
 # ai
 
+## 4.2.8
+
+### Patch Changes
+
+- 65243ce: fix (ui): introduce step start parts
+- Updated dependencies [65243ce]
+  - @ai-sdk/ui-utils@1.2.2
+  - @ai-sdk/react@1.2.3
+
 ## 4.2.7
 
 ### Patch Changes
