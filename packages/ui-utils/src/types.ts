@@ -497,7 +497,7 @@ export type AssistantMessage = {
  * a map.
  */
 export type DataMessage = {
-  id?: string; // optional id, implement if needed (e.g. for persistance)
+  id?: string; // optional id, implement if needed (e.g. for persistence)
   role: 'data';
   data: JSONValue; // application-specific data
 };
