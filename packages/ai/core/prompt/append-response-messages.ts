@@ -3,6 +3,7 @@ import {
   FileUIPart,
   Message,
   ReasoningUIPart,
+  StepStartUIPart,
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
@@ -59,8 +60,12 @@ Internal. For test use only. May change without notice.
         }
 
         const parts: Array<
-          TextUIPart | ReasoningUIPart | ToolInvocationUIPart | FileUIPart
-        > = [];
+          | TextUIPart
+          | ReasoningUIPart
+          | ToolInvocationUIPart
+          | FileUIPart
+          | StepStartUIPart
+        > = [{ type: 'step-start' as const }]; // always start with a step-start part
         let textContent = '';
         let reasoningTextContent = undefined;
 

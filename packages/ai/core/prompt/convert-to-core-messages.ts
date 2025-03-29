@@ -41,15 +41,31 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
       }
 
       case 'user': {
-        coreMessages.push({
-          role: 'user',
-          content: experimental_attachments
-            ? [
-                { type: 'text', text: content },
-                ...attachmentsToParts(experimental_attachments),
-              ]
-            : content,
-        });
+        if (message.parts == null) {
+          coreMessages.push({
+            role: 'user',
+            content: experimental_attachments
+              ? [
+                  { type: 'text', text: content },
+                  ...attachmentsToParts(experimental_attachments),
+                ]
+              : content,
+          });
+        } else {
+          const textParts = message.parts
+            .filter(part => part.type === 'text')
+            .map(part => ({
+              type: 'text' as const,
+              text: part.text,
+            }));
+
+          coreMessages.push({
+            role: 'user',
+            content: experimental_attachments
+              ? [...textParts, ...attachmentsToParts(experimental_attachments)]
+              : textParts,
+          });
+        }
         break;
       }
 

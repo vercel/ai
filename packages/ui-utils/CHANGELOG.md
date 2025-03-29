@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.2.2
+
+### Patch Changes
+
+- 65243ce: fix (ui): introduce step start parts
+
 ## 1.2.1
 
 ### Patch Changes

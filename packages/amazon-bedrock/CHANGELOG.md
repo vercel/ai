@@ -1,5 +1,11 @@
 # @ai-sdk/amazon-bedrock
 
+## 2.2.2
+
+### Patch Changes
+
+- 2085e59: feat (provider/amazon-bedrock): support tool results with image parts
+
 ## 2.2.1
 
 ### Patch Changes

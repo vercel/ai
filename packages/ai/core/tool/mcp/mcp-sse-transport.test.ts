@@ -1,12 +1,13 @@
-import { createTestServer } from '@ai-sdk/provider-utils/test';
+import {
+  createTestServer,
+  TestResponseController,
+} from '@ai-sdk/provider-utils/test';
 import { MCPClientError } from '../../../errors';
 import { SseMCPTransport } from './mcp-sse-transport';
 
 describe('SseMCPTransport', () => {
   const server = createTestServer({
-    'http://localhost:3000/sse': {
-      response: undefined,
-    },
+    'http://localhost:3000/sse': {},
     'http://localhost:3000/messages': {
       response: {
         type: 'json-value',
@@ -19,17 +20,12 @@ describe('SseMCPTransport', () => {
     },
   });
 
-  beforeEach(() => {
-    server.urls['http://localhost:3000/sse'].response = undefined;
-  });
-
   it('should establish connection and receive endpoint', async () => {
-    const controller = new TransformStreamController();
-    const stream = controller.readable;
+    const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
-      type: 'readable-stream',
-      stream,
+      type: 'controlled-stream',
+      controller,
       headers: {
         'Content-Type': 'text/event-stream',
       },
@@ -40,7 +36,7 @@ describe('SseMCPTransport', () => {
     });
     const connectPromise = transport.start();
 
-    controller.enqueue(
+    controller.write(
       'event: endpoint\ndata: http://localhost:3000/messages\n\n',
     );
 
@@ -56,8 +52,7 @@ describe('SseMCPTransport', () => {
   });
 
   it('should throw if server returns non-200 status', async () => {
-    const controller = new TransformStreamController();
-    const stream = controller.readable;
+    const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
       type: 'error',
@@ -70,7 +65,7 @@ describe('SseMCPTransport', () => {
     });
     const connectPromise = transport.start();
 
-    controller.enqueue(
+    controller.write(
       'event: endpoint\ndata: http://localhost:3000/messages\n\n',
     );
 
@@ -78,12 +73,11 @@ describe('SseMCPTransport', () => {
   });
 
   it('should handle valid JSON-RPC messages', async () => {
-    const controller = new TransformStreamController();
-    const stream = controller.readable;
+    const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
-      type: 'readable-stream',
-      stream,
+      type: 'controlled-stream',
+      controller,
       headers: {
         'Content-Type': 'text/event-stream',
       },
@@ -98,7 +92,7 @@ describe('SseMCPTransport', () => {
     });
 
     const connectPromise = transport.start();
-    controller.enqueue(
+    controller.write(
       'event: endpoint\ndata: http://localhost:3000/messages\n\n',
     );
     await connectPromise;
@@ -110,7 +104,7 @@ describe('SseMCPTransport', () => {
       id: '1',
     };
 
-    controller.enqueue(
+    controller.write(
       `event: message\ndata: ${JSON.stringify(testMessage)}\n\n`,
     );
 
@@ -121,12 +115,11 @@ describe('SseMCPTransport', () => {
   });
 
   it('should handle invalid JSON-RPC messages', async () => {
-    const controller = new TransformStreamController();
-    const stream = controller.readable;
+    const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
-      type: 'readable-stream',
-      stream,
+      type: 'controlled-stream',
+      controller,
       headers: {
         'Content-Type': 'text/event-stream',
       },
@@ -141,7 +134,7 @@ describe('SseMCPTransport', () => {
     });
 
     const connectPromise = transport.start();
-    controller.enqueue(
+    controller.write(
       'event: endpoint\ndata: http://localhost:3000/messages\n\n',
     );
     await connectPromise;
@@ -150,7 +143,7 @@ describe('SseMCPTransport', () => {
       foo: 'bar',
     };
 
-    controller.enqueue(
+    controller.write(
       `event: message\ndata: ${JSON.stringify(invalidMessage)}\n\n`,
     );
 
@@ -162,12 +155,11 @@ describe('SseMCPTransport', () => {
   });
 
   it('should send messages as POST requests', async () => {
-    const controller = new TransformStreamController();
-    const stream = controller.readable;
+    const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
-      type: 'readable-stream',
-      stream,
+      type: 'controlled-stream',
+      controller,
       headers: {
         'Content-Type': 'text/event-stream',
       },
@@ -178,7 +170,7 @@ describe('SseMCPTransport', () => {
     });
 
     const connectPromise = transport.start();
-    controller.enqueue(
+    controller.write(
       'event: endpoint\ndata: http://localhost:3000/messages\n\n',
     );
     await connectPromise;
@@ -201,12 +193,11 @@ describe('SseMCPTransport', () => {
   });
 
   it('should handle POST request errors', async () => {
-    const controller = new TransformStreamController();
-    const stream = controller.readable;
+    const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
-      type: 'readable-stream',
-      stream,
+      type: 'controlled-stream',
+      controller,
       headers: {
         'Content-Type': 'text/event-stream',
       },
@@ -226,7 +217,7 @@ describe('SseMCPTransport', () => {
     });
 
     const connectPromise = transport.start();
-    controller.enqueue(
+    controller.write(
       'event: endpoint\ndata: http://localhost:3000/messages\n\n',
     );
     await connectPromise;
@@ -266,12 +257,11 @@ describe('SseMCPTransport', () => {
   });
 
   it('should send custom headers with all requests', async () => {
-    const controller = new TransformStreamController();
-    const stream = controller.readable;
+    const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
-      type: 'readable-stream',
-      stream,
+      type: 'controlled-stream',
+      controller,
       headers: {
         'Content-Type': 'text/event-stream',
       },
@@ -288,9 +278,11 @@ describe('SseMCPTransport', () => {
     });
 
     const connectPromise = transport.start();
-    controller.enqueue(
+
+    controller.write(
       'event: endpoint\ndata: http://localhost:3000/messages\n\n',
     );
+
     await connectPromise;
 
     const message = {
@@ -317,25 +309,3 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 });
-
-class TransformStreamController {
-  private readonly stream: TransformStream;
-  private readonly writer: WritableStreamDefaultWriter;
-
-  constructor() {
-    this.stream = new TransformStream();
-    this.writer = this.stream.writable.getWriter();
-  }
-
-  get readable(): ReadableStream {
-    return this.stream.readable;
-  }
-
-  async enqueue(chunk: string): Promise<void> {
-    await this.writer.write(chunk);
-  }
-
-  async close(): Promise<void> {
-    await this.writer.close();
-  }
-}

@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.4
+
+### Patch Changes
+
+- b520dba: feat (provider/openai): add chatgpt-4o-latest model
+
 ## 1.3.3
 
 ### Patch Changes
