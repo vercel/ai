@@ -40,6 +40,30 @@ const createTestComponent = (
   return TestComponent;
 };
 
+const server = createTestServer({
+  '/api/chat': {},
+});
+
+const createTestComponent = (
+  TestComponent: React.ComponentType<any>,
+  {
+    init,
+  }: {
+    init?: (TestComponent: React.ComponentType<any>) => React.ReactNode;
+  } = {},
+) => {
+  beforeEach(() => {
+    render(init?.(TestComponent) ?? <TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  return TestComponent;
+};
+
 describe('data protocol stream', () => {
   let onFinishCalls: Array<{
     message: Message;
@@ -1609,6 +1633,48 @@ describe('model prop', () => {
         prompt: expectedPrompt,
       }),
     );
+  });
+
+  it('should handle image file attachment and submission', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: ['0:"Response to message with image attachment"\n'],
+    };
+
+    const submitButton = screen.getByTestId('submit-button');
+    await userEvent.click(submitButton);
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent(
+      'User: Message with image attachment',
+    );
+
+    await screen.findByTestId('attachment-0');
+    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+      'src',
+      expect.stringContaining('https://example.com/image.png'),
+    );
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
+
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      id: expect.any(String),
+      messages: [
+        {
+          role: 'user',
+          content: 'Message with image attachment',
+          experimental_attachments: [
+            {
+              name: 'test.png',
+              contentType: 'image/png',
+              url: 'https://example.com/image.png',
+            },
+          ],
+          parts: [{ text: 'Message with image attachment', type: 'text' }],
+        },
+      ],
+    });
   });
 });
 
