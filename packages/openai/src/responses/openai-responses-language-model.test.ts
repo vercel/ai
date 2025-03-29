@@ -692,6 +692,51 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it('should send web_search tool as tool_choice', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          inputFormat: 'prompt',
+          mode: {
+            type: 'regular',
+            toolChoice: {
+              type: 'tool',
+              toolName: 'web_search_preview',
+            },
+            tools: [
+              {
+                type: 'provider-defined',
+                id: 'openai.web_search_preview',
+                name: 'web_search_preview',
+                args: {
+                  searchContextSize: 'high',
+                  userLocation: {
+                    type: 'approximate',
+                    city: 'San Francisco',
+                  },
+                },
+              },
+            ],
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBody).toStrictEqual({
+          model: 'gpt-4o',
+          tool_choice: { type: 'web_search_preview' },
+          tools: [
+            {
+              type: 'web_search_preview',
+              search_context_size: 'high',
+              user_location: { type: 'approximate', city: 'San Francisco' },
+            },
+          ],
+          input: [
+            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([]);
+      });
+
       it('should warn about unsupported settings', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',

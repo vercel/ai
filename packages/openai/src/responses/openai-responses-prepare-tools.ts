@@ -19,6 +19,7 @@ export function prepareResponsesTools({
     | 'auto'
     | 'none'
     | 'required'
+    | { type: 'web_search_preview' }
     | { type: 'function'; name: string };
   toolWarnings: LanguageModelV1CallWarning[];
 } {
@@ -84,7 +85,16 @@ export function prepareResponsesTools({
     case 'none':
     case 'required':
       return { tools: openaiTools, tool_choice: type, toolWarnings };
-    case 'tool':
+    case 'tool': {
+      if (toolChoice.toolName === 'web_search_preview') {
+        return {
+          tools: openaiTools,
+          tool_choice: {
+            type: 'web_search_preview',
+          },
+          toolWarnings,
+        };
+      }
       return {
         tools: openaiTools,
         tool_choice: {
@@ -93,6 +103,7 @@ export function prepareResponsesTools({
         },
         toolWarnings,
       };
+    }
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
