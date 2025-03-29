@@ -100,7 +100,16 @@ Callback that is set using the `onStepFinish` option.
  */
 export type StreamTextOnStepFinishCallback<TOOLS extends ToolSet> = (
   stepResult: StepResult<TOOLS>,
-) => Promise<void> | void;
+) =>
+  | Promise<void | Partial<{
+      tools: TOOLS;
+      system: Prompt['system'];
+    }>>
+  | void
+  | Partial<{
+      tools: TOOLS;
+      system: Prompt['system'];
+    }>;
 
 /**
 Callback that is set using the `onChunk` option.
@@ -751,7 +760,17 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             isContinued: part.isContinued,
           };
 
-          await onStepFinish?.(currentStepResult);
+          const stepFinish = await onStepFinish?.(currentStepResult);
+
+          if (stepFinish) {
+            if (stepFinish.tools) {
+              tools = stepFinish.tools;
+            }
+
+            if (stepFinish.system) {
+              system = stepFinish.system;
+            }
+          }
 
           recordedSteps.push(currentStepResult);
 
