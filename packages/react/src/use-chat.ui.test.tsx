@@ -14,6 +14,31 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from './use-chat';
+import { LanguageModelV1ObjectGenerationMode } from '@ai-sdk/provider';
+
+const server = createTestServer({
+  '/api/chat': {},
+});
+
+const createTestComponent = (
+  TestComponent: React.ComponentType<any>,
+  {
+    init,
+  }: {
+    init?: (TestComponent: React.ComponentType<any>) => React.ReactNode;
+  } = {},
+) => {
+  beforeEach(() => {
+    render(init?.(TestComponent) ?? <TestComponent />);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    cleanup();
+  });
+
+  return TestComponent;
+};
 
 const server = createTestServer({
   '/api/chat': {},
@@ -1509,6 +1534,104 @@ describe('should append message with attachments', () => {
           </button>
         </form>
       </div>
+    );
+  });
+
+  it('should handle image file attachment and submission', async () => {
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: ['0:"Response to message with image attachment"\n'],
+    };
+
+    const submitButton = screen.getByTestId('submit-button');
+    await userEvent.click(submitButton);
+
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent(
+      'User: Message with image attachment',
+    );
+
+    await screen.findByTestId('attachment-0');
+    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
+      'src',
+      expect.stringContaining('https://example.com/image.png'),
+    );
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
+
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      id: expect.any(String),
+      messages: [
+        {
+          role: 'user',
+          content: 'Message with image attachment',
+          experimental_attachments: [
+            {
+              name: 'test.png',
+              contentType: 'image/png',
+              url: 'https://example.com/image.png',
+            },
+          ],
+          parts: [{ text: 'Message with image attachment', type: 'text' }],
+        },
+      ],
+    });
+  });
+});
+
+describe('model prop', () => {
+  const mockModel = {
+    id: 'test-model',
+    doStream: vi.fn(() => Promise.resolve({ stream: new ReadableStream() })),
+  } as any; // Missing many props, so we cast to any
+
+  const TestComponent = () => {
+    const { messages, append } = useChat({ model: mockModel });
+
+    return (
+      <div>
+        {messages.map((m, idx) => (
+          <div data-testid={`message-${idx}`} key={m.id}>
+            {m.role === 'user' ? 'User: ' : 'AI: '}
+            {m.content}
+          </div>
+        ))}
+        <button
+          data-testid="do-append"
+          onClick={() => {
+            append({ role: 'user', content: 'hi' });
+          }}
+        />
+      </div>
+    );
+  };
+
+  beforeEach(() => {
+    render(<TestComponent />);
+    mockModel.doStream.mockClear(); // Reset mock before each test
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('should call model.doStream when append is called', async () => {
+    await userEvent.click(screen.getByTestId('do-append'));
+    expect(mockModel.doStream).toHaveBeenCalled();
+  });
+
+  it('should call model.doStream with correct messages', async () => {
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    const expectedPrompt = [
+      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+    ];
+    expect(mockModel.doStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputFormat: 'prompt',
+        prompt: expectedPrompt,
+      }),
     );
   });
 
