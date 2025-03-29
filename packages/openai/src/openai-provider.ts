@@ -26,6 +26,11 @@ import {
   OpenAIImageModelId,
   OpenAIImageSettings,
 } from './openai-image-settings';
+import { OpenAIModerationModel } from './openai-moderation-model';
+import {
+  OpenAIModerationModelId,
+  OpenAIModerationSettings,
+} from './openai-moderation-settings';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
 import { openaiTools } from './openai-tools';
@@ -111,6 +116,22 @@ Creates a model for image generation.
     modelId: OpenAIImageModelId,
     settings?: OpenAIImageSettings,
   ): ImageModelV1;
+
+  /**
+Creates a moderation model for content moderation.
+   */
+  moderation(
+    modelId: OpenAIModerationModelId,
+    settings?: OpenAIModerationSettings,
+  ): OpenAIModerationModel;
+
+  /**
+Creates a moderation model for content moderation.
+   */
+  moderationModel(
+    modelId: OpenAIModerationModelId,
+    settings?: OpenAIModerationSettings,
+  ): OpenAIModerationModel;
 
   /**
 OpenAI-specific tools.
@@ -234,6 +255,17 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
+  const createModerationModel = (
+    modelId: OpenAIModerationModelId,
+    settings: OpenAIModerationSettings = {},
+  ) =>
+    new OpenAIModerationModel(modelId, settings, {
+      provider: `${providerName}.moderation`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createLanguageModel = (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
@@ -280,6 +312,9 @@ export function createOpenAI(
 
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+
+  provider.moderation = createModerationModel;
+  provider.moderationModel = createModerationModel;
 
   provider.tools = openaiTools;
 
