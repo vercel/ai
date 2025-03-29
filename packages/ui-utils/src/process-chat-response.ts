@@ -66,6 +66,13 @@ export async function processChatResponse({
     | { type: 'text'; text: string; signature?: string }
     | undefined = undefined;
 
+  // reset text part state after tool result and finish to allow for interweaving
+  const resetText = () => {
+    currentTextPart = undefined;
+    currentReasoningPart = undefined;
+    currentReasoningTextDetail = undefined;
+  }
+
   function updateToolInvocationPart(
     toolCallId: string,
     invocation: ToolInvocation,
@@ -341,6 +348,7 @@ export async function processChatResponse({
       updateToolInvocationPart(value.toolCallId, invocation);
 
       execUpdate();
+      resetText();
     },
     onDataPart(value) {
       data.push(...value);
@@ -378,6 +386,7 @@ export async function processChatResponse({
       if (value.usage != null) {
         usage = calculateLanguageModelUsage(value.usage);
       }
+      resetText();
     },
     onErrorPart(error) {
       throw new Error(error);
