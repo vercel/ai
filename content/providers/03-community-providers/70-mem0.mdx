@@ -198,6 +198,19 @@ const result = await generateText({
 console.log(result);
 ```
 
+### Get sources from memory
+
+```ts
+const { text, sources } = await generateText({
+    model: mem0("gpt-4-turbo"),
+    prompt: "Suggest me a good car to buy!",
+});
+
+console.log(sources);
+```
+
+This same functionality is available in the `streamText` function.
+
 ## Best Practices
 
 - **User Identification**: Use a unique `user_id` for consistent memory retrieval.
