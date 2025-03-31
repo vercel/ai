@@ -5,12 +5,13 @@ import {
   mockFetchError,
 } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
-import { cleanup, findByText, render, screen } from '@testing-library/react';
+import { findByText, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { setupTestComponent } from './setup-test-component';
 import { useAssistant } from './use-assistant';
 
 describe('stream data stream', () => {
-  const TestComponent = () => {
+  setupTestComponent(() => {
     const { status, messages, error, append } = useAssistant({
       api: '/api/assistant',
     });
@@ -34,15 +35,6 @@ describe('stream data stream', () => {
         />
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it('should show streamed response', async () => {
@@ -145,7 +137,7 @@ describe('stream data stream', () => {
 });
 
 describe('thread management', () => {
-  const TestComponent = () => {
+  setupTestComponent(() => {
     const { status, messages, error, append, setThreadId, threadId } =
       useAssistant({
         api: '/api/assistant',
@@ -183,15 +175,6 @@ describe('thread management', () => {
         />
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it('create new thread', async () => {
