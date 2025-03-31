@@ -4,22 +4,14 @@ import {
   mockFetchDataStreamWithGenerator,
 } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
-import { cleanup, findByText, render, screen } from '@testing-library/vue';
 import userEvent from '@testing-library/user-event';
+import { cleanup, findByText, render, screen } from '@testing-library/vue';
 import TestChatAssistantStreamComponent from './TestChatAssistantStreamComponent.vue';
 import TestChatAssistantThreadChangeComponent from './TestChatAssistantThreadChangeComponent.vue';
+import { setupTestComponent } from './setup-test-component';
 
 describe('stream data stream', () => {
-  // Render the TestChatAssistantStreamComponent before each test
-  beforeEach(() => {
-    render(TestChatAssistantStreamComponent);
-  });
-
-  // Cleanup after each test
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatAssistantStreamComponent);
 
   it('should show streamed response', async () => {
     // Mock the fetch data stream

@@ -7,34 +7,22 @@ import {
 } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
-import {
-  cleanup,
-  findByText,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/vue';
+import { screen, waitFor } from '@testing-library/vue';
+import { setupTestComponent } from './setup-test-component';
+import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
+import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
 import TestChatComponent from './TestChatComponent.vue';
 import TestChatCustomMetadataComponent from './TestChatCustomMetadataComponent.vue';
 import TestChatFormComponent from './TestChatFormComponent.vue';
 import TestChatFormOptionsComponent from './TestChatFormOptionsComponent.vue';
+import TestChatPrepareRequestBodyComponent from './TestChatPrepareRequestBodyComponent.vue';
 import TestChatReloadComponent from './TestChatReloadComponent.vue';
 import TestChatTextStreamComponent from './TestChatTextStreamComponent.vue';
 import TestChatToolInvocationsComponent from './TestChatToolInvocationsComponent.vue';
-import TestChatAttachmentsComponent from './TestChatAttachmentsComponent.vue';
 import TestChatUrlAttachmentsComponent from './TestChatUrlAttachmentsComponent.vue';
-import TestChatAppendAttachmentsComponent from './TestChatAppendAttachmentsComponent.vue';
-import TestChatPrepareRequestBodyComponent from './TestChatPrepareRequestBodyComponent.vue';
 
 describe('prepareRequestBody', () => {
-  beforeEach(() => {
-    render(TestChatPrepareRequestBodyComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatPrepareRequestBodyComponent);
 
   it(
     'should show streamed response',
@@ -85,14 +73,7 @@ describe('prepareRequestBody', () => {
 });
 
 describe('data protocol stream', () => {
-  beforeEach(() => {
-    render(TestChatComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatComponent);
 
   it('should show streamed response', async () => {
     mockFetchDataStream({
@@ -276,14 +257,7 @@ describe('data protocol stream', () => {
 });
 
 describe('text stream', () => {
-  beforeEach(() => {
-    render(TestChatTextStreamComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatTextStreamComponent);
 
   it('should show streamed response', async () => {
     mockFetchDataStream({
@@ -348,14 +322,7 @@ describe('text stream', () => {
 });
 
 describe('custom metadata', () => {
-  beforeEach(() => {
-    render(TestChatCustomMetadataComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatCustomMetadataComponent);
 
   it(
     'should should use custom headers',
@@ -410,14 +377,7 @@ describe('custom metadata', () => {
 });
 
 describe('form actions', () => {
-  beforeEach(() => {
-    render(TestChatFormComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatFormComponent);
 
   it('should show streamed response using handleSubmit', async () => {
     mockFetchDataStream({
@@ -454,14 +414,7 @@ describe('form actions', () => {
 });
 
 describe('form actions (with options)', () => {
-  beforeEach(() => {
-    render(TestChatFormOptionsComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatFormOptionsComponent);
 
   it('should show streamed response using handleSubmit', async () => {
     mockFetchDataStream({
@@ -525,14 +478,7 @@ describe('form actions (with options)', () => {
 });
 
 describe('reload', () => {
-  beforeEach(() => {
-    render(TestChatReloadComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatReloadComponent);
 
   it(
     'should show streamed response',
@@ -588,14 +534,7 @@ describe('reload', () => {
 });
 
 describe('onToolCall', () => {
-  beforeEach(() => {
-    render(TestChatFormComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatFormComponent);
 
   it('should invoke onToolCall when a tool call is received from the servers response', async () => {
     mockFetchDataStream({
@@ -620,14 +559,7 @@ describe('onToolCall', () => {
 });
 
 describe('tool invocations', () => {
-  beforeEach(() => {
-    render(TestChatToolInvocationsComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatToolInvocationsComponent);
 
   it(
     'should display partial tool call, tool call, and tool result',
@@ -782,14 +714,7 @@ describe('tool invocations', () => {
 });
 
 describe('file attachments with data url', () => {
-  beforeEach(() => {
-    render(TestChatAttachmentsComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatAttachmentsComponent);
 
   it('should handle text file attachment and submission', async () => {
     mockFetchDataStream({
@@ -864,14 +789,7 @@ describe('file attachments with data url', () => {
 });
 
 describe('file attachments with url', () => {
-  beforeEach(() => {
-    render(TestChatUrlAttachmentsComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatUrlAttachmentsComponent);
 
   it('should handle image file attachment and submission', async () => {
     mockFetchDataStream({
@@ -904,14 +822,7 @@ describe('file attachments with url', () => {
 });
 
 describe('attachments with empty submit', () => {
-  beforeEach(() => {
-    render(TestChatAttachmentsComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatAttachmentsComponent);
 
   it('should handle image file attachment and empty submission', async () => {
     mockFetchDataStream({
@@ -946,14 +857,7 @@ describe('attachments with empty submit', () => {
 });
 
 describe('should append message with attachments', () => {
-  beforeEach(() => {
-    render(TestChatAppendAttachmentsComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestChatAppendAttachmentsComponent);
 
   it('should handle image file attachment with append', async () => {
     mockFetchDataStream({
