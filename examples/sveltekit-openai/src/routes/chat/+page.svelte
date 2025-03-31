@@ -4,7 +4,21 @@
   import { Textarea } from '$lib/components/ui/textarea/index.js';
   import { Chat } from '@ai-sdk/svelte';
 
-  const chat = new Chat();
+  const chat = new Chat({
+    maxSteps: 5,
+
+    // run client-side tools that are automatically executed:
+    async onToolCall({ toolCall }) {
+      // artificial 2 second delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      if (toolCall.toolName === 'getLocation') {
+        const cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco'];
+        return cities[Math.floor(Math.random() * cities.length)];
+      }
+    },
+  });
+
   const disabled = $derived(chat.status !== 'ready');
 
   function mapRoleToClass(role: string) {
