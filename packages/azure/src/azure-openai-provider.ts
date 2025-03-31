@@ -7,6 +7,7 @@ import {
   OpenAIEmbeddingSettings,
   OpenAIImageModel,
   OpenAIImageSettings,
+  OpenAIResponsesLanguageModel,
 } from '@ai-sdk/openai/internal';
 import {
   EmbeddingModelV1,
@@ -31,6 +32,11 @@ Creates an Azure OpenAI chat model for text generation.
 Creates an Azure OpenAI chat model for text generation.
    */
   chat(deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV1;
+
+  /**
+Creates an Azure OpenAI responses API model for text generation.
+   */
+  responses(deploymentId: string): LanguageModelV1;
 
   /**
 Creates an Azure OpenAI completion model for text generation.
@@ -181,6 +187,14 @@ export function createAzure(
       fetch: options.fetch,
     });
 
+  const createResponsesModel = (modelId: string) =>
+    new OpenAIResponsesLanguageModel(modelId, {
+      provider: 'azure-openai.responses',
+      url,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createImageModel = (
     modelId: string,
     settings: OpenAIImageSettings = {},
@@ -213,7 +227,7 @@ export function createAzure(
   provider.imageModel = createImageModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
-
+  provider.responses = createResponsesModel;
   return provider;
 }
 
