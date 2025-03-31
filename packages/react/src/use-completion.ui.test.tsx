@@ -4,8 +4,9 @@ import {
   mockFetchError,
 } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
-import { cleanup, findByText, render, screen } from '@testing-library/react';
+import { findByText, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { setupTestComponent } from './setup-test-component';
 import { useCompletion } from './use-completion';
 
 describe('stream data stream', () => {
@@ -16,7 +17,7 @@ describe('stream data stream', () => {
       }
     | undefined;
 
-  const TestComponent = () => {
+  setupTestComponent(() => {
     const {
       completion,
       handleSubmit,
@@ -45,16 +46,10 @@ describe('stream data stream', () => {
         </form>
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-    onFinishResult = undefined;
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
+  beforeEach(() => {
+    onFinishResult = undefined;
   });
 
   describe('render simple stream', () => {
@@ -122,7 +117,7 @@ describe('stream data stream', () => {
 });
 
 describe('text stream', () => {
-  const TestComponent = () => {
+  setupTestComponent(() => {
     const { completion, handleSubmit, handleInputChange, input } =
       useCompletion({ streamProtocol: 'text' });
 
@@ -139,15 +134,6 @@ describe('text stream', () => {
         </form>
       </div>
     );
-  };
-
-  beforeEach(() => {
-    render(<TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
   });
 
   it('should render stream', async () => {
