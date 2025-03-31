@@ -732,7 +732,9 @@ describe('onToolCall', () => {
 
 describe('tool invocations', () => {
   setupTestComponent(() => {
-    const { messages, append, addToolResult } = useChat();
+    const { messages, append, addToolResult } = useChat({
+      maxSteps: 5,
+    });
 
     return (
       <div>
