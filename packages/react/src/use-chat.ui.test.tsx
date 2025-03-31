@@ -851,9 +851,8 @@ describe('tool invocations', () => {
     });
   });
 
-  it('should display partial tool call and tool result (when there is no tool call streaming)', async () => {
+  it('should display tool call and tool result (when there is no tool call streaming)', async () => {
     const controller = new TestResponseController();
-
     server.urls['/api/chat'].response = {
       type: 'controlled-stream',
       controller,

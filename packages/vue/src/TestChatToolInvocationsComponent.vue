@@ -2,7 +2,7 @@
 import { useChat } from './use-chat';
 
 const { messages, append, addToolResult } = useChat({
-  // TODO maxSteps: 5,
+  maxSteps: 5,
 });
 </script>
 
@@ -28,6 +28,9 @@ const { messages, append, addToolResult } = useChat({
             })
           "
         />
+      </div>
+      <div :data-testid="`text-${idx}`">
+        {{ m.content }}
       </div>
     </div>
 
