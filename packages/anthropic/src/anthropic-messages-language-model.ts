@@ -113,8 +113,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       });
     }
 
-    console.log('prompt>>>', prompt[0].content[1]);
-
     const { prompt: messagesPrompt, betas: messagesBetas } =
       convertToAnthropicMessagesPrompt({
         prompt,
