@@ -5,19 +5,13 @@ import {
 } from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
-import { cleanup, findByText, render, screen } from '@testing-library/vue';
+import { findByText, screen } from '@testing-library/vue';
 import TestCompletionComponent from './TestCompletionComponent.vue';
 import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
+import { setupTestComponent } from './setup-test-component';
 
 describe('stream data stream', () => {
-  beforeEach(() => {
-    render(TestCompletionComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestCompletionComponent);
 
   it('should show streamed response', async () => {
     mockFetchDataStream({
@@ -70,14 +64,7 @@ describe('stream data stream', () => {
 });
 
 describe('stream data stream', () => {
-  beforeEach(() => {
-    render(TestCompletionTextStreamComponent);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
+  setupTestComponent(TestCompletionTextStreamComponent);
 
   it('should show streamed response', async () => {
     mockFetchDataStream({
