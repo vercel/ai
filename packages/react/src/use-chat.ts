@@ -548,7 +548,14 @@ By default, it's set to 1, which means that only a single LLM call is made.
         toolResult: result,
       });
 
-      mutate(currentMessages, false);
+      // array mutation is required to trigger a re-render
+      mutate(
+        [
+          ...currentMessages.slice(0, currentMessages.length - 1),
+          { ...currentMessages[currentMessages.length - 1] },
+        ],
+        false,
+      );
 
       // when the request is ongoing, the auto-submit will be triggered after the request is finished
       if (status === 'submitted' || status === 'streaming') {
