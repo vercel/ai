@@ -671,6 +671,74 @@ describe('tool invocations', () => {
       );
     });
   });
+
+  it('should delay tool result submission until the stream is finished', async () => {
+    const controller1 = new TestResponseController();
+    const controller2 = new TestResponseController();
+
+    server.urls['/api/chat'].response = [
+      { type: 'controlled-stream', controller: controller1 },
+      { type: 'controlled-stream', controller: controller2 },
+    ];
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    // start stream
+    controller1.write(
+      formatDataStreamPart('start_step', {
+        messageId: '1234',
+      }),
+    );
+
+    // tool call
+    controller1.write(
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+      );
+    });
+
+    // user submits the tool result
+    await userEvent.click(screen.getByTestId('add-result-0'));
+
+    // should not have called the API yet
+    expect(server.calls.length).toBe(1);
+
+    // finish stream
+    controller1.write(
+      formatDataStreamPart('finish_step', {
+        isContinued: false,
+        finishReason: 'tool-calls',
+      }),
+    );
+    controller1.write(
+      formatDataStreamPart('finish_message', {
+        finishReason: 'tool-calls',
+      }),
+    );
+
+    await controller1.close();
+
+    // UI should show the tool result
+    // TODO this should immediately show the result after submitting the tool result
+    // however, this requires introducing a message store abstraction to sync streaming
+    // updates and the updates through user submitted tool results
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+      );
+    });
+
+    // 2nd call should happen after the stream is finished
+    // TODO expect(server.calls.length).toBe(2);
+  });
 });
 
 describe('file attachments with data url', () => {
