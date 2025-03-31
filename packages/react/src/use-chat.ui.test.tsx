@@ -981,7 +981,7 @@ describe('tool invocations', () => {
       );
     });
 
-    // call should happen after the stream is finished
+    // 2nd call should happen after the stream is finished
     expect(server.calls.length).toBe(2);
   });
 });
