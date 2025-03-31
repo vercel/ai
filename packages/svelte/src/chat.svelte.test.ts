@@ -535,7 +535,9 @@ describe('tool invocations', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      maxSteps: 5,
+    });
   });
 
   it('should display partial tool call, tool call, and tool result', async () => {
@@ -772,6 +774,98 @@ describe('tool invocations', () => {
           ],
         }),
       );
+    });
+  });
+
+  it('should delay tool result submission until the stream is finished', async () => {
+    const controller1 = new TestResponseController();
+    const controller2 = new TestResponseController();
+
+    server.urls['/api/chat'].response = [
+      { type: 'controlled-stream', controller: controller1 },
+      { type: 'controlled-stream', controller: controller2 },
+    ];
+
+    chat.append({ role: 'user', content: 'hi' });
+
+    // start stream
+    controller1.write(
+      formatDataStreamPart('start_step', {
+        messageId: '1234',
+      }),
+    );
+
+    // tool call
+    controller1.write(
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(chat.messages.at(1)).toStrictEqual(
+        expect.objectContaining({
+          toolInvocations: [
+            {
+              state: 'call',
+              step: 0,
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: { testArg: 'test-value' },
+            },
+          ],
+        }),
+      );
+    });
+
+    // user submits the tool result
+    chat.addToolResult({
+      toolCallId: 'tool-call-0',
+      result: 'test-result',
+    });
+
+    // UI should show the tool result
+    await vi.waitFor(() => {
+      expect(chat.messages.at(1)).toStrictEqual(
+        expect.objectContaining({
+          toolInvocations: [
+            {
+              state: 'result',
+              step: 0,
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: { testArg: 'test-value' },
+              result: 'test-result',
+            },
+          ],
+        }),
+      );
+    });
+
+    // should not have called the API yet
+    expect(server.calls.length).toBe(1);
+
+    // finish stream
+    controller1.write(
+      formatDataStreamPart('finish_step', {
+        isContinued: false,
+        finishReason: 'tool-calls',
+      }),
+    );
+
+    controller1.write(
+      formatDataStreamPart('finish_message', {
+        finishReason: 'tool-calls',
+      }),
+    );
+
+    await controller1.close();
+
+    // 2nd call should happen after the stream is finished
+    await vi.waitFor(() => {
+      expect(server.calls.length).toBe(2);
     });
   });
 });

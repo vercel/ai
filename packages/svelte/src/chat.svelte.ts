@@ -220,6 +220,14 @@ export class Chat {
       toolResult: result,
     });
 
+    // when the request is ongoing, the auto-submit will be triggered after the request is finished
+    if (
+      this.#store.status === 'submitted' ||
+      this.#store.status === 'streaming'
+    ) {
+      return;
+    }
+
     const lastMessage = this.messages[this.messages.length - 1];
     if (isAssistantMessageWithCompletedToolCalls(lastMessage)) {
       await this.#triggerRequest({ messages: this.messages });

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useChat } from './use-chat';
 
-const { messages, append, addToolResult } = useChat();
+const { messages, append, addToolResult } = useChat({
+  maxSteps: 5,
+});
 </script>
 
 <template>
@@ -26,6 +28,9 @@ const { messages, append, addToolResult } = useChat();
             })
           "
         />
+      </div>
+      <div :data-testid="`text-${idx}`">
+        {{ m.content }}
       </div>
     </div>
 
