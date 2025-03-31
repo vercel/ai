@@ -535,7 +535,9 @@ describe('tool invocations', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      maxSteps: 5,
+    });
   });
 
   it('should display partial tool call, tool call, and tool result', async () => {
@@ -862,7 +864,9 @@ describe('tool invocations', () => {
     await controller1.close();
 
     // 2nd call should happen after the stream is finished
-    expect(server.calls.length).toBe(2);
+    await vi.waitFor(() => {
+      expect(server.calls.length).toBe(2);
+    });
   });
 });
 
