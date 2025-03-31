@@ -597,6 +597,8 @@ The following OpenAI-specific metadata is returned:
 
 The OpenAI responses provider supports web search through the `openai.tools.webSearchPreview` tool.
 
+You can force the use of the web search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'web_search_preview' }`.
+
 ```ts
 const result = await generateText({
   model: openai.responses('gpt-4o-mini'),
@@ -612,6 +614,8 @@ const result = await generateText({
       },
     }),
   },
+  // Force web search tool:
+  toolChoice: { type: 'tool', toolName: 'web_search_preview' },
 });
 
 // URL sources
