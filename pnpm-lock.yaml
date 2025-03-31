@@ -81,7 +81,7 @@ importers:
         specifier: 0.2.4
         version: link:../../packages/deepseek
       '@ai-sdk/fal':
-        specifier: 0.1.3
+        specifier: 0.1.4
         version: link:../../packages/fal
       '@ai-sdk/fireworks':
         specifier: 0.2.4
