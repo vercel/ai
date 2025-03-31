@@ -235,6 +235,10 @@ export class TestResponseController {
     await this.writer.write(chunk);
   }
 
+  async error(error: Error): Promise<void> {
+    await this.writer.abort(error);
+  }
+
   async close(): Promise<void> {
     await this.writer.close();
   }
