@@ -344,6 +344,32 @@ These tools can be used in conjunction with the `sonnet-3-5-sonnet-20240620` mod
 Anthropic Sonnet `claude-3-5-sonnet-20241022` supports reading PDF files.
 You can pass PDF files as part of the message content using the `file` type:
 
+Option 1: URL-based PDF document
+```ts
+const result = await generateText({
+  model: anthropic('claude-3-5-sonnet-20241022'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'What is an embedding model according to this document?',
+        },
+        {
+          type: 'file',
+          data: new URL(
+            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf?raw=true',
+          ),
+          mimeType: 'application/pdf',
+        },
+      ],
+    },
+  ],
+});
+```
+
+Option 2: Base64-encoded PDF document
 ```ts
 const result = await generateText({
   model: anthropic('claude-3-5-sonnet-20241022'),

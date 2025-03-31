@@ -58,6 +58,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     this.config = config;
   }
 
+  supportsUrl(url: URL): boolean {
+    return url.protocol === 'https:';
+  }
+
   get provider(): string {
     return this.config.provider;
   }
@@ -108,6 +112,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
         details: 'JSON response format is not supported.',
       });
     }
+
+    console.log('prompt>>>', prompt[0].content[1]);
 
     const { prompt: messagesPrompt, betas: messagesBetas } =
       convertToAnthropicMessagesPrompt({
