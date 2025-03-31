@@ -345,6 +345,7 @@ Anthropic Sonnet `claude-3-5-sonnet-20241022` supports reading PDF files.
 You can pass PDF files as part of the message content using the `file` type:
 
 Option 1: URL-based PDF document
+
 ```ts
 const result = await generateText({
   model: anthropic('claude-3-5-sonnet-20241022'),
@@ -370,6 +371,7 @@ const result = await generateText({
 ```
 
 Option 2: Base64-encoded PDF document
+
 ```ts
 const result = await generateText({
   model: anthropic('claude-3-5-sonnet-20241022'),

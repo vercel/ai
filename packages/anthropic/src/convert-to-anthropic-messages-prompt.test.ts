@@ -204,7 +204,6 @@ describe('user messages', () => {
     });
   });
 
-
   it('should throw error for non-PDF file types', async () => {
     expect(() =>
       convertToAnthropicMessagesPrompt({
