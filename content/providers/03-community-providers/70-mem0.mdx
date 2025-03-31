@@ -62,7 +62,9 @@ const mem0 = createMem0({
 </Note>
 
 <Note>
-  The `mem0Config` is optional. It is used to set the global config for the Mem0 Client (eg. `user_id`, `agent_id`, `app_id`, `run_id`, `org_id`, `project_id` etc).
+  The `mem0Config` is optional. It is used to set the global config for the Mem0
+  Client (eg. `user_id`, `agent_id`, `app_id`, `run_id`, `org_id`, `project_id`
+  etc).
 </Note>
 
 - Add Memories to Enhance Context:
@@ -87,19 +89,36 @@ await addMemories(messages, { user_id: 'borat' });
 - `addMemories()`: Adds user memories to enhance contextual responses.
 
 ```ts
-await addMemories(messages, { user_id: 'borat', mem0ApiKey: 'm0-xxx', org_id: 'org_xx', project_id: 'proj_xx' });
-await retrieveMemories(prompt, { user_id: 'borat', mem0ApiKey: 'm0-xxx', org_id: 'org_xx', project_id: 'proj_xx' });
-await getMemories(prompt, { user_id: 'borat', mem0ApiKey: 'm0-xxx', org_id: 'org_xx', project_id: 'proj_xx' });
+await addMemories(messages, {
+  user_id: 'borat',
+  mem0ApiKey: 'm0-xxx',
+  org_id: 'org_xx',
+  project_id: 'proj_xx',
+});
+await retrieveMemories(prompt, {
+  user_id: 'borat',
+  mem0ApiKey: 'm0-xxx',
+  org_id: 'org_xx',
+  project_id: 'proj_xx',
+});
+await getMemories(prompt, {
+  user_id: 'borat',
+  mem0ApiKey: 'm0-xxx',
+  org_id: 'org_xx',
+  project_id: 'proj_xx',
+});
 ```
 
 <Note>
-  For standalone features, such as `addMemories`, `retrieveMemories`, and `getMemories`, you
-  must either set `MEM0_API_KEY` as an environment variable or pass it directly
-  in the function call.
+  For standalone features, such as `addMemories`, `retrieveMemories`, and
+  `getMemories`, you must either set `MEM0_API_KEY` as an environment variable
+  or pass it directly in the function call.
 </Note>
 
 <Note>
-  `getMemories` will return raw memories in the form of an array of objects, while `retrieveMemories` will return a response in string format with a system prompt ingested with the retrieved memories.
+  `getMemories` will return raw memories in the form of an array of objects,
+  while `retrieveMemories` will return a response in string format with a system
+  prompt ingested with the retrieved memories.
 </Note>
 
 ### Generate Text with Memory Context
@@ -152,7 +171,8 @@ const { textStream } = await streamText({
   model: mem0('gpt-4-turbo', {
     user_id: 'borat',
   }),
-  prompt: 'Suggest me a good car to buy! Why is it better than the other cars for me? Give options for every price range.',
+  prompt:
+    'Suggest me a good car to buy! Why is it better than the other cars for me? Give options for every price range.',
 });
 
 for await (const textPart of textStream) {
@@ -172,11 +192,11 @@ const mem0 = createMem0({
   apiKey: 'anthropic-api-key',
   mem0Config: {
     // Global User ID
-    user_id: 'borat'
-  }
+    user_id: 'borat',
+  },
 });
 
-const prompt = 'What the temperature in the city that I live in?'
+const prompt = 'What the temperature in the city that I live in?';
 
 const result = await generateText({
   model: mem0('claude-3-5-sonnet-20240620'),
@@ -202,8 +222,8 @@ console.log(result);
 
 ```ts
 const { text, sources } = await generateText({
-    model: mem0("gpt-4-turbo"),
-    prompt: "Suggest me a good car to buy!",
+  model: mem0('gpt-4-turbo'),
+  prompt: 'Suggest me a good car to buy!',
 });
 
 console.log(sources);
