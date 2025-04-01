@@ -410,9 +410,28 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     }> = [];
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
-    let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> = {
-      completion_tokens_details: {},
-      prompt_tokens_details: {},
+    let usage: {
+      completionTokens: number | undefined;
+      completionTokensDetails: {
+        reasoningTokens: number | undefined;
+        acceptedPredictionTokens: number | undefined;
+        rejectedPredictionTokens: number | undefined;
+      };
+      promptTokens: number | undefined;
+      promptTokensDetails: {
+        cachedTokens: number | undefined;
+      };
+    } = {
+      completionTokens: undefined,
+      completionTokensDetails: {
+        reasoningTokens: undefined,
+        acceptedPredictionTokens: undefined,
+        rejectedPredictionTokens: undefined,
+      },
+      promptTokens: undefined,
+      promptTokensDetails: {
+        cachedTokens: undefined,
+      },
     };
     let isFirstChunk = true;
     let providerOptionsName = this.providerOptionsName;
@@ -459,27 +478,27 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
                 completion_tokens_details,
               } = value.usage;
 
-              usage.prompt_tokens = prompt_tokens ?? undefined;
-              usage.completion_tokens = completion_tokens ?? undefined;
+              usage.promptTokens = prompt_tokens ?? undefined;
+              usage.completionTokens = completion_tokens ?? undefined;
 
               if (completion_tokens_details?.reasoning_tokens != null) {
-                usage.completion_tokens_details!.reasoning_tokens =
+                usage.completionTokensDetails.reasoningTokens =
                   completion_tokens_details?.reasoning_tokens;
               }
               if (
                 completion_tokens_details?.accepted_prediction_tokens != null
               ) {
-                usage.completion_tokens_details!.accepted_prediction_tokens =
+                usage.completionTokensDetails.acceptedPredictionTokens =
                   completion_tokens_details?.accepted_prediction_tokens;
               }
               if (
                 completion_tokens_details?.rejected_prediction_tokens != null
               ) {
-                usage.completion_tokens_details!.rejected_prediction_tokens =
+                usage.completionTokensDetails.rejectedPredictionTokens =
                   completion_tokens_details?.rejected_prediction_tokens;
               }
               if (prompt_tokens_details?.cached_tokens != null) {
-                usage.prompt_tokens_details!.cached_tokens =
+                usage.promptTokensDetails.cachedTokens =
                   prompt_tokens_details?.cached_tokens;
               }
             }
@@ -628,35 +647,33 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
             };
-            if (usage.completion_tokens_details?.reasoning_tokens != null) {
+            if (usage.completionTokensDetails.reasoningTokens != null) {
               providerMetadata[providerOptionsName].reasoningTokens =
-                usage.completion_tokens_details.reasoning_tokens;
+                usage.completionTokensDetails.reasoningTokens;
             }
             if (
-              usage.completion_tokens_details?.accepted_prediction_tokens !=
-              null
+              usage.completionTokensDetails.acceptedPredictionTokens != null
             ) {
               providerMetadata[providerOptionsName].acceptedPredictionTokens =
-                usage.completion_tokens_details.accepted_prediction_tokens;
+                usage.completionTokensDetails.acceptedPredictionTokens;
             }
             if (
-              usage.completion_tokens_details?.rejected_prediction_tokens !=
-              null
+              usage.completionTokensDetails.rejectedPredictionTokens != null
             ) {
               providerMetadata[providerOptionsName].rejectedPredictionTokens =
-                usage.completion_tokens_details.rejected_prediction_tokens;
+                usage.completionTokensDetails.rejectedPredictionTokens;
             }
-            if (usage.prompt_tokens_details?.cached_tokens != null) {
+            if (usage.promptTokensDetails.cachedTokens != null) {
               providerMetadata[providerOptionsName].cachedPromptTokens =
-                usage.prompt_tokens_details.cached_tokens;
+                usage.promptTokensDetails.cachedTokens;
             }
 
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage: {
-                promptTokens: usage.prompt_tokens ?? NaN,
-                completionTokens: usage.completion_tokens ?? NaN,
+                promptTokens: usage.promptTokens ?? NaN,
+                completionTokens: usage.completionTokens ?? NaN,
               },
               providerMetadata,
             });
