@@ -146,11 +146,19 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
-  const apiVersion = options.apiVersion ?? '2024-10-01-preview';
-  const url = ({ path, modelId }: { path: string; modelId: string }) =>
-    options.baseURL
+  const apiVersion = options.apiVersion ?? '2025-03-01-preview';
+  const url = ({ path, modelId }: { path: string; modelId: string }) => {
+    if (path === '/responses') {
+      return options.baseURL
+        ? `${options.baseURL}${path}?api-version=${apiVersion}`
+        : `https://${getResourceName()}.openai.azure.com/openai/responses?api-version=${apiVersion}`;
+    }
+
+    // Default URL format for other endpoints
+    return options.baseURL
       ? `${options.baseURL}/${modelId}${path}?api-version=${apiVersion}`
       : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${apiVersion}`;
+  };
 
   const createChatModel = (
     deploymentName: string,

@@ -64,7 +64,7 @@ describe('chat', () => {
 
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-10-01-preview',
+        '2025-03-01-preview',
       );
     });
 
@@ -129,7 +129,7 @@ describe('chat', () => {
 
       const requestUrl = await server.getRequestUrl();
       expect(requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2024-10-01-preview',
+        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2025-03-01-preview',
       );
     });
   });
@@ -194,7 +194,7 @@ describe('completion', () => {
 
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-10-01-preview',
+        '2025-03-01-preview',
       );
     });
 
@@ -272,7 +272,7 @@ describe('embedding', () => {
 
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-10-01-preview',
+        '2025-03-01-preview',
       );
     });
 
@@ -346,7 +346,7 @@ describe('image', () => {
 
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-10-01-preview',
+        '2025-03-01-preview',
       );
     });
 
@@ -422,7 +422,7 @@ describe('image', () => {
 
       const requestUrl = await server.getRequestUrl();
       expect(requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations?api-version=2024-10-01-preview',
+        'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations?api-version=2025-03-01-preview',
       );
     });
 
@@ -478,7 +478,7 @@ describe('image', () => {
 describe('responses', () => {
   describe('doGenerate', () => {
     const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/test-deployment/responses',
+      'https://test-resource.openai.azure.com/openai/responses',
     );
 
     server.setupTestEnvironment();
@@ -529,7 +529,7 @@ describe('responses', () => {
       const searchParams = await server.getRequestUrlSearchParams();
       console.log(searchParams);
       expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-10-01-preview',
+        '2025-03-01-preview',
       );
     });
 
@@ -566,7 +566,7 @@ describe('responses', () => {
       prepareJsonResponse();
 
       const provider = createAzure({
-        baseURL: 'https://test-resource.openai.azure.com/openai/deployments',
+        baseURL: 'https://test-resource.openai.azure.com/openai',
         apiKey: 'test-api-key',
       });
 
@@ -578,7 +578,7 @@ describe('responses', () => {
 
       const requestUrl = await server.getRequestUrl();
       expect(requestUrl).toStrictEqual(
-        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/responses?api-version=2024-10-01-preview',
+        'https://test-resource.openai.azure.com/openai/responses?api-version=2025-03-01-preview',
       );
     });
   });
