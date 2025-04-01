@@ -4,7 +4,7 @@ import { TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
 
 const CHUNKING_REGEXPS = {
-  word: /\s*\S+\s+/m,
+  word: /\s*\S+\s*/m,
   line: /[^\n]*\n/m,
 };
 
