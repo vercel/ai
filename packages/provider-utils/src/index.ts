@@ -23,6 +23,7 @@ export * from './uint8-utils';
 export * from './validate-types';
 export * from './validator';
 export * from './without-trailing-slash';
+export * from "./base64-utils"
 
 export type { CoreToolCall, ToolCall } from './types/tool-call';
 export type { CoreToolResult, ToolResult } from './types/tool-result';

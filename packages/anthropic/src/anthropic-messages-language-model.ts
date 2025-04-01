@@ -110,7 +110,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     }
 
     const { prompt: messagesPrompt, betas: messagesBetas } =
-      convertToAnthropicMessagesPrompt({
+      await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: this.settings.sendReasoning ?? true,
         warnings,
@@ -307,14 +307,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       .map(content =>
         content.type === 'thinking'
           ? {
-              type: 'text' as const,
-              text: content.thinking,
-              signature: content.signature,
-            }
+            type: 'text' as const,
+            text: content.thinking,
+            signature: content.signature,
+          }
           : {
-              type: 'redacted' as const,
-              data: content.data,
-            },
+            type: 'redacted' as const,
+            data: content.data,
+          },
       );
 
     return {

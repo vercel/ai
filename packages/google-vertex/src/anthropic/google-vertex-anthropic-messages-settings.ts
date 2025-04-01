@@ -12,4 +12,4 @@ export type GoogleVertexAnthropicMessagesModelId =
   | (string & {});
 
 export interface GoogleVertexAnthropicMessagesSettings
-  extends AnthropicMessagesSettings {}
+  extends AnthropicMessagesSettings { }

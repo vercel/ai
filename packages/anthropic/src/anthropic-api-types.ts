@@ -51,15 +51,15 @@ export interface AnthropicRedactedThinkingContent {
 export interface AnthropicImageContent {
   type: 'image';
   source:
-    | {
-        type: 'base64';
-        media_type: string;
-        data: string;
-      }
-    | {
-        type: 'url';
-        url: string;
-      };
+  | {
+    type: 'base64';
+    media_type: string;
+    data: string;
+  }
+  | {
+    type: 'url';
+    url: string;
+  };
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -91,25 +91,25 @@ export interface AnthropicToolResultContent {
 
 export type AnthropicTool =
   | {
-      name: string;
-      description: string | undefined;
-      input_schema: JSONSchema7;
-    }
+    name: string;
+    description: string | undefined;
+    input_schema: JSONSchema7;
+  }
   | {
-      name: string;
-      type: 'computer_20250124' | 'computer_20241022';
-      display_width_px: number;
-      display_height_px: number;
-      display_number: number;
-    }
+    name: string;
+    type: 'computer_20250124' | 'computer_20241022';
+    display_width_px: number;
+    display_height_px: number;
+    display_number: number;
+  }
   | {
-      name: string;
-      type: 'text_editor_20250124' | 'text_editor_20241022';
-    }
+    name: string;
+    type: 'text_editor_20250124' | 'text_editor_20241022';
+  }
   | {
-      name: string;
-      type: 'bash_20250124' | 'bash_20241022';
-    };
+    name: string;
+    type: 'bash_20250124' | 'bash_20241022';
+  };
 
 export type AnthropicToolChoice =
   | { type: 'auto' | 'any' }
