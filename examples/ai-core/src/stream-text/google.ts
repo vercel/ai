@@ -13,8 +13,14 @@ async function main() {
     process.stdout.write(textPart);
   }
 
+  const googleMetadata = (await result.experimental_providerMetadata)?.google;
+
   console.log();
   console.log('Token usage:', await result.usage);
+  console.log('Safety info:', {
+    promptFeedback: googleMetadata?.promptFeedback,
+    safetyRatings: googleMetadata?.safetyRatings,
+  });
   console.log('Finish reason:', await result.finishReason);
 }
 
