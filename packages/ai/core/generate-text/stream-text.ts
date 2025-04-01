@@ -1593,8 +1593,19 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   async consumeStream(): Promise<void> {
     const stream = this.fullStream;
-    for await (const part of stream) {
-      // no op
+    try {
+      for await (const part of stream) {
+        // no op
+      }
+    } catch (error) {
+      // Ignore abort errors, continue processing:
+      if (
+        error instanceof Error &&
+        error.name !== 'AbortError' &&
+        error.name !== 'ResponseAborted'
+      ) {
+        throw error;
+      }
     }
   }
 
