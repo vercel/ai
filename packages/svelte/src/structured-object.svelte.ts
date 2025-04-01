@@ -5,7 +5,6 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
-  asSchema,
   isDeepEqualData,
   parsePartialJson,
   type DeepPartial,
@@ -200,7 +199,7 @@ export class StructuredObject<RESULT, INPUT = unknown> {
             if (this.#options.onFinish != null) {
               const validationResult = safeValidateTypes({
                 value: latestObject,
-                schema: asSchema(this.#options.schema),
+                schema: this.#options.schema,
               });
 
               this.#options.onFinish(

@@ -4,7 +4,6 @@ import {
   safeValidateTypes,
 } from '@ai-sdk/provider-utils';
 import {
-  asSchema,
   DeepPartial,
   isDeepEqualData,
   parsePartialJson,
@@ -204,7 +203,7 @@ function useObject<RESULT, INPUT = any>({
             if (onFinish != null) {
               const validationResult = safeValidateTypes({
                 value: latestObject,
-                schema: asSchema(schema),
+                schema,
               });
 
               onFinish(
