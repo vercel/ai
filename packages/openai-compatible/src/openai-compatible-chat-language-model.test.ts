@@ -103,6 +103,14 @@ describe('doGenerate', () => {
       prompt_tokens?: number;
       total_tokens?: number;
       completion_tokens?: number;
+      prompt_tokens_details?: {
+        cached_tokens?: number;
+      };
+      completion_tokens_details?: {
+        reasoning_tokens?: number;
+        accepted_prediction_tokens?: number;
+        rejected_prediction_tokens?: number;
+      };
     };
     finish_reason?: string;
     created?: number;
@@ -861,6 +869,86 @@ describe('doGenerate', () => {
       body: '{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}]}',
     });
   });
+
+  describe('usage details', () => {
+    it('should extract detailed token usage when available', async () => {
+      prepareJsonResponse({
+        content: '',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          prompt_tokens_details: {
+            cached_tokens: 5,
+          },
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+            accepted_prediction_tokens: 15,
+            rejected_prediction_tokens: 5,
+          },
+        },
+      });
+
+      const result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata!['test-provider']).toStrictEqual({
+        cachedPromptTokens: 5,
+        reasoningTokens: 10,
+        acceptedPredictionTokens: 15,
+        rejectedPredictionTokens: 5,
+      });
+    });
+
+    it('should handle missing token details', async () => {
+      prepareJsonResponse({
+        content: '',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          // No token details provided
+        },
+      });
+
+      const result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata!['test-provider']).toStrictEqual({});
+    });
+
+    it('should handle partial token details', async () => {
+      prepareJsonResponse({
+        content: '',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          prompt_tokens_details: {
+            cached_tokens: 5,
+          },
+          completion_tokens_details: {
+            // Only reasoning tokens provided
+            reasoning_tokens: 10,
+          },
+        },
+      });
+
+      const result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata!['test-provider']).toStrictEqual({
+        cachedPromptTokens: 5,
+        reasoningTokens: 10,
+      });
+    });
+  });
 });
 
 describe('doStream', () => {
@@ -924,6 +1012,9 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         usage: { promptTokens: 18, completionTokens: 439 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -980,6 +1071,9 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         usage: { promptTokens: 18, completionTokens: 439 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1109,6 +1203,9 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: 18, completionTokens: 439 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1245,6 +1342,9 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: 18, completionTokens: 439 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1370,6 +1470,9 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: 226, completionTokens: 20 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1436,6 +1539,9 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: 18, completionTokens: 439 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1468,6 +1574,9 @@ describe('doStream', () => {
           promptTokens: NaN,
           completionTokens: NaN,
         },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1494,6 +1603,9 @@ describe('doStream', () => {
       usage: {
         completionTokens: NaN,
         promptTokens: NaN,
+      },
+      providerMetadata: {
+        'test-provider': {},
       },
     });
   });
@@ -1621,6 +1733,92 @@ describe('doStream', () => {
       body: '{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}],"stream":true}',
     });
   });
+
+  describe('usage details in streaming', () => {
+    it('should extract detailed token usage from stream finish', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+          `data: {"choices":[{"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":20,"completion_tokens":30,` +
+            `"prompt_tokens_details":{"cached_tokens":5},` +
+            `"completion_tokens_details":{` +
+            `"reasoning_tokens":10,` +
+            `"accepted_prediction_tokens":15,` +
+            `"rejected_prediction_tokens":5}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({
+        cachedPromptTokens: 5,
+        reasoningTokens: 10,
+        acceptedPredictionTokens: 15,
+        rejectedPredictionTokens: 5,
+      });
+    });
+
+    it('should handle missing token details in stream', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+          `data: {"choices":[{"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":20,"completion_tokens":30}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({});
+    });
+
+    it('should handle partial token details in stream', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+          `data: {"choices":[{"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":20,"completion_tokens":30,` +
+            `"prompt_tokens_details":{"cached_tokens":5},` +
+            `"completion_tokens_details":{"reasoning_tokens":10}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({
+        cachedPromptTokens: 5,
+        reasoningTokens: 10,
+      });
+    });
+  });
 });
 
 describe('doStream simulated streaming', () => {
@@ -1709,7 +1907,9 @@ describe('doStream simulated streaming', () => {
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 30 },
         logprobs: undefined,
-        providerMetadata: undefined,
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1751,7 +1951,9 @@ describe('doStream simulated streaming', () => {
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 30 },
         logprobs: undefined,
-        providerMetadata: undefined,
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1815,7 +2017,9 @@ describe('doStream simulated streaming', () => {
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 30 },
         logprobs: undefined,
-        providerMetadata: undefined,
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1832,7 +2036,7 @@ describe('metadata extraction', () => {
         return undefined;
       }
       return {
-        test: {
+        'test-provider': {
           value: parsedBody.test_field as string,
         },
       };
@@ -1856,7 +2060,7 @@ describe('metadata extraction', () => {
         buildMetadata: () =>
           accumulatedValue
             ? {
-                test: {
+                'test-provider': {
                   value: accumulatedValue,
                 },
               }
@@ -1905,7 +2109,7 @@ describe('metadata extraction', () => {
     });
 
     expect(result.providerMetadata).toEqual({
-      test: {
+      'test-provider': {
         value: 'test_value',
       },
     });
@@ -1947,7 +2151,7 @@ describe('metadata extraction', () => {
     const finishPart = parts.find(part => part.type === 'finish');
 
     expect(finishPart?.providerMetadata).toEqual({
-      test: {
+      'test-provider': {
         value: 'test_value',
       },
     });

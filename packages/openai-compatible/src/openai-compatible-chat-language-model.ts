@@ -5,6 +5,7 @@ import {
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
   LanguageModelV1ObjectGenerationMode,
+  LanguageModelV1ProviderMetadata,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
@@ -264,9 +265,30 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
     const choice = responseBody.choices[0];
+
+    // provider metadata:
     const providerMetadata = this.config.metadataExtractor?.extractMetadata?.({
       parsedBody: rawResponse,
-    });
+    }) ?? { [this.providerOptionsName]: {} };
+    const completionTokenDetails =
+      responseBody.usage?.completion_tokens_details;
+    const promptTokenDetails = responseBody.usage?.prompt_tokens_details;
+    if (completionTokenDetails?.reasoning_tokens != null) {
+      providerMetadata[this.providerOptionsName].reasoningTokens =
+        completionTokenDetails?.reasoning_tokens;
+    }
+    if (completionTokenDetails?.accepted_prediction_tokens != null) {
+      providerMetadata[this.providerOptionsName].acceptedPredictionTokens =
+        completionTokenDetails?.accepted_prediction_tokens;
+    }
+    if (completionTokenDetails?.rejected_prediction_tokens != null) {
+      providerMetadata[this.providerOptionsName].rejectedPredictionTokens =
+        completionTokenDetails?.rejected_prediction_tokens;
+    }
+    if (promptTokenDetails?.cached_tokens != null) {
+      providerMetadata[this.providerOptionsName].cachedPromptTokens =
+        promptTokenDetails?.cached_tokens;
+    }
 
     return {
       text: choice.message.content ?? undefined,
@@ -282,7 +304,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
         promptTokens: responseBody.usage?.prompt_tokens ?? NaN,
         completionTokens: responseBody.usage?.completion_tokens ?? NaN,
       },
-      ...(providerMetadata && { providerMetadata }),
+      providerMetadata,
       rawCall: { rawPrompt, rawSettings },
       rawResponse: { headers: responseHeaders, body: rawResponse },
       response: getResponseMetadata(responseBody),
@@ -385,14 +407,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     }> = [];
 
     let finishReason: LanguageModelV1FinishReason = 'unknown';
-    let usage: {
-      promptTokens: number | undefined;
-      completionTokens: number | undefined;
-    } = {
-      promptTokens: undefined,
-      completionTokens: undefined,
+    let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> = {
+      completion_tokens_details: {},
+      prompt_tokens_details: {},
     };
     let isFirstChunk = true;
+    let providerOptionsName = this.providerOptionsName;
 
     return {
       stream: response.pipeThrough(
@@ -429,10 +449,36 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
             }
 
             if (value.usage != null) {
-              usage = {
-                promptTokens: value.usage.prompt_tokens ?? undefined,
-                completionTokens: value.usage.completion_tokens ?? undefined,
-              };
+              const {
+                prompt_tokens,
+                completion_tokens,
+                prompt_tokens_details,
+                completion_tokens_details,
+              } = value.usage;
+
+              usage.prompt_tokens = prompt_tokens ?? undefined;
+              usage.completion_tokens = completion_tokens ?? undefined;
+
+              if (completion_tokens_details?.reasoning_tokens != null) {
+                usage.completion_tokens_details!.reasoning_tokens =
+                  completion_tokens_details?.reasoning_tokens;
+              }
+              if (
+                completion_tokens_details?.accepted_prediction_tokens != null
+              ) {
+                usage.completion_tokens_details!.accepted_prediction_tokens =
+                  completion_tokens_details?.accepted_prediction_tokens;
+              }
+              if (
+                completion_tokens_details?.rejected_prediction_tokens != null
+              ) {
+                usage.completion_tokens_details!.rejected_prediction_tokens =
+                  completion_tokens_details?.rejected_prediction_tokens;
+              }
+              if (prompt_tokens_details?.cached_tokens != null) {
+                usage.prompt_tokens_details!.cached_tokens =
+                  prompt_tokens_details?.cached_tokens;
+              }
             }
 
             const choice = value.choices[0];
@@ -575,15 +621,41 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
-            const metadata = metadataExtractor?.buildMetadata();
+            const providerMetadata: LanguageModelV1ProviderMetadata = {
+              [providerOptionsName]: {},
+              ...metadataExtractor?.buildMetadata(),
+            };
+            if (usage.completion_tokens_details?.reasoning_tokens != null) {
+              providerMetadata[providerOptionsName].reasoningTokens =
+                usage.completion_tokens_details.reasoning_tokens;
+            }
+            if (
+              usage.completion_tokens_details?.accepted_prediction_tokens !=
+              null
+            ) {
+              providerMetadata[providerOptionsName].acceptedPredictionTokens =
+                usage.completion_tokens_details.accepted_prediction_tokens;
+            }
+            if (
+              usage.completion_tokens_details?.rejected_prediction_tokens !=
+              null
+            ) {
+              providerMetadata[providerOptionsName].rejectedPredictionTokens =
+                usage.completion_tokens_details.rejected_prediction_tokens;
+            }
+            if (usage.prompt_tokens_details?.cached_tokens != null) {
+              providerMetadata[providerOptionsName].cachedPromptTokens =
+                usage.prompt_tokens_details.cached_tokens;
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage: {
-                promptTokens: usage.promptTokens ?? NaN,
-                completionTokens: usage.completionTokens ?? NaN,
+                promptTokens: usage.prompt_tokens ?? NaN,
+                completionTokens: usage.completion_tokens ?? NaN,
               },
-              ...(metadata && { providerMetadata: metadata }),
+              providerMetadata,
             });
           },
         }),
@@ -595,6 +667,25 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     };
   }
 }
+
+const openaiCompatibleTokenUsageSchema = z
+  .object({
+    prompt_tokens: z.number().nullish(),
+    completion_tokens: z.number().nullish(),
+    prompt_tokens_details: z
+      .object({
+        cached_tokens: z.number().nullish(),
+      })
+      .nullish(),
+    completion_tokens_details: z
+      .object({
+        reasoning_tokens: z.number().nullish(),
+        accepted_prediction_tokens: z.number().nullish(),
+        rejected_prediction_tokens: z.number().nullish(),
+      })
+      .nullish(),
+  })
+  .nullish();
 
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
@@ -624,12 +715,7 @@ const OpenAICompatibleChatResponseSchema = z.object({
       finish_reason: z.string().nullish(),
     }),
   ),
-  usage: z
-    .object({
-      prompt_tokens: z.number().nullish(),
-      completion_tokens: z.number().nullish(),
-    })
-    .nullish(),
+  usage: openaiCompatibleTokenUsageSchema,
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -667,12 +753,7 @@ const createOpenAICompatibleChatChunkSchema = <ERROR_SCHEMA extends z.ZodType>(
           finish_reason: z.string().nullish(),
         }),
       ),
-      usage: z
-        .object({
-          prompt_tokens: z.number().nullish(),
-          completion_tokens: z.number().nullish(),
-        })
-        .nullish(),
+      usage: openaiCompatibleTokenUsageSchema,
     }),
     errorSchema,
   ]);
