@@ -1542,6 +1542,70 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.consumeStream', () => {
+    it('should ignore AbortError during stream consumption', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'text-delta', textDelta: 'Hello' });
+              queueMicrotask(() => {
+                controller.error(
+                  Object.assign(new Error('Stream aborted'), {
+                    name: 'AbortError',
+                  }),
+                );
+              });
+            },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      await expect(result.consumeStream()).resolves.not.toThrow();
+    });
+
+    it('should ignore ResponseAborted error during stream consumption', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'text-delta', textDelta: 'Hello' });
+              queueMicrotask(() => {
+                controller.error(
+                  Object.assign(new Error('Response aborted'), {
+                    name: 'ResponseAborted',
+                  }),
+                );
+              });
+            },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      await expect(result.consumeStream()).resolves.not.toThrow();
+    });
+
+    it('should propagate other errors during stream consumption', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'text-delta', textDelta: 'Hello' });
+              queueMicrotask(() => {
+                controller.error(Object.assign(new Error('Some error')));
+              });
+            },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      await expect(result.consumeStream()).rejects.toThrow('Some error');
+    });
+  });
+
   describe('multiple stream consumption', () => {
     it('should support text stream, ai stream, full stream on single result object', async () => {
       const result = streamText({
