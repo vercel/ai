@@ -37,7 +37,7 @@ If you need a customized setup, you can import `createFal` and create a provider
 import { createFal } from '@ai-sdk/fal';
 
 const fal = createFal({
-  apiKey: 'your-api-key', // optional, defaults to FAL_API_KEY environment variable
+  apiKey: 'your-api-key', // optional, defaults to FAL_API_KEY environment variable, falling back to FAL_KEY
   baseURL: 'custom-url', // optional
   headers: {
     /* custom headers */
@@ -55,7 +55,7 @@ You can use the following optional settings to customize the Fal provider instan
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header.
-  It defaults to the `FAL_API_KEY` environment variable.
+  It defaults to the `FAL_API_KEY` environment variable, falling back to `FAL_KEY`.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -96,7 +96,7 @@ Fal offers many models optimized for different use cases. Here are a few popular
 | Model                               | Description                                                                                                                                            |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `fal-ai/fast-sdxl`                  | High-speed SDXL model optimized for quick inference with up to 4x faster speeds                                                                        |
-| 'fal-ai/flux-lora'                  | Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations. |
+| `fal-ai/flux-lora`                  | Super fast endpoint for the FLUX.1 [dev] model with LoRA support, enabling rapid and high-quality image generation using pre-trained LoRA adaptations. |
 | `fal-ai/flux-pro/v1.1-ultra`        | Professional-grade image generation with up to 2K resolution and enhanced photorealism                                                                 |
 | `fal-ai/ideogram/v2`                | Specialized for high-quality posters and logos with exceptional typography handling                                                                    |
 | `fal-ai/recraft-v3`                 | SOTA in image generation with vector art and brand style capabilities                                                                                  |

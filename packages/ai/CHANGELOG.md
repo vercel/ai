@@ -1,5 +1,24 @@
 # ai
 
+## 4.2.10
+
+### Patch Changes
+
+- Updated dependencies [a043b14]
+- Updated dependencies [28be004]
+  - @ai-sdk/react@1.2.5
+  - @ai-sdk/provider-utils@2.2.3
+  - @ai-sdk/ui-utils@1.2.4
+
+## 4.2.9
+
+### Patch Changes
+
+- Updated dependencies [b01120e]
+  - @ai-sdk/provider-utils@2.2.2
+  - @ai-sdk/react@1.2.4
+  - @ai-sdk/ui-utils@1.2.3
+
 ## 4.2.8
 
 ### Patch Changes

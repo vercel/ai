@@ -1,5 +1,17 @@
 # @ai-sdk/provider-utils
 
+## 2.2.3
+
+### Patch Changes
+
+- 28be004: chore (provider-utils): add error method to TestStreamController
+
+## 2.2.2
+
+### Patch Changes
+
+- b01120e: chore (provider-utils): update unified test server
+
 ## 2.2.1
 
 ### Patch Changes

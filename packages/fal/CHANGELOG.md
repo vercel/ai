@@ -1,5 +1,25 @@
 # @ai-sdk/fal
 
+## 0.1.4
+
+### Patch Changes
+
+- 56c6d8b: feat (providers/fal): fall back to FAL_KEY for api key environment variable name
+
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [28be004]
+  - @ai-sdk/provider-utils@2.2.3
+
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [b01120e]
+  - @ai-sdk/provider-utils@2.2.2
+
 ## 0.1.1
 
 ### Patch Changes

@@ -10,34 +10,15 @@ import {
   Message,
 } from '@ai-sdk/ui-utils';
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useEffect, useRef, useState } from 'react';
+import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
 
 const server = createTestServer({
   '/api/chat': {},
 });
-
-const createTestComponent = (
-  TestComponent: React.ComponentType<any>,
-  {
-    init,
-  }: {
-    init?: (TestComponent: React.ComponentType<any>) => React.ReactNode;
-  } = {},
-) => {
-  beforeEach(() => {
-    render(init?.(TestComponent) ?? <TestComponent />);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    cleanup();
-  });
-
-  return TestComponent;
-};
 
 describe('data protocol stream', () => {
   let onFinishCalls: Array<{
@@ -52,7 +33,7 @@ describe('data protocol stream', () => {
     };
   }> = [];
 
-  createTestComponent(
+  setupTestComponent(
     ({ id: idParam }: { id: string }) => {
       const [id, setId] = React.useState<string>(idParam);
       const {
@@ -349,7 +330,7 @@ describe('text stream', () => {
     };
   }> = [];
 
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, append } = useChat({
       streamProtocol: 'text',
       onFinish: (message, options) => {
@@ -406,9 +387,6 @@ describe('text stream', () => {
     server.urls['/api/chat'].response = {
       type: 'controlled-stream',
       controller,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
     };
 
     await userEvent.click(screen.getByTestId('do-append-text-stream'));
@@ -461,7 +439,7 @@ describe('text stream', () => {
 });
 
 describe('form actions', () => {
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({ streamProtocol: 'text' });
 
@@ -519,7 +497,7 @@ describe('form actions', () => {
 });
 
 describe('form actions (with options)', () => {
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({ streamProtocol: 'text' });
 
@@ -607,7 +585,7 @@ describe('form actions (with options)', () => {
 describe('prepareRequestBody', () => {
   let bodyOptions: any;
 
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, append, status } = useChat({
       experimental_prepareRequestBody(options) {
         bodyOptions = options;
@@ -685,7 +663,7 @@ describe('onToolCall', () => {
   let resolve: () => void;
   let toolCallPromise: Promise<void>;
 
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, append } = useChat({
       async onToolCall({ toolCall }) {
         await toolCallPromise;
@@ -753,8 +731,10 @@ describe('onToolCall', () => {
 });
 
 describe('tool invocations', () => {
-  createTestComponent(() => {
-    const { messages, append, addToolResult } = useChat();
+  setupTestComponent(() => {
+    const { messages, append, addToolResult } = useChat({
+      maxSteps: 5,
+    });
 
     return (
       <div>
@@ -871,15 +851,11 @@ describe('tool invocations', () => {
     });
   });
 
-  it('should display partial tool call and tool result (when there is no tool call streaming)', async () => {
+  it('should display tool call and tool result (when there is no tool call streaming)', async () => {
     const controller = new TestResponseController();
-
     server.urls['/api/chat'].response = {
       type: 'controlled-stream',
       controller,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
     };
 
     await userEvent.click(screen.getByTestId('do-append'));
@@ -941,13 +917,80 @@ describe('tool invocations', () => {
       );
     });
   });
+
+  it('should delay tool result submission until the stream is finished', async () => {
+    const controller1 = new TestResponseController();
+    const controller2 = new TestResponseController();
+
+    server.urls['/api/chat'].response = [
+      { type: 'controlled-stream', controller: controller1 },
+      { type: 'controlled-stream', controller: controller2 },
+    ];
+
+    await userEvent.click(screen.getByTestId('do-append'));
+
+    // start stream
+    controller1.write(
+      formatDataStreamPart('start_step', {
+        messageId: '1234',
+      }),
+    );
+
+    // tool call
+    controller1.write(
+      formatDataStreamPart('tool_call', {
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+      );
+    });
+
+    // user submits the tool result
+    await userEvent.click(screen.getByTestId('add-result-0'));
+
+    // UI should show the tool result
+    await waitFor(() => {
+      expect(screen.getByTestId('message-1')).toHaveTextContent(
+        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+      );
+    });
+
+    // should not have called the API yet
+    expect(server.calls.length).toBe(1);
+
+    // finish stream
+    controller1.write(
+      formatDataStreamPart('finish_step', {
+        isContinued: false,
+        finishReason: 'tool-calls',
+      }),
+    );
+    controller1.write(
+      formatDataStreamPart('finish_message', {
+        finishReason: 'tool-calls',
+      }),
+    );
+
+    await controller1.close();
+
+    // 2nd call should happen after the stream is finished
+    await waitFor(() => {
+      expect(server.calls.length).toBe(2);
+    });
+  });
 });
 
 describe('maxSteps', () => {
   describe('two steps with automatic tool call', () => {
     let onToolCallInvoked = false;
 
-    createTestComponent(() => {
+    setupTestComponent(() => {
       const { messages, append } = useChat({
         async onToolCall({ toolCall }) {
           onToolCallInvoked = true;
@@ -1011,7 +1054,7 @@ describe('maxSteps', () => {
   describe('two steps with error response', () => {
     let onToolCallCounter = 0;
 
-    createTestComponent(() => {
+    setupTestComponent(() => {
       const { messages, append, error } = useChat({
         async onToolCall({ toolCall }) {
           onToolCallCounter++;
@@ -1084,7 +1127,7 @@ describe('maxSteps', () => {
 });
 
 describe('file attachments with data url', () => {
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat();
 
@@ -1266,7 +1309,7 @@ describe('file attachments with data url', () => {
 });
 
 describe('file attachments with url', () => {
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat();
 
@@ -1377,7 +1420,7 @@ describe('file attachments with url', () => {
 });
 
 describe('attachments with empty submit', () => {
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, handleSubmit } = useChat();
 
     return (
@@ -1462,7 +1505,7 @@ describe('attachments with empty submit', () => {
 });
 
 describe('should append message with attachments', () => {
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, append } = useChat();
 
     return (
@@ -1556,7 +1599,7 @@ describe('should append message with attachments', () => {
 });
 
 describe('reload', () => {
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, append, reload } = useChat();
 
     return (
@@ -1637,7 +1680,7 @@ describe('reload', () => {
 });
 
 describe('test sending additional fields during message submission', () => {
-  createTestComponent(() => {
+  setupTestComponent(() => {
     const { messages, append } = useChat();
 
     return (
@@ -1692,7 +1735,7 @@ describe('initialMessages', () => {
   describe('stability', () => {
     let renderCount = 0;
 
-    createTestComponent(() => {
+    setupTestComponent(() => {
       renderCount++;
       const [derivedState, setDerivedState] = useState<string[]>([]);
 
@@ -1760,7 +1803,7 @@ describe('initialMessages', () => {
   });
 
   describe('changing initial messages', () => {
-    createTestComponent(() => {
+    setupTestComponent(() => {
       const [initialMessages, setInitialMessages] = useState<Message[]>([
         {
           id: 'test-msg-1',

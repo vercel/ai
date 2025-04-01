@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 1.3.6
+
+### Patch Changes
+
+- Updated dependencies [28be004]
+  - @ai-sdk/provider-utils@2.2.3
+
+## 1.3.5
+
+### Patch Changes
+
+- 52ed95f: fix (provider/openai): force web search tool
+- Updated dependencies [b01120e]
+  - @ai-sdk/provider-utils@2.2.2
+
 ## 1.3.4
 
 ### Patch Changes
