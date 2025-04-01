@@ -9,10 +9,12 @@ export async function convertImageUrlToBase64(imageUrl: string) {
     if (!response.ok) {
       throw new Error(`Failed to fetch the image from the URL: ${imageUrl}`);
     }
-    const arrayBuffer = await response.arrayBuffer()
-    const base64URL = Buffer.from(arrayBuffer).toString("base64")
-    return base64URL
+    const arrayBuffer = await response.arrayBuffer();
+    const base64URL = Buffer.from(arrayBuffer).toString('base64');
+    return base64URL;
   } catch (error) {
-    throw new Error(`Failed to convert the image URL to a base64 string: ${error}`);
+    throw new Error(
+      `Failed to convert the image URL to a base64 string: ${error}`,
+    );
   }
 }

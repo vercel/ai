@@ -5,6 +5,7 @@ import {
   LanguageModelV1ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+
 import {
   convertUint8ArrayToBase64,
   convertImageUrlToBase64,
@@ -105,31 +106,30 @@ export async function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'image': {
-                    let base64Image: string = "";
+                    let base64Image: string = '';
 
                     // Converts the image to base64 if it is a URL
                     if (part.image instanceof URL) {
                       try {
-                        base64Image = await convertImageUrlToBase64(part.image.toString())
+                        base64Image = await convertImageUrlToBase64(
+                          part.image.toString(),
+                        );
                       } catch (error) {
-                        throw new Error(`Failed to convert image URL to base64: ${error}`)
+                        throw new Error(
+                          `Failed to convert image URL to base64: ${error}`,
+                        );
                       }
-
                     }
                     anthropicContent.push({
                       type: 'image',
-                      source:
-                        part.image instanceof URL
-                          ? {
-                            type: 'base64',
-                            media_type: part.mimeType ?? 'image/jpeg',
-                            data: base64Image
-                          }
-                          : {
-                            type: 'base64',
-                            media_type: part.mimeType ?? 'image/jpeg',
-                            data: convertUint8ArrayToBase64(part.image),
-                          },
+                      source: {
+                        type: 'base64',
+                        media_type: part.mimeType ?? 'image/jpeg',
+                        data:
+                          part.image instanceof URL
+                            ? base64Image
+                            : convertUint8ArrayToBase64(part.image),
+                      },
                       cache_control: cacheControl,
                     });
 
@@ -187,25 +187,25 @@ export async function convertToAnthropicMessagesPrompt({
                 const toolResultContent =
                   part.content != null
                     ? part.content.map(part => {
-                      switch (part.type) {
-                        case 'text':
-                          return {
-                            type: 'text' as const,
-                            text: part.text,
-                            cache_control: undefined,
-                          };
-                        case 'image':
-                          return {
-                            type: 'image' as const,
-                            source: {
-                              type: 'base64' as const,
-                              media_type: part.mimeType ?? 'image/jpeg',
-                              data: part.data,
-                            },
-                            cache_control: undefined,
-                          };
-                      }
-                    })
+                        switch (part.type) {
+                          case 'text':
+                            return {
+                              type: 'text' as const,
+                              text: part.text,
+                              cache_control: undefined,
+                            };
+                          case 'image':
+                            return {
+                              type: 'image' as const,
+                              source: {
+                                type: 'base64' as const,
+                                media_type: part.mimeType ?? 'image/jpeg',
+                                data: part.data,
+                              },
+                              cache_control: undefined,
+                            };
+                        }
+                      })
                     : JSON.stringify(part.result);
 
                 anthropicContent.push({
@@ -345,7 +345,6 @@ type UserBlock = {
 function groupIntoBlocks(
   prompt: LanguageModelV1Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
-
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =
     undefined;

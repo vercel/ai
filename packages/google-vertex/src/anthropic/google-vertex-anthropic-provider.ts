@@ -101,7 +101,8 @@ export function createVertexAnthropic(
         headers: options.headers ?? {},
         fetch: options.fetch,
         buildRequestUrl: (baseURL, isStreaming) =>
-          `${baseURL}/${modelId}:${isStreaming ? 'streamRawPredict' : 'rawPredict'
+          `${baseURL}/${modelId}:${
+            isStreaming ? 'streamRawPredict' : 'rawPredict'
           }`,
         transformRequestBody: args => {
           // Remove model from args and add anthropic version
