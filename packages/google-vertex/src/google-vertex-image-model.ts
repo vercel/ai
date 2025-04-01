@@ -117,7 +117,6 @@ const vertexImageResponseSchema = z.object({
 });
 
 const googleVertexImageProviderOptionsSchema = z.object({
-  temperature: z.number().nullish(),
   enhancePrompt: z.boolean().nullish(),
   negativePrompt: z.string().nullish(),
   personGeneration: z
