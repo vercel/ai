@@ -47,10 +47,10 @@ jobs:
         with:
           version: 9.12.3
 
-      - name: Setup Node.js 18.x
+      - name: Setup Node.js 22.x
         uses: actions/setup-node@v2
         with:
-          node-version: 18.x
+          node-version: 22.x
 
       - name: Add npm auth token to pnpm
         run: pnpm config set '//registry.npmjs.org/:_authToken' "${NPM_TOKEN_ELEVATED}"
