@@ -1,5 +1,5 @@
 import { APICallError } from '@ai-sdk/provider';
-import { delay, getErrorMessage, isAbortError } from '@ai-sdk/provider-utils';
+import { getErrorMessage, isAbortError } from '@ai-sdk/provider-utils';
 import { RetryError } from './retry-error';
 
 export type RetryFunction = <OUTPUT>(
@@ -15,12 +15,14 @@ export const retryWithExponentialBackoff =
     maxRetries = 2,
     initialDelayInMs = 2000,
     backoffFactor = 2,
+    jitterEnabled = false,
   } = {}): RetryFunction =>
   async <OUTPUT>(f: () => PromiseLike<OUTPUT>) =>
     _retryWithExponentialBackoff(f, {
       maxRetries,
       delayInMs: initialDelayInMs,
       backoffFactor,
+      jitterEnabled,
     });
 
 async function _retryWithExponentialBackoff<OUTPUT>(
@@ -29,7 +31,8 @@ async function _retryWithExponentialBackoff<OUTPUT>(
     maxRetries,
     delayInMs,
     backoffFactor,
-  }: { maxRetries: number; delayInMs: number; backoffFactor: number },
+    jitterEnabled,
+  }: { maxRetries: number; delayInMs: number; backoffFactor: number; jitterEnabled: boolean },
   errors: unknown[] = [],
 ): Promise<OUTPUT> {
   try {
@@ -61,8 +64,10 @@ async function _retryWithExponentialBackoff<OUTPUT>(
       error.isRetryable === true &&
       tryNumber <= maxRetries
     ) {
-      await delay(delayInMs);
-      return _retryWithExponentialBackoff(
+      const delayInMsWithJitter = jitterEnabled
+        ? Math.random() * delayInMs // full jitter by standard
+        : delayInMs;      
+        return _retryWithExponentialBackoff(
         f,
         { maxRetries, delayInMs: backoffFactor * delayInMs, backoffFactor },
         newErrors,
