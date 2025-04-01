@@ -66,10 +66,10 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       });
     }
 
-    const googleVertexImageOptions = parseProviderOptions({
+    const vertexImageOptions = parseProviderOptions({
       provider: 'vertex',
-      providerOptions: providerOptions,
-      schema: googleVertexImageProviderOptionsSchema,
+      providerOptions,
+      schema: vertexImageProviderOptionsSchema,
     });
 
     const body = {
@@ -78,7 +78,7 @@ export class GoogleVertexImageModel implements ImageModelV1 {
         sampleCount: n,
         ...(aspectRatio != null ? { aspectRatio } : {}),
         ...(seed != null ? { seed } : {}),
-        ...(googleVertexImageOptions ?? {}),
+        ...(vertexImageOptions ?? {}),
       },
     };
 
@@ -116,7 +116,7 @@ const vertexImageResponseSchema = z.object({
   predictions: z.array(z.object({ bytesBase64Encoded: z.string() })).nullish(),
 });
 
-const googleVertexImageProviderOptionsSchema = z.object({
+const vertexImageProviderOptionsSchema = z.object({
   enhancePrompt: z.boolean().nullish(),
   negativePrompt: z.string().nullish(),
   personGeneration: z
@@ -134,5 +134,5 @@ const googleVertexImageProviderOptionsSchema = z.object({
   storageUri: z.string().nullish(),
 });
 export type GoogleVertexImageProviderOptions = z.infer<
-  typeof googleVertexImageProviderOptionsSchema
+  typeof vertexImageProviderOptionsSchema
 >;
