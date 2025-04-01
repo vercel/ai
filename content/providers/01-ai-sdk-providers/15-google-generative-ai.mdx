@@ -142,7 +142,9 @@ import { generateText } from 'ai';
 const { text } = await generateText({
   model: google('gemini-1.5-pro-latest'),
   providerOptions: {
-    google: { responseModalities: ['TEXT', 'IMAGE'] } satisfies GoogleGenerativeAIProviderOptions,
+    google: {
+      responseModalities: ['TEXT', 'IMAGE'],
+    } satisfies GoogleGenerativeAIProviderOptions,
   },
   // ...
 });
