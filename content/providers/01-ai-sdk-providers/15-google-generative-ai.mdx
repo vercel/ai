@@ -132,6 +132,22 @@ The following optional settings are available for Google Generative AI models:
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
 
+Further configuration can be done using Google Generative AI provider options. You can validate the provider options using the `GoogleGenerativeAIProviderOptions` type.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google('gemini-1.5-pro-latest'),
+  providerOptions: {
+    google: { responseModalities: ['TEXT', 'IMAGE'] } satisfies GoogleGenerativeAIProviderOptions,
+  },
+  // ...
+});
+```
+
 You can use Google Generative AI language models to generate text with the `generateText` function:
 
 ```ts

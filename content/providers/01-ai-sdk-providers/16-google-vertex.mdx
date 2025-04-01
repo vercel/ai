@@ -599,6 +599,22 @@ const { image } = await generateImage({
 });
 ```
 
+Further configuration can be done using Google Vertex provider options. You can validate the provider options using the `GoogleVertexImageProviderOptions` type.
+
+```ts
+import { vertex } from '@ai-sdk/google-vertex';
+import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: vertex.image('imagen-3.0-generate-001'),
+  providerOptions: {
+    vertex: { enhancePrompt: true } satisfies GoogleVertexImageProviderOptions,
+  },
+  // ...
+});
+```
+
 <Note>
   Imagen models do not support the `size` parameter. Use the `aspectRatio`
   parameter instead.
