@@ -1,13 +1,9 @@
-import {
-  mockFetchDataStream,
-  mockFetchDataStreamWithGenerator,
-  mockFetchError,
-} from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { findByText, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setupTestComponent } from './setup-test-component';
 import { useCompletion } from './use-completion';
+import { createTestServer, TestResponseController } from '@ai-sdk/provider-utils/test';
 
 describe('stream data stream', () => {
   let onFinishResult:
@@ -53,12 +49,16 @@ describe('stream data stream', () => {
   });
 
   describe('render simple stream', () => {
-    beforeEach(async () => {
-      mockFetchDataStream({
-        url: 'https://example.com/api/completion',
-        chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
-      });
+    createTestServer({
+      '/api/completion': {
+       response: {
+         type: 'stream-chunks',
+         chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+       }
+      }
+   });
 
+    beforeEach(async () => {
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
     });
 
@@ -79,34 +79,37 @@ describe('stream data stream', () => {
   });
 
   describe('loading state', () => {
-    it('should show loading state', async () => {
-      let finishGeneration: ((value?: unknown) => void) | undefined;
-      const finishGenerationPromise = new Promise(resolve => {
-        finishGeneration = resolve;
-      });
+    const server =createTestServer({
+      '/api/completion': {}
+   });
 
-      mockFetchDataStreamWithGenerator({
-        url: 'https://example.com/api/chat',
-        chunkGenerator: (async function* generate() {
-          const encoder = new TextEncoder();
-          yield encoder.encode('0:"Hello"\n');
-          await finishGenerationPromise;
-        })(),
-      });
+    it('should show loading state', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/completion'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
 
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
+
+      await controller.write('0:"Hello"\n');
 
       await screen.findByTestId('loading');
       expect(screen.getByTestId('loading')).toHaveTextContent('true');
 
-      finishGeneration?.();
+      await controller.close();
 
       await findByText(await screen.findByTestId('loading'), 'false');
       expect(screen.getByTestId('loading')).toHaveTextContent('false');
     });
 
     it('should reset loading state on error', async () => {
-      mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
+      server.urls['/api/completion'].response = {
+        type: 'error',
+        status: 404,
+        body: 'Not found',
+      };
 
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
@@ -117,6 +120,10 @@ describe('stream data stream', () => {
 });
 
 describe('text stream', () => {
+  const server = createTestServer({
+    '/api/completion': {},
+  });
+
   setupTestComponent(() => {
     const { completion, handleSubmit, handleInputChange, input } =
       useCompletion({ streamProtocol: 'text' });
@@ -137,10 +144,10 @@ describe('text stream', () => {
   });
 
   it('should render stream', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/completion',
+    server.urls['/api/completion'].response = {
+      type: 'stream-chunks',
       chunks: ['Hello', ',', ' world', '.'],
-    });
+    };
 
     await userEvent.type(screen.getByTestId('input-text-stream'), 'hi{enter}');
 
