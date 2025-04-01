@@ -20,9 +20,9 @@ jobs:
           version: 9.12.3
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -44,9 +44,9 @@ jobs:
           version: 9.12.3
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -68,9 +68,9 @@ jobs:
           version: 9.12.3
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
           cache: 'pnpm'
 
       - name: Install dependencies
