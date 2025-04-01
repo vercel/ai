@@ -4,12 +4,12 @@ import {
   convertReadableStreamToArray,
   withTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { createGoogleGenerativeAI } from './google-provider';
 import {
   GoogleGenerativeAILanguageModel,
   groundingMetadataSchema,
 } from './google-generative-ai-language-model';
 import { GoogleGenerativeAIGroundingMetadata } from './google-generative-ai-prompt';
+import { createGoogleGenerativeAI } from './google-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -1274,6 +1274,40 @@ describe('doGenerate', () => {
       },
     ),
   );
+
+  it(
+    'should only pass valid provider options',
+    withTestServer(prepareJsonResponse({}), async ({ call }) => {
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: [
+          { role: 'system', content: 'test system instruction' },
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+        ],
+        seed: 123,
+        temperature: 0.5,
+        providerMetadata: {
+          google: { foo: 'bar', responseModalities: ['TEXT', 'IMAGE'] },
+        },
+      });
+
+      expect(await call(0).getRequestBodyJson()).toStrictEqual({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: 'Hello' }],
+          },
+        ],
+        systemInstruction: { parts: [{ text: 'test system instruction' }] },
+        generationConfig: {
+          seed: 123,
+          temperature: 0.5,
+          responseModalities: ['TEXT', 'IMAGE'],
+        },
+      });
+    }),
+  );
 });
 
 describe('doStream', () => {
@@ -1919,6 +1953,35 @@ describe('doStream', () => {
         expect(
           finishEvent?.type === 'finish' && finishEvent.finishReason,
         ).toEqual('tool-calls');
+      },
+    ),
+  );
+
+  it(
+    'should only pass valid provider options',
+    withTestServer(
+      prepareStreamResponse({ content: [''] }),
+      async ({ call }) => {
+        await model.doStream({
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          prompt: TEST_PROMPT,
+          providerMetadata: {
+            google: { foo: 'bar', responseModalities: ['TEXT', 'IMAGE'] },
+          },
+        });
+
+        expect(await call(0).getRequestBodyJson()).toStrictEqual({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: 'Hello' }],
+            },
+          ],
+          generationConfig: {
+            responseModalities: ['TEXT', 'IMAGE'],
+          },
+        });
       },
     ),
   );
