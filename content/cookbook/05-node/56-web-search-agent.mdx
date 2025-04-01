@@ -97,6 +97,7 @@ Unlike the native web search examples where searching is built into the model, u
 </Note>
 
 ### Exa
+
 [Exa](https://exa.ai/) is a search API designed for AI. Let's look at how you could implement a search tool using Exa:
 
 ```ts
@@ -117,7 +118,7 @@ export const webSearch = tool({
       livecrawl: 'always',
       numResults: 3,
     });
-    return results.map((result) => ({
+    return results.map(result => ({
       title: result.title,
       url: result.url,
       content: result.text.slice(0, 1000), // take just the first 1000 characters
@@ -137,32 +138,33 @@ const { text } = await generateText({
 ```
 
 ### Firecrawl
+
 [Firecrawl](https://firecrawl.dev) provides an API for web scraping and crawling.
 
 ```ts
-import { generateText, tool } from "ai";
-import { openai } from "@ai-sdk/openai";
-import { z } from "zod";
-import FirecrawlApp from "@mendable/firecrawl-js";
-import "dotenv/config";
+import { generateText, tool } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import FirecrawlApp from '@mendable/firecrawl-js';
+import 'dotenv/config';
 
-const app = new FirecrawlApp({ apiKey: "fc-2c266631830e40f7838f0cf3b281b08a" });
+const app = new FirecrawlApp({ apiKey: 'fc-2c266631830e40f7838f0cf3b281b08a' });
 
 export const webSearch = tool({
-  description: "Search the web for up-to-date information",
+  description: 'Search the web for up-to-date information',
   parameters: z.object({
     urlToCrawl: z
       .string()
       .url()
       .min(1)
       .max(100)
-      .describe("The URL to crawl (including http:// or https://)"),
+      .describe('The URL to crawl (including http:// or https://)'),
   }),
   execute: async ({ urlToCrawl }) => {
     const crawlResponse = await app.crawlUrl(urlToCrawl, {
       limit: 1,
       scrapeOptions: {
-        formats: ["markdown", "html"],
+        formats: ['markdown', 'html'],
       },
     });
     if (!crawlResponse.success) {
@@ -174,8 +176,8 @@ export const webSearch = tool({
 
 const main = async () => {
   const { text } = await generateText({
-    model: openai("gpt-4o-mini"), // can be any model that supports tools
-    prompt: "Get the latest blog post from vercel.com/blog",
+    model: openai('gpt-4o-mini'), // can be any model that supports tools
+    prompt: 'Get the latest blog post from vercel.com/blog',
     tools: {
       webSearch,
     },
