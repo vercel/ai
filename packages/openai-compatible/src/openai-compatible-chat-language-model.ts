@@ -267,9 +267,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const choice = responseBody.choices[0];
 
     // provider metadata:
-    const providerMetadata = this.config.metadataExtractor?.extractMetadata?.({
-      parsedBody: rawResponse,
-    }) ?? { [this.providerOptionsName]: {} };
+    const providerMetadata: LanguageModelV1ProviderMetadata = {
+      [this.providerOptionsName]: {},
+      ...this.config.metadataExtractor?.extractMetadata?.({
+        parsedBody: rawResponse,
+      }),
+    };
     const completionTokenDetails =
       responseBody.usage?.completion_tokens_details;
     const promptTokenDetails = responseBody.usage?.prompt_tokens_details;
