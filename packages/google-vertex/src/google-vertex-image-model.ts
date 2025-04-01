@@ -3,6 +3,7 @@ import {
   Resolvable,
   combineHeaders,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -65,13 +66,19 @@ export class GoogleVertexImageModel implements ImageModelV1 {
       });
     }
 
+    const googleVertexImageOptions = parseProviderOptions({
+      provider: 'vertex',
+      providerOptions: providerOptions,
+      schema: googleVertexImageProviderOptionsSchema,
+    });
+
     const body = {
       instances: [{ prompt }],
       parameters: {
         sampleCount: n,
         ...(aspectRatio != null ? { aspectRatio } : {}),
         ...(seed != null ? { seed } : {}),
-        ...(providerOptions.vertex ?? {}),
+        ...(googleVertexImageOptions ?? {}),
       },
     };
 
@@ -108,3 +115,25 @@ export class GoogleVertexImageModel implements ImageModelV1 {
 const vertexImageResponseSchema = z.object({
   predictions: z.array(z.object({ bytesBase64Encoded: z.string() })).nullish(),
 });
+
+const googleVertexImageProviderOptionsSchema = z.object({
+  temperature: z.number().nullish(),
+  enhancePrompt: z.boolean().nullish(),
+  negativePrompt: z.string().nullish(),
+  personGeneration: z
+    .enum(['dont_allow', 'allow_adult', 'allow_all'])
+    .nullish(),
+  safetySetting: z
+    .enum([
+      'block_low_and_above',
+      'block_medium_and_above',
+      'block_only_high',
+      'block_none',
+    ])
+    .nullish(),
+  addWatermark: z.boolean().nullish(),
+  storageUri: z.string().nullish(),
+});
+export type GoogleVertexImageProviderOptions = z.infer<
+  typeof googleVertexImageProviderOptionsSchema
+>;
