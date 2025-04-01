@@ -11,11 +11,11 @@ const testValues = ['sunny day at the beach', 'rainy day in the city'];
 const provider = createMistral({ apiKey: 'test-api-key' });
 const model = provider.textEmbeddingModel('mistral-embed');
 
-describe('doEmbed', () => {
-  const server = createTestServer({
-    'https://api.mistral.ai/v1/embeddings': {},
-  });
+const server = createTestServer({
+  'https://api.mistral.ai/v1/embeddings': {},
+});
 
+describe('doEmbed', () => {
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
     usage = { prompt_tokens: 8, total_tokens: 8 },
