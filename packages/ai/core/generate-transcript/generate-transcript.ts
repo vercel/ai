@@ -96,7 +96,7 @@ Only applicable for HTTP-based providers.
     }),
   );
   
-  if (!result.transcript.text) {
+  if (!result.text) {
     throw new NoTranscriptGeneratedError({ responses: [result.response] });
   }
 
