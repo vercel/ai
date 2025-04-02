@@ -37,6 +37,7 @@ export * from './embed';
 export * from './generate-image';
 export * from './generate-object';
 export * from './generate-text';
+export * from './generate-transcript';
 export * from './middleware';
 export * from './prompt';
 export * from './registry';
