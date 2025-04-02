@@ -4,12 +4,15 @@ import 'dotenv/config';
 import { readFile } from 'fs/promises';
 
 async function main() {
-  const { transcript } = await generateTranscript({
+  const result = await generateTranscript({
     model: openai.transcription('whisper-1'),
     audio: await readFile('audio.mp3'),
   });
 
-  console.log(transcript);
+  console.log(result.transcript);
+  console.log();
+  console.log('Warnings:', result.warnings);
+  console.log('Responses:', result.responses);
 }
 
 main().catch(console.error);

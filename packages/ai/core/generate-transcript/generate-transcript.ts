@@ -101,6 +101,7 @@ Only applicable for HTTP-based providers.
     transcript,
     warnings: result.warnings,
     responses: [result.response],
+    providerMetadata: result.providerMetadata,
   });
 }
 
@@ -108,14 +109,16 @@ class DefaultGenerateTranscriptResult implements GenerateTranscriptResult {
   readonly transcript: GeneratedTranscript;
   readonly warnings: Array<TranscriptionWarning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
-
+  readonly providerMetadata: Record<string, JSONValue>;
   constructor(options: {
     transcript: GeneratedTranscript;
     warnings: Array<TranscriptionWarning>;
     responses: Array<TranscriptionModelResponseMetadata>;
+    providerMetadata: Record<string, JSONValue>;
   }) {
     this.transcript = options.transcript;
     this.warnings = options.warnings;
     this.responses = options.responses;
+    this.providerMetadata = options.providerMetadata;
   }
 }

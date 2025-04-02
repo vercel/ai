@@ -1,4 +1,5 @@
 import {
+  JSONValue,
   TranscriptionModelV1,
   TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
@@ -33,6 +34,7 @@ const createMockResponse = (options: {
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
+  providerMetadata?: Record<string, JSONValue>;
 }) => ({
   transcript: options.transcript,
   warnings: options.warnings ?? [],
@@ -41,6 +43,7 @@ const createMockResponse = (options: {
     modelId: options.modelId ?? 'test-model-id',
     headers: options.headers ?? {},
   },
+  providerMetadata: options.providerMetadata ?? {},
 });
 
 describe('generateTranscript', () => {
@@ -84,6 +87,9 @@ describe('generateTranscript', () => {
                 message: 'Setting is not supported',
               },
             ],
+            providerMetadata: {
+              'test-provider': 'test-value',
+            },
           }),
       }),
       audio: audioData,

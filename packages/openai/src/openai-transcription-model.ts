@@ -115,6 +115,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
+     
+      // When using format `verbose_json` on `whisper-1`,, OpenAI includes the things like `task` and enhanced `segments` information.
+      providerMetadata: response.transcript,
     };
   }
 }
@@ -127,4 +130,5 @@ const openaiTranscriptionResponseSchema = z.object({
     duration: z.number().optional(),
     mime_type: z.string(),
   }),
+  providerMetadata: z.record(z.any()),
 });

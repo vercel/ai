@@ -1,3 +1,4 @@
+import { JSONValue } from '../../json-value';
 import { TranscriptionModelV1CallOptions } from './transcription-model-v1-call-options';
 import { TranscriptionModelV1CallWarning } from './transcription-model-v1-call-warning';
 
@@ -70,5 +71,10 @@ Response headers.
       */
       headers: Record<string, string> | undefined;
     };
+
+    /**
+Provider metadata for telemetry and debugging purposes.
+     */
+    providerMetadata: Record<string, JSONValue>;
   }>;
 };

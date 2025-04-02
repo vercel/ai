@@ -65,6 +65,9 @@ describe('doGenerate', () => {
           language: 'en',
           mime_type: 'audio/mp3',
         },
+        providerMetadata: {
+          'test-provider': 'test-value',
+        },
       },
     };
   }

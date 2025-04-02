@@ -1,3 +1,4 @@
+import { JSONValue } from '@ai-sdk/provider';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 
@@ -32,4 +33,9 @@ export interface GenerateTranscriptResult {
   Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
    */
   readonly responses: Array<TranscriptionModelResponseMetadata>;
+
+  /**
+  Provider metadata from the provider.
+   */
+  readonly providerMetadata: Record<string, JSONValue>;
 }
