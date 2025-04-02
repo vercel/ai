@@ -56,16 +56,18 @@ export type UrlHandlers<
 };
 
 class TestServerCall {
-  private requestClone: Request;
-
-  constructor(private request: Request) {
-    this.requestClone = request.clone();
-  }
+  constructor(private request: Request) {}
 
   get requestBody() {
-    return this.requestClone.text().then(text => {
+    return this.request!.text().then(JSON.parse);
+  }
+
+  get multipartRequestBody() {
+    const requestClone = this.request.clone();
+
+    return requestClone.text().then(text => {
       // Check if the request is multipart/form-data
-      const contentType = this.requestClone.headers.get('content-type') || '';
+      const contentType = requestClone.headers.get('content-type') || '';
       if (contentType.startsWith('multipart/form-data')) {
         // For multipart/form-data, return the form data entries as an object
         return this.request.formData().then(formData => {
@@ -76,8 +78,7 @@ class TestServerCall {
           return obj;
         });
       }
-      // For JSON requests, parse as JSON
-      return JSON.parse(text);
+      return null; // Return null if not multipart
     });
   }
 
@@ -86,7 +87,7 @@ class TestServerCall {
   }
 
   get requestHeaders() {
-    const requestHeaders = this.request.headers;
+    const requestHeaders = this.request!.headers;
 
     // convert headers to object for easier comparison
     const headersObject: Record<string, string> = {};
@@ -98,15 +99,15 @@ class TestServerCall {
   }
 
   get requestUrlSearchParams() {
-    return new URL(this.request.url).searchParams;
+    return new URL(this.request!.url).searchParams;
   }
 
   get requestUrl() {
-    return this.request.url;
+    return this.request!.url;
   }
 
   get requestMethod() {
-    return this.request.method;
+    return this.request!.method;
   }
 }
 

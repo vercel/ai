@@ -77,7 +77,7 @@ describe('doGenerate', () => {
       }),
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].multipartRequestBody).toMatchObject({
       model: 'whisper-1',
     });
   });
