@@ -3,11 +3,6 @@ import {
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
 import { formatDataStreamPart } from '@ai-sdk/ui-utils';
-import {
-  mockFetchDataStream,
-  mockFetchDataStreamWithGenerator,
-  mockFetchError,
-} from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/vue';
