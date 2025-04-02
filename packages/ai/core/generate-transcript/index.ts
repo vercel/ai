@@ -4,9 +4,9 @@ export type GeneratedTranscript = {
   text: string;
   segments: Array<{
     text: string;
-    start: number;
-    end: number;
+    startSecond: number;
+    endSecond: number;
   }>;
   language: string | undefined;
-  duration: number | undefined;
+  durationInSeconds: number | undefined;
 };
