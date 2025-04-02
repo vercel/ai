@@ -4,7 +4,7 @@ import { TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
 
 const CHUNKING_REGEXPS = {
-  word: /\s*\S+\s*/m,
+  word: /\s*\S+\s+/m,
   line: /[^\n]*\n/m,
 };
 
@@ -43,35 +43,48 @@ export function smoothStream<TOOLS extends ToolSet>({
   }
 
   return () => {
-    let buffer = '';
+    let buffer = ''
+
+    const flushBuffer = (controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>) => {
+      if (buffer.length > 0) {
+        controller.enqueue({ type: 'text-delta', textDelta: buffer })
+        buffer = ''
+      }
+    }
+
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
         if (chunk.type === 'step-finish') {
           if (buffer.length > 0) {
-            controller.enqueue({ type: 'text-delta', textDelta: buffer });
-            buffer = '';
+            controller.enqueue({ type: 'text-delta', textDelta: buffer })
+            buffer = ''
           }
 
-          controller.enqueue(chunk);
-          return;
+          controller.enqueue(chunk)
+          return
         }
 
         if (chunk.type !== 'text-delta') {
-          controller.enqueue(chunk);
-          return;
+          flushBuffer(controller)
+          controller.enqueue(chunk)
+          return
         }
 
-        buffer += chunk.textDelta;
+        buffer += chunk.textDelta
 
-        let match;
-        while ((match = chunkingRegexp.exec(buffer)) != null) {
-          const chunk = match[0];
-          controller.enqueue({ type: 'text-delta', textDelta: chunk });
-          buffer = buffer.slice(chunk.length);
+        let match = chunkingRegexp.exec(buffer)
+        while (match != null) {
+          const chunk = match[0]
+          controller.enqueue({ type: 'text-delta', textDelta: chunk })
+          buffer = buffer.slice(chunk.length)
 
-          await delay(delayInMs);
+          await delay(delayInMs)
+          match = chunkingRegexp.exec(buffer)
         }
       },
-    });
-  };
+      flush(controller) {
+        flushBuffer(controller)
+      },
+    })
+  }
 }
