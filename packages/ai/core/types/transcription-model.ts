@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/provider';
 
 /**
-Image model that is used by the AI SDK Core functions.
+Transcription model that is used by the AI SDK Core functions.
   */
 export type TranscriptionModel = TranscriptionModelV1;
 
