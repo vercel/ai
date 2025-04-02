@@ -95,7 +95,10 @@ export async function POST(req: Request) {
   });
 
   return result.toDataStreamResponse({
-    headers: { 'Content-Type': 'application/octet-stream' },
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'none',
+    },
   });
 }
 ```
@@ -108,13 +111,6 @@ Let's take a look at what is happening in this code:
 4. Finally, return the result to the client to stream the response.
 
 This API route creates a POST request endpoint at `/api/chat`.
-
-<Note>
-  If you are experiencing issues with choppy/delayed streams on iOS, you can add
-  the `Content-Type`: `application/octet-stream` header to the response. For
-  more information, check out [this GitHub
-  issue](https://github.com/vercel/ai/issues/3946).
-</Note>
 
 ## Wire up the UI
 
@@ -286,7 +282,10 @@ export async function POST(req: Request) {
   });
 
   return result.toDataStreamResponse({
-    headers: { 'Content-Type': 'application/octet-stream' },
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'none',
+    },
   });
 }
 ```
@@ -473,7 +472,10 @@ export async function POST(req: Request) {
   });
 
   return result.toDataStreamResponse({
-    headers: { 'Content-Type': 'application/octet-stream' },
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Encoding': 'none',
+    },
   });
 }
 ```

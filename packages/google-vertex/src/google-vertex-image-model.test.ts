@@ -1,5 +1,4 @@
-import { JsonTestServer } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 
 const prompt = 'A cute baby sea otter';
@@ -14,20 +13,28 @@ const model = new GoogleVertexImageModel(
   },
 );
 
+const server = createTestServer({
+  'https://api.example.com/models/imagen-3.0-generate-001:predict': {},
+});
+
 describe('GoogleVertexImageModel', () => {
   describe('doGenerate', () => {
-    const server = new JsonTestServer(
-      'https://api.example.com/models/imagen-3.0-generate-001:predict',
-    );
-
-    server.setupTestEnvironment();
-
-    function prepareJsonResponse() {
-      server.responseBodyJson = {
-        predictions: [
-          { bytesBase64Encoded: 'base64-image-1' },
-          { bytesBase64Encoded: 'base64-image-2' },
-        ],
+    function prepareJsonResponse({
+      headers,
+    }: {
+      headers?: Record<string, string>;
+    } = {}) {
+      server.urls[
+        'https://api.example.com/models/imagen-3.0-generate-001:predict'
+      ].response = {
+        type: 'json-value',
+        headers,
+        body: {
+          predictions: [
+            { bytesBase64Encoded: 'base64-image-1' },
+            { bytesBase64Encoded: 'base64-image-2' },
+          ],
+        },
       };
     }
 
@@ -58,9 +65,7 @@ describe('GoogleVertexImageModel', () => {
         },
       });
 
-      const requestHeaders = await server.getRequestHeaders();
-
-      expect(requestHeaders).toStrictEqual({
+      expect(server.calls[0].requestHeaders).toStrictEqual({
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
         'custom-request-header': 'request-header-value',
@@ -122,7 +127,7 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -143,7 +148,7 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -164,7 +169,7 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -189,7 +194,7 @@ describe('GoogleVertexImageModel', () => {
         },
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -223,7 +228,13 @@ describe('GoogleVertexImageModel', () => {
     });
 
     it('should include response data with timestamp, modelId and headers', async () => {
-      prepareJsonResponse();
+      prepareJsonResponse({
+        headers: {
+          'request-id': 'test-request-id',
+          'x-goog-quota-remaining': '123',
+        },
+      });
+
       const testDate = new Date('2024-03-15T12:00:00Z');
 
       const customModel = new GoogleVertexImageModel(
@@ -238,11 +249,6 @@ describe('GoogleVertexImageModel', () => {
           },
         },
       );
-
-      server.responseHeaders = {
-        'request-id': 'test-request-id',
-        'x-goog-quota-remaining': '123',
-      };
 
       const result = await customModel.doGenerate({
         prompt,
