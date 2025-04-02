@@ -69,6 +69,7 @@ describe('stream data stream', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
+      // Find the loading element and expect it to be in progress
       await screen.findByTestId('status');
       expect(screen.getByTestId('status')).toHaveTextContent('in_progress');
 
@@ -189,6 +190,7 @@ describe('Thread management', () => {
       'AI: Hello, world.',
     );
 
+    // check that correct information was sent to the server:
     expect(await server.calls[0].requestBody).toStrictEqual({
       message: 'hi',
       threadId: null,
