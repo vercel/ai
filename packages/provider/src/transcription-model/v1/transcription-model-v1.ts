@@ -1,6 +1,17 @@
 import { TranscriptionModelV1CallOptions } from './transcription-model-v1-call-options';
 import { TranscriptionModelV1CallWarning } from './transcription-model-v1-call-warning';
 
+type GeneratedTranscript = {
+  text: string;
+  segments: Array<{
+    text: string;
+    startSecond: number;
+    endSecond: number;
+  }>;
+  language: string | undefined;
+  durationInSeconds: number | undefined;
+};
+
 /**
 Transcription model specification version 1.
  */
@@ -25,23 +36,14 @@ Provider-specific model ID for logging purposes.
   readonly modelId: string;
 
   /**
-Generates an array of transcripts.
+Generates a transcript.
    */
   doGenerate(options: TranscriptionModelV1CallOptions): PromiseLike<{
     /**
-Generated transcript as a string.
-The transcript contains the text that was transcribed from the audio.
+Generated transcript as an object that contains the text that was transcribed from the audio,
+the segments of the transcript, the language of the transcript, and the duration of the transcript.
      */
-    transcript: {
-      text: string;
-      segments: Array<{
-        startSecond: number;
-        endSecond: number;
-        text: string;
-      }>;
-      language: string | undefined;
-      durationInSeconds: number | undefined;
-    };
+    transcript: GeneratedTranscript;
 
     /**
 Warnings for the call, e.g. unsupported settings.
