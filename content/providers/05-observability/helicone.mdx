@@ -7,9 +7,9 @@ description: Monitor and optimize your AI SDK applications with minimal configur
 
 [Helicone](https://helicone.ai) is an open-source LLM observability platform that helps you monitor, analyze, and optimize your AI applications through a proxy-based approach, requiring minimal setup and zero additional dependencies.
 
-## 30-Second Setup
+## Setup
 
-Setting up Helicone takes just three simple steps:
+Setting up Helicone:
 
 1. Create a Helicone account at [helicone.ai](https://helicone.ai)
 2. Set your API key as an environment variable:
@@ -36,11 +36,11 @@ Setting up Helicone takes just three simple steps:
 
 That's it! Your requests are now being logged and monitored through Helicone.
 
-[→ Learn more about getting started with Helicone on Vercel AI](https://docs.helicone.ai/getting-started/integration-method/vercelai)
+[→ Learn more about getting started with Helicone on AI SDK](https://docs.helicone.ai/getting-started/integration-method/vercelai)
 
-## Why Proxy vs OTEL?
+## Integration Approach
 
-While other observability solutions require complex OpenTelemetry instrumentation, Helicone uses a simpler proxy approach:
+While other observability solutions require OpenTelemetry instrumentation, Helicone uses a simple proxy approach:
 
 <Tabs items={['Helicone Proxy (3 lines)', 'Typical OTEL Setup (simplified)']}>
   <Tab>
@@ -85,15 +85,15 @@ While other observability solutions require complex OpenTelemetry instrumentatio
   </Tab>
 </Tabs>
 
-**Benefits of Helicone's Proxy Approach:**
-- **Zero Dependencies**: No additional packages needed
-- **Works Everywhere**: Compatible with any JavaScript environment
-- **No Code Changes**: Minimal changes to your existing code
-- **Advanced Features**: Enables unique capabilities like caching and rate limiting
+**Characteristics of Helicone's Proxy Approach:**
+- No additional packages required
+- Compatible with JavaScript environments
+- Minimal code changes to existing implementations
+- Supports features such as caching and rate limiting
 
 [→ Learn more about Helicone's proxy approach](https://docs.helicone.ai/references/proxy-vs-async)
 
-## Core Observability Features
+## Core Features
 
 ### User Tracking
 
@@ -147,9 +147,10 @@ const response = await generateText({
 
 [→ Learn more about Sessions](https://docs.helicone.ai/features/sessions)
 
-## Unique Proxy-Powered Features
+## Advanced Configuration
 
-**Request Caching**  
+### Request Caching
+
 Reduce costs by caching identical requests:
 
 ```javascript
@@ -164,8 +165,9 @@ const response = await generateText({
 
 [→ Learn more about Caching](https://docs.helicone.ai/features/advanced-usage/caching)
 
-**Rate Limiting**  
-Control usage by adding a simple rate limit policy:
+### Rate Limiting
+
+Control usage by adding a rate limit policy:
 
 ```javascript
 const response = await generateText({
@@ -189,7 +191,8 @@ Format: `[quota];w=[time_window];u=[unit];s=[segment]` where:
 
 [→ Learn more about Rate Limiting](https://docs.helicone.ai/features/advanced-usage/custom-rate-limits)
 
-**LLM Security**  
+### LLM Security
+
 Protect against prompt injection, jailbreaking, and other LLM-specific threats:
 
 ```javascript
