@@ -43,12 +43,12 @@ export function smoothStream<TOOLS extends ToolSet>({
   }
 
   return () => {
-    let buffer = ''
+    let buffer = '';
 
     const flushBuffer = (controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>) => {
       if (buffer.length > 0) {
-        controller.enqueue({ type: 'text-delta', textDelta: buffer })
-        buffer = ''
+        controller.enqueue({ type: 'text-delta', textDelta: buffer });
+        buffer = '';
       }
     }
 
@@ -56,34 +56,34 @@ export function smoothStream<TOOLS extends ToolSet>({
       async transform(chunk, controller) {
         if (chunk.type === 'step-finish') {
           if (buffer.length > 0) {
-            controller.enqueue({ type: 'text-delta', textDelta: buffer })
-            buffer = ''
+            controller.enqueue({ type: 'text-delta', textDelta: buffer });
+            buffer = '';
           }
 
-          controller.enqueue(chunk)
-          return
+          controller.enqueue(chunk);
+          return;
         }
 
         if (chunk.type !== 'text-delta') {
-          flushBuffer(controller)
-          controller.enqueue(chunk)
-          return
+          flushBuffer(controller);
+          controller.enqueue(chunk);
+          return;
         }
 
-        buffer += chunk.textDelta
+        buffer += chunk.textDelta;
 
-        let match = chunkingRegexp.exec(buffer)
+        let match = chunkingRegexp.exec(buffer);
         while (match != null) {
-          const chunk = match[0]
-          controller.enqueue({ type: 'text-delta', textDelta: chunk })
-          buffer = buffer.slice(chunk.length)
+          const chunk = match[0];
+          controller.enqueue({ type: 'text-delta', textDelta: chunk });
+          buffer = buffer.slice(chunk.length);
 
-          await delay(delayInMs)
-          match = chunkingRegexp.exec(buffer)
+          await delay(delayInMs);
+          match = chunkingRegexp.exec(buffer);
         }
       },
       flush(controller) {
-        flushBuffer(controller)
+        flushBuffer(controller);
       },
     })
   }
