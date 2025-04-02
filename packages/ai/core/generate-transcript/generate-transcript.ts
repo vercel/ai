@@ -4,7 +4,17 @@ import { prepareRetries } from '../prompt/prepare-retries';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import { GenerateTranscriptResult } from './generate-transcript-result';
-import { GeneratedTranscript } from './';
+
+type GeneratedTranscript = {
+  text: string;
+  segments: Array<{
+    text: string;
+    startSecond: number;
+    endSecond: number;
+  }>;
+  language: string | undefined;
+  durationInSeconds: number | undefined;
+};
 
 /**
 Generates transcripts using a transcript model.
