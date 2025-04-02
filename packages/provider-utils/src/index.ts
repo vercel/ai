@@ -1,4 +1,3 @@
-export * from './convert-audio-input';
 export * from './combine-headers';
 export { convertAsyncIteratorToReadableStream } from './convert-async-iterator-to-readable-stream';
 export * from './delay';

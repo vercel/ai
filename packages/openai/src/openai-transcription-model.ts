@@ -3,7 +3,6 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   postFormDataToApi,
-  convertAudioInput,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
@@ -51,10 +50,30 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
   > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const formData = new FormData();
-    const file = await convertAudioInput(audio).toFile();
+
+    let blob: Blob | undefined;
+
+    if (audio instanceof Uint8Array) {
+      // Convert Uint8Array to Blob and then to File
+      blob = new Blob([audio]);
+    } else if (typeof audio === 'string') {
+      // Convert base64 string to Blob and then to File
+      const byteCharacters = atob(audio);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      blob = new Blob([byteArray]);
+    } else {
+      throw new Error('Invalid audio format. Must be Uint8Array or base64 string.');
+    }
 
     formData.append('model', this.modelId);
-    formData.append('file', file);
+    formData.append(
+      'file',
+      new File([blob], 'audio.wav', { type: 'audio/wav' }),
+    );
 
     // Add any additional provider options
     if (providerOptions?.openai) {
