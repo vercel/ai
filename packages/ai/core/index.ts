@@ -2,23 +2,18 @@
 export { createIdGenerator, generateId } from '@ai-sdk/provider-utils';
 export type { IDGenerator } from '@ai-sdk/provider-utils';
 export {
-  formatAssistantStreamPart,
   formatDataStreamPart,
   jsonSchema,
-  parseAssistantStreamPart,
   parseDataStreamPart,
   processDataStream,
   processTextStream,
   zodSchema,
 } from '@ai-sdk/ui-utils';
 export type {
-  AssistantMessage,
-  AssistantStatus,
   Attachment,
   ChatRequest,
   ChatRequestOptions,
   CreateMessage,
-  DataMessage,
   DataStreamPart,
   DeepPartial,
   IdGenerator,
