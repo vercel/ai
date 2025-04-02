@@ -1,4 +1,7 @@
-import { createTestServer, TestResponseController } from '@ai-sdk/provider-utils/test';
+import {
+  createTestServer,
+  TestResponseController,
+} from '@ai-sdk/provider-utils/test';
 import { Completion } from './completion.svelte.js';
 import { render } from '@testing-library/svelte';
 import CompletionSynchronization from './tests/completion-synchronization.svelte';
