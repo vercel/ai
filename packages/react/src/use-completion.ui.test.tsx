@@ -3,7 +3,10 @@ import { findByText, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setupTestComponent } from './setup-test-component';
 import { useCompletion } from './use-completion';
-import { createTestServer, TestResponseController } from '@ai-sdk/provider-utils/test';
+import {
+  createTestServer,
+  TestResponseController,
+} from '@ai-sdk/provider-utils/test';
 
 describe('stream data stream', () => {
   let onFinishResult:
@@ -51,12 +54,12 @@ describe('stream data stream', () => {
   describe('render simple stream', () => {
     createTestServer({
       '/api/completion': {
-       response: {
-         type: 'stream-chunks',
-         chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
-       }
-      }
-   });
+        response: {
+          type: 'stream-chunks',
+          chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+        },
+      },
+    });
 
     beforeEach(async () => {
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
@@ -79,9 +82,9 @@ describe('stream data stream', () => {
   });
 
   describe('loading state', () => {
-    const server =createTestServer({
-      '/api/completion': {}
-   });
+    const server = createTestServer({
+      '/api/completion': {},
+    });
 
     it('should show loading state', async () => {
       const controller = new TestResponseController();

@@ -154,7 +154,6 @@ describe('data protocol stream', () => {
 
   describe('status', () => {
     it('should show status', async () => {
-
       const controller = new TestResponseController();
       server.urls['/api/chat'].response = {
         type: 'controlled-stream',
@@ -167,12 +166,11 @@ describe('data protocol stream', () => {
         expect(screen.getByTestId('status')).toHaveTextContent('submitted');
       });
 
- controller.write('0:"Hello"\n');
+      controller.write('0:"Hello"\n');
 
       await waitFor(() => {
         expect(screen.getByTestId('status')).toHaveTextContent('streaming');
       });
-
 
       controller.close();
 

@@ -54,9 +54,9 @@ describe('stream data stream', () => {
     );
 
     expect(await server.calls[0].requestBody).toStrictEqual({
-        message: 'hi',
-        threadId: null,
-      });
+      message: 'hi',
+      threadId: null,
+    });
   });
 
   describe('loading state', () => {
@@ -146,12 +146,10 @@ describe('Thread management', () => {
       'AI: Hello, world.',
     );
 
-    expect(await server.calls[0].requestBody).toStrictEqual(
-      ({
-        message: 'hi',
-        threadId: null,
-      }),
-    );
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      message: 'hi',
+      threadId: null,
+    });
   });
 
   it('should switch to new thread on setting undefined threadId', async () => {
