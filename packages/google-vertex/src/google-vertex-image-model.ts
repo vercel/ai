@@ -117,7 +117,6 @@ const vertexImageResponseSchema = z.object({
 });
 
 const vertexImageProviderOptionsSchema = z.object({
-  enhancePrompt: z.boolean().nullish(),
   negativePrompt: z.string().nullish(),
   personGeneration: z
     .enum(['dont_allow', 'allow_adult', 'allow_all'])

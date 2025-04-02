@@ -609,11 +609,28 @@ import { generateImage } from 'ai';
 const { image } = await generateImage({
   model: vertex.image('imagen-3.0-generate-001'),
   providerOptions: {
-    vertex: { enhancePrompt: true } satisfies GoogleVertexImageProviderOptions,
+    vertex: { negativePrompt: 'pixelated, blurry, low-quality' } satisfies GoogleVertexImageProviderOptions,
   },
   // ...
 });
 ```
+
+The following provider options are available:
+
+- **negativePrompt** _string_
+  A description of what to discourage in the generated images.
+
+- **personGeneration** `allow_adult` | `allow_all` | `dont_allow`
+  Whether to allow person generation. Defaults to `allow_adult`.
+
+- **safetySetting** `block_low_and_above` | `block_medium_and_above` | `block_only_high` | `block_none`
+  Whether to block unsafe content. Defaults to `block_medium_and_above`.
+
+- **addWatermark** _boolean_
+  Whether to add an invisible watermark to the generated images. Defaults to `true`.
+
+- **storageUri** _string_
+  Cloud Storage URI to store the generated images.
 
 <Note>
   Imagen models do not support the `size` parameter. Use the `aspectRatio`

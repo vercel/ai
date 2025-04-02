@@ -80,7 +80,7 @@ const model = google('gemini-1.5-pro-latest');
   e.g. `tunedModels/my-model`.
 </Note>
 
-Google Generative AI models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
+Google Generative AI also supports some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
 You can pass them as an options argument:
 
 ```ts
@@ -149,6 +149,10 @@ const { text } = await generateText({
   // ...
 });
 ```
+The following provider options are available:
+
+- **responseModalities** _string[]_
+  The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
 
 You can use Google Generative AI language models to generate text with the `generateText` function:
 

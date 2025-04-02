@@ -189,7 +189,7 @@ describe('GoogleVertexImageModel', () => {
         seed: 42,
         providerOptions: {
           vertex: {
-            enhancePrompt: true,
+            addWatermark: false,
           },
         },
       });
@@ -200,7 +200,7 @@ describe('GoogleVertexImageModel', () => {
           sampleCount: 1,
           aspectRatio: '1:1',
           seed: 42,
-          enhancePrompt: true,
+          addWatermark: false,
         },
       });
     });
@@ -306,7 +306,7 @@ describe('GoogleVertexImageModel', () => {
         seed: undefined,
         providerOptions: {
           vertex: {
-            enhancePrompt: true,
+            addWatermark: false,
             negativePrompt: 'negative prompt',
             personGeneration: 'allow_all',
             foo: 'bar',
@@ -318,7 +318,7 @@ describe('GoogleVertexImageModel', () => {
         instances: [{ prompt }],
         parameters: {
           sampleCount: 2,
-          enhancePrompt: true,
+          addWatermark: false,
           negativePrompt: 'negative prompt',
           personGeneration: 'allow_all',
           aspectRatio: '16:9',

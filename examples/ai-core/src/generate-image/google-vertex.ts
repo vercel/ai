@@ -14,7 +14,6 @@ async function main() {
     providerOptions: {
       vertex: {
         addWatermark: false,
-        enhancePrompt: true,
       } satisfies GoogleVertexImageProviderOptions,
     },
   });
