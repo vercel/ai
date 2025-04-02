@@ -139,7 +139,7 @@ const { text } = await generateText({
 
 ### Firecrawl
 
-[Firecrawl](https://firecrawl.dev) provides an API for web scraping and crawling.
+[Firecrawl](https://firecrawl.dev) provides an API for web scraping and crawling. Let's look at how you could implement a scraping tool using Firecrawl:
 
 ```ts
 import { generateText, tool } from 'ai';
@@ -148,7 +148,7 @@ import { z } from 'zod';
 import FirecrawlApp from '@mendable/firecrawl-js';
 import 'dotenv/config';
 
-const app = new FirecrawlApp({ apiKey: 'fc-2c266631830e40f7838f0cf3b281b08a' });
+const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY });
 
 export const webSearch = tool({
   description: 'Search the web for up-to-date information',
