@@ -25,12 +25,6 @@ Provider-specific model ID for logging purposes.
   readonly modelId: string;
 
   /**
-Limit of how many transcripts can be generated in a single API call.
-If undefined, we will max generate one transcript per call.
-   */
-  readonly maxTranscriptsPerCall: number | undefined;
-
-  /**
 Generates an array of transcripts.
    */
   doGenerate(options: TranscriptionModelV1CallOptions): PromiseLike<{
