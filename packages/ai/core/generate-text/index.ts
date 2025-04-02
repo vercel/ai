@@ -5,10 +5,6 @@ export type {
   GeneratedFile as Experimental_GeneratedImage, // Image for backwards compatibility, TODO remove in v5
   GeneratedFile,
 } from './generated-file';
-export type {
-  GeneratedTranscript as Experimental_GeneratedTranscript,
-  GeneratedTranscript
-} from './generated-transcript';
 export * as Output from './output';
 export { smoothStream, type ChunkDetector } from './smooth-stream';
 export type { StepResult } from './step-result';
