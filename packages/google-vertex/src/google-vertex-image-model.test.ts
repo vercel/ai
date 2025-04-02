@@ -277,7 +277,7 @@ describe('GoogleVertexImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
-        n: 1,
+        n: 2,
         size: undefined,
         aspectRatio: undefined,
         seed: undefined,
@@ -300,7 +300,7 @@ describe('GoogleVertexImageModel', () => {
 
       await model.doGenerate({
         prompt,
-        n: 1,
+        n: 2,
         size: undefined,
         aspectRatio: '16:9',
         seed: undefined,
@@ -314,10 +314,10 @@ describe('GoogleVertexImageModel', () => {
         },
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         instances: [{ prompt }],
         parameters: {
-          sampleCount: 1,
+          sampleCount: 2,
           enhancePrompt: true,
           negativePrompt: 'negative prompt',
           personGeneration: 'allow_all',
