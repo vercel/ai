@@ -5,14 +5,6 @@ export { generateId } from '@ai-sdk/provider-utils';
 // Export stream data utilities for custom stream implementations,
 // both on the client and server side.
 // NOTE: this is experimental / internal and may change without notice
-export {
-  formatAssistantStreamPart,
-  parseAssistantStreamPart,
-} from './assistant-stream-parts';
-export type {
-  AssistantStreamPart,
-  AssistantStreamString,
-} from './assistant-stream-parts';
 export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
 export { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
@@ -25,7 +17,6 @@ export { getMessageParts } from './get-message-parts';
 export { isDeepEqualData } from './is-deep-equal-data';
 export { parsePartialJson } from './parse-partial-json';
 export { prepareAttachmentsForRequest } from './prepare-attachments-for-request';
-export { processAssistantStream } from './process-assistant-stream';
 export { processDataStream } from './process-data-stream';
 export { processTextStream } from './process-text-stream';
 export { asSchema, jsonSchema } from './schema';
