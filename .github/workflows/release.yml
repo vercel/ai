@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -27,10 +27,10 @@ jobs:
         with:
           version: 9.12.3
 
-      - name: Setup Node.js 18.x
-        uses: actions/setup-node@v2
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 22
 
       - name: Install Dependencies
         run: pnpm i
