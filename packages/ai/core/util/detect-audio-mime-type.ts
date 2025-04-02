@@ -1,5 +1,5 @@
-import { DataContent } from "../prompt";
-import { convertDataContentToUint8Array } from "../prompt/data-content";
+import { DataContent } from '../prompt';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
 
 const mimeTypeSignatures = [
   {
@@ -44,7 +44,9 @@ export function detectAudioMimeType(
       typeof audio === 'string'
         ? audio.startsWith(signature.base64Prefix)
         : uint8ArrayAudio.length >= signature.bytesPrefix.length &&
-          signature.bytesPrefix.every((byte, index) => uint8ArrayAudio[index] === byte)
+          signature.bytesPrefix.every(
+            (byte, index) => uint8ArrayAudio[index] === byte,
+          )
     ) {
       return signature.mimeType;
     }

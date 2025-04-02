@@ -66,7 +66,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
       const byteArray = new Uint8Array(byteNumbers);
       blob = new Blob([byteArray]);
     } else {
-      throw new Error('Invalid audio format. Must be Uint8Array or base64 string.');
+      throw new Error(
+        'Invalid audio format. Must be Uint8Array or base64 string.',
+      );
     }
 
     formData.append('model', this.modelId);
@@ -79,8 +81,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     if (providerOptions?.openai) {
       for (const [key, value] of Object.entries(providerOptions.openai)) {
         if (key in providerOptionsMapping) {
-          const newKey = providerOptionsMapping[key as keyof typeof providerOptionsMapping];
-          
+          const newKey =
+            providerOptionsMapping[key as keyof typeof providerOptionsMapping];
+
           formData.append(newKey, String(value));
         }
       }
@@ -107,7 +110,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
         segments: response.transcript.words ?? [],
         language: response.transcript.language,
         durationInSeconds: response.transcript.duration,
-        mimeType: response.transcript.mime_type
+        mimeType: response.transcript.mime_type,
       },
       warnings: [],
       response: {
@@ -115,7 +118,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-     
+
       // When using format `verbose_json` on `whisper-1`,, OpenAI includes the things like `task` and enhanced `segments` information.
       providerMetadata: response.transcript,
     };
