@@ -10,7 +10,7 @@ import { GeneratedTranscript } from './';
 Generates transcripts using a transcript model.
 
 @param model - The transcript model to use.
-@param audio - The audio data to transcribe.
+@param audio - The audio data to transcribe. This can be either a Uint8Array or base64 encoded string.
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -35,7 +35,7 @@ The transcript model to use.
   /**
 The audio data to transcribe.
    */
-  audio: Blob | File | Uint8Array | ArrayBuffer | Buffer | string;
+  audio: Uint8Array | string;
 
   /**
 Additional provider-specific options that are passed through to the provider

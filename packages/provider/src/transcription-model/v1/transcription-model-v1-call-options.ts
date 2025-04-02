@@ -4,7 +4,7 @@ export type TranscriptionModelV1CallOptions = {
   /**
 Audio data to transcribe.
      */
-  audio: Blob | File | Uint8Array | ArrayBuffer | Buffer | string;
+  audio: Uint8Array | string
 
   /**
 Additional provider-specific options that are passed through to the provider
