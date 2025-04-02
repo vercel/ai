@@ -1,9 +1,12 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
 import { createOpenAI } from './openai-provider';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
-const audioData = 'base64-audio-data';
-
+const audioData = await readFile(
+  path.join(__dirname, 'test-audio.wav'),
+);
 const provider = createOpenAI({ apiKey: 'test-api-key' });
 const model = provider.transcription('whisper-1');
 
@@ -21,7 +24,7 @@ describe('doGenerate', () => {
       type: 'json-value',
       headers,
       body: {
-        text: 'This is a transcription of the audio.',
+        text: 'Hello from the Vercel AI SDK!',
       },
     };
   }
@@ -31,12 +34,11 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       audio: audioData,
-      providerOptions: { openai: { temperature: 0.5 } },
+      providerOptions: {},
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({
       model: 'whisper-1',
-      temperature: 0.5,
     });
   });
 
@@ -54,7 +56,7 @@ describe('doGenerate', () => {
 
     await provider.transcription('whisper-1').doGenerate({
       audio: audioData,
-      providerOptions: { openai: { temperature: 0.5 } },
+      providerOptions: {},
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
