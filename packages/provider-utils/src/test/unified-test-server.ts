@@ -58,11 +58,11 @@ export type UrlHandlers<
 class TestServerCall {
   constructor(private request: Request) {}
 
-  get requestBody() {
+  get requestBodyJson() {
     return this.request!.text().then(JSON.parse);
   }
 
-  get multipartRequestBody() {
+  get requestBodyMultipart() {
     const requestClone = this.request.clone();
 
     return requestClone.text().then(text => {

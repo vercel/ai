@@ -54,7 +54,7 @@ describe('DeepInfraImageModel', () => {
         providerOptions: { deepinfra: { additional_param: 'value' } },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         aspect_ratio: '16:9',
         seed: 42,
@@ -143,7 +143,7 @@ describe('DeepInfraImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         width: '1024',
         height: '768',

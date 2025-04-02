@@ -211,7 +211,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'mistral-small-latest',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     });
@@ -245,7 +245,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'mistral-small-latest',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       tools: [
@@ -544,7 +544,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       model: 'mistral-small-latest',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],

@@ -381,7 +381,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -403,7 +403,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       logprobs: true,
@@ -428,7 +428,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'low',
@@ -446,7 +446,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'high',
@@ -467,7 +467,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'low',
@@ -502,7 +502,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       tools: [
@@ -649,7 +649,7 @@ describe('doGenerate', () => {
     });
 
     it('should pass functions and function_call with useLegacyFunctionCalling', async () => {
-      expect(await server.calls[0].requestBody).toEqual({
+      expect(await server.calls[0].requestBodyJson).toEqual({
         messages: [{ role: 'user', content: 'Hello' }],
         model: 'gpt-3.5-turbo',
         functions: [
@@ -693,7 +693,7 @@ describe('doGenerate', () => {
         responseFormat: { type: 'text' },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
       });
@@ -711,7 +711,7 @@ describe('doGenerate', () => {
         responseFormat: { type: 'json' },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: { type: 'json_object' },
@@ -741,7 +741,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: { type: 'json_object' },
@@ -780,7 +780,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -824,7 +824,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -868,7 +868,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -906,7 +906,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -953,7 +953,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         tool_choice: { type: 'function', function: { name: 'test-tool' } },
@@ -1030,7 +1030,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-4o-2024-08-06',
       messages: [{ role: 'user', content: 'Hello' }],
       tool_choice: { type: 'function', function: { name: 'test-tool' } },
@@ -1134,7 +1134,7 @@ describe('doGenerate', () => {
         presencePenalty: 0.3,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'o1-preview',
         messages: [{ role: 'user', content: 'Hello' }],
       });
@@ -1175,7 +1175,7 @@ describe('doGenerate', () => {
         maxTokens: 1000,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'o1-preview',
         messages: [{ role: 'user', content: 'Hello' }],
         max_completion_tokens: 1000,
@@ -1197,7 +1197,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1-preview',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -1224,7 +1224,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1',
       messages: [
         { role: 'developer', content: 'You are a helpful assistant.' },
@@ -1278,7 +1278,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1-preview',
       messages: [{ role: 'user', content: 'Hello' }],
       max_completion_tokens: 255,
@@ -1302,7 +1302,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       prediction: {
@@ -1326,7 +1326,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       store: true,
@@ -1349,7 +1349,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       metadata: {
@@ -2123,7 +2123,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
@@ -2181,7 +2181,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
@@ -2222,7 +2222,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
@@ -2260,7 +2260,7 @@ describe('doStream', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       stream: true,
       stream_options: { include_usage: true },
@@ -2285,7 +2285,7 @@ describe('doStream', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       stream: true,
       stream_options: { include_usage: true },

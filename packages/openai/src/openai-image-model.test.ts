@@ -48,7 +48,7 @@ describe('doGenerate', () => {
       providerOptions: { openai: { style: 'vivid' } },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'dall-e-3',
       prompt,
       n: 1,

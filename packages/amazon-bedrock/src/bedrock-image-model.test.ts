@@ -60,7 +60,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const body = await server.calls[0].requestBody;
+    const body = await server.calls[0].requestBodyJson;
     expect(body).toStrictEqual({
       taskType: 'TEXT_IMAGE',
       textToImageParams: {

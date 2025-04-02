@@ -82,7 +82,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'claude-3-haiku-20240307',
           messages: [
             {
@@ -264,7 +264,7 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(finishReason).toStrictEqual('tool-calls');
 
       // check request to Anthropic
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         max_tokens: 4096,
         messages: [
           {
@@ -363,7 +363,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         frequencyPenalty: 0.15,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'claude-3-haiku-20240307',
         max_tokens: 100,
         stop_sequences: ['abc', 'def'],
@@ -404,7 +404,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'claude-3-haiku-20240307',
         messages: [
           { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -485,7 +485,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         ],
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'claude-3-haiku-20240307',
         messages: [
           {
@@ -916,7 +916,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         stream: true,
         model: 'claude-3-haiku-20240307',
         max_tokens: 4096, // default value

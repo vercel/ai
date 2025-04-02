@@ -104,7 +104,7 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       instances: testValues.map(value => ({ content: value })),
       parameters: {
         outputDimensionality: mockSettings.outputDimensionality,

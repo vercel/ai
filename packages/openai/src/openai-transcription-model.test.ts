@@ -79,7 +79,7 @@ describe('doGenerate', () => {
       audio: audioData,
     });
 
-    expect(await server.calls[0].multipartRequestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       model: 'whisper-1',
     });
   });
@@ -156,7 +156,7 @@ describe('doGenerate', () => {
       timestamp: testDate,
       modelId: 'whisper-1',
       headers: {
-        'content-length': '460',
+        'content-length': '510',
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',

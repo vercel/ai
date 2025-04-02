@@ -88,7 +88,7 @@ describe('LumaImageModel', () => {
         providerOptions: { luma: { additional_param: 'value' } },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         aspect_ratio: '16:9',
         model: 'test-model',
