@@ -9,7 +9,7 @@ Allows you to easily create a conversational user interface for your chatbot app
 
 ## Import
 
-<Tabs items={['React', 'Svelte', 'Vue', 'Solid']}>
+<Tabs items={['React', 'Svelte', 'Vue']}>
   <Tab>
     <Snippet
       text="import { useChat } from '@ai-sdk/react'"
@@ -18,21 +18,10 @@ Allows you to easily create a conversational user interface for your chatbot app
     />
   </Tab>
   <Tab>
-    <Snippet
-      text="import { useChat } from '@ai-sdk/svelte'"
-      dark
-      prompt={false}
-    />
+    <Snippet text="import { Chat } from '@ai-sdk/svelte'" dark prompt={false} />
   </Tab>
   <Tab>
     <Snippet text="import { useChat } from '@ai-sdk/vue'" dark prompt={false} />
-  </Tab>
-  <Tab>
-    <Snippet
-      text="import { useChat } from '@ai-sdk/solid'"
-      dark
-      prompt={false}
-    />
   </Tab>
 </Tabs>
 
@@ -196,7 +185,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: '(options: { messages: UIMessage[]; requestData?: JSONValue; requestBody?: object, id: string }) => unknown',
       isOptional: true,
       description:
-        'Experimental (React, Solid & Vue only). When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
+        'Experimental. When a function is provided, it will be used to prepare the request body for the chat API. This can be useful for customizing the request body based on the messages and data in the chat.',
     },
     {
       name: 'experimental_throttle',
