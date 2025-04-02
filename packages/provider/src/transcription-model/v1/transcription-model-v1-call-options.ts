@@ -1,5 +1,10 @@
 import { JSONValue } from '../../json-value/json-value';
 
+type TranscriptionModelV1ProviderOptions = Record<
+  string,
+  Record<string, JSONValue>
+>;
+
 export type TranscriptionModelV1CallOptions = {
   /**
 Audio data to transcribe.
@@ -20,7 +25,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
  */
-  providerOptions?: Record<string, Record<string, JSONValue>>;
+  providerOptions?: TranscriptionModelV1ProviderOptions;
 
   /**
 Abort signal for cancelling the operation.
