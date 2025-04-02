@@ -28,7 +28,6 @@ export type {
   RequestOptions,
   Schema,
   ToolInvocation,
-  UseAssistantOptions,
 } from '@ai-sdk/ui-utils';
 
 // directory exports:

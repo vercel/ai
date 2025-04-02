@@ -31,11 +31,6 @@ AI SDK UI contains the following hooks:
       href: '/docs/reference/ai-sdk-ui/use-object',
     },
     {
-      title: 'useAssistant',
-      description: 'Use a hook to interact with OpenAI assistants.',
-      href: '/docs/reference/ai-sdk-ui/use-assistant',
-    },
-    {
       title: 'convertToCoreMessages',
       description:
         'Convert useChat messages to CoreMessages for AI core functions.',
@@ -79,18 +74,6 @@ AI SDK UI contains the following hooks:
   ]}
 />
 
-It also contains the following helper functions:
-
-<IndexCards
-  cards={[
-    {
-      title: 'AssistantResponse',
-      description: 'Streaming helper for assistant responses.',
-      href: '/docs/reference/ai-sdk-ui/assistant-response',
-    },
-  ]}
-/>
-
 ## UI Framework Support
 
 AI SDK UI supports the following frameworks: [React](https://react.dev/), [Svelte](https://svelte.dev/), [Vue.js](https://vuejs.org/), and [SolidJS](https://www.solidjs.com/) (deprecated).
@@ -101,7 +84,6 @@ Here is a comparison of the supported functions across these frameworks:
 | [useChat](/docs/reference/ai-sdk-ui/use-chat)             | <Check size={18} /> | <Check size={18} /> Chat             | <Check size={18} /> | <Check size={18} />  |
 | [useCompletion](/docs/reference/ai-sdk-ui/use-completion) | <Check size={18} /> | <Check size={18} /> Completion       | <Check size={18} /> | <Check size={18} />  |
 | [useObject](/docs/reference/ai-sdk-ui/use-object)         | <Check size={18} /> | <Check size={18} /> StructuredObject | <Cross size={18} /> | <Check size={18} />  |
-| [useAssistant](/docs/reference/ai-sdk-ui/use-assistant)   | <Check size={18} /> | <Cross size={18} />                  | <Check size={18} /> | <Check size={18} />  |
 
 <Note>
   [Contributions](https://github.com/vercel/ai/blob/main/CONTRIBUTING.md) are

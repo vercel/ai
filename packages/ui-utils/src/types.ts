@@ -5,8 +5,6 @@ import {
 import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from './duplicated/usage';
 
-export * from './use-assistant-types';
-
 export type IdGenerator = () => string;
 
 /**
@@ -477,27 +475,3 @@ export type JSONValue =
   | boolean
   | { [value: string]: JSONValue }
   | Array<JSONValue>;
-
-export type AssistantMessage = {
-  id: string;
-  role: 'assistant';
-  content: Array<{
-    type: 'text';
-    text: {
-      value: string;
-    };
-  }>;
-};
-
-/*
- * A data message is an application-specific message from the assistant
- * that should be shown in order with the other messages.
- *
- * It can trigger other operations on the frontend, such as annotating
- * a map.
- */
-export type DataMessage = {
-  id?: string; // optional id, implement if needed (e.g. for persistence)
-  role: 'data';
-  data: JSONValue; // application-specific data
-};
