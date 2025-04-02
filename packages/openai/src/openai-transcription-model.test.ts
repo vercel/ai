@@ -63,6 +63,7 @@ describe('doGenerate', () => {
           ],
           durationInSeconds: 35,
           language: 'en',
+          mime_type: 'audio/mp3',
         },
       },
     };
@@ -72,9 +73,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await model.doGenerate({
-      audio: new File([audioData], 'transcript-test.mp3', {
-        type: 'audio/mp3',
-      }),
+      audio: audioData,
     });
 
     expect(await server.calls[0].multipartRequestBody).toMatchObject({
@@ -154,7 +153,7 @@ describe('doGenerate', () => {
       timestamp: testDate,
       modelId: 'whisper-1',
       headers: {
-        'content-length': '436',
+        'content-length': '460',
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',

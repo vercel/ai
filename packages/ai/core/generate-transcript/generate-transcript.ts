@@ -3,24 +3,16 @@ import { NoTranscriptGeneratedError } from '../../errors/no-transcript-generated
 import { prepareRetries } from '../prompt/prepare-retries';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
-import { GenerateTranscriptResult } from './generate-transcript-result';
-
-type GeneratedTranscript = {
-  text: string;
-  segments: Array<{
-    text: string;
-    startSecond: number;
-    endSecond: number;
-  }>;
-  language: string | undefined;
-  durationInSeconds: number | undefined;
-};
+import { GeneratedTranscript, GenerateTranscriptResult } from './generate-transcript-result';
+import { detectAudioMimeType } from '../util/detect-audio-mime-type';
+import { DataContent } from '../prompt';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
 
 /**
 Generates transcripts using a transcript model.
 
 @param model - The transcript model to use.
-@param audio - The audio data to transcribe. This can be either a Uint8Array or base64 encoded string.
+@param audio - The audio data to transcribe as DataContent (string | Uint8Array<ArrayBufferLike> | ArrayBuffer | Buffer<ArrayBufferLike>).
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -45,7 +37,7 @@ The transcript model to use.
   /**
 The audio data to transcribe.
    */
-  audio: Uint8Array | string;
+  audio: DataContent;
 
   /**
 Additional provider-specific options that are passed through to the provider
@@ -82,10 +74,11 @@ Only applicable for HTTP-based providers.
   headers?: Record<string, string>;
 }): Promise<GenerateTranscriptResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
+  const audioData = convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>
     model.doGenerate({
-      audio,
+      audio: audioData,
       abortSignal,
       headers,
       providerOptions: providerOptions ?? {},
@@ -96,8 +89,16 @@ Only applicable for HTTP-based providers.
     throw new NoTranscriptGeneratedError({ responses: [result.response] });
   }
 
+  const transcript: GeneratedTranscript = {
+    text: result.transcript.text,
+    segments: result.transcript.segments,
+    language: result.transcript.language,
+    durationInSeconds: result.transcript.durationInSeconds,
+    mimeType: detectAudioMimeType(audioData) ?? 'audio/wav',
+  };
+
   return new DefaultGenerateTranscriptResult({
-    transcript: result.transcript,
+    transcript,
     warnings: result.warnings,
     responses: [result.response],
   });

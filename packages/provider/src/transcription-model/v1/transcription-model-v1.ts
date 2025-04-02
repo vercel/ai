@@ -10,6 +10,7 @@ type GeneratedTranscript = {
   }>;
   language: string | undefined;
   durationInSeconds: number | undefined;
+  mimeType: string;
 };
 
 /**

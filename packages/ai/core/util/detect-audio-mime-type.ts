@@ -1,3 +1,6 @@
+import { DataContent } from "../prompt";
+import { convertDataContentToUint8Array } from "../prompt/data-content";
+
 const mimeTypeSignatures = [
   {
     mimeType: 'audio/mpeg' as const,
@@ -32,14 +35,16 @@ const mimeTypeSignatures = [
 ] as const;
 
 export function detectAudioMimeType(
-  audio: Uint8Array | string,
+  audio: DataContent,
 ): (typeof mimeTypeSignatures)[number]['mimeType'] | undefined {
+  const uint8ArrayAudio = convertDataContentToUint8Array(audio);
+
   for (const signature of mimeTypeSignatures) {
     if (
       typeof audio === 'string'
         ? audio.startsWith(signature.base64Prefix)
-        : audio.length >= signature.bytesPrefix.length &&
-          signature.bytesPrefix.every((byte, index) => audio[index] === byte)
+        : uint8ArrayAudio.length >= signature.bytesPrefix.length &&
+          signature.bytesPrefix.every((byte, index) => uint8ArrayAudio[index] === byte)
     ) {
       return signature.mimeType;
     }

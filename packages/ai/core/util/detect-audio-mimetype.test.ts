@@ -21,7 +21,7 @@ describe('detectAudioMimeType', () => {
     });
 
     it('should detect WAV from base64', () => {
-      const wavBase64 = 'UklGR'; // Base64 string starting with WAV signature
+      const wavBase64 = 'UklGRiQ='; // Base64 string starting with WAV signature
       expect(detectAudioMimeType(wavBase64)).toBe('audio/wav');
     });
   });

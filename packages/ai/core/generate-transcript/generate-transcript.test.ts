@@ -24,6 +24,7 @@ const sampleTranscript = {
   ],
   language: 'en',
   durationInSeconds: 4.0,
+  mimeType: 'audio/wav',
 };
 
 const createMockResponse = (options: {
@@ -122,6 +123,7 @@ describe('generateTranscript', () => {
                   segments: [],
                   language: 'en',
                   durationInSeconds: 0,
+                  mimeType: 'audio/wav',
                 },
                 timestamp: testDate,
               }),
@@ -151,6 +153,7 @@ describe('generateTranscript', () => {
                   segments: [],
                   language: 'en',
                   durationInSeconds: 0,
+                  mimeType: 'audio/wav',
                 },
                 timestamp: testDate,
                 headers: {

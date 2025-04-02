@@ -1,6 +1,17 @@
-import { GeneratedTranscript } from '../generate-transcript';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
+
+export type GeneratedTranscript = {
+  text: string;
+  segments: Array<{
+    text: string;
+    startSecond: number;
+    endSecond: number;
+  }>;
+  language: string | undefined;
+  durationInSeconds: number | undefined;
+  mimeType: string;
+};
 
 /**
 The result of a `generateTranscript` call.
