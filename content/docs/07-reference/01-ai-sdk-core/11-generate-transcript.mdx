@@ -1,0 +1,144 @@
+---
+title: generateTranscript
+description: API Reference for generateTranscript.
+---
+
+# `generateTranscript()`
+
+<Note type="warning">`generateTranscript` is an experimental feature.</Note>
+
+Generates a transcript from an audio file.
+
+It is ideal for use cases where you need to generate a transcript from an audio file,
+such as creating a transcript for a podcast or a video.
+
+```ts
+import { experimental_generateTranscript as generateTranscript } from 'ai';
+
+const { transcript } = await generateTranscript({
+  model: openai.transcription('whisper-1'),
+  audio: audioData,
+});
+
+console.log(transcript);
+```
+
+## Import
+
+<Snippet
+  text={`import { experimental_generateTranscript as generateTranscript } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'TranscriptionModelV1',
+      description: 'The transcription model to use.',
+    },
+    {
+      name: 'audio',
+      type: 'Blob | File | Uint8Array | ArrayBuffer | Buffer | URL | string',
+      description: 'The audio file to generate the transcript from.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'Record<string, Record<string, JSONValue>>',
+      isOptional: true,
+      description: 'Additional provider-specific options.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      isOptional: true,
+      description: 'Maximum number of retries. Default: 2.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description: 'An optional abort signal to cancel the call.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description: 'Additional HTTP headers for the request.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'transcript',
+      type: 'GeneratedTranscript',
+      description: 'The transcript that was generated.',
+      parameters: [
+        {
+          name: 'text',
+          type: 'string',
+          description: 'The text of the transcript.',
+        },
+        {
+          name: 'segments',
+          type: 'Array<TranscriptSegment>',
+          description: 'The segments of the transcript.',
+        },
+        {
+          name: 'language',
+          type: 'string | null',
+          description: 'The language of the transcript.',
+        },
+        {
+          name: 'duration',
+          type: 'number | null',
+          description: 'The duration of the transcript.',
+        },
+      ],
+    },
+    {
+      name: 'warnings',
+      type: 'TranscriptionGenerationWarning[]',
+      description:
+        'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'responses',
+      type: 'Array<TranscriptionModelResponseMetadata>',
+      description:
+        'Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.',
+      properties: [
+        {
+          type: 'TranscriptionModelResponseMetadata',
+          parameters: [
+            {
+              name: 'timestamp',
+              type: 'Date',
+              description: 'Timestamp for the start of the generated response.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description:
+                'The ID of the response model that was used to generate the response.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              isOptional: true,
+              description: 'Response headers.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
