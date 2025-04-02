@@ -17,4 +17,4 @@ export class NoTranscriptGeneratedError extends AISDKError {
 
     this.responses = options.responses;
   }
-} 
+}

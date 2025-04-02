@@ -50,5 +50,3 @@ The model id is then passed to the provider function to get the model.
 */
   readonly transcriptionModel?: (modelId: string) => TranscriptionModelV1;
 }
-
-

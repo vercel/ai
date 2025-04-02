@@ -28,7 +28,10 @@ import {
   OpenAIImageSettings,
 } from './openai-image-settings';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
-import { OpenAITranscriptionModelId, OpenAITranscriptionSettings } from './openai-transcription-settings';
+import {
+  OpenAITranscriptionModelId,
+  OpenAITranscriptionSettings,
+} from './openai-transcription-settings';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
 import { openaiTools } from './openai-tools';

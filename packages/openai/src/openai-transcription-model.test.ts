@@ -4,9 +4,7 @@ import { createOpenAI } from './openai-provider';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const audioData = await readFile(
-  path.join(__dirname, 'transcript-test.mp3'),
-);
+const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createOpenAI({ apiKey: 'test-api-key' });
 const model = provider.transcription('whisper-1');
 
@@ -37,7 +35,7 @@ describe('doGenerate', () => {
               start: 5,
               end: 10,
             },
-            { 
+            {
               text: 'the',
               start: 10,
               end: 15,
@@ -74,7 +72,9 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await model.doGenerate({
-      audio: new File([audioData], 'transcript-test.mp3', { type: 'audio/mp3' }),
+      audio: new File([audioData], 'transcript-test.mp3', {
+        type: 'audio/mp3',
+      }),
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({
@@ -103,7 +103,9 @@ describe('doGenerate', () => {
 
     expect(server.calls[0].requestHeaders).toMatchObject({
       authorization: 'Bearer test-api-key',
-      'content-type': expect.stringMatching(/^multipart\/form-data; boundary=----formdata-undici-\d+$/),
+      'content-type': expect.stringMatching(
+        /^multipart\/form-data; boundary=----formdata-undici-\d+$/,
+      ),
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
       'openai-organization': 'test-organization',

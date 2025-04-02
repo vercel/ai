@@ -71,7 +71,6 @@ export const postFormDataToApi = async <T>({
     fetch,
   });
 
-
 export const postToApi = async <T>({
   url,
   headers = {},

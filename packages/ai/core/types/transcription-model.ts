@@ -1,4 +1,7 @@
-import { TranscriptionModelV1, TranscriptionModelV1CallWarning } from '@ai-sdk/provider';
+import {
+  TranscriptionModelV1,
+  TranscriptionModelV1CallWarning,
+} from '@ai-sdk/provider';
 
 /**
 Image model that is used by the AI SDK Core functions.

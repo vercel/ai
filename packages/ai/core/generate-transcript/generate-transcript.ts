@@ -81,7 +81,7 @@ Only applicable for HTTP-based providers.
       providerOptions: providerOptions ?? {},
     }),
   );
-  
+
   if (!result.transcript.text) {
     throw new NoTranscriptGeneratedError({ responses: [result.response] });
   }

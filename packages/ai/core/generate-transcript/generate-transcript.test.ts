@@ -1,4 +1,7 @@
-import { TranscriptionModelV1, TranscriptionModelV1CallWarning } from '@ai-sdk/provider';
+import {
+  TranscriptionModelV1,
+  TranscriptionModelV1CallWarning,
+} from '@ai-sdk/provider';
 import { MockTranscriptionModelV1 } from '../test/mock-transcription-model-v1';
 import { generateTranscript } from './generate-transcript';
 
@@ -6,21 +9,21 @@ const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
 
 const sampleTranscript = {
-  text: "This is a sample transcript.",
+  text: 'This is a sample transcript.',
   segments: [
     {
       start: 0,
       end: 2.5,
-      text: "This is a"
+      text: 'This is a',
     },
     {
       start: 2.5,
       end: 4.0,
-      text: "sample transcript."
-    }
+      text: 'sample transcript.',
+    },
   ],
-  language: "en",
-  duration: 4.0
+  language: 'en',
+  duration: 4.0,
 };
 
 const createMockResponse = (options: {
@@ -64,7 +67,7 @@ describe('generateTranscript', () => {
       audio: audioData,
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
-      providerOptions: {}
+      providerOptions: {},
     });
   });
 
@@ -114,7 +117,12 @@ describe('generateTranscript', () => {
           model: new MockTranscriptionModelV1({
             doGenerate: async () =>
               createMockResponse({
-                transcript: { text: "", segments: [], language: "en", duration: 0 },
+                transcript: {
+                  text: '',
+                  segments: [],
+                  language: 'en',
+                  duration: 0,
+                },
                 timestamp: testDate,
               }),
           }),
@@ -138,7 +146,12 @@ describe('generateTranscript', () => {
           model: new MockTranscriptionModelV1({
             doGenerate: async () =>
               createMockResponse({
-                transcript: { text: "", segments: [], language: "en", duration: 0 },
+                transcript: {
+                  text: '',
+                  segments: [],
+                  language: 'en',
+                  duration: 0,
+                },
                 timestamp: testDate,
                 headers: {
                   'custom-response-header': 'response-header-value',
