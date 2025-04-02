@@ -154,7 +154,7 @@ describe('doGenerate', () => {
       timestamp: testDate,
       modelId: 'whisper-1',
       headers: {
-        'content-length': '343',
+        'content-length': '436',
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',

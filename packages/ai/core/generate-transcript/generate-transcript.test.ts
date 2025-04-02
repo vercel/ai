@@ -12,18 +12,18 @@ const sampleTranscript = {
   text: 'This is a sample transcript.',
   segments: [
     {
-      start: 0,
-      end: 2.5,
+      startSecond: 0,
+      endSecond: 2.5,
       text: 'This is a',
     },
     {
-      start: 2.5,
-      end: 4.0,
+      startSecond: 2.5,
+      endSecond: 4.0,
       text: 'sample transcript.',
     },
   ],
   language: 'en',
-  duration: 4.0,
+  durationInSeconds: 4.0,
 };
 
 const createMockResponse = (options: {
