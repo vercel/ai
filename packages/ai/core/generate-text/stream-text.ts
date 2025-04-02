@@ -1591,21 +1591,15 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  async consumeStream(): Promise<void> {
+  async consumeStream(onError?: (error: unknown) => void): Promise<void> {
     const stream = this.fullStream;
     try {
       for await (const part of stream) {
         // no op
       }
     } catch (error) {
-      // Ignore abort errors, continue processing:
-      if (
-        error instanceof Error &&
-        error.name !== 'AbortError' &&
-        error.name !== 'ResponseAborted'
-      ) {
-        throw error;
-      }
+      // Swallow all errors, pass to onError callback if present, and continue processing:
+      onError?.(error);
     }
   }
 
