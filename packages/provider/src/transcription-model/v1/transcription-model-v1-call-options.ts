@@ -15,7 +15,7 @@ record is keyed by the provider-specific metadata key.
 ```ts
 {
 "openai": {
-"timestamp_granularities": ["word"]
+"timestampGranularities": ["word"]
 }
 }
 ```

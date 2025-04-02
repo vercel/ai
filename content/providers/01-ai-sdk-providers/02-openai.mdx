@@ -828,13 +828,13 @@ You can also pass additional provider-specific options using the `providerOption
 
 ```ts
 const model = openai.transcription('whisper-1', {
-  providerOptions: { openai: { timestamp_granularities: ['word'] } },
+  providerOptions: { openai: { timestampGranularities: ['word'] } },
 });
 ```
 
 The following provider options are available:
 
-- **timestamp_granularities** _string[]_
+- **timestampGranularities** _string[]_
   The granularity of the timestamps in the transcription.
   Defaults to `['segment']`.
   Possible values are `['word']`, `['segment']`, and `['word', 'segment']`.

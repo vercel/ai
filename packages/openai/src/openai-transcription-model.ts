@@ -19,6 +19,15 @@ interface OpenAITranscriptionModelConfig extends OpenAIConfig {
   };
 }
 
+const providerOptionsMapping = {
+  include: 'include',
+  language: 'language',
+  prompt: 'prompt',
+  responseFormat: 'response_format',
+  temperature: 'temperature',
+  timestampGranularities: 'timestamp_granularities',
+};
+
 export class OpenAITranscriptionModel implements TranscriptionModelV1 {
   readonly specificationVersion = 'v1';
 
@@ -50,7 +59,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     // Add any additional provider options
     if (providerOptions?.openai) {
       for (const [key, value] of Object.entries(providerOptions.openai)) {
-        formData.append(key, String(value));
+        if (key in providerOptionsMapping) {
+          const newKey = providerOptionsMapping[key as keyof typeof providerOptionsMapping];
+          
+          formData.append(newKey, String(value));
+        }
       }
     }
 

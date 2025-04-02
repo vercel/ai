@@ -49,7 +49,7 @@ const { transcript } = await generateTranscript({
   audio: audioData,
   providerOptions: {
     openai: {
-      timestamp_granularities: ['word'],
+      timestampGranularities: ['word'],
     },
   },
 });
