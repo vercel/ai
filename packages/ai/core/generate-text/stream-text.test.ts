@@ -1587,7 +1587,7 @@ describe('streamText', () => {
       await expect(result.consumeStream()).resolves.not.toThrow();
     });
 
-    it('should propagate other errors during stream consumption', async () => {
+    it('should ignore any errors during stream consumption', async () => {
       const result = streamText({
         model: createTestModel({
           stream: new ReadableStream({
@@ -1602,7 +1602,29 @@ describe('streamText', () => {
         prompt: 'test-input',
       });
 
-      await expect(result.consumeStream()).rejects.toThrow('Some error');
+      await expect(result.consumeStream()).resolves.not.toThrow();
+    });
+
+    it('should call the onError callback with the error', async () => {
+      const onErrorCallback = vi.fn();
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'text-delta', textDelta: 'Hello' });
+              queueMicrotask(() => {
+                controller.error(Object.assign(new Error('Some error')));
+              });
+            },
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      await expect(
+        result.consumeStream(onErrorCallback),
+      ).resolves.not.toThrow();
+      expect(onErrorCallback).toHaveBeenCalledWith(new Error('Some error'));
     });
   });
 
