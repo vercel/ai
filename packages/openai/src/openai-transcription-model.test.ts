@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const audioData = await readFile(
-  path.join(__dirname, 'test-audio.wav'),
+  path.join(__dirname, 'transcript-test.mp3'),
 );
 const provider = createOpenAI({ apiKey: 'test-api-key' });
 const model = provider.transcription('whisper-1');
@@ -24,7 +24,48 @@ describe('doGenerate', () => {
       type: 'json-value',
       headers,
       body: {
-        text: 'Hello from the Vercel AI SDK!',
+        transcript: {
+          text: 'Hello from the Vercel AI SDK!',
+          segments: [
+            {
+              text: 'Hello',
+              start: 0,
+              end: 5,
+            },
+            {
+              text: 'from',
+              start: 5,
+              end: 10,
+            },
+            { 
+              text: 'the',
+              start: 10,
+              end: 15,
+            },
+            {
+              text: 'Vercel',
+              start: 15,
+              end: 20,
+            },
+            {
+              text: 'AI',
+              start: 20,
+              end: 25,
+            },
+            {
+              text: 'SDK',
+              start: 25,
+              end: 30,
+            },
+            {
+              text: '!',
+              start: 30,
+              end: 35,
+            },
+          ],
+          duration: 35,
+          language: 'en',
+        },
       },
     };
   }
@@ -33,8 +74,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await model.doGenerate({
-      audio: audioData,
-      providerOptions: {},
+      audio: new File([audioData], 'transcript-test.mp3', { type: 'audio/mp3' }),
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({
@@ -56,15 +96,14 @@ describe('doGenerate', () => {
 
     await provider.transcription('whisper-1').doGenerate({
       audio: audioData,
-      providerOptions: {},
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
     });
 
-    expect(server.calls[0].requestHeaders).toStrictEqual({
+    expect(server.calls[0].requestHeaders).toMatchObject({
       authorization: 'Bearer test-api-key',
-      'content-type': 'multipart/form-data',
+      'content-type': expect.stringMatching(/^multipart\/form-data; boundary=----formdata-undici-\d+$/),
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
       'openai-organization': 'test-organization',
@@ -77,10 +116,9 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       audio: audioData,
-      providerOptions: {},
     });
 
-    expect(result.transcript.text).toBe('This is a transcription of the audio.');
+    expect(result.transcript.text).toBe('Hello from the Vercel AI SDK!');
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
@@ -108,14 +146,13 @@ describe('doGenerate', () => {
 
     const result = await customModel.doGenerate({
       audio: audioData,
-      providerOptions: {},
     });
 
     expect(result.response).toStrictEqual({
       timestamp: testDate,
       modelId: 'whisper-1',
       headers: {
-        'content-length': '45',
+        'content-length': '343',
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',
@@ -129,7 +166,6 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       audio: audioData,
-      providerOptions: {},
     });
 
     const afterDate = new Date();

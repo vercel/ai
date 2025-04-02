@@ -56,10 +56,29 @@ export type UrlHandlers<
 };
 
 class TestServerCall {
-  constructor(private request: Request) {}
+  private requestClone: Request;
+
+  constructor(private request: Request) {
+    this.requestClone = request.clone();
+  }
 
   get requestBody() {
-    return this.request!.text().then(JSON.parse);
+    return this.requestClone.text().then(text => {
+      // Check if the request is multipart/form-data
+      const contentType = this.requestClone.headers.get('content-type') || '';
+      if (contentType.startsWith('multipart/form-data')) {
+        // For multipart/form-data, return the form data entries as an object
+        return this.request.formData().then(formData => {
+          const obj: Record<string, any> = {};
+          formData.forEach((value, key) => {
+            obj[key] = value;
+          });
+          return obj;
+        });
+      }
+      // For JSON requests, parse as JSON
+      return JSON.parse(text);
+    });
   }
 
   get requestCredentials() {
@@ -67,7 +86,7 @@ class TestServerCall {
   }
 
   get requestHeaders() {
-    const requestHeaders = this.request!.headers;
+    const requestHeaders = this.request.headers;
 
     // convert headers to object for easier comparison
     const headersObject: Record<string, string> = {};
@@ -79,15 +98,15 @@ class TestServerCall {
   }
 
   get requestUrlSearchParams() {
-    return new URL(this.request!.url).searchParams;
+    return new URL(this.request.url).searchParams;
   }
 
   get requestUrl() {
-    return this.request!.url;
+    return this.request.url;
   }
 
   get requestMethod() {
-    return this.request!.method;
+    return this.request.method;
   }
 }
 
