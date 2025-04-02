@@ -1,0 +1,133 @@
+---
+title: Transcription
+description: Learn how to transcribe audio with the AI SDK.
+---
+
+# Transcription
+
+<Note type="warning">Transcription is an experimental feature.</Note>
+
+The AI SDK provides the [`generateTranscript`](/docs/reference/ai-sdk-core/generate-transcript)
+function to transcribe audio using a transcription model.
+
+```tsx
+import { experimental_generateTranscript as generateTranscript } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { transcript } = await generateTranscript({
+  model: openai.transcription('whisper-1'),
+  audio: audioData,
+});
+```
+
+You can access the transcript data using the `text` property:
+
+```tsx
+const text = transcript.text; // transcript text
+```
+
+## Settings
+
+### Provider-specific Settings
+
+Transcription models often have provider- or even model-specific settings.
+You can pass such settings to the `generateTranscript` function
+using the `providerOptions` parameter. The options for the provider
+(`openai` in the example below) become request body properties.
+
+```tsx highlight={"9"}
+import { experimental_generateTranscript as generateTranscript } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { transcript } = await generateTranscript({
+  model: openai.transcription('whisper-1'),
+  audio: audioData,
+  providerOptions: {
+    openai: {
+      timestamp_granularities: ['word'],
+    },
+  },
+});
+```
+
+### Abort Signals and Timeouts
+
+`generateTranscript` accepts an optional `abortSignal` parameter of
+type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
+that you can use to abort the transcription process or set a timeout.
+
+```ts highlight={"7"}
+import { openai } from '@ai-sdk/openai';
+import { experimental_generateTranscript as generateTranscript } from 'ai';
+
+const { transcript } = await generateTranscript({
+  model: openai.transcription('whisper-1'),
+  audio: audioData,
+  abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
+});
+```
+
+### Custom Headers
+
+`generateTranscript` accepts an optional `headers` parameter of type `Record<string, string>`
+that you can use to add custom headers to the transcription request.
+
+```ts highlight={"7"}
+import { openai } from '@ai-sdk/openai';
+import { experimental_generateTranscript as generateTranscript } from 'ai';
+
+const { transcript } = await generateTranscript({
+  model: openai.transcription('whisper-1'),
+  audio: audioData,
+  headers: { 'X-Custom-Header': 'custom-value' },
+});
+```
+
+### Warnings
+
+If the model returns warnings, e.g. for unsupported parameters, they will be available in the `warnings` property of the response.
+
+```tsx
+const { transcript, warnings } = await generateTranscript({
+  model: openai.transcription('whisper-1'),
+  audio: audioData,
+});
+```
+
+### Error Handling
+
+When `generateTranscript` cannot generate a valid transcript, it throws a [`AI_NoTranscriptGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-transcript-generated-error).
+
+This error occurs when the AI provider fails to generate a transcript. It can arise due to the following reasons:
+
+- The model failed to generate a response
+- The model generated a response that could not be parsed
+
+The error preserves the following information to help you log the issue:
+
+- `responses`: Metadata about the image model responses, including timestamp, model, and headers.
+- `cause`: The cause of the error. You can use this for more detailed error handling
+
+```ts
+import { generateTranscript, NoTranscriptGeneratedError } from 'ai';
+
+try {
+  await generateTranscript({ model, audio });
+} catch (error) {
+  if (NoTranscriptGeneratedError.isInstance(error)) {
+    console.log('NoTranscriptGeneratedError');
+    console.log('Cause:', error.cause);
+    console.log('Responses:', error.responses);
+  }
+}
+```
+
+## Transcription Models
+
+| Provider                                                                  | Model                                                        |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [OpenAI](/providers/ai-sdk-providers/openai#transcription-models)         | `whisper-1`                                                  |
+| [OpenAI](/providers/ai-sdk-providers/openai#transcription-models)         | `gpt-4o-transcribe`                                          |
+| [OpenAI](/providers/ai-sdk-providers/openai#transcription-models)         | `gpt-4o-mini-transcribe`                                     |
+
+Above are a small subset of the transcription models supported by the AI SDK providers. For more, see the respective provider documentation.
