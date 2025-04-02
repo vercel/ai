@@ -23,7 +23,6 @@ export async function POST(req: Request) {
         }),
       });
     },
-    abortSignal: req.signal,
   });
 
   // consume the stream to ensure it runs to completion and triggers onFinish

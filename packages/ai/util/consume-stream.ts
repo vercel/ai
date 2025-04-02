@@ -9,29 +9,13 @@
  * @returns {Promise<void>} A promise that resolves when the stream is fully consumed.
  */
 export async function consumeStream(stream: ReadableStream): Promise<void> {
-  const transformStream = new TransformStream();
-  const writer = transformStream.writable.getWriter();
   const reader = stream.getReader();
-
   try {
     while (true) {
-      try {
-        const { done, value } = await reader.read();
-        if (done) break;
-        await writer.write(value);
-      } catch (error) {
-        // Ignore abort errors, continue reading:
-        if (
-          error instanceof Error &&
-          error.name !== 'AbortError' &&
-          error.name !== 'ResponseAborted'
-        ) {
-          throw error;
-        }
-      }
+      const { done } = await reader.read();
+      if (done) break;
     }
   } finally {
     reader.releaseLock();
-    writer.close();
   }
 }

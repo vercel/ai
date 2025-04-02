@@ -8,6 +8,7 @@ import { InvalidStreamPartError } from '../../errors/invalid-stream-part-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { StreamData } from '../../streams/stream-data';
 import { asArray } from '../../util/as-array';
+import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
@@ -1592,13 +1593,9 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   async consumeStream(onError?: (error: unknown) => void): Promise<void> {
-    const stream = this.fullStream;
     try {
-      for await (const part of stream) {
-        // no op
-      }
+      await consumeStream(this.fullStream);
     } catch (error) {
-      // Swallow all errors, pass to onError callback if present, and continue processing:
       onError?.(error);
     }
   }
