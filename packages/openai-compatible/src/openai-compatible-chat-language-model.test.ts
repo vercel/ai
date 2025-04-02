@@ -1,12 +1,10 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
-  JsonTestServer,
-  StreamingTestServer,
   convertReadableStreamToArray,
-  describeWithTestServer,
+  createTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { createOpenAICompatible } from './openai-compatible-provider';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
+import { createOpenAICompatible } from './openai-compatible-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -21,6 +19,10 @@ const provider = createOpenAICompatible({
 });
 
 const model = provider('grok-beta');
+
+const server = createTestServer({
+  'https://my.api.com/v1/chat/completions': {},
+});
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
@@ -67,10 +69,6 @@ describe('config', () => {
 });
 
 describe('doGenerate', () => {
-  const server = new JsonTestServer('https://my.api.com/v1/chat/completions');
-
-  server.setupTestEnvironment();
-
   function prepareJsonResponse({
     content = '',
     reasoning_content = '',
@@ -85,6 +83,7 @@ describe('doGenerate', () => {
     id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
     created = 1711115037,
     model = 'grok-beta',
+    headers,
   }: {
     content?: string;
     reasoning_content?: string;
@@ -104,32 +103,45 @@ describe('doGenerate', () => {
       prompt_tokens?: number;
       total_tokens?: number;
       completion_tokens?: number;
+      prompt_tokens_details?: {
+        cached_tokens?: number;
+      };
+      completion_tokens_details?: {
+        reasoning_tokens?: number;
+        accepted_prediction_tokens?: number;
+        rejected_prediction_tokens?: number;
+      };
     };
     finish_reason?: string;
     created?: number;
     id?: string;
     model?: string;
+    headers?: Record<string, string>;
   } = {}) {
-    server.responseBodyJson = {
-      id,
-      object: 'chat.completion',
-      created,
-      model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content,
-            reasoning_content,
-            tool_calls,
-            function_call,
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        id,
+        object: 'chat.completion',
+        created,
+        model,
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content,
+              reasoning_content,
+              tool_calls,
+              function_call,
+            },
+            finish_reason,
           },
-          finish_reason,
-        },
-      ],
-      usage,
-      system_fingerprint: 'fp_3bc1b5746c',
+        ],
+        usage,
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
     };
   }
 
@@ -143,7 +155,7 @@ describe('doGenerate', () => {
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
-    expect(await server.getRequestBodyJson()).toMatchObject({
+    expect(await server.calls[0].requestBody).toMatchObject({
       user: 'test-user-id',
     });
   });
@@ -265,11 +277,9 @@ describe('doGenerate', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonResponse({ content: '' });
-
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    prepareJsonResponse({
+      headers: { 'test-header': 'test-value' },
+    });
 
     const { rawResponse } = await model.doGenerate({
       inputFormat: 'prompt',
@@ -296,7 +306,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -313,7 +323,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       user: 'test-user-id',
@@ -334,7 +344,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       someCustomOption: 'test-value',
@@ -355,7 +365,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -389,7 +399,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
       tools: [
@@ -435,9 +445,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
+    expect(server.calls[0].requestHeaders).toStrictEqual({
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
@@ -516,7 +524,7 @@ describe('doGenerate', () => {
         responseFormat: { type: 'text' },
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
       });
@@ -534,7 +542,7 @@ describe('doGenerate', () => {
         responseFormat: { type: 'json' },
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: { type: 'json_object' },
@@ -571,7 +579,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: { type: 'json_object' },
@@ -617,7 +625,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -667,7 +675,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -717,7 +725,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -761,7 +769,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -815,7 +823,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         tool_choice: { type: 'function', function: { name: 'test-tool' } },
@@ -861,39 +869,119 @@ describe('doGenerate', () => {
       body: '{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}]}',
     });
   });
+
+  describe('usage details', () => {
+    it('should extract detailed token usage when available', async () => {
+      prepareJsonResponse({
+        content: '',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          prompt_tokens_details: {
+            cached_tokens: 5,
+          },
+          completion_tokens_details: {
+            reasoning_tokens: 10,
+            accepted_prediction_tokens: 15,
+            rejected_prediction_tokens: 5,
+          },
+        },
+      });
+
+      const result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata!['test-provider']).toStrictEqual({
+        cachedPromptTokens: 5,
+        reasoningTokens: 10,
+        acceptedPredictionTokens: 15,
+        rejectedPredictionTokens: 5,
+      });
+    });
+
+    it('should handle missing token details', async () => {
+      prepareJsonResponse({
+        content: '',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          // No token details provided
+        },
+      });
+
+      const result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata!['test-provider']).toStrictEqual({});
+    });
+
+    it('should handle partial token details', async () => {
+      prepareJsonResponse({
+        content: '',
+        usage: {
+          prompt_tokens: 20,
+          completion_tokens: 30,
+          prompt_tokens_details: {
+            cached_tokens: 5,
+          },
+          completion_tokens_details: {
+            // Only reasoning tokens provided
+            reasoning_tokens: 10,
+          },
+        },
+      });
+
+      const result = await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata!['test-provider']).toStrictEqual({
+        cachedPromptTokens: 5,
+        reasoningTokens: 10,
+      });
+    });
+  });
 });
 
 describe('doStream', () => {
-  const server = new StreamingTestServer(
-    'https://my.api.com/v1/chat/completions',
-  );
-
-  server.setupTestEnvironment();
-
   function prepareStreamResponse({
-    content,
+    content = [],
     finish_reason = 'stop',
+    headers,
   }: {
-    content: string[];
+    content?: string[];
     finish_reason?: string;
+    headers?: Record<string, string>;
   }) {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
-        `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-      ...content.map(text => {
-        return (
-          `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
-        );
-      }),
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
-        `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}],` +
-        `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-        `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      headers,
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        ...content.map(text => {
+          return (
+            `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+            `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
+          );
+        }),
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"grok-beta",` +
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}],` +
+          `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
   }
 
   it('should stream text deltas', async () => {
@@ -924,25 +1012,31 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         usage: { promptTokens: 18, completionTokens: 439 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
 
   it('should stream reasoning content before text deltas', async () => {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" my response"},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
-        `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":"Let me think"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"reasoning_content":" about this"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":"Here's"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"content":" my response"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":439}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -977,43 +1071,49 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         usage: { promptTokens: 18, completionTokens: 439 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
 
   it('should stream tool deltas', async () => {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
-        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
-        `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-        `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -1103,43 +1203,49 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: 18, completionTokens: 439 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
 
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
-        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
-        `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-        `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -1236,49 +1342,55 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: 18, completionTokens: 439 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
 
   it('should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed', async () => {
-    server.responseChunks = [
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":226,"completion_tokens":0}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"id":"chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",` +
-        `"type":"function","index":0,"function":{"name":"searchGoogle"}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":233,"completion_tokens":7}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":"{\\"query\\": \\""}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":241,"completion_tokens":15}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":"latest"}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":242,"completion_tokens":16}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":" news"}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":243,"completion_tokens":17}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":" on"}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":244,"completion_tokens":18}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":" ai\\"}"}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":245,"completion_tokens":19}}\n\n`,
-      // empty arguments chunk after the tool call has already been finished:
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":""}}]},"logprobs":null,"finish_reason":"tool_calls","stop_reason":128008}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
-      `data: [DONE]\n\n`,
-    ];
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":226,"completion_tokens":0}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"id":"chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",` +
+          `"type":"function","index":0,"function":{"name":"searchGoogle"}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":233,"completion_tokens":7}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":"{\\"query\\": \\""}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":241,"completion_tokens":15}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":"latest"}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":242,"completion_tokens":16}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":" news"}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":243,"completion_tokens":17}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":" on"}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":244,"completion_tokens":18}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":" ai\\"}"}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":245,"completion_tokens":19}}\n\n`,
+        // empty arguments chunk after the tool call has already been finished:
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":""}}]},"logprobs":null,"finish_reason":"tool_calls","stop_reason":128008}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
+        `data: [DONE]\n\n`,
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -1358,22 +1470,28 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: 226, completionTokens: 20 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
 
   it('should stream tool call that is sent in one chunk', async () => {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
-        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
-        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
-        `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-        `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"grok-beta",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -1421,15 +1539,21 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         usage: { promptTokens: 18, completionTokens: 439 },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
 
   it('should handle error stream parts', async () => {
-    server.responseChunks = [
-      `data: {"error": {"message": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.", "code": "Client specified an invalid argument"}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"error": {"message": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.", "code": "Client specified an invalid argument"}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -1450,12 +1574,18 @@ describe('doStream', () => {
           promptTokens: NaN,
           completionTokens: NaN,
         },
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
 
   it('should handle unparsable stream parts', async () => {
-    server.responseChunks = [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'];
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -1474,15 +1604,16 @@ describe('doStream', () => {
         completionTokens: NaN,
         promptTokens: NaN,
       },
+      providerMetadata: {
+        'test-provider': {},
+      },
     });
   });
 
   it('should expose the raw response headers', async () => {
-    prepareStreamResponse({ content: [] });
-
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    prepareStreamResponse({
+      headers: { 'test-header': 'test-value' },
+    });
 
     const { rawResponse } = await model.doStream({
       inputFormat: 'prompt',
@@ -1510,7 +1641,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       stream: true,
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
@@ -1538,9 +1669,7 @@ describe('doStream', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
+    expect(await server.calls[0].requestHeaders).toStrictEqual({
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
@@ -1562,7 +1691,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       stream: true,
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
@@ -1584,7 +1713,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       stream: true,
       model: 'grok-beta',
       messages: [{ role: 'user', content: 'Hello' }],
@@ -1604,13 +1733,95 @@ describe('doStream', () => {
       body: '{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}],"stream":true}',
     });
   });
+
+  describe('usage details in streaming', () => {
+    it('should extract detailed token usage from stream finish', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+          `data: {"choices":[{"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":20,"completion_tokens":30,` +
+            `"prompt_tokens_details":{"cached_tokens":5},` +
+            `"completion_tokens_details":{` +
+            `"reasoning_tokens":10,` +
+            `"accepted_prediction_tokens":15,` +
+            `"rejected_prediction_tokens":5}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({
+        cachedPromptTokens: 5,
+        reasoningTokens: 10,
+        acceptedPredictionTokens: 15,
+        rejectedPredictionTokens: 5,
+      });
+    });
+
+    it('should handle missing token details in stream', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+          `data: {"choices":[{"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":20,"completion_tokens":30}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({});
+    });
+
+    it('should handle partial token details in stream', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
+          `data: {"choices":[{"delta":{},"finish_reason":"stop"}],` +
+            `"usage":{"prompt_tokens":20,"completion_tokens":30,` +
+            `"prompt_tokens_details":{"cached_tokens":5},` +
+            `"completion_tokens_details":{"reasoning_tokens":10}}}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({
+        cachedPromptTokens: 5,
+        reasoningTokens: 10,
+      });
+    });
+  });
 });
 
 describe('doStream simulated streaming', () => {
-  const server = new JsonTestServer('https://my.api.com/v1/chat/completions');
-
-  server.setupTestEnvironment();
-
   function prepareJsonResponse({
     content = '',
     reasoning_content = '',
@@ -1645,25 +1856,28 @@ describe('doStream simulated streaming', () => {
     id?: string;
     model?: string;
   } = {}) {
-    server.responseBodyJson = {
-      id,
-      object: 'chat.completion',
-      created,
-      model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content,
-            tool_calls,
-            reasoning_content,
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id,
+        object: 'chat.completion',
+        created,
+        model,
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content,
+              tool_calls,
+              reasoning_content,
+            },
+            finish_reason,
           },
-          finish_reason,
-        },
-      ],
-      usage,
-      system_fingerprint: 'fp_3bc1b5746c',
+        ],
+        usage,
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
     };
   }
 
@@ -1693,7 +1907,9 @@ describe('doStream simulated streaming', () => {
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 30 },
         logprobs: undefined,
-        providerMetadata: undefined,
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1735,7 +1951,9 @@ describe('doStream simulated streaming', () => {
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 30 },
         logprobs: undefined,
-        providerMetadata: undefined,
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1799,7 +2017,9 @@ describe('doStream simulated streaming', () => {
         finishReason: 'stop',
         usage: { promptTokens: 4, completionTokens: 30 },
         logprobs: undefined,
-        providerMetadata: undefined,
+        providerMetadata: {
+          'test-provider': {},
+        },
       },
     ]);
   });
@@ -1816,7 +2036,7 @@ describe('metadata extraction', () => {
         return undefined;
       }
       return {
-        test: {
+        'test-provider': {
           value: parsedBody.test_field as string,
         },
       };
@@ -1840,7 +2060,7 @@ describe('metadata extraction', () => {
         buildMetadata: () =>
           accumulatedValue
             ? {
-                test: {
+                'test-provider': {
                   value: accumulatedValue,
                 },
               }
@@ -1849,113 +2069,97 @@ describe('metadata extraction', () => {
     },
   };
 
-  describe('non-streaming', () => {
-    describeWithTestServer(
-      'metadata extraction',
-      {
-        url: 'https://my.api.com/v1/chat/completions',
-        type: 'json-value',
-        content: {
-          id: 'chatcmpl-123',
-          object: 'chat.completion',
-          created: 1711115037,
-          model: 'gpt-4',
-          choices: [
-            {
-              index: 0,
-              message: {
-                role: 'assistant',
-                content: 'Hello',
-              },
-              finish_reason: 'stop',
+  it('should process metadata from complete response', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-123',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-4',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: 'Hello',
             },
-          ],
-          test_field: 'test_value',
-        },
+            finish_reason: 'stop',
+          },
+        ],
+        test_field: 'test_value',
       },
-      ({ call }) => {
-        it('should process metadata from complete response', async () => {
-          const model = new OpenAICompatibleChatLanguageModel(
-            'gpt-4',
-            {},
-            {
-              provider: 'test-provider',
-              url: () => 'https://my.api.com/v1/chat/completions',
-              headers: () => ({}),
-              metadataExtractor: testMetadataExtractor,
-            },
-          );
+    };
 
-          const result = await model.doGenerate({
-            inputFormat: 'prompt',
-            mode: { type: 'regular' },
-            prompt: TEST_PROMPT,
-          });
-
-          expect(result.providerMetadata).toEqual({
-            test: {
-              value: 'test_value',
-            },
-          });
-
-          const requestBody = await call(0).getRequestBodyJson();
-          expect(requestBody).toStrictEqual({
-            model: 'gpt-4',
-            messages: [{ role: 'user', content: 'Hello' }],
-          });
-        });
+    const model = new OpenAICompatibleChatLanguageModel(
+      'gpt-4',
+      {},
+      {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        metadataExtractor: testMetadataExtractor,
       },
     );
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.providerMetadata).toEqual({
+      'test-provider': {
+        value: 'test_value',
+      },
+    });
+
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      model: 'gpt-4',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
   });
 
-  describe('streaming', () => {
-    describeWithTestServer(
-      'metadata streaming',
+  it('should process metadata from streaming response', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
+        'data: {"choices":[{"finish_reason":"stop"}],"test_field":"test_value"}\n\n',
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const model = new OpenAICompatibleChatLanguageModel(
+      'gpt-4',
+      {},
       {
-        url: 'https://my.api.com/v1/chat/completions',
-        type: 'stream-values',
-        content: [
-          'data: {"choices":[{"delta":{"content":"Hello"}}]}\n\n',
-          'data: {"choices":[{"finish_reason":"stop"}],"test_field":"test_value"}\n\n',
-          'data: [DONE]\n\n',
-        ],
-      },
-      ({ call }) => {
-        it('should process metadata from streaming response', async () => {
-          const model = new OpenAICompatibleChatLanguageModel(
-            'gpt-4',
-            {},
-            {
-              provider: 'test-provider',
-              url: () => 'https://my.api.com/v1/chat/completions',
-              headers: () => ({}),
-              metadataExtractor: testMetadataExtractor,
-            },
-          );
-
-          const result = await model.doStream({
-            inputFormat: 'prompt',
-            mode: { type: 'regular' },
-            prompt: TEST_PROMPT,
-          });
-
-          const parts = await convertReadableStreamToArray(result.stream);
-          const finishPart = parts.find(part => part.type === 'finish');
-
-          expect(finishPart?.providerMetadata).toEqual({
-            test: {
-              value: 'test_value',
-            },
-          });
-
-          const requestBody = await call(0).getRequestBodyJson();
-          expect(requestBody).toStrictEqual({
-            model: 'gpt-4',
-            messages: [{ role: 'user', content: 'Hello' }],
-            stream: true,
-          });
-        });
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        metadataExtractor: testMetadataExtractor,
       },
     );
+
+    const result = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const parts = await convertReadableStreamToArray(result.stream);
+    const finishPart = parts.find(part => part.type === 'finish');
+
+    expect(finishPart?.providerMetadata).toEqual({
+      'test-provider': {
+        value: 'test_value',
+      },
+    });
+
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      model: 'gpt-4',
+      messages: [{ role: 'user', content: 'Hello' }],
+      stream: true,
+    });
   });
 });

@@ -20,20 +20,22 @@ describe('SseMCPTransport', () => {
     },
   });
 
+  let transport: SseMCPTransport;
+
+  beforeEach(() => {
+    transport = new SseMCPTransport({
+      url: 'http://localhost:3000/sse',
+    });
+  });
+
   it('should establish connection and receive endpoint', async () => {
     const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
       type: 'controlled-stream',
       controller,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
     };
 
-    const transport = new SseMCPTransport({
-      url: 'http://localhost:3000/sse',
-    });
     const connectPromise = transport.start();
 
     controller.write(
@@ -52,24 +54,13 @@ describe('SseMCPTransport', () => {
   });
 
   it('should throw if server returns non-200 status', async () => {
-    const controller = new TestResponseController();
-
     server.urls['http://localhost:3000/sse'].response = {
       type: 'error',
       status: 500,
       body: 'Internal Server Error',
     };
 
-    const transport = new SseMCPTransport({
-      url: 'http://localhost:3000/sse',
-    });
-    const connectPromise = transport.start();
-
-    controller.write(
-      'event: endpoint\ndata: http://localhost:3000/messages\n\n',
-    );
-
-    await expect(connectPromise).rejects.toThrow();
+    await expect(transport.start()).rejects.toThrow();
   });
 
   it('should handle valid JSON-RPC messages', async () => {
@@ -78,23 +69,18 @@ describe('SseMCPTransport', () => {
     server.urls['http://localhost:3000/sse'].response = {
       type: 'controlled-stream',
       controller,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
     };
-
-    const transport = new SseMCPTransport({
-      url: 'http://localhost:3000/sse',
-    });
 
     const messagePromise = new Promise(resolve => {
       transport.onmessage = msg => resolve(msg);
     });
 
     const connectPromise = transport.start();
+
     controller.write(
       'event: endpoint\ndata: http://localhost:3000/messages\n\n',
     );
+
     await connectPromise;
 
     const testMessage = {
@@ -108,8 +94,7 @@ describe('SseMCPTransport', () => {
       `event: message\ndata: ${JSON.stringify(testMessage)}\n\n`,
     );
 
-    const receivedMessage = await messagePromise;
-    expect(receivedMessage).toEqual(testMessage);
+    expect(await messagePromise).toEqual(testMessage);
 
     await transport.close();
   });
@@ -120,29 +105,20 @@ describe('SseMCPTransport', () => {
     server.urls['http://localhost:3000/sse'].response = {
       type: 'controlled-stream',
       controller,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
     };
-
-    const transport = new SseMCPTransport({
-      url: 'http://localhost:3000/sse',
-    });
 
     const errorPromise = new Promise<unknown>(resolve => {
       transport.onerror = err => resolve(err);
     });
 
     const connectPromise = transport.start();
+
     controller.write(
       'event: endpoint\ndata: http://localhost:3000/messages\n\n',
     );
     await connectPromise;
 
-    const invalidMessage = {
-      foo: 'bar',
-    };
-
+    const invalidMessage = { foo: 'bar' };
     controller.write(
       `event: message\ndata: ${JSON.stringify(invalidMessage)}\n\n`,
     );
@@ -160,14 +136,7 @@ describe('SseMCPTransport', () => {
     server.urls['http://localhost:3000/sse'].response = {
       type: 'controlled-stream',
       controller,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
     };
-
-    const transport = new SseMCPTransport({
-      url: 'http://localhost:3000/sse',
-    });
 
     const connectPromise = transport.start();
     controller.write(
@@ -198,19 +167,13 @@ describe('SseMCPTransport', () => {
     server.urls['http://localhost:3000/sse'].response = {
       type: 'controlled-stream',
       controller,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
     };
+
     server.urls['http://localhost:3000/messages'].response = {
       type: 'error',
       status: 500,
       body: 'Internal Server Error',
     };
-
-    const transport = new SseMCPTransport({
-      url: 'http://localhost:3000/sse',
-    });
 
     const errorPromise = new Promise<unknown>(resolve => {
       transport.onerror = err => resolve(err);
@@ -240,7 +203,7 @@ describe('SseMCPTransport', () => {
   });
 
   it('should handle invalid endpoint URLs', async () => {
-    const transport = new SseMCPTransport({
+    transport = new SseMCPTransport({
       url: 'http://localhost:3333/sse',
     });
 
@@ -262,9 +225,6 @@ describe('SseMCPTransport', () => {
     server.urls['http://localhost:3000/sse'].response = {
       type: 'controlled-stream',
       controller,
-      headers: {
-        'Content-Type': 'text/event-stream',
-      },
     };
 
     const customHeaders = {
@@ -272,7 +232,7 @@ describe('SseMCPTransport', () => {
       'x-custom-header': 'test-value',
     };
 
-    const transport = new SseMCPTransport({
+    transport = new SseMCPTransport({
       url: 'http://localhost:3000/sse',
       headers: customHeaders,
     });
