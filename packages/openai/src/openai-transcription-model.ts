@@ -28,64 +28,64 @@ const providerOptionsMapping = {
 };
 
 const languageMap = {
-  'afrikaans': 'af',
-  'arabic': 'ar',
-  'armenian': 'hy',
-  'azerbaijani': 'az',
-  'belarusian': 'be',
-  'bosnian': 'bs',
-  'bulgarian': 'bg',
-  'catalan': 'ca',
-  'chinese': 'zh',
-  'croatian': 'hr',
-  'czech': 'cs',
-  'danish': 'da',
-  'dutch': 'nl',
-  'english': 'en',
-  'estonian': 'et',
-  'finnish': 'fi',
-  'french': 'fr',
-  'galician': 'gl',
-  'german': 'de',
-  'greek': 'el',
-  'hebrew': 'he',
-  'hindi': 'hi',
-  'hungarian': 'hu',
-  'icelandic': 'is',
-  'indonesian': 'id',
-  'italian': 'it',
-  'japanese': 'ja',
-  'kannada': 'kn',
-  'kazakh': 'kk',
-  'korean': 'ko',
-  'latvian': 'lv',
-  'lithuanian': 'lt',
-  'macedonian': 'mk',
-  'malay': 'ms',
-  'marathi': 'mr',
-  'maori': 'mi',
-  'nepali': 'ne',
-  'norwegian': 'no',
-  'persian': 'fa',
-  'polish': 'pl',
-  'portuguese': 'pt',
-  'romanian': 'ro',
-  'russian': 'ru',
-  'serbian': 'sr',
-  'slovak': 'sk',
-  'slovenian': 'sl',
-  'spanish': 'es',
-  'swahili': 'sw',
-  'swedish': 'sv',
-  'tagalog': 'tl',
-  'tamil': 'ta',
-  'thai': 'th',
-  'turkish': 'tr',
-  'ukrainian': 'uk',
-  'urdu': 'ur',
-  'vietnamese': 'vi',
-  'welsh': 'cy'
-}
+  afrikaans: 'af',
+  arabic: 'ar',
+  armenian: 'hy',
+  azerbaijani: 'az',
+  belarusian: 'be',
+  bosnian: 'bs',
+  bulgarian: 'bg',
+  catalan: 'ca',
+  chinese: 'zh',
+  croatian: 'hr',
+  czech: 'cs',
+  danish: 'da',
+  dutch: 'nl',
+  english: 'en',
+  estonian: 'et',
+  finnish: 'fi',
+  french: 'fr',
+  galician: 'gl',
+  german: 'de',
+  greek: 'el',
+  hebrew: 'he',
+  hindi: 'hi',
+  hungarian: 'hu',
+  icelandic: 'is',
+  indonesian: 'id',
+  italian: 'it',
+  japanese: 'ja',
+  kannada: 'kn',
+  kazakh: 'kk',
+  korean: 'ko',
+  latvian: 'lv',
+  lithuanian: 'lt',
+  macedonian: 'mk',
+  malay: 'ms',
+  marathi: 'mr',
+  maori: 'mi',
+  nepali: 'ne',
+  norwegian: 'no',
+  persian: 'fa',
+  polish: 'pl',
+  portuguese: 'pt',
+  romanian: 'ro',
+  russian: 'ru',
+  serbian: 'sr',
+  slovak: 'sk',
+  slovenian: 'sl',
+  spanish: 'es',
+  swahili: 'sw',
+  swedish: 'sv',
+  tagalog: 'tl',
+  tamil: 'ta',
+  thai: 'th',
+  turkish: 'tr',
+  ukrainian: 'uk',
+  urdu: 'ur',
+  vietnamese: 'vi',
+  welsh: 'cy',
+};
 
 export class OpenAITranscriptionModel implements TranscriptionModelV1 {
   readonly specificationVersion = 'v1';
@@ -166,28 +166,32 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
     let language: string | undefined;
 
-    if (response.transcript.language && response.transcript.language in languageMap) {
-      language = languageMap[response.transcript.language as keyof typeof languageMap];
+    if (
+      response.transcript.language &&
+      response.transcript.language in languageMap
+    ) {
+      language =
+        languageMap[response.transcript.language as keyof typeof languageMap];
     }
 
     return {
       transcript: {
         text: response.transcript.text,
-          segments: response.transcript.words ?? [],
-          language,
-          durationInSeconds: response.transcript.duration,
-          mimeType: response.transcript.mime_type,
-        },
-        warnings: [],
-        response: {
-          timestamp: currentDate,
-          modelId: this.modelId,
-          headers: responseHeaders,
-        },
+        segments: response.transcript.words ?? [],
+        language,
+        durationInSeconds: response.transcript.duration,
+        mimeType: response.transcript.mime_type,
+      },
+      warnings: [],
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+      },
 
-        // When using format `verbose_json` on `whisper-1`,, OpenAI includes the things like `task` and enhanced `segments` information.
-        providerMetadata: response.transcript,
-      };
+      // When using format `verbose_json` on `whisper-1`,, OpenAI includes the things like `task` and enhanced `segments` information.
+      providerMetadata: response.transcript,
+    };
   }
 }
 
