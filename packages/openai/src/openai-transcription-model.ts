@@ -48,7 +48,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     formData.append('file', file, 'audio.wav');
     
     // Add any additional provider options
-    if (providerOptions.openai) {
+    if (providerOptions?.openai) {
       for (const [key, value] of Object.entries(providerOptions.openai)) {
         formData.append(key, String(value));
       }

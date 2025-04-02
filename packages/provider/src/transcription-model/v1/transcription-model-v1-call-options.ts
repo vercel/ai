@@ -20,7 +20,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
  */
-  providerOptions: Record<string, Record<string, JSONValue>>;
+  providerOptions?: Record<string, Record<string, JSONValue>>;
 
   /**
 Abort signal for cancelling the operation.

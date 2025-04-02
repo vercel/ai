@@ -1,5 +1,5 @@
-import { TranscriptModelV1, TranscriptModelV1CallWarning } from '@ai-sdk/provider';
-import { MockTranscriptModelV1 } from '../test/mock-transcript-model-v1';
+import { TranscriptionModelV1, TranscriptionModelV1CallWarning } from '@ai-sdk/provider';
+import { MockTranscriptionModelV1 } from '../test/mock-transcription-model-v1';
 import { generateTranscript } from './generate-transcript';
 
 const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
@@ -9,25 +9,23 @@ const sampleTranscript = {
   text: "This is a sample transcript.",
   segments: [
     {
-      id: "1",
       start: 0,
       end: 2.5,
-      text: "This is a",
-      speaker: "speaker_1"
+      text: "This is a"
     },
     {
-      id: "2",
       start: 2.5,
       end: 4.0,
-      text: "sample transcript.",
-      speaker: "speaker_1"
+      text: "sample transcript."
     }
-  ]
+  ],
+  language: "en",
+  duration: 4.0
 };
 
 const createMockResponse = (options: {
   transcript: typeof sampleTranscript;
-  warnings?: TranscriptModelV1CallWarning[];
+  warnings?: TranscriptionModelV1CallWarning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
@@ -46,10 +44,10 @@ describe('generateTranscript', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<TranscriptModelV1['doGenerate']>[0];
+    let capturedArgs!: Parameters<TranscriptionModelV1['doGenerate']>[0];
 
     await generateTranscript({
-      model: new MockTranscriptModelV1({
+      model: new MockTranscriptionModelV1({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
@@ -58,26 +56,21 @@ describe('generateTranscript', () => {
         },
       }),
       audio: audioData,
-      language: 'en',
-      prompt: 'Transcribe this audio',
-      providerOptions: { openai: { temperature: 0 } },
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
     });
 
     expect(capturedArgs).toStrictEqual({
       audio: audioData,
-      language: 'en',
-      prompt: 'Transcribe this audio',
-      providerOptions: { openai: { temperature: 0 } },
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
+      providerOptions: {}
     });
   });
 
   it('should return warnings', async () => {
     const result = await generateTranscript({
-      model: new MockTranscriptModelV1({
+      model: new MockTranscriptionModelV1({
         doGenerate: async () =>
           createMockResponse({
             transcript: sampleTranscript,
@@ -102,7 +95,7 @@ describe('generateTranscript', () => {
 
   it('should return the transcript', async () => {
     const result = await generateTranscript({
-      model: new MockTranscriptModelV1({
+      model: new MockTranscriptionModelV1({
         doGenerate: async () =>
           createMockResponse({
             transcript: sampleTranscript,
@@ -118,10 +111,10 @@ describe('generateTranscript', () => {
     it('should throw NoTranscriptGeneratedError when no transcript is returned', async () => {
       await expect(
         generateTranscript({
-          model: new MockTranscriptModelV1({
+          model: new MockTranscriptionModelV1({
             doGenerate: async () =>
               createMockResponse({
-                transcript: { text: "", segments: [] },
+                transcript: { text: "", segments: [], language: "en", duration: 0 },
                 timestamp: testDate,
               }),
           }),
@@ -142,10 +135,10 @@ describe('generateTranscript', () => {
     it('should include response headers in error when no transcript generated', async () => {
       await expect(
         generateTranscript({
-          model: new MockTranscriptModelV1({
+          model: new MockTranscriptionModelV1({
             doGenerate: async () =>
               createMockResponse({
-                transcript: { text: "", segments: [] },
+                transcript: { text: "", segments: [], language: "en", duration: 0 },
                 timestamp: testDate,
                 headers: {
                   'custom-response-header': 'response-header-value',
@@ -174,7 +167,7 @@ describe('generateTranscript', () => {
     const testHeaders = { 'x-test': 'value' };
 
     const result = await generateTranscript({
-      model: new MockTranscriptModelV1({
+      model: new MockTranscriptionModelV1({
         doGenerate: async () =>
           createMockResponse({
             transcript: sampleTranscript,

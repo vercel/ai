@@ -35,7 +35,6 @@ The transcript contains the text that was transcribed from the audio.
     transcript: {
       text: string;
       segments: Array<{
-        id: string;
         start: number;
         end: number;
         text: string;

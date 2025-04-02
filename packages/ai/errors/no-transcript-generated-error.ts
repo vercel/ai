@@ -1,14 +1,14 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { TranscriptModelResponseMetadata } from '../core/types/transcript-model-response-metadata';
+import { TranscriptionModelResponseMetadata } from '../core/types/transcription-model-response-metadata';
 
 /**
 Error that is thrown when no transcript was generated.
  */
 export class NoTranscriptGeneratedError extends AISDKError {
-  readonly responses: Array<TranscriptModelResponseMetadata>;
+  readonly responses: Array<TranscriptionModelResponseMetadata>;
 
   constructor(options: {
-    responses: Array<TranscriptModelResponseMetadata>;
+    responses: Array<TranscriptionModelResponseMetadata>;
   }) {
     super({
       name: 'AI_NoTranscriptGeneratedError',
