@@ -35,7 +35,7 @@ The transcript model to use.
   /**
 The audio data to transcribe.
    */
-  audio: Uint8Array;
+  audio: Blob | File | Uint8Array | ArrayBuffer | Buffer | string;
 
   /**
 Additional provider-specific options that are passed through to the provider
