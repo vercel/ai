@@ -609,7 +609,9 @@ import { generateImage } from 'ai';
 const { image } = await generateImage({
   model: vertex.image('imagen-3.0-generate-001'),
   providerOptions: {
-    vertex: { negativePrompt: 'pixelated, blurry, low-quality' } satisfies GoogleVertexImageProviderOptions,
+    vertex: {
+      negativePrompt: 'pixelated, blurry, low-quality',
+    } satisfies GoogleVertexImageProviderOptions,
   },
   // ...
 });
