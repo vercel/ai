@@ -88,7 +88,7 @@ describe('stream data stream', () => {
 
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
-      await controller.write('0:"Hello"\n');
+      controller.write('0:"Hello"\n');
 
       await waitFor(() => {
         expect(screen.getByTestId('loading')).toHaveTextContent('true');
