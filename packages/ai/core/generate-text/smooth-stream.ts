@@ -72,19 +72,18 @@ export function smoothStream<TOOLS extends ToolSet>({
 
         buffer += chunk.textDelta;
 
-        let match = chunkingRegexp.exec(buffer);
-        while (match != null) {
+        let match;
+        while ((match = chunkingRegexp.exec(buffer)) != null) {
           const chunk = match[0];
           controller.enqueue({ type: 'text-delta', textDelta: chunk });
           buffer = buffer.slice(chunk.length);
 
           await delay(delayInMs);
-          match = chunkingRegexp.exec(buffer);
         }
       },
       flush(controller) {
         flushBuffer(controller);
       },
-    })
-  }
+    });
+  };
 }
