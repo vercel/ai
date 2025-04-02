@@ -3,14 +3,15 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   postFormDataToApi,
+  convertAudioInput,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
-
-export type OpenAITranscriptionModelId = 'whisper-1' | (string & {});
-
-export interface OpenAITranscriptionSettings {}
+import {
+  OpenAITranscriptionModelId,
+  OpenAITranscriptionSettings,
+} from './openai-transcription-settings';
 
 interface OpenAITranscriptionModelConfig extends OpenAIConfig {
   _internal?: {
@@ -40,11 +41,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>
   > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    
     const formData = new FormData();
-    
+    const file = await convertAudioInput(audio).toFile();
+
     formData.append('model', this.modelId);
-    formData.append('file', new Blob([Buffer.from(audio, 'base64')]), 'audio.wav');
+    formData.append('file', file, 'audio.wav');
     
     // Add any additional provider options
     if (providerOptions.openai) {

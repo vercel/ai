@@ -20,10 +20,15 @@ const { transcript } = await generateTranscript({
 });
 ```
 
-You can access the transcript data using the `text` property:
+The `audio` property is very flexible and can be a `Blob`, `File`, `Uint8Array`, `ArrayBuffer`, `Buffer`, `URL` or a string (e.g. a URL or base64 encoded data).
+
+As for the response, you can access the transcript data like so:
 
 ```tsx
-const text = transcript.text; // transcript text
+const text = transcript.text; // transcript text e.g. "Hello, world!"
+const segments = transcript.segments; // array of segments with start and end times, if available
+const language = transcript.language; // language of the transcript if available e.g. "en"
+const duration = transcript.duration; // duration of the transcript if available in seconds
 ```
 
 ## Settings
