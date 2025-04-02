@@ -2,7 +2,7 @@ import {
   EmbeddingModelV1Embedding,
   LanguageModelV1Prompt,
 } from '@ai-sdk/provider';
-import { JsonTestServer } from '@ai-sdk/provider-utils/test';
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createAzure } from './azure-openai-provider';
 
 const TEST_PROMPT: LanguageModelV1Prompt = [
@@ -20,36 +20,46 @@ const providerApiVersionChanged = createAzure({
   apiVersion: '2024-08-01-preview',
 });
 
+const server = createTestServer({
+  'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions':
+    {},
+  'https://test-resource.openai.azure.com/openai/deployments/gpt-35-turbo-instruct/completions':
+    {},
+  'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings':
+    {},
+  'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations':
+    {},
+});
+
 describe('chat', () => {
   describe('doGenerate', () => {
-    const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions',
-    );
-
-    server.setupTestEnvironment();
-
     function prepareJsonResponse({ content = '' }: { content?: string } = {}) {
-      server.responseBodyJson = {
-        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-        object: 'chat.completion',
-        created: 1711115037,
-        model: 'gpt-3.5-turbo-0125',
-        choices: [
-          {
-            index: 0,
-            message: {
-              role: 'assistant',
-              content,
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'gpt-3.5-turbo-0125',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content,
+              },
+              finish_reason: 'stop',
             },
-            finish_reason: 'stop',
+          ],
+          usage: {
+            prompt_tokens: 4,
+            total_tokens: 34,
+            completion_tokens: 30,
           },
-        ],
-        usage: {
-          prompt_tokens: 4,
-          total_tokens: 34,
-          completion_tokens: 30,
+          system_fingerprint: 'fp_3bc1b5746c',
         },
-        system_fingerprint: 'fp_3bc1b5746c',
       };
     }
 
@@ -77,10 +87,9 @@ describe('chat', () => {
         prompt: TEST_PROMPT,
       });
 
-      const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-08-01-preview',
-      );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('2024-08-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -103,9 +112,7 @@ describe('chat', () => {
         },
       });
 
-      const requestHeaders = await server.getRequestHeaders();
-
-      expect(requestHeaders).toStrictEqual({
+      expect(server.calls[0].requestHeaders).toStrictEqual({
         'api-key': 'test-api-key',
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
@@ -126,7 +133,6 @@ describe('chat', () => {
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
-
       const requestUrl = await server.getRequestUrl();
       expect(requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2025-03-01-preview',
@@ -137,12 +143,6 @@ describe('chat', () => {
 
 describe('completion', () => {
   describe('doGenerate', () => {
-    const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/gpt-35-turbo-instruct/completions',
-    );
-
-    server.setupTestEnvironment();
-
     function prepareJsonCompletionResponse({
       content = '',
       usage = {
@@ -166,20 +166,25 @@ describe('completion', () => {
       } | null;
       finish_reason?: string;
     }) {
-      server.responseBodyJson = {
-        id: 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
-        object: 'text_completion',
-        created: 1711363706,
-        model: 'gpt-35-turbo-instruct',
-        choices: [
-          {
-            text: content,
-            index: 0,
-            logprobs,
-            finish_reason,
-          },
-        ],
-        usage,
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/deployments/gpt-35-turbo-instruct/completions'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
+          object: 'text_completion',
+          created: 1711363706,
+          model: 'gpt-35-turbo-instruct',
+          choices: [
+            {
+              text: content,
+              index: 0,
+              logprobs,
+              finish_reason,
+            },
+          ],
+          usage,
+        },
       };
     }
 
@@ -191,7 +196,6 @@ describe('completion', () => {
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
-
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
         '2025-03-01-preview',
@@ -218,9 +222,7 @@ describe('completion', () => {
         },
       });
 
-      const requestHeaders = await server.getRequestHeaders();
-
-      expect(requestHeaders).toStrictEqual({
+      expect(server.calls[0].requestHeaders).toStrictEqual({
         'api-key': 'test-api-key',
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
@@ -238,28 +240,27 @@ describe('embedding', () => {
   const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
   describe('doEmbed', () => {
-    const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings',
-    );
-
     const model = provider.embedding('my-embedding');
-
-    server.setupTestEnvironment();
 
     function prepareJsonResponse({
       embeddings = dummyEmbeddings,
     }: {
       embeddings?: EmbeddingModelV1Embedding[];
     } = {}) {
-      server.responseBodyJson = {
-        object: 'list',
-        data: embeddings.map((embedding, i) => ({
-          object: 'embedding',
-          index: i,
-          embedding,
-        })),
-        model: 'my-embedding',
-        usage: { prompt_tokens: 8, total_tokens: 8 },
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings'
+      ].response = {
+        type: 'json-value',
+        body: {
+          object: 'list',
+          data: embeddings.map((embedding, i) => ({
+            object: 'embedding',
+            index: i,
+            embedding,
+          })),
+          model: 'my-embedding',
+          usage: { prompt_tokens: 8, total_tokens: 8 },
+        },
       };
     }
 
@@ -269,7 +270,6 @@ describe('embedding', () => {
       await model.doEmbed({
         values: testValues,
       });
-
       const searchParams = await server.getRequestUrlSearchParams();
       expect(searchParams.get('api-version')).toStrictEqual(
         '2025-03-01-preview',
@@ -294,9 +294,7 @@ describe('embedding', () => {
         },
       });
 
-      const requestHeaders = await server.getRequestHeaders();
-
-      expect(requestHeaders).toStrictEqual({
+      expect(server.calls[0].requestHeaders).toStrictEqual({
         'api-key': 'test-api-key',
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
@@ -310,25 +308,24 @@ describe('image', () => {
   const prompt = 'A cute baby sea otter';
 
   describe('doGenerate', () => {
-    const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations',
-    );
-
-    server.setupTestEnvironment();
-
     function prepareJsonResponse() {
-      server.responseBodyJson = {
-        created: 1733837122,
-        data: [
-          {
-            revised_prompt:
-              'A charming visual illustration of a baby sea otter swimming joyously.',
-            b64_json: 'base64-image-1',
-          },
-          {
-            b64_json: 'base64-image-2',
-          },
-        ],
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations'
+      ].response = {
+        type: 'json-value',
+        body: {
+          created: 1733837122,
+          data: [
+            {
+              revised_prompt:
+                'A charming visual illustration of a baby sea otter swimming joyously.',
+              b64_json: 'base64-image-1',
+            },
+            {
+              b64_json: 'base64-image-2',
+            },
+          ],
+        },
       };
     }
 
@@ -364,10 +361,9 @@ describe('image', () => {
           providerOptions: {},
         });
 
-      const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual(
-        '2024-08-01-preview',
-      );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('2024-08-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -393,9 +389,7 @@ describe('image', () => {
         },
       });
 
-      const requestHeaders = await server.getRequestHeaders();
-
-      expect(requestHeaders).toStrictEqual({
+      expect(server.calls[0].requestHeaders).toStrictEqual({
         'api-key': 'test-api-key',
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
@@ -453,7 +447,7 @@ describe('image', () => {
         providerOptions: { openai: { style: 'natural' } },
       });
 
-      expect(await server.getRequestBodyJson()).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'dalle-deployment',
         prompt,
         n: 2,

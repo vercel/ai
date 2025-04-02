@@ -3,11 +3,6 @@ import {
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
 import { formatDataStreamPart } from '@ai-sdk/ui-utils';
-import {
-  mockFetchDataStream,
-  mockFetchDataStreamWithGenerator,
-  mockFetchError,
-} from '@ai-sdk/ui-utils/test';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/vue';
@@ -136,7 +131,11 @@ describe('data protocol stream', () => {
   });
 
   it('should show error response', async () => {
-    mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
+    server.urls['/api/chat'].response = {
+      type: 'error',
+      status: 404,
+      body: 'Not found',
+    };
 
     await userEvent.click(screen.getByTestId('do-append'));
 
@@ -150,25 +149,11 @@ describe('data protocol stream', () => {
 
   describe('status', () => {
     it('should show status', async () => {
-      let startGeneration: ((value?: unknown) => void) | undefined;
-      const startGenerationPromise = new Promise(resolve => {
-        startGeneration = resolve;
-      });
-
-      let finishGeneration: ((value?: unknown) => void) | undefined;
-      const finishGenerationPromise = new Promise(resolve => {
-        finishGeneration = resolve;
-      });
-
-      mockFetchDataStreamWithGenerator({
-        url: 'https://example.com/api/chat',
-        chunkGenerator: (async function* generate() {
-          await startGenerationPromise;
-          const encoder = new TextEncoder();
-          yield encoder.encode('0:"Hello"\n');
-          await finishGenerationPromise;
-        })(),
-      });
+      const controller = new TestResponseController();
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
 
       await userEvent.click(screen.getByTestId('do-append'));
 
@@ -176,13 +161,13 @@ describe('data protocol stream', () => {
         expect(screen.getByTestId('status')).toHaveTextContent('submitted');
       });
 
-      startGeneration?.();
+      controller.write('0:"Hello"\n');
 
       await waitFor(() => {
         expect(screen.getByTestId('status')).toHaveTextContent('streaming');
       });
 
-      finishGeneration?.();
+      controller.close();
 
       await waitFor(() => {
         expect(screen.getByTestId('status')).toHaveTextContent('ready');
@@ -190,7 +175,11 @@ describe('data protocol stream', () => {
     });
 
     it('should set status to error when there is a server error', async () => {
-      mockFetchError({ statusCode: 404, errorMessage: 'Not found' });
+      server.urls['/api/chat'].response = {
+        type: 'error',
+        status: 404,
+        body: 'Not found',
+      };
 
       await userEvent.click(screen.getByTestId('do-append'));
 
@@ -252,10 +241,10 @@ describe('text stream', () => {
   setupTestComponent(TestChatTextStreamComponent);
 
   it('should show streamed response', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
       chunks: ['Hello', ',', ' world', '.'],
-    });
+    };
 
     await userEvent.click(screen.getByTestId('do-append'));
 
@@ -357,12 +346,20 @@ describe('form actions', () => {
   setupTestComponent(TestChatFormComponent);
 
   it('should show streamed response using handleSubmit', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
-      chunks: ['Hello', ',', ' world', '.'].map(token =>
-        formatDataStreamPart('text', token),
-      ),
-    });
+    server.urls['/api/chat'].response = [
+      {
+        type: 'stream-chunks',
+        chunks: ['Hello', ',', ' world', '.'].map(token =>
+          formatDataStreamPart('text', token),
+        ),
+      },
+      {
+        type: 'stream-chunks',
+        chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
+          formatDataStreamPart('text', token),
+        ),
+      },
+    ];
 
     const firstInput = screen.getByTestId('do-input');
     await userEvent.type(firstInput, 'hi');
@@ -375,13 +372,6 @@ describe('form actions', () => {
     expect(screen.getByTestId('message-1')).toHaveTextContent(
       'AI: Hello, world.',
     );
-
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
-      chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
-        formatDataStreamPart('text', token),
-      ),
-    });
 
     const secondInput = screen.getByTestId('do-input');
     await userEvent.type(secondInput, '{Enter}');
@@ -394,12 +384,26 @@ describe('form actions (with options)', () => {
   setupTestComponent(TestChatFormOptionsComponent);
 
   it('should show streamed response using handleSubmit', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
-      chunks: ['Hello', ',', ' world', '.'].map(token =>
-        formatDataStreamPart('text', token),
-      ),
-    });
+    server.urls['/api/chat'].response = [
+      {
+        type: 'stream-chunks',
+        chunks: ['Hello', ',', ' world', '.'].map(token =>
+          formatDataStreamPart('text', token),
+        ),
+      },
+      {
+        type: 'stream-chunks',
+        chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
+          formatDataStreamPart('text', token),
+        ),
+      },
+      {
+        type: 'stream-chunks',
+        chunks: ['The', ' sky', ' is', ' blue.'].map(token =>
+          formatDataStreamPart('text', token),
+        ),
+      },
+    ];
 
     const firstInput = screen.getByTestId('do-input');
     await userEvent.type(firstInput, 'hi');
@@ -413,13 +417,6 @@ describe('form actions (with options)', () => {
       'AI: Hello, world.',
     );
 
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
-      chunks: ['How', ' can', ' I', ' help', ' you', '?'].map(token =>
-        formatDataStreamPart('text', token),
-      ),
-    });
-
     const secondInput = screen.getByTestId('do-input');
     await userEvent.type(secondInput, '{Enter}');
 
@@ -430,13 +427,6 @@ describe('form actions (with options)', () => {
     expect(screen.getByTestId('message-3')).toHaveTextContent(
       'AI: How can I help you?',
     );
-
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
-      chunks: ['The', ' sky', ' is', ' blue.'].map(token =>
-        formatDataStreamPart('text', token),
-      ),
-    });
 
     const thirdInput = screen.getByTestId('do-input');
     await userEvent.type(thirdInput, 'what color is the sky?');
@@ -508,8 +498,8 @@ describe('onToolCall', () => {
   setupTestComponent(TestChatFormComponent);
 
   it('should invoke onToolCall when a tool call is received from the servers response', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
       chunks: [
         formatDataStreamPart('tool_call', {
           toolCallId: 'tool-call-0',
@@ -517,7 +507,7 @@ describe('onToolCall', () => {
           args: { testArg: 'test-value' },
         }),
       ],
-    });
+    };
 
     const firstInput = screen.getByTestId('do-input');
     await userEvent.type(firstInput, 'hi');
@@ -760,10 +750,10 @@ describe('file attachments with data url', () => {
   setupTestComponent(TestChatAttachmentsComponent);
 
   it('should handle text file attachment and submission', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
       chunks: ['0:"Response to message with text attachment"\n'],
-    });
+    };
 
     const file = new File(['test file content'], 'test.txt', {
       type: 'text/plain',
@@ -795,10 +785,10 @@ describe('file attachments with data url', () => {
   });
 
   it('should handle image file attachment and submission', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
       chunks: ['0:"Response to message with image attachment"\n'],
-    });
+    };
 
     const file = new File(['test image content'], 'test.png', {
       type: 'image/png',
@@ -835,10 +825,10 @@ describe('file attachments with url', () => {
   setupTestComponent(TestChatUrlAttachmentsComponent);
 
   it('should handle image file attachment and submission', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
       chunks: ['0:"Response to message with image attachment"\n'],
-    });
+    };
 
     const messageInput = screen.getByTestId('message-input');
     await userEvent.type(messageInput, 'Message with image attachment');
@@ -868,10 +858,10 @@ describe('attachments with empty submit', () => {
   setupTestComponent(TestChatAttachmentsComponent);
 
   it('should handle image file attachment and empty submission', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
       chunks: ['0:"Response to empty message with attachment"\n'],
-    });
+    };
 
     const file = new File(['test image content'], 'test.png', {
       type: 'image/png',
@@ -903,10 +893,10 @@ describe('should append message with attachments', () => {
   setupTestComponent(TestChatAppendAttachmentsComponent);
 
   it('should handle image file attachment with append', async () => {
-    mockFetchDataStream({
-      url: 'https://example.com/api/chat',
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
       chunks: ['0:"Response to message with image attachment"\n'],
-    });
+    };
 
     const appendButton = screen.getByTestId('do-append');
     await userEvent.click(appendButton);
