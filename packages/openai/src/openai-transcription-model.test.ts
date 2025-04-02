@@ -78,7 +78,7 @@ describe('doGenerate', () => {
       providerOptions: {},
     });
 
-    expect(result.text).toBe('This is a transcription of the audio.');
+    expect(result.transcript.text).toBe('This is a transcription of the audio.');
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {

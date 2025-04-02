@@ -30,22 +30,19 @@ Generates an array of transcripts.
   doGenerate(options: TranscriptionModelV1CallOptions): PromiseLike<{
     /**
 Generated transcript as a string.
+The transcript contains the text that was transcribed from the audio.
      */
-    text: string;
-
-    /** Transcript segments with start and end times, if available. */
-    segments: Array<{
-      id: string;
-      start: number;
-      end: number;
+    transcript: {
       text: string;
-    }>;
-
-    /** Language of the transcript, if available. */
-    language?: string;
-
-    /** Duration of the transcript, if available. */
-    duration?: number;
+      segments: Array<{
+        id: string;
+        start: number;
+        end: number;
+        text: string;
+      }>;
+      language?: string;
+      duration?: number;
+    };
 
     /**
 Warnings for the call, e.g. unsupported settings.
