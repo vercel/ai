@@ -13,6 +13,7 @@ async function main() {
   console.log();
   console.log('Warnings:', result.warnings);
   console.log('Responses:', result.responses);
+  console.log('Provider Metadata:', result.providerMetadata);
 }
 
 main().catch(console.error);
