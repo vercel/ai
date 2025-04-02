@@ -74,7 +74,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
         text: response.transcript.text,
         segments: response.transcript.words ?? [],
         language: response.transcript.language,
-        duration: response.transcript.duration,
+        durationInSeconds: response.transcript.duration,
       },
       warnings: [],
       response: {

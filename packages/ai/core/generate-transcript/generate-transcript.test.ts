@@ -121,7 +121,7 @@ describe('generateTranscript', () => {
                   text: '',
                   segments: [],
                   language: 'en',
-                  duration: 0,
+                  durationInSeconds: 0,
                 },
                 timestamp: testDate,
               }),
@@ -150,7 +150,7 @@ describe('generateTranscript', () => {
                   text: '',
                   segments: [],
                   language: 'en',
-                  duration: 0,
+                  durationInSeconds: 0,
                 },
                 timestamp: testDate,
                 headers: {

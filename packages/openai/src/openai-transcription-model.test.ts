@@ -61,7 +61,7 @@ describe('doGenerate', () => {
               end: 35,
             },
           ],
-          duration: 35,
+          durationInSeconds: 35,
           language: 'en',
         },
       },
