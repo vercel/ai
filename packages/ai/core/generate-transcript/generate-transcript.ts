@@ -40,7 +40,7 @@ The transcript model to use.
   /**
 The audio data to transcribe.
    */
-  audio: DataContent;
+  audio: DataContent | URL;
 
   /**
 Additional provider-specific options that are passed through to the provider
@@ -77,7 +77,14 @@ Only applicable for HTTP-based providers.
   headers?: Record<string, string>;
 }): Promise<GenerateTranscriptResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
-  const audioData = convertDataContentToUint8Array(audio);
+  let audioData: Uint8Array;
+
+  if (audio instanceof URL) {
+    const arrayBuffer = await fetch(audio).then(res => res.arrayBuffer());
+    audioData = new Uint8Array(arrayBuffer);
+  } else {
+    audioData = convertDataContentToUint8Array(audio);
+  }
 
   const result = await retry(() =>
     model.doGenerate({
