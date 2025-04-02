@@ -816,7 +816,7 @@ The first argument is the model id e.g. `whisper-1`.
 const model = openai.transcription('whisper-1');
 ```
 
-OpenAI transcription models support a single `audio` argument which can be a `File`, `Blob`, `Uint8Array`, `ArrayBuffer`, or a `string` (a URL or base64 encoded audio data).
+OpenAI transcription models support a single `audio` argument which can be a `DataContent` (`string | Uint8Array<ArrayBufferLike> | ArrayBuffer | Buffer<ArrayBufferLike>`) or a `URL`.
 
 ```ts
 const model = openai.transcription('whisper-1', {
@@ -824,11 +824,11 @@ const model = openai.transcription('whisper-1', {
 });
 ```
 
-You can also pass additional provider-specific options using the `providerOptions` argument.
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
 
 ```ts
 const model = openai.transcription('whisper-1', {
-  providerOptions: { openai: { timestampGranularities: ['word'] } },
+  providerOptions: { openai: { language: 'en' } },
 });
 ```
 
