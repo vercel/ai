@@ -40,8 +40,8 @@ The transcript contains the text that was transcribed from the audio.
         end: number;
         text: string;
       }>;
-      language?: string;
-      duration?: number;
+      language: string | undefined;
+      duration: number | undefined;
     };
 
     /**

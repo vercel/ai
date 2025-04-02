@@ -71,10 +71,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
     return {
       transcript: {
-        text: response.text,
-        segments: response.words ?? [],
-        language: response.language,
-        duration: response.duration,
+        text: response.transcript.text,
+        segments: response.transcript.words ?? [],
+        language: response.transcript.language,
+        duration: response.transcript.duration,
       },
       warnings: [],
       response: {
@@ -86,7 +86,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
   }
 }
 
-// minimal version of the schema, focussed on what is needed for the implementation
 const openaiTranscriptionResponseSchema = z.object({
-  text: z.string(),
+  transcript: z.object({
+    text: z.string(),
+    words: z.array(z.any()).optional(),
+    language: z.string().optional(),
+    duration: z.number().optional(),
+  }),
 });

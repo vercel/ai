@@ -4,15 +4,13 @@ import { prepareRetries } from '../prompt/prepare-retries';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import { GenerateTranscriptResult } from './generate-transcript-result';
-import { GeneratedTranscript } from '../generate-text/generated-transcript';
+import { GeneratedTranscript } from './';
 
 /**
 Generates transcripts using a transcript model.
 
 @param model - The transcript model to use.
 @param audio - The audio data to transcribe.
-@param language - The language of the audio. Default: 'en'.
-@param prompt - Optional prompt to guide the transcription.
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -24,8 +22,6 @@ as body parameters.
 export async function generateTranscript({
   model,
   audio,
-  language = 'en',
-  prompt,
   providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -40,16 +36,6 @@ The transcript model to use.
 The audio data to transcribe.
    */
   audio: Uint8Array;
-
-  /**
-The language of the audio.
-   */
-  language?: string;
-
-  /**
-Optional prompt to guide the transcription.
-   */
-  prompt?: string;
 
   /**
 Additional provider-specific options that are passed through to the provider
