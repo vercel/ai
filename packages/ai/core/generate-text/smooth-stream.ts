@@ -74,6 +74,9 @@ export function smoothStream<TOOLS extends ToolSet>({
         buffer += chunk.textDelta;
 
         const splits = splitText(buffer, chunkingRegexp);
+
+        // If there's a new split with the start index greater than the last index,
+        // push the new split(s) and delay.
         const newSplitIndex = splits.findIndex(
           split => !lastSplit || split.start >= lastIndex,
         );
