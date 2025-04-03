@@ -1,18 +1,12 @@
 import { DownloadError } from './download-error';
 
-export async function download({
-  url,
-  fetchImplementation = fetch,
-}: {
-  url: URL;
-  fetchImplementation?: typeof fetch;
-}): Promise<{
+export async function download({ url }: { url: URL }): Promise<{
   data: Uint8Array;
   mimeType: string | undefined;
 }> {
   const urlText = url.toString();
   try {
-    const response = await fetchImplementation(urlText);
+    const response = await fetch(urlText);
 
     if (!response.ok) {
       throw new DownloadError({

@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 2.2.8
+
+### Patch Changes
+
+- 292f543: fix (provider/google-vertex): fix anthropic support for image urls in messages
+- Updated dependencies [292f543]
+  - @ai-sdk/anthropic@1.2.5
+
 ## 2.2.7
 
 ### Patch Changes
