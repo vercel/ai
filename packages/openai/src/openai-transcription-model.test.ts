@@ -156,7 +156,7 @@ describe('doGenerate', () => {
 
   it('should use real date when no custom date provider is specified', async () => {
     prepareJsonResponse();
-    
+
     const testDate = new Date(0);
     const customModel = new OpenAITranscriptionModel('whisper-1', {
       provider: 'test-provider',
