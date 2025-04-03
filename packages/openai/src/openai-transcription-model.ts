@@ -168,7 +168,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
     return {
       text: response.text,
-      segments: response.words ?? [],
+      segments: response.words.map(word => ({
+        text: word.word,
+        startSecond: word.start,
+        endSecond: word.end,
+      })),
       language,
       durationInSeconds: response.duration,
       warnings: [],
@@ -178,7 +182,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
         headers: responseHeaders,
       },
 
-      // When using format `verbose_json` on `whisper-1`,, OpenAI includes the things like `task` and enhanced `segments` information.
+      // When using format `verbose_json` on `whisper-1`, OpenAI includes the things like `task` and enhanced `segments` information.
       providerMetadata: {
         openai: {
           transcript: response,
@@ -190,8 +194,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
 const openaiTranscriptionResponseSchema = z.object({
   text: z.string(),
-  words: z.array(z.any()).optional(),
   language: z.string().optional(),
   duration: z.number().optional(),
-  providerMetadata: z.record(z.any()),
+  words: z.array(
+    z.object({
+      word: z.string(),
+      start: z.number(),
+      end: z.number(),
+    }),
+  ),
 });

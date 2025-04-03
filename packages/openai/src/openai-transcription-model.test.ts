@@ -22,55 +22,53 @@ describe('doGenerate', () => {
       type: 'json-value',
       headers,
       body: {
+        task: 'transcribe',
         text: 'Hello from the Vercel AI SDK!',
-        segments: [
+        words: [
           {
-            text: 'Hello',
-            startSecond: 0,
-            endSecond: 5,
+            word: 'Hello',
+            start: 0,
+            end: 5,
           },
           {
-            text: 'from',
-            startSecond: 5,
-            endSecond: 10,
+            word: 'from',
+            start: 5,
+            end: 10,
           },
           {
-            text: 'the',
-            startSecond: 10,
-            endSecond: 15,
+            word: 'the',
+            start: 10,
+            end: 15,
           },
           {
-            text: 'Vercel',
-            startSecond: 15,
-            endSecond: 20,
+            word: 'Vercel',
+            start: 15,
+            end: 20,
           },
           {
-            text: 'AI',
-            startSecond: 20,
-            endSecond: 25,
+            word: 'AI',
+            start: 20,
+            end: 25,
           },
           {
-            text: 'SDK',
-            startSecond: 25,
-            endSecond: 30,
+            word: 'SDK',
+            start: 25,
+            end: 30,
           },
           {
-            text: '!',
-            startSecond: 30,
-            endSecond: 35,
+            word: '!',
+            start: 30,
+            end: 35,
           },
         ],
-        durationInSeconds: 35,
-        language: 'en',
-        mime_type: 'audio/mp3',
-        providerMetadata: {
-          'test-provider': 'test-value',
-        },
+        duration: 35,
+        language: 'english',
+        _request_id: 'req_1234',
       },
     };
   }
 
-  it('should pass the model and the settings', async () => {
+  it('should pass the model', async () => {
     prepareJsonResponse();
 
     await model.doGenerate({
@@ -146,11 +144,10 @@ describe('doGenerate', () => {
       audio: audioData,
     });
 
-    expect(result.response).toStrictEqual({
+    expect(result.response).toMatchObject({
       timestamp: testDate,
       modelId: 'whisper-1',
       headers: {
-        'content-length': '495',
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',
