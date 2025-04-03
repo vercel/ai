@@ -34,7 +34,7 @@ const createMockResponse = (options: {
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
-  providerMetadata?: Record<string, JSONValue>;
+  providerMetadata?: Record<string, Record<string, JSONValue>>;
 }) => ({
   transcript: options.transcript,
   warnings: options.warnings ?? [],
@@ -71,7 +71,8 @@ describe('transcribe', () => {
       audio: audioData,
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
-      providerOptions: {},
+      providerOptions: {
+      },
     });
   });
 
@@ -88,7 +89,9 @@ describe('transcribe', () => {
               },
             ],
             providerMetadata: {
-              'test-provider': 'test-value',
+              'test-provider': {
+                'test-key': 'test-value',
+              },
             },
           }),
       }),

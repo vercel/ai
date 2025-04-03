@@ -137,7 +137,6 @@ describe('doGenerate', () => {
 
     const customModel = new OpenAITranscriptionModel(
       'whisper-1',
-      {},
       {
         provider: 'test-provider',
         url: () => 'https://api.openai.com/v1/audio/transcriptions',
