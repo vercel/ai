@@ -127,45 +127,43 @@ describe('text stream', () => {
       });
     });
 
-    describe('stop', () => {
-      it('should abort the stream and not consume any more data', async () => {
-        const controller = new TestResponseController();
-        server.urls['/api/use-object'].response = {
-          type: 'controlled-stream',
-          controller,
-        };
+    it('should abort the stream and not consume any more data', async () => {
+      const controller = new TestResponseController();
+      server.urls['/api/use-object'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
 
-        controller.write('{"content": "h');
-        await userEvent.click(screen.getByTestId('submit-button'));
+      controller.write('{"content": "h');
+      await userEvent.click(screen.getByTestId('submit-button'));
 
-        // wait for element "loading" and "object" to have text content:
-        await waitFor(() => {
-          expect(screen.getByTestId('loading')).toHaveTextContent('true');
-        });
-        await waitFor(() => {
-          expect(screen.getByTestId('object')).toHaveTextContent(
-            '{"content":"h"}',
-          );
-        });
+      // wait for element "loading" and "object" to have text content:
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('true');
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          '{"content":"h"}',
+        );
+      });
 
-        // click stop button:
-        await userEvent.click(screen.getByTestId('stop-button'));
+      // click stop button:
+      await userEvent.click(screen.getByTestId('stop-button'));
 
-        // wait for element "loading" to have text content "false":
-        await waitFor(() => {
-          expect(screen.getByTestId('loading')).toHaveTextContent('false');
-        });
+      // wait for element "loading" to have text content "false":
+      await waitFor(() => {
+        expect(screen.getByTestId('loading')).toHaveTextContent('false');
+      });
 
-        // this should not be consumed any more:
-        controller.write('ello, world!"}');
-        controller.close();
+      // this should not be consumed any more:
+      controller.write('ello, world!"}');
+      controller.close();
 
-        // should only show start of object:
-        await waitFor(() => {
-          expect(screen.getByTestId('object')).toHaveTextContent(
-            '{"content":"h"}',
-          );
-        });
+      // should only show start of object:
+      await waitFor(() => {
+        expect(screen.getByTestId('object')).toHaveTextContent(
+          '{"content":"h"}',
+        );
       });
     });
 
