@@ -7,7 +7,7 @@ import {
 } from '@ai-sdk/provider';
 import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
-import { detectImageMimeType } from '../util/detect-image-mimetype';
+import { detectMimeType } from '../util/detect-mimetype';
 import { FilePart, ImagePart, TextPart } from './content-part';
 import {
   convertDataContentToBase64String,
@@ -341,7 +341,7 @@ function convertPartToLanguageModelPart(
       // When detection fails, use provided mimetype.
 
       if (normalizedData instanceof Uint8Array) {
-        mimeType = detectImageMimeType(normalizedData) ?? mimeType;
+        mimeType = detectMimeType(normalizedData) ?? mimeType;
       }
       return {
         type: 'image',
