@@ -1,10 +1,18 @@
 import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
-import { formatDataStreamPart } from './data-stream-parts';
+import { DataStreamString, formatDataStreamPart } from './data-stream-parts';
 import { LanguageModelUsage } from './duplicated/usage';
 import { processChatResponse } from './process-chat-response';
-import { createDataProtocolStream } from './test/create-data-protocol-stream';
 import { JSONValue, Message } from './types';
+
+function createDataProtocolStream(
+  dataPartTexts: DataStreamString[],
+): ReadableStream<Uint8Array> {
+  return convertArrayToReadableStream(dataPartTexts).pipeThrough(
+    new TextEncoderStream(),
+  );
+}
 
 let updateCalls: Array<{
   message: Message;
