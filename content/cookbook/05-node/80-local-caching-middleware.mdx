@@ -17,18 +17,12 @@ This approach is particularly useful in two scenarios:
 
 In this implementation, you create a JSON file to store responses. When a request is made, you first check if you have already seen this exact request. If you have, you return the cached response immediately (as a one-off generation or chunks of tokens). If not, you trigger the generation, save the response, and return it.
 
-### Key Components:
-
-- **Cache Storage**: Uses a JSON file (`.cache/ai-cache.json` can be anyhwere you want) to persist responses between app restarts
-- **Middleware Functions**: Intercepts both single-response (`wrapGenerate`) and streaming (`wrapStream`) API calls
-- **Request Fingerprinting**: Creates unique keys based on the prompt and parameters
-
 <Note>
   Make sure to add the path of your local cache to your `.gitignore` so you do
   not commit it.
 </Note>
 
-### How Caching Works:
+### How it works
 
 For regular generations, you store and retrieve complete responses. Instead, the streaming implementation captures each token as it arrives, stores the full sequence, and on cache hits uses the SDK's `simulateReadableStream` utility to recreate the token-by-token streaming experience at a controlled speed (defaults to 10ms between chunks).
 
@@ -38,6 +32,8 @@ This approach gives you the best of both worlds:
 - Preserved streaming behavior for UI development
 
 The middleware handles all transformations needed to make cached responses indistinguishable from fresh ones, including normalizing tool calls and fixing timestamp formats.
+
+### Middleware
 
 ```ts
 import {
