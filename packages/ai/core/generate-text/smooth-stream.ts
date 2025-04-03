@@ -45,13 +45,6 @@ export function smoothStream<TOOLS extends ToolSet>({
   return () => {
     let buffer = '';
 
-    const flushBuffer = (controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>) => {
-      if (buffer.length > 0) {
-        controller.enqueue({ type: 'text-delta', textDelta: buffer });
-        buffer = '';
-      }
-    }
-
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
         if (chunk.type === 'step-finish') {
@@ -65,7 +58,6 @@ export function smoothStream<TOOLS extends ToolSet>({
         }
 
         if (chunk.type !== 'text-delta') {
-          flushBuffer(controller);
           controller.enqueue(chunk);
           return;
         }
@@ -80,9 +72,6 @@ export function smoothStream<TOOLS extends ToolSet>({
 
           await delay(delayInMs);
         }
-      },
-      flush(controller) {
-        flushBuffer(controller);
       },
     });
   };
