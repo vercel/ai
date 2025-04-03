@@ -1,25 +1,14 @@
-export interface SplitOptions {
-  /**
-   * When true, delimiters will be separate matches rather then extending the matches near them
-   * @default false
-   */
-  separateDelimiters?: boolean;
-}
-
-export type TextSplit<T = {}> = T & {
+export interface TextSplit {
   start: number;
   end: number;
   text: string;
-};
+}
 
 export function splitText<T>(
   text: string,
   splitter: RegExp | string,
-  splitOptions: SplitOptions & T = {} as SplitOptions & T,
-): TextSplit<T>[] {
-  const { separateDelimiters, ...options } = splitOptions;
-
-  const splits: TextSplit<T>[] = [];
+): TextSplit[] {
+  const splits: TextSplit[] = [];
   let lastIndex = 0;
 
   function getNextMatch() {
@@ -58,7 +47,7 @@ export function splitText<T>(
     const matchEndIndex =
       'endIndex' in match ? match.endIndex : match.index + match[0].length;
 
-    const end = separateDelimiters ? match.index : matchEndIndex;
+    const end = matchEndIndex;
 
     if (end > lastIndex) {
       const segment = text.slice(lastIndex, end);
@@ -73,21 +62,11 @@ export function splitText<T>(
         }
       } else {
         splits.push({
-          ...options,
           start: lastIndex,
           end,
           text: segment,
-        } as TextSplit<T>);
+        });
       }
-    }
-
-    if (separateDelimiters) {
-      splits.push({
-        ...options,
-        start: match.index,
-        end: matchEndIndex,
-        text: match[0],
-      } as TextSplit<T>);
     }
 
     lastIndex = matchEndIndex;
@@ -95,11 +74,10 @@ export function splitText<T>(
 
   if (lastIndex < text.length) {
     splits.push({
-      ...options,
       start: lastIndex,
       end: text.length,
       text: text.slice(lastIndex),
-    } as TextSplit<T>);
+    });
   }
 
   return splits;

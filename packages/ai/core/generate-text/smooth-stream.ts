@@ -24,7 +24,7 @@ export function smoothStream<TOOLS extends ToolSet>({
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number | null;
-  chunking?: 'word' | 'line' | RegExp;
+  chunking?: 'word' | 'line' | { split: string } | RegExp;
   /**
    * Internal. For test use only. May change without notice.
    */
@@ -34,10 +34,14 @@ export function smoothStream<TOOLS extends ToolSet>({
 } = {}): (options: {
   tools: TOOLS;
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>> {
-  const chunkingRegexp =
-    typeof chunking === 'string' ? CHUNKING_REGEXPS[chunking] : chunking;
+  const chunker =
+    typeof chunking === 'object' && 'split' in chunking
+      ? chunking.split
+      : typeof chunking === 'string'
+        ? CHUNKING_REGEXPS[chunking]
+        : chunking;
 
-  if (chunkingRegexp == null) {
+  if (chunker == null) {
     throw new InvalidArgumentError({
       argument: 'chunking',
       message: `Chunking must be "word" or "line" or a RegExp. Received: ${chunking}`,
@@ -73,7 +77,7 @@ export function smoothStream<TOOLS extends ToolSet>({
 
         buffer += chunk.textDelta;
 
-        const splits = splitText(buffer, chunkingRegexp);
+        const splits = splitText(buffer, chunker);
 
         // If there's a new split with the start index greater than the last index,
         // push the new split(s) and delay.

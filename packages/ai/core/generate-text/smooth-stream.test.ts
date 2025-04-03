@@ -226,6 +226,7 @@ describe('smoothStream', () => {
             "textDelta": "in ",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "textDelta": "London.",
             "type": "text-delta",
@@ -302,6 +303,7 @@ describe('smoothStream', () => {
             "textDelta": "in ",
             "type": "text-delta",
           },
+          "delay 10",
           {
             "textDelta": "London.",
             "type": "text-delta",
