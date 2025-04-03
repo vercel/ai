@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
 ## 1.1.0
 
 ### Minor Changes

@@ -51,7 +51,14 @@
     "@ai-sdk/vue": "1.2.4",
     "@ai-sdk/xai": "1.2.6",
     "eslint-config-vercel-ai": "0.0.0",
-    "@vercel/ai-tsconfig": "0.0.0"
+    "@vercel/ai-tsconfig": "0.0.0",
+    "analyze-downloads": "0.0.0",
+    "generate-llms-txt": "0.0.0"
   },
-  "changesets": []
+  "changesets": [
+    "cuddly-icons-kick",
+    "green-deers-scream",
+    "silent-nails-taste",
+    "smooth-mirrors-kneel"
+  ]
 }

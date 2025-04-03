@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "2.2.3",
+  "version": "3.0.0-canary.0",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -37,7 +37,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "1.1.0",
+    "@ai-sdk/provider": "2.0.0-canary.0",
     "nanoid": "^3.3.8",
     "secure-json-parse": "^2.7.0"
   },
