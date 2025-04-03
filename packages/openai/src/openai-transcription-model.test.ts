@@ -135,17 +135,14 @@ describe('doGenerate', () => {
 
     const testDate = new Date('2024-03-15T12:00:00Z');
 
-    const customModel = new OpenAITranscriptionModel(
-      'whisper-1',
-      {
-        provider: 'test-provider',
-        url: () => 'https://api.openai.com/v1/audio/transcriptions',
-        headers: () => ({}),
-        _internal: {
-          currentDate: () => testDate,
-        },
+    const customModel = new OpenAITranscriptionModel('whisper-1', {
+      provider: 'test-provider',
+      url: () => 'https://api.openai.com/v1/audio/transcriptions',
+      headers: () => ({}),
+      _internal: {
+        currentDate: () => testDate,
       },
-    );
+    });
 
     const result = await customModel.doGenerate({
       audio: audioData,

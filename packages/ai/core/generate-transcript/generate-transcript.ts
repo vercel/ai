@@ -4,7 +4,10 @@ import { prepareRetries } from '../prompt/prepare-retries';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import { Transcript, TranscriptionResult } from './generate-transcript-result';
-import { audioMimeTypeSignatures, detectMimeType } from '../util/detect-mimetype';
+import {
+  audioMimeTypeSignatures,
+  detectMimeType,
+} from '../util/detect-mimetype';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 

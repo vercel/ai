@@ -71,8 +71,7 @@ describe('transcribe', () => {
       audio: audioData,
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
-      providerOptions: {
-      },
+      providerOptions: {},
     });
   });
 
