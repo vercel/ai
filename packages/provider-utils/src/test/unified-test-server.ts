@@ -63,23 +63,19 @@ class TestServerCall {
   }
 
   get requestBodyMultipart() {
-    const requestClone = this.request.clone();
-
-    return requestClone.text().then(text => {
-      // Check if the request is multipart/form-data
-      const contentType = requestClone.headers.get('content-type') || '';
-      if (contentType.startsWith('multipart/form-data')) {
-        // For multipart/form-data, return the form data entries as an object
-        return this.request.formData().then(formData => {
-          const obj: Record<string, any> = {};
-          formData.forEach((value, key) => {
-            obj[key] = value;
-          });
-          return obj;
+    if (this.request!.headers.get('content-type')?.startsWith('multipart/form-data')) {
+      // For multipart/form-data, return the form data entries as an object
+      return this.request!.formData().then(formData => {
+        const obj: Record<string, any> = {};
+        formData.forEach((value, key) => {
+          obj[key] = value;
         });
-      }
-      return null; // Return null if not multipart
-    });
+        return obj;
+      });
+    }
+    
+    // If not multipart, return null
+    return null;
   }
 
   get requestCredentials() {
