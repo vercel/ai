@@ -8,6 +8,7 @@ type TranscriptionModelV1ProviderOptions = Record<
 export type TranscriptionModelV1CallOptions = {
   /**
 Audio data to transcribe.
+Accepts a `Uint8Array` or `string`, where `string` is a base64 encoded audio file.
      */
   audio: Uint8Array | string;
 
