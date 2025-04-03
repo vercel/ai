@@ -109,6 +109,7 @@ export function createAnthropic(
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
+      supportsImageUrls: true,
     });
 
   const provider = function (

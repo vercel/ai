@@ -11,7 +11,11 @@ async function main() {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+          {
+            type: 'image',
+            image:
+              'https://pbs.twimg.com/profile_banners/1228351/1736716573/1500x500',
+          },
         ],
       },
     ],
