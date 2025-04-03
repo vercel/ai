@@ -129,8 +129,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const testDate = new Date('2024-03-15T12:00:00Z');
-
+    const testDate = new Date(0);
     const customModel = new OpenAITranscriptionModel('whisper-1', {
       provider: 'test-provider',
       url: () => 'https://api.openai.com/v1/audio/transcriptions',
@@ -157,19 +156,26 @@ describe('doGenerate', () => {
 
   it('should use real date when no custom date provider is specified', async () => {
     prepareJsonResponse();
-    const beforeDate = new Date();
+    
+    const testDate = new Date(0);
+    const customModel = new OpenAITranscriptionModel('whisper-1', {
+      provider: 'test-provider',
+      url: () => 'https://api.openai.com/v1/audio/transcriptions',
+      headers: () => ({}),
+      _internal: {
+        currentDate: () => testDate,
+      },
+    });
 
-    const result = await model.doGenerate({
+    const result = await customModel.doGenerate({
       audio: audioData,
     });
 
-    const afterDate = new Date();
-
     expect(result.response.timestamp.getTime()).toBeGreaterThanOrEqual(
-      beforeDate.getTime(),
+      testDate.getTime(),
     );
     expect(result.response.timestamp.getTime()).toBeLessThanOrEqual(
-      afterDate.getTime(),
+      testDate.getTime(),
     );
     expect(result.response.modelId).toBe('whisper-1');
   });
