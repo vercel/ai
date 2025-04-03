@@ -59,7 +59,10 @@ export function smoothStream<TOOLS extends ToolSet>({
           }
 
           if (lastSplit) {
-            controller.enqueue({ type: 'text-delta', textDelta: lastSplit.text });
+            controller.enqueue({
+              type: 'text-delta',
+              textDelta: lastSplit.text,
+            });
             lastSplits = [];
             buffer = '';
           }
@@ -71,10 +74,12 @@ export function smoothStream<TOOLS extends ToolSet>({
         buffer += chunk.textDelta;
 
         const splits = splitText(buffer, chunkingRegexp);
-        const newSplitIndex = splits.findIndex(split => !lastSplit || split.start >= lastIndex);
+        const newSplitIndex = splits.findIndex(
+          split => !lastSplit || split.start >= lastIndex,
+        );
 
         if (newSplitIndex !== -1) {
-          for (let i = newSplitIndex; i < splits.length -1; i++) {
+          for (let i = newSplitIndex; i < splits.length - 1; i++) {
             const split = splits[i];
             controller.enqueue({ type: 'text-delta', textDelta: split.text });
             lastIndex = split.end;
