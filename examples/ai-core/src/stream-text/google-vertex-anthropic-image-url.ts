@@ -11,7 +11,11 @@ async function main() {
         role: 'user',
         content: [
           { type: 'text', text: 'Describe the image in detail.' },
-          { type: 'image', image: fs.readFileSync('./data/comic-cat.png') },
+          {
+            type: 'image',
+            image:
+              'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
+          },
         ],
       },
     ],
