@@ -46,6 +46,7 @@ describe('smoothStream', () => {
           textDelta: 'Hello, ',
           type: 'text-delta',
         },
+        'delay 10',
         {
           textDelta: 'world!',
           type: 'text-delta',
@@ -107,6 +108,7 @@ describe('smoothStream', () => {
           textDelta: 'example ',
           type: 'text-delta',
         },
+        'delay 10',
         {
           textDelta: 'text.',
           type: 'text-delta',
@@ -146,14 +148,14 @@ describe('smoothStream', () => {
         },
         'delay 10',
         {
-          textDelta: 'line \n\n',
+          textDelta: 'line \n\n    ',
           type: 'text-delta',
         },
         'delay 10',
         {
-          // note: leading whitespace is included here
-          // because it is part of the new chunk:
-          textDelta: '    Multiple ',
+          // note: leading whitespace not included here
+          // because it is part of the last chunk:
+          textDelta: 'Multiple ',
           type: 'text-delta',
         },
         'delay 10',
@@ -161,6 +163,7 @@ describe('smoothStream', () => {
           textDelta: 'spaces\n    ',
           type: 'text-delta',
         },
+        'delay 10',
         {
           textDelta: 'Indented',
           type: 'text-delta',
@@ -173,6 +176,128 @@ describe('smoothStream', () => {
         },
       ]);
     });
+
+    it('should support kanji', async () => {
+      const stream = convertArrayToReadableStream([
+        { textDelta: 'Vercel', type: 'text-delta' },
+        { textDelta: 'はサ', type: 'text-delta' },
+        { textDelta: 'サーバーレス', type: 'text-delta' },
+        { textDelta: 'の', type: 'text-delta' },
+        { textDelta: 'フロントエンド', type: 'text-delta' },
+        { textDelta: 'Hello, world!', type: 'text-delta' },
+        { type: 'step-finish' },
+        { type: 'finish' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          "delay 10",
+          {
+            "textDelta": "Vercelは",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "サ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "サ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "ー",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "バ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "ー",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "レ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "ス",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "の",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "フ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "ロ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "ン",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "ト",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "エ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "ン",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "ド",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "Hello, ",
+            "type": "text-delta",
+          },
+          "delay 10",
+          {
+            "textDelta": "world!",
+            "type": "text-delta",
+          },
+          {
+            "type": "step-finish",
+          },
+          {
+            "type": "finish",
+          },
+        ]
+      `)
+
+    })
   });
 
   describe('line chunking', () => {
@@ -290,9 +415,7 @@ describe('smoothStream', () => {
         'delay 10',
         { textDelta: 'o', type: 'text-delta' },
         'delay 10',
-        { textDelta: ',', type: 'text-delta' },
-        'delay 10',
-        { textDelta: ' ', type: 'text-delta' },
+        { textDelta: ', ', type: 'text-delta' },
         'delay 10',
         { textDelta: 'w', type: 'text-delta' },
         'delay 10',
@@ -331,6 +454,7 @@ describe('smoothStream', () => {
           textDelta: 'Hello, ',
           type: 'text-delta',
         },
+        'delay 10',
         {
           textDelta: 'world!',
           type: 'text-delta',
@@ -364,6 +488,7 @@ describe('smoothStream', () => {
           textDelta: 'Hello, ',
           type: 'text-delta',
         },
+        'delay 20',
         {
           textDelta: 'world!',
           type: 'text-delta',

@@ -2,10 +2,12 @@ import { InvalidArgumentError } from '@ai-sdk/provider';
 import { delay as originalDelay } from '@ai-sdk/provider-utils';
 import { TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
+import { TextSplit, splitText } from './text-splitter';
 
 const CHUNKING_REGEXPS = {
-  word: /\s*\S+\s+/m,
-  line: /[^\n]*\n/m,
+  character: /(?!\s)(?=.)/g,
+  word: /[\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF]|\s+/gm,
+  line: /\r\n|\r|\n/g,
 };
 
 /**
@@ -44,11 +46,21 @@ export function smoothStream<TOOLS extends ToolSet>({
 
   return () => {
     let buffer = '';
+    let lastSplits: TextSplit[] = [];
+    let lastIndex = 0;
+
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
-        if (chunk.type === 'step-finish') {
-          if (buffer.length > 0) {
-            controller.enqueue({ type: 'text-delta', textDelta: buffer });
+        const lastSplit = lastSplits.at(-1);
+
+        if (chunk.type !== 'text-delta') {
+          if (lastSplits.length > 1 && delayInMs) {
+            await delay(delayInMs);
+          }
+
+          if (lastSplit) {
+            controller.enqueue({ type: 'text-delta', textDelta: lastSplit.text });
+            lastSplits = [];
             buffer = '';
           }
 
@@ -56,21 +68,21 @@ export function smoothStream<TOOLS extends ToolSet>({
           return;
         }
 
-        if (chunk.type !== 'text-delta') {
-          controller.enqueue(chunk);
-          return;
-        }
-
         buffer += chunk.textDelta;
 
-        let match;
-        while ((match = chunkingRegexp.exec(buffer)) != null) {
-          const chunk = match[0];
-          controller.enqueue({ type: 'text-delta', textDelta: chunk });
-          buffer = buffer.slice(chunk.length);
+        const splits = splitText(buffer, chunkingRegexp);
+        const newSplitIndex = splits.findIndex(split => !lastSplit || split.start >= lastIndex);
 
-          await delay(delayInMs);
+        if (newSplitIndex !== -1) {
+          for (let i = newSplitIndex; i < splits.length -1; i++) {
+            const split = splits[i];
+            controller.enqueue({ type: 'text-delta', textDelta: split.text });
+            lastIndex = split.end;
+            await delay(delayInMs);
+          }
         }
+
+        lastSplits = splits;
       },
     });
   };
