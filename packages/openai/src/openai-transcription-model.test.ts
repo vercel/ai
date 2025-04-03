@@ -22,49 +22,47 @@ describe('doGenerate', () => {
       type: 'json-value',
       headers,
       body: {
-        transcript: {
-          text: 'Hello from the Vercel AI SDK!',
-          segments: [
-            {
-              text: 'Hello',
-              startSecond: 0,
-              endSecond: 5,
-            },
-            {
-              text: 'from',
-              startSecond: 5,
-              endSecond: 10,
-            },
-            {
-              text: 'the',
-              startSecond: 10,
-              endSecond: 15,
-            },
-            {
-              text: 'Vercel',
-              startSecond: 15,
-              endSecond: 20,
-            },
-            {
-              text: 'AI',
-              startSecond: 20,
-              endSecond: 25,
-            },
-            {
-              text: 'SDK',
-              startSecond: 25,
-              endSecond: 30,
-            },
-            {
-              text: '!',
-              startSecond: 30,
-              endSecond: 35,
-            },
-          ],
-          durationInSeconds: 35,
-          language: 'en',
-          mime_type: 'audio/mp3',
-        },
+        text: 'Hello from the Vercel AI SDK!',
+        segments: [
+          {
+            text: 'Hello',
+            startSecond: 0,
+            endSecond: 5,
+          },
+          {
+            text: 'from',
+            startSecond: 5,
+            endSecond: 10,
+          },
+          {
+            text: 'the',
+            startSecond: 10,
+            endSecond: 15,
+          },
+          {
+            text: 'Vercel',
+            startSecond: 15,
+            endSecond: 20,
+          },
+          {
+            text: 'AI',
+            startSecond: 20,
+            endSecond: 25,
+          },
+          {
+            text: 'SDK',
+            startSecond: 25,
+            endSecond: 30,
+          },
+          {
+            text: '!',
+            startSecond: 30,
+            endSecond: 35,
+          },
+        ],
+        durationInSeconds: 35,
+        language: 'en',
+        mime_type: 'audio/mp3',
         providerMetadata: {
           'test-provider': 'test-value',
         },
@@ -122,7 +120,7 @@ describe('doGenerate', () => {
       audio: audioData,
     });
 
-    expect(result.transcript.text).toBe('Hello from the Vercel AI SDK!');
+    expect(result.text).toBe('Hello from the Vercel AI SDK!');
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
@@ -152,7 +150,7 @@ describe('doGenerate', () => {
       timestamp: testDate,
       modelId: 'whisper-1',
       headers: {
-        'content-length': '510',
+        'content-length': '495',
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',

@@ -14,7 +14,7 @@ function to transcribe audio using a transcription model.
 import { experimental_transcibe as transcibe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const { transcript } = await transcibe({
+const transcript = await transcibe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
 });
@@ -41,7 +41,7 @@ Transcription models often have provider or model-specific settings which you ca
 import { experimental_transcibe as transcibe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const { transcript } = await transcibe({
+const transcript = await transcibe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
   providerOptions: {
@@ -62,7 +62,7 @@ that you can use to abort the transcription process or set a timeout.
 import { openai } from '@ai-sdk/openai';
 import { experimental_transcibe as transcibe } from 'ai';
 
-const { transcript } = await transcibe({
+const transcript = await transcibe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
@@ -78,7 +78,7 @@ that you can use to add custom headers to the transcription request.
 import { openai } from '@ai-sdk/openai';
 import { experimental_transcibe as transcibe } from 'ai';
 
-const { transcript } = await transcibe({
+const transcript = await transcibe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
   headers: { 'X-Custom-Header': 'custom-value' },
@@ -90,10 +90,12 @@ const { transcript } = await transcibe({
 Warnings (e.g. unsupported parameters) are available on the `warnings` property.
 
 ```ts
-const { transcript, warnings } = await transcibe({
+const transcript = await transcibe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
 });
+
+const warnings = transcript.warnings;
 ```
 
 ### Error Handling

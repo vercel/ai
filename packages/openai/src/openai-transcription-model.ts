@@ -162,22 +162,16 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
     let language: string | undefined;
 
-    if (
-      response.transcript.language &&
-      response.transcript.language in languageMap
-    ) {
-      language =
-        languageMap[response.transcript.language as keyof typeof languageMap];
+    if (response.language && response.language in languageMap) {
+      language = languageMap[response.language as keyof typeof languageMap];
     }
 
     return {
-      transcript: {
-        text: response.transcript.text,
-        segments: response.transcript.words ?? [],
-        language,
-        durationInSeconds: response.transcript.duration,
-        mimeType: response.transcript.mime_type,
-      },
+      text: response.text,
+      segments: response.words ?? [],
+      language,
+      durationInSeconds: response.duration,
+      mimeType: response.mime_type,
       warnings: [],
       response: {
         timestamp: currentDate,
@@ -188,7 +182,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
       // When using format `verbose_json` on `whisper-1`,, OpenAI includes the things like `task` and enhanced `segments` information.
       providerMetadata: {
         openai: {
-          transcript: response.transcript,
+          transcript: response,
         },
       },
     };
@@ -196,12 +190,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 }
 
 const openaiTranscriptionResponseSchema = z.object({
-  transcript: z.object({
-    text: z.string(),
-    words: z.array(z.any()).optional(),
-    language: z.string().optional(),
-    duration: z.number().optional(),
-    mime_type: z.string(),
-  }),
+  text: z.string(),
+  words: z.array(z.any()).optional(),
+  language: z.string().optional(),
+  duration: z.number().optional(),
+  mime_type: z.string(),
   providerMetadata: z.record(z.any()),
 });

@@ -3,7 +3,7 @@ import { NoTranscriptGeneratedError } from '../../errors/no-transcript-generated
 import { prepareRetries } from '../prompt/prepare-retries';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
-import { Transcript, TranscriptionResult } from './generate-transcript-result';
+import { TranscriptionResult } from './generate-transcript-result';
 import {
   audioMimeTypeSignatures,
   detectMimeType,
@@ -95,20 +95,16 @@ Only applicable for HTTP-based providers.
     }),
   );
 
-  if (!result.transcript.text) {
+  if (!result.text) {
     throw new NoTranscriptGeneratedError({ responses: [result.response] });
   }
 
-  const transcript: Transcript = {
-    text: result.transcript.text,
-    segments: result.transcript.segments,
-    language: result.transcript.language,
-    durationInSeconds: result.transcript.durationInSeconds,
-    mimeType: detectMimeType(audioData, audioMimeTypeSignatures) ?? 'audio/wav',
-  };
-
   return new DefaultTranscriptionResult({
-    transcript,
+    text: result.text,
+    segments: result.segments,
+    language: result.language,
+    durationInSeconds: result.durationInSeconds,
+    mimeType: detectMimeType(audioData, audioMimeTypeSignatures) ?? 'audio/wav',
     warnings: result.warnings,
     responses: [result.response],
     providerMetadata: result.providerMetadata,
@@ -116,17 +112,38 @@ Only applicable for HTTP-based providers.
 }
 
 class DefaultTranscriptionResult implements TranscriptionResult {
-  readonly transcript: Transcript;
+  readonly text: string;
+  readonly segments: Array<{
+    text: string;
+    startSecond: number;
+    endSecond: number;
+  }>;
+  readonly language: string | undefined;
+  readonly durationInSeconds: number | undefined;
+  readonly mimeType: string;
   readonly warnings: Array<TranscriptionWarning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
   readonly providerMetadata: Record<string, Record<string, JSONValue>>;
+
   constructor(options: {
-    transcript: Transcript;
+    text: string;
+    segments: Array<{
+      text: string;
+      startSecond: number;
+      endSecond: number;
+    }>;
+    language: string | undefined;
+    durationInSeconds: number | undefined;
+    mimeType: string;
     warnings: Array<TranscriptionWarning>;
     responses: Array<TranscriptionModelResponseMetadata>;
     providerMetadata: Record<string, Record<string, JSONValue>>;
   }) {
-    this.transcript = options.transcript;
+    this.text = options.text;
+    this.segments = options.segments;
+    this.language = options.language;
+    this.durationInSeconds = options.durationInSeconds;
+    this.mimeType = options.mimeType;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata;

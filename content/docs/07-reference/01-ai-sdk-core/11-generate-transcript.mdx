@@ -75,31 +75,24 @@ console.log(transcript);
 <PropertiesTable
   content={[
     {
-      name: 'transcript',
-      type: 'GeneratedTranscript',
-      description: 'The transcript that was generated.',
-      parameters: [
-        {
-          name: 'text',
-          type: 'string',
-          description: 'The text of the transcript.',
-        },
-        {
-          name: 'segments',
-          type: 'Array<TranscriptSegment>',
-          description: 'The segments of the transcript.',
-        },
-        {
-          name: 'language',
-          type: 'string | null',
-          description: 'The language of the transcript.',
-        },
-        {
-          name: 'duration',
-          type: 'number | null',
-          description: 'The duration of the transcript.',
-        },
-      ],
+      name: 'text',
+      type: 'string',
+      description: 'The text of the transcript.',
+    },
+    {
+      name: 'segments',
+      type: 'Array<TranscriptSegment>',
+      description: 'The segments of the transcript.',
+    },
+    {
+      name: 'language',
+      type: 'string | null',
+      description: 'The language of the transcript.',
+    },
+    {
+      name: 'duration',
+      type: 'number | null',
+      description: 'The duration of the transcript.',
     },
     {
       name: 'warnings',

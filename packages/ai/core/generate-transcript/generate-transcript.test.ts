@@ -29,14 +29,26 @@ const sampleTranscript = {
 };
 
 const createMockResponse = (options: {
-  transcript: typeof sampleTranscript;
+  text: string;
+  segments: Array<{
+    text: string;
+    startSecond: number;
+    endSecond: number;
+  }>;
+  language?: string;
+  durationInSeconds?: number;
+  mimeType: string;
   warnings?: TranscriptionModelV1CallWarning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
   providerMetadata?: Record<string, Record<string, JSONValue>>;
 }) => ({
-  transcript: options.transcript,
+  text: options.text,
+  segments: options.segments,
+  language: options.language,
+  durationInSeconds: options.durationInSeconds,
+  mimeType: options.mimeType,
   warnings: options.warnings ?? [],
   response: {
     timestamp: options.timestamp ?? new Date(),
@@ -58,7 +70,7 @@ describe('transcribe', () => {
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
-            transcript: sampleTranscript,
+            ...sampleTranscript,
           });
         },
       }),
@@ -80,7 +92,7 @@ describe('transcribe', () => {
       model: new MockTranscriptionModelV1({
         doGenerate: async () =>
           createMockResponse({
-            transcript: sampleTranscript,
+            ...sampleTranscript,
             warnings: [
               {
                 type: 'other',
@@ -110,13 +122,24 @@ describe('transcribe', () => {
       model: new MockTranscriptionModelV1({
         doGenerate: async () =>
           createMockResponse({
-            transcript: sampleTranscript,
+            ...sampleTranscript,
           }),
       }),
       audio: audioData,
     });
 
-    expect(result.transcript).toStrictEqual(sampleTranscript);
+    expect(result).toEqual({
+      ...sampleTranscript,
+      warnings: [],
+      responses: [
+        {
+          timestamp: expect.any(Date),
+          modelId: 'test-model-id',
+          headers: {},
+        },
+      ],
+      providerMetadata: {},
+    });
   });
 
   describe('error handling', () => {
@@ -126,13 +149,11 @@ describe('transcribe', () => {
           model: new MockTranscriptionModelV1({
             doGenerate: async () =>
               createMockResponse({
-                transcript: {
-                  text: '',
-                  segments: [],
-                  language: 'en',
-                  durationInSeconds: 0,
-                  mimeType: 'audio/wav',
-                },
+                text: '',
+                segments: [],
+                language: 'en',
+                durationInSeconds: 0,
+                mimeType: 'audio/wav',
                 timestamp: testDate,
               }),
           }),
@@ -156,13 +177,11 @@ describe('transcribe', () => {
           model: new MockTranscriptionModelV1({
             doGenerate: async () =>
               createMockResponse({
-                transcript: {
-                  text: '',
-                  segments: [],
-                  language: 'en',
-                  durationInSeconds: 0,
-                  mimeType: 'audio/wav',
-                },
+                text: '',
+                segments: [],
+                language: 'en',
+                durationInSeconds: 0,
+                mimeType: 'audio/wav',
                 timestamp: testDate,
                 headers: {
                   'custom-response-header': 'response-header-value',
@@ -194,7 +213,7 @@ describe('transcribe', () => {
       model: new MockTranscriptionModelV1({
         doGenerate: async () =>
           createMockResponse({
-            transcript: sampleTranscript,
+            ...sampleTranscript,
             timestamp: testDate,
             modelId: 'test-model',
             headers: testHeaders,
