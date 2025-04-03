@@ -73,7 +73,7 @@ describe('FireworksImageModel', () => {
         providerOptions: { fireworks: { additional_param: 'value' } },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         prompt,
         aspect_ratio: '16:9',
         seed: 42,
@@ -191,7 +191,7 @@ describe('FireworksImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         prompt,
         width: '1024',
         height: '768',
@@ -297,7 +297,7 @@ describe('FireworksImageModel', () => {
         providerOptions: {},
       });
 
-      const requestBody = await server.calls[0].requestBodyJson;
+      const requestBody = await server.calls[0].requestBody;
       expect(requestBody).toHaveProperty('samples', 42);
     });
 

@@ -117,7 +117,7 @@ describe('PerplexityLanguageModel', () => {
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
-      const requestBody = await jsonServer.calls[0].requestBodyJson;
+      const requestBody = await jsonServer.calls[0].requestBody;
       expect(requestBody).toEqual({
         model: modelId,
         messages: [{ role: 'user', content: 'Hello' }],
@@ -138,7 +138,7 @@ describe('PerplexityLanguageModel', () => {
         },
       });
 
-      const requestBody = await jsonServer.calls[0].requestBodyJson;
+      const requestBody = await jsonServer.calls[0].requestBody;
       expect(requestBody).toEqual({
         model: modelId,
         messages: [{ role: 'user', content: 'Hello' }],
@@ -483,7 +483,7 @@ describe('PerplexityLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      const requestBody = await streamServer.calls[0].requestBodyJson;
+      const requestBody = await streamServer.calls[0].requestBody;
       expect(requestBody).toEqual({
         model: modelId,
         messages: [{ role: 'user', content: 'Hello' }],

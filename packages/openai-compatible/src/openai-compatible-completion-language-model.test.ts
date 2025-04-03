@@ -242,7 +242,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'gpt-3.5-turbo-instruct',
       prompt: 'Hello',
     });
@@ -291,7 +291,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'gpt-3.5-turbo-instruct',
       prompt: 'Hello',
       someCustomOption: 'test-value',
@@ -312,7 +312,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'gpt-3.5-turbo-instruct',
       prompt: 'Hello',
     });
@@ -509,7 +509,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       stream: true,
       // stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo-instruct',
@@ -560,7 +560,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       stream: true,
       model: 'gpt-3.5-turbo-instruct',
       prompt: 'Hello',
@@ -582,7 +582,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       stream: true,
       model: 'gpt-3.5-turbo-instruct',
       prompt: 'Hello',

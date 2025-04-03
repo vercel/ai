@@ -185,7 +185,7 @@ describe('data protocol stream', () => {
 
       await chat.append({ role: 'user', content: 'hi' });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         id: chat.id,
         messages: [
           {
@@ -1007,7 +1007,7 @@ describe('file attachments with data url', () => {
       }),
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1063,7 +1063,7 @@ describe('file attachments with data url', () => {
       }),
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1129,7 +1129,7 @@ describe('file attachments with url', () => {
       }),
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1194,7 +1194,7 @@ describe('file attachments with empty text content', () => {
       }),
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1256,7 +1256,7 @@ describe('reload', () => {
       headers: { 'header-key': 'header-value' },
     });
 
-    expect(await server.calls[1].requestBodyJson).toStrictEqual({
+    expect(await server.calls[1].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1309,7 +1309,7 @@ describe('test sending additional fields during message submission', () => {
       }),
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {

@@ -87,7 +87,7 @@ describe('doEmbed', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'text-embedding-3-large',
       input: testValues,
       encoding_format: 'float',
@@ -101,7 +101,7 @@ describe('doEmbed', () => {
       .textEmbeddingModel('text-embedding-3-large', { dimensions: 64 })
       .doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'text-embedding-3-large',
       input: testValues,
       encoding_format: 'float',

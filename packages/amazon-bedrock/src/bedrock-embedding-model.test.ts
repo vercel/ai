@@ -74,7 +74,7 @@ describe('doEmbed', () => {
     expect(embeddings.length).toBe(1);
     expect(embeddings[0]).toStrictEqual(mockEmbeddings[0]);
 
-    const body = await server.calls[0].requestBodyJson;
+    const body = await server.calls[0].requestBody;
     expect(body).toEqual({
       inputText: testValues[0],
       dimensions: undefined,

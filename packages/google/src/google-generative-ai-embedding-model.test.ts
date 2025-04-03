@@ -68,7 +68,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       requests: testValues.map(value => ({
         model: 'models/text-embedding-004',
         content: { role: 'user', parts: [{ text: value }] },
@@ -83,7 +83,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       .embedding('text-embedding-004', { outputDimensionality: 64 })
       .doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       requests: testValues.map(value => ({
         model: 'models/text-embedding-004',
         content: { role: 'user', parts: [{ text: value }] },

@@ -285,7 +285,7 @@ describe('data protocol stream', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         id: screen.getByTestId('id').textContent,
         messages: [
           {
@@ -650,7 +650,7 @@ describe('prepareRequestBody', () => {
       requestBody: { 'request-body-key': 'request-body-value' },
     });
 
-    expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
+    expect(await server.calls[0].requestBody).toBe('test-request-body');
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -1234,7 +1234,7 @@ describe('file attachments with data url', () => {
       'AI: Response to message with text attachment',
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1288,7 +1288,7 @@ describe('file attachments with data url', () => {
       'AI: Response to message with image attachment',
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1399,7 +1399,7 @@ describe('file attachments with url', () => {
       'AI: Response to message with image attachment',
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1484,7 +1484,7 @@ describe('attachments with empty submit', () => {
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1578,7 +1578,7 @@ describe('should append message with attachments', () => {
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1654,7 +1654,7 @@ describe('reload', () => {
     // setup done, click reload:
     await userEvent.click(screen.getByTestId('do-reload'));
 
-    expect(await server.calls[1].requestBodyJson).toStrictEqual({
+    expect(await server.calls[1].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1717,7 +1717,7 @@ describe('test sending additional fields during message submission', () => {
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {

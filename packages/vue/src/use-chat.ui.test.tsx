@@ -60,7 +60,7 @@ describe('prepareRequestBody', () => {
       requestBody: { 'request-body-key': 'request-body-value' },
     });
 
-    expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
+    expect(await server.calls[0].requestBody).toBe('test-request-body');
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -327,7 +327,7 @@ describe('custom metadata', () => {
 
     await screen.findByTestId('message-1');
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -469,7 +469,7 @@ describe('reload', () => {
     // setup done, click reload:
     await userEvent.click(screen.getByTestId('do-reload'));
 
-    expect(await server.calls[1].requestBodyJson).toStrictEqual({
+    expect(await server.calls[1].requestBody).toStrictEqual({
       id: expect.any(String),
       messages: [
         {

@@ -68,7 +68,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       input: {
         prompt,
         num_outputs: 1,
@@ -288,7 +288,7 @@ describe('doGenerate', () => {
     expect(server.calls[0].requestUrl).toStrictEqual(
       'https://api.replicate.com/v1/predictions',
     );
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       input: {
         prompt,
         num_outputs: 1,

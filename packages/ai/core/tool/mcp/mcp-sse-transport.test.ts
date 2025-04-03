@@ -156,7 +156,7 @@ describe('SseMCPTransport', () => {
     expect(server.calls).toHaveLength(2);
     expect(server.calls[1].requestMethod).toBe('POST');
     expect(server.calls[1].requestUrl).toBe('http://localhost:3000/messages');
-    expect(await server.calls[1].requestBodyJson).toEqual(message);
+    expect(await server.calls[1].requestBody).toEqual(message);
 
     await transport.close();
   });

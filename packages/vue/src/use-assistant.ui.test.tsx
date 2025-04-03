@@ -53,7 +53,7 @@ describe('stream data stream', () => {
       'AI: Hello, world.',
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       message: 'hi',
       threadId: null,
     });
@@ -147,7 +147,7 @@ describe('Thread management', () => {
       'AI: Hello, world.',
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       message: 'hi',
       threadId: null,
     });
@@ -191,7 +191,7 @@ describe('Thread management', () => {
     );
 
     // check that correct information was sent to the server:
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       message: 'hi',
       threadId: null,
     });
@@ -235,7 +235,7 @@ describe('Thread management', () => {
       'AI: Hello, world.',
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       message: 'hi',
       threadId: 't3',
     });

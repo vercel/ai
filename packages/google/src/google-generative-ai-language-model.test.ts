@@ -399,7 +399,7 @@ describe('doGenerate', () => {
       temperature: 0.5,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       contents: [
         {
           role: 'user',
@@ -475,7 +475,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       generationConfig: {},
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       tools: {
@@ -515,7 +515,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       contents: [
         {
           role: 'user',
@@ -556,7 +556,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {
         responseMimeType: 'application/json',
@@ -594,7 +594,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {
         responseMimeType: 'application/json',
@@ -626,7 +626,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {},
       toolConfig: { functionCallingConfig: { mode: 'ANY' } },
@@ -697,7 +697,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {
         responseMimeType: 'application/json',
@@ -721,7 +721,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    const requestBody = await server.calls[0].requestBodyJson;
+    const requestBody = await server.calls[0].requestBody;
     expect(requestBody).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {},
@@ -1034,7 +1034,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      expect(await server.calls[0].requestBody).toMatchObject({
         tools: { googleSearch: {} },
       });
     });
@@ -1053,7 +1053,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      expect(await server.calls[0].requestBody).toMatchObject({
         tools: { googleSearch: {} },
       });
     });
@@ -1072,7 +1072,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      expect(await server.calls[0].requestBody).toMatchObject({
         tools: { googleSearchRetrieval: {} },
       });
     });
@@ -1096,7 +1096,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      expect(await server.calls[0].requestBody).toMatchObject({
         tools: {
           googleSearchRetrieval: {
             dynamicRetrievalConfig: {
@@ -1237,7 +1237,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBodyJson).toMatchObject({
+    expect(await server.calls[0].requestBody).toMatchObject({
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
@@ -1515,7 +1515,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       contents: [
         {
           role: 'user',
@@ -1573,7 +1573,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       generationConfig: {},
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
     });
@@ -1688,7 +1688,7 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      expect(await server.calls[0].requestBody).toMatchObject({
         tools: { googleSearch: {} },
       });
     });
@@ -1708,7 +1708,7 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      expect(await server.calls[0].requestBody).toMatchObject({
         tools: { googleSearch: {} },
       });
     });
@@ -1728,7 +1728,7 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      expect(await server.calls[0].requestBody).toMatchObject({
         tools: { googleSearchRetrieval: {} },
       });
     });
@@ -1753,7 +1753,7 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBodyJson).toMatchObject({
+      expect(await server.calls[0].requestBody).toMatchObject({
         tools: {
           googleSearchRetrieval: {
             dynamicRetrievalConfig: {

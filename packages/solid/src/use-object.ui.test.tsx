@@ -88,7 +88,7 @@ describe('text stream', () => {
         });
 
         it("should send 'test' to the API", async () => {
-          expect(await call(0).getRequestBodyJson()).toBe('test-input');
+          expect(await call(0).getrequestBody()).toBe('test-input');
         });
 
         it('should not have an error', async () => {
