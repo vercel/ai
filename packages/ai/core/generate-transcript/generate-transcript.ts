@@ -24,7 +24,7 @@ as body parameters.
 
 @returns A result object that contains the generated transcript.
  */
-export async function generateTranscript({
+export async function transcribe({
   model,
   audio,
   providerOptions,
