@@ -1,5 +1,17 @@
 # @ai-sdk/groq
 
+## 2.0.0-canary.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- Updated dependencies [d5f588f]
+  - @ai-sdk/provider-utils@3.0.0-canary.0
+  - @ai-sdk/provider@2.0.0-canary.0
+
 ## 1.2.3
 
 ### Patch Changes

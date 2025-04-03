@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-canary.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+
+### Patch Changes
+
+- 91715e5: fix (provider/google-vertex): fix anthropic support for image urls in messages
+- Updated dependencies [d5f588f]
+  - @ai-sdk/provider-utils@3.0.0-canary.0
+  - @ai-sdk/provider@2.0.0-canary.0
+
 ## 1.2.4
 
 ### Patch Changes

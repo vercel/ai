@@ -1,5 +1,19 @@
 # @ai-sdk/react
 
+## 2.0.0-canary.0
+
+### Major Changes
+
+- d5f588f: AI SDK 5
+- 9477ebb: chore (ui): remove useAssistant hook (**breaking change**)
+
+### Patch Changes
+
+- Updated dependencies [d5f588f]
+- Updated dependencies [9477ebb]
+  - @ai-sdk/provider-utils@3.0.0-canary.0
+  - @ai-sdk/ui-utils@2.0.0-canary.0
+
 ## 1.2.5
 
 ### Patch Changes
