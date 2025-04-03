@@ -47,17 +47,12 @@ export function smoothStream<TOOLS extends ToolSet>({
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
-        if (chunk.type === 'step-finish') {
+        if (chunk.type !== 'text-delta') {
           if (buffer.length > 0) {
             controller.enqueue({ type: 'text-delta', textDelta: buffer });
             buffer = '';
           }
 
-          controller.enqueue(chunk);
-          return;
-        }
-
-        if (chunk.type !== 'text-delta') {
           controller.enqueue(chunk);
           return;
         }
