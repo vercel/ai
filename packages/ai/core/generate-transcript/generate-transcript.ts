@@ -104,7 +104,6 @@ Only applicable for HTTP-based providers.
     segments: result.segments,
     language: result.language,
     durationInSeconds: result.durationInSeconds,
-    mimeType: detectMimeType(audioData, audioMimeTypeSignatures) ?? 'audio/wav',
     warnings: result.warnings,
     responses: [result.response],
     providerMetadata: result.providerMetadata,
@@ -120,7 +119,6 @@ class DefaultTranscriptionResult implements TranscriptionResult {
   }>;
   readonly language: string | undefined;
   readonly durationInSeconds: number | undefined;
-  readonly mimeType: string;
   readonly warnings: Array<TranscriptionWarning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
   readonly providerMetadata: Record<string, Record<string, JSONValue>>;
@@ -134,7 +132,6 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     }>;
     language: string | undefined;
     durationInSeconds: number | undefined;
-    mimeType: string;
     warnings: Array<TranscriptionWarning>;
     responses: Array<TranscriptionModelResponseMetadata>;
     providerMetadata: Record<string, Record<string, JSONValue>>;
@@ -143,7 +140,6 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     this.segments = options.segments;
     this.language = options.language;
     this.durationInSeconds = options.durationInSeconds;
-    this.mimeType = options.mimeType;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata;

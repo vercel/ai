@@ -171,7 +171,6 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
       segments: response.words ?? [],
       language,
       durationInSeconds: response.duration,
-      mimeType: response.mime_type,
       warnings: [],
       response: {
         timestamp: currentDate,
@@ -194,6 +193,5 @@ const openaiTranscriptionResponseSchema = z.object({
   words: z.array(z.any()).optional(),
   language: z.string().optional(),
   duration: z.number().optional(),
-  mime_type: z.string(),
   providerMetadata: z.record(z.any()),
 });

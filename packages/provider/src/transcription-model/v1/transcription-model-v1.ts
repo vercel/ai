@@ -66,11 +66,6 @@ Generates a transcript.
     durationInSeconds: number | undefined;
 
     /**
-     * The MIME type of the audio file that was transcribed (e.g., 'audio/wav').
-     */
-    mimeType: string;
-
-    /**
 Warnings for the call, e.g. unsupported settings.
      */
     warnings: Array<TranscriptionModelV1CallWarning>;

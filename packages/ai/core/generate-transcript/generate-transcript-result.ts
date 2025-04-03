@@ -44,11 +44,6 @@ export interface TranscriptionResult {
   readonly durationInSeconds: number | undefined;
 
   /**
-   * The MIME type of the audio file that was transcribed (e.g., 'audio/wav').
-   */
-  readonly mimeType: string;
-
-  /**
   Warnings for the call, e.g. unsupported settings.
      */
   readonly warnings: Array<TranscriptionWarning>;

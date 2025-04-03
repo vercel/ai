@@ -25,7 +25,6 @@ const sampleTranscript = {
   ],
   language: 'en',
   durationInSeconds: 4.0,
-  mimeType: 'audio/wav',
 };
 
 const createMockResponse = (options: {
@@ -37,7 +36,6 @@ const createMockResponse = (options: {
   }>;
   language?: string;
   durationInSeconds?: number;
-  mimeType: string;
   warnings?: TranscriptionModelV1CallWarning[];
   timestamp?: Date;
   modelId?: string;
@@ -48,7 +46,6 @@ const createMockResponse = (options: {
   segments: options.segments,
   language: options.language,
   durationInSeconds: options.durationInSeconds,
-  mimeType: options.mimeType,
   warnings: options.warnings ?? [],
   response: {
     timestamp: options.timestamp ?? new Date(),
@@ -153,7 +150,6 @@ describe('transcribe', () => {
                 segments: [],
                 language: 'en',
                 durationInSeconds: 0,
-                mimeType: 'audio/wav',
                 timestamp: testDate,
               }),
           }),
@@ -181,7 +177,6 @@ describe('transcribe', () => {
                 segments: [],
                 language: 'en',
                 durationInSeconds: 0,
-                mimeType: 'audio/wav',
                 timestamp: testDate,
                 headers: {
                   'custom-response-header': 'response-header-value',
