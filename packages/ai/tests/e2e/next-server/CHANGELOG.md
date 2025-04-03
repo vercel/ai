@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [c45d100]
+  - ai@4.2.11
+
+## 0.0.1
+
+### Patch Changes
+
 - ai@4.2.10
 
 ## 0.0.1

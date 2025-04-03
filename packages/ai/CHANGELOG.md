@@ -1,5 +1,11 @@
 # ai
 
+## 4.2.11
+
+### Patch Changes
+
+- c45d100: fix (core): send buffered text in smooth stream when stream parts change
+
 ## 4.2.10
 
 ### Patch Changes
