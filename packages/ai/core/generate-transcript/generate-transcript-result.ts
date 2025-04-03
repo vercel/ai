@@ -4,7 +4,7 @@ import { TranscriptionModelResponseMetadata } from '../types/transcription-model
 /**
  * Represents a transcript generated from audio content.
  */
-export type GeneratedTranscript = {
+export type Transcript = {
   /**
    * The complete transcribed text from the audio.
    */
@@ -51,11 +51,11 @@ export type GeneratedTranscript = {
 The result of a `generateTranscript` call.
 It contains the transcript and additional information.
  */
-export interface GenerateTranscriptResult {
+export interface TranscriptionResult {
   /**
   The transcript that was generated.
    */
-  readonly transcript: GeneratedTranscript;
+  readonly transcript: Transcript;
 
   /**
   Warnings for the call, e.g. unsupported settings.

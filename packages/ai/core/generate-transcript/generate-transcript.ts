@@ -4,8 +4,8 @@ import { prepareRetries } from '../prompt/prepare-retries';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
-  GeneratedTranscript,
-  GenerateTranscriptResult,
+  Transcript,
+  TranscriptionResult,
 } from './generate-transcript-result';
 import { detectAudioMimeType } from '../util/detect-audio-mime-type';
 import { DataContent } from '../prompt';
@@ -99,7 +99,7 @@ Only applicable for HTTP-based providers.
     throw new NoTranscriptGeneratedError({ responses: [result.response] });
   }
 
-  const transcript: GeneratedTranscript = {
+  const transcript: Transcript = {
     text: result.transcript.text,
     segments: result.transcript.segments,
     language: result.transcript.language,
@@ -107,7 +107,7 @@ Only applicable for HTTP-based providers.
     mimeType: detectAudioMimeType(audioData) ?? 'audio/wav',
   };
 
-  return new DefaultGenerateTranscriptResult({
+  return new DefaultTranscriptionResult({
     transcript,
     warnings: result.warnings,
     responses: [result.response],
@@ -115,13 +115,13 @@ Only applicable for HTTP-based providers.
   });
 }
 
-class DefaultGenerateTranscriptResult implements GenerateTranscriptResult {
-  readonly transcript: GeneratedTranscript;
+class DefaultTranscriptionResult implements TranscriptionResult {
+  readonly transcript: Transcript;
   readonly warnings: Array<TranscriptionWarning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
   readonly providerMetadata: Record<string, Record<string, JSONValue>>;
   constructor(options: {
-    transcript: GeneratedTranscript;
+    transcript: Transcript;
     warnings: Array<TranscriptionWarning>;
     responses: Array<TranscriptionModelResponseMetadata>;
     providerMetadata: Record<string, Record<string, JSONValue>>;
