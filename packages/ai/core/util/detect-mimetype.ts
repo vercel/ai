@@ -1,4 +1,4 @@
-const mimeTypeSignatures = [
+export const imageMimeTypeSignatures = [
   {
     mimeType: 'image/gif' as const,
     bytesPrefix: [0x47, 0x49, 0x46],
@@ -48,6 +48,9 @@ const mimeTypeSignatures = [
     ],
     base64Prefix: 'AAAAIGZ0eXBoZWlj',
   },
+] as const;
+
+export const audioMimeTypeSignatures = [
   {
     mimeType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xfb],
@@ -82,8 +85,9 @@ const mimeTypeSignatures = [
 
 export function detectMimeType(
   data: Uint8Array | string,
-): (typeof mimeTypeSignatures)[number]['mimeType'] | undefined {
-  for (const signature of mimeTypeSignatures) {
+  signatures: typeof audioMimeTypeSignatures | typeof imageMimeTypeSignatures,
+): (typeof signatures)[number]['mimeType'] | undefined {
+  for (const signature of signatures) {
     if (
       typeof data === 'string'
         ? data.startsWith(signature.base64Prefix)

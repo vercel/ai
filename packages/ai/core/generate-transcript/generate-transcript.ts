@@ -4,7 +4,7 @@ import { prepareRetries } from '../prompt/prepare-retries';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import { Transcript, TranscriptionResult } from './generate-transcript-result';
-import { detectMimeType } from '../util/detect-mimetype';
+import { audioMimeTypeSignatures, detectMimeType } from '../util/detect-mimetype';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 
@@ -101,7 +101,7 @@ Only applicable for HTTP-based providers.
     segments: result.transcript.segments,
     language: result.transcript.language,
     durationInSeconds: result.transcript.durationInSeconds,
-    mimeType: detectMimeType(audioData) ?? 'audio/wav',
+    mimeType: detectMimeType(audioData, audioMimeTypeSignatures) ?? 'audio/wav',
   };
 
   return new DefaultTranscriptionResult({
