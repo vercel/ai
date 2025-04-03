@@ -24,7 +24,7 @@ export function smoothStream<TOOLS extends ToolSet>({
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number | null;
-  chunking?: 'character' |'word' | 'line' | { split: string } | RegExp;
+  chunking?: 'character' | 'word' | 'line' | { split: string } | RegExp;
   /**
    * Internal. For test use only. May change without notice.
    */
