@@ -15,6 +15,7 @@ interface OpenAITranscriptionModelConfig extends OpenAIConfig {
   };
 }
 
+// https://platform.openai.com/docs/api-reference/audio/createTranscription
 const providerOptionsMapping = {
   include: 'include',
   language: 'language',
@@ -24,6 +25,7 @@ const providerOptionsMapping = {
   timestampGranularities: 'timestamp_granularities',
 };
 
+// https://platform.openai.com/docs/guides/speech-to-text#supported-languages
 const languageMap = {
   afrikaans: 'af',
   arabic: 'ar',
