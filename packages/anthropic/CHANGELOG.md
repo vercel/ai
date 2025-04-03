@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 1.2.5
+
+### Patch Changes
+
+- 292f543: fix (provider/google-vertex): fix anthropic support for image urls in messages
+
 ## 1.2.4
 
 ### Patch Changes
