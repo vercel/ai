@@ -28,10 +28,7 @@ import {
   OpenAIImageSettings,
 } from './openai-image-settings';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
-import {
-  OpenAITranscriptionModelId,
-  OpenAITranscriptionSettings,
-} from './openai-transcription-settings';
+import { OpenAITranscriptionModelId } from './openai-transcription-settings';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
 import { openaiTools } from './openai-tools';
@@ -121,10 +118,7 @@ Creates a model for image generation.
   /**
 Creates a model for transcription.
    */
-  transcription(
-    modelId: OpenAITranscriptionModelId,
-    settings?: OpenAITranscriptionSettings,
-  ): TranscriptionModelV1;
+  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV1;
 
   /**
 OpenAI-specific tools.
@@ -248,11 +242,8 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createTranscriptionModel = (
-    modelId: OpenAITranscriptionModelId,
-    settings: OpenAITranscriptionSettings = {},
-  ) =>
-    new OpenAITranscriptionModel(modelId, settings, {
+  const createTranscriptionModel = (modelId: OpenAITranscriptionModelId) =>
+    new OpenAITranscriptionModel(modelId, {
       provider: `${providerName}.transcription`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,

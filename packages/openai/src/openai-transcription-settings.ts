@@ -3,5 +3,3 @@ export type OpenAITranscriptionModelId =
   | 'gpt-4o-mini-transcribe'
   | 'gpt-4o-transcribe'
   | (string & {});
-
-export interface OpenAITranscriptionSettings {}

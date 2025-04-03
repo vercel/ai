@@ -7,10 +7,7 @@ import {
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
-import {
-  OpenAITranscriptionModelId,
-  OpenAITranscriptionSettings,
-} from './openai-transcription-settings';
+import { OpenAITranscriptionModelId } from './openai-transcription-settings';
 
 interface OpenAITranscriptionModelConfig extends OpenAIConfig {
   _internal?: {
@@ -96,7 +93,6 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
   constructor(
     readonly modelId: OpenAITranscriptionModelId,
-    private readonly settings: OpenAITranscriptionSettings,
     private readonly config: OpenAITranscriptionModelConfig,
   ) {}
 
