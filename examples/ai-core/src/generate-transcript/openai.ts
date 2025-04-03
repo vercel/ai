@@ -1,10 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateTranscript as generateTranscript } from 'ai';
+import { experimental_transcribe as transcribe } from 'ai';
 import 'dotenv/config';
 import { readFile } from 'fs/promises';
 
 async function main() {
-  const result = await generateTranscript({
+  const result = await transcribe({
     model: openai.transcription('whisper-1'),
     audio: await readFile('audio.mp3'),
   });

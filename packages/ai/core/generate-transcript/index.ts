@@ -1,2 +1,2 @@
-export { generateTranscript as experimental_generateTranscript } from './generate-transcript';
-export type { GenerateTranscriptResult as Experimental_GenerateTranscriptResult } from './generate-transcript-result';
+export { transcribe as experimental_transcribe } from './generate-transcript';
+export type { TranscriptionResult as Experimental_TranscriptionResult } from './generate-transcript-result';

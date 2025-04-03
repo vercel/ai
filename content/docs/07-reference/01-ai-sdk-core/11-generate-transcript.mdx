@@ -1,11 +1,11 @@
 ---
-title: generateTranscript
-description: API Reference for generateTranscript.
+title: transcribe
+description: API Reference for transcribe.
 ---
 
-# `generateTranscript()`
+# `transcribe()`
 
-<Note type="warning">`generateTranscript` is an experimental feature.</Note>
+<Note type="warning">`transcribe` is an experimental feature.</Note>
 
 Generates a transcript from an audio file.
 
@@ -13,9 +13,9 @@ It is ideal for use cases where you need to generate a transcript from an audio 
 such as creating a transcript for a podcast or a video.
 
 ```ts
-import { experimental_generateTranscript as generateTranscript } from 'ai';
+import { experimental_transcribe as transcribe } from 'ai';
 
-const { transcript } = await generateTranscript({
+const { transcript } = await transcribe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
 });
@@ -26,7 +26,7 @@ console.log(transcript);
 ## Import
 
 <Snippet
-  text={`import { experimental_generateTranscript as generateTranscript } from "ai"`}
+  text={`import { experimental_transcribe as transcribe } from "ai"`}
   prompt={false}
 />
 

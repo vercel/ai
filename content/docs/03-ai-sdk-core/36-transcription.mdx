@@ -7,14 +7,14 @@ description: Learn how to transcribe audio with the AI SDK.
 
 <Note type="warning">Transcription is an experimental feature.</Note>
 
-The AI SDK provides the [`generateTranscript`](/docs/reference/ai-sdk-core/generate-transcript)
+The AI SDK provides the [`transcibe`](/docs/reference/ai-sdk-core/transcribe)
 function to transcribe audio using a transcription model.
 
 ```tsx
-import { experimental_generateTranscript as generateTranscript } from 'ai';
+import { experimental_transcibe as transcibe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const { transcript } = await generateTranscript({
+const { transcript } = await transcibe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
 });
@@ -36,15 +36,15 @@ const duration = transcript.duration; // duration of the transcript if available
 ### Provider-specific Settings
 
 Transcription models often have provider- or even model-specific settings.
-You can pass such settings to the `generateTranscript` function
+You can pass such settings to the `transcibe` function
 using the `providerOptions` parameter. The options for the provider
 (`openai` in the example below) become request body properties.
 
 ```tsx highlight={"9"}
-import { experimental_generateTranscript as generateTranscript } from 'ai';
+import { experimental_transcibe as transcibe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const { transcript } = await generateTranscript({
+const { transcript } = await transcibe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
   providerOptions: {
@@ -57,15 +57,15 @@ const { transcript } = await generateTranscript({
 
 ### Abort Signals and Timeouts
 
-`generateTranscript` accepts an optional `abortSignal` parameter of
+`transcibe` accepts an optional `abortSignal` parameter of
 type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
 that you can use to abort the transcription process or set a timeout.
 
 ```ts highlight={"7"}
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateTranscript as generateTranscript } from 'ai';
+import { experimental_transcibe as transcibe } from 'ai';
 
-const { transcript } = await generateTranscript({
+const { transcript } = await transcibe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
@@ -74,14 +74,14 @@ const { transcript } = await generateTranscript({
 
 ### Custom Headers
 
-`generateTranscript` accepts an optional `headers` parameter of type `Record<string, string>`
+`transcibe` accepts an optional `headers` parameter of type `Record<string, string>`
 that you can use to add custom headers to the transcription request.
 
 ```ts highlight={"7"}
 import { openai } from '@ai-sdk/openai';
-import { experimental_generateTranscript as generateTranscript } from 'ai';
+import { experimental_transcibe as transcibe } from 'ai';
 
-const { transcript } = await generateTranscript({
+const { transcript } = await transcibe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
   headers: { 'X-Custom-Header': 'custom-value' },
@@ -93,7 +93,7 @@ const { transcript } = await generateTranscript({
 If the model returns warnings, e.g. for unsupported parameters, they will be available in the `warnings` property of the response.
 
 ```tsx
-const { transcript, warnings } = await generateTranscript({
+const { transcript, warnings } = await transcibe({
   model: openai.transcription('whisper-1'),
   audio: audioData,
 });
@@ -101,7 +101,7 @@ const { transcript, warnings } = await generateTranscript({
 
 ### Error Handling
 
-When `generateTranscript` cannot generate a valid transcript, it throws a [`AI_NoTranscriptGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-transcript-generated-error).
+When `transcibe` cannot generate a valid transcript, it throws a [`AI_NoTranscriptGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-transcript-generated-error).
 
 This error occurs when the AI provider fails to generate a transcript. It can arise due to the following reasons:
 
@@ -114,10 +114,10 @@ The error preserves the following information to help you log the issue:
 - `cause`: The cause of the error. You can use this for more detailed error handling
 
 ```ts
-import { generateTranscript, NoTranscriptGeneratedError } from 'ai';
+import { transcibe, NoTranscriptGeneratedError } from 'ai';
 
 try {
-  await generateTranscript({ model, audio });
+  await transcibe({ model, audio });
 } catch (error) {
   if (NoTranscriptGeneratedError.isInstance(error)) {
     console.log('NoTranscriptGeneratedError');

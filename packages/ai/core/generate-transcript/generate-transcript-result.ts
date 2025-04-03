@@ -48,7 +48,7 @@ export type Transcript = {
 };
 
 /**
-The result of a `generateTranscript` call.
+The result of a `transcribe` call.
 It contains the transcript and additional information.
  */
 export interface TranscriptionResult {

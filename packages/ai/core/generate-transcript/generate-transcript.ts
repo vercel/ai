@@ -7,7 +7,7 @@ import {
   Transcript,
   TranscriptionResult,
 } from './generate-transcript-result';
-import { detectAudioMimeType } from '../util/detect-audio-mime-type';
+import { detectMimeType } from '../util/detect-mimetype';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 
@@ -75,7 +75,7 @@ Additional headers to include in the request.
 Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
-}): Promise<GenerateTranscriptResult> {
+}): Promise<TranscriptionResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
   let audioData: Uint8Array;
 
@@ -104,7 +104,7 @@ Only applicable for HTTP-based providers.
     segments: result.transcript.segments,
     language: result.transcript.language,
     durationInSeconds: result.transcript.durationInSeconds,
-    mimeType: detectAudioMimeType(audioData) ?? 'audio/wav',
+    mimeType: detectMimeType(audioData) ?? 'audio/wav',
   };
 
   return new DefaultTranscriptionResult({

@@ -4,7 +4,7 @@ import {
   TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
 import { MockTranscriptionModelV1 } from '../test/mock-transcription-model-v1';
-import { generateTranscript } from './generate-transcript';
+import { transcribe } from './generate-transcript';
 
 const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
@@ -46,14 +46,14 @@ const createMockResponse = (options: {
   providerMetadata: options.providerMetadata ?? {},
 });
 
-describe('generateTranscript', () => {
+describe('transcribe', () => {
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
     let capturedArgs!: Parameters<TranscriptionModelV1['doGenerate']>[0];
 
-    await generateTranscript({
+    await transcribe({
       model: new MockTranscriptionModelV1({
         doGenerate: async args => {
           capturedArgs = args;
@@ -76,7 +76,7 @@ describe('generateTranscript', () => {
   });
 
   it('should return warnings', async () => {
-    const result = await generateTranscript({
+    const result = await transcribe({
       model: new MockTranscriptionModelV1({
         doGenerate: async () =>
           createMockResponse({
@@ -104,7 +104,7 @@ describe('generateTranscript', () => {
   });
 
   it('should return the transcript', async () => {
-    const result = await generateTranscript({
+    const result = await transcribe({
       model: new MockTranscriptionModelV1({
         doGenerate: async () =>
           createMockResponse({
@@ -120,7 +120,7 @@ describe('generateTranscript', () => {
   describe('error handling', () => {
     it('should throw NoTranscriptGeneratedError when no transcript is returned', async () => {
       await expect(
-        generateTranscript({
+        transcribe({
           model: new MockTranscriptionModelV1({
             doGenerate: async () =>
               createMockResponse({
@@ -150,7 +150,7 @@ describe('generateTranscript', () => {
 
     it('should include response headers in error when no transcript generated', async () => {
       await expect(
-        generateTranscript({
+        transcribe({
           model: new MockTranscriptionModelV1({
             doGenerate: async () =>
               createMockResponse({
@@ -188,7 +188,7 @@ describe('generateTranscript', () => {
   it('should return response metadata', async () => {
     const testHeaders = { 'x-test': 'value' };
 
-    const result = await generateTranscript({
+    const result = await transcribe({
       model: new MockTranscriptionModelV1({
         doGenerate: async () =>
           createMockResponse({
