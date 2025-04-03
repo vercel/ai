@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "1.1.0",
+    "@standard-schema/spec": "1.0.0",
     "nanoid": "^3.3.8",
     "secure-json-parse": "^2.7.0"
   },

@@ -1744,6 +1744,9 @@ importers:
       '@ai-sdk/provider':
         specifier: 1.1.0
         version: link:../provider
+      '@standard-schema/spec':
+        specifier: 1.0.0
+        version: 1.0.0
       nanoid:
         specifier: ^3.3.8
         version: 3.3.8
@@ -1778,6 +1781,9 @@ importers:
       '@ai-sdk/ui-utils':
         specifier: 1.2.4
         version: link:../ui-utils
+      '@standard-schema/spec':
+        specifier: 1.0.0
+        version: 1.0.0
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
         version: 18.3.1
@@ -7148,6 +7154,9 @@ packages:
     peerDependenciesMeta:
       '@solidjs/router':
         optional: true
+
+  '@standard-schema/spec@1.0.0':
+    resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
   '@sveltejs/acorn-typescript@1.0.5':
     resolution: {integrity: sha512-IwQk4yfwLdibDlrXVE04jTZYlLnwsTT2PIOQQGNLWfjavGifnk1JD1LcZjZaBTRcxZu2FfPfNLOE04DSu9lqtQ==}
@@ -20995,6 +21004,8 @@ snapshots:
       solid-js: 1.8.7
     optionalDependencies:
       '@solidjs/router': 0.15.1(solid-js@1.8.7)
+
+  '@standard-schema/spec@1.0.0': {}
 
   '@sveltejs/acorn-typescript@1.0.5(acorn@8.14.1)':
     dependencies:

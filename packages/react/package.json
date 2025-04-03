@@ -31,6 +31,7 @@
   "dependencies": {
     "@ai-sdk/provider-utils": "2.2.3",
     "@ai-sdk/ui-utils": "1.2.4",
+    "@standard-schema/spec": "1.0.0",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"
   },

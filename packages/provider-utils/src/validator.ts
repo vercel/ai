@@ -1,3 +1,4 @@
+import { StandardSchemaV1 } from '@standard-schema/spec';
 import { z } from 'zod';
 
 /**
@@ -44,7 +45,10 @@ export function isValidator(value: unknown): value is Validator {
 }
 
 export function asValidator<OBJECT>(
-  value: Validator<OBJECT> | z.Schema<OBJECT, z.ZodTypeDef, any>,
+  value:
+    | Validator<OBJECT>
+    | StandardSchemaV1<OBJECT>
+    | z.Schema<OBJECT, z.ZodTypeDef, any>,
 ): Validator<OBJECT> {
   return isValidator(value) ? value : zodValidator(value);
 }
@@ -58,4 +62,32 @@ export function zodValidator<OBJECT>(
       ? { success: true, value: result.data }
       : { success: false, error: result.error };
   });
+}
+
+export function standardSchemaValidator<OBJECT>(
+  standardSchema: StandardSchemaV1<OBJECT>,
+): Validator<OBJECT> {
+  return validator(value => {
+    let result = standardSchema['~standard'].validate(value);
+    if (result instanceof Promise) result = await result;
+
+    return result.success
+      ? { success: true, value: result.data }
+      : { success: false, error: result.error };
+  });
+}
+
+export async function standardValidate<T extends StandardSchemaV1>(
+  schema: T,
+  input: StandardSchemaV1.InferInput<T>,
+): Promise<StandardSchemaV1.InferOutput<T>> {
+  let result = schema['~standard'].validate(input);
+  if (result instanceof Promise) result = await result;
+
+  // if the `issues` field exists, the validation failed
+  if (result.issues) {
+    throw new Error(JSON.stringify(result.issues, null, 2));
+  }
+
+  return result.value;
 }
