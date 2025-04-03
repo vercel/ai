@@ -1,8 +1,7 @@
 import { LanguageModelV1Prompt } from '@ai-sdk/provider';
 import {
-  JsonTestServer,
-  StreamingTestServer,
   convertReadableStreamToArray,
+  createTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createGroq } from './groq-provider';
 
@@ -37,13 +36,11 @@ describe('settings', () => {
   });
 });
 
+const server = createTestServer({
+  'https://api.groq.com/openai/v1/chat/completions': {},
+});
+
 describe('doGenerate', () => {
-  const server = new JsonTestServer(
-    'https://api.groq.com/openai/v1/chat/completions',
-  );
-
-  server.setupTestEnvironment();
-
   function prepareJsonResponse({
     content = '',
     reasoning,
@@ -58,6 +55,7 @@ describe('doGenerate', () => {
     id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
     created = 1711115037,
     model = 'gemma2-9b-it',
+    headers,
   }: {
     content?: string;
     reasoning?: string;
@@ -82,27 +80,32 @@ describe('doGenerate', () => {
     created?: number;
     id?: string;
     model?: string;
+    headers?: Record<string, string>;
   } = {}) {
-    server.responseBodyJson = {
-      id,
-      object: 'chat.completion',
-      created,
-      model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content,
-            reasoning,
-            tool_calls,
-            function_call,
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        id,
+        object: 'chat.completion',
+        created,
+        model,
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content,
+              reasoning,
+              tool_calls,
+              function_call,
+            },
+            finish_reason,
           },
-          finish_reason,
-        },
-      ],
-      usage,
-      system_fingerprint: 'fp_3bc1b5746c',
+        ],
+        usage,
+        system_fingerprint: 'fp_3bc1b5746c',
+      },
     };
   }
 
@@ -219,11 +222,11 @@ describe('doGenerate', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareJsonResponse({ content: '' });
-
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    prepareJsonResponse({
+      headers: {
+        'test-header': 'test-value',
+      },
+    });
 
     const { rawResponse } = await model.doGenerate({
       inputFormat: 'prompt',
@@ -250,7 +253,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -271,7 +274,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
       parallel_tool_calls: false,
@@ -308,7 +311,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
       tools: [
@@ -352,9 +355,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
+    expect(server.calls[0].requestHeaders).toStrictEqual({
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
@@ -433,7 +434,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
       response_format: {
@@ -458,36 +459,36 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
-  const server = new StreamingTestServer(
-    'https://api.groq.com/openai/v1/chat/completions',
-  );
-
-  server.setupTestEnvironment();
-
   function prepareStreamResponse({
-    content,
+    content = [],
     finish_reason = 'stop',
+    headers,
   }: {
-    content: string[];
+    content?: string[];
     finish_reason?: string;
+    headers?: Record<string, string>;
   }) {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-      ...content.map(text => {
-        return (
-          `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
-        );
-      }),
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"${finish_reason}"}],` +
-        `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-        `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      headers,
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        ...content.map(text => {
+          return (
+            `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+            `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"${text}"},"finish_reason":null}]}\n\n`
+          );
+        }),
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}"}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"${finish_reason}"}],` +
+          `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
   }
 
   it('should stream text deltas', async () => {
@@ -522,23 +523,26 @@ describe('doStream', () => {
   });
 
   it('should stream reasoning deltas', async () => {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":null,"choices":[{"index":1,"delta":{"reasoning":"I think,"},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":null,"choices":[{"index":1,"delta":{"reasoning":"therefore I am."},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}],` +
-        `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-        `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"reasoning":"I think,"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"reasoning":"therefore I am."},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":null,"choices":[{"index":1,"delta":{"content":"Hello"},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1702657020,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"stop"}],` +
+          `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -566,38 +570,41 @@ describe('doStream', () => {
   });
 
   it('should stream tool deltas', async () => {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
-        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],` +
-        `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-        `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"value"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],` +
+          `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -692,38 +699,41 @@ describe('doStream', () => {
   });
 
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
-        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],` +
-        `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-        `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"va"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"lue"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\":\\""}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"Spark"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"le"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":" Day"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],` +
+          `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -825,44 +835,47 @@ describe('doStream', () => {
   });
 
   it('should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed', async () => {
-    server.responseChunks = [
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":226,"completion_tokens":0}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"id":"chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",` +
-        `"type":"function","index":0,"function":{"name":"searchGoogle"}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":233,"completion_tokens":7}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":"{\\"query\\": \\""}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":241,"completion_tokens":15}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":"latest"}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":242,"completion_tokens":16}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":" news"}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":243,"completion_tokens":17}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":" on"}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":244,"completion_tokens":18}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":" ai\\"}"}}]},"logprobs":null,"finish_reason":null}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":245,"completion_tokens":19}}\n\n`,
-      // empty arguments chunk after the tool call has already been finished:
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
-        `"function":{"arguments":""}}]},"logprobs":null,"finish_reason":"tool_calls","stop_reason":128008}],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
-      `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
-        `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[],` +
-        `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
-      `data: [DONE]\n\n`,
-    ];
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"role":"assistant","content":""},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":226,"completion_tokens":0}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"id":"chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",` +
+          `"type":"function","index":0,"function":{"name":"searchGoogle"}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":233,"completion_tokens":7}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":"{\\"query\\": \\""}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":241,"completion_tokens":15}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":"latest"}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":242,"completion_tokens":16}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":" news"}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":243,"completion_tokens":17}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":" on"}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":244,"completion_tokens":18}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":" ai\\"}"}}]},"logprobs":null,"finish_reason":null}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":245,"completion_tokens":19}}\n\n`,
+        // empty arguments chunk after the tool call has already been finished:
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[{"index":0,"delta":{"tool_calls":[{"index":0,` +
+          `"function":{"arguments":""}}]},"logprobs":null,"finish_reason":"tool_calls","stop_reason":128008}],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
+        `data: {"id":"chat-2267f7e2910a4254bac0650ba74cfc1c","object":"chat.completion.chunk","created":1733162241,` +
+          `"model":"meta/llama-3.1-8b-instruct:fp8","choices":[],` +
+          `"usage":{"prompt_tokens":226,"total_tokens":246,"completion_tokens":20}}\n\n`,
+        `data: [DONE]\n\n`,
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -944,17 +957,20 @@ describe('doStream', () => {
   });
 
   it('should stream tool call that is sent in one chunk', async () => {
-    server.responseChunks = [
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
-        `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
-        `"finish_reason":null}]}\n\n`,
-      `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
-        `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],` +
-        `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
-        `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1711357598,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_3bc1b5746c","choices":[{"index":0,"delta":{"role":"assistant","content":null,` +
+          `"tool_calls":[{"index":0,"id":"call_O17Uplv4lJvD6DVdIvFFeRMw","type":"function","function":{"name":"test-tool","arguments":"{\\"value\\":\\"Sparkle Day\\"}"}}]},` +
+          `"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798","object":"chat.completion.chunk","created":1729171479,"model":"gemma2-9b-it",` +
+          `"system_fingerprint":"fp_10c08bf97d","choices":[{"index":0,"delta":{},"logprobs":null,"finish_reason":"tool_calls"}],` +
+          `"x_groq":{"id":"req_01jadadp0femyae9kav1gpkhe8","usage":{"queue_time":0.061348671,"prompt_tokens":18,"prompt_time":0.000211569,` +
+          `"completion_tokens":439,"completion_time":0.798181818,"total_tokens":457,"total_time":0.798393387}}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -1007,10 +1023,13 @@ describe('doStream', () => {
   });
 
   it('should handle error stream parts', async () => {
-    server.responseChunks = [
-      `data: {"error":{"message": "The server had an error processing your request. Sorry about that!","type":"invalid_request_error"}}\n\n`,
-      'data: [DONE]\n\n',
-    ];
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"error":{"message": "The server had an error processing your request. Sorry about that!","type":"invalid_request_error"}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -1039,7 +1058,10 @@ describe('doStream', () => {
   });
 
   it('should handle unparsable stream parts', async () => {
-    server.responseChunks = [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'];
+    server.urls['https://api.groq.com/openai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+    };
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
@@ -1062,11 +1084,11 @@ describe('doStream', () => {
   });
 
   it('should expose the raw response headers', async () => {
-    prepareStreamResponse({ content: [] });
-
-    server.responseHeaders = {
-      'test-header': 'test-value',
-    };
+    prepareStreamResponse({
+      headers: {
+        'test-header': 'test-value',
+      },
+    });
 
     const { rawResponse } = await model.doStream({
       inputFormat: 'prompt',
@@ -1094,7 +1116,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       stream: true,
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
@@ -1120,9 +1142,7 @@ describe('doStream', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
+    expect(server.calls[0].requestHeaders).toStrictEqual({
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
