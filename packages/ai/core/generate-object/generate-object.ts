@@ -556,6 +556,7 @@ export async function generateObject<SCHEMA, RESULT>({
                       'No object generated: the model did not return a response.',
                     response: responseData,
                     usage: calculateLanguageModelUsage(result.usage),
+                    finishReason: result.finishReason,
                   });
                 }
 
@@ -681,6 +682,7 @@ export async function generateObject<SCHEMA, RESULT>({
                     message: 'No object generated: the tool was not called.',
                     response: responseData,
                     usage: calculateLanguageModelUsage(result.usage),
+                    finishReason: result.finishReason,
                   });
                 }
 
@@ -751,6 +753,7 @@ export async function generateObject<SCHEMA, RESULT>({
             text: result,
             response,
             usage: calculateLanguageModelUsage(usage),
+            finishReason: finishReason,
           });
         }
 
@@ -770,6 +773,7 @@ export async function generateObject<SCHEMA, RESULT>({
             text: result,
             response,
             usage: calculateLanguageModelUsage(usage),
+            finishReason: finishReason,
           });
         }
 

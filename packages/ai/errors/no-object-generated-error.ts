@@ -1,6 +1,7 @@
 import { AISDKError } from '@ai-sdk/provider';
 import { LanguageModelResponseMetadata } from '../core/types/language-model-response-metadata';
 import { LanguageModelUsage } from '../core/types/usage';
+import { FinishReason } from '../core';
 
 const name = 'AI_NoObjectGeneratedError';
 const marker = `vercel.ai.error.${name}`;
@@ -35,24 +36,32 @@ export class NoObjectGeneratedError extends AISDKError {
    */
   readonly usage: LanguageModelUsage | undefined;
 
+  /**
+  Reason why the model finished generating a response.
+   */
+  readonly finishReason: FinishReason | undefined;
+
   constructor({
     message = 'No object generated.',
     cause,
     text,
     response,
     usage,
+    finishReason,
   }: {
     message?: string;
     cause?: Error;
     text?: string;
     response: LanguageModelResponseMetadata;
     usage: LanguageModelUsage;
+    finishReason: FinishReason;
   }) {
     super({ name, message, cause });
 
     this.text = text;
     this.response = response;
     this.usage = usage;
+    this.finishReason = finishReason;
   }
 
   static isInstance(error: unknown): error is NoObjectGeneratedError {
@@ -66,6 +75,7 @@ export function verifyNoObjectGeneratedError(
     message: string;
     response: LanguageModelResponseMetadata;
     usage: LanguageModelUsage;
+    finishReason: FinishReason;
   },
 ) {
   expect(NoObjectGeneratedError.isInstance(error)).toBeTruthy();
@@ -73,4 +83,7 @@ export function verifyNoObjectGeneratedError(
   expect(noObjectGeneratedError.message).toStrictEqual(expected.message);
   expect(noObjectGeneratedError.response).toStrictEqual(expected.response);
   expect(noObjectGeneratedError.usage).toStrictEqual(expected.usage);
+  expect(noObjectGeneratedError.finishReason).toStrictEqual(
+    expected.finishReason,
+  );
 }
