@@ -63,7 +63,11 @@ class TestServerCall {
   }
 
   get requestBodyMultipart() {
-    if (this.request!.headers.get('content-type')?.startsWith('multipart/form-data')) {
+    if (
+      this.request!.headers.get('content-type')?.startsWith(
+        'multipart/form-data',
+      )
+    ) {
       // For multipart/form-data, return the form data entries as an object
       return this.request!.formData().then(formData => {
         const obj: Record<string, any> = {};
@@ -73,7 +77,7 @@ class TestServerCall {
         return obj;
       });
     }
-    
+
     // If not multipart, return null
     return null;
   }

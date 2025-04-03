@@ -3,10 +3,7 @@ import { NoTranscriptGeneratedError } from '../../errors/no-transcript-generated
 import { prepareRetries } from '../prompt/prepare-retries';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
-import {
-  Transcript,
-  TranscriptionResult,
-} from './generate-transcript-result';
+import { Transcript, TranscriptionResult } from './generate-transcript-result';
 import { detectMimeType } from '../util/detect-mimetype';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
