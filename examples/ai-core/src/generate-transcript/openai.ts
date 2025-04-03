@@ -9,8 +9,10 @@ async function main() {
     audio: await readFile('audio.mp3'),
   });
 
-  console.log(result.transcript);
-  console.log();
+  console.log('Text:', result.text);
+  console.log('Duration:', result.durationInSeconds);
+  console.log('Language:', result.language);
+  console.log('Segments:', result.segments);
   console.log('Warnings:', result.warnings);
   console.log('Responses:', result.responses);
   console.log('Provider Metadata:', result.providerMetadata);
