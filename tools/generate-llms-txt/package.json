@@ -1,6 +1,7 @@
 {
-  "private": true,
   "name": "generate-llms-txt",
+  "version": "0.0.0",
+  "private": "true",
   "scripts": {
     "generate-llms-txt": "tsx src/generate-llms-txt.ts"
   },
