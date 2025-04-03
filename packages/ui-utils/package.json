@@ -28,12 +28,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
-    },
-    "./test": {
-      "types": "./test/dist/index.d.ts",
-      "import": "./test/dist/index.mjs",
-      "module": "./test/dist/index.mjs",
-      "require": "./test/dist/index.js"
     }
   },
   "dependencies": {
