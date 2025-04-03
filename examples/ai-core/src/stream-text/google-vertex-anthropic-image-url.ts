@@ -14,7 +14,7 @@ async function main() {
           {
             type: 'image',
             image:
-              'https://pbs.twimg.com/profile_banners/1228351/1736716573/1500x500',
+              'https://github.com/vercel/ai/blob/main/examples/ai-core/data/comic-cat.png?raw=true',
           },
         ],
       },
