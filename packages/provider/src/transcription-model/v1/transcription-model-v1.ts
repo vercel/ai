@@ -106,6 +106,6 @@ Response headers.
     /**
 Provider metadata for telemetry and debugging purposes.
      */
-    providerMetadata: Record<string, JSONValue>;
+    providerMetadata: Record<string, Record<string, JSONValue>>;
   }>;
 };

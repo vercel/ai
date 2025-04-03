@@ -70,5 +70,5 @@ export interface GenerateTranscriptResult {
   /**
   Provider metadata from the provider.
    */
-  readonly providerMetadata: Record<string, JSONValue>;
+  readonly providerMetadata: Record<string, Record<string, JSONValue>>;
 }

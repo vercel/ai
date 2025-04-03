@@ -119,12 +119,12 @@ class DefaultGenerateTranscriptResult implements GenerateTranscriptResult {
   readonly transcript: GeneratedTranscript;
   readonly warnings: Array<TranscriptionWarning>;
   readonly responses: Array<TranscriptionModelResponseMetadata>;
-  readonly providerMetadata: Record<string, JSONValue>;
+  readonly providerMetadata: Record<string, Record<string, JSONValue>>;
   constructor(options: {
     transcript: GeneratedTranscript;
     warnings: Array<TranscriptionWarning>;
     responses: Array<TranscriptionModelResponseMetadata>;
-    providerMetadata: Record<string, JSONValue>;
+    providerMetadata: Record<string, Record<string, JSONValue>>;
   }) {
     this.transcript = options.transcript;
     this.warnings = options.warnings;

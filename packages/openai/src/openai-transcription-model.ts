@@ -190,7 +190,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
       },
 
       // When using format `verbose_json` on `whisper-1`,, OpenAI includes the things like `task` and enhanced `segments` information.
-      providerMetadata: response.transcript,
+      providerMetadata: {
+        openai: {
+          transcript: response.transcript,
+        },
+      },
     };
   }
 }
