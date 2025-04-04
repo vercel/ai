@@ -1,4 +1,5 @@
-import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV2 } from '../../language-model/v2/language-model-v2';
+import { LanguageModelV2CallOptions } from '../../language-model/v2/language-model-v2-call-options';
 
 /**
  * Experimental middleware for LanguageModelV2.
@@ -7,9 +8,9 @@ import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
  */
 export type LanguageModelV2Middleware = {
   /**
-   * Middleware specification version. Use `v1` for the current version.
+   * Middleware specification version. Use `v2` for the current version.
    */
-  middlewareVersion?: 'v1' | undefined; // backwards compatibility
+  middlewareVersion?: 'v2' | undefined; // backwards compatibility
 
   /**
    * Transforms the parameters before they are passed to the language model.

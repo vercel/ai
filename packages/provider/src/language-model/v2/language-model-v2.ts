@@ -7,7 +7,7 @@ import { LanguageModelV2ProviderMetadata } from './language-model-v2-provider-me
 import { LanguageModelV2Source } from './language-model-v2-source';
 
 /**
-Specification for a language model that implements the language model interface version 1.
+Specification for a language model that implements the language model interface version 2.
  */
 export type LanguageModelV2 = {
   /**
@@ -17,7 +17,7 @@ model interface and retain backwards compatibility. The different
 implementation versions can be handled as a discriminated union
 on our side.
    */
-  readonly specificationVersion: 'v1';
+  readonly specificationVersion: 'v2';
 
   /**
 Name of the provider for logging purposes.
