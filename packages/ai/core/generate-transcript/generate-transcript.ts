@@ -78,9 +78,10 @@ Only applicable for HTTP-based providers.
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
-  const audioData = audio instanceof URL ? 
-    new Uint8Array((await download({ url: audio })).data) : 
-    convertDataContentToUint8Array(audio);
+  const audioData =
+    audio instanceof URL
+      ? new Uint8Array((await download({ url: audio })).data)
+      : convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>
     model.doGenerate({
