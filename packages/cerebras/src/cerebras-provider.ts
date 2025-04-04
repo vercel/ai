@@ -113,8 +113,12 @@ export function createCerebras(
 
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
+
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
   return provider;

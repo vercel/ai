@@ -1,6 +1,7 @@
 import {
   EmbeddingModelV1,
   LanguageModelV2,
+  NoSuchModelError,
   ProviderV2,
 } from '@ai-sdk/provider';
 import {
@@ -119,6 +120,10 @@ export function createCohere(
   provider.languageModel = createChatModel;
   provider.embedding = createTextEmbeddingModel;
   provider.textEmbeddingModel = createTextEmbeddingModel;
+
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
+  };
 
   return provider;
 }

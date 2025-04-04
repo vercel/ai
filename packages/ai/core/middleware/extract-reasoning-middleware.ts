@@ -1,6 +1,6 @@
 import type { LanguageModelV2StreamPart } from '@ai-sdk/provider';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
-import type { LanguageModelV2Middleware } from './language-model-v1-middleware';
+import type { LanguageModelV2Middleware } from './language-model-v2-middleware';
 
 /**
  * Extract an XML-tagged reasoning section from the generated text and exposes it

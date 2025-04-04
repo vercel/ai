@@ -2,7 +2,7 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import type { LanguageModelV2Middleware } from './language-model-v1-middleware';
+import type { LanguageModelV2Middleware } from './language-model-v2-middleware';
 import { mergeObjects } from '../util/merge-objects';
 
 /**

@@ -1,6 +1,7 @@
 import {
   EmbeddingModelV1,
   LanguageModelV2,
+  NoSuchModelError,
   ProviderV2,
 } from '@ai-sdk/provider';
 import {
@@ -146,6 +147,10 @@ export function createMistral(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
+  };
 
   return provider;
 }
