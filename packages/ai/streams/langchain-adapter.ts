@@ -1,4 +1,4 @@
-import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { DataStreamWriter } from '../core/data-stream/data-stream-writer';
 import { mergeStreams } from '../core/util/merge-streams';
 import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
@@ -6,7 +6,6 @@ import {
   createCallbacksTransformer,
   StreamCallbacks,
 } from './stream-callbacks';
-import { StreamData } from './stream-data';
 
 type LangChainImageDetail = 'auto' | 'low' | 'high';
 
@@ -120,7 +119,7 @@ export function toDataStreamResponse(
     | ReadableStream<string>,
   options?: {
     init?: ResponseInit;
-    data?: StreamData;
+    data?: ReadableStream<DataStreamString>;
     callbacks?: StreamCallbacks;
   },
 ) {
@@ -128,12 +127,10 @@ export function toDataStreamResponse(
     stream,
     options?.callbacks,
   ).pipeThrough(new TextEncoderStream());
-  const data = options?.data;
+  const data = options?.data?.pipeThrough(new TextEncoderStream());
   const init = options?.init;
 
-  const responseStream = data
-    ? mergeStreams(data.stream, dataStream)
-    : dataStream;
+  const responseStream = data ? mergeStreams(data, dataStream) : dataStream;
 
   return new Response(responseStream, {
     status: init?.status ?? 200,

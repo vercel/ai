@@ -77,6 +77,26 @@ describe('toDataStreamResponse', () => {
       '0:"World"\n',
     ]);
   });
+
+  it('should merge options.data into the response stream', async () => {
+    const inputStream = convertArrayToReadableStream([
+      { event: 'on_chat_model_stream', data: { chunk: { content: 'Hello' } } },
+      { event: 'on_chat_model_stream', data: { chunk: { content: 'World' } } },
+    ]);
+
+    const dataStream = createDataStream({
+      execute(writer) {
+        writer.writeData({ metadata: 'Custom metadata' });
+      },
+    });
+
+    const response = toDataStreamResponse(inputStream, { data: dataStream });
+    assert.deepStrictEqual(await convertResponseStreamToArray(response), [
+      '2:[{"metadata":"Custom metadata"}]\n',
+      '0:"Hello"\n',
+      '0:"World"\n',
+    ]);
+  });
 });
 
 describe('mergeIntoDataStream', () => {
