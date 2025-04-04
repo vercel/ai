@@ -18,6 +18,9 @@ describe('languageModel', () => {
         textEmbeddingModel: (id: string) => {
           return null as any;
         },
+        imageModel: (id: string) => {
+          return null as any;
+        },
       },
     });
 
@@ -34,6 +37,9 @@ describe('languageModel', () => {
           return model;
         },
         textEmbeddingModel: () => {
+          return null as any;
+        },
+        imageModel: () => {
           return null as any;
         },
       },
@@ -58,6 +64,9 @@ describe('languageModel', () => {
           return null as any;
         },
         textEmbeddingModel: () => {
+          return null as any;
+        },
+        imageModel: () => {
           return null as any;
         },
       },
@@ -90,6 +99,9 @@ describe('languageModel', () => {
           textEmbeddingModel: () => {
             return null as any;
           },
+          imageModel: () => {
+            return null as any;
+          },
         },
       },
       { separator: '|' },
@@ -110,6 +122,9 @@ describe('textEmbeddingModel', () => {
           return model;
         },
         languageModel: () => {
+          return null as any;
+        },
+        imageModel: () => {
           return null as any;
         },
       },
@@ -134,6 +149,9 @@ describe('textEmbeddingModel', () => {
           return null as any;
         },
         languageModel: () => {
+          return null as any;
+        },
+        imageModel: () => {
           return null as any;
         },
       },
@@ -164,6 +182,9 @@ describe('textEmbeddingModel', () => {
             return model;
           },
           languageModel: () => {
+            return null as any;
+          },
+          imageModel: () => {
             return null as any;
           },
         },
