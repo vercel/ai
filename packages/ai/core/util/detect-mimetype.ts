@@ -83,10 +83,13 @@ export const audioMimeTypeSignatures = [
   },
 ] as const;
 
-export function detectMimeType(
-  data: Uint8Array | string,
-  signatures: typeof audioMimeTypeSignatures | typeof imageMimeTypeSignatures,
-): (typeof signatures)[number]['mimeType'] | undefined {
+export function detectMimeType({
+  data,
+  signatures,
+}: {
+  data: Uint8Array | string;
+  signatures: typeof audioMimeTypeSignatures | typeof imageMimeTypeSignatures;
+}): (typeof signatures)[number]['mimeType'] | undefined {
   for (const signature of signatures) {
     if (
       typeof data === 'string'

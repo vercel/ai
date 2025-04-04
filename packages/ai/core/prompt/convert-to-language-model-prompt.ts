@@ -345,7 +345,10 @@ function convertPartToLanguageModelPart(
 
       if (normalizedData instanceof Uint8Array) {
         mimeType =
-          detectMimeType(normalizedData, imageMimeTypeSignatures) ?? mimeType;
+          detectMimeType({
+            data: normalizedData,
+            signatures: imageMimeTypeSignatures,
+          }) ?? mimeType;
       }
       return {
         type: 'image',

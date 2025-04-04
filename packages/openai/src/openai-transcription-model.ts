@@ -131,10 +131,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     }
 
     formData.append('model', this.modelId);
-    formData.append(
-      'file',
-      new File([blob], 'audio', { type: mimeType }),
-    );
+    formData.append('file', new File([blob], 'audio', { type: mimeType }));
 
     // Add any additional provider options
     if (providerOptions?.openai) {

@@ -150,7 +150,10 @@ Only applicable for HTTP-based providers.
           new DefaultGeneratedFile({
             data: image,
             mimeType:
-              detectMimeType(image, imageMimeTypeSignatures) ?? 'image/png',
+              detectMimeType({
+                data: image,
+                signatures: imageMimeTypeSignatures,
+              }) ?? 'image/png',
           }),
       ),
     );
