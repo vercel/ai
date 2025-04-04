@@ -30,7 +30,7 @@ export type TestServerResponse = {
 class TestServerCall {
   constructor(private request: Request) {}
 
-  async getrequestBody() {
+  async getRequestBody() {
     expect(this.request).toBeDefined();
     return JSON.parse(await this.request!.text());
   }

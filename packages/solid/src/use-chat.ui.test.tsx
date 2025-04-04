@@ -91,7 +91,7 @@ describe('prepareRequestBody', () => {
           requestBody: { 'request-body-key': 'request-body-value' },
         });
 
-        expect(await call(0).getrequestBody()).toBe('test-request-body');
+        expect(await call(0).getRequestBody()).toBe('test-request-body');
 
         await screen.findByTestId('message-1');
         expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -209,7 +209,7 @@ describe('file attachments with data url', () => {
           );
         });
 
-        expect(await call(0).getrequestBody()).toStrictEqual({
+        expect(await call(0).getRequestBody()).toStrictEqual({
           id: expect.any(String),
           messages: [
             {
@@ -1301,7 +1301,7 @@ describe('reload', () => {
         // setup done, click reload:
         await userEvent.click(screen.getByTestId('do-reload'));
 
-        expect(await call(1).getrequestBody()).toStrictEqual({
+        expect(await call(1).getRequestBody()).toStrictEqual({
           id: expect.any(String),
           messages: [
             {
