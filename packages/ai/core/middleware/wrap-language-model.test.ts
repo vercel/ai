@@ -12,7 +12,7 @@ describe('wrapLanguageModel', () => {
         supportsStructuredOutputs: true,
       }),
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
       },
     });
 
@@ -26,7 +26,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: new MockLanguageModelV2(),
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
       },
       providerId: 'override-provider',
       modelId: 'override-model',
@@ -48,7 +48,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
         transformParams,
       },
     });
@@ -83,7 +83,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
         wrapGenerate,
       },
     });
@@ -116,7 +116,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
         transformParams,
       },
     });
@@ -148,7 +148,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
         wrapStream,
       },
     });
@@ -177,7 +177,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
       },
     });
 
@@ -193,7 +193,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: mockModel,
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
       },
     });
 
@@ -206,7 +206,7 @@ describe('wrapLanguageModel', () => {
     let supportsUrlCalled = false;
 
     class MockLanguageModelWithImageSupport implements LanguageModelV2 {
-      readonly specificationVersion = 'v1';
+      readonly specificationVersion = 'v2';
       readonly provider = 'test-provider';
       readonly modelId = 'test-model';
       readonly defaultObjectGenerationMode = 'json';
@@ -227,7 +227,7 @@ describe('wrapLanguageModel', () => {
     const wrappedModel = wrapLanguageModel({
       model: new MockLanguageModelWithImageSupport(),
       middleware: {
-        middlewareVersion: 'v1',
+        middlewareVersion: 'v2',
       },
     });
 
@@ -256,11 +256,11 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             transformParams: transformParams1,
           },
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             transformParams: transformParams2,
           },
         ],
@@ -310,11 +310,11 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             transformParams: transformParams1,
           },
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             transformParams: transformParams2,
           },
         ],
@@ -366,11 +366,11 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             wrapGenerate: wrapGenerate1,
           },
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             wrapGenerate: wrapGenerate2,
           },
         ],
@@ -414,11 +414,11 @@ describe('wrapLanguageModel', () => {
         model: mockModel,
         middleware: [
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             wrapStream: wrapStream1,
           },
           {
-            middlewareVersion: 'v1',
+            middlewareVersion: 'v2',
             wrapStream: wrapStream2,
           },
         ],

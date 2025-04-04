@@ -1,5 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import { generateText, LanguageModelV2Middleware, wrapLanguageModel } from 'ai';
+import { LanguageModelV2Middleware } from '@ai-sdk/provider';
+import { generateText, wrapLanguageModel } from 'ai';
 import 'dotenv/config';
 
 const logProviderMetadataMiddleware: LanguageModelV2Middleware = {
