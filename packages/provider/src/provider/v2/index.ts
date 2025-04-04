@@ -1,1 +1,1 @@
-export type { ProviderV1 } from './provider-v1';
+export type { ProviderV2 } from './provider-v2';

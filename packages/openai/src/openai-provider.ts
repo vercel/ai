@@ -2,7 +2,7 @@ import {
   EmbeddingModelV1,
   ImageModelV1,
   LanguageModelV1,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -26,11 +26,11 @@ import {
   OpenAIImageModelId,
   OpenAIImageSettings,
 } from './openai-image-settings';
+import { openaiTools } from './openai-tools';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
-import { openaiTools } from './openai-tools';
 
-export interface OpenAIProvider extends ProviderV1 {
+export interface OpenAIProvider extends ProviderV2 {
   (
     modelId: 'gpt-3.5-turbo-instruct',
     settings?: OpenAICompletionSettings,
