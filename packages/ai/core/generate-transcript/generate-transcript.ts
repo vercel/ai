@@ -10,6 +10,7 @@ import {
 } from '../util/detect-mimetype';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
+import { download } from '../../util/download';
 
 /**
 Generates transcripts using a transcript model.
@@ -77,14 +78,9 @@ Only applicable for HTTP-based providers.
   headers?: Record<string, string>;
 }): Promise<TranscriptionResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
-  let audioData: Uint8Array;
-
-  if (audio instanceof URL) {
-    const arrayBuffer = await fetch(audio).then(res => res.arrayBuffer());
-    audioData = new Uint8Array(arrayBuffer);
-  } else {
-    audioData = convertDataContentToUint8Array(audio);
-  }
+  const audioData = audio instanceof URL ? 
+    new Uint8Array((await download({ url: audio })).data) : 
+    convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>
     model.doGenerate({
