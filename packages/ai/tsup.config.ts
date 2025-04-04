@@ -5,7 +5,7 @@ export default defineConfig([
   {
     entry: ['streams/index.ts'],
     format: ['cjs', 'esm'],
-    external: ['react', 'svelte', 'vue'],
+    external: ['svelte', 'vue'],
     dts: true,
     sourcemap: true,
   },
@@ -26,18 +26,6 @@ export default defineConfig([
     entry: ['test/index.ts'],
     outDir: 'test/dist',
     format: ['cjs', 'esm'],
-    dts: true,
-    sourcemap: true,
-  },
-  // React APIs
-  {
-    entry: ['react/index.ts'],
-    outDir: 'react/dist',
-    banner: {
-      js: "'use client'",
-    },
-    format: ['cjs', 'esm'],
-    external: ['react'],
     dts: true,
     sourcemap: true,
   },

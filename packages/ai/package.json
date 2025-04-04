@@ -10,7 +10,6 @@
   "files": [
     "dist/**/*",
     "mcp-stdio/**/*",
-    "react/dist/**/*",
     "rsc/dist/**/*",
     "test/dist/**/*",
     "CHANGELOG.md"
@@ -18,7 +17,7 @@
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf react/dist && rm -rf rsc/dist",
+    "clean": "rm -rf dist && rm -rf rsc/dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -58,12 +57,6 @@
       "react-server": "./rsc/dist/rsc-server.mjs",
       "import": "./rsc/dist/rsc-client.mjs"
     },
-    "./react": {
-      "types": "./react/dist/index.d.ts",
-      "react-server": "./react/dist/index.server.mjs",
-      "import": "./react/dist/index.mjs",
-      "require": "./react/dist/index.js"
-    },
     "./mcp-stdio": {
       "types": "./mcp-stdio/dist/index.d.ts",
       "import": "./mcp-stdio/dist/index.mjs",
@@ -73,7 +66,6 @@
   "dependencies": {
     "@ai-sdk/provider": "1.1.0",
     "@ai-sdk/provider-utils": "2.2.4",
-    "@ai-sdk/react": "1.2.6",
     "@ai-sdk/ui-utils": "1.2.5",
     "@opentelemetry/api": "1.9.0",
     "jsondiffpatch": "0.6.0"
@@ -92,15 +84,6 @@
     "tsup": "^7.2.0",
     "typescript": "5.6.3",
     "zod": "3.23.8"
-  },
-  "peerDependencies": {
-    "react": "^18 || ^19 || ^19.0.0-rc",
-    "zod": "^3.23.8"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    }
   },
   "engines": {
     "node": ">=18"
