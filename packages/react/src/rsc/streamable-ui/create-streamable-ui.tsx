@@ -1,4 +1,4 @@
-import { HANGING_STREAM_WARNING_TIME_MS } from '../../util/constants';
+import { HANGING_STREAM_WARNING_TIME_MS } from 'ai';
 import { createResolvablePromise } from '../../util/create-resolvable-promise';
 import { createSuspendedChunk } from './create-suspended-chunk';
 

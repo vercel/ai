@@ -1,6 +1,6 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
+import { MockLanguageModelV1 } from 'ai/test';
 import { streamUI } from './stream-ui';
 import { z } from 'zod';
 

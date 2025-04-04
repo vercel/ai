@@ -11,6 +11,7 @@
     "update-references": "update-ts-references",
     "prettier-check": "prettier --check \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
     "type-check": "tsc --build",
+    "type-check:full": "tsc --build tsconfig.with-examples.json",
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
     "publint": "turbo publint",
     "test": "turbo test",

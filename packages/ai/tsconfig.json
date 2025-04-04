@@ -1,5 +1,5 @@
 {
-  "extends": "./node_modules/@vercel/ai-tsconfig/react-library.json",
+  "extends": "./node_modules/@vercel/ai-tsconfig/base.json",
   "compilerOptions": {
     "target": "ES2018",
     "stripInternal": true,
@@ -28,9 +28,6 @@
     },
     {
       "path": "../provider-utils"
-    },
-    {
-      "path": "../react"
     },
     {
       "path": "../ui-utils"

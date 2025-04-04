@@ -38,22 +38,16 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
+    "./internal": {
+      "types": "./dist/internal/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
     "./test": {
       "types": "./dist/test/index.d.ts",
       "import": "./dist/test/index.mjs",
       "module": "./dist/test/index.mjs",
       "require": "./dist/test/index.js"
-    },
-    "./rsc": {
-      "types": "./dist/rsc/index.d.ts",
-      "react-server": "./dist/rsc/rsc-server.mjs",
-      "import": "./dist/rsc/rsc-client.mjs"
-    },
-    "./react": {
-      "types": "./dist/react/index.d.ts",
-      "react-server": "./dist/react/index.server.mjs",
-      "import": "./dist/react/index.mjs",
-      "require": "./dist/react/index.js"
     },
     "./mcp-stdio": {
       "types": "./dist/mcp-stdio/index.d.ts",
@@ -64,10 +58,8 @@
   "dependencies": {
     "@ai-sdk/provider": "2.0.0-canary.0",
     "@ai-sdk/provider-utils": "3.0.0-canary.0",
-    "@ai-sdk/react": "2.0.0-canary.0",
     "@ai-sdk/ui-utils": "2.0.0-canary.0",
-    "@opentelemetry/api": "1.9.0",
-    "jsondiffpatch": "0.6.0"
+    "@opentelemetry/api": "1.9.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
@@ -85,13 +77,7 @@
     "zod": "3.23.8"
   },
   "peerDependencies": {
-    "react": "^18 || ^19 || ^19.0.0-rc",
     "zod": "^3.23.8"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    }
   },
   "engines": {
     "node": ">=18"

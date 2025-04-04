@@ -1156,21 +1156,12 @@ importers:
       '@ai-sdk/provider-utils':
         specifier: 3.0.0-canary.0
         version: link:../provider-utils
-      '@ai-sdk/react':
-        specifier: 2.0.0-canary.0
-        version: link:../react
       '@ai-sdk/ui-utils':
         specifier: 2.0.0-canary.0
         version: link:../ui-utils
       '@opentelemetry/api':
         specifier: 1.9.0
         version: 1.9.0
-      jsondiffpatch:
-        specifier: 0.6.0
-        version: 0.6.0
-      react:
-        specifier: ^18 || ^19 || ^19.0.0-rc
-        version: 18.3.1
     devDependencies:
       '@edge-runtime/vm':
         specifier: ^5.0.0
@@ -1198,10 +1189,10 @@ importers:
         version: link:../../tools/eslint-config
       react-dom:
         specifier: ^18
-        version: 18.3.1(react@18.3.1)
+        version: 18.3.1(react@19.0.0-rc-cc1ec60d0d-20240607)
       react-server-dom-webpack:
         specifier: 18.3.0-canary-eb33bd747-20240312
-        version: 18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(webpack@5.96.1(esbuild@0.18.20))
+        version: 18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(webpack@5.96.1(esbuild@0.18.20))
       tsup:
         specifier: ^7.2.0
         version: 7.2.0(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.6.3))(typescript@5.6.3)
@@ -1789,12 +1780,21 @@ importers:
 
   packages/react:
     dependencies:
+      '@ai-sdk/provider':
+        specifier: 2.0.0-canary.0
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: 3.0.0-canary.0
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
         specifier: 2.0.0-canary.0
         version: link:../ui-utils
+      ai:
+        specifier: 5.0.0-canary.0
+        version: link:../ai
+      jsondiffpatch:
+        specifier: 0.6.0
+        version: 0.6.0
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
         version: 18.3.1
@@ -28233,6 +28233,12 @@ snapshots:
       react: 18.3.1
       scheduler: 0.23.2
 
+  react-dom@18.3.1(react@19.0.0-rc-cc1ec60d0d-20240607):
+    dependencies:
+      loose-envify: 1.4.0
+      react: 19.0.0-rc-cc1ec60d0d-20240607
+      scheduler: 0.23.2
+
   react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607):
     dependencies:
       react: 19.0.0-rc-cc1ec60d0d-20240607
@@ -28268,12 +28274,12 @@ snapshots:
 
   react-refresh@0.14.2: {}
 
-  react-server-dom-webpack@18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(webpack@5.96.1(esbuild@0.18.20)):
+  react-server-dom-webpack@18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(webpack@5.96.1(esbuild@0.18.20)):
     dependencies:
       acorn-loose: 8.4.0
       neo-async: 2.6.2
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
+      react: 19.0.0-rc-cc1ec60d0d-20240607
+      react-dom: 18.3.1(react@19.0.0-rc-cc1ec60d0d-20240607)
       webpack: 5.96.1(esbuild@0.18.20)
 
   react@18.2.0:

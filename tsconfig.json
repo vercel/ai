@@ -86,9 +86,6 @@
     },
     {
       "path": "packages/xai"
-    },
-    {
-      "path": "./tsconfig.examples.json"
     }
   ],
   "include": []
