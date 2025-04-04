@@ -42,13 +42,55 @@ const result = streamText({
     },
     {
       name: 'chunking',
-      type: '"word" | "line" | RegExp',
+      type: '"word" | "line" | RegExp | (buffer: string) => string | undefined | null',
       isOptional: true,
       description:
-        'Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom RegExp pattern for custom chunking.',
+        'Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom callback or RegExp pattern for custom chunking.',
     },
   ]}
 />
+
+#### Word chunking does not support non-latin languages
+
+> [!TIP]
+> The word based chunking **will not pair well** the following languages, that do not delimit words with spaces:
+> - Chinese
+> - Japanese
+> - Vietnamese
+> - Thai
+> - Javanese (Aksara Jawa)
+>
+> For these languages, **it's recommended to either:**
+> - **Recommended:** provide your own chunking regex/function that accounts for the language's word boundaries
+> - *Don't* use smoothStream
+
+#### Regex based chunking
+
+To use regex based chunking, pass a `RegExp` to the `chunking` option.
+
+```ts
+// To split on underscores:
+smoothStream({
+  chunking: /_+/
+})
+
+// To split on newlines:
+smoothStream({
+  chunking: /\n+/
+})
+```
+
+#### Custom callback chunking
+
+To use a custom callback for chunking, pass a function to the `chunking` option.
+
+```ts
+smoothStream({
+  chunking: (buffer) => {
+    return buffer.match(/[^\n]+/)?.[0];
+  }
+})
+```
 
 ### Returns
 
