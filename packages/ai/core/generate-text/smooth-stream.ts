@@ -47,7 +47,15 @@ export function smoothStream<TOOLS extends ToolSet>({
     detectChunk = buffer => {
       const match = chunking(buffer);
 
-      if (match && !buffer.startsWith(match)) {
+      if (match == null) {
+        return null;
+      }
+
+      if (!match.length) {
+        throw new Error(`Chunking function must return a non-empty string.`);
+      }
+
+      if (!buffer.startsWith(match)) {
         throw new Error(
           `Chunking function must return a match that is a prefix of the buffer. Received: "${match}" expected to start with "${buffer}"`,
         );
@@ -96,10 +104,7 @@ export function smoothStream<TOOLS extends ToolSet>({
 
         let match;
 
-        while (
-          typeof (match = detectChunk(buffer)) === 'string' &&
-          match.length > 0
-        ) {
+        while ((match = detectChunk(buffer)) != null) {
           controller.enqueue({ type: 'text-delta', textDelta: match });
           buffer = buffer.slice(match.length);
 

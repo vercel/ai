@@ -597,52 +597,42 @@ describe('smoothStream', () => {
       `);
     });
 
-    it('it should not add anything if user returns empty string', async () => {
-      const stream = convertArrayToReadableStream([
-        { textDelta: 'Hello, ', type: 'text-delta' },
-        { type: 'step-finish' },
-        { type: 'finish' },
-      ]).pipeThrough(
-        smoothStream({
-          chunking: () => '',
-          _internal: { delay },
-        })({ tools: {} }),
-      );
+    describe('throws errors if the chunking function invalid matches', async () => {
+      it('throws empty match error', async () => {
+        const stream = convertArrayToReadableStream([
+          { textDelta: 'Hello, world!', type: 'text-delta' },
+          { type: 'step-finish' },
+          { type: 'finish' },
+        ]).pipeThrough(
+          smoothStream({ chunking: () => '', _internal: { delay } })({
+            tools: {},
+          }),
+        );
 
-      await consumeStream(stream);
+        await expect(
+          consumeStream(stream),
+        ).rejects.toThrowErrorMatchingInlineSnapshot(
+          `[Error: Chunking function must return a non-empty string.]`,
+        );
+      });
 
-      expect(events).toMatchInlineSnapshot(`
-        [
-          {
-            "textDelta": "Hello, ",
-            "type": "text-delta",
-          },
-          {
-            "type": "step-finish",
-          },
-          {
-            "type": "finish",
-          },
-        ]
-      `);
-    });
+      it('throws match prefix error', async () => {
+        const stream = convertArrayToReadableStream([
+          { textDelta: 'Hello, world!', type: 'text-delta' },
+          { type: 'step-finish' },
+          { type: 'finish' },
+        ]).pipeThrough(
+          smoothStream({ chunking: () => 'world', _internal: { delay } })({
+            tools: {},
+          }),
+        );
 
-    it('throws error if the chunking function returns a match that is not a prefix of the buffer', async () => {
-      const stream = convertArrayToReadableStream([
-        { textDelta: 'Hello, world!', type: 'text-delta' },
-        { type: 'step-finish' },
-        { type: 'finish' },
-      ]).pipeThrough(
-        smoothStream({ chunking: () => 'world', _internal: { delay } })({
-          tools: {},
-        }),
-      );
-
-      await expect(
-        consumeStream(stream),
-      ).rejects.toThrowErrorMatchingInlineSnapshot(
-        `[Error: Chunking function must return a match that is a prefix of the buffer. Received: "world" expected to start with "Hello, world!"]`,
-      );
+        await expect(
+          consumeStream(stream),
+        ).rejects.toThrowErrorMatchingInlineSnapshot(
+          `[Error: Chunking function must return a match that is a prefix of the buffer. Received: "world" expected to start with "Hello, world!"]`,
+        );
+      });
     });
   });
 
