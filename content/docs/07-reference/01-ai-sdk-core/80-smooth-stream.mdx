@@ -77,11 +77,6 @@ To use regex based chunking, pass a `RegExp` to the `chunking` option.
 smoothStream({
   chunking: /_+/,
 });
-
-// To split on newlines:
-smoothStream({
-  chunking: /\n+/,
-});
 ```
 
 #### Custom callback chunking
@@ -90,8 +85,15 @@ To use a custom callback for chunking, pass a function to the `chunking` option.
 
 ```ts
 smoothStream({
-  chunking: buffer => {
-    return buffer.match(/[^\n]+/)?.[0];
+  chunking: text => {
+    const findString = 'some string';
+    const index = text.indexOf(findString)
+
+    if (index === -1) {
+      return null;
+    }
+
+    return text.slice(0, index) + findString;
   },
 });
 ```
