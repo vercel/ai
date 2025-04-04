@@ -7,6 +7,7 @@ import { TranscriptionResult } from './transcribe-result';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { download } from '../../util/download';
+import { audioMimeTypeSignatures, detectMimeType } from '../util/detect-mimetype';
 
 /**
 Generates transcripts using a transcript model.
@@ -85,6 +86,7 @@ Only applicable for HTTP-based providers.
       abortSignal,
       headers,
       providerOptions: providerOptions ?? {},
+      mimeType: detectMimeType(audioData, audioMimeTypeSignatures) ?? 'audio/wav',
     }),
   );
 

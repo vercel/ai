@@ -13,6 +13,11 @@ Accepts a `Uint8Array` or `string`, where `string` is a base64 encoded audio fil
   audio: Uint8Array | string;
 
   /**
+  The MIME type of the audio data.
+   */
+  mimeType: string;
+
+  /**
 Additional provider-specific options that are passed through to the provider
 as body parameters.
 

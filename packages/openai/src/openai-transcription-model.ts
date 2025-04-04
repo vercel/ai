@@ -100,6 +100,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
   async doGenerate({
     audio,
+    mimeType,
     providerOptions,
     headers,
     abortSignal,
@@ -132,7 +133,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     formData.append('model', this.modelId);
     formData.append(
       'file',
-      new File([blob], 'audio.wav', { type: 'audio/wav' }),
+      new File([blob], 'audio', { type: mimeType }),
     );
 
     // Add any additional provider options
