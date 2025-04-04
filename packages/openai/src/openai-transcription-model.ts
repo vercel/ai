@@ -1,6 +1,7 @@
 import { TranscriptionModelV1 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   createJsonResponseHandler,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
@@ -109,26 +110,10 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
   > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const formData = new FormData();
-
-    let blob: Blob | undefined;
-
-    if (audio instanceof Uint8Array) {
-      // Convert Uint8Array to Blob and then to File
-      blob = new Blob([audio]);
-    } else if (typeof audio === 'string') {
-      // Convert base64 string to Blob and then to File
-      const byteCharacters = atob(audio);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      blob = new Blob([byteArray]);
-    } else {
-      throw new Error(
-        'Invalid audio format. Must be Uint8Array or base64 string.',
-      );
-    }
+    const blob =
+      audio instanceof Uint8Array
+        ? new Blob([audio])
+        : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
     formData.append('file', new File([blob], 'audio', { type: mimeType }));
