@@ -54,6 +54,7 @@ const result = streamText({
 
 > [!TIP]
 > The word based chunking **will not pair well** the following languages, that do not delimit words with spaces:
+>
 > - Chinese
 > - Japanese
 > - Vietnamese
@@ -61,8 +62,9 @@ const result = streamText({
 > - Javanese (Aksara Jawa)
 >
 > For these languages, **it's recommended to either:**
+>
 > - **Recommended:** provide your own chunking regex/function that accounts for the language's word boundaries
-> - *Don't* use smoothStream
+> - _Don't_ use smoothStream
 
 #### Regex based chunking
 
@@ -71,13 +73,13 @@ To use regex based chunking, pass a `RegExp` to the `chunking` option.
 ```ts
 // To split on underscores:
 smoothStream({
-  chunking: /_+/
-})
+  chunking: /_+/,
+});
 
 // To split on newlines:
 smoothStream({
-  chunking: /\n+/
-})
+  chunking: /\n+/,
+});
 ```
 
 #### Custom callback chunking
@@ -86,10 +88,10 @@ To use a custom callback for chunking, pass a function to the `chunking` option.
 
 ```ts
 smoothStream({
-  chunking: (buffer) => {
+  chunking: buffer => {
     return buffer.match(/[^\n]+/)?.[0];
-  }
-})
+  },
+});
 ```
 
 ### Returns

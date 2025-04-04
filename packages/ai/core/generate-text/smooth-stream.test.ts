@@ -638,7 +638,11 @@ describe('smoothStream', () => {
         }),
       );
 
-      await expect(consumeStream(stream)).rejects.toThrowErrorMatchingInlineSnapshot(`[Error: Chunking function must return a match that is a prefix of the buffer. Received: "world" expected to start with "Hello, world!"]`);
+      await expect(
+        consumeStream(stream),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(
+        `[Error: Chunking function must return a match that is a prefix of the buffer. Received: "world" expected to start with "Hello, world!"]`,
+      );
     });
   });
 
