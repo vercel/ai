@@ -801,6 +801,7 @@ describe('output = "object"', () => {
           promptTokens: 10,
           totalTokens: 30,
         },
+        finishReason: 'stop',
       });
     }
 

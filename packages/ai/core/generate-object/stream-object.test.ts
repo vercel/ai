@@ -1311,6 +1311,7 @@ describe('streamObject', () => {
               modelId: 'model-1',
             },
             usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            finishReason: 'stop',
           });
         }
       });
@@ -1354,6 +1355,7 @@ describe('streamObject', () => {
               modelId: 'model-1',
             },
             usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            finishReason: 'stop',
           });
         }
       });
@@ -1403,6 +1405,7 @@ describe('streamObject', () => {
               modelId: 'model-1',
             },
             usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            finishReason: 'stop',
           });
         }
       });
@@ -1446,6 +1449,7 @@ describe('streamObject', () => {
               modelId: 'model-1',
             },
             usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            finishReason: 'stop',
           });
         }
       });
@@ -1488,6 +1492,7 @@ describe('streamObject', () => {
               modelId: 'model-1',
             },
             usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            finishReason: 'stop',
           });
         }
       });
@@ -1530,6 +1535,7 @@ describe('streamObject', () => {
               modelId: 'model-1',
             },
             usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            finishReason: 'stop',
           });
         }
       });

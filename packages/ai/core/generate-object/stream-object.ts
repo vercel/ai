@@ -898,6 +898,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         text: accumulatedText,
                         response,
                         usage,
+                        finishReason: finishReason,
                       });
                       self.objectPromise.reject(error);
                     }
