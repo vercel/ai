@@ -1,8 +1,8 @@
 import {
-  LanguageModelV2,
-  LanguageModelV2CallWarning,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
+  LanguageModelV1,
+  LanguageModelV1CallWarning,
+  LanguageModelV1FinishReason,
+  LanguageModelV1StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -26,8 +26,8 @@ type PerplexityChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class PerplexityLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v1';
+export class PerplexityLanguageModel implements LanguageModelV1 {
+  readonly specificationVersion = 'v2';
   readonly defaultObjectGenerationMode = 'json';
   readonly supportsStructuredOutputs = true;
   readonly supportsImageUrls = false;
@@ -58,10 +58,10 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     responseFormat,
     seed,
     providerMetadata,
-  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
+  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
     const type = mode.type;
 
-    const warnings: LanguageModelV2CallWarning[] = [];
+    const warnings: LanguageModelV1CallWarning[] = [];
 
     if (topK != null) {
       warnings.push({
@@ -144,8 +144,8 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    options: Parameters<LanguageModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args, warnings } = this.getArgs(options);
 
     const {
@@ -208,8 +208,8 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV2['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    options: Parameters<LanguageModelV1['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
 
     const body = { ...args, stream: true };
@@ -231,7 +231,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV2FinishReason = 'unknown';
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
@@ -266,7 +266,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof perplexityChunkSchema>>,
-          LanguageModelV2StreamPart
+          LanguageModelV1StreamPart
         >({
           transform(chunk, controller) {
             if (!chunk.success) {

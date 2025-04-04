@@ -33,7 +33,7 @@ type GroqChatConfig = {
 };
 
 export class GroqChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
 
   readonly supportsStructuredOutputs = false;
   readonly defaultObjectGenerationMode = 'json';

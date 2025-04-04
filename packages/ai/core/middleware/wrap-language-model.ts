@@ -54,7 +54,7 @@ const doWrap = ({
   }
 
   return {
-    specificationVersion: 'v1',
+    specificationVersion: 'v2',
 
     provider: providerId ?? model.provider,
     modelId: modelId ?? model.modelId,

@@ -22,7 +22,7 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
   readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: OpenAIResponsesModelId;

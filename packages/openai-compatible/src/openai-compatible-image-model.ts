@@ -26,7 +26,7 @@ export type OpenAICompatibleImageModelConfig = {
 };
 
 export class OpenAICompatibleImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
 
   get maxImagesPerCall(): number {
     return this.settings.maxImagesPerCall ?? 10;
