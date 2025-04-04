@@ -820,7 +820,7 @@ OpenAI transcription models support a single `audio` argument which can be a `Da
 
 ```ts
 const model = openai.transcription('whisper-1', {
-  audio: new File([], 'audio.mp3', { type: 'audio/mp3' }),
+  audio: new Uint8Array([1, 2, 3, 4]),
 });
 ```
 
