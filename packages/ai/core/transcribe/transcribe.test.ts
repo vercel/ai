@@ -4,7 +4,7 @@ import {
   TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
 import { MockTranscriptionModelV1 } from '../test/mock-transcription-model-v1';
-import { transcribe } from './generate-transcript';
+import { transcribe } from './transcribe';
 
 const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);

@@ -3,11 +3,7 @@ import { NoTranscriptGeneratedError } from '../../errors/no-transcript-generated
 import { prepareRetries } from '../prompt/prepare-retries';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
-import { TranscriptionResult } from './generate-transcript-result';
-import {
-  audioMimeTypeSignatures,
-  detectMimeType,
-} from '../util/detect-mimetype';
+import { TranscriptionResult } from './transcribe-result';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
 import { download } from '../../util/download';
