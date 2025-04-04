@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.2.4
+
+### Patch Changes
+
+- 2c19b9a: feat(provider-utils): add TestServerCall#requestCredentials
+
 ## 2.2.3
 
 ### Patch Changes
