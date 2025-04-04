@@ -1,8 +1,8 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallOptions,
-  LanguageModelV1CallWarning,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
+  LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import {
@@ -18,7 +18,7 @@ import { z } from 'zod';
 import { ToolExecutionError } from '../../errors/tool-execution-error';
 import { StreamData } from '../../streams/stream-data';
 import { createDataStream } from '../data-stream/create-data-stream';
-import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
@@ -62,18 +62,18 @@ function createTestModel({
   request = undefined,
   warnings,
 }: {
-  stream?: ReadableStream<LanguageModelV1StreamPart>;
+  stream?: ReadableStream<LanguageModelV2StreamPart>;
   rawResponse?: { headers: Record<string, string> };
   rawCall?: { rawPrompt: string; rawSettings: Record<string, unknown> };
   request?: { body: string };
-  warnings?: LanguageModelV1CallWarning[];
-} = {}): LanguageModelV1 {
-  return new MockLanguageModelV1({
+  warnings?: LanguageModelV2CallWarning[];
+} = {}): LanguageModelV2 {
+  return new MockLanguageModelV2({
     doStream: async () => ({ stream, rawCall, rawResponse, request, warnings }),
   });
 }
 
-const modelWithSources = new MockLanguageModelV1({
+const modelWithSources = new MockLanguageModelV2({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -108,7 +108,7 @@ const modelWithSources = new MockLanguageModelV1({
   }),
 });
 
-const modelWithFiles = new MockLanguageModelV1({
+const modelWithFiles = new MockLanguageModelV2({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -133,7 +133,7 @@ const modelWithFiles = new MockLanguageModelV1({
   }),
 });
 
-const modelWithReasoning = new MockLanguageModelV1({
+const modelWithReasoning = new MockLanguageModelV2({
   doStream: async () => ({
     stream: convertArrayToReadableStream([
       {
@@ -169,7 +169,7 @@ describe('streamText', () => {
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async ({ prompt, mode }) => {
             expect(mode).toStrictEqual({
               type: 'regular',
@@ -249,7 +249,7 @@ describe('streamText', () => {
 
     it('should swallow error to prevent server crash', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -266,7 +266,7 @@ describe('streamText', () => {
   describe('result.fullStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async ({ prompt, mode }) => {
             expect(mode).toStrictEqual({
               type: 'regular',
@@ -348,7 +348,7 @@ describe('streamText', () => {
 
     it('should use fallback response metadata when response metadata is not provided', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async ({ prompt, mode }) => {
             expect(mode).toStrictEqual({
               type: 'regular',
@@ -395,7 +395,7 @@ describe('streamText', () => {
 
     it('should send tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async ({ prompt, mode }) => {
             expect(mode).toStrictEqual({
               type: 'regular',
@@ -467,7 +467,7 @@ describe('streamText', () => {
 
     it('should not send tool call deltas when toolCallStreaming is disabled', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async ({ prompt, mode }) => {
             expect(mode).toStrictEqual({
               type: 'regular',
@@ -801,7 +801,7 @@ describe('streamText', () => {
 
     it('should forward error in doStream as error stream part', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -2036,7 +2036,7 @@ describe('streamText', () => {
       const result: Array<{ error: unknown }> = [];
 
       const resultObject = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -2145,7 +2145,7 @@ describe('streamText', () => {
 
     it('should not prevent error from being forwarded', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async () => {
             throw new Error('test error');
           },
@@ -2244,7 +2244,7 @@ describe('streamText', () => {
 
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async ({ prompt, mode }) => {
               switch (responseCount++) {
                 case 0: {
@@ -2482,7 +2482,7 @@ describe('streamText', () => {
 
         let responseCount = 0;
         result = streamText({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             doStream: async ({ prompt, mode }) => {
               switch (responseCount++) {
                 case 0: {
@@ -2831,7 +2831,7 @@ describe('streamText', () => {
   describe('options.headers', () => {
     it('should set headers', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async ({ headers }) => {
             expect(headers).toStrictEqual({
               'custom-request-header': 'request-header-value',
@@ -2867,7 +2867,7 @@ describe('streamText', () => {
   describe('options.providerMetadata', () => {
     it('should pass provider metadata to model', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async ({ providerMetadata }) => {
             expect(providerMetadata).toStrictEqual({
               aProvider: { someKey: 'someValue' },
@@ -3090,7 +3090,7 @@ describe('streamText', () => {
   describe('tools with custom schema', () => {
     it('should send tool calls', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async ({ prompt, mode }) => {
             expect(mode).toStrictEqual({
               type: 'regular',
@@ -3171,7 +3171,7 @@ describe('streamText', () => {
   describe('options.messages', () => {
     it('should detect and convert ui messages', async () => {
       const result = streamText({
-        model: new MockLanguageModelV1({
+        model: new MockLanguageModelV2({
           doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
@@ -3258,7 +3258,7 @@ describe('streamText', () => {
 
     it('should support models that use "this" context in supportsUrl', async () => {
       let supportsUrlCalled = false;
-      class MockLanguageModelWithImageSupport extends MockLanguageModelV1 {
+      class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
         readonly supportsImageUrls = false;
 
         constructor() {
@@ -4342,10 +4342,10 @@ describe('streamText', () => {
 
     describe('object output', () => {
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
-        let callOptions!: LanguageModelV1CallOptions;
+        let callOptions!: LanguageModelV2CallOptions;
 
         const result = streamText({
-          model: new MockLanguageModelV1({
+          model: new MockLanguageModelV2({
             supportsStructuredOutputs: false,
             doStream: async args => {
               callOptions = args;

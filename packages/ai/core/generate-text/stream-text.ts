@@ -1,4 +1,4 @@
-import { AISDKError, LanguageModelV1Source } from '@ai-sdk/provider';
+import { AISDKError, LanguageModelV2Source } from '@ai-sdk/provider';
 import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
 import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
 import { Span } from '@opentelemetry/api';
@@ -602,8 +602,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let activeReasoningText: undefined | (ReasoningDetail & { type: 'text' }) =
       undefined;
 
-    let recordedStepSources: LanguageModelV1Source[] = [];
-    const recordedSources: LanguageModelV1Source[] = [];
+    let recordedStepSources: LanguageModelV2Source[] = [];
+    const recordedSources: LanguageModelV2Source[] = [];
 
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;

@@ -1,4 +1,4 @@
-import { LanguageModelV1 } from '@ai-sdk/provider';
+import { LanguageModelV2 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { ReactNode } from 'react';
 import { z } from 'zod';
@@ -74,7 +74,7 @@ type RenderText = Renderer<
 
 type RenderResult = {
   value: ReactNode;
-} & Awaited<ReturnType<LanguageModelV1['doStream']>>;
+} & Awaited<ReturnType<LanguageModelV2['doStream']>>;
 
 const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
   content;
@@ -105,7 +105,7 @@ export async function streamUI<
     /**
      * The language model to use.
      */
-    model: LanguageModelV1;
+    model: LanguageModelV2;
 
     /**
      * The tools that the model can call. The model needs to support calling tools.

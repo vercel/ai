@@ -1,4 +1,4 @@
-import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
+import { LanguageModelV2StreamPart } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/ui-utils';
 import { Tracer } from '@opentelemetry/api';
 import { ToolExecutionError } from '../../errors';
@@ -93,7 +93,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   repairToolCall,
 }: {
   tools: TOOLS | undefined;
-  generatorStream: ReadableStream<LanguageModelV1StreamPart>;
+  generatorStream: ReadableStream<LanguageModelV2StreamPart>;
   toolCallStreaming: boolean;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
@@ -141,11 +141,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
   // forward stream
   const forwardStream = new TransformStream<
-    LanguageModelV1StreamPart,
+    LanguageModelV2StreamPart,
     SingleRequestTextStreamPart<TOOLS>
   >({
     async transform(
-      chunk: LanguageModelV1StreamPart,
+      chunk: LanguageModelV2StreamPart,
       controller: TransformStreamDefaultController<
         SingleRequestTextStreamPart<TOOLS>
       >,

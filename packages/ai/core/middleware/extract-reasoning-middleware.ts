@@ -1,6 +1,6 @@
-import type { LanguageModelV1StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelV2StreamPart } from '@ai-sdk/provider';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
-import type { LanguageModelV1Middleware } from './language-model-v1-middleware';
+import type { LanguageModelV2Middleware } from './language-model-v1-middleware';
 
 /**
  * Extract an XML-tagged reasoning section from the generated text and exposes it
@@ -18,7 +18,7 @@ export function extractReasoningMiddleware({
   tagName: string;
   separator?: string;
   startWithReasoning?: boolean;
-}): LanguageModelV1Middleware {
+}): LanguageModelV2Middleware {
   const openingTag = `<${tagName}>`;
   const closingTag = `<\/${tagName}>`;
 
@@ -72,8 +72,8 @@ export function extractReasoningMiddleware({
       return {
         stream: stream.pipeThrough(
           new TransformStream<
-            LanguageModelV1StreamPart,
-            LanguageModelV1StreamPart
+            LanguageModelV2StreamPart,
+            LanguageModelV2StreamPart
           >({
             transform: (chunk, controller) => {
               if (chunk.type !== 'text-delta') {

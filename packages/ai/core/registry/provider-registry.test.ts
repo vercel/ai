@@ -1,13 +1,13 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { MockEmbeddingModelV1 } from '../test/mock-embedding-model-v1';
-import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { createProviderRegistry } from './provider-registry';
 import { MockImageModelV1 } from '../test/mock-image-model-v1';
 
 describe('languageModel', () => {
   it('should return language model from provider', () => {
-    const model = new MockLanguageModelV1();
+    const model = new MockLanguageModelV2();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -25,7 +25,7 @@ describe('languageModel', () => {
   });
 
   it('should return language model with additional colon from provider', () => {
-    const model = new MockLanguageModelV1();
+    const model = new MockLanguageModelV2();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -78,7 +78,7 @@ describe('languageModel', () => {
   });
 
   it('should support custom separator', () => {
-    const model = new MockLanguageModelV1();
+    const model = new MockLanguageModelV2();
 
     const modelRegistry = createProviderRegistry(
       {

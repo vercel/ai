@@ -1,11 +1,11 @@
-import { LanguageModelV1, LanguageModelV1CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
 
 /**
- * Experimental middleware for LanguageModelV1.
+ * Experimental middleware for LanguageModelV2.
  * This type defines the structure for middleware that can be used to modify
- * the behavior of LanguageModelV1 operations.
+ * the behavior of LanguageModelV2 operations.
  */
-export type LanguageModelV1Middleware = {
+export type LanguageModelV2Middleware = {
   /**
    * Middleware specification version. Use `v1` for the current version.
    */
@@ -20,8 +20,8 @@ export type LanguageModelV1Middleware = {
    */
   transformParams?: (options: {
     type: 'generate' | 'stream';
-    params: LanguageModelV1CallOptions;
-  }) => PromiseLike<LanguageModelV1CallOptions>;
+    params: LanguageModelV2CallOptions;
+  }) => PromiseLike<LanguageModelV2CallOptions>;
 
   /**
    * Wraps the generate operation of the language model.
@@ -34,11 +34,11 @@ export type LanguageModelV1Middleware = {
    * @returns A promise that resolves to the result of the generate operation.
    */
   wrapGenerate?: (options: {
-    doGenerate: () => ReturnType<LanguageModelV1['doGenerate']>;
-    doStream: () => ReturnType<LanguageModelV1['doStream']>;
-    params: LanguageModelV1CallOptions;
-    model: LanguageModelV1;
-  }) => Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>>;
+    doGenerate: () => ReturnType<LanguageModelV2['doGenerate']>;
+    doStream: () => ReturnType<LanguageModelV2['doStream']>;
+    params: LanguageModelV2CallOptions;
+    model: LanguageModelV2;
+  }) => Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>>;
 
   /**
    * Wraps the stream operation of the language model.
@@ -52,15 +52,15 @@ export type LanguageModelV1Middleware = {
    * @returns A promise that resolves to the result of the stream operation.
    */
   wrapStream?: (options: {
-    doGenerate: () => ReturnType<LanguageModelV1['doGenerate']>;
-    doStream: () => ReturnType<LanguageModelV1['doStream']>;
-    params: LanguageModelV1CallOptions;
-    model: LanguageModelV1;
-  }) => PromiseLike<Awaited<ReturnType<LanguageModelV1['doStream']>>>;
+    doGenerate: () => ReturnType<LanguageModelV2['doGenerate']>;
+    doStream: () => ReturnType<LanguageModelV2['doStream']>;
+    params: LanguageModelV2CallOptions;
+    model: LanguageModelV2;
+  }) => PromiseLike<Awaited<ReturnType<LanguageModelV2['doStream']>>>;
 };
 
 /**
- * @deprecated Use `LanguageModelV1Middleware` instead.
+ * @deprecated Use `LanguageModelV2Middleware` instead.
  */
 // TODO remove in v5
-export type Experimental_LanguageModelV1Middleware = LanguageModelV1Middleware;
+export type Experimental_LanguageModelV2Middleware = LanguageModelV2Middleware;

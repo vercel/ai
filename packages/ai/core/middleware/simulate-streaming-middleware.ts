@@ -1,16 +1,16 @@
-import type { LanguageModelV1StreamPart } from '@ai-sdk/provider';
-import type { LanguageModelV1Middleware } from './language-model-v1-middleware';
+import type { LanguageModelV2StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelV2Middleware } from './language-model-v1-middleware';
 
 /**
  * Simulates streaming chunks with the response from a generate call.
  */
-export function simulateStreamingMiddleware(): LanguageModelV1Middleware {
+export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
   return {
     middlewareVersion: 'v1',
     wrapStream: async ({ doGenerate }) => {
       const result = await doGenerate();
 
-      const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
+      const simulatedStream = new ReadableStream<LanguageModelV2StreamPart>({
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
 

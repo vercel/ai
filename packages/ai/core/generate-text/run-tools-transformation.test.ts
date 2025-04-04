@@ -1,4 +1,4 @@
-import { LanguageModelV1StreamPart } from '@ai-sdk/provider';
+import { LanguageModelV2StreamPart } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -10,7 +10,7 @@ import { MockTracer } from '../test/mock-tracer';
 import { runToolsTransformation } from './run-tools-transformation';
 
 it('should forward text deltas correctly', async () => {
-  const inputStream: ReadableStream<LanguageModelV1StreamPart> =
+  const inputStream: ReadableStream<LanguageModelV2StreamPart> =
     convertArrayToReadableStream([
       { type: 'text-delta', textDelta: 'text' },
       {
@@ -48,7 +48,7 @@ it('should forward text deltas correctly', async () => {
 });
 
 it('should handle immediate tool execution', async () => {
-  const inputStream: ReadableStream<LanguageModelV1StreamPart> =
+  const inputStream: ReadableStream<LanguageModelV2StreamPart> =
     convertArrayToReadableStream([
       {
         type: 'tool-call',
@@ -109,7 +109,7 @@ it('should handle immediate tool execution', async () => {
 });
 
 it('should hold off on sending finish until the delayed tool result is received', async () => {
-  const inputStream: ReadableStream<LanguageModelV1StreamPart> =
+  const inputStream: ReadableStream<LanguageModelV2StreamPart> =
     convertArrayToReadableStream([
       {
         type: 'tool-call',
@@ -173,7 +173,7 @@ it('should hold off on sending finish until the delayed tool result is received'
 });
 
 it('should try to repair tool call when the tool name is not found', async () => {
-  const inputStream: ReadableStream<LanguageModelV1StreamPart> =
+  const inputStream: ReadableStream<LanguageModelV2StreamPart> =
     convertArrayToReadableStream([
       {
         type: 'tool-call',

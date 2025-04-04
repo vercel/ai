@@ -1,8 +1,8 @@
 import {
-  LanguageModelV1CallOptions,
-  LanguageModelV1ProviderMetadata,
+  LanguageModelV2CallOptions,
+  LanguageModelV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import type { LanguageModelV1Middleware } from './language-model-v1-middleware';
+import type { LanguageModelV2Middleware } from './language-model-v1-middleware';
 import { mergeObjects } from '../util/merge-objects';
 
 /**
@@ -12,11 +12,11 @@ export function defaultSettingsMiddleware({
   settings,
 }: {
   settings: Partial<
-    LanguageModelV1CallOptions & {
-      providerMetadata?: LanguageModelV1ProviderMetadata;
+    LanguageModelV2CallOptions & {
+      providerMetadata?: LanguageModelV2ProviderMetadata;
     }
   >;
-}): LanguageModelV1Middleware {
+}): LanguageModelV2Middleware {
   return {
     middlewareVersion: 'v1',
     transformParams: async ({ params }) => {

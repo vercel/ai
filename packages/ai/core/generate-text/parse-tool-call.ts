@@ -1,4 +1,4 @@
-import { LanguageModelV1FunctionToolCall } from '@ai-sdk/provider';
+import { LanguageModelV2FunctionToolCall } from '@ai-sdk/provider';
 import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
 import { Schema, asSchema } from '@ai-sdk/ui-utils';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
@@ -17,7 +17,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   system,
   messages,
 }: {
-  toolCall: LanguageModelV1FunctionToolCall;
+  toolCall: LanguageModelV2FunctionToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   system: string | undefined;
@@ -40,7 +40,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       throw error;
     }
 
-    let repairedToolCall: LanguageModelV1FunctionToolCall | null = null;
+    let repairedToolCall: LanguageModelV2FunctionToolCall | null = null;
 
     try {
       repairedToolCall = await repairToolCall({
@@ -72,7 +72,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
 }: {
-  toolCall: LanguageModelV1FunctionToolCall;
+  toolCall: LanguageModelV2FunctionToolCall;
   tools: TOOLS;
 }): Promise<ToolCallUnion<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;
