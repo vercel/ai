@@ -1,7 +1,7 @@
 import {
   EmbeddingModelV1,
   LanguageModelV2,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -16,7 +16,7 @@ import {
   CohereEmbeddingSettings,
 } from './cohere-embedding-settings';
 
-export interface CohereProvider extends ProviderV1 {
+export interface CohereProvider extends ProviderV2 {
   (modelId: CohereChatModelId, settings?: CohereChatSettings): LanguageModelV2;
 
   /**

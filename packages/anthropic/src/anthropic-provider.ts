@@ -1,7 +1,7 @@
 import {
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -15,7 +15,7 @@ import {
 } from './anthropic-messages-settings';
 import { anthropicTools } from './anthropic-tools';
 
-export interface AnthropicProvider extends ProviderV1 {
+export interface AnthropicProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */

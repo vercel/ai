@@ -1,4 +1,4 @@
-import { ImageModelV1, NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
+import { ImageModelV1, NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
@@ -29,7 +29,7 @@ requests, or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface FalProvider extends ProviderV1 {
+export interface FalProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
    */

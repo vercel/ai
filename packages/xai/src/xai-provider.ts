@@ -2,7 +2,7 @@ import {
   ImageModelV1,
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -28,7 +28,7 @@ const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorToMessage: data => data.error,
 };
 
-export interface XaiProvider extends ProviderV1 {
+export interface XaiProvider extends ProviderV2 {
   /**
 Creates an Xai chat model for text generation.
    */

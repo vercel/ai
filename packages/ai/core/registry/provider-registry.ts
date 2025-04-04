@@ -1,4 +1,4 @@
-import { NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
+import { NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
 import { EmbeddingModel, ImageModel, LanguageModel } from '../types';
 import { NoSuchProviderError } from './no-such-provider-error';
 
@@ -9,7 +9,7 @@ type ExtractLiteralUnion<T> = T extends string
   : never;
 
 export interface ProviderRegistryProvider<
-  PROVIDERS extends Record<string, ProviderV1> = Record<string, ProviderV1>,
+  PROVIDERS extends Record<string, ProviderV2> = Record<string, ProviderV2>,
   SEPARATOR extends string = ':',
 > {
   languageModel<KEY extends keyof PROVIDERS>(
@@ -44,7 +44,7 @@ export interface ProviderRegistryProvider<
  * Creates a registry for the given providers.
  */
 export function createProviderRegistry<
-  PROVIDERS extends Record<string, ProviderV1>,
+  PROVIDERS extends Record<string, ProviderV2>,
   SEPARATOR extends string = ':',
 >(
   providers: PROVIDERS,
@@ -74,7 +74,7 @@ export function createProviderRegistry<
 export const experimental_createProviderRegistry = createProviderRegistry;
 
 class DefaultProviderRegistry<
-  PROVIDERS extends Record<string, ProviderV1>,
+  PROVIDERS extends Record<string, ProviderV2>,
   SEPARATOR extends string,
 > implements ProviderRegistryProvider<PROVIDERS, SEPARATOR>
 {
@@ -95,7 +95,7 @@ class DefaultProviderRegistry<
     this.providers[id] = provider;
   }
 
-  private getProvider(id: string): ProviderV1 {
+  private getProvider(id: string): ProviderV2 {
     const provider = this.providers[id as keyof PROVIDERS];
 
     if (provider == null) {

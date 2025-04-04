@@ -1,4 +1,4 @@
-import { LanguageModelV2, ProviderV1, ImageModelV1 } from '@ai-sdk/provider';
+import { LanguageModelV2, ProviderV2, ImageModelV1 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -24,7 +24,7 @@ import {
 import { GoogleVertexConfig } from './google-vertex-config';
 import { isSupportedFileUrl } from './google-vertex-supported-file-url';
 
-export interface GoogleVertexProvider extends ProviderV1 {
+export interface GoogleVertexProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
    */

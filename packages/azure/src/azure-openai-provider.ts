@@ -11,12 +11,12 @@ import {
 import {
   EmbeddingModelV1,
   LanguageModelV2,
-  ProviderV1,
+  ProviderV2,
   ImageModelV1,
 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
-export interface AzureOpenAIProvider extends ProviderV1 {
+export interface AzureOpenAIProvider extends ProviderV2 {
   (deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV2;
 
   /**

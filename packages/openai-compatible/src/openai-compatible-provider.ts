@@ -2,7 +2,7 @@ import {
   EmbeddingModelV1,
   ImageModelV1,
   LanguageModelV2,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
@@ -19,7 +19,7 @@ export interface OpenAICompatibleProvider<
   COMPLETION_MODEL_IDS extends string = string,
   EMBEDDING_MODEL_IDS extends string = string,
   IMAGE_MODEL_IDS extends string = string,
-> extends Omit<ProviderV1, 'imageModel'> {
+> extends Omit<ProviderV2, 'imageModel'> {
   (
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,

@@ -8,7 +8,7 @@ import {
   EmbeddingModelV1,
   ImageModelV1,
   LanguageModelV2,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -66,7 +66,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface FireworksProvider extends ProviderV1 {
+export interface FireworksProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */

@@ -1,7 +1,7 @@
 import {
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -11,7 +11,7 @@ import {
 import { GroqChatLanguageModel } from './groq-chat-language-model';
 import { GroqChatModelId, GroqChatSettings } from './groq-chat-settings';
 
-export interface GroqProvider extends ProviderV1 {
+export interface GroqProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */

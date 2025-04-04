@@ -1,7 +1,7 @@
 import {
   EmbeddingModelV1,
   LanguageModelV2,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -19,7 +19,7 @@ import {
   MistralEmbeddingSettings,
 } from './mistral-embedding-settings';
 
-export interface MistralProvider extends ProviderV1 {
+export interface MistralProvider extends ProviderV2 {
   (
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,

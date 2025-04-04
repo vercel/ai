@@ -2,7 +2,7 @@ import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -35,7 +35,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface DeepSeekProvider extends ProviderV1 {
+export interface DeepSeekProvider extends ProviderV2 {
   /**
 Creates a DeepSeek model for text generation.
 */

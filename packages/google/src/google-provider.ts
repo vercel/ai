@@ -17,11 +17,11 @@ import {
 import {
   EmbeddingModelV1,
   LanguageModelV2,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import { isSupportedFileUrl } from './google-supported-file-url';
 
-export interface GoogleGenerativeAIProvider extends ProviderV1 {
+export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,

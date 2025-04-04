@@ -2,7 +2,7 @@ import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
   LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -51,7 +51,7 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface CerebrasProvider extends ProviderV1 {
+export interface CerebrasProvider extends ProviderV2 {
   /**
 Creates a Cerebras model for text generation.
 */
