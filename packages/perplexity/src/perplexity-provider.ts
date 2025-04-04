@@ -12,7 +12,7 @@ import {
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import { PerplexityLanguageModelId } from './perplexity-language-model-settings';
 
-export interface PerplexityProvider extends ProviderV1 {
+export interface PerplexityProvider extends ProviderV2 {
   /**
 Creates an Perplexity chat model for text generation.
    */
