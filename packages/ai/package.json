@@ -42,6 +42,11 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
+    "./internal": {
+      "types": "./dist/internal/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
     "./test": {
       "types": "./test/dist/index.d.ts",
       "import": "./test/dist/index.mjs",

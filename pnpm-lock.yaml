@@ -1153,7 +1153,7 @@ importers:
         version: 0.6.0
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
-        version: 18.3.1
+        version: 19.0.0-rc.1
     devDependencies:
       '@edge-runtime/vm':
         specifier: ^5.0.0
@@ -1181,10 +1181,10 @@ importers:
         version: link:../../tools/eslint-config
       react-dom:
         specifier: ^18
-        version: 18.3.1(react@18.3.1)
+        version: 18.3.1(react@19.0.0-rc.1)
       react-server-dom-webpack:
         specifier: 18.3.0-canary-eb33bd747-20240312
-        version: 18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(webpack@5.96.1(esbuild@0.18.20))
+        version: 18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@19.0.0-rc.1))(react@19.0.0-rc.1)(webpack@5.96.1(esbuild@0.18.20))
       tsup:
         specifier: ^7.2.0
         version: 7.2.0(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.6.3))(typescript@5.6.3)
@@ -1772,12 +1772,21 @@ importers:
 
   packages/react:
     dependencies:
+      '@ai-sdk/provider':
+        specifier: 1.1.0
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: 2.2.4
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
         specifier: 1.2.5
         version: link:../ui-utils
+      ai:
+        specifier: 4.3.0
+        version: link:../ai
+      jsondiffpatch:
+        specifier: 0.6.0
+        version: 0.6.0
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
         version: 18.3.1
@@ -24107,7 +24116,7 @@ snapshots:
       eslint: 8.57.1
       eslint-import-resolver-node: 0.3.9
       eslint-import-resolver-typescript: 3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       eslint-plugin-jsx-a11y: 6.9.0(eslint@8.57.1)
       eslint-plugin-react: 7.35.0(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.2(eslint@8.57.1)
@@ -24183,7 +24192,7 @@ snapshots:
       enhanced-resolve: 5.17.1
       eslint: 8.57.1
       eslint-module-utils: 2.8.0(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
-      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1)
+      eslint-plugin-import: 2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1)
       fast-glob: 3.3.2
       get-tsconfig: 4.7.2
       is-core-module: 2.13.1
@@ -24304,7 +24313,7 @@ snapshots:
       - eslint-import-resolver-webpack
       - supports-color
 
-  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1)(eslint@8.57.1):
+  eslint-plugin-import@2.29.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-typescript@3.6.1(@typescript-eslint/parser@7.2.0(eslint@8.57.1)(typescript@5.6.3))(eslint-import-resolver-node@0.3.9)(eslint-plugin-import@2.29.1(eslint@8.57.1))(eslint@8.57.1))(eslint@8.57.1):
     dependencies:
       array-includes: 3.1.8
       array.prototype.findlastindex: 1.2.5
@@ -28855,6 +28864,12 @@ snapshots:
       react: 18.3.1
       scheduler: 0.23.2
 
+  react-dom@18.3.1(react@19.0.0-rc.1):
+    dependencies:
+      loose-envify: 1.4.0
+      react: 19.0.0-rc.1
+      scheduler: 0.23.2
+
   react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607):
     dependencies:
       react: 19.0.0-rc-cc1ec60d0d-20240607
@@ -28890,12 +28905,12 @@ snapshots:
 
   react-refresh@0.14.2: {}
 
-  react-server-dom-webpack@18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(webpack@5.96.1(esbuild@0.18.20)):
+  react-server-dom-webpack@18.3.0-canary-eb33bd747-20240312(react-dom@18.3.1(react@19.0.0-rc.1))(react@19.0.0-rc.1)(webpack@5.96.1(esbuild@0.18.20)):
     dependencies:
       acorn-loose: 8.4.0
       neo-async: 2.6.2
-      react: 18.3.1
-      react-dom: 18.3.1(react@18.3.1)
+      react: 19.0.0-rc.1
+      react-dom: 18.3.1(react@19.0.0-rc.1)
       webpack: 5.96.1(esbuild@0.18.20)
 
   react@18.2.0:

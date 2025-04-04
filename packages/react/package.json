@@ -22,6 +22,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./rsc": {
+      "types": "./dist/rsc/index.d.ts",
+      "import": "./dist/rsc/index.mjs",
+      "require": "./dist/rsc/index.js"
     }
   },
   "files": [
@@ -29,10 +34,12 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
+    "@ai-sdk/provider": "1.1.0",
     "@ai-sdk/provider-utils": "2.2.4",
     "@ai-sdk/ui-utils": "1.2.5",
     "swr": "^2.2.5",
-    "throttleit": "2.1.0"
+    "throttleit": "2.1.0",
+    "jsondiffpatch": "0.6.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
@@ -53,7 +60,8 @@
   },
   "peerDependencies": {
     "react": "^18 || ^19 || ^19.0.0-rc",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "ai": "4.3.0"
   },
   "peerDependenciesMeta": {
     "zod": {

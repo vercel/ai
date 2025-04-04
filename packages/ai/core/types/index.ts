@@ -19,5 +19,5 @@ export type {
 export type { LanguageModelRequestMetadata } from './language-model-request-metadata';
 export type { LanguageModelResponseMetadata } from './language-model-response-metadata';
 export type { Provider } from './provider';
-export type { ProviderMetadata } from './provider-metadata';
+export type { ProviderOptions, ProviderMetadata } from './provider-metadata';
 export type { EmbeddingModelUsage, LanguageModelUsage } from './usage';
