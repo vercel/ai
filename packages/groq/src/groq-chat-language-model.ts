@@ -1,10 +1,10 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1ProviderMetadata,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason,
+  LanguageModelV2ProviderMetadata,
+  LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -32,7 +32,7 @@ type GroqChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class GroqChatLanguageModel implements LanguageModelV1 {
+export class GroqChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v1';
 
   readonly supportsStructuredOutputs = false;
@@ -76,12 +76,12 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
     seed,
     stream,
     providerMetadata,
-  }: Parameters<LanguageModelV1['doGenerate']>[0] & {
+  }: Parameters<LanguageModelV2['doGenerate']>[0] & {
     stream: boolean;
   }) {
     const type = mode.type;
 
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
       warnings.push({
@@ -197,8 +197,8 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings } = this.getArgs({ ...options, stream: false });
 
     const body = JSON.stringify(args);
@@ -248,8 +248,8 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = this.getArgs({ ...options, stream: true });
 
     const body = JSON.stringify({ ...args, stream: true });
@@ -283,7 +283,7 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: {
       promptTokens: number | undefined;
       completionTokens: number | undefined;
@@ -293,12 +293,12 @@ export class GroqChatLanguageModel implements LanguageModelV1 {
     };
     let isFirstChunk = true;
 
-    let providerMetadata: LanguageModelV1ProviderMetadata | undefined;
+    let providerMetadata: LanguageModelV2ProviderMetadata | undefined;
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof groqChatChunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:

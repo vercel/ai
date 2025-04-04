@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV1,
-  LanguageModelV1,
+  LanguageModelV2,
   ProviderV1,
 } from '@ai-sdk/provider';
 import {
@@ -23,7 +23,7 @@ export interface MistralProvider extends ProviderV1 {
   (
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a model for text generation.
@@ -31,7 +31,7 @@ Creates a model for text generation.
   languageModel(
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a model for text generation.
@@ -39,7 +39,7 @@ Creates a model for text generation.
   chat(
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.

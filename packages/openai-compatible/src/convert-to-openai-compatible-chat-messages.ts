@@ -1,19 +1,19 @@
 import {
-  LanguageModelV1Prompt,
-  LanguageModelV1ProviderMetadata,
+  LanguageModelV2Prompt,
+  LanguageModelV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 
 function getOpenAIMetadata(message: {
-  providerMetadata?: LanguageModelV1ProviderMetadata;
+  providerMetadata?: LanguageModelV2ProviderMetadata;
 }) {
   return message?.providerMetadata?.openaiCompatible ?? {};
 }
 
 export function convertToOpenAICompatibleChatMessages(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): OpenAICompatibleChatPrompt {
   const messages: OpenAICompatibleChatPrompt = [];
   for (const { role, content, ...message } of prompt) {

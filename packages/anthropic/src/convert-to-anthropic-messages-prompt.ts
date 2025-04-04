@@ -1,8 +1,8 @@
 import {
-  LanguageModelV1CallWarning,
-  LanguageModelV1Message,
-  LanguageModelV1Prompt,
-  LanguageModelV1ProviderMetadata,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Message,
+  LanguageModelV2Prompt,
+  LanguageModelV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
@@ -18,9 +18,9 @@ export function convertToAnthropicMessagesPrompt({
   sendReasoning,
   warnings,
 }: {
-  prompt: LanguageModelV1Prompt;
+  prompt: LanguageModelV2Prompt;
   sendReasoning: boolean;
-  warnings: LanguageModelV1CallWarning[];
+  warnings: LanguageModelV2CallWarning[];
 }): {
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -32,7 +32,7 @@ export function convertToAnthropicMessagesPrompt({
   const messages: AnthropicMessagesPrompt['messages'] = [];
 
   function getCacheControl(
-    providerMetadata: LanguageModelV1ProviderMetadata | undefined,
+    providerMetadata: LanguageModelV2ProviderMetadata | undefined,
   ): AnthropicCacheControl | undefined {
     const anthropic = providerMetadata?.anthropic;
 
@@ -315,19 +315,19 @@ export function convertToAnthropicMessagesPrompt({
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV1Message & { role: 'system' }>;
+  messages: Array<LanguageModelV2Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV1Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV2Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV1Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV2Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

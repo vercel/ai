@@ -16,7 +16,7 @@ import {
 } from './google-generative-ai-embedding-settings';
 import {
   EmbeddingModelV1,
-  LanguageModelV1,
+  LanguageModelV2,
   ProviderV1,
 } from '@ai-sdk/provider';
 import { isSupportedFileUrl } from './google-supported-file-url';
@@ -25,17 +25,17 @@ export interface GoogleGenerativeAIProvider extends ProviderV1 {
   (
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   languageModel(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   chat(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
    * @deprecated Use `chat()` instead.
@@ -43,7 +43,7 @@ export interface GoogleGenerativeAIProvider extends ProviderV1 {
   generativeAI(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.

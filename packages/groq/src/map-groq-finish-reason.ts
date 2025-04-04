@@ -1,8 +1,8 @@
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
 
 export function mapGroqFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV1FinishReason {
+): LanguageModelV2FinishReason {
   switch (finishReason) {
     case 'stop':
       return 'stop';

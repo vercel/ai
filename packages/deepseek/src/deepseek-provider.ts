@@ -1,6 +1,6 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
@@ -42,7 +42,7 @@ Creates a DeepSeek model for text generation.
   (
     modelId: DeepSeekChatModelId,
     settings?: DeepSeekChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a DeepSeek model for text generation.
@@ -50,7 +50,7 @@ Creates a DeepSeek model for text generation.
   languageModel(
     modelId: DeepSeekChatModelId,
     settings?: DeepSeekChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a DeepSeek chat model for text generation.
@@ -58,7 +58,7 @@ Creates a DeepSeek chat model for text generation.
   chat(
     modelId: DeepSeekChatModelId,
     settings?: DeepSeekChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 }
 
 export function createDeepSeek(

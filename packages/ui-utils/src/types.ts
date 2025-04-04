@@ -1,6 +1,6 @@
 import {
-  LanguageModelV1FinishReason,
-  LanguageModelV1Source,
+  LanguageModelV2FinishReason,
+  LanguageModelV2Source,
 } from '@ai-sdk/provider';
 import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from './duplicated/usage';
@@ -183,7 +183,7 @@ export type SourceUIPart = {
   /**
    * The source.
    */
-  source: LanguageModelV1Source;
+  source: LanguageModelV2Source;
 };
 
 /**
@@ -328,7 +328,7 @@ either synchronously or asynchronously.
     message: Message,
     options: {
       usage: LanguageModelUsage;
-      finishReason: LanguageModelV1FinishReason;
+      finishReason: LanguageModelV2FinishReason;
     },
   ) => void;
 

@@ -1,6 +1,6 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
@@ -58,7 +58,7 @@ Creates a Cerebras model for text generation.
   (
     modelId: CerebrasChatModelId,
     settings?: CerebrasChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a Cerebras model for text generation.
@@ -66,7 +66,7 @@ Creates a Cerebras model for text generation.
   languageModel(
     modelId: CerebrasChatModelId,
     settings?: CerebrasChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a Cerebras chat model for text generation.
@@ -74,7 +74,7 @@ Creates a Cerebras chat model for text generation.
   chat(
     modelId: CerebrasChatModelId,
     settings?: CerebrasChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 }
 
 export function createCerebras(

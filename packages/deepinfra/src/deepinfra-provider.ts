@@ -1,5 +1,5 @@
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   EmbeddingModelV1,
   ProviderV1,
   ImageModelV1,
@@ -59,7 +59,7 @@ Creates a model for text generation.
   (
     modelId: DeepInfraChatModelId,
     settings?: DeepInfraChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a chat model for text generation.
@@ -67,7 +67,7 @@ Creates a chat model for text generation.
   chatModel(
     modelId: DeepInfraChatModelId,
     settings?: DeepInfraChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a model for image generation.
@@ -91,7 +91,7 @@ Creates a chat model for text generation.
   languageModel(
     modelId: DeepInfraChatModelId,
     settings?: DeepInfraChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a completion model for text generation.
@@ -99,7 +99,7 @@ Creates a completion model for text generation.
   completionModel(
     modelId: DeepInfraCompletionModelId,
     settings?: DeepInfraCompletionSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a text embedding model for text generation.

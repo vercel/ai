@@ -10,14 +10,14 @@ import {
 } from '@ai-sdk/openai/internal';
 import {
   EmbeddingModelV1,
-  LanguageModelV1,
+  LanguageModelV2,
   ProviderV1,
   ImageModelV1,
 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
 export interface AzureOpenAIProvider extends ProviderV1 {
-  (deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV1;
+  (deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV2;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
@@ -25,12 +25,12 @@ Creates an Azure OpenAI chat model for text generation.
   languageModel(
     deploymentId: string,
     settings?: OpenAIChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  chat(deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV1;
+  chat(deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV2;
 
   /**
 Creates an Azure OpenAI completion model for text generation.
@@ -38,7 +38,7 @@ Creates an Azure OpenAI completion model for text generation.
   completion(
     deploymentId: string,
     settings?: OpenAICompletionSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel` instead.

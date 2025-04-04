@@ -1,4 +1,4 @@
-import { LanguageModelV1, LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { LanguageModelV2, LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
@@ -6,7 +6,7 @@ import {
 import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { createOpenAI } from './openai-provider';
 
-const TEST_PROMPT: LanguageModelV1Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -608,7 +608,7 @@ describe('doGenerate', () => {
   });
 
   describe('when useLegacyFunctionCalling is enabled', () => {
-    let result: Awaited<ReturnType<LanguageModelV1['doGenerate']>>;
+    let result: Awaited<ReturnType<LanguageModelV2['doGenerate']>>;
 
     beforeEach(async () => {
       prepareJsonResponse({

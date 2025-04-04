@@ -1,4 +1,4 @@
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import {
   calculateLanguageModelUsage,
@@ -34,7 +34,7 @@ export async function processChatResponse({
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: {
     message: UIMessage | undefined;
-    finishReason: LanguageModelV1FinishReason;
+    finishReason: LanguageModelV2FinishReason;
     usage: LanguageModelUsage;
   }) => void;
   generateId?: () => string;
@@ -104,7 +104,7 @@ export async function processChatResponse({
     promptTokens: NaN,
     totalTokens: NaN,
   };
-  let finishReason: LanguageModelV1FinishReason = 'unknown';
+  let finishReason: LanguageModelV2FinishReason = 'unknown';
 
   function execUpdate() {
     // make a copy of the data array to ensure UI is updated (SWR)

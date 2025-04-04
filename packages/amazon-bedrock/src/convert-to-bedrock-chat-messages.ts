@@ -10,9 +10,9 @@ import {
 } from './bedrock-api-types';
 import {
   JSONObject,
-  LanguageModelV1Message,
-  LanguageModelV1Prompt,
-  LanguageModelV1ProviderMetadata,
+  LanguageModelV2Message,
+  LanguageModelV2Prompt,
+  LanguageModelV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -23,12 +23,12 @@ import {
 const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
 function getCachePoint(
-  providerMetadata: LanguageModelV1ProviderMetadata | undefined,
+  providerMetadata: LanguageModelV2ProviderMetadata | undefined,
 ): BedrockCachePoint | undefined {
   return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
 }
 
-export function convertToBedrockChatMessages(prompt: LanguageModelV1Prompt): {
+export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
   system: BedrockSystemMessages;
   messages: BedrockMessages;
 } {
@@ -297,19 +297,19 @@ function trimIfLast(
 
 type SystemBlock = {
   type: 'system';
-  messages: Array<LanguageModelV1Message & { role: 'system' }>;
+  messages: Array<LanguageModelV2Message & { role: 'system' }>;
 };
 type AssistantBlock = {
   type: 'assistant';
-  messages: Array<LanguageModelV1Message & { role: 'assistant' }>;
+  messages: Array<LanguageModelV2Message & { role: 'assistant' }>;
 };
 type UserBlock = {
   type: 'user';
-  messages: Array<LanguageModelV1Message & { role: 'user' | 'tool' }>;
+  messages: Array<LanguageModelV2Message & { role: 'user' | 'tool' }>;
 };
 
 function groupIntoBlocks(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): Array<SystemBlock | AssistantBlock | UserBlock> {
   const blocks: Array<SystemBlock | AssistantBlock | UserBlock> = [];
   let currentBlock: SystemBlock | AssistantBlock | UserBlock | undefined =

@@ -1,12 +1,12 @@
 import {
-  LanguageModelV1Prompt,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { MistralPrompt } from './mistral-chat-prompt';
 
 export function convertToMistralChatMessages(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): MistralPrompt {
   const messages: MistralPrompt = [];
 

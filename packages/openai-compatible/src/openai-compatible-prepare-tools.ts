@@ -1,6 +1,6 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 
@@ -8,7 +8,7 @@ export function prepareTools({
   mode,
   structuredOutputs,
 }: {
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+  mode: Parameters<LanguageModelV2['doGenerate']>[0]['mode'] & {
     type: 'regular';
   };
   structuredOutputs: boolean;
@@ -29,11 +29,11 @@ export function prepareTools({
     | 'none'
     | 'required'
     | undefined;
-  toolWarnings: LanguageModelV1CallWarning[];
+  toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
-  const toolWarnings: LanguageModelV1CallWarning[] = [];
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   if (tools == null) {
     return { tools: undefined, tool_choice: undefined, toolWarnings };

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createFireworks } from './fireworks-provider';
-import { LanguageModelV1, EmbeddingModelV1 } from '@ai-sdk/provider';
+import { LanguageModelV2, EmbeddingModelV1 } from '@ai-sdk/provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -29,14 +29,14 @@ vi.mock('./fireworks-image-model', () => ({
 }));
 
 describe('FireworksProvider', () => {
-  let mockLanguageModel: LanguageModelV1;
+  let mockLanguageModel: LanguageModelV2;
   let mockEmbeddingModel: EmbeddingModelV1<string>;
 
   beforeEach(() => {
     // Mock implementations of models
     mockLanguageModel = {
-      // Add any required methods for LanguageModelV1
-    } as LanguageModelV1;
+      // Add any required methods for LanguageModelV2
+    } as LanguageModelV2;
     mockEmbeddingModel = {
       // Add any required methods for EmbeddingModelV1
     } as EmbeddingModelV1<string>;

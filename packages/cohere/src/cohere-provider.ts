@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV1,
-  LanguageModelV1,
+  LanguageModelV2,
   ProviderV1,
 } from '@ai-sdk/provider';
 import {
@@ -17,7 +17,7 @@ import {
 } from './cohere-embedding-settings';
 
 export interface CohereProvider extends ProviderV1 {
-  (modelId: CohereChatModelId, settings?: CohereChatSettings): LanguageModelV1;
+  (modelId: CohereChatModelId, settings?: CohereChatSettings): LanguageModelV2;
 
   /**
 Creates a model for text generation.
@@ -25,7 +25,7 @@ Creates a model for text generation.
   languageModel(
     modelId: CohereChatModelId,
     settings?: CohereChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   embedding(
     modelId: CohereEmbeddingModelId,

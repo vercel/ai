@@ -1,5 +1,5 @@
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
@@ -25,7 +25,7 @@ Creates a model for text generation.
   (
     modelId: GoogleVertexAnthropicMessagesModelId,
     settings?: GoogleVertexAnthropicMessagesSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a model for text generation.
@@ -33,7 +33,7 @@ Creates a model for text generation.
   languageModel(
     modelId: GoogleVertexAnthropicMessagesModelId,
     settings?: GoogleVertexAnthropicMessagesSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Anthropic-specific computer use tool.

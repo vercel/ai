@@ -1,8 +1,8 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -21,7 +21,7 @@ import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-rea
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { OpenAIResponsesModelId } from './openai-responses-settings';
 
-export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
+export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'json';
 
@@ -51,8 +51,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     prompt,
     providerMetadata,
     responseFormat,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
-    const warnings: LanguageModelV1CallWarning[] = [];
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
+    const warnings: LanguageModelV2CallWarning[] = [];
     const modelConfig = getResponsesModelConfig(this.modelId);
     const type = mode.type;
 
@@ -234,8 +234,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args: body, warnings } = this.getArgs(options);
 
     const {
@@ -364,8 +364,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args: body, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -388,7 +388,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
     const self = this;
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
     let promptTokens = NaN;
     let completionTokens = NaN;
     let cachedPromptTokens: number | null = null;
@@ -404,7 +404,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof openaiResponsesChunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:

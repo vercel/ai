@@ -1,7 +1,7 @@
 import {
   EmbeddingModelV1,
   ImageModelV1,
-  LanguageModelV1,
+  LanguageModelV2,
   ProviderV1,
 } from '@ai-sdk/provider';
 import {
@@ -87,12 +87,12 @@ export interface AmazonBedrockProvider extends ProviderV1 {
   (
     modelId: BedrockChatModelId,
     settings?: BedrockChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   languageModel(
     modelId: BedrockChatModelId,
     settings?: BedrockChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   embedding(
     modelId: BedrockEmbeddingModelId,

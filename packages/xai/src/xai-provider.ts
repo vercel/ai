@@ -1,6 +1,6 @@
 import {
   ImageModelV1,
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
@@ -32,7 +32,7 @@ export interface XaiProvider extends ProviderV1 {
   /**
 Creates an Xai chat model for text generation.
    */
-  (modelId: XaiChatModelId, settings?: XaiChatSettings): LanguageModelV1;
+  (modelId: XaiChatModelId, settings?: XaiChatSettings): LanguageModelV2;
 
   /**
 Creates an Xai language model for text generation.
@@ -40,7 +40,7 @@ Creates an Xai language model for text generation.
   languageModel(
     modelId: XaiChatModelId,
     settings?: XaiChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates an Xai chat model for text generation.
@@ -48,7 +48,7 @@ Creates an Xai chat model for text generation.
   chat: (
     modelId: XaiChatModelId,
     settings?: XaiChatSettings,
-  ) => LanguageModelV1;
+  ) => LanguageModelV2;
 
   /**
 Creates an Xai image model for image generation.

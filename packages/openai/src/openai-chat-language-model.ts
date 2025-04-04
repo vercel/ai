@@ -1,11 +1,11 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1LogProbs,
-  LanguageModelV1ProviderMetadata,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason,
+  LanguageModelV2LogProbs,
+  LanguageModelV2ProviderMetadata,
+  LanguageModelV2StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -38,7 +38,7 @@ type OpenAIChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAIChatLanguageModel implements LanguageModelV1 {
+export class OpenAIChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v1';
 
   readonly modelId: OpenAIChatModelId;
@@ -94,10 +94,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     responseFormat,
     seed,
     providerMetadata,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
       warnings.push({
@@ -356,8 +356,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args: body, warnings } = this.getArgs(options);
 
     const {
@@ -385,7 +385,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
     const promptTokenDetails = response.usage?.prompt_tokens_details;
-    const providerMetadata: LanguageModelV1ProviderMetadata = { openai: {} };
+    const providerMetadata: LanguageModelV2ProviderMetadata = { openai: {} };
     if (completionTokenDetails?.reasoning_tokens != null) {
       providerMetadata.openai.reasoningTokens =
         completionTokenDetails?.reasoning_tokens;
@@ -437,12 +437,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     if (this.settings.simulateStreaming) {
       const result = await this.doGenerate(options);
 
-      const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
+      const simulatedStream = new ReadableStream<LanguageModelV2StreamPart>({
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
           if (result.text) {
@@ -525,7 +525,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: {
       promptTokens: number | undefined;
       completionTokens: number | undefined;
@@ -533,18 +533,18 @@ export class OpenAIChatLanguageModel implements LanguageModelV1 {
       promptTokens: undefined,
       completionTokens: undefined,
     };
-    let logprobs: LanguageModelV1LogProbs;
+    let logprobs: LanguageModelV2LogProbs;
     let isFirstChunk = true;
 
     const { useLegacyFunctionCalling } = this.settings;
 
-    const providerMetadata: LanguageModelV1ProviderMetadata = { openai: {} };
+    const providerMetadata: LanguageModelV2ProviderMetadata = { openai: {} };
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof openaiChatChunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:

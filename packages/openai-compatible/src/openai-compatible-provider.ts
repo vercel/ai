@@ -1,7 +1,7 @@
 import {
   EmbeddingModelV1,
   ImageModelV1,
-  LanguageModelV1,
+  LanguageModelV2,
   ProviderV1,
 } from '@ai-sdk/provider';
 import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
@@ -23,22 +23,22 @@ export interface OpenAICompatibleProvider<
   (
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   languageModel(
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   chatModel(
     modelId: CHAT_MODEL_IDS,
     settings?: OpenAICompatibleChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   completionModel(
     modelId: COMPLETION_MODEL_IDS,
     settings?: OpenAICompatibleCompletionSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   textEmbeddingModel(
     modelId: EMBEDDING_MODEL_IDS,

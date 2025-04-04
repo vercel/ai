@@ -1,5 +1,5 @@
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
@@ -22,7 +22,7 @@ Creates a model for text generation.
   (
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a model for text generation.
@@ -30,7 +30,7 @@ Creates a model for text generation.
   languageModel(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 @deprecated Use `.languageModel()` instead.
@@ -38,7 +38,7 @@ Creates a model for text generation.
   chat(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 @deprecated Use `.languageModel()` instead.
@@ -46,7 +46,7 @@ Creates a model for text generation.
   messages(
     modelId: AnthropicMessagesModelId,
     settings?: AnthropicMessagesSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Anthropic-specific computer use tool.
