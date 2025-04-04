@@ -4,8 +4,8 @@ import { ToolSet } from './tool-set';
 import { InvalidArgumentError } from '@ai-sdk/provider';
 
 const CHUNKING_REGEXPS = {
-  word: /\s*\S+\s+/m,
-  line: /[^\n]*\n/m,
+  word: /\S+\s+/m,
+  line: /\n+/m,
 };
 
 /**
@@ -15,7 +15,7 @@ const CHUNKING_REGEXPS = {
  *
  * @returns The first detected chunk, or `undefined` if no chunk was detected.
  */
-export type ChunkDetector = (buffer: string) => string | undefined;
+export type ChunkDetector = (buffer: string) => string | undefined | null;
 
 /**
  * Smooths text streaming output.
@@ -44,7 +44,17 @@ export function smoothStream<TOOLS extends ToolSet>({
   let detectChunk: ChunkDetector;
 
   if (typeof chunking === 'function') {
-    detectChunk = chunking;
+    detectChunk = buffer => {
+      const match = chunking(buffer);
+
+      if (match && !buffer.startsWith(match)) {
+        throw new Error(
+          `Chunking function must return a match that is a prefix of the buffer. Received: "${match}" expected to start with "${buffer}"`,
+        );
+      }
+
+      return match;
+    };
   } else {
     const chunkingRegex =
       typeof chunking === 'string' ? CHUNKING_REGEXPS[chunking] : chunking;
@@ -56,7 +66,15 @@ export function smoothStream<TOOLS extends ToolSet>({
       });
     }
 
-    detectChunk = buffer => chunkingRegex.exec(buffer)?.[0];
+    detectChunk = buffer => {
+      const match = chunkingRegex.exec(buffer);
+
+      if (!match) {
+        return null;
+      }
+
+      return buffer.slice(0, match.index) + match?.[0];
+    };
   }
 
   return () => {
