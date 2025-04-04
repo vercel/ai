@@ -68,11 +68,11 @@ class TestServerCall {
     ) ? 
     // For multipart/form-data, return the form data entries as an object
     this.request!.formData().then(formData => {
-      const obj: Record<string, any> = {};
+      const entries: Record<string, any> = {};
       formData.forEach((value, key) => {
-        obj[key] = value;
+        entries[key] = value;
       });
-      return obj;
+      return entries;
     }) : null;
   }
 
