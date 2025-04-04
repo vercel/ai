@@ -2,6 +2,7 @@ import { fail } from 'assert';
 import { z } from 'zod';
 import { verifyNoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { object } from './output';
+import { FinishReason } from '../types';
 
 const context = {
   response: {
@@ -14,6 +15,7 @@ const context = {
     completionTokens: 2,
     totalTokens: 3,
   },
+  finishReason: 'length' as FinishReason,
 };
 
 describe('Output.object', () => {
@@ -37,6 +39,7 @@ describe('Output.object', () => {
         message: 'No object generated: could not parse the response.',
         response: context.response,
         usage: context.usage,
+        finishReason: context.finishReason,
       });
     }
   });
@@ -50,6 +53,7 @@ describe('Output.object', () => {
         message: 'No object generated: response did not match schema.',
         response: context.response,
         usage: context.usage,
+        finishReason: context.finishReason,
       });
     }
   });
