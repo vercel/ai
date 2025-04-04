@@ -15,6 +15,12 @@
   ],
   "references": [
     {
+      "path": "../ai"
+    },
+    {
+      "path": "../provider"
+    },
+    {
       "path": "../provider-utils"
     },
     {

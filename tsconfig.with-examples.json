@@ -4,6 +4,9 @@
   },
   "references": [
     {
+      "path": "./"
+    },
+    {
       "path": "examples/ai-core"
     },
     {

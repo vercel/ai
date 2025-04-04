@@ -22,6 +22,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.js"
+    },
+    "./rsc": {
+      "types": "./dist/rsc/index.d.ts",
+      "import": "./dist/rsc/index.mjs",
+      "require": "./dist/rsc/index.js"
     }
   },
   "files": [
@@ -29,10 +34,13 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
+    "ai": "5.0.0-canary.0",
+    "@ai-sdk/provider": "2.0.0-canary.0",
     "@ai-sdk/provider-utils": "3.0.0-canary.0",
     "@ai-sdk/ui-utils": "2.0.0-canary.0",
     "swr": "^2.2.5",
-    "throttleit": "2.1.0"
+    "throttleit": "2.1.0",
+    "jsondiffpatch": "0.6.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
