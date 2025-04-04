@@ -424,7 +424,7 @@ describe('smoothStream', () => {
             "type": "finish",
           },
         ]
-      `)
+      `);
     });
 
     it('should split on Chinese characters', async () => {
@@ -461,7 +461,7 @@ describe('smoothStream', () => {
             "type": "finish",
           },
         ]
-      `)
+      `);
     });
   });
 
