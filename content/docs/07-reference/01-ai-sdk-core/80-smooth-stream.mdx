@@ -50,21 +50,21 @@ const result = streamText({
   ]}
 />
 
-#### Word chunking does not support non-latin languages
+#### Word chunking caveats with non-latin languages
 
 <Note>
-    The word based chunking **will not pair well** the following languages, that do not delimit words with spaces:
+    The word based chunking **does not work well** with the following languages that do not delimit words with spaces:
 
-    - Chinese
-    - Japanese
+    For these languages the `word` option splits on the entire unicode range:
+
+    - Chinese - `\u4E00-\u9FFF`
+    - Japanese - `\u3040-\u309F` & `\u30A0-\u30FF`
+
+    For these languages you could pass your own language aware chunking function:
+
     - Vietnamese
     - Thai
     - Javanese (Aksara Jawa)
-
-    For these languages:
-
-    - **Recommended:** provide your own chunking regex/function that accounts for the language's word boundaries
-    - _Don't_ use smoothStream
 
 </Note>
 

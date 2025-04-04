@@ -4,7 +4,7 @@ import { ToolSet } from './tool-set';
 import { InvalidArgumentError } from '@ai-sdk/provider';
 
 const CHUNKING_REGEXPS = {
-  word: /\S+\s+/m,
+  word: /[\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF]|\S+\s+/m,
   line: /\n+/m,
 };
 

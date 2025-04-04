@@ -385,6 +385,84 @@ describe('smoothStream', () => {
         ]
       `);
     });
+
+    it('should split on Japanese characters', async () => {
+      const stream = convertArrayToReadableStream([
+        { type: 'text-delta', textDelta: 'こんにちは' },
+        { type: 'step-finish' },
+        { type: 'finish' },
+      ]).pipeThrough(smoothStream({ chunking: 'word' })({ tools: {} }));
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "textDelta": "こ",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "ん",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "に",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "ち",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "は",
+            "type": "text-delta",
+          },
+          {
+            "type": "step-finish",
+          },
+          {
+            "type": "finish",
+          },
+        ]
+      `)
+    });
+
+    it('should split on Chinese characters', async () => {
+      const stream = convertArrayToReadableStream([
+        { type: 'text-delta', textDelta: '你好你好' },
+        { type: 'step-finish' },
+        { type: 'finish' },
+      ]).pipeThrough(smoothStream({ chunking: 'word' })({ tools: {} }));
+
+      await consumeStream(stream);
+
+      expect(events).toMatchInlineSnapshot(`
+        [
+          {
+            "textDelta": "你",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "好",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "你",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "好",
+            "type": "text-delta",
+          },
+          {
+            "type": "step-finish",
+          },
+          {
+            "type": "finish",
+          },
+        ]
+      `)
+    });
   });
 
   describe('line chunking', () => {
