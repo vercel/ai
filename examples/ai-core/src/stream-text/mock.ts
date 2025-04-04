@@ -1,10 +1,10 @@
 import { streamText } from 'ai';
-import { convertArrayToReadableStream, MockLanguageModelV1 } from 'ai/test';
+import { convertArrayToReadableStream, MockLanguageModelV2 } from 'ai/test';
 import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: new MockLanguageModelV1({
+    model: new MockLanguageModelV2({
       doStream: async () => ({
         stream: convertArrayToReadableStream([
           { type: 'text-delta', textDelta: 'Hello' },

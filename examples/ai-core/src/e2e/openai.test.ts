@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
 import { openai as provider } from '@ai-sdk/openai';
-import { APICallError, LanguageModelV1 } from 'ai';
+import { APICallError, LanguageModelV2 } from 'ai';
 import {
   ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
@@ -11,7 +11,7 @@ import {
 
 const createChatModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> =>
+): ModelWithCapabilities<LanguageModelV2> =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
 
 createFeatureTestSuite({

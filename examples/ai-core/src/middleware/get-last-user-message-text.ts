@@ -1,9 +1,9 @@
-import { LanguageModelV1Prompt } from 'ai';
+import { LanguageModelV2Prompt } from 'ai';
 
 export function getLastUserMessageText({
   prompt,
 }: {
-  prompt: LanguageModelV1Prompt;
+  prompt: LanguageModelV2Prompt;
 }): string | undefined {
   const lastMessage = prompt.at(-1);
 
