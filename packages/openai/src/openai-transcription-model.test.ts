@@ -73,6 +73,7 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       audio: audioData,
+      mimeType: 'audio/wav',
     });
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
@@ -94,6 +95,7 @@ describe('doGenerate', () => {
 
     await provider.transcription('whisper-1').doGenerate({
       audio: audioData,
+      mimeType: 'audio/wav',
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -116,6 +118,7 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       audio: audioData,
+      mimeType: 'audio/wav',
     });
 
     expect(result.text).toBe('Hello from the Vercel AI SDK!');
@@ -141,6 +144,7 @@ describe('doGenerate', () => {
 
     const result = await customModel.doGenerate({
       audio: audioData,
+      mimeType: 'audio/wav',
     });
 
     expect(result.response).toMatchObject({
@@ -169,6 +173,7 @@ describe('doGenerate', () => {
 
     const result = await customModel.doGenerate({
       audio: audioData,
+      mimeType: 'audio/wav',
     });
 
     expect(result.response.timestamp.getTime()).toBeGreaterThanOrEqual(
