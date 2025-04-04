@@ -9,7 +9,7 @@
     "stdio:client": "tsx src/stdio/client.ts",
     "custom-transport:build": "tsc src/custom-transport/server.ts --outDir src/custom-transport/dist --target es2023 --module nodenext",
     "custom-transport:client": "tsx src/custom-transport/client.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --build"
   },
   "dependencies": {
     "@ai-sdk/openai": "2.0.0-canary.0",
@@ -23,6 +23,7 @@
     "@types/express": "5.0.0",
     "@types/node": "20.17.24",
     "tsx": "4.19.2",
-    "typescript": "5.6.3"
+    "typescript": "5.6.3",
+    "@vercel/ai-tsconfig": "workspace:*"
   }
 }

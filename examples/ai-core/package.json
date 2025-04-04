@@ -42,11 +42,12 @@
   "scripts": {
     "test:e2e:all": "vitest run src/e2e/*.test.ts",
     "test:file": "vitest run",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --build"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
     "tsx": "4.19.2",
-    "typescript": "5.6.3"
+    "typescript": "5.6.3",
+    "@vercel/ai-tsconfig": "workspace:*"
   }
 }

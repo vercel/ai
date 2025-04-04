@@ -8,11 +8,11 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "clean": "rm -rf dist",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.ts --run",
     "test:watch": "vitest",

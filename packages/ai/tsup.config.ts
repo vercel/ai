@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   // Universal APIs
   {
-    entry: ['streams/index.ts'],
+    entry: ['index.ts'],
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue'],
     dts: true,
@@ -12,7 +12,7 @@ export default defineConfig([
   // Test utilities
   {
     entry: ['test/index.ts'],
-    outDir: 'test/dist',
+    outDir: 'dist/test',
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
@@ -20,7 +20,7 @@ export default defineConfig([
   // React APIs
   {
     entry: ['react/index.ts'],
-    outDir: 'react/dist',
+    outDir: 'dist/react',
     banner: {
       js: "'use client'",
     },
@@ -33,7 +33,7 @@ export default defineConfig([
   {
     // Entry is `.mts` as the entrypoints that import it will be ESM so it needs exact imports that includes the `.mjs` extension.
     entry: ['rsc/rsc-shared.mts'],
-    outDir: 'rsc/dist',
+    outDir: 'dist/rsc',
     format: ['esm'],
     external: ['react', 'zod'],
     dts: true,
@@ -42,7 +42,7 @@ export default defineConfig([
   // RSC APIs - server, client
   {
     entry: ['rsc/rsc-server.ts', 'rsc/rsc-client.ts'],
-    outDir: 'rsc/dist',
+    outDir: 'dist/rsc',
     format: ['esm'],
     external: ['react', 'zod', /\/rsc-shared/],
     dts: true,
@@ -51,7 +51,7 @@ export default defineConfig([
   // RSC APIs - types
   {
     entry: ['rsc/index.ts'],
-    outDir: 'rsc/dist',
+    outDir: 'dist/rsc',
     dts: true,
     outExtension() {
       return {
@@ -65,7 +65,7 @@ export default defineConfig([
   // MCP stdio
   {
     entry: ['mcp-stdio/index.ts'],
-    outDir: 'mcp-stdio/dist',
+    outDir: 'dist/mcp-stdio',
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,

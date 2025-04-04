@@ -4,10 +4,10 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
-    "build:watch": "svelte-package --input=src --watch",
+    "build:watch": "pnpm clean && pnpm --filter svelte build && svelte-package --input=src --watch",
     "preview": "vite preview",
     "prepare": "echo ''",
-    "prepack": "svelte-package --input=src && publint",
+    "prepack": "pnpm clean && svelte-package --input=src && publint",
     "type-check": "svelte-check --tsconfig ./tsconfig.json",
     "type-check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
     "prettier-fix": "prettier --write .",
@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "test": "vitest --run",
     "test:watch": "vitest",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist *.tsbuildinfo"
   },
   "files": [
     "dist",
@@ -55,12 +55,14 @@
     "@ai-sdk/ui-utils": "2.0.0-canary.0"
   },
   "devDependencies": {
+    "@types/node": "20.17.24",
     "@eslint/compat": "^1.2.5",
     "@eslint/js": "^9.18.0",
     "@sveltejs/package": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/svelte": "^5.2.4",
+    "@vercel/ai-tsconfig": "workspace:*",
     "eslint": "^9.18.0",
     "eslint-plugin-svelte": "^3.0.0",
     "globals": "^16.0.0",

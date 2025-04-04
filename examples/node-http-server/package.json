@@ -10,12 +10,13 @@
     "zod-to-json-schema": "3.23.5"
   },
   "scripts": {
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --build",
     "dev": "tsx src/server.ts"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
     "tsx": "4.19.2",
-    "typescript": "5.6.3"
+    "typescript": "5.6.3",
+    "@vercel/ai-tsconfig": "workspace:*"
   }
 }

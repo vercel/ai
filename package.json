@@ -8,8 +8,9 @@
     "dev": "turbo dev --no-cache  --concurrency 16 --continue",
     "lint": "turbo lint",
     "prepare": "husky install",
+    "update-references": "update-ts-references",
     "prettier-check": "prettier --check \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
-    "type-check": "turbo type-check",
+    "type-check": "tsc --build",
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
     "publint": "turbo publint",
     "test": "turbo test",
@@ -23,6 +24,7 @@
     ]
   },
   "devDependencies": {
+    "update-ts-references": "^3.6.0",
     "@changesets/cli": "2.27.10",
     "@playwright/test": "^1.44.1",
     "eslint": "8.57.1",

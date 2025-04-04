@@ -13,20 +13,20 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
-    outDir: 'edge/dist',
+    outDir: 'dist/edge',
   },
   {
     entry: ['src/anthropic/index.ts'],
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
-    outDir: 'anthropic/dist',
+    outDir: 'dist/anthropic',
   },
   {
     entry: ['src/anthropic/edge/index.ts'],
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
-    outDir: 'anthropic/edge/dist',
+    outDir: 'dist/anthropic/edge',
   },
 ]);

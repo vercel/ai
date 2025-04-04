@@ -12,6 +12,7 @@
     "@ai-sdk/vue": "2.0.0-canary.0",
     "@ai-sdk/openai": "2.0.0-canary.0",
     "ai": "5.0.0-canary.0",
+    "openai": "4.52.6",
     "zod": "3.23.8"
   },
   "devDependencies": {
@@ -19,6 +20,7 @@
     "@nuxt/ui-templates": "1.3.4",
     "@nuxtjs/tailwindcss": "6.12.2",
     "@types/node": "20.17.24",
+    "@vercel/ai-tsconfig": "workspace:*",
     "@vue/reactivity": "3.5.13",
     "@vue/runtime-core": "3.5.12",
     "@vue/runtime-dom": "3.5.13",

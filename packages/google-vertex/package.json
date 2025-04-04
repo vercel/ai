@@ -14,11 +14,11 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf edge/dist && rm -rf anthropic/dist && rm -rf anthropic/edge/dist",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:edge": "vitest --config vitest.edge.config.js --run",
@@ -33,19 +33,19 @@
       "require": "./dist/index.js"
     },
     "./edge": {
-      "types": "./edge/dist/index.d.ts",
-      "import": "./edge/dist/index.mjs",
-      "require": "./edge/dist/index.js"
+      "types": "./dist/edge/index.d.ts",
+      "import": "./dist/edge/index.mjs",
+      "require": "./dist/edge/index.js"
     },
     "./anthropic": {
-      "types": "./anthropic/dist/index.d.ts",
-      "import": "./anthropic/dist/index.mjs",
-      "require": "./anthropic/dist/index.js"
+      "types": "./dist/anthropic/index.d.ts",
+      "import": "./dist/anthropic/index.mjs",
+      "require": "./dist/anthropic/index.js"
     },
     "./anthropic/edge": {
-      "types": "./anthropic/edge/dist/index.d.ts",
-      "import": "./anthropic/edge/dist/index.mjs",
-      "require": "./anthropic/edge/dist/index.js"
+      "types": "./dist/anthropic/edge/index.d.ts",
+      "import": "./dist/anthropic/edge/index.mjs",
+      "require": "./dist/anthropic/edge/index.js"
     }
   },
   "dependencies": {

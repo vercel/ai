@@ -9,18 +9,14 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "mcp-stdio/**/*",
-    "react/dist/**/*",
-    "rsc/dist/**/*",
-    "test/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf react/dist && rm -rf rsc/dist",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge && pnpm test:ui && pnpm test:e2e",
     "test:e2e": "playwright test",
@@ -43,26 +39,26 @@
       "require": "./dist/index.js"
     },
     "./test": {
-      "types": "./test/dist/index.d.ts",
-      "import": "./test/dist/index.mjs",
-      "module": "./test/dist/index.mjs",
-      "require": "./test/dist/index.js"
+      "types": "./dist/test/index.d.ts",
+      "import": "./dist/test/index.mjs",
+      "module": "./dist/test/index.mjs",
+      "require": "./dist/test/index.js"
     },
     "./rsc": {
-      "types": "./rsc/dist/index.d.ts",
-      "react-server": "./rsc/dist/rsc-server.mjs",
-      "import": "./rsc/dist/rsc-client.mjs"
+      "types": "./dist/rsc/index.d.ts",
+      "react-server": "./dist/rsc/rsc-server.mjs",
+      "import": "./dist/rsc/rsc-client.mjs"
     },
     "./react": {
-      "types": "./react/dist/index.d.ts",
-      "react-server": "./react/dist/index.server.mjs",
-      "import": "./react/dist/index.mjs",
-      "require": "./react/dist/index.js"
+      "types": "./dist/react/index.d.ts",
+      "react-server": "./dist/react/index.server.mjs",
+      "import": "./dist/react/index.mjs",
+      "require": "./dist/react/index.js"
     },
     "./mcp-stdio": {
-      "types": "./mcp-stdio/dist/index.d.ts",
-      "import": "./mcp-stdio/dist/index.mjs",
-      "require": "./mcp-stdio/dist/index.js"
+      "types": "./dist/mcp-stdio/index.d.ts",
+      "import": "./dist/mcp-stdio/index.mjs",
+      "require": "./dist/mcp-stdio/index.js"
     }
   },
   "dependencies": {
