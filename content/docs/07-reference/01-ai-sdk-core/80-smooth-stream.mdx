@@ -52,19 +52,21 @@ const result = streamText({
 
 #### Word chunking does not support non-latin languages
 
-> [!TIP]
-> The word based chunking **will not pair well** the following languages, that do not delimit words with spaces:
->
-> - Chinese
-> - Japanese
-> - Vietnamese
-> - Thai
-> - Javanese (Aksara Jawa)
->
-> For these languages:
->
-> - **Recommended:** provide your own chunking regex/function that accounts for the language's word boundaries
-> - _Don't_ use smoothStream
+<Note>
+    The word based chunking **will not pair well** the following languages, that do not delimit words with spaces:
+
+    - Chinese
+    - Japanese
+    - Vietnamese
+    - Thai
+    - Javanese (Aksara Jawa)
+
+    For these languages:
+
+    - **Recommended:** provide your own chunking regex/function that accounts for the language's word boundaries
+    - _Don't_ use smoothStream
+
+</Note>
 
 #### Regex based chunking
 
