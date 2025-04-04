@@ -63,23 +63,17 @@ class TestServerCall {
   }
 
   get requestBodyMultipart() {
-    if (
-      this.request!.headers.get('content-type')?.startsWith(
-        'multipart/form-data',
-      )
-    ) {
-      // For multipart/form-data, return the form data entries as an object
-      return this.request!.formData().then(formData => {
-        const obj: Record<string, any> = {};
-        formData.forEach((value, key) => {
-          obj[key] = value;
-        });
-        return obj;
+    return this.request!.headers.get('content-type')?.startsWith(
+      'multipart/form-data',
+    ) ? 
+    // For multipart/form-data, return the form data entries as an object
+    this.request!.formData().then(formData => {
+      const obj: Record<string, any> = {};
+      formData.forEach((value, key) => {
+        obj[key] = value;
       });
-    }
-
-    // If not multipart, return null
-    return null;
+      return obj;
+    }) : null;
   }
 
   get requestCredentials() {
