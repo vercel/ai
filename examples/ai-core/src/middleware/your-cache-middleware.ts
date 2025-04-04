@@ -1,4 +1,4 @@
-import { LanguageModelV2Middleware } from "@ai-sdk/provider";
+import { LanguageModelV2Middleware } from '@ai-sdk/provider';
 
 const cache = new Map<string, any>();
 

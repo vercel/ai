@@ -1,4 +1,4 @@
-import { LanguageModelV2Middleware } from "@ai-sdk/provider";
+import { LanguageModelV2Middleware } from '@ai-sdk/provider';
 
 export const yourGuardrailMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate }) => {

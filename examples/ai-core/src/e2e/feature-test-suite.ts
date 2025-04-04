@@ -12,7 +12,7 @@ import {
   generateObject,
   generateText,
   streamObject,
-  streamText
+  streamText,
 } from 'ai';
 import fs from 'fs';
 import { describe, expect, it, vi } from 'vitest';
