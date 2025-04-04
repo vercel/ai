@@ -78,6 +78,7 @@ describe('transcribe', () => {
 
     expect(capturedArgs).toStrictEqual({
       audio: audioData,
+      mimeType: 'audio/wav',
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
       providerOptions: {},
