@@ -1,20 +1,19 @@
 {
   "name": "@ai-sdk/react",
-  "version": "2.0.0-beta.19",
+  "version": "1.2.6",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.js --run",
-    "test:update": "vitest --config vitest.config.js --run -u",
     "test:watch": "vitest --config vitest.config.js"
   },
   "exports": {
@@ -30,8 +29,8 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "ai": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*",
+    "@ai-sdk/provider-utils": "2.2.4",
+    "@ai-sdk/ui-utils": "1.2.5",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"
   },
@@ -49,12 +48,12 @@
     "msw": "2.6.4",
     "react-dom": "^18",
     "tsup": "^7.2.0",
-    "typescript": "5.8.3",
-    "zod": "3.25.49"
+    "typescript": "5.6.3",
+    "zod": "3.23.8"
   },
   "peerDependencies": {
     "react": "^18 || ^19 || ^19.0.0-rc",
-    "zod": "^3.25.49 || ^4"
+    "zod": "^3.23.8"
   },
   "peerDependenciesMeta": {
     "zod": {
@@ -67,7 +66,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://ai-sdk.dev/docs",
+  "homepage": "https://sdk.vercel.ai/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"

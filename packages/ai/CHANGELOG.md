@@ -1,5 +1,18 @@
 # ai
 
+## 4.3.0
+
+### Minor Changes
+
+- 772a2d7: feat (core): Add finishReason field to NoObjectGeneratedError
+
+### Patch Changes
+
+- Updated dependencies [2c19b9a]
+  - @ai-sdk/provider-utils@2.2.4
+  - @ai-sdk/react@1.2.6
+  - @ai-sdk/ui-utils@1.2.5
+
 ## 4.2.11
 
 ### Patch Changes
