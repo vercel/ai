@@ -1,13 +1,13 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { MockEmbeddingModelV1 } from '../test/mock-embedding-model-v1';
-import { MockLanguageModelV1 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { createProviderRegistry } from './provider-registry';
 import { MockImageModelV1 } from '../test/mock-image-model-v1';
 
 describe('languageModel', () => {
   it('should return language model from provider', () => {
-    const model = new MockLanguageModelV1();
+    const model = new MockLanguageModelV2();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -18,6 +18,9 @@ describe('languageModel', () => {
         textEmbeddingModel: (id: string) => {
           return null as any;
         },
+        imageModel: (id: string) => {
+          return null as any;
+        },
       },
     });
 
@@ -25,7 +28,7 @@ describe('languageModel', () => {
   });
 
   it('should return language model with additional colon from provider', () => {
-    const model = new MockLanguageModelV1();
+    const model = new MockLanguageModelV2();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -34,6 +37,9 @@ describe('languageModel', () => {
           return model;
         },
         textEmbeddingModel: () => {
+          return null as any;
+        },
+        imageModel: () => {
           return null as any;
         },
       },
@@ -60,6 +66,9 @@ describe('languageModel', () => {
         textEmbeddingModel: () => {
           return null as any;
         },
+        imageModel: () => {
+          return null as any;
+        },
       },
     });
 
@@ -78,7 +87,7 @@ describe('languageModel', () => {
   });
 
   it('should support custom separator', () => {
-    const model = new MockLanguageModelV1();
+    const model = new MockLanguageModelV2();
 
     const modelRegistry = createProviderRegistry(
       {
@@ -88,6 +97,9 @@ describe('languageModel', () => {
             return model;
           },
           textEmbeddingModel: () => {
+            return null as any;
+          },
+          imageModel: () => {
             return null as any;
           },
         },
@@ -112,6 +124,9 @@ describe('textEmbeddingModel', () => {
         languageModel: () => {
           return null as any;
         },
+        imageModel: () => {
+          return null as any;
+        },
       },
     });
 
@@ -134,6 +149,9 @@ describe('textEmbeddingModel', () => {
           return null as any;
         },
         languageModel: () => {
+          return null as any;
+        },
+        imageModel: () => {
           return null as any;
         },
       },
@@ -164,6 +182,9 @@ describe('textEmbeddingModel', () => {
             return model;
           },
           languageModel: () => {
+            return null as any;
+          },
+          imageModel: () => {
             return null as any;
           },
         },

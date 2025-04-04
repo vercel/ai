@@ -1,6 +1,6 @@
 import {
-  LanguageModelV1FinishReason,
-  LanguageModelV1Source,
+  LanguageModelV2FinishReason,
+  LanguageModelV2Source,
 } from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { JSONValue } from './types';
@@ -191,7 +191,7 @@ const finishMessageStreamPart: DataStreamPart<
   'd',
   'finish_message',
   {
-    finishReason: LanguageModelV1FinishReason;
+    finishReason: LanguageModelV2FinishReason;
     // TODO v5 remove usage from finish event (only on step-finish)
     usage?: {
       promptTokens: number;
@@ -214,13 +214,13 @@ const finishMessageStreamPart: DataStreamPart<
     }
 
     const result: {
-      finishReason: LanguageModelV1FinishReason;
+      finishReason: LanguageModelV2FinishReason;
       usage?: {
         promptTokens: number;
         completionTokens: number;
       };
     } = {
-      finishReason: value.finishReason as LanguageModelV1FinishReason,
+      finishReason: value.finishReason as LanguageModelV2FinishReason,
     };
 
     if (
@@ -254,7 +254,7 @@ const finishStepStreamPart: DataStreamPart<
   'finish_step',
   {
     isContinued: boolean;
-    finishReason: LanguageModelV1FinishReason;
+    finishReason: LanguageModelV2FinishReason;
     usage?: {
       promptTokens: number;
       completionTokens: number;
@@ -277,13 +277,13 @@ const finishStepStreamPart: DataStreamPart<
 
     const result: {
       isContinued: boolean;
-      finishReason: LanguageModelV1FinishReason;
+      finishReason: LanguageModelV2FinishReason;
       usage?: {
         promptTokens: number;
         completionTokens: number;
       };
     } = {
-      finishReason: value.finishReason as LanguageModelV1FinishReason,
+      finishReason: value.finishReason as LanguageModelV2FinishReason,
       isContinued: false,
     };
 
@@ -358,7 +358,7 @@ const reasoningStreamPart: DataStreamPart<'g', 'reasoning', string> = {
   },
 };
 
-const sourcePart: DataStreamPart<'h', 'source', LanguageModelV1Source> = {
+const sourcePart: DataStreamPart<'h', 'source', LanguageModelV2Source> = {
   code: 'h',
   name: 'source',
   parse: (value: JSONValue) => {
@@ -368,7 +368,7 @@ const sourcePart: DataStreamPart<'h', 'source', LanguageModelV1Source> = {
 
     return {
       type: 'source',
-      value: value as LanguageModelV1Source,
+      value: value as LanguageModelV2Source,
     };
   },
 };

@@ -1,8 +1,8 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -51,14 +51,14 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface CerebrasProvider extends ProviderV1 {
+export interface CerebrasProvider extends ProviderV2 {
   /**
 Creates a Cerebras model for text generation.
 */
   (
     modelId: CerebrasChatModelId,
     settings?: CerebrasChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a Cerebras model for text generation.
@@ -66,7 +66,7 @@ Creates a Cerebras model for text generation.
   languageModel(
     modelId: CerebrasChatModelId,
     settings?: CerebrasChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a Cerebras chat model for text generation.
@@ -74,7 +74,7 @@ Creates a Cerebras chat model for text generation.
   chat(
     modelId: CerebrasChatModelId,
     settings?: CerebrasChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 }
 
 export function createCerebras(
@@ -113,8 +113,12 @@ export function createCerebras(
 
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
+
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
   return provider;

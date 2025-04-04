@@ -1,10 +1,10 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1FunctionToolCall,
-  LanguageModelV1ProviderMetadata,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason,
+  LanguageModelV2FunctionToolCall,
+  LanguageModelV2ProviderMetadata,
+  LanguageModelV2StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -38,7 +38,7 @@ type AnthropicMessagesConfig = {
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
 };
 
-export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
+export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'tool';
 
@@ -78,10 +78,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     responseFormat,
     seed,
     providerMetadata: providerOptions,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     if (frequencyPenalty != null) {
       warnings.push({
@@ -256,8 +256,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings, betas } = await this.getArgs(options);
 
     const {
@@ -287,7 +287,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
     }
 
     // extract tool calls
-    let toolCalls: LanguageModelV1FunctionToolCall[] | undefined = undefined;
+    let toolCalls: LanguageModelV2FunctionToolCall[] | undefined = undefined;
     if (response.content.some(content => content.type === 'tool_use')) {
       toolCalls = [];
       for (const content of response.content) {
@@ -351,8 +351,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings, betas } = await this.getArgs(options);
     const body = { ...args, stream: true };
 
@@ -370,7 +370,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
     const usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
@@ -385,7 +385,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       }
     > = {};
 
-    let providerMetadata: LanguageModelV1ProviderMetadata | undefined =
+    let providerMetadata: LanguageModelV2ProviderMetadata | undefined =
       undefined;
 
     let blockType:
@@ -399,7 +399,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof anthropicMessagesChunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
           transform(chunk, controller) {
             if (!chunk.success) {

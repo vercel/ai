@@ -1,7 +1,8 @@
 import {
   EmbeddingModelV1,
-  LanguageModelV1,
-  ProviderV1,
+  LanguageModelV2,
+  NoSuchModelError,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -19,11 +20,11 @@ import {
   MistralEmbeddingSettings,
 } from './mistral-embedding-settings';
 
-export interface MistralProvider extends ProviderV1 {
+export interface MistralProvider extends ProviderV2 {
   (
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a model for text generation.
@@ -31,7 +32,7 @@ Creates a model for text generation.
   languageModel(
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a model for text generation.
@@ -39,7 +40,7 @@ Creates a model for text generation.
   chat(
     modelId: MistralChatModelId,
     settings?: MistralChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.
@@ -146,6 +147,10 @@ export function createMistral(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
+  };
 
   return provider;
 }

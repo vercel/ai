@@ -1,12 +1,12 @@
 import {
   APICallError,
   InvalidResponseDataError,
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1ObjectGenerationMode,
-  LanguageModelV1ProviderMetadata,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason,
+  LanguageModelV2ObjectGenerationMode,
+  LanguageModelV2ProviderMetadata,
+  LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -48,7 +48,7 @@ Default object generation mode that should be used with this model when
 no mode is specified. Should be the mode with the best results for this
 model. `undefined` can be specified if object generation is not supported.
   */
-  defaultObjectGenerationMode?: LanguageModelV1ObjectGenerationMode;
+  defaultObjectGenerationMode?: LanguageModelV2ObjectGenerationMode;
 
   /**
    * Whether the model supports structured outputs.
@@ -56,7 +56,7 @@ model. `undefined` can be specified if object generation is not supported.
   supportsStructuredOutputs?: boolean;
 };
 
-export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
+export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v1';
 
   readonly supportsStructuredOutputs: boolean;
@@ -113,10 +113,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
       warnings.push({
@@ -238,8 +238,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings } = this.getArgs({ ...options });
 
     const body = JSON.stringify(args);
@@ -267,7 +267,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
     const choice = responseBody.choices[0];
 
     // provider metadata:
-    const providerMetadata: LanguageModelV1ProviderMetadata = {
+    const providerMetadata: LanguageModelV2ProviderMetadata = {
       [this.providerOptionsName]: {},
       ...this.config.metadataExtractor?.extractMetadata?.({
         parsedBody: rawResponse,
@@ -317,11 +317,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     if (this.settings.simulateStreaming) {
       const result = await this.doGenerate(options);
-      const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
+      const simulatedStream = new ReadableStream<LanguageModelV2StreamPart>({
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
           if (result.reasoning) {
@@ -409,7 +409,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: {
       completionTokens: number | undefined;
       completionTokensDetails: {
@@ -440,7 +440,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof this.chunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
           // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
           transform(chunk, controller) {
@@ -643,7 +643,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
-            const providerMetadata: LanguageModelV1ProviderMetadata = {
+            const providerMetadata: LanguageModelV2ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
             };

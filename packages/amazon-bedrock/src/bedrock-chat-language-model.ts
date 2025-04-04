@@ -1,11 +1,11 @@
 import {
   InvalidArgumentError,
   JSONObject,
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1ProviderMetadata,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason,
+  LanguageModelV2ProviderMetadata,
+  LanguageModelV2StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -41,7 +41,7 @@ type BedrockChatConfig = {
   generateId: () => string;
 };
 
-export class BedrockChatLanguageModel implements LanguageModelV1 {
+export class BedrockChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v1';
   readonly provider = 'amazon-bedrock';
   readonly defaultObjectGenerationMode = 'tool';
@@ -66,13 +66,13 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
     responseFormat,
     seed,
     providerMetadata,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]): {
+  }: Parameters<LanguageModelV2['doGenerate']>[0]): {
     command: BedrockConverseInput;
-    warnings: LanguageModelV1CallWarning[];
+    warnings: LanguageModelV2CallWarning[];
   } {
     const type = mode.type;
 
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     if (frequencyPenalty != null) {
       warnings.push({
@@ -235,8 +235,8 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { command: args, warnings } = this.getArgs(options);
 
     const url = `${this.getUrl(this.modelId)}/converse`;
@@ -338,8 +338,8 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { command: args, warnings } = this.getArgs(options);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
@@ -362,12 +362,12 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
 
     const { messages: rawPrompt, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
-    let providerMetadata: LanguageModelV1ProviderMetadata | undefined =
+    let providerMetadata: LanguageModelV2ProviderMetadata | undefined =
       undefined;
 
     const toolCallContentBlocks: Record<
@@ -383,7 +383,7 @@ export class BedrockChatLanguageModel implements LanguageModelV1 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof BedrockStreamSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
           transform(chunk, controller) {
             function enqueueError(bedrockError: Record<string, any>) {

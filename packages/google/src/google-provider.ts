@@ -1,41 +1,42 @@
 import {
+  EmbeddingModelV1,
+  LanguageModelV2,
+  NoSuchModelError,
+  ProviderV2,
+} from '@ai-sdk/provider';
+import {
   FetchFunction,
   generateId,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
-import {
-  GoogleGenerativeAIModelId,
-  GoogleGenerativeAISettings,
-} from './google-generative-ai-settings';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import {
   GoogleGenerativeAIEmbeddingModelId,
   GoogleGenerativeAIEmbeddingSettings,
 } from './google-generative-ai-embedding-settings';
+import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import {
-  EmbeddingModelV1,
-  LanguageModelV1,
-  ProviderV1,
-} from '@ai-sdk/provider';
+  GoogleGenerativeAIModelId,
+  GoogleGenerativeAISettings,
+} from './google-generative-ai-settings';
 import { isSupportedFileUrl } from './google-supported-file-url';
 
-export interface GoogleGenerativeAIProvider extends ProviderV1 {
+export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   languageModel(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   chat(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
    * @deprecated Use `chat()` instead.
@@ -43,7 +44,7 @@ export interface GoogleGenerativeAIProvider extends ProviderV1 {
   generativeAI(
     modelId: GoogleGenerativeAIModelId,
     settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.
@@ -159,6 +160,10 @@ export function createGoogleGenerativeAI(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
+  };
 
   return provider;
 }

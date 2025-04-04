@@ -1,4 +1,4 @@
-import { NoSuchModelError, ProviderV1 } from '@ai-sdk/provider';
+import { NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
 import { EmbeddingModel, ImageModel, LanguageModel, Provider } from '../types';
 
 /**
@@ -26,7 +26,7 @@ export function customProvider<
   languageModels?: LANGUAGE_MODELS;
   textEmbeddingModels?: EMBEDDING_MODELS;
   imageModels?: IMAGE_MODELS;
-  fallbackProvider?: ProviderV1;
+  fallbackProvider?: ProviderV2;
 }): Provider & {
   languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModel;
   textEmbeddingModel(

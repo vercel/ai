@@ -1,6 +1,6 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { MockLanguageModelV1 } from '../../core/test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../../core/test/mock-language-model-v1';
 import { streamUI } from './stream-ui';
 import { z } from 'zod';
 
@@ -50,7 +50,7 @@ async function simulateFlightServerRender(node: React.ReactNode) {
   return traverse(node);
 }
 
-const mockTextModel = new MockLanguageModelV1({
+const mockTextModel = new MockLanguageModelV2({
   doStream: async () => {
     return {
       stream: convertArrayToReadableStream([
@@ -72,7 +72,7 @@ const mockTextModel = new MockLanguageModelV1({
   },
 });
 
-const mockToolModel = new MockLanguageModelV1({
+const mockToolModel = new MockLanguageModelV2({
   doStream: async () => {
     return {
       stream: convertArrayToReadableStream([
@@ -234,7 +234,7 @@ describe('rsc - streamUI() onFinish callback', () => {
 describe('options.headers', () => {
   it('should pass headers to model', async () => {
     const result = await streamUI({
-      model: new MockLanguageModelV1({
+      model: new MockLanguageModelV2({
         doStream: async ({ headers }) => {
           expect(headers).toStrictEqual({
             'custom-request-header': 'request-header-value',
@@ -268,7 +268,7 @@ describe('options.headers', () => {
 describe('options.providerMetadata', () => {
   it('should pass provider metadata to model', async () => {
     const result = await streamUI({
-      model: new MockLanguageModelV1({
+      model: new MockLanguageModelV2({
         doStream: async ({ providerMetadata }) => {
           expect(providerMetadata).toStrictEqual({
             aProvider: { someKey: 'someValue' },
@@ -305,7 +305,7 @@ describe('model.supportsUrl binding', () => {
   it('should support models that use "this" context in supportsUrl', async () => {
     let supportsUrlCalled = false;
 
-    class MockLanguageModelWithImageSupport extends MockLanguageModelV1 {
+    class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
       readonly supportsImageUrls = false;
 
       constructor() {

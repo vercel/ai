@@ -1,10 +1,10 @@
 import { generateText } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 import 'dotenv/config';
 
 async function main() {
   const { text, usage } = await generateText({
-    model: new MockLanguageModelV1({
+    model: new MockLanguageModelV2({
       doGenerate: async () => ({
         rawCall: { rawPrompt: null, rawSettings: {} },
         finishReason: 'stop',

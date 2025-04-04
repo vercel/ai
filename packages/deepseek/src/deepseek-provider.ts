@@ -1,8 +1,8 @@
 import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -35,14 +35,14 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface DeepSeekProvider extends ProviderV1 {
+export interface DeepSeekProvider extends ProviderV2 {
   /**
 Creates a DeepSeek model for text generation.
 */
   (
     modelId: DeepSeekChatModelId,
     settings?: DeepSeekChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a DeepSeek model for text generation.
@@ -50,7 +50,7 @@ Creates a DeepSeek model for text generation.
   languageModel(
     modelId: DeepSeekChatModelId,
     settings?: DeepSeekChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a DeepSeek chat model for text generation.
@@ -58,7 +58,7 @@ Creates a DeepSeek chat model for text generation.
   chat(
     modelId: DeepSeekChatModelId,
     settings?: DeepSeekChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 }
 
 export function createDeepSeek(
@@ -97,8 +97,12 @@ export function createDeepSeek(
 
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
+
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
   return provider;

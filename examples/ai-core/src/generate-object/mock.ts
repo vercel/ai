@@ -1,11 +1,11 @@
 import { generateObject } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 import 'dotenv/config';
 import { z } from 'zod';
 
 async function main() {
   const { object, usage } = await generateObject({
-    model: new MockLanguageModelV1({
+    model: new MockLanguageModelV2({
       defaultObjectGenerationMode: 'json',
       doGenerate: async () => ({
         rawCall: { rawPrompt: null, rawSettings: {} },

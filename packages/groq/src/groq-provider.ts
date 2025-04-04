@@ -1,7 +1,7 @@
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -11,11 +11,11 @@ import {
 import { GroqChatLanguageModel } from './groq-chat-language-model';
 import { GroqChatModelId, GroqChatSettings } from './groq-chat-settings';
 
-export interface GroqProvider extends ProviderV1 {
+export interface GroqProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
-  (modelId: GroqChatModelId, settings?: GroqChatSettings): LanguageModelV1;
+  (modelId: GroqChatModelId, settings?: GroqChatSettings): LanguageModelV2;
 
   /**
 Creates an Groq chat model for text generation.
@@ -23,7 +23,7 @@ Creates an Groq chat model for text generation.
   languageModel(
     modelId: GroqChatModelId,
     settings?: GroqChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 }
 
 export interface GroqProviderSettings {
@@ -98,8 +98,12 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
 
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
+
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
   return provider;

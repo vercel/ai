@@ -1,7 +1,7 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1FinishReason,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -29,7 +29,7 @@ type CohereChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class CohereChatLanguageModel implements LanguageModelV1 {
+export class CohereChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'json';
 
@@ -64,7 +64,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
     stopSequences,
     responseFormat,
     seed,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
     const chatPrompt = convertToCohereChatPrompt(prompt);
@@ -150,8 +150,8 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings } = this.getArgs(options);
 
     const {
@@ -210,8 +210,8 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -228,7 +228,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
 
     const { messages, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
@@ -248,7 +248,7 @@ export class CohereChatLanguageModel implements LanguageModelV1 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof cohereChatChunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:

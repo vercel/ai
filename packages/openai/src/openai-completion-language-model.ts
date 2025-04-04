@@ -1,9 +1,9 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1LogProbs,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason,
+  LanguageModelV2LogProbs,
+  LanguageModelV2StreamPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -36,7 +36,7 @@ type OpenAICompletionConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAICompletionLanguageModel implements LanguageModelV1 {
+export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = undefined;
 
@@ -72,10 +72,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
     stopSequences: userStopSequences,
     responseFormat,
     seed,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
       warnings.push({
@@ -167,8 +167,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings } = this.getArgs(options);
 
     const {
@@ -210,8 +210,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
 
     const body = {
@@ -242,19 +242,19 @@ export class OpenAICompletionLanguageModel implements LanguageModelV1 {
 
     const { prompt: rawPrompt, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
-    let logprobs: LanguageModelV1LogProbs;
+    let logprobs: LanguageModelV2LogProbs;
     let isFirstChunk = true;
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof openaiCompletionChunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:

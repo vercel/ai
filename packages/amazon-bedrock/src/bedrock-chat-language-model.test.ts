@@ -1,4 +1,4 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   createTestServer,
   convertReadableStreamToArray,
@@ -11,7 +11,7 @@ import {
   BedrockRedactedReasoningContentBlock,
 } from './bedrock-api-types';
 
-const TEST_PROMPT: LanguageModelV1Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'system', content: 'System Prompt' },
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];

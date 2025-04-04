@@ -10,7 +10,7 @@ import { NoObjectGeneratedError } from '../../errors';
 import { injectJsonInstruction } from '../generate-object/inject-json-instruction';
 import {
   LanguageModel,
-  LanguageModelV1CallOptions,
+  LanguageModelV2CallOptions,
 } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
@@ -24,7 +24,7 @@ export interface Output<OUTPUT, PARTIAL> {
 
   responseFormat: (options: {
     model: LanguageModel;
-  }) => LanguageModelV1CallOptions['responseFormat'];
+  }) => LanguageModelV2CallOptions['responseFormat'];
 
   parsePartial(options: { text: string }): { partial: PARTIAL } | undefined;
 

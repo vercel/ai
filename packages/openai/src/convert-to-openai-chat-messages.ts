@@ -1,6 +1,6 @@
 import {
-  LanguageModelV1CallWarning,
-  LanguageModelV1Prompt,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
@@ -11,15 +11,15 @@ export function convertToOpenAIChatMessages({
   useLegacyFunctionCalling = false,
   systemMessageMode = 'system',
 }: {
-  prompt: LanguageModelV1Prompt;
+  prompt: LanguageModelV2Prompt;
   useLegacyFunctionCalling?: boolean;
   systemMessageMode?: 'system' | 'developer' | 'remove';
 }): {
   messages: OpenAIChatPrompt;
-  warnings: Array<LanguageModelV1CallWarning>;
+  warnings: Array<LanguageModelV2CallWarning>;
 } {
   const messages: OpenAIChatPrompt = [];
-  const warnings: Array<LanguageModelV1CallWarning> = [];
+  const warnings: Array<LanguageModelV2CallWarning> = [];
 
   for (const { role, content } of prompt) {
     switch (role) {

@@ -1,4 +1,4 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
@@ -6,7 +6,7 @@ import {
 import { createAnthropic } from './anthropic-provider';
 import { AnthropicProviderOptions } from './anthropic-messages-language-model';
 
-const TEST_PROMPT: LanguageModelV1Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 

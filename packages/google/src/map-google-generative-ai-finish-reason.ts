@@ -1,4 +1,4 @@
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
 
 export function mapGoogleGenerativeAIFinishReason({
   finishReason,
@@ -6,7 +6,7 @@ export function mapGoogleGenerativeAIFinishReason({
 }: {
   finishReason: string | null | undefined;
   hasToolCalls: boolean;
-}): LanguageModelV1FinishReason {
+}): LanguageModelV2FinishReason {
   switch (finishReason) {
     case 'STOP':
       return hasToolCalls ? 'tool-calls' : 'stop';

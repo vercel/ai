@@ -1,6 +1,6 @@
-import type { LanguageModelV1Middleware, LanguageModelV1StreamPart } from 'ai';
+import type { LanguageModelV2Middleware, LanguageModelV2StreamPart } from 'ai';
 
-export const yourLogMiddleware: LanguageModelV1Middleware = {
+export const yourLogMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     console.log('doGenerate called');
     console.log(`params: ${JSON.stringify(params, null, 2)}`);
@@ -22,8 +22,8 @@ export const yourLogMiddleware: LanguageModelV1Middleware = {
     let generatedText = '';
 
     const transformStream = new TransformStream<
-      LanguageModelV1StreamPart,
-      LanguageModelV1StreamPart
+      LanguageModelV2StreamPart,
+      LanguageModelV2StreamPart
     >({
       transform(chunk, controller) {
         if (chunk.type === 'text-delta') {

@@ -1,4 +1,4 @@
-import { LanguageModelV1CallWarning } from '@ai-sdk/provider';
+import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 
 describe('system messages', () => {
@@ -551,7 +551,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -599,7 +599,7 @@ describe('assistant messages', () => {
   });
 
   it('should convert reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -645,7 +645,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -692,7 +692,7 @@ describe('assistant messages', () => {
   });
 
   it('should omit reasoning parts without signature when sendReasoning is false', async () => {
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {

@@ -1,5 +1,5 @@
 import {
-  LanguageModelV1Prompt,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -13,7 +13,7 @@ import {
 } from './perplexity-language-model';
 import { z } from 'zod';
 
-const TEST_PROMPT: LanguageModelV1Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 

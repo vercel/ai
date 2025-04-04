@@ -1,18 +1,18 @@
-import { LanguageModelV1 } from '@ai-sdk/provider';
+import { LanguageModelV2 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
-export class MockLanguageModelV1 implements LanguageModelV1 {
+export class MockLanguageModelV2 implements LanguageModelV2 {
   readonly specificationVersion = 'v1';
 
-  readonly provider: LanguageModelV1['provider'];
-  readonly modelId: LanguageModelV1['modelId'];
+  readonly provider: LanguageModelV2['provider'];
+  readonly modelId: LanguageModelV2['modelId'];
 
-  supportsUrl: LanguageModelV1['supportsUrl'];
-  doGenerate: LanguageModelV1['doGenerate'];
-  doStream: LanguageModelV1['doStream'];
+  supportsUrl: LanguageModelV2['supportsUrl'];
+  doGenerate: LanguageModelV2['doGenerate'];
+  doStream: LanguageModelV2['doStream'];
 
-  readonly defaultObjectGenerationMode: LanguageModelV1['defaultObjectGenerationMode'];
-  readonly supportsStructuredOutputs: LanguageModelV1['supportsStructuredOutputs'];
+  readonly defaultObjectGenerationMode: LanguageModelV2['defaultObjectGenerationMode'];
+  readonly supportsStructuredOutputs: LanguageModelV2['supportsStructuredOutputs'];
   constructor({
     provider = 'mock-provider',
     modelId = 'mock-model-id',
@@ -22,13 +22,13 @@ export class MockLanguageModelV1 implements LanguageModelV1 {
     defaultObjectGenerationMode = undefined,
     supportsStructuredOutputs = undefined,
   }: {
-    provider?: LanguageModelV1['provider'];
-    modelId?: LanguageModelV1['modelId'];
-    supportsUrl?: LanguageModelV1['supportsUrl'];
-    doGenerate?: LanguageModelV1['doGenerate'];
-    doStream?: LanguageModelV1['doStream'];
-    defaultObjectGenerationMode?: LanguageModelV1['defaultObjectGenerationMode'];
-    supportsStructuredOutputs?: LanguageModelV1['supportsStructuredOutputs'];
+    provider?: LanguageModelV2['provider'];
+    modelId?: LanguageModelV2['modelId'];
+    supportsUrl?: LanguageModelV2['supportsUrl'];
+    doGenerate?: LanguageModelV2['doGenerate'];
+    doStream?: LanguageModelV2['doStream'];
+    defaultObjectGenerationMode?: LanguageModelV2['defaultObjectGenerationMode'];
+    supportsStructuredOutputs?: LanguageModelV2['supportsStructuredOutputs'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;

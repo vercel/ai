@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { expect } from 'vitest';
 import { GoogleErrorData, google as provider } from '@ai-sdk/google';
-import { APICallError, LanguageModelV1 } from 'ai';
+import { APICallError, LanguageModelV2 } from 'ai';
 import {
   ModelWithCapabilities,
   createEmbeddingModelWithCapabilities,
@@ -12,12 +12,12 @@ import {
 
 const createChatModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> =>
+): ModelWithCapabilities<LanguageModelV2> =>
   createLanguageModelWithCapabilities(provider.chat(modelId));
 
 const createSearchGroundedModel = (
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> => {
+): ModelWithCapabilities<LanguageModelV2> => {
   const model = provider.chat(modelId, { useSearchGrounding: true });
   return {
     model,

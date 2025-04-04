@@ -1,5 +1,5 @@
 import {
-  LanguageModelV1Prompt,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
@@ -10,7 +10,7 @@ import {
 } from './google-generative-ai-prompt';
 
 export function convertToGoogleGenerativeAIMessages(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
   const contents: Array<GoogleGenerativeAIContent> = [];

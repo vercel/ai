@@ -38,7 +38,7 @@ The middleware handles all transformations needed to make cached responses indis
 ```ts
 import {
   type LanguageModelV1,
-  type LanguageModelV1Middleware,
+  type LanguageModelV2Middleware,
   LanguageModelV1Prompt,
   type LanguageModelV1StreamPart,
   simulateReadableStream,
@@ -113,7 +113,7 @@ const cleanPrompt = (prompt: LanguageModelV1Prompt) => {
   });
 };
 
-export const cacheMiddleware: LanguageModelV1Middleware = {
+export const cacheMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify({
       ...cleanPrompt(params.prompt),

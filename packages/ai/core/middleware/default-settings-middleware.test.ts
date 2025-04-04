@@ -1,7 +1,7 @@
-import { LanguageModelV1CallOptions } from '@ai-sdk/provider';
+import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { defaultSettingsMiddleware } from './default-settings-middleware';
 
-const BASE_PARAMS: LanguageModelV1CallOptions = {
+const BASE_PARAMS: LanguageModelV2CallOptions = {
   mode: { type: 'regular' },
   prompt: [
     { role: 'user', content: [{ type: 'text', text: 'Hello, world!' }] },

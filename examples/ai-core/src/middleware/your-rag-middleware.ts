@@ -1,8 +1,8 @@
 import { addToLastUserMessage } from './add-to-last-user-message';
 import { getLastUserMessageText } from './get-last-user-message-text';
-import type { LanguageModelV1Middleware } from 'ai';
+import type { LanguageModelV2Middleware } from 'ai';
 
-export const yourRagMiddleware: LanguageModelV1Middleware = {
+export const yourRagMiddleware: LanguageModelV2Middleware = {
   transformParams: async ({ params }) => {
     const lastUserMessageText = getLastUserMessageText({
       prompt: params.prompt,

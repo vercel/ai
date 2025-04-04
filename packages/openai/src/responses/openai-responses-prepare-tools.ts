@@ -1,6 +1,6 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAIResponsesTool } from './openai-responses-api-types';
@@ -9,7 +9,7 @@ export function prepareResponsesTools({
   mode,
   strict,
 }: {
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+  mode: Parameters<LanguageModelV2['doGenerate']>[0]['mode'] & {
     type: 'regular';
   };
   strict: boolean;
@@ -21,12 +21,12 @@ export function prepareResponsesTools({
     | 'required'
     | { type: 'web_search_preview' }
     | { type: 'function'; name: string };
-  toolWarnings: LanguageModelV1CallWarning[];
+  toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
   const tools = mode.tools?.length ? mode.tools : undefined;
 
-  const toolWarnings: LanguageModelV1CallWarning[] = [];
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   if (tools == null) {
     return { tools: undefined, tool_choice: undefined, toolWarnings };

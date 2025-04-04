@@ -1,11 +1,11 @@
 import {
-  LanguageModelV1Prompt,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { PerplexityPrompt } from './perplexity-language-model-prompt';
 
 export function convertToPerplexityMessages(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): PerplexityPrompt {
   const messages: PerplexityPrompt = [];
 

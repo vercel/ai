@@ -1,11 +1,11 @@
-import { LanguageModelV1Prompt } from '@ai-sdk/provider';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
 
-const TEST_PROMPT: LanguageModelV1Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   {
     role: 'system',
     content: 'you are a friendly bot!',

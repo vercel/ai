@@ -1,10 +1,10 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
-  LanguageModelV1ProviderMetadata,
-  LanguageModelV1Source,
-  LanguageModelV1StreamPart,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason,
+  LanguageModelV2ProviderMetadata,
+  LanguageModelV2Source,
+  LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -39,7 +39,7 @@ type GoogleGenerativeAIConfig = {
   isSupportedUrl: (url: URL) => boolean;
 };
 
-export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
+export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
@@ -80,10 +80,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     responseFormat,
     seed,
     providerMetadata,
-  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
-    const warnings: LanguageModelV1CallWarning[] = [];
+    const warnings: LanguageModelV2CallWarning[] = [];
 
     const googleOptions = parseProviderOptions({
       provider: 'google',
@@ -208,8 +208,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV1['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    options: Parameters<LanguageModelV2['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
     const { args, warnings } = await this.getArgs(options);
     const body = JSON.stringify(args);
 
@@ -284,8 +284,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
   }
 
   async doStream(
-    options: Parameters<LanguageModelV1['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    options: Parameters<LanguageModelV2['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = await this.getArgs(options);
 
     const body = JSON.stringify(args);
@@ -308,12 +308,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     const { contents: rawPrompt, ...rawSettings } = args;
 
-    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
       promptTokens: Number.NaN,
       completionTokens: Number.NaN,
     };
-    let providerMetadata: LanguageModelV1ProviderMetadata | undefined =
+    let providerMetadata: LanguageModelV2ProviderMetadata | undefined =
       undefined;
 
     const generateId = this.config.generateId;
@@ -323,7 +323,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof chunkSchema>>,
-          LanguageModelV1StreamPart
+          LanguageModelV2StreamPart
         >({
           transform(chunk, controller) {
             if (!chunk.success) {
@@ -494,7 +494,7 @@ function extractSources({
 }: {
   groundingMetadata: z.infer<typeof groundingMetadataSchema> | undefined | null;
   generateId: () => string;
-}): undefined | LanguageModelV1Source[] {
+}): undefined | LanguageModelV2Source[] {
   return groundingMetadata?.groundingChunks
     ?.filter(
       (

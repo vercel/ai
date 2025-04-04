@@ -1,7 +1,7 @@
 import {
-  LanguageModelV1FunctionTool,
-  LanguageModelV1ProviderDefinedTool,
-  LanguageModelV1ToolChoice,
+  LanguageModelV2FunctionTool,
+  LanguageModelV2ProviderDefinedTool,
+  LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
 import { asSchema } from '@ai-sdk/ui-utils';
 import { ToolSet } from '../generate-text';
@@ -18,9 +18,9 @@ export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   activeTools: Array<keyof TOOLS> | undefined;
 }): {
   tools:
-    | Array<LanguageModelV1FunctionTool | LanguageModelV1ProviderDefinedTool>
+    | Array<LanguageModelV2FunctionTool | LanguageModelV2ProviderDefinedTool>
     | undefined;
-  toolChoice: LanguageModelV1ToolChoice | undefined;
+  toolChoice: LanguageModelV2ToolChoice | undefined;
 } {
   if (!isNonEmptyObject(tools)) {
     return {

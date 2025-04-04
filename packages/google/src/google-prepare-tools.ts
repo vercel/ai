@@ -1,6 +1,6 @@
 import {
-  LanguageModelV1,
-  LanguageModelV1CallWarning,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
@@ -10,7 +10,7 @@ import {
 } from './google-generative-ai-settings';
 
 export function prepareTools(
-  mode: Parameters<LanguageModelV1['doGenerate']>[0]['mode'] & {
+  mode: Parameters<LanguageModelV2['doGenerate']>[0]['mode'] & {
     type: 'regular';
   },
   useSearchGrounding: boolean,
@@ -40,10 +40,10 @@ export function prepareTools(
           allowedFunctionNames?: string[];
         };
       };
-  toolWarnings: LanguageModelV1CallWarning[];
+  toolWarnings: LanguageModelV2CallWarning[];
 } {
   const tools = mode.tools?.length ? mode.tools : undefined;
-  const toolWarnings: LanguageModelV1CallWarning[] = [];
+  const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   const isGemini2 = modelId.includes('gemini-2');
   const supportsDynamicRetrieval =

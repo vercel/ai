@@ -1,7 +1,7 @@
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
-  ProviderV1,
+  ProviderV2,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -18,14 +18,14 @@ import {
   GoogleVertexAnthropicMessagesModelId,
   GoogleVertexAnthropicMessagesSettings,
 } from './google-vertex-anthropic-messages-settings';
-export interface GoogleVertexAnthropicProvider extends ProviderV1 {
+export interface GoogleVertexAnthropicProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
   (
     modelId: GoogleVertexAnthropicMessagesModelId,
     settings?: GoogleVertexAnthropicMessagesSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a model for text generation.
@@ -33,7 +33,7 @@ Creates a model for text generation.
   languageModel(
     modelId: GoogleVertexAnthropicMessagesModelId,
     settings?: GoogleVertexAnthropicMessagesSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Anthropic-specific computer use tool.
@@ -132,8 +132,12 @@ export function createVertexAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
+
   provider.textEmbeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'textEmbeddingModel' });
+  };
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
 
   provider.tools = anthropicTools;

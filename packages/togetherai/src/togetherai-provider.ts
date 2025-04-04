@@ -1,7 +1,7 @@
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   EmbeddingModelV1,
-  ProviderV1,
+  ProviderV2,
   ImageModelV1,
 } from '@ai-sdk/provider';
 import {
@@ -52,14 +52,14 @@ or to provide a custom fetch implementation for e.g. testing.
   fetch?: FetchFunction;
 }
 
-export interface TogetherAIProvider extends ProviderV1 {
+export interface TogetherAIProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
   (
     modelId: TogetherAIChatModelId,
     settings?: TogetherAIChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a chat model for text generation.
@@ -67,7 +67,7 @@ Creates a chat model for text generation.
   chatModel(
     modelId: TogetherAIChatModelId,
     settings?: TogetherAIChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a chat model for text generation.
@@ -75,7 +75,7 @@ Creates a chat model for text generation.
   languageModel(
     modelId: TogetherAIChatModelId,
     settings?: TogetherAIChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a completion model for text generation.
@@ -83,7 +83,7 @@ Creates a completion model for text generation.
   completionModel(
     modelId: TogetherAICompletionModelId,
     settings?: TogetherAICompletionSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 
   /**
 Creates a text embedding model for text generation.

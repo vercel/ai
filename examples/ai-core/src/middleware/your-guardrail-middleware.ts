@@ -1,6 +1,6 @@
-import type { LanguageModelV1Middleware } from 'ai';
+import type { LanguageModelV2Middleware } from 'ai';
 
-export const yourGuardrailMiddleware: LanguageModelV1Middleware = {
+export const yourGuardrailMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate }) => {
     const { text, ...rest } = await doGenerate();
 

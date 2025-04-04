@@ -1,6 +1,6 @@
 import {
-  LanguageModelV1FunctionTool,
-  LanguageModelV1Prompt,
+  LanguageModelV2FunctionTool,
+  LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -9,11 +9,11 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 
-const TEST_PROMPT: LanguageModelV1Prompt = [
+const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const TEST_TOOLS: Array<LanguageModelV1FunctionTool> = [
+const TEST_TOOLS: Array<LanguageModelV2FunctionTool> = [
   {
     type: 'function',
     name: 'weather',

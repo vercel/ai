@@ -1,4 +1,4 @@
-import { LanguageModelV1FinishReason } from '@ai-sdk/provider';
+import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { DataStreamString, formatDataStreamPart } from './data-stream-parts';
@@ -30,12 +30,12 @@ const update = (options: {
 
 let finishCalls: Array<{
   message: Message | undefined;
-  finishReason: LanguageModelV1FinishReason;
+  finishReason: LanguageModelV2FinishReason;
   usage: LanguageModelUsage;
 }> = [];
 const onFinish = (options: {
   message: Message | undefined;
-  finishReason: LanguageModelV1FinishReason;
+  finishReason: LanguageModelV2FinishReason;
   usage: LanguageModelUsage;
 }) => {
   // clone to preserve the original object

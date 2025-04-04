@@ -1,11 +1,11 @@
 import {
-  LanguageModelV1Prompt,
+  LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { CohereAssistantMessage, CohereChatPrompt } from './cohere-chat-prompt';
 
 export function convertToCohereChatPrompt(
-  prompt: LanguageModelV1Prompt,
+  prompt: LanguageModelV2Prompt,
 ): CohereChatPrompt {
   const messages: CohereChatPrompt = [];
 

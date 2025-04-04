@@ -4,7 +4,7 @@ import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
 import { vertex as vertexNode } from '@ai-sdk/google-vertex';
 import {
   APICallError,
-  LanguageModelV1,
+  LanguageModelV2,
   experimental_generateImage as generateImage,
 } from 'ai';
 import {
@@ -31,7 +31,7 @@ const RUNTIME_VARIANTS = {
 const createBaseModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> =>
+): ModelWithCapabilities<LanguageModelV2> =>
   createLanguageModelWithCapabilities(vertex(modelId), [
     ...defaultChatModelCapabilities,
     'audioInput',
@@ -40,7 +40,7 @@ const createBaseModel = (
 const createSearchGroundedModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1> => ({
+): ModelWithCapabilities<LanguageModelV2> => ({
   model: vertex(modelId, {
     useSearchGrounding: true,
   }),
@@ -75,7 +75,7 @@ const createImageModel = (
 const createModelVariants = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
-): ModelWithCapabilities<LanguageModelV1>[] => [
+): ModelWithCapabilities<LanguageModelV2>[] => [
   createBaseModel(vertex, modelId),
   createSearchGroundedModel(vertex, modelId),
 ];

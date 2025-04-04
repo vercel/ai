@@ -1,9 +1,9 @@
 import {
-  LanguageModelV1FilePart,
-  LanguageModelV1ImagePart,
-  LanguageModelV1Message,
-  LanguageModelV1Prompt,
-  LanguageModelV1TextPart,
+  LanguageModelV2FilePart,
+  LanguageModelV2ImagePart,
+  LanguageModelV2Message,
+  LanguageModelV2Prompt,
+  LanguageModelV2TextPart,
 } from '@ai-sdk/provider';
 import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
@@ -28,7 +28,7 @@ export async function convertToLanguageModelPrompt({
   modelSupportsImageUrls: boolean | undefined;
   modelSupportsUrl: undefined | ((url: URL) => boolean);
   downloadImplementation?: typeof download;
-}): Promise<LanguageModelV1Prompt> {
+}): Promise<LanguageModelV2Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
     downloadImplementation,
@@ -47,7 +47,7 @@ export async function convertToLanguageModelPrompt({
 }
 
 /**
- * Convert a CoreMessage to a LanguageModelV1Message.
+ * Convert a CoreMessage to a LanguageModelV2Message.
  *
  * @param message The CoreMessage to convert.
  * @param downloadedAssets A map of URLs to their downloaded data. Only
@@ -59,7 +59,7 @@ export function convertToLanguageModelMessage(
     string,
     { mimeType: string | undefined; data: Uint8Array }
   >,
-): LanguageModelV1Message {
+): LanguageModelV2Message {
   const role = message.role;
   switch (role) {
     case 'system': {
@@ -245,7 +245,7 @@ async function downloadAssets(
 }
 
 /**
- * Convert part of a message to a LanguageModelV1Part.
+ * Convert part of a message to a LanguageModelV2Part.
  * @param part The part to convert.
  * @param downloadedAssets A map of URLs to their downloaded data. Only
  *  available if the model does not support URLs, null otherwise.
@@ -259,9 +259,9 @@ function convertPartToLanguageModelPart(
     { mimeType: string | undefined; data: Uint8Array }
   >,
 ):
-  | LanguageModelV1TextPart
-  | LanguageModelV1ImagePart
-  | LanguageModelV1FilePart {
+  | LanguageModelV2TextPart
+  | LanguageModelV2ImagePart
+  | LanguageModelV2FilePart {
   if (part.type === 'text') {
     return {
       type: 'text',
@@ -333,7 +333,7 @@ function convertPartToLanguageModelPart(
   }
 
   // Now that we have the normalized data either as a URL or a Uint8Array,
-  // we can create the LanguageModelV1Part.
+  // we can create the LanguageModelV2Part.
   switch (type) {
     case 'image': {
       // When possible, try to detect the mimetype automatically

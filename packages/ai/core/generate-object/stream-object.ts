@@ -1,8 +1,8 @@
 import {
   JSONValue,
-  LanguageModelV1CallOptions,
-  LanguageModelV1FinishReason,
-  LanguageModelV1StreamPart,
+  LanguageModelV2CallOptions,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import {
@@ -577,10 +577,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           mode = model.defaultObjectGenerationMode;
         }
 
-        let callOptions: LanguageModelV1CallOptions;
+        let callOptions: LanguageModelV2CallOptions;
         let transformer: Transformer<
-          LanguageModelV1StreamPart,
-          string | Omit<LanguageModelV1StreamPart, 'text-delta'>
+          LanguageModelV2StreamPart,
+          string | Omit<LanguageModelV2StreamPart, 'text-delta'>
         >;
 
         switch (mode) {
@@ -746,7 +746,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
         // store information for onFinish callback:
         let usage: LanguageModelUsage | undefined;
-        let finishReason: LanguageModelV1FinishReason | undefined;
+        let finishReason: LanguageModelV2FinishReason | undefined;
         let providerMetadata: ProviderMetadata | undefined;
         let object: RESULT | undefined;
         let error: unknown | undefined;
