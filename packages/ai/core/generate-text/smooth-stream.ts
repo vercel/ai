@@ -1,4 +1,3 @@
-import { InvalidArgumentError } from '@ai-sdk/provider';
 import { delay as originalDelay } from '@ai-sdk/provider-utils';
 import { TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
@@ -7,6 +6,15 @@ const CHUNKING_REGEXPS = {
   word: /\s*\S+\s+/m,
   line: /[^\n]*\n/m,
 };
+
+/**
+ * Detects the first chunk in a buffer.
+ *
+ * @param buffer - The buffer to detect the first chunk in.
+ *
+ * @returns The first detected chunk, or `undefined` if no chunk was detected.
+ */
+type ChunkDetector = (buffer: string) => string | undefined;
 
 /**
  * Smooths text streaming output.
@@ -22,7 +30,7 @@ export function smoothStream<TOOLS extends ToolSet>({
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number | null;
-  chunking?: 'word' | 'line' | RegExp;
+  chunking?: 'word' | 'line' | RegExp | ChunkDetector;
   /**
    * Internal. For test use only. May change without notice.
    */
@@ -32,15 +40,12 @@ export function smoothStream<TOOLS extends ToolSet>({
 } = {}): (options: {
   tools: TOOLS;
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>> {
-  const chunkingRegexp =
-    typeof chunking === 'string' ? CHUNKING_REGEXPS[chunking] : chunking;
-
-  if (chunkingRegexp == null) {
-    throw new InvalidArgumentError({
-      argument: 'chunking',
-      message: `Chunking must be "word" or "line" or a RegExp. Received: ${chunking}`,
-    });
-  }
+  const detectChunk: ChunkDetector =
+    typeof chunking === 'function'
+      ? chunking
+      : typeof chunking === 'string'
+        ? buffer => CHUNKING_REGEXPS[chunking].exec(buffer)?.[0]
+        : buffer => chunking.exec(buffer)?.[0];
 
   return () => {
     let buffer = '';
@@ -60,10 +65,9 @@ export function smoothStream<TOOLS extends ToolSet>({
         buffer += chunk.textDelta;
 
         let match;
-        while ((match = chunkingRegexp.exec(buffer)) != null) {
-          const chunk = match[0];
-          controller.enqueue({ type: 'text-delta', textDelta: chunk });
-          buffer = buffer.slice(chunk.length);
+        while ((match = detectChunk(buffer)) != null) {
+          controller.enqueue({ type: 'text-delta', textDelta: match });
+          buffer = buffer.slice(match.length);
 
           await delay(delayInMs);
         }
