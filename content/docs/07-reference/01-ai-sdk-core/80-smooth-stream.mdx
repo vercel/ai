@@ -77,6 +77,11 @@ To use regex based chunking, pass a `RegExp` to the `chunking` option.
 smoothStream({
   chunking: /_+/,
 });
+
+// Also can do it like this, same behavior
+smoothStream({
+  chunking: /[^_]*_/,
+});
 ```
 
 #### Custom callback chunking
