@@ -816,7 +816,7 @@ The first argument is the model id e.g. `whisper-1`.
 const model = openai.transcription('whisper-1');
 ```
 
-OpenAI transcription models support a single `audio` argument which can be a `DataContent` (`string | Uint8Array<ArrayBufferLike> | ArrayBuffer | Buffer<ArrayBufferLike>`) or a `URL`.
+OpenAI transcription models support an `audio` argument which can be a `DataContent` (`string | Uint8Array<ArrayBufferLike> | ArrayBuffer | Buffer<ArrayBufferLike>`) or a `URL`.
 
 ```ts
 const model = openai.transcription('whisper-1', {
