@@ -1,6 +1,8 @@
-import type { LanguageModelV2StreamPart } from '@ai-sdk/provider';
+import type {
+  LanguageModelV2Middleware,
+  LanguageModelV2StreamPart,
+} from '@ai-sdk/provider';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
-import type { LanguageModelV2Middleware } from './language-model-v2-middleware';
 
 /**
  * Extract an XML-tagged reasoning section from the generated text and exposes it
@@ -23,7 +25,7 @@ export function extractReasoningMiddleware({
   const closingTag = `<\/${tagName}>`;
 
   return {
-    middlewareVersion: 'v1',
+    middlewareVersion: 'v2',
     wrapGenerate: async ({ doGenerate }) => {
       const { text: rawText, ...rest } = await doGenerate();
 

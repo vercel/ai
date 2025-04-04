@@ -42,7 +42,7 @@ type BedrockChatConfig = {
 };
 
 export class BedrockChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
   readonly provider = 'amazon-bedrock';
   readonly defaultObjectGenerationMode = 'tool';
   readonly supportsImageUrls = false;

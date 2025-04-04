@@ -57,7 +57,7 @@ model. `undefined` can be specified if object generation is not supported.
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
 
   readonly supportsStructuredOutputs: boolean;
 

@@ -1,23 +1,22 @@
-import { z } from 'zod';
-import {
-  experimental_generateImage as generateImage,
-  generateText,
-  generateObject,
-  streamText,
-  streamObject,
-  embed,
-  embedMany,
-  APICallError,
-  ToolExecutionError,
-} from 'ai';
-import fs from 'fs';
-import { describe, expect, it, vi } from 'vitest';
+import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import type {
   EmbeddingModelV1,
   ImageModelV1,
-  LanguageModelV1,
+  LanguageModelV2,
 } from '@ai-sdk/provider';
-import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
+import {
+  APICallError,
+  embed,
+  embedMany,
+  experimental_generateImage as generateImage,
+  generateObject,
+  generateText,
+  streamObject,
+  streamText,
+} from 'ai';
+import fs from 'fs';
+import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 export type Capability =
   | 'audioInput'
@@ -50,9 +49,9 @@ export const defaultChatModelCapabilities: ModelCapabilities = [
 ];
 
 export const createLanguageModelWithCapabilities = (
-  model: LanguageModelV1,
+  model: LanguageModelV2,
   capabilities: ModelCapabilities = defaultChatModelCapabilities,
-): ModelWithCapabilities<LanguageModelV1> => ({
+): ModelWithCapabilities<LanguageModelV2> => ({
   model,
   capabilities,
 });
@@ -74,8 +73,8 @@ export const createImageModelWithCapabilities = (
 });
 
 export interface ModelVariants {
-  invalidModel?: LanguageModelV1;
-  languageModels?: ModelWithCapabilities<LanguageModelV1>[];
+  invalidModel?: LanguageModelV2;
+  languageModels?: ModelWithCapabilities<LanguageModelV2>[];
   embeddingModels?: ModelWithCapabilities<EmbeddingModelV1<string>>[];
   invalidImageModel?: ImageModelV1;
   imageModels?: ModelWithCapabilities<ImageModelV1>[];

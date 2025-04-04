@@ -1,8 +1,8 @@
 import {
   LanguageModelV2CallOptions,
+  LanguageModelV2Middleware,
   LanguageModelV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import type { LanguageModelV2Middleware } from './language-model-v2-middleware';
 import { mergeObjects } from '../util/merge-objects';
 
 /**
@@ -18,7 +18,7 @@ export function defaultSettingsMiddleware({
   >;
 }): LanguageModelV2Middleware {
   return {
-    middlewareVersion: 'v1',
+    middlewareVersion: 'v2',
     transformParams: async ({ params }) => {
       return {
         ...settings,

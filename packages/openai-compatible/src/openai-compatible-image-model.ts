@@ -7,12 +7,14 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
-import { OpenAICompatibleImageSettings } from './openai-compatible-image-settings';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
 } from './openai-compatible-error';
+import {
+  OpenAICompatibleImageModelId,
+  OpenAICompatibleImageSettings,
+} from './openai-compatible-image-settings';
 
 export type OpenAICompatibleImageModelConfig = {
   provider: string;

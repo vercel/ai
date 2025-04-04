@@ -1,5 +1,8 @@
-import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
-import { LanguageModelV2Middleware } from './language-model-v2-middleware';
+import {
+  LanguageModelV2,
+  LanguageModelV2CallOptions,
+  LanguageModelV2Middleware,
+} from '@ai-sdk/provider';
 import { asArray } from '../../util/as-array';
 
 /**
@@ -54,7 +57,7 @@ const doWrap = ({
   }
 
   return {
-    specificationVersion: 'v1',
+    specificationVersion: 'v2',
 
     provider: providerId ?? model.provider,
     modelId: modelId ?? model.modelId,

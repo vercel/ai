@@ -2,7 +2,7 @@ import { LanguageModelV2 } from '@ai-sdk/provider';
 import { notImplemented } from './not-implemented';
 
 export class MockLanguageModelV2 implements LanguageModelV2 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
 
   readonly provider: LanguageModelV2['provider'];
   readonly modelId: LanguageModelV2['modelId'];

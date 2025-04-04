@@ -39,7 +39,7 @@ type OpenAIChatConfig = {
 };
 
 export class OpenAIChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAIChatModelId;
   readonly settings: OpenAIChatSettings;
