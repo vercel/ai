@@ -13,7 +13,7 @@ import { useChat } from '@ai-sdk/react';
 
 const { data } = useChat({
   experimental_transform: smoothStream({
-    chunking: /[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/
+    chunking: /[\u3040-\u309F\u30A0-\u30FF]|\S+\s+/,
   }),
 });
 ```

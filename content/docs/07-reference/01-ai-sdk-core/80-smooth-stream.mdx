@@ -92,7 +92,7 @@ To use a custom callback for chunking, pass a function to the `chunking` option.
 smoothStream({
   chunking: text => {
     const findString = 'some string';
-    const index = text.indexOf(findString)
+    const index = text.indexOf(findString);
 
     if (index === -1) {
       return null;
