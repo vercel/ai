@@ -6,7 +6,7 @@ import { readFile } from 'fs/promises';
 async function main() {
   const result = await transcribe({
     model: openai.transcription('whisper-1'),
-    audio: await readFile('audio.mp3'),
+    audio: await readFile('examples/ai-core/data/galileo.mp3'),
   });
 
   console.log('Text:', result.text);
