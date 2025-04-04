@@ -239,13 +239,4 @@ When using this caching middleware, keep these points in mind:
 
 1. **Development Only** - This approach is intended for local development, not production environments
 2. **Cache Invalidation** - You'll need to clear the cache (delete the cache file) when you want fresh responses
-3. **maxSteps behaviour** - When using `maxSteps`, be aware that the caching only applies to the language model's responses, not the entire tool execution pipeline.
-
-<Note>
-  When the model decides to use tools, it generates a tool call which the AI SDK
-  parses and executes. The tool result is then appended to the message history.
-  This middleware only caches the language model's generations, not the actual
-  results from tool executions, which may lead to inconsistencies if tool
-  outputs change between runs. Also be aware the that tool call will be
-  executed.
-</Note>
+3. **Multi-Step Flows** - When using `maxSteps`, be aware that caching occurs at the individual language model response level, not across the entire execution flow. This means that while the model's generation is cached, the tool call is not and will run on each generation.
