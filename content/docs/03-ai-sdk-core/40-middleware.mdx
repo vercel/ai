@@ -145,9 +145,9 @@ Here are some examples of how to implement language model middleware:
 This example shows how to log the parameters and generated text of a language model call.
 
 ```ts
-import type { LanguageModelV1Middleware, LanguageModelV1StreamPart } from 'ai';
+import type { LanguageModelV2Middleware, LanguageModelV1StreamPart } from 'ai';
 
-export const yourLogMiddleware: LanguageModelV1Middleware = {
+export const yourLogMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     console.log('doGenerate called');
     console.log(`params: ${JSON.stringify(params, null, 2)}`);
@@ -199,11 +199,11 @@ export const yourLogMiddleware: LanguageModelV1Middleware = {
 This example shows how to build a simple cache for the generated text of a language model call.
 
 ```ts
-import type { LanguageModelV1Middleware } from 'ai';
+import type { LanguageModelV2Middleware } from 'ai';
 
 const cache = new Map<string, any>();
 
-export const yourCacheMiddleware: LanguageModelV1Middleware = {
+export const yourCacheMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate, params }) => {
     const cacheKey = JSON.stringify(params);
 
@@ -233,9 +233,9 @@ This example shows how to use RAG as middleware.
 </Note>
 
 ```ts
-import type { LanguageModelV1Middleware } from 'ai';
+import type { LanguageModelV2Middleware } from 'ai';
 
-export const yourRagMiddleware: LanguageModelV1Middleware = {
+export const yourRagMiddleware: LanguageModelV2Middleware = {
   transformParams: async ({ params }) => {
     const lastUserMessageText = getLastUserMessageText({
       prompt: params.prompt,
@@ -262,9 +262,9 @@ Guard rails are a way to ensure that the generated text of a language model call
 is safe and appropriate. This example shows how to use guardrails as middleware.
 
 ```ts
-import type { LanguageModelV1Middleware } from 'ai';
+import type { LanguageModelV2Middleware } from 'ai';
 
-export const yourGuardrailMiddleware: LanguageModelV1Middleware = {
+export const yourGuardrailMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate }) => {
     const { text, ...rest } = await doGenerate();
 
