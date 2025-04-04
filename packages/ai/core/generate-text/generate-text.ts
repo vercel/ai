@@ -576,7 +576,11 @@ A function that attempts to repair a tool call that failed to parse.
 
           return output.parseOutput(
             { text },
-            { response: currentModelResponse.response, usage },
+            {
+              response: currentModelResponse.response,
+              usage,
+              finishReason: currentModelResponse.finishReason,
+            },
           );
         },
         toolCalls: currentToolCalls,
