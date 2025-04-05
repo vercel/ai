@@ -1,9 +1,9 @@
 import { simulateReadableStream, smoothStream, streamText } from 'ai';
-import { MockLanguageModelV1 } from 'ai/test';
+import { MockLanguageModelV2 } from 'ai/test';
 
 async function main() {
   const result = streamText({
-    model: new MockLanguageModelV1({
+    model: new MockLanguageModelV2({
       doStream: async () => ({
         stream: simulateReadableStream({
           chunks: [
