@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "2.0.0-canary.0",
+  "version": "2.0.0-canary.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,8 +29,8 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@ai-sdk/provider-utils": "3.0.0-canary.0",
-    "@ai-sdk/ui-utils": "2.0.0-canary.0",
+    "@ai-sdk/provider-utils": "3.0.0-canary.1",
+    "@ai-sdk/ui-utils": "2.0.0-canary.1",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"
   },

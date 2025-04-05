@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "3.0.0-canary.0",
+  "version": "3.0.0-canary.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -49,10 +49,10 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "2.0.0-canary.0",
-    "@ai-sdk/google": "2.0.0-canary.0",
+    "@ai-sdk/anthropic": "2.0.0-canary.1",
+    "@ai-sdk/google": "2.0.0-canary.1",
     "@ai-sdk/provider": "2.0.0-canary.0",
-    "@ai-sdk/provider-utils": "3.0.0-canary.0",
+    "@ai-sdk/provider-utils": "3.0.0-canary.1",
     "google-auth-library": "^9.15.0"
   },
   "devDependencies": {

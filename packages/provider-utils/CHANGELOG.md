@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-canary.1
+
+### Patch Changes
+
+- 060370c: feat(provider-utils): add TestServerCall#requestCredentials
+- 0c0c0b3: refactor (provider-utils): move `customAlphabet()` method from `nanoid` into codebase
+- 63d791d: chore (utils): remove unused test helpers
+
 ## 3.0.0-canary.0
 
 ### Major Changes
