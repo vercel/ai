@@ -193,7 +193,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 export default defineLazyEventHandler(async () => {
-  const apiKey = useRuntimeConfig().openaiApiKey;
+  const apiKey = useRuntimeConfig().OPENAI_API_KEY;
   if (!apiKey) throw new Error('Missing OpenAI API key');
   const openai = createOpenAI({
     apiKey: apiKey,
