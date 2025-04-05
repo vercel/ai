@@ -10,7 +10,6 @@
   "files": [
     "dist/**/*",
     "mcp-stdio/**/*",
-    "react/dist/**/*",
     "rsc/dist/**/*",
     "test/dist/**/*",
     "CHANGELOG.md"
@@ -18,7 +17,7 @@
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf react/dist && rm -rf rsc/dist",
+    "clean": "rm -rf dist && rm -rf rsc/dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -53,12 +52,6 @@
       "react-server": "./rsc/dist/rsc-server.mjs",
       "import": "./rsc/dist/rsc-client.mjs"
     },
-    "./react": {
-      "types": "./react/dist/index.d.ts",
-      "react-server": "./react/dist/index.server.mjs",
-      "import": "./react/dist/index.mjs",
-      "require": "./react/dist/index.js"
-    },
     "./mcp-stdio": {
       "types": "./mcp-stdio/dist/index.d.ts",
       "import": "./mcp-stdio/dist/index.mjs",
@@ -68,7 +61,6 @@
   "dependencies": {
     "@ai-sdk/provider": "2.0.0-canary.0",
     "@ai-sdk/provider-utils": "3.0.0-canary.0",
-    "@ai-sdk/react": "2.0.0-canary.0",
     "@ai-sdk/ui-utils": "2.0.0-canary.0",
     "@opentelemetry/api": "1.9.0",
     "jsondiffpatch": "0.6.0"
@@ -114,7 +106,6 @@
   "keywords": [
     "ai",
     "vercel",
-    "react",
     "next",
     "nextjs"
   ]

@@ -17,18 +17,6 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
   },
-  // React APIs
-  {
-    entry: ['react/index.ts'],
-    outDir: 'react/dist',
-    banner: {
-      js: "'use client'",
-    },
-    format: ['cjs', 'esm'],
-    external: ['react'],
-    dts: true,
-    sourcemap: true,
-  },
   // RSC APIs - shared client
   {
     // Entry is `.mts` as the entrypoints that import it will be ESM so it needs exact imports that includes the `.mjs` extension.
