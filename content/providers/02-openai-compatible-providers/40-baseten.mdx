@@ -32,38 +32,27 @@ To use Baseten, you can create a custom provider instance with the `createOpenAI
 ```ts
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
-const BASETEN_MODEL_ID = '<deployment-id>';
-const BASETEN_DEPLOYMENT_ID = null;
-
-// see https://docs.baseten.co/api-reference/openai for more information
-const basetenExtraPayload = {
-  model_id: BASETEN_MODEL_ID,
-  deployment_id: BASETEN_DEPLOYMENT_ID,
-};
+const BASETEN_MODEL_ID = '<model-id>'; // e.g. 5q3z8xcw
+const BASETEN_MODEL_URL = `https://model-${BASETEN_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
 
 const baseten = createOpenAICompatible({
   name: 'baseten',
-  apiKey: process.env.BASETEN_API_KEY,
-  baseURL: 'https://bridge.baseten.co/v1/direct',
-  fetch: async (url, request) => {
-    const bodyWithBasetenPayload = JSON.stringify({
-      ...JSON.parse(request.body),
-      baseten: basetenExtraPayload,
-    });
-    return await fetch(url, { ...request, body: bodyWithBasetenPayload });
+  baseURL: BASETEN_MODEL_URL,
+  headers: {
+    Authorization: `Bearer ${process.env.BASETEN_API_KEY ?? ''}`,
   },
 });
 ```
 
-Be sure to have your `BASETEN_API_KEY` set in your environment and the model `deployment id` ready. The `deployment_id` will be given after you have deployed the model on Baseten.
+Be sure to have your `BASETEN_API_KEY` set in your environment and the model `<model-id>` ready. The `<model-id>` will be given after you have deployed the model on Baseten.
 
 ## Language Models
 
-You can create [Baseten models](https://baseten.co/models) using a provider instance.
-The first argument is the served model name, e.g. `ultravox`.
+You can create [Baseten models](https://www.baseten.co/library/) using a provider instance.
+The first argument is the served model name, e.g. `llama`.
 
 ```ts
-const model = baseten('ultravox');
+const model = baseten('llama');
 ```
 
 ### Example
@@ -74,30 +63,19 @@ You can use Baseten language models to generate text with the `generateText` fun
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText } from 'ai';
 
-const BASETEN_MODEL_ID = '<deployment-id>';
-const BASETEN_DEPLOYMENT_ID = null;
-
-// see https://docs.baseten.co/api-reference/openai for more information
-const basetenExtraPayload = {
-  model_id: BASETEN_MODEL_ID,
-  deployment_id: BASETEN_DEPLOYMENT_ID,
-};
+const BASETEN_MODEL_ID = '<model-id>'; // e.g. 5q3z8xcw
+const BASETEN_MODEL_URL = `https://model-${BASETEN_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
 
 const baseten = createOpenAICompatible({
   name: 'baseten',
-  apiKey: process.env.BASETEN_API_KEY,
-  baseURL: 'https://bridge.baseten.co/v1/direct',
-  fetch: async (url, request) => {
-    const bodyWithBasetenPayload = JSON.stringify({
-      ...JSON.parse(request.body),
-      baseten: basetenExtraPayload,
-    });
-    return await fetch(url, { ...request, body: bodyWithBasetenPayload });
+  baseURL: BASETEN_MODEL_URL,
+  headers: {
+    Authorization: `Bearer ${process.env.BASETEN_API_KEY ?? ''}`,
   },
 });
 
 const { text } = await generateText({
-  model: baseten('ultravox'),
+  model: baseten('llama'),
   prompt: 'Tell me about yourself in one sentence',
 });
 
@@ -110,30 +88,19 @@ Baseten language models are also able to generate text in a streaming fashion wi
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
 
-const BASETEN_MODEL_ID = '<deployment-id>';
-const BASETEN_DEPLOYMENT_ID = null;
-
-// see https://docs.baseten.co/api-reference/openai for more information
-const basetenExtraPayload = {
-  model_id: BASETEN_MODEL_ID,
-  deployment_id: BASETEN_DEPLOYMENT_ID,
-};
+const BASETEN_MODEL_ID = '<model-id>'; // e.g. 5q3z8xcw
+const BASETEN_MODEL_URL = `https://model-${BASETEN_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
 
 const baseten = createOpenAICompatible({
   name: 'baseten',
-  apiKey: process.env.BASETEN_API_KEY,
-  baseURL: 'https://bridge.baseten.co/v1/direct',
-  fetch: async (url, request) => {
-    const bodyWithBasetenPayload = JSON.stringify({
-      ...JSON.parse(request.body),
-      baseten: basetenExtraPayload,
-    });
-    return await fetch(url, { ...request, body: bodyWithBasetenPayload });
+  baseURL: BASETEN_MODEL_URL,
+  headers: {
+    Authorization: `Bearer ${process.env.BASETEN_API_KEY ?? ''}`,
   },
 });
 
 const result = streamText({
-  model: baseten('ultravox'),
+  model: baseten('llama'),
   prompt: 'Tell me about yourself in one sentence',
 });
 

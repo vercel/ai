@@ -10,10 +10,10 @@ Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_mediu
 
 ## How to use
 
-Execute `nuxi` to bootstrap the example:
+Execute `create-nuxt` to bootstrap the example:
 
 ```bash
-npx nuxi@latest init -t github:vercel/ai/examples/nuxt-openai nuxt-openai
+npx create-nuxt -t github:vercel/ai/examples/nuxt-openai nuxt-openai
 ```
 
 To run the example locally you need to:

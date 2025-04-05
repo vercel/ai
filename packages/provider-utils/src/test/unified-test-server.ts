@@ -62,6 +62,10 @@ class TestServerCall {
     return this.request!.text().then(JSON.parse);
   }
 
+  get requestCredentials() {
+    return this.request!.credentials;
+  }
+
   get requestHeaders() {
     const requestHeaders = this.request!.headers;
 

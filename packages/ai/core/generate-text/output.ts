@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors';
 import { injectJsonInstruction } from '../generate-object/inject-json-instruction';
 import {
+  FinishReason,
   LanguageModel,
   LanguageModelV1CallOptions,
 } from '../types/language-model';
@@ -33,6 +34,7 @@ export interface Output<OUTPUT, PARTIAL> {
     context: {
       response: LanguageModelResponseMetadata;
       usage: LanguageModelUsage;
+      finishReason: FinishReason;
     },
   ): OUTPUT;
 }
@@ -108,6 +110,7 @@ export const object = <OUTPUT>({
       context: {
         response: LanguageModelResponseMetadata;
         usage: LanguageModelUsage;
+        finishReason: FinishReason;
       },
     ) {
       const parseResult = safeParseJSON({ text });
@@ -119,6 +122,7 @@ export const object = <OUTPUT>({
           text,
           response: context.response,
           usage: context.usage,
+          finishReason: context.finishReason,
         });
       }
 
@@ -134,6 +138,7 @@ export const object = <OUTPUT>({
           text,
           response: context.response,
           usage: context.usage,
+          finishReason: context.finishReason,
         });
       }
 

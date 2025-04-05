@@ -149,7 +149,7 @@ Let's enhance your chatbot by adding a simple weather tool.
 
 Modify your `index.ts` file to include the new weather tool:
 
-```ts filename="index.ts" highlight="2,4,25-36"
+```ts filename="index.ts" highlight="2,4,25-38"
 import { openai } from '@ai-sdk/openai';
 import { CoreMessage, streamText, tool } from 'ai';
 import dotenv from 'dotenv';
@@ -289,7 +289,7 @@ To solve this, you can enable multi-step tool calls using `maxSteps`. This featu
 
 Modify your `index.ts` file to include the `maxSteps` option:
 
-```ts filename="index.ts" highlight="37-40"
+```ts filename="index.ts" highlight="39-42"
 import { openai } from '@ai-sdk/openai';
 import { CoreMessage, streamText, tool } from 'ai';
 import dotenv from 'dotenv';
@@ -362,7 +362,7 @@ By setting `maxSteps` to 5, you're allowing the model to use up to 5 "steps" for
 
 Update your `index.ts` file to add a new tool to convert the temperature from Celsius to Fahrenheit:
 
-```ts filename="index.ts" highlight="36-45"
+```ts filename="index.ts" highlight="38-49"
 import { openai } from '@ai-sdk/openai';
 import { CoreMessage, streamText, tool } from 'ai';
 import dotenv from 'dotenv';

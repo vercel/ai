@@ -1,12 +1,21 @@
-import { InvalidArgumentError } from '@ai-sdk/provider';
 import { delay as originalDelay } from '@ai-sdk/provider-utils';
 import { TextStreamPart } from './stream-text-result';
 import { ToolSet } from './tool-set';
+import { InvalidArgumentError } from '@ai-sdk/provider';
 
 const CHUNKING_REGEXPS = {
-  word: /\s*\S+\s+/m,
-  line: /[^\n]*\n/m,
+  word: /\S+\s+/m,
+  line: /\n+/m,
 };
+
+/**
+ * Detects the first chunk in a buffer.
+ *
+ * @param buffer - The buffer to detect the first chunk in.
+ *
+ * @returns The first detected chunk, or `undefined` if no chunk was detected.
+ */
+export type ChunkDetector = (buffer: string) => string | undefined | null;
 
 /**
  * Smooths text streaming output.
@@ -22,7 +31,7 @@ export function smoothStream<TOOLS extends ToolSet>({
   _internal: { delay = originalDelay } = {},
 }: {
   delayInMs?: number | null;
-  chunking?: 'word' | 'line' | RegExp;
+  chunking?: 'word' | 'line' | RegExp | ChunkDetector;
   /**
    * Internal. For test use only. May change without notice.
    */
@@ -32,21 +41,56 @@ export function smoothStream<TOOLS extends ToolSet>({
 } = {}): (options: {
   tools: TOOLS;
 }) => TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>> {
-  const chunkingRegexp =
-    typeof chunking === 'string' ? CHUNKING_REGEXPS[chunking] : chunking;
+  let detectChunk: ChunkDetector;
 
-  if (chunkingRegexp == null) {
-    throw new InvalidArgumentError({
-      argument: 'chunking',
-      message: `Chunking must be "word" or "line" or a RegExp. Received: ${chunking}`,
-    });
+  if (typeof chunking === 'function') {
+    detectChunk = buffer => {
+      const match = chunking(buffer);
+
+      if (match == null) {
+        return null;
+      }
+
+      if (!match.length) {
+        throw new Error(`Chunking function must return a non-empty string.`);
+      }
+
+      if (!buffer.startsWith(match)) {
+        throw new Error(
+          `Chunking function must return a match that is a prefix of the buffer. Received: "${match}" expected to start with "${buffer}"`,
+        );
+      }
+
+      return match;
+    };
+  } else {
+    const chunkingRegex =
+      typeof chunking === 'string' ? CHUNKING_REGEXPS[chunking] : chunking;
+
+    if (chunkingRegex == null) {
+      throw new InvalidArgumentError({
+        argument: 'chunking',
+        message: `Chunking must be "word" or "line" or a RegExp. Received: ${chunking}`,
+      });
+    }
+
+    detectChunk = buffer => {
+      const match = chunkingRegex.exec(buffer);
+
+      if (!match) {
+        return null;
+      }
+
+      return buffer.slice(0, match.index) + match?.[0];
+    };
   }
 
   return () => {
     let buffer = '';
+
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
-        if (chunk.type === 'step-finish') {
+        if (chunk.type !== 'text-delta') {
           if (buffer.length > 0) {
             controller.enqueue({ type: 'text-delta', textDelta: buffer });
             buffer = '';
@@ -56,18 +100,13 @@ export function smoothStream<TOOLS extends ToolSet>({
           return;
         }
 
-        if (chunk.type !== 'text-delta') {
-          controller.enqueue(chunk);
-          return;
-        }
-
         buffer += chunk.textDelta;
 
         let match;
-        while ((match = chunkingRegexp.exec(buffer)) != null) {
-          const chunk = match[0];
-          controller.enqueue({ type: 'text-delta', textDelta: chunk });
-          buffer = buffer.slice(chunk.length);
+
+        while ((match = detectChunk(buffer)) != null) {
+          controller.enqueue({ type: 'text-delta', textDelta: match });
+          buffer = buffer.slice(match.length);
 
           await delay(delayInMs);
         }

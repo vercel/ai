@@ -1,5 +1,30 @@
 # ai
 
+## 4.3.1
+
+### Patch Changes
+
+- 3d1bd38: feat(smooth-stream): chunking callbacks
+
+## 4.3.0
+
+### Minor Changes
+
+- 772a2d7: feat (core): Add finishReason field to NoObjectGeneratedError
+
+### Patch Changes
+
+- Updated dependencies [2c19b9a]
+  - @ai-sdk/provider-utils@2.2.4
+  - @ai-sdk/react@1.2.6
+  - @ai-sdk/ui-utils@1.2.5
+
+## 4.2.11
+
+### Patch Changes
+
+- c45d100: fix (core): send buffered text in smooth stream when stream parts change
+
 ## 4.2.10
 
 ### Patch Changes
