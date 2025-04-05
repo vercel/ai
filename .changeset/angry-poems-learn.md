@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/azure': minor
+'@ai-sdk/azure': patch
 ---
 
-Added suport for the responses api in azure
+feat (provider/azure): add OpenAI responses API support
