@@ -1,5 +1,13 @@
 # @ai-sdk/google-vertex
 
+## 2.2.10
+
+### Patch Changes
+
+- 1789884: feat: add provider option schemas for vertex imagegen and google genai
+- Updated dependencies [1789884]
+  - @ai-sdk/google@1.2.7
+
 ## 2.2.9
 
 ### Patch Changes
