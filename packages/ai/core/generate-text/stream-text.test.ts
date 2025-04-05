@@ -1622,7 +1622,7 @@ describe('streamText', () => {
       });
 
       await expect(
-        result.consumeStream(onErrorCallback),
+        result.consumeStream({ onError: onErrorCallback }),
       ).resolves.not.toThrow();
       expect(onErrorCallback).toHaveBeenCalledWith(new Error('Some error'));
     });
