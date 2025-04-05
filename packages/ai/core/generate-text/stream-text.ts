@@ -54,6 +54,7 @@ import {
 } from './run-tools-transformation';
 import { ResponseMessage, StepResult } from './step-result';
 import {
+  ConsumeStreamOptions,
   DataStreamOptions,
   StreamTextResult,
   TextStreamPart,
@@ -1592,11 +1593,14 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  async consumeStream(onError?: (error: unknown) => void): Promise<void> {
+  async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
     try {
-      await consumeStream(this.fullStream);
+      await consumeStream({
+        stream: this.fullStream,
+        onError: options?.onError,
+      });
     } catch (error) {
-      onError?.(error);
+      options?.onError?.(error);
     }
   }
 

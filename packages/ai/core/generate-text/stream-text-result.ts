@@ -61,6 +61,10 @@ export type DataStreamOptions = {
   experimental_sendStart?: boolean;
 };
 
+export type ConsumeStreamOptions = {
+  onError?: (error: unknown) => void;
+};
+
 /**
 A result object for accessing different stream types and additional information.
  */
@@ -206,7 +210,7 @@ triggering the `onFinish` callback and the promise resolution.
 
 If an error occurs, it is passed to the optional `onError` callback.
   */
-  consumeStream(onError?: (error: unknown) => void): Promise<void>;
+  consumeStream(options?: ConsumeStreamOptions): Promise<void>;
 
   /**
   Converts the result to a data stream.

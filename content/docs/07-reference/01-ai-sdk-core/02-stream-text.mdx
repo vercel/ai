@@ -2274,15 +2274,20 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'consumeStream',
-      type: '(onError?: (error: unknown) => void) => Promise<void>',
+      type: '(options?: ConsumeStreamOptions) => Promise<void>',
       description:
         'Consumes the stream without processing the parts. This is useful to force the stream to finish. If an error occurs, it is passed to the optional `onError` callback.',
       properties: [
         {
-          name: 'onError',
-          type: '(error: unknown) => void',
-          isOptional: true,
-          description: 'The error callback.',
+          type: 'ConsumeStreamOptions',
+          parameters: [
+            {
+              name: 'onError',
+              type: '(error: unknown) => void',
+              isOptional: true,
+              description: 'The error callback.',
+            },
+          ],
         },
       ],
     },
