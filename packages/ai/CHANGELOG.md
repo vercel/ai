@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.1
+
+### Patch Changes
+
+- 3d1bd38: feat(smooth-stream): chunking callbacks
+
 ## 4.3.0
 
 ### Minor Changes
