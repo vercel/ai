@@ -11,16 +11,22 @@ async function main() {
     },
   });
 
-  console.log(result.text);
+  for (let i = 0; i < result.text.length; i++) {
+    const isCited = result.citations.some(
+      citation => i >= citation.startIndex && i < citation.endIndex,
+    );
+
+    process.stdout.write(
+      isCited ? `\x1b[36m${result.text[i]}\x1b[0m` : result.text[i],
+    );
+  }
+
+  console.log();
   console.log();
   console.log('Sources:');
   console.log(result.sources);
-  console.log();
-  console.log('Finish reason:', result.finishReason);
-  console.log('Usage:', result.usage);
-
-  console.log('Request:', JSON.stringify(result.request, null, 2));
-  console.log('Response:', JSON.stringify(result.response, null, 2));
+  console.log('Citations:');
+  console.log(result.citations);
 }
 
 main().catch(console.error);

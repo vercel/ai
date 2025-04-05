@@ -15,20 +15,16 @@ async function main() {
 
   console.log(result.text);
   console.log();
-  console.log('Sources:', result.sources);
+  console.log('Sources:');
+  console.log(result.sources);
+  console.log('Citations:');
+  console.log(result.citations);
+  console.log();
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
   console.log('Metadata:', result.providerMetadata);
 
-  for (const source of result.sources) {
-    if (source.sourceType === 'url') {
-      console.log('ID:', source.id);
-      console.log('Title:', source.title);
-      console.log('URL:', source.url);
-      console.log('Provider metadata:', source.providerMetadata);
-      console.log();
-    }
-  }
+  console.log(JSON.stringify(result.response.body, null, 2));
 }
 
 main().catch(console.error);
