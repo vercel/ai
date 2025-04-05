@@ -9,11 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "2.0.0-canary.0",
-    "@ai-sdk/react": "2.0.0-canary.0",
+    "@ai-sdk/openai": "2.0.0-canary.1",
+    "@ai-sdk/react": "2.0.0-canary.1",
     "@upstash/ratelimit": "^0.4.3",
     "@vercel/kv": "^0.2.2",
-    "ai": "5.0.0-canary.0",
+    "ai": "5.0.0-canary.1",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",

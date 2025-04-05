@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/cerebras",
-  "version": "1.0.0-canary.0",
+  "version": "1.0.0-canary.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,9 +30,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "1.0.0-canary.0",
+    "@ai-sdk/openai-compatible": "1.0.0-canary.1",
     "@ai-sdk/provider": "2.0.0-canary.0",
-    "@ai-sdk/provider-utils": "3.0.0-canary.0"
+    "@ai-sdk/provider-utils": "3.0.0-canary.1"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

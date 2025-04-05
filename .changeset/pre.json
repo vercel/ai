@@ -56,9 +56,16 @@
     "generate-llms-txt": "0.0.0"
   },
   "changesets": [
+    "beige-ligers-kneel",
+    "clean-numbers-cover",
     "cuddly-icons-kick",
+    "eleven-lobsters-rescue",
+    "flat-plums-bake",
     "green-deers-scream",
+    "pink-deers-switch",
+    "seven-pens-itch",
     "silent-nails-taste",
-    "smooth-mirrors-kneel"
+    "smooth-mirrors-kneel",
+    "twelve-kids-travel"
   ]
 }
