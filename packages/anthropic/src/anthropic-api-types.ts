@@ -48,28 +48,26 @@ export interface AnthropicRedactedThinkingContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+type AnthropicContentSource =
+  | {
+      type: 'base64';
+      media_type: string;
+      data: string;
+    }
+  | {
+      type: 'url';
+      url: string;
+    };
+
 export interface AnthropicImageContent {
   type: 'image';
-  source:
-    | {
-        type: 'base64';
-        media_type: string;
-        data: string;
-      }
-    | {
-        type: 'url';
-        url: string;
-      };
+  source: AnthropicContentSource;
   cache_control: AnthropicCacheControl | undefined;
 }
 
 export interface AnthropicDocumentContent {
   type: 'document';
-  source: {
-    type: 'base64';
-    media_type: 'application/pdf';
-    data: string;
-  };
+  source: AnthropicContentSource;
   cache_control: AnthropicCacheControl | undefined;
 }
 
