@@ -2,6 +2,7 @@ import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
+  LanguageModelV1Source,
   LanguageModelV1StreamPart,
 } from '@ai-sdk/provider';
 import {
@@ -264,15 +265,25 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                   z.object({
                     type: z.literal('output_text'),
                     text: z.string(),
-                    annotations: z.array(
-                      z.object({
-                        type: z.literal('url_citation'),
-                        start_index: z.number(),
-                        end_index: z.number(),
-                        url: z.string(),
-                        title: z.string(),
-                      }),
-                    ),
+                    annotations: z
+                      .array(
+                        z.discriminatedUnion('type', [
+                          z.object({
+                            type: z.literal('url_citation'),
+                            start_index: z.number(),
+                            end_index: z.number(),
+                            url: z.string(),
+                            title: z.string(),
+                          }),
+                          z.object({
+                            type: z.literal('file_citation'),
+                            index: z.number(),
+                            file_id: z.string(),
+                            filename: z.string(),
+                          }),
+                        ]),
+                      )
+                      .optional(),
                   }),
                 ),
               }),
@@ -287,6 +298,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               }),
               z.object({
                 type: z.literal('computer_call'),
+              }),
+              z.object({
+                type: z.literal('file_search_call'),
+                id: z.string(),
+                status: z.string(),
+                queries: z.array(z.string()),
+                results: z.any().nullable(),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -317,14 +335,33 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
     return {
       text: outputTextElements.map(content => content.text).join('\n'),
-      sources: outputTextElements.flatMap(content =>
-        content.annotations.map(annotation => ({
-          sourceType: 'url',
-          id: this.config.generateId?.() ?? generateId(),
-          url: annotation.url,
-          title: annotation.title,
-        })),
-      ),
+      sources: outputTextElements.flatMap(content => {
+        if (!content.annotations) return [];
+
+        return content.annotations
+          .filter(
+            annotation =>
+              annotation.type === 'url_citation' ||
+              annotation.type === 'file_citation',
+          )
+          .map(annotation => {
+            if (annotation.type === 'url_citation') {
+              return {
+                sourceType: 'url',
+                id: this.config.generateId?.() ?? generateId(),
+                url: annotation.url,
+                title: annotation.title,
+              };
+            } else {
+              return {
+                sourceType: 'file',
+                id: this.config.generateId?.() ?? generateId(),
+                fileId: annotation.file_id,
+                filename: annotation.filename,
+              };
+            }
+          });
+      }),
       finishReason: mapOpenAIResponseFinishReason({
         finishReason: response.incomplete_details?.reason,
         hasToolCalls: toolCalls.length > 0,
@@ -410,7 +447,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
-              controller.enqueue({ type: 'error', error: chunk.error });
+              controller.enqueue({
+                type: 'error',
+                error: new Error('Failed to parse response chunk'),
+              });
               return;
             }
 
@@ -483,15 +523,31 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 value.response.usage.output_tokens_details?.reasoning_tokens ??
                 reasoningTokens;
             } else if (isResponseAnnotationAddedChunk(value)) {
-              controller.enqueue({
-                type: 'source',
-                source: {
+              // Handle annotation sources (citations) in the response
+              let source: LanguageModelV1Source | undefined;
+
+              if (value.annotation.type === 'url_citation') {
+                source = {
                   sourceType: 'url',
                   id: self.config.generateId?.() ?? generateId(),
                   url: value.annotation.url,
                   title: value.annotation.title,
-                },
-              });
+                };
+              } else if (value.annotation.type === 'file_citation') {
+                source = {
+                  sourceType: 'file',
+                  id: self.config.generateId?.() ?? generateId(),
+                  fileId: value.annotation.file_id,
+                  filename: value.annotation.filename,
+                };
+              }
+
+              if (source) {
+                controller.enqueue({
+                  type: 'source',
+                  source,
+                });
+              }
             }
           },
 
@@ -601,11 +657,19 @@ const responseOutputItemAddedSchema = z.object({
 
 const responseAnnotationAddedSchema = z.object({
   type: z.literal('response.output_text.annotation.added'),
-  annotation: z.object({
-    type: z.literal('url_citation'),
-    url: z.string(),
-    title: z.string(),
-  }),
+  annotation: z.discriminatedUnion('type', [
+    z.object({
+      type: z.literal('url_citation'),
+      url: z.string(),
+      title: z.string(),
+    }),
+    z.object({
+      type: z.literal('file_citation'),
+      file_id: z.string(),
+      filename: z.string(),
+      index: z.number(),
+    }),
+  ]),
 });
 
 const openaiResponsesChunkSchema = z.union([

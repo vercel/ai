@@ -33,13 +33,19 @@ export default function Chat() {
             .map(part => (
               <span key={`source-${part.source.id}`}>
                 [
-                <a
-                  href={part.source.url}
-                  target="_blank"
-                  className="text-sm font-bold text-blue-500 hover:underline"
-                >
-                  {part.source.title ?? new URL(part.source.url).hostname}
-                </a>
+                {part.source.sourceType === 'url' ? (
+                  <a
+                    href={part.source.url}
+                    target="_blank"
+                    className="text-sm font-bold text-blue-500 hover:underline"
+                  >
+                    {part.source.title ?? new URL(part.source.url).hostname}
+                  </a>
+                ) : part.source.sourceType === 'file' ? (
+                  <span className="text-sm font-bold text-green-500">
+                    {part.source.filename}
+                  </span>
+                ) : null}
                 ]
               </span>
             ))}
