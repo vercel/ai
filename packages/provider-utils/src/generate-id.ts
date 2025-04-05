@@ -1,5 +1,5 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
-import { customAlphabet } from 'nanoid/non-secure';
+import { customAlphabet } from './generate-id-custom-alphabet';
 
 /**
 Creates an ID generator.

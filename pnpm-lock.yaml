@@ -1701,9 +1701,6 @@ importers:
       '@ai-sdk/provider':
         specifier: 2.0.0-canary.0
         version: link:../provider
-      nanoid:
-        specifier: ^3.3.8
-        version: 3.3.8
       secure-json-parse:
         specifier: ^2.7.0
         version: 2.7.0
