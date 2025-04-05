@@ -38,27 +38,6 @@ describe('GoogleVertexImageModel', () => {
       };
     }
 
-    it('should pass the correct parameters', async () => {
-      prepareJsonResponse();
-
-      await model.doGenerate({
-        prompt,
-        n: 2,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: { vertex: { aspectRatio: '1:1' } },
-      });
-
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 2,
-          aspectRatio: '1:1',
-        },
-      });
-    });
-
     it('should pass headers', async () => {
       prepareJsonResponse();
 
@@ -143,13 +122,9 @@ describe('GoogleVertexImageModel', () => {
         prompt: 'test prompt',
         n: 1,
         size: undefined,
-        aspectRatio: undefined,
+        aspectRatio: '16:9',
         seed: undefined,
-        providerOptions: {
-          vertex: {
-            aspectRatio: '16:9',
-          },
-        },
+        providerOptions: {},
       });
 
       expect(await server.calls[0].requestBody).toStrictEqual({
@@ -214,7 +189,7 @@ describe('GoogleVertexImageModel', () => {
         seed: 42,
         providerOptions: {
           vertex: {
-            temperature: 0.8,
+            addWatermark: false,
           },
         },
       });
@@ -225,7 +200,7 @@ describe('GoogleVertexImageModel', () => {
           sampleCount: 1,
           aspectRatio: '1:1',
           seed: 42,
-          temperature: 0.8,
+          addWatermark: false,
         },
       });
     });
@@ -302,7 +277,7 @@ describe('GoogleVertexImageModel', () => {
 
       const result = await model.doGenerate({
         prompt,
-        n: 1,
+        n: 2,
         size: undefined,
         aspectRatio: undefined,
         seed: undefined,
@@ -318,6 +293,37 @@ describe('GoogleVertexImageModel', () => {
         afterDate.getTime(),
       );
       expect(result.response.modelId).toBe('imagen-3.0-generate-001');
+    });
+
+    it('should only pass valid provider options', async () => {
+      prepareJsonResponse();
+
+      await model.doGenerate({
+        prompt,
+        n: 2,
+        size: undefined,
+        aspectRatio: '16:9',
+        seed: undefined,
+        providerOptions: {
+          vertex: {
+            addWatermark: false,
+            negativePrompt: 'negative prompt',
+            personGeneration: 'allow_all',
+            foo: 'bar',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBody).toStrictEqual({
+        instances: [{ prompt }],
+        parameters: {
+          sampleCount: 2,
+          addWatermark: false,
+          negativePrompt: 'negative prompt',
+          personGeneration: 'allow_all',
+          aspectRatio: '16:9',
+        },
+      });
     });
   });
 });

@@ -1,7 +1,10 @@
-import { vertex } from '@ai-sdk/google-vertex';
+import {
+  GoogleVertexImageProviderOptions,
+  vertex,
+} from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
-import { presentImages } from '../lib/present-image';
 import 'dotenv/config';
+import { presentImages } from '../lib/present-image';
 
 async function main() {
   const { image } = await generateImage({
@@ -10,9 +13,8 @@ async function main() {
     aspectRatio: '1:1',
     providerOptions: {
       vertex: {
-        // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
         addWatermark: false,
-      },
+      } satisfies GoogleVertexImageProviderOptions,
     },
   });
 

@@ -414,6 +414,39 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should only pass valid provider options', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: [
+        { role: 'system', content: 'test system instruction' },
+        { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+      ],
+      seed: 123,
+      temperature: 0.5,
+      providerMetadata: {
+        google: { foo: 'bar', responseModalities: ['TEXT', 'IMAGE'] },
+      },
+    });
+
+    expect(await server.calls[0].requestBody).toStrictEqual({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: 'Hello' }],
+        },
+      ],
+      systemInstruction: { parts: [{ text: 'test system instruction' }] },
+      generationConfig: {
+        seed: 123,
+        temperature: 0.5,
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+  });
+
   it('should pass tools and toolChoice', async () => {
     prepareJsonResponse({});
 
@@ -1868,5 +1901,30 @@ describe('doStream', () => {
     expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual(
       'tool-calls',
     );
+  });
+
+  it('should only pass valid provider options', async () => {
+    prepareStreamResponse({ content: [''] });
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        google: { foo: 'bar', responseModalities: ['TEXT', 'IMAGE'] },
+      },
+    });
+
+    expect(await server.calls[0].requestBody).toMatchObject({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: 'Hello' }],
+        },
+      ],
+      generationConfig: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
   });
 });
