@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.2
+
+### Patch Changes
+
+- 665a567: fix (core): improve error handling in streamText's consumeStream method
+
 ## 4.3.1
 
 ### Patch Changes
