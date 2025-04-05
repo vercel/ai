@@ -30,4 +30,9 @@ describe('getPotentialStartIndex', () => {
     const result = getPotentialStartIndex('1234567890', '890123');
     expect(result).toBe(7);
   });
+
+  it('should return index when text is in searchedText', () => {
+    const result = getPotentialStartIndex('###', '###Thinking');
+    expect(result).toBe(0);
+  });
 });
