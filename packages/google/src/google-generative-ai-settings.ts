@@ -72,7 +72,8 @@ Optional. A list of unique safety settings for blocking unsafe content.
       | 'BLOCK_LOW_AND_ABOVE'
       | 'BLOCK_MEDIUM_AND_ABOVE'
       | 'BLOCK_ONLY_HIGH'
-      | 'BLOCK_NONE';
+      | 'BLOCK_NONE'
+      | 'OFF';
   }>;
   /**
    * Optional. Enables timestamp understanding for audio-only files.
