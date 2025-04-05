@@ -10,7 +10,6 @@
   "files": [
     "dist/**/*",
     "mcp-stdio/**/*",
-    "react/dist/**/*",
     "rsc/dist/**/*",
     "test/dist/**/*",
     "CHANGELOG.md"
@@ -18,7 +17,7 @@
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf react/dist && rm -rf rsc/dist",
+    "clean": "rm -rf dist && rm -rf rsc/dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -107,7 +106,6 @@
   "keywords": [
     "ai",
     "vercel",
-    "react",
     "next",
     "nextjs"
   ]
