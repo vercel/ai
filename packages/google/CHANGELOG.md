@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.2.8
+
+### Patch Changes
+
+- 1e8e66d: fix (provider/google): allow "OFF" for Google HarmBlockThreshold
+
 ## 1.2.7
 
 ### Patch Changes
