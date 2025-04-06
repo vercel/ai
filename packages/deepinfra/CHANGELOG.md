@@ -1,5 +1,11 @@
 # @ai-sdk/deepinfra
 
+## 0.2.7
+
+### Patch Changes
+
+- 264b1e0: feat (providers/deepinfra): add llama 4 models
+
 ## 0.2.6
 
 ### Patch Changes
