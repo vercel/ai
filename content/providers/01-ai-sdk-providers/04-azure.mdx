@@ -60,7 +60,7 @@ You can use the following optional settings to customize the OpenAI provider ins
 - **apiVersion** _string_
 
   Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
-  Defaults to `2025-03-01-preview`.
+  Defaults to `2024-10-01-preview`.
 
 - **baseURL** _string_
 
@@ -177,25 +177,16 @@ Azure OpenAI chat models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-import { azure } from '@ai-sdk/azure';
-import { generateText } from 'ai';
-
-const result = await generateText({
-  model: azure('your-deployment-name'),
-  prompt: 'Write a short story about a robot.',
-  providerOptions: {
-    azure: {
-      logitBias: {
-        // optional likelihood for specific tokens
-        '50256': -100,
-      },
-      user: 'test-user', // optional unique user identifier
-    },
+const model = azure('your-deployment-name', {
+  logitBias: {
+    // optional likelihood for specific tokens
+    '50256': -100,
   },
+  user: 'test-user', // optional unique user identifier
 });
 ```
 
-The following optional provider options are available for OpenAI chat models:
+The following optional settings are available for OpenAI chat models:
 
 - **logitBias** _Record&lt;number, number&gt;_
 
@@ -286,8 +277,8 @@ The following provider options are available:
 - **reasoningEffort** _'low' | 'medium' | 'high'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
-- **strictJsonSchema** _boolean_
-  Whether to use strict JSON schema validation. Defaults to `false`.
+- **strictSchemas** _boolean_
+  Whether to use strict JSON schemas in tools and when generating JSON outputs. Defaults to `true`.
 
 The Azure OpenAI responses provider also returns provider-specific metadata:
 
@@ -310,6 +301,35 @@ The following OpenAI-specific metadata is returned:
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
 
+#### Web Search
+
+The Azure OpenAI responses provider supports web search through the `azure.tools.webSearchPreview` tool.
+
+You can force the use of the web search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'web_search_preview' }`.
+
+```ts
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search_preview: azure.tools.webSearchPreview({
+      // optional configuration:
+      searchContextSize: 'high',
+      userLocation: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+      },
+    }),
+  },
+  // Force web search tool:
+  toolChoice: { type: 'tool', toolName: 'web_search_preview' },
+});
+
+// URL sources
+const sources = result.sources;
+```
+
 #### PDF support
 
 The Azure OpenAI Responses API supports reading PDF files.
@@ -329,7 +349,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mediaType: 'application/pdf',
+          mimeType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
       ],
@@ -341,7 +361,7 @@ const result = await generateText({
 The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
-and the `mediaType` should be set to `'application/pdf'`.
+and the `mimeType` should be set to `'application/pdf'`.
 
 ### Completion Models
 
@@ -357,27 +377,18 @@ OpenAI completion models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-import { azure } from '@ai-sdk/azure';
-import { generateText } from 'ai';
-
-const result = await generateText({
-  model: azure.completion('your-gpt-35-turbo-instruct-deployment'),
-  prompt: 'Write a haiku about coding.',
-  providerOptions: {
-    azure: {
-      echo: true, // optional, echo the prompt in addition to the completion
-      logitBias: {
-        // optional likelihood for specific tokens
-        '50256': -100,
-      },
-      suffix: 'some text', // optional suffix that comes after a completion of inserted text
-      user: 'test-user', // optional unique user identifier
-    },
+const model = azure.completion('your-gpt-35-turbo-instruct-deployment', {
+  echo: true, // optional, echo the prompt in addition to the completion
+  logitBias: {
+    // optional likelihood for specific tokens
+    '50256': -100,
   },
+  suffix: 'some text', // optional suffix that comes after a completion of inserted text
+  user: 'test-user', // optional unique user identifier
 });
 ```
 
-The following optional provider options are available for Azure OpenAI completion models:
+The following optional settings are available for Azure OpenAI completion models:
 
 - **echo**: _boolean_
 
@@ -422,32 +433,23 @@ The following optional provider options are available for Azure OpenAI completio
 ## Embedding Models
 
 You can create models that call the Azure OpenAI embeddings API
-using the `.textEmbedding()` factory method.
+using the `.embedding()` factory method.
 
 ```ts
-const model = azure.textEmbedding('your-embedding-deployment');
+const model = azure.embedding('your-embedding-deployment');
 ```
 
-Azure OpenAI embedding models support several additional settings.
+Azure OpenAI embedding models support several aditional settings.
 You can pass them as an options argument:
 
 ```ts
-import { azure } from '@ai-sdk/azure';
-import { embed } from 'ai';
-
-const { embedding } = await embed({
-  model: azure.textEmbedding('your-embedding-deployment'),
-  value: 'sunny day at the beach',
-  providerOptions: {
-    azure: {
-      dimensions: 512, // optional, number of dimensions for the embedding
-      user: 'test-user', // optional unique user identifier
-    },
-  },
-});
+const model = azure.embedding('your-embedding-deployment', {
+  dimensions: 512 // optional, number of dimensions for the embedding
+  user: 'test-user' // optional unique user identifier
+})
 ```
 
-The following optional provider options are available for Azure OpenAI embedding models:
+The following optional settings are available for Azure OpenAI embedding models:
 
 - **dimensions**: _number_
 
@@ -461,25 +463,18 @@ The following optional provider options are available for Azure OpenAI embedding
 
 ## Image Models
 
-You can create models that call the Azure OpenAI image generation API (DALL-E) using the `.image()` factory method. The first argument is your deployment name for the DALL-E model.
+You can create models that call the Azure OpenAI image generation API (DALL-E) using the `.imageModel()` factory method. The first argument is your deployment name for the DALL-E model.
 
 ```ts
-const model = azure.image('your-dalle-deployment-name');
+const model = azure.imageModel('your-dalle-deployment-name');
 ```
 
-Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.azure` when generating the image:
+Azure OpenAI image models support several additional settings. You can pass them as an options argument:
 
 ```ts
-await generateImage({
-  model: azure.image('your-dalle-deployment-name'),
-  prompt: 'A photorealistic image of a cat astronaut floating in space',
-  size: '1024x1024', // '1024x1024', '1792x1024', or '1024x1792' for DALL-E 3
-  providerOptions: {
-    azure: {
-      user: 'test-user', // optional unique user identifier
-      responseFormat: 'url', // 'url' or 'b64_json', defaults to 'url'
-    },
-  },
+const model = azure.imageModel('your-dalle-deployment-name', {
+  user: 'test-user', // optional unique user identifier
+  responseFormat: 'url', // 'url' or 'b64_json', defaults to 'url'
 });
 ```
 
@@ -492,7 +487,7 @@ import { azure } from '@ai-sdk/azure';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: azure.image('your-dalle-deployment-name'),
+  model: azure.imageModel('your-dalle-deployment-name'),
   prompt: 'A photorealistic image of a cat astronaut floating in space',
   size: '1024x1024', // '1024x1024', '1792x1024', or '1024x1792' for DALL-E 3
 });
@@ -519,59 +514,3 @@ Azure OpenAI supports DALL-E 2 and DALL-E 3 models through deployments. The capa
   When creating your Azure OpenAI deployment, make sure to set the DALL-E model
   version you want to use.
 </Note>
-
-## Transcription Models
-
-You can create models that call the Azure OpenAI transcription API using the `.transcription()` factory method.
-
-The first argument is the model id e.g. `whisper-1`.
-
-```ts
-const model = azure.transcription('whisper-1');
-```
-
-You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
-
-```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
-import { azure } from '@ai-sdk/azure';
-import { readFile } from 'fs/promises';
-
-const result = await transcribe({
-  model: azure.transcription('whisper-1'),
-  audio: await readFile('audio.mp3'),
-  providerOptions: { azure: { language: 'en' } },
-});
-```
-
-The following provider options are available:
-
-- **timestampGranularities** _string[]_
-  The granularity of the timestamps in the transcription.
-  Defaults to `['segment']`.
-  Possible values are `['word']`, `['segment']`, and `['word', 'segment']`.
-  Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
-
-- **language** _string_
-  The language of the input audio. Supplying the input language in ISO-639-1 format (e.g. 'en') will improve accuracy and latency.
-  Optional.
-
-- **prompt** _string_
-  An optional text to guide the model's style or continue a previous audio segment. The prompt should match the audio language.
-  Optional.
-
-- **temperature** _number_
-  The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. If set to 0, the model will use log probability to automatically increase the temperature until certain thresholds are hit.
-  Defaults to 0.
-  Optional.
-
-- **include** _string[]_
-  Additional information to include in the transcription response.
-
-### Model Capabilities
-
-| Model                    | Transcription       | Duration            | Segments            | Language            |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |

@@ -1,11 +1,11 @@
 import {
-  EmbeddingModelV2Embedding,
-  LanguageModelV2Prompt,
+  EmbeddingModelV1Embedding,
+  LanguageModelV1Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createAzure } from './azure-openai-provider';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV1Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -68,6 +68,8 @@ describe('chat', () => {
       prepareJsonResponse();
 
       await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -80,6 +82,8 @@ describe('chat', () => {
       prepareJsonResponse();
 
       await providerApiVersionChanged('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -100,6 +104,8 @@ describe('chat', () => {
       });
 
       await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -123,6 +129,8 @@ describe('chat', () => {
       });
 
       await provider('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
@@ -141,6 +149,7 @@ describe('completion', () => {
         total_tokens: 34,
         completion_tokens: 30,
       },
+      logprobs = null,
       finish_reason = 'stop',
     }: {
       content?: string;
@@ -149,6 +158,11 @@ describe('completion', () => {
         total_tokens: number;
         completion_tokens: number;
       };
+      logprobs?: {
+        tokens: string[];
+        token_logprobs: number[];
+        top_logprobs: Record<string, number>[];
+      } | null;
       finish_reason?: string;
     }) {
       server.urls[
@@ -164,6 +178,7 @@ describe('completion', () => {
             {
               text: content,
               index: 0,
+              logprobs,
               finish_reason,
             },
           ],
@@ -176,6 +191,8 @@ describe('completion', () => {
       prepareJsonCompletionResponse({ content: 'Hello World!' });
 
       await provider.completion('gpt-35-turbo-instruct').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
       expect(
@@ -195,6 +212,8 @@ describe('completion', () => {
       });
 
       await provider.completion('gpt-35-turbo-instruct').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -224,7 +243,7 @@ describe('embedding', () => {
     function prepareJsonResponse({
       embeddings = dummyEmbeddings,
     }: {
-      embeddings?: EmbeddingModelV2Embedding[];
+      embeddings?: EmbeddingModelV1Embedding[];
     } = {}) {
       server.urls[
         'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings'
@@ -423,7 +442,7 @@ describe('image', () => {
         providerOptions: { openai: { style: 'natural' } },
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'dalle-deployment',
         prompt,
         n: 2,
@@ -490,6 +509,8 @@ describe('responses', () => {
       prepareJsonResponse();
 
       await provider.responses('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -510,6 +531,8 @@ describe('responses', () => {
       });
 
       await provider.responses('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -533,6 +556,8 @@ describe('responses', () => {
       });
 
       await provider.responses('test-deployment').doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
