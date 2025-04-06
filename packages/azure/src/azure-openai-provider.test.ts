@@ -29,6 +29,7 @@ const server = createTestServer({
     {},
   'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations':
     {},
+  'https://test-resource.openai.azure.com/openai/responses': {},
 });
 
 describe('chat', () => {
@@ -72,10 +73,9 @@ describe('chat', () => {
         prompt: TEST_PROMPT,
       });
 
-      const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual(
-        '2025-03-01-preview',
-      );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('2025-03-01-preview');
     });
 
     it('should set the correct modified api version', async () => {
@@ -133,8 +133,7 @@ describe('chat', () => {
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
-      const requestUrl = await server.getRequestUrl();
-      expect(requestUrl).toStrictEqual(
+      expect(server.calls[0].requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/deployments/test-deployment/chat/completions?api-version=2025-03-01-preview',
       );
     });
@@ -196,10 +195,9 @@ describe('completion', () => {
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
-      const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual(
-        '2025-03-01-preview',
-      );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('2025-03-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -270,10 +268,9 @@ describe('embedding', () => {
       await model.doEmbed({
         values: testValues,
       });
-      const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual(
-        '2025-03-01-preview',
-      );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('2025-03-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -341,10 +338,9 @@ describe('image', () => {
         providerOptions: {},
       });
 
-      const searchParams = await server.getRequestUrlSearchParams();
-      expect(searchParams.get('api-version')).toStrictEqual(
-        '2025-03-01-preview',
-      );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('2025-03-01-preview');
     });
 
     it('should set the correct modified api version', async () => {
@@ -414,8 +410,7 @@ describe('image', () => {
         providerOptions: {},
       });
 
-      const requestUrl = await server.getRequestUrl();
-      expect(requestUrl).toStrictEqual(
+      expect(server.calls[0].requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations?api-version=2025-03-01-preview',
       );
     });
@@ -471,12 +466,6 @@ describe('image', () => {
 
 describe('responses', () => {
   describe('doGenerate', () => {
-    const server = new JsonTestServer(
-      'https://test-resource.openai.azure.com/openai/responses',
-    );
-
-    server.setupTestEnvironment();
-
     function prepareJsonResponse({
       content = '',
       usage = {
@@ -485,29 +474,34 @@ describe('responses', () => {
         total_tokens: 34,
       },
     } = {}) {
-      server.responseBodyJson = {
-        id: 'resp_67c97c0203188190a025beb4a75242bc',
-        object: 'response',
-        created_at: 1741257730,
-        status: 'completed',
-        model: 'test-deployment',
-        output: [
-          {
-            id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-            type: 'message',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: content,
-                annotations: [],
-              },
-            ],
-          },
-        ],
-        usage,
-        incomplete_details: null,
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/responses'
+      ].response = {
+        type: 'json-value',
+        body: {
+          id: 'resp_67c97c0203188190a025beb4a75242bc',
+          object: 'response',
+          created_at: 1741257730,
+          status: 'completed',
+          model: 'test-deployment',
+          output: [
+            {
+              id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+              type: 'message',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: content,
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage,
+          incomplete_details: null,
+        },
       };
     }
 
@@ -520,11 +514,9 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
       });
 
-      const searchParams = await server.getRequestUrlSearchParams();
-      console.log(searchParams);
-      expect(searchParams.get('api-version')).toStrictEqual(
-        '2025-03-01-preview',
-      );
+      expect(
+        server.calls[0].requestUrlSearchParams.get('api-version'),
+      ).toStrictEqual('2025-03-01-preview');
     });
 
     it('should pass headers', async () => {
@@ -547,8 +539,7 @@ describe('responses', () => {
         },
       });
 
-      const requestHeaders = await server.getRequestHeaders();
-      expect(requestHeaders).toStrictEqual({
+      expect(server.calls[0].requestHeaders).toStrictEqual({
         'api-key': 'test-api-key',
         'content-type': 'application/json',
         'custom-provider-header': 'provider-header-value',
@@ -570,8 +561,7 @@ describe('responses', () => {
         prompt: TEST_PROMPT,
       });
 
-      const requestUrl = await server.getRequestUrl();
-      expect(requestUrl).toStrictEqual(
+      expect(server.calls[0].requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/responses?api-version=2025-03-01-preview',
       );
     });
