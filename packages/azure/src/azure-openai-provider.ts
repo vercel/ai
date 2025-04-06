@@ -36,7 +36,7 @@ Creates an Azure OpenAI chat model for text generation.
   /**
 Creates an Azure OpenAI responses API model for text generation.
    */
-  responses(deploymentId: string): LanguageModelV1;
+  responses(deploymentId: string): LanguageModelV2;
 
   /**
 Creates an Azure OpenAI completion model for text generation.
