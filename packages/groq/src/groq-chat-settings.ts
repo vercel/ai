@@ -9,6 +9,7 @@ export type GroqChatModelId =
   | 'llama3-8b-8192'
   | 'mixtral-8x7b-32768'
   // preview models (selection)
+  | 'meta-llama/llama-4-scout-17b-16e-instruct'
   | 'qwen-qwq-32b'
   | 'mistral-saba-24b'
   | 'qwen-2.5-32b'

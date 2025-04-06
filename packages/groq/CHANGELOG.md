@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 1.2.5
+
+### Patch Changes
+
+- 8fdc8fe: feat (provider/groq): add llama 4 model
+
 ## 1.2.4
 
 ### Patch Changes
