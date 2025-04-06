@@ -57,6 +57,7 @@ describe('secureJsonParse', () => {
     expect(() => secureJsonParse(text)).toThrow(SyntaxError);
   });
 
+  // https://github.com/fastify/secure-json-parse/pull/5
   it('parse string with BOM', () => {
     const theJson = { hello: 'world' };
     const buffer = Buffer.concat([
