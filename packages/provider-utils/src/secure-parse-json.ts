@@ -5,12 +5,12 @@
 // Copyright (c) 2019 The Fastify Team
 // Copyright (c) 2019, Sideway Inc, and project contributors
 // All rights reserved.
-// 
+//
 // The complete list of contributors can be found at:
 // - https://github.com/hapijs/bourne/graphs/contributors
 // - https://github.com/fastify/secure-json-parse/graphs/contributors
 // - https://github.com/vercel/ai/commits/main/packages/provider-utils/src/secure-parse-json.ts
-// 
+//
 // Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 //
 // 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
@@ -21,66 +21,70 @@
 //
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-const suspectProtoRx = /"__proto__"\s*:/
-const suspectConstructorRx = /"constructor"\s*:/
+const suspectProtoRx = /"__proto__"\s*:/;
+const suspectConstructorRx = /"constructor"\s*:/;
 
 function _parse(text: string) {
   // utf8 BOM checker (https://github.com/fastify/secure-json-parse/pull/5)
-  if (text && text.charCodeAt(0) === 0xFEFF) {
-    text = text.slice(1)
+  if (text && text.charCodeAt(0) === 0xfeff) {
+    text = text.slice(1);
   }
 
   // Parse normally
-  const obj = JSON.parse(text)
+  const obj = JSON.parse(text);
 
   // Ignore null and non-objects
   if (obj === null || typeof obj !== 'object') {
-    return obj
+    return obj;
   }
 
-  if (suspectProtoRx.test(text) === false && suspectConstructorRx.test(text) === false) {
-    return obj
+  if (
+    suspectProtoRx.test(text) === false &&
+    suspectConstructorRx.test(text) === false
+  ) {
+    return obj;
   }
 
   // Scan result for proto keys
-  return filter(obj)
+  return filter(obj);
 }
 
 function filter(obj: any) {
-  let next = [obj]
+  let next = [obj];
 
   while (next.length) {
-    const nodes = next
-    next = []
+    const nodes = next;
+    next = [];
 
     for (const node of nodes) {
       if (Object.prototype.hasOwnProperty.call(node, '__proto__')) {
-        throw new SyntaxError('Object contains forbidden prototype property')
+        throw new SyntaxError('Object contains forbidden prototype property');
       }
 
       if (
         Object.prototype.hasOwnProperty.call(node, 'constructor') &&
-        Object.prototype.hasOwnProperty.call(node.constructor, 'prototype')) {
-        throw new SyntaxError('Object contains forbidden prototype property')
+        Object.prototype.hasOwnProperty.call(node.constructor, 'prototype')
+      ) {
+        throw new SyntaxError('Object contains forbidden prototype property');
       }
 
       for (const key in node) {
-        const value = node[key]
+        const value = node[key];
         if (value && typeof value === 'object') {
-          next.push(value)
+          next.push(value);
         }
       }
     }
   }
-  return obj
+  return obj;
 }
 
 export function secureParseJson(text: string) {
-  const { stackTraceLimit } = Error
-  Error.stackTraceLimit = 0
+  const { stackTraceLimit } = Error;
+  Error.stackTraceLimit = 0;
   try {
-    return _parse(text)
+    return _parse(text);
   } finally {
-    Error.stackTraceLimit = stackTraceLimit
+    Error.stackTraceLimit = stackTraceLimit;
   }
 }
