@@ -3,7 +3,7 @@ import {
   JSONValue,
   TypeValidationError,
 } from '@ai-sdk/provider';
-import { secureParseJson } from './secure-parse-json';
+import { secureParseJson } from './secure-json-parse';
 import { ZodSchema } from 'zod';
 import { safeValidateTypes, validateTypes } from './validate-types';
 import { Validator } from './validator';
