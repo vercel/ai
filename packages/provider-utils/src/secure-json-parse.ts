@@ -79,7 +79,7 @@ function filter(obj: any) {
   return obj;
 }
 
-export function secureParseJson(text: string) {
+export function secureJsonParse(text: string) {
   const { stackTraceLimit } = Error;
   Error.stackTraceLimit = 0;
   try {
