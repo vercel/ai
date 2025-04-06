@@ -1,5 +1,11 @@
 # @ai-sdk/groq
 
+## 2.0.0-canary.2
+
+### Patch Changes
+
+- 67b9604: feat (provider/groq): add llama 4 model
+
 ## 2.0.0-canary.1
 
 ### Patch Changes

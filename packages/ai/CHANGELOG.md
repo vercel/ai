@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.0-canary.2
+
+### Patch Changes
+
+- bd398e4: fix (core): improve error handling in streamText's consumeStream method
+
 ## 5.0.0-canary.1
 
 ### Minor Changes

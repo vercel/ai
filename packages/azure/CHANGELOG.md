@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 2.0.0-canary.2
+
+### Patch Changes
+
+- c467b38: feat (provider/azure): add OpenAI responses API support
+
 ## 2.0.0-canary.1
 
 ### Patch Changes

@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "@ai-sdk/openai": "2.0.0-canary.1",
-    "ai": "5.0.0-canary.1",
+    "ai": "5.0.0-canary.2",
     "dotenv": "16.4.5",
     "zod": "3.23.8",
     "zod-to-json-schema": "3.23.5"
