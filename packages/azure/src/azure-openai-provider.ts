@@ -7,6 +7,7 @@ import {
   OpenAIEmbeddingSettings,
   OpenAIImageModel,
   OpenAIImageSettings,
+  OpenAIResponsesLanguageModel,
 } from '@ai-sdk/openai/internal';
 import {
   EmbeddingModelV1,
@@ -31,6 +32,11 @@ Creates an Azure OpenAI chat model for text generation.
 Creates an Azure OpenAI chat model for text generation.
    */
   chat(deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV1;
+
+  /**
+Creates an Azure OpenAI responses API model for text generation.
+   */
+  responses(deploymentId: string): LanguageModelV1;
 
   /**
 Creates an Azure OpenAI completion model for text generation.
@@ -140,11 +146,19 @@ export function createAzure(
       description: 'Azure OpenAI resource name',
     });
 
-  const apiVersion = options.apiVersion ?? '2024-10-01-preview';
-  const url = ({ path, modelId }: { path: string; modelId: string }) =>
-    options.baseURL
+  const apiVersion = options.apiVersion ?? '2025-03-01-preview';
+  const url = ({ path, modelId }: { path: string; modelId: string }) => {
+    if (path === '/responses') {
+      return options.baseURL
+        ? `${options.baseURL}${path}?api-version=${apiVersion}`
+        : `https://${getResourceName()}.openai.azure.com/openai/responses?api-version=${apiVersion}`;
+    }
+
+    // Default URL format for other endpoints
+    return options.baseURL
       ? `${options.baseURL}/${modelId}${path}?api-version=${apiVersion}`
       : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${apiVersion}`;
+  };
 
   const createChatModel = (
     deploymentName: string,
@@ -181,6 +195,14 @@ export function createAzure(
       fetch: options.fetch,
     });
 
+  const createResponsesModel = (modelId: string) =>
+    new OpenAIResponsesLanguageModel(modelId, {
+      provider: 'azure-openai.responses',
+      url,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createImageModel = (
     modelId: string,
     settings: OpenAIImageSettings = {},
@@ -213,7 +235,7 @@ export function createAzure(
   provider.imageModel = createImageModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
-
+  provider.responses = createResponsesModel;
   return provider;
 }
 
