@@ -12,7 +12,7 @@
     "@ai-sdk/openai": "2.0.0-canary.1",
     "@ai-sdk/react": "2.0.0-canary.1",
     "@vercel/functions": "latest",
-    "ai": "5.0.0-canary.1",
+    "ai": "5.0.0-canary.2",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",

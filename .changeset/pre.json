@@ -56,16 +56,20 @@
     "generate-llms-txt": "0.0.0"
   },
   "changesets": [
+    "angry-poems-learn",
     "beige-ligers-kneel",
     "clean-numbers-cover",
     "cuddly-icons-kick",
     "eleven-lobsters-rescue",
     "flat-plums-bake",
     "green-deers-scream",
+    "huge-cloths-burn",
     "pink-deers-switch",
     "seven-pens-itch",
     "silent-nails-taste",
     "smooth-mirrors-kneel",
+    "tall-rice-flash",
+    "thin-numbers-shave",
     "twelve-kids-travel"
   ]
 }

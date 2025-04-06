@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 2.0.0-canary.2
+
+### Patch Changes
+
+- 5cf30ea: fix (provider/google): allow "OFF" for Google HarmBlockThreshold
+
 ## 2.0.0-canary.1
 
 ### Patch Changes
