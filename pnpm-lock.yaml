@@ -1698,9 +1698,6 @@ importers:
       '@ai-sdk/provider':
         specifier: 2.0.0-canary.0
         version: link:../provider
-      secure-json-parse:
-        specifier: ^2.7.0
-        version: 2.7.0
     devDependencies:
       '@types/node':
         specifier: 20.17.24

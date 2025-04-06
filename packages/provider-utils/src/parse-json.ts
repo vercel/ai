@@ -114,7 +114,7 @@ export function safeParseJSON<T>({
 
 export function isParsableJson(input: string): boolean {
   try {
-    SecureJSON.parse(input);
+    secureParseJson(input);
     return true;
   } catch {
     return false;
