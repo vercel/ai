@@ -8,7 +8,14 @@ import {
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
-import { OpenAITranscriptionModelId } from './openai-transcription-settings';
+import { OpenAITranscriptionModelId, OpenAITranscriptionModelOptions } from './openai-transcription-settings';
+import { TranscriptionModelV1CallOptions } from '@ai-sdk/provider';
+
+export type OpenAITranscriptionCallOptions = Omit<TranscriptionModelV1CallOptions, 'providerOptions'> & {
+  providerOptions?: {
+    openai?: OpenAIProviderOptions;
+  };
+};
 
 interface OpenAITranscriptionModelConfig extends OpenAIConfig {
   _internal?: {
@@ -17,14 +24,18 @@ interface OpenAITranscriptionModelConfig extends OpenAIConfig {
 }
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
-const providerOptionsMapping = {
-  include: 'include',
-  language: 'language',
-  prompt: 'prompt',
-  responseFormat: 'response_format',
-  temperature: 'temperature',
-  timestampGranularities: 'timestamp_granularities',
-};
+const OpenAIProviderOptionsSchema = z.object({
+  include: z.array(z.string()).optional().describe('Additional information to include in the transcription response.'),
+  language: z.string().optional().describe('The language of the input audio in ISO-639-1 format.'),
+  prompt: z.string().optional().describe('An optional text to guide the model\'s style or continue a previous audio segment.'),
+  responseFormat: z.enum(['json', 'text', 'srt', 'verbose_json', 'vtt']).optional().default('json').describe('The format of the output.'),
+  temperature: z.number().min(0).max(1).optional().default(0).describe('The sampling temperature, between 0 and 1.'),
+  timestampGranularities: z.array(z.enum(['word', 'segment'])).optional().default(['segment']).describe('The timestamp granularities to populate for this transcription.')
+});
+
+export type OpenAIProviderOptions = z.infer<
+  typeof OpenAIProviderOptionsSchema
+>;
 
 // https://platform.openai.com/docs/guides/speech-to-text#supported-languages
 const languageMap = {
@@ -105,7 +116,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<TranscriptionModelV1['doGenerate']>[0]): Promise<
+  }: OpenAITranscriptionCallOptions): Promise<
     Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>
   > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
@@ -118,15 +129,20 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     formData.append('model', this.modelId);
     formData.append('file', new File([blob], 'audio', { type: mimeType }));
 
+  
     // Add any additional provider options
     if (providerOptions?.openai) {
-      for (const [key, value] of Object.entries(providerOptions.openai)) {
-        if (key in providerOptionsMapping) {
-          const newKey =
-            providerOptionsMapping[key as keyof typeof providerOptionsMapping];
+      const transcriptionModelOptions: OpenAITranscriptionModelOptions = {
+        include: providerOptions.openai.include,
+        language: providerOptions.openai.language,
+        prompt: providerOptions.openai.prompt,
+        response_format: providerOptions.openai.responseFormat,
+        temperature: providerOptions.openai.temperature,
+        timestamp_granularities: providerOptions.openai.timestampGranularities,
+      };
 
-          formData.append(newKey, String(value));
-        }
+      for (const key in transcriptionModelOptions) {
+        formData.append(key, transcriptionModelOptions[key as keyof OpenAITranscriptionModelOptions] as string);
       }
     }
 
