@@ -78,13 +78,7 @@ describe('result.text', () => {
   it('should generate text', async () => {
     const result = await generateText({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt, mode }) => {
-          expect(mode).toStrictEqual({
-            type: 'regular',
-            tools: undefined,
-            toolChoice: undefined,
-          });
-
+        doGenerate: async ({ prompt }) => {
           expect(prompt).toStrictEqual([
             {
               role: 'user',
@@ -191,37 +185,35 @@ describe('result.toolCalls', () => {
   it('should contain tool calls', async () => {
     const result = await generateText({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
-            type: 'regular',
-            toolChoice: { type: 'required' },
-            tools: [
-              {
-                type: 'function',
-                name: 'tool1',
-                description: undefined,
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { value: { type: 'string' } },
-                  required: ['value'],
-                  type: 'object',
-                },
+        doGenerate: async ({ prompt, tools, toolChoice }) => {
+          expect(tools).toStrictEqual([
+            {
+              type: 'function',
+              name: 'tool1',
+              description: undefined,
+              parameters: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                type: 'object',
               },
-              {
-                type: 'function',
-                name: 'tool2',
-                description: undefined,
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { somethingElse: { type: 'string' } },
-                  required: ['somethingElse'],
-                  type: 'object',
-                },
+            },
+            {
+              type: 'function',
+              name: 'tool2',
+              description: undefined,
+              parameters: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: { somethingElse: { type: 'string' } },
+                required: ['somethingElse'],
+                type: 'object',
               },
-            ],
-          });
+            },
+          ]);
+
+          expect(toolChoice).toStrictEqual({ type: 'required' });
 
           expect(prompt).toStrictEqual([
             {
@@ -277,25 +269,23 @@ describe('result.toolResults', () => {
   it('should contain tool results', async () => {
     const result = await generateText({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt, mode }) => {
-          expect(mode).toStrictEqual({
-            type: 'regular',
-            toolChoice: { type: 'auto' },
-            tools: [
-              {
-                type: 'function',
-                name: 'tool1',
-                description: undefined,
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { value: { type: 'string' } },
-                  required: ['value'],
-                  type: 'object',
-                },
+        doGenerate: async ({ prompt, tools, toolChoice }) => {
+          expect(tools).toStrictEqual([
+            {
+              type: 'function',
+              name: 'tool1',
+              description: undefined,
+              parameters: {
+                $schema: 'http://json-schema.org/draft-07/schema#',
+                additionalProperties: false,
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                type: 'object',
               },
-            ],
-          });
+            },
+          ]);
+
+          expect(toolChoice).toStrictEqual({ type: 'auto' });
 
           expect(prompt).toStrictEqual([
             {
@@ -504,27 +494,25 @@ describe('options.maxSteps', () => {
       let responseCount = 0;
       result = await generateText({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt, mode }) => {
+          doGenerate: async ({ prompt, tools, toolChoice }) => {
             switch (responseCount++) {
               case 0:
-                expect(mode).toStrictEqual({
-                  type: 'regular',
-                  toolChoice: { type: 'auto' },
-                  tools: [
-                    {
-                      type: 'function',
-                      name: 'tool1',
-                      description: undefined,
-                      parameters: {
-                        $schema: 'http://json-schema.org/draft-07/schema#',
-                        additionalProperties: false,
-                        properties: { value: { type: 'string' } },
-                        required: ['value'],
-                        type: 'object',
-                      },
+                expect(tools).toStrictEqual([
+                  {
+                    type: 'function',
+                    name: 'tool1',
+                    description: undefined,
+                    parameters: {
+                      $schema: 'http://json-schema.org/draft-07/schema#',
+                      additionalProperties: false,
+                      properties: { value: { type: 'string' } },
+                      required: ['value'],
+                      type: 'object',
                     },
-                  ],
-                });
+                  },
+                ]);
+
+                expect(toolChoice).toStrictEqual({ type: 'auto' });
 
                 expect(prompt).toStrictEqual([
                   {
@@ -561,24 +549,22 @@ describe('options.maxSteps', () => {
                   },
                 };
               case 1:
-                expect(mode).toStrictEqual({
-                  type: 'regular',
-                  toolChoice: { type: 'auto' },
-                  tools: [
-                    {
-                      type: 'function',
-                      name: 'tool1',
-                      description: undefined,
-                      parameters: {
-                        $schema: 'http://json-schema.org/draft-07/schema#',
-                        additionalProperties: false,
-                        properties: { value: { type: 'string' } },
-                        required: ['value'],
-                        type: 'object',
-                      },
+                expect(tools).toStrictEqual([
+                  {
+                    type: 'function',
+                    name: 'tool1',
+                    description: undefined,
+                    parameters: {
+                      $schema: 'http://json-schema.org/draft-07/schema#',
+                      additionalProperties: false,
+                      properties: { value: { type: 'string' } },
+                      required: ['value'],
+                      type: 'object',
                     },
-                  ],
-                });
+                  },
+                ]);
+
+                expect(toolChoice).toStrictEqual({ type: 'auto' });
 
                 expect(prompt).toStrictEqual([
                   {
@@ -698,15 +684,9 @@ describe('options.maxSteps', () => {
       let responseCount = 0;
       result = await generateText({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt, mode }) => {
+          doGenerate: async ({ prompt }) => {
             switch (responseCount++) {
               case 0: {
-                expect(mode).toStrictEqual({
-                  type: 'regular',
-                  toolChoice: undefined,
-                  tools: undefined,
-                });
-
                 expect(prompt).toStrictEqual([
                   {
                     role: 'user',
@@ -729,12 +709,6 @@ describe('options.maxSteps', () => {
                 };
               }
               case 1: {
-                expect(mode).toStrictEqual({
-                  type: 'regular',
-                  toolChoice: undefined,
-                  tools: undefined,
-                });
-
                 expect(prompt).toStrictEqual([
                   {
                     role: 'user',
@@ -790,11 +764,6 @@ describe('options.maxSteps', () => {
                 };
               }
               case 2: {
-                expect(mode).toStrictEqual({
-                  type: 'regular',
-                  toolChoice: undefined,
-                  tools: undefined,
-                });
                 expect(prompt).toStrictEqual([
                   {
                     role: 'user',
@@ -849,11 +818,6 @@ describe('options.maxSteps', () => {
                 };
               }
               case 3: {
-                expect(mode).toStrictEqual({
-                  type: 'regular',
-                  toolChoice: undefined,
-                  tools: undefined,
-                });
                 expect(prompt).toStrictEqual([
                   {
                     role: 'user',
@@ -1205,35 +1169,33 @@ describe('tools with custom schema', () => {
   it('should contain tool calls', async () => {
     const result = await generateText({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
-            type: 'regular',
-            toolChoice: { type: 'required' },
-            tools: [
-              {
-                type: 'function',
-                name: 'tool1',
-                description: undefined,
-                parameters: {
-                  additionalProperties: false,
-                  properties: { value: { type: 'string' } },
-                  required: ['value'],
-                  type: 'object',
-                },
+        doGenerate: async ({ prompt, tools, toolChoice }) => {
+          expect(tools).toStrictEqual([
+            {
+              type: 'function',
+              name: 'tool1',
+              description: undefined,
+              parameters: {
+                additionalProperties: false,
+                properties: { value: { type: 'string' } },
+                required: ['value'],
+                type: 'object',
               },
-              {
-                type: 'function',
-                name: 'tool2',
-                description: undefined,
-                parameters: {
-                  additionalProperties: false,
-                  properties: { somethingElse: { type: 'string' } },
-                  required: ['somethingElse'],
-                  type: 'object',
-                },
+            },
+            {
+              type: 'function',
+              name: 'tool2',
+              description: undefined,
+              parameters: {
+                additionalProperties: false,
+                properties: { somethingElse: { type: 'string' } },
+                required: ['somethingElse'],
+                type: 'object',
               },
-            ],
-          });
+            },
+          ]);
+
+          expect(toolChoice).toStrictEqual({ type: 'required' });
 
           expect(prompt).toStrictEqual([
             {
@@ -1468,7 +1430,6 @@ describe('options.output', () => {
 
       expect(callOptions!).toEqual({
         temperature: 0,
-        mode: { type: 'regular' },
         responseFormat: { type: 'text' },
         inputFormat: 'prompt',
         prompt: [
@@ -1524,7 +1485,6 @@ describe('options.output', () => {
 
         expect(callOptions!).toEqual({
           temperature: 0,
-          mode: { type: 'regular' },
           inputFormat: 'prompt',
           responseFormat: { type: 'json', schema: undefined },
           prompt: [
@@ -1586,7 +1546,6 @@ describe('options.output', () => {
 
         expect(callOptions!).toEqual({
           temperature: 0,
-          mode: { type: 'regular' },
           inputFormat: 'prompt',
           responseFormat: {
             type: 'json',

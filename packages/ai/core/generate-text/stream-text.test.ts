@@ -170,13 +170,7 @@ describe('streamText', () => {
     it('should send text deltas', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: undefined,
-              toolChoice: undefined,
-            });
-
+          doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
                 role: 'user',
@@ -267,13 +261,7 @@ describe('streamText', () => {
     it('should send text deltas', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: undefined,
-              toolChoice: undefined,
-            });
-
+          doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
                 role: 'user',
@@ -349,13 +337,7 @@ describe('streamText', () => {
     it('should use fallback response metadata when response metadata is not provided', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: undefined,
-              toolChoice: undefined,
-            });
-
+          doStream: async ({ prompt }) => {
             expect(prompt).toStrictEqual([
               {
                 role: 'user',
@@ -396,25 +378,23 @@ describe('streamText', () => {
     it('should send tool calls', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: [
-                {
-                  type: 'function',
-                  name: 'tool1',
-                  description: undefined,
-                  parameters: {
-                    $schema: 'http://json-schema.org/draft-07/schema#',
-                    additionalProperties: false,
-                    properties: { value: { type: 'string' } },
-                    required: ['value'],
-                    type: 'object',
-                  },
+          doStream: async ({ prompt, tools, toolChoice }) => {
+            expect(tools).toStrictEqual([
+              {
+                type: 'function',
+                name: 'tool1',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
                 },
-              ],
-              toolChoice: { type: 'required' },
-            });
+              },
+            ]);
+
+            expect(toolChoice).toStrictEqual({ type: 'required' });
 
             expect(prompt).toStrictEqual([
               {
@@ -468,25 +448,23 @@ describe('streamText', () => {
     it('should not send tool call deltas when toolCallStreaming is disabled', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: [
-                {
-                  type: 'function',
-                  name: 'test-tool',
-                  description: undefined,
-                  parameters: {
-                    $schema: 'http://json-schema.org/draft-07/schema#',
-                    additionalProperties: false,
-                    properties: { value: { type: 'string' } },
-                    required: ['value'],
-                    type: 'object',
-                  },
+          doStream: async ({ prompt, tools, toolChoice }) => {
+            expect(tools).toStrictEqual([
+              {
+                type: 'function',
+                name: 'test-tool',
+                description: undefined,
+                parameters: {
+                  $schema: 'http://json-schema.org/draft-07/schema#',
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
                 },
-              ],
-              toolChoice: { type: 'required' },
-            });
+              },
+            ]);
+
+            expect(toolChoice).toStrictEqual({ type: 'required' });
 
             expect(prompt).toStrictEqual([
               {
@@ -2331,27 +2309,25 @@ describe('streamText', () => {
         let responseCount = 0;
         result = streamText({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
+            doStream: async ({ prompt, tools, toolChoice }) => {
               switch (responseCount++) {
                 case 0: {
-                  expect(mode).toStrictEqual({
-                    type: 'regular',
-                    tools: [
-                      {
-                        type: 'function',
-                        name: 'tool1',
-                        description: undefined,
-                        parameters: {
-                          $schema: 'http://json-schema.org/draft-07/schema#',
-                          additionalProperties: false,
-                          properties: { value: { type: 'string' } },
-                          required: ['value'],
-                          type: 'object',
-                        },
+                  expect(tools).toStrictEqual([
+                    {
+                      type: 'function',
+                      name: 'tool1',
+                      description: undefined,
+                      parameters: {
+                        $schema: 'http://json-schema.org/draft-07/schema#',
+                        additionalProperties: false,
+                        properties: { value: { type: 'string' } },
+                        required: ['value'],
+                        type: 'object',
                       },
-                    ],
-                    toolChoice: { type: 'auto' },
-                  });
+                    },
+                  ]);
+
+                  expect(toolChoice).toStrictEqual({ type: 'auto' });
 
                   expect(prompt).toStrictEqual([
                     {
@@ -2392,24 +2368,22 @@ describe('streamText', () => {
                   };
                 }
                 case 1: {
-                  expect(mode).toStrictEqual({
-                    type: 'regular',
-                    tools: [
-                      {
-                        type: 'function',
-                        name: 'tool1',
-                        description: undefined,
-                        parameters: {
-                          $schema: 'http://json-schema.org/draft-07/schema#',
-                          additionalProperties: false,
-                          properties: { value: { type: 'string' } },
-                          required: ['value'],
-                          type: 'object',
-                        },
+                  expect(tools).toStrictEqual([
+                    {
+                      type: 'function',
+                      name: 'tool1',
+                      description: undefined,
+                      parameters: {
+                        $schema: 'http://json-schema.org/draft-07/schema#',
+                        additionalProperties: false,
+                        properties: { value: { type: 'string' } },
+                        required: ['value'],
+                        type: 'object',
                       },
-                    ],
-                    toolChoice: { type: 'auto' },
-                  });
+                    },
+                  ]);
+
+                  expect(toolChoice).toStrictEqual({ type: 'auto' });
 
                   expect(prompt).toStrictEqual([
                     {
@@ -2569,14 +2543,9 @@ describe('streamText', () => {
         let responseCount = 0;
         result = streamText({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
+            doStream: async ({ prompt }) => {
               switch (responseCount++) {
                 case 0: {
-                  expect(mode).toStrictEqual({
-                    type: 'regular',
-                    toolChoice: undefined,
-                    tools: undefined,
-                  });
                   expect(prompt).toStrictEqual([
                     {
                       role: 'user',
@@ -2611,11 +2580,6 @@ describe('streamText', () => {
                   };
                 }
                 case 1: {
-                  expect(mode).toStrictEqual({
-                    type: 'regular',
-                    toolChoice: undefined,
-                    tools: undefined,
-                  });
                   expect(prompt).toStrictEqual([
                     {
                       role: 'user',
@@ -2667,12 +2631,6 @@ describe('streamText', () => {
                   };
                 }
                 case 2: {
-                  expect(mode).toStrictEqual({
-                    type: 'regular',
-                    toolChoice: undefined,
-                    tools: undefined,
-                  });
-
                   expect(prompt).toStrictEqual([
                     {
                       role: 'user',
@@ -2739,12 +2697,6 @@ describe('streamText', () => {
                   };
                 }
                 case 3: {
-                  expect(mode).toStrictEqual({
-                    type: 'regular',
-                    toolChoice: undefined,
-                    tools: undefined,
-                  });
-
                   expect(prompt).toStrictEqual([
                     {
                       role: 'user',
@@ -3177,24 +3129,21 @@ describe('streamText', () => {
     it('should send tool calls', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
-          doStream: async ({ prompt, mode }) => {
-            expect(mode).toStrictEqual({
-              type: 'regular',
-              tools: [
-                {
-                  type: 'function',
-                  name: 'tool1',
-                  description: undefined,
-                  parameters: {
-                    additionalProperties: false,
-                    properties: { value: { type: 'string' } },
-                    required: ['value'],
-                    type: 'object',
-                  },
+          doStream: async ({ prompt, tools, toolChoice }) => {
+            expect(tools).toStrictEqual([
+              {
+                type: 'function',
+                name: 'tool1',
+                description: undefined,
+                parameters: {
+                  additionalProperties: false,
+                  properties: { value: { type: 'string' } },
+                  required: ['value'],
+                  type: 'object',
                 },
-              ],
-              toolChoice: { type: 'required' },
-            });
+              },
+            ]);
+            expect(toolChoice).toStrictEqual({ type: 'required' });
 
             expect(prompt).toStrictEqual([
               {
@@ -4463,7 +4412,6 @@ describe('streamText', () => {
 
         expect(callOptions).toEqual({
           temperature: 0,
-          mode: { type: 'regular' },
           inputFormat: 'prompt',
           responseFormat: { type: 'json', schema: undefined },
           prompt: [

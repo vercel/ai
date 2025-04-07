@@ -23,9 +23,9 @@ describe('streamObject', () => {
       it('should send object deltas with json mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              expect(mode).toStrictEqual({
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: undefined,
                 description: undefined,
                 schema: {
@@ -90,9 +90,9 @@ describe('streamObject', () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
             supportsStructuredOutputs: true,
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: undefined,
                 description: undefined,
                 schema: {
@@ -149,9 +149,9 @@ describe('streamObject', () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
             supportsStructuredOutputs: true,
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: 'test-name',
                 description: 'test description',
                 schema: {
@@ -210,10 +210,9 @@ describe('streamObject', () => {
       it('should send object deltas with tool mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-tool',
-                tool: {
+            doStream: async ({ prompt, tools, toolChoice }) => {
+              expect(tools).toStrictEqual([
+                {
                   type: 'function',
                   name: 'json',
                   description: 'Respond with a JSON object.',
@@ -225,7 +224,8 @@ describe('streamObject', () => {
                     type: 'object',
                   },
                 },
-              });
+              ]);
+              expect(toolChoice).toStrictEqual({ type: 'required' });
               expect(prompt).toStrictEqual([
                 {
                   role: 'user',
@@ -307,10 +307,9 @@ describe('streamObject', () => {
       it('should  use name and description with tool mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-tool',
-                tool: {
+            doStream: async ({ prompt, tools, toolChoice }) => {
+              expect(tools).toStrictEqual([
+                {
                   type: 'function',
                   name: 'test-name',
                   description: 'test description',
@@ -322,7 +321,9 @@ describe('streamObject', () => {
                     type: 'object',
                   },
                 },
-              });
+              ]);
+              expect(toolChoice).toStrictEqual({ type: 'required' });
+
               expect(prompt).toStrictEqual([
                 {
                   role: 'user',
@@ -1197,9 +1198,9 @@ describe('streamObject', () => {
       it('should send object deltas with json mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: undefined,
                 description: undefined,
                 schema: jsonSchema({
@@ -1557,9 +1558,9 @@ describe('streamObject', () => {
       beforeEach(async () => {
         result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: undefined,
                 description: undefined,
                 schema: {
@@ -1712,9 +1713,9 @@ describe('streamObject', () => {
       beforeEach(async () => {
         result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: undefined,
                 description: undefined,
                 schema: {
@@ -1824,9 +1825,9 @@ describe('streamObject', () => {
     it('should send object deltas with json mode', async () => {
       const result = streamObject({
         model: new MockLanguageModelV2({
-          doStream: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-json',
+          doStream: async ({ prompt, responseFormat }) => {
+            expect(responseFormat).toStrictEqual({
+              type: 'json',
               name: undefined,
               description: undefined,
               schema: undefined,

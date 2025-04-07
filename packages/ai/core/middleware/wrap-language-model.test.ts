@@ -56,7 +56,6 @@ describe('wrapLanguageModel', () => {
     const params: LanguageModelV2CallOptions = {
       inputFormat: 'messages',
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-      mode: { type: 'regular' },
     };
 
     await wrappedModel.doGenerate(params);
@@ -91,7 +90,6 @@ describe('wrapLanguageModel', () => {
     const params: LanguageModelV2CallOptions = {
       inputFormat: 'messages',
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-      mode: { type: 'regular' },
     };
 
     await wrappedModel.doGenerate(params);
@@ -124,7 +122,6 @@ describe('wrapLanguageModel', () => {
     const params: LanguageModelV2CallOptions = {
       inputFormat: 'messages',
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-      mode: { type: 'regular' },
     };
 
     await wrappedModel.doStream(params);
@@ -156,7 +153,6 @@ describe('wrapLanguageModel', () => {
     const params: LanguageModelV2CallOptions = {
       inputFormat: 'messages',
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-      mode: { type: 'regular' },
     };
 
     await wrappedModel.doStream(params);
@@ -269,7 +265,6 @@ describe('wrapLanguageModel', () => {
       const params: LanguageModelV2CallOptions = {
         inputFormat: 'messages',
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-        mode: { type: 'regular' },
       };
 
       await wrappedModel.doGenerate(params);
@@ -323,7 +318,6 @@ describe('wrapLanguageModel', () => {
       const params: LanguageModelV2CallOptions = {
         inputFormat: 'messages',
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-        mode: { type: 'regular' },
       };
 
       await wrappedModel.doStream(params);
@@ -379,7 +373,6 @@ describe('wrapLanguageModel', () => {
       const params: LanguageModelV2CallOptions = {
         inputFormat: 'messages',
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-        mode: { type: 'regular' },
       };
 
       const result = await wrappedModel.doGenerate(params);
@@ -427,7 +420,6 @@ describe('wrapLanguageModel', () => {
       const params: LanguageModelV2CallOptions = {
         inputFormat: 'messages',
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-        mode: { type: 'regular' },
       };
 
       const result = await wrappedModel.doStream(params);

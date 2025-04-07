@@ -63,7 +63,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   }
 
   private getArgs({
-    mode,
     prompt,
     maxTokens,
     temperature,
@@ -75,12 +74,12 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     responseFormat,
     seed,
     stream,
+    tools,
+    toolChoice,
     providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0] & {
     stream: boolean;
   }) {
-    const type = mode.type;
-
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
@@ -110,90 +109,49 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       }),
     });
 
-    const baseArgs = {
-      // model id:
-      model: this.modelId,
+    const {
+      tools: groqTools,
+      toolChoice: groqToolChoice,
+      toolWarnings,
+    } = prepareTools({ tools, toolChoice });
 
-      // model specific settings:
-      user: this.settings.user,
-      parallel_tool_calls: this.settings.parallelToolCalls,
+    return {
+      args: {
+        // model id:
+        model: this.modelId,
 
-      // standardized settings:
-      max_tokens: maxTokens,
-      temperature,
-      top_p: topP,
-      frequency_penalty: frequencyPenalty,
-      presence_penalty: presencePenalty,
-      stop: stopSequences,
-      seed,
+        // model specific settings:
+        user: this.settings.user,
+        parallel_tool_calls: this.settings.parallelToolCalls,
 
-      // response format:
-      response_format:
-        // json object response format is not supported for streaming:
-        stream === false && responseFormat?.type === 'json'
-          ? { type: 'json_object' }
-          : undefined,
+        // standardized settings:
+        max_tokens: maxTokens,
+        temperature,
+        top_p: topP,
+        frequency_penalty: frequencyPenalty,
+        presence_penalty: presencePenalty,
+        stop: stopSequences,
+        seed,
 
-      // provider options:
-      reasoning_format: groqOptions?.reasoningFormat,
+        // response format:
+        response_format:
+          // json object response format is not supported for streaming:
+          stream === false && responseFormat?.type === 'json'
+            ? { type: 'json_object' }
+            : undefined,
 
-      // messages:
-      messages: convertToGroqChatMessages(prompt),
+        // provider options:
+        reasoning_format: groqOptions?.reasoningFormat,
+
+        // messages:
+        messages: convertToGroqChatMessages(prompt),
+
+        // tools:
+        tools: groqTools,
+        tool_choice: groqToolChoice,
+      },
+      warnings: [...warnings, ...toolWarnings],
     };
-
-    switch (type) {
-      case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareTools({ mode });
-        return {
-          args: {
-            ...baseArgs,
-            tools,
-            tool_choice,
-          },
-          warnings: [...warnings, ...toolWarnings],
-        };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format:
-              // json object response format is not supported for streaming:
-              stream === false ? { type: 'json_object' } : undefined,
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          args: {
-            ...baseArgs,
-            tool_choice: {
-              type: 'function',
-              function: { name: mode.tool.name },
-            },
-            tools: [
-              {
-                type: 'function',
-                function: {
-                  name: mode.tool.name,
-                  description: mode.tool.description,
-                  parameters: mode.tool.parameters,
-                },
-              },
-            ],
-          },
-          warnings,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
   }
 
   async doGenerate(

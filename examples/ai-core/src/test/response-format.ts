@@ -3,7 +3,6 @@ import 'dotenv/config';
 
 async function main() {
   const result = await openai('gpt-4-turbo').doStream({
-    mode: { type: 'regular' },
     inputFormat: 'prompt',
     responseFormat: {
       type: 'json',

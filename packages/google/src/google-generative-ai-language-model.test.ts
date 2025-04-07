@@ -245,7 +245,6 @@ describe('doGenerate', () => {
 
     const { text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -263,7 +262,6 @@ describe('doGenerate', () => {
 
     const { usage } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -299,7 +297,6 @@ describe('doGenerate', () => {
 
     const { text, finishReason } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -335,22 +332,19 @@ describe('doGenerate', () => {
 
     const { toolCalls, finishReason, text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
     });
 
@@ -371,7 +365,6 @@ describe('doGenerate', () => {
 
     const { rawResponse } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -390,7 +383,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: [
         { role: 'system', content: 'test system instruction' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -419,7 +411,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: [
         { role: 'system', content: 'test system instruction' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -452,25 +443,22 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
         },
+      ],
+      toolChoice: {
+        type: 'tool',
+        toolName: 'test-tool',
       },
       prompt: TEST_PROMPT,
     });
@@ -500,13 +488,13 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should set response mime type in object-json mode', async () => {
+  it('should set response mime type with responseFormat', async () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: {
-        type: 'object-json',
+      responseFormat: {
+        type: 'json',
         schema: {
           type: 'object',
           properties: { location: { type: 'string' } },
@@ -536,13 +524,13 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass specification in object-json mode with structuredOutputs = true (default)', async () => {
+  it('should pass specification with responseFormat and structuredOutputs = true (default)', async () => {
     prepareJsonResponse({});
 
     await provider.languageModel('gemini-pro').doGenerate({
       inputFormat: 'prompt',
-      mode: {
-        type: 'object-json',
+      responseFormat: {
+        type: 'json',
         schema: {
           type: 'object',
           properties: {
@@ -572,15 +560,15 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should not pass specification in object-json mode with structuredOutputs = false', async () => {
+  it('should not pass specification with responseFormat and structuredOutputs = false', async () => {
     prepareJsonResponse({});
 
     await provider
       .languageModel('gemini-pro', { structuredOutputs: false })
       .doGenerate({
         inputFormat: 'prompt',
-        mode: {
-          type: 'object-json',
+        responseFormat: {
+          type: 'json',
           schema: {
             type: 'object',
             properties: {
@@ -602,14 +590,13 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass tool specification in object-tool mode', async () => {
+  it('should pass tools and toolChoice', async () => {
     prepareJsonResponse({});
 
     await provider.languageModel('gemini-pro').doGenerate({
       inputFormat: 'prompt',
-      mode: {
-        type: 'object-tool',
-        tool: {
+      tools: [
+        {
           name: 'test-tool',
           type: 'function',
           parameters: {
@@ -622,7 +609,8 @@ describe('doGenerate', () => {
             additionalProperties: false,
           },
         },
-      },
+      ],
+      toolChoice: { type: 'required' },
       prompt: TEST_PROMPT,
     });
 
@@ -661,7 +649,6 @@ describe('doGenerate', () => {
 
     await provider.chat('gemini-pro').doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -683,7 +670,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       responseFormat: {
         type: 'json',
@@ -717,7 +703,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -748,7 +733,6 @@ describe('doGenerate', () => {
 
     const { sources } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -804,7 +788,6 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         headers: {
           'X-Sync-Request': 'sync-request-value',
@@ -860,7 +843,6 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -888,7 +870,6 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -929,7 +910,6 @@ describe('doGenerate', () => {
 
     const { providerMetadata } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -980,7 +960,6 @@ describe('doGenerate', () => {
 
     const { providerMetadata } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1030,7 +1009,6 @@ describe('doGenerate', () => {
       });
       await gemini2Pro.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1049,7 +1027,6 @@ describe('doGenerate', () => {
       });
       await gemini2Flash.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1068,7 +1045,6 @@ describe('doGenerate', () => {
       });
       await geminiPro.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1092,7 +1068,6 @@ describe('doGenerate', () => {
 
       await geminiPro.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1150,7 +1125,6 @@ describe('doGenerate', () => {
 
     const { text, files } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1206,7 +1180,6 @@ describe('doGenerate', () => {
 
     const { text, files } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1228,7 +1201,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         google: {
@@ -1279,7 +1251,6 @@ describe('doGenerate', () => {
 
     const { text, files } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1400,7 +1371,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1445,7 +1415,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1492,7 +1461,6 @@ describe('doStream', () => {
 
     const { rawResponse } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1511,7 +1479,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [''] });
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1530,7 +1497,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [''] });
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1549,7 +1515,6 @@ describe('doStream', () => {
 
     await provider.chat('gemini-pro').doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -1569,7 +1534,6 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1595,7 +1559,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1645,7 +1608,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1684,7 +1646,6 @@ describe('doStream', () => {
       });
       await gemini2Pro.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1704,7 +1665,6 @@ describe('doStream', () => {
       });
       await gemini2Flash.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1724,7 +1684,6 @@ describe('doStream', () => {
       });
       await geminiPro.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1749,7 +1708,6 @@ describe('doStream', () => {
 
       await geminiPro.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1783,7 +1741,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1819,7 +1776,6 @@ describe('doStream', () => {
     };
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1876,22 +1832,19 @@ describe('doStream', () => {
     };
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
     });
 
@@ -1908,7 +1861,6 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         google: { foo: 'bar', responseModalities: ['TEXT', 'IMAGE'] },

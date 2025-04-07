@@ -20,9 +20,9 @@ describe('output = "object"', () => {
     it('should generate object with json mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-json',
+          doGenerate: async ({ prompt, responseFormat }) => {
+            expect(responseFormat).toStrictEqual({
+              type: 'json',
               name: undefined,
               description: undefined,
               schema: {
@@ -67,9 +67,9 @@ describe('output = "object"', () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
           supportsStructuredOutputs: true,
-          doGenerate: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-json',
+          doGenerate: async ({ prompt, responseFormat }) => {
+            expect(responseFormat).toStrictEqual({
+              type: 'json',
               name: undefined,
               description: undefined,
               schema: {
@@ -107,9 +107,9 @@ describe('output = "object"', () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
           supportsStructuredOutputs: true,
-          doGenerate: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-json',
+          doGenerate: async ({ prompt, responseFormat }) => {
+            expect(responseFormat).toStrictEqual({
+              type: 'json',
               name: 'test-name',
               description: 'test description',
               schema: {
@@ -148,10 +148,9 @@ describe('output = "object"', () => {
     it('should generate object with tool mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-tool',
-              tool: {
+          doGenerate: async ({ prompt, tools, toolChoice }) => {
+            expect(tools).toStrictEqual([
+              {
                 type: 'function',
                 name: 'json',
                 description: 'Respond with a JSON object.',
@@ -163,7 +162,8 @@ describe('output = "object"', () => {
                   type: 'object',
                 },
               },
-            });
+            ]);
+            expect(toolChoice).toStrictEqual({ type: 'required' });
 
             expect(prompt).toStrictEqual([
               {
@@ -197,10 +197,9 @@ describe('output = "object"', () => {
     it('should use name and description with tool mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-tool',
-              tool: {
+          doGenerate: async ({ prompt, tools, toolChoice }) => {
+            expect(tools).toStrictEqual([
+              {
                 type: 'function',
                 name: 'test-name',
                 description: 'test description',
@@ -212,7 +211,9 @@ describe('output = "object"', () => {
                   type: 'object',
                 },
               },
-            });
+            ]);
+            expect(toolChoice).toStrictEqual({ type: 'required' });
+
             expect(prompt).toStrictEqual([
               {
                 role: 'user',
@@ -379,9 +380,9 @@ describe('output = "object"', () => {
     it('should generate object when using zod transform', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-json',
+          doGenerate: async ({ prompt, responseFormat }) => {
+            expect(responseFormat).toStrictEqual({
+              type: 'json',
               name: undefined,
               description: undefined,
               schema: {
@@ -426,9 +427,9 @@ describe('output = "object"', () => {
     it('should generate object with tool mode when using zod prePreprocess', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-json',
+          doGenerate: async ({ prompt, responseFormat }) => {
+            expect(responseFormat).toStrictEqual({
+              type: 'json',
               name: undefined,
               description: undefined,
               schema: {
@@ -478,9 +479,9 @@ describe('output = "object"', () => {
     it('should generate object with json mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-json',
+          doGenerate: async ({ prompt, responseFormat }) => {
+            expect(responseFormat).toStrictEqual({
+              type: 'json',
               name: undefined,
               description: undefined,
               schema: {
@@ -980,9 +981,9 @@ describe('output = "array"', () => {
   it('should generate an array with 3 elements', async () => {
     const result = await generateObject({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
-            type: 'object-json',
+        doGenerate: async ({ prompt, responseFormat }) => {
+          expect(responseFormat).toStrictEqual({
+            type: 'json',
             name: undefined,
             description: undefined,
             schema: {
@@ -1050,9 +1051,9 @@ describe('output = "enum"', () => {
   it('should generate an enum value', async () => {
     const result = await generateObject({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt, mode }) => {
-          expect(mode).toEqual({
-            type: 'object-json',
+        doGenerate: async ({ prompt, responseFormat }) => {
+          expect(responseFormat).toStrictEqual({
+            type: 'json',
             name: undefined,
             description: undefined,
             schema: {
@@ -1101,9 +1102,9 @@ describe('output = "no-schema"', () => {
   it('should generate object', async () => {
     const result = await generateObject({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt, mode }) => {
-          assert.deepStrictEqual(mode, {
-            type: 'object-json',
+        doGenerate: async ({ prompt, responseFormat }) => {
+          expect(responseFormat).toStrictEqual({
+            type: 'json',
             name: undefined,
             description: undefined,
             schema: undefined,

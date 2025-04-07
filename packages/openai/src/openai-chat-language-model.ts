@@ -82,7 +82,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   }
 
   private getArgs({
-    mode,
     prompt,
     maxTokens,
     temperature,
@@ -93,10 +92,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
+    tools,
+    toolChoice,
     providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const type = mode.type;
-
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
@@ -171,6 +170,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
+      // TODO improve below:
       response_format:
         responseFormat?.type === 'json'
           ? this.supportsStructuredOutputs && responseFormat.schema != null
@@ -268,91 +268,29 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       }
     }
 
-    switch (type) {
-      case 'regular': {
-        const { tools, tool_choice, functions, function_call, toolWarnings } =
-          prepareTools({
-            mode,
-            useLegacyFunctionCalling,
-            structuredOutputs: this.supportsStructuredOutputs,
-          });
+    const {
+      tools: openaiTools,
+      toolChoice: openaiToolChoice,
+      functions,
+      function_call,
+      toolWarnings,
+    } = prepareTools({
+      tools,
+      toolChoice,
+      useLegacyFunctionCalling,
+      structuredOutputs: this.supportsStructuredOutputs,
+    });
 
-        return {
-          args: {
-            ...baseArgs,
-            tools,
-            tool_choice,
-            functions,
-            function_call,
-          },
-          warnings: [...warnings, ...toolWarnings],
-        };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format:
-              this.supportsStructuredOutputs && mode.schema != null
-                ? {
-                    type: 'json_schema',
-                    json_schema: {
-                      schema: mode.schema,
-                      strict: true,
-                      name: mode.name ?? 'response',
-                      description: mode.description,
-                    },
-                  }
-                : { type: 'json_object' },
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          args: useLegacyFunctionCalling
-            ? {
-                ...baseArgs,
-                function_call: {
-                  name: mode.tool.name,
-                },
-                functions: [
-                  {
-                    name: mode.tool.name,
-                    description: mode.tool.description,
-                    parameters: mode.tool.parameters,
-                  },
-                ],
-              }
-            : {
-                ...baseArgs,
-                tool_choice: {
-                  type: 'function',
-                  function: { name: mode.tool.name },
-                },
-                tools: [
-                  {
-                    type: 'function',
-                    function: {
-                      name: mode.tool.name,
-                      description: mode.tool.description,
-                      parameters: mode.tool.parameters,
-                      strict: this.supportsStructuredOutputs ? true : undefined,
-                    },
-                  },
-                ],
-              },
-          warnings,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
+    return {
+      args: {
+        ...baseArgs,
+        tools: openaiTools,
+        tool_choice: openaiToolChoice,
+        functions,
+        function_call,
+      },
+      warnings: [...warnings, ...toolWarnings],
+    };
   }
 
   async doGenerate(

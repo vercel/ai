@@ -1,21 +1,21 @@
 import {
-  LanguageModelV2,
+  LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAIResponsesTool } from './openai-responses-api-types';
 
 export function prepareResponsesTools({
-  mode,
+  tools,
+  toolChoice,
   strict,
 }: {
-  mode: Parameters<LanguageModelV2['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  };
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   strict: boolean;
 }): {
   tools?: Array<OpenAIResponsesTool>;
-  tool_choice?:
+  toolChoice?:
     | 'auto'
     | 'none'
     | 'required'
@@ -24,15 +24,13 @@ export function prepareResponsesTools({
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
+  tools = tools?.length ? tools : undefined;
 
   const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   if (tools == null) {
-    return { tools: undefined, tool_choice: undefined, toolWarnings };
+    return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
-
-  const toolChoice = mode.toolChoice;
 
   const openaiTools: Array<OpenAIResponsesTool> = [];
 
@@ -75,7 +73,7 @@ export function prepareResponsesTools({
   }
 
   if (toolChoice == null) {
-    return { tools: openaiTools, tool_choice: undefined, toolWarnings };
+    return { tools: openaiTools, toolChoice: undefined, toolWarnings };
   }
 
   const type = toolChoice.type;
@@ -84,26 +82,16 @@ export function prepareResponsesTools({
     case 'auto':
     case 'none':
     case 'required':
-      return { tools: openaiTools, tool_choice: type, toolWarnings };
-    case 'tool': {
-      if (toolChoice.toolName === 'web_search_preview') {
-        return {
-          tools: openaiTools,
-          tool_choice: {
-            type: 'web_search_preview',
-          },
-          toolWarnings,
-        };
-      }
+      return { tools: openaiTools, toolChoice: type, toolWarnings };
+    case 'tool':
       return {
         tools: openaiTools,
-        tool_choice: {
-          type: 'function',
-          name: toolChoice.toolName,
-        },
+        toolChoice:
+          toolChoice.toolName === 'web_search_preview'
+            ? { type: 'web_search_preview' }
+            : { type: 'function', name: toolChoice.toolName },
         toolWarnings,
       };
-    }
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({

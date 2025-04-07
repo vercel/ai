@@ -1,5 +1,5 @@
 import {
-  LanguageModelV2,
+  LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
@@ -9,14 +9,19 @@ import {
   GoogleGenerativeAIModelId,
 } from './google-generative-ai-settings';
 
-export function prepareTools(
-  mode: Parameters<LanguageModelV2['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-  useSearchGrounding: boolean,
-  dynamicRetrievalConfig: DynamicRetrievalConfig | undefined,
-  modelId: GoogleGenerativeAIModelId,
-): {
+export function prepareTools({
+  tools,
+  toolChoice,
+  useSearchGrounding,
+  dynamicRetrievalConfig,
+  modelId,
+}: {
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+  useSearchGrounding: boolean;
+  dynamicRetrievalConfig: DynamicRetrievalConfig | undefined;
+  modelId: GoogleGenerativeAIModelId;
+}): {
   tools:
     | undefined
     | {
@@ -42,7 +47,9 @@ export function prepareTools(
       };
   toolWarnings: LanguageModelV2CallWarning[];
 } {
-  const tools = mode.tools?.length ? mode.tools : undefined;
+  // when the tools array is empty, change it to undefined to prevent errors:
+  tools = tools?.length ? tools : undefined;
+
   const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   const isGemini2 = modelId.includes('gemini-2');
@@ -80,8 +87,6 @@ export function prepareTools(
       });
     }
   }
-
-  const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
     return {

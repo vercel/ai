@@ -974,8 +974,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
           });
 
-          const mode = {
-            type: 'regular' as const,
+          const toolsAndToolChoice = {
             ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
           };
 
@@ -1002,12 +1001,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   },
                   'ai.prompt.tools': {
                     // convert the language model level tools:
-                    input: () => mode.tools?.map(tool => JSON.stringify(tool)),
+                    input: () =>
+                      toolsAndToolChoice.tools?.map(tool =>
+                        JSON.stringify(tool),
+                      ),
                   },
                   'ai.prompt.toolChoice': {
                     input: () =>
-                      mode.toolChoice != null
-                        ? JSON.stringify(mode.toolChoice)
+                      toolsAndToolChoice.toolChoice != null
+                        ? JSON.stringify(toolsAndToolChoice.toolChoice)
                         : undefined,
                   },
 
@@ -1029,8 +1031,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 startTimestampMs: now(), // get before the call
                 doStreamSpan,
                 result: await model.doStream({
-                  mode,
                   ...prepareCallSettings(settings),
+                  ...toolsAndToolChoice,
                   inputFormat: promptFormat,
                   responseFormat: output?.responseFormat({ model }),
                   prompt: promptMessages,
