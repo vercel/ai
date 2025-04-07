@@ -77,7 +77,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
-    providerMetadata: providerOptions,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 

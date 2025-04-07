@@ -336,7 +336,7 @@ describe('doGenerate', () => {
     await provider('grok-beta').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
         },
@@ -357,7 +357,7 @@ describe('doGenerate', () => {
     await provider('grok-beta').doGenerate({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
         },
@@ -1683,7 +1683,7 @@ describe('doStream', () => {
     await provider('grok-beta').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
         },
@@ -1705,7 +1705,7 @@ describe('doStream', () => {
     await provider('grok-beta').doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
         },

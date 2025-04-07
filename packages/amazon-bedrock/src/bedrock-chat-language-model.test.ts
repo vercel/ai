@@ -639,7 +639,7 @@ describe('doStream', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         bedrock: {
           guardrailConfig: {
             guardrailIdentifier: '-1',
@@ -863,7 +863,7 @@ describe('doStream', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         bedrock: {
           foo: 'bar',
         },
@@ -955,7 +955,7 @@ describe('doStream', () => {
         {
           role: 'system',
           content: 'System Prompt',
-          providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+          providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
         },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
@@ -1279,7 +1279,7 @@ describe('doGenerate', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         bedrock: {
           guardrailConfig: {
             guardrailIdentifier: '-1',
@@ -1485,7 +1485,7 @@ describe('doGenerate', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         bedrock: {
           foo: 'bar',
         },
@@ -1539,7 +1539,7 @@ describe('doGenerate', () => {
         {
           role: 'system',
           content: 'System Prompt',
-          providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+          providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
         },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
@@ -1562,7 +1562,7 @@ describe('doGenerate', () => {
           reasoningContent: {
             reasoningText: {
               text: reasoningText,
-              signature: signature,
+              signature,
             },
           },
         },

@@ -89,7 +89,7 @@ export class OpenAICompatibleCompletionLanguageModel
     stopSequences: userStopSequences,
     responseFormat,
     seed,
-    providerMetadata,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -132,7 +132,7 @@ export class OpenAICompatibleCompletionLanguageModel
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
       seed,
-      ...providerMetadata?.[this.providerOptionsName],
+      ...providerOptions?.[this.providerOptionsName],
 
       // prompt:
       prompt: completionPrompt,

@@ -426,7 +426,7 @@ describe('doGenerate', () => {
       ],
       seed: 123,
       temperature: 0.5,
-      providerMetadata: {
+      providerOptions: {
         google: { foo: 'bar', responseModalities: ['TEXT', 'IMAGE'] },
       },
     });
@@ -1230,7 +1230,7 @@ describe('doGenerate', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         google: {
           responseModalities: ['TEXT', 'IMAGE'],
         },
@@ -1910,7 +1910,7 @@ describe('doStream', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         google: { foo: 'bar', responseModalities: ['TEXT', 'IMAGE'] },
       },
     });

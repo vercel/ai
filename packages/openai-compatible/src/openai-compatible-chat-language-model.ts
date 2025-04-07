@@ -109,7 +109,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     topK,
     frequencyPenalty,
     presencePenalty,
-    providerMetadata,
+    providerOptions,
     stopSequences,
     responseFormat,
     seed,
@@ -168,7 +168,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
       stop: stopSequences,
       seed,
-      ...providerMetadata?.[this.providerOptionsName],
+      ...providerOptions?.[this.providerOptionsName],
 
       // messages:
       messages: convertToOpenAICompatibleChatMessages(prompt),

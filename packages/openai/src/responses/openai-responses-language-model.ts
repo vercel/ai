@@ -49,7 +49,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     frequencyPenalty,
     seed,
     prompt,
-    providerMetadata,
+    providerOptions,
     responseFormat,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
@@ -101,7 +101,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const openaiOptions = parseProviderOptions({
       provider: 'openai',
-      providerOptions: providerMetadata,
+      providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
     });
 

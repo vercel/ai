@@ -15,9 +15,9 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { PerplexityLanguageModelId } from './perplexity-language-model-settings';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
+import { PerplexityLanguageModelId } from './perplexity-language-model-settings';
 
 type PerplexityChatConfig = {
   baseURL: string;
@@ -57,7 +57,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
-    providerMetadata,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -106,7 +106,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
           : undefined,
 
       // provider extensions
-      ...(providerMetadata?.perplexity ?? {}),
+      ...(providerOptions?.perplexity ?? {}),
 
       // messages:
       messages: convertToPerplexityMessages(prompt),
