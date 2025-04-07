@@ -1,5 +1,5 @@
 import {
-  LanguageModelV1,
+  LanguageModelV2,
   NoSuchModelError,
   ProviderV1,
 } from '@ai-sdk/provider';
@@ -15,7 +15,7 @@ export interface GroqProvider extends ProviderV1 {
   /**
 Creates a model for text generation.
 */
-  (modelId: GroqChatModelId, settings?: GroqChatSettings): LanguageModelV1;
+  (modelId: GroqChatModelId, settings?: GroqChatSettings): LanguageModelV2;
 
   /**
 Creates an Groq chat model for text generation.
@@ -23,7 +23,7 @@ Creates an Groq chat model for text generation.
   languageModel(
     modelId: GroqChatModelId,
     settings?: GroqChatSettings,
-  ): LanguageModelV1;
+  ): LanguageModelV2;
 }
 
 export interface GroqProviderSettings {

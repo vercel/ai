@@ -1,12 +1,14 @@
 import {
   LanguageModelV1,
-  LanguageModelV1CallWarning,
-  LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
-  LanguageModelV1Source,
+  LanguageModelV2,
+  LanguageModelV2CallWarning,
+  LanguageModelV2FinishReason,
+  LanguageModelV2Source,
 } from '@ai-sdk/provider';
 
 // Re-export LanguageModelV1 types for the middleware:
+// TODO deprecate - should be imported from the provider package
 export type {
   LanguageModelV1,
   LanguageModelV1CallOptions,
@@ -30,7 +32,7 @@ export type {
 /**
 Language model that is used by the AI SDK Core functions.
 */
-export type LanguageModel = LanguageModelV1;
+export type LanguageModel = LanguageModelV1 | LanguageModelV2;
 
 /**
 Reason why a language model finished generating a response.
@@ -43,7 +45,7 @@ Can be one of the following:
 - `error`: model stopped because of an error
 - `other`: model stopped for other reasons
 */
-export type FinishReason = LanguageModelV1FinishReason;
+export type FinishReason = LanguageModelV2FinishReason;
 
 /**
 Log probabilities for each token and its top log probabilities.
@@ -56,12 +58,12 @@ export type LogProbs = LanguageModelV1LogProbs;
 Warning from the model provider for this call. The call will proceed, but e.g.
 some settings might not be supported, which can lead to suboptimal results.
 */
-export type CallWarning = LanguageModelV1CallWarning;
+export type CallWarning = LanguageModelV2CallWarning;
 
 /**
 A source that has been used as input to generate the response.
 */
-export type Source = LanguageModelV1Source;
+export type Source = LanguageModelV2Source;
 
 /**
 Tool choice for the generation. It supports the following settings:
