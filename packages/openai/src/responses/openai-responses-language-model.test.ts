@@ -475,57 +475,10 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send object-tool format', async () => {
+      it('should send responseFormat json format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: {
-            type: 'object-tool',
-            tool: {
-              type: 'function',
-              name: 'response',
-              description: 'A response',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          },
-          prompt: TEST_PROMPT,
-        });
-
-        expect(await server.calls[0].requestBody).toStrictEqual({
-          model: 'gpt-4o',
-          tool_choice: { type: 'function', name: 'response' },
-          tools: [
-            {
-              type: 'function',
-              strict: true,
-              name: 'response',
-              description: 'A response',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          ],
-          input: [
-            { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
-          ],
-        });
-
-        expect(warnings).toStrictEqual([]);
-      });
-
-      it('should send object-json json_object format', async () => {
-        const { warnings } = await createModel('gpt-4o').doGenerate({
-          inputFormat: 'prompt',
-          mode: { type: 'object-json' },
+          responseFormat: { type: 'json' },
           prompt: TEST_PROMPT,
         });
 
@@ -540,11 +493,11 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send object-json json_schema format', async () => {
+      it('should send responseFormat json_schema format', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: {
-            type: 'object-json',
+          responseFormat: {
+            type: 'json',
             name: 'response',
             description: 'A response',
             schema: {
@@ -586,11 +539,11 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
-      it('should send object-json json_schema format with strictSchemas false', async () => {
+      it('should send responseFormat json_schema format with strictSchemas false', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: {
-            type: 'object-json',
+          responseFormat: {
+            type: 'json',
             name: 'response',
             description: 'A response',
             schema: {
@@ -640,23 +593,20 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send web_search tool', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: {
-            type: 'regular',
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'openai.web_search_preview',
-                name: 'web_search_preview',
-                args: {
-                  searchContextSize: 'high',
-                  userLocation: {
-                    type: 'approximate',
-                    city: 'San Francisco',
-                  },
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {
+                searchContextSize: 'high',
+                userLocation: {
+                  type: 'approximate',
+                  city: 'San Francisco',
                 },
               },
-            ],
-          },
+            },
+          ],
           prompt: TEST_PROMPT,
         });
 
@@ -680,27 +630,24 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send web_search tool as tool_choice', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: {
-            type: 'regular',
-            toolChoice: {
-              type: 'tool',
-              toolName: 'web_search_preview',
-            },
-            tools: [
-              {
-                type: 'provider-defined',
-                id: 'openai.web_search_preview',
-                name: 'web_search_preview',
-                args: {
-                  searchContextSize: 'high',
-                  userLocation: {
-                    type: 'approximate',
-                    city: 'San Francisco',
-                  },
+          toolChoice: {
+            type: 'tool',
+            toolName: 'web_search_preview',
+          },
+          tools: [
+            {
+              type: 'provider-defined',
+              id: 'openai.web_search_preview',
+              name: 'web_search_preview',
+              args: {
+                searchContextSize: 'high',
+                userLocation: {
+                  type: 'approximate',
+                  city: 'San Francisco',
                 },
               },
-            ],
-          },
+            },
+          ],
           prompt: TEST_PROMPT,
         });
 
@@ -845,7 +792,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
-          mode: { type: 'regular', tools: TEST_TOOLS },
+          tools: TEST_TOOLS,
         });
 
         expect(result.toolCalls).toStrictEqual([
@@ -868,7 +815,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
-          mode: { type: 'regular', tools: TEST_TOOLS },
+          tools: TEST_TOOLS,
         });
 
         expect(result.finishReason).toStrictEqual('tool-calls');
@@ -1169,7 +1116,7 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('gpt-4o').doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular', tools: TEST_TOOLS },
+        tools: TEST_TOOLS,
         prompt: TEST_PROMPT,
       });
 

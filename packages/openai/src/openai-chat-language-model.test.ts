@@ -928,7 +928,7 @@ describe('doGenerate', () => {
       expect(await server.calls[0].requestBody).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
-        tool_choice: { type: 'function', function: { name: 'test-tool' } },
+        tool_choice: 'required',
         tools: [
           {
             type: 'function',
