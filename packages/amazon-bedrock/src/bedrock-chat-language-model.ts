@@ -54,7 +54,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   ) {}
 
   private getArgs({
-    mode,
     prompt,
     maxTokens,
     temperature,
@@ -65,13 +64,13 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
+    tools,
+    toolChoice,
     providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]): {
     command: BedrockConverseInput;
     warnings: LanguageModelV2CallWarning[];
   } {
-    const type = mode.type;
-
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (frequencyPenalty != null) {
@@ -186,52 +185,14 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       ...providerOptions?.bedrock,
     };
 
-    switch (type) {
-      case 'regular': {
-        const { toolConfig, toolWarnings } = prepareTools(mode);
-        return {
-          command: {
-            ...baseArgs,
-            ...(toolConfig.tools?.length ? { toolConfig } : {}),
-          },
-          warnings: [...warnings, ...toolWarnings],
-        };
-      }
-
-      case 'object-json': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'json-mode object generation',
-        });
-      }
-
-      case 'object-tool': {
-        return {
-          command: {
-            ...baseArgs,
-            toolConfig: {
-              tools: [
-                {
-                  toolSpec: {
-                    name: mode.tool.name,
-                    description: mode.tool.description,
-                    inputSchema: {
-                      json: mode.tool.parameters as JSONObject,
-                    },
-                  },
-                },
-              ],
-              toolChoice: { tool: { name: mode.tool.name } },
-            },
-          },
-          warnings,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
+    const { toolConfig, toolWarnings } = prepareTools({ tools, toolChoice });
+    return {
+      command: {
+        ...baseArgs,
+        ...(toolConfig.tools?.length ? { toolConfig } : {}),
+      },
+      warnings: [...warnings, ...toolWarnings],
+    };
   }
 
   async doGenerate(
