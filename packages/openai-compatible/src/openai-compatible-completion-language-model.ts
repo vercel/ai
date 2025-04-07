@@ -77,7 +77,6 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 
   private getArgs({
-    mode,
     inputFormat,
     prompt,
     maxTokens,
@@ -90,16 +89,21 @@ export class OpenAICompatibleCompletionLanguageModel
     responseFormat,
     seed,
     providerOptions,
+    tools,
+    toolChoice,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const type = mode.type;
-
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+    }
+
+    if (tools?.length) {
+      warnings.push({ type: 'unsupported-setting', setting: 'tools' });
+    }
+
+    if (toolChoice != null) {
+      warnings.push({ type: 'unsupported-setting', setting: 'toolChoice' });
     }
 
     if (responseFormat != null && responseFormat.type !== 'text') {
@@ -115,66 +119,34 @@ export class OpenAICompatibleCompletionLanguageModel
 
     const stop = [...(stopSequences ?? []), ...(userStopSequences ?? [])];
 
-    const baseArgs = {
-      // model id:
-      model: this.modelId,
+    return {
+      args: {
+        // model id:
+        model: this.modelId,
 
-      // model specific settings:
-      echo: this.settings.echo,
-      logit_bias: this.settings.logitBias,
-      suffix: this.settings.suffix,
-      user: this.settings.user,
+        // model specific settings:
+        echo: this.settings.echo,
+        logit_bias: this.settings.logitBias,
+        suffix: this.settings.suffix,
+        user: this.settings.user,
 
-      // standardized settings:
-      max_tokens: maxTokens,
-      temperature,
-      top_p: topP,
-      frequency_penalty: frequencyPenalty,
-      presence_penalty: presencePenalty,
-      seed,
-      ...providerOptions?.[this.providerOptionsName],
+        // standardized settings:
+        max_tokens: maxTokens,
+        temperature,
+        top_p: topP,
+        frequency_penalty: frequencyPenalty,
+        presence_penalty: presencePenalty,
+        seed,
+        ...providerOptions?.[this.providerOptionsName],
 
-      // prompt:
-      prompt: completionPrompt,
+        // prompt:
+        prompt: completionPrompt,
 
-      // stop sequences:
-      stop: stop.length > 0 ? stop : undefined,
+        // stop sequences:
+        stop: stop.length > 0 ? stop : undefined,
+      },
+      warnings,
     };
-
-    switch (type) {
-      case 'regular': {
-        if (mode.tools?.length) {
-          throw new UnsupportedFunctionalityError({
-            functionality: 'tools',
-          });
-        }
-
-        if (mode.toolChoice) {
-          throw new UnsupportedFunctionalityError({
-            functionality: 'toolChoice',
-          });
-        }
-
-        return { args: baseArgs, warnings };
-      }
-
-      case 'object-json': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-json mode',
-        });
-      }
-
-      case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'object-tool mode',
-        });
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
   }
 
   async doGenerate(

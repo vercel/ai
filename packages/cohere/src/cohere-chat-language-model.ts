@@ -2,7 +2,6 @@ import {
   LanguageModelV2,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
