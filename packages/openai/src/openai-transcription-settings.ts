@@ -21,12 +21,6 @@ export type OpenAITranscriptionModelOptions = {
   prompt?: string;
 
   /**
-   * The format of the output.
-   * @default 'json'
-   */
-  response_format?: 'json' | 'text' | 'srt' | 'verbose_json' | 'vtt';
-
-  /**
    * The sampling temperature, between 0 and 1.
    * @default 0
    */

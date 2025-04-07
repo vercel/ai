@@ -16,7 +16,7 @@ import { ProviderOptions } from '../types/provider-metadata';
 /**
 Generates transcripts using a transcript model.
 
-@param model - The transcript model to use.
+@param model - The transcription model to use.
 @param audio - The audio data to transcribe as DataContent (string | Uint8Array<ArrayBufferLike> | ArrayBuffer | Buffer<ArrayBufferLike>).
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
@@ -35,7 +35,7 @@ export async function transcribe({
   headers,
 }: {
   /**
-The transcript model to use.
+The transcription model to use.
      */
   model: TranscriptionModelV1;
 

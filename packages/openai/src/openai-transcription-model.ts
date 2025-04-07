@@ -36,11 +36,6 @@ const OpenAIProviderOptionsSchema = z.object({
     .describe(
       "An optional text to guide the model's style or continue a previous audio segment.",
     ),
-  responseFormat: z
-    .enum(['json', 'text', 'srt', 'verbose_json', 'vtt'])
-    .optional()
-    .default('json')
-    .describe('The format of the output.'),
   temperature: z
     .number()
     .min(0)
@@ -175,7 +170,6 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
         include: openAIOptions.include,
         language: openAIOptions.language,
         prompt: openAIOptions.prompt,
-        response_format: openAIOptions.responseFormat,
         temperature: openAIOptions.temperature,
         timestamp_granularities: openAIOptions.timestampGranularities,
       };

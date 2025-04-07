@@ -21,15 +21,15 @@ const transcript = await transcribe({
 });
 ```
 
-The `audio` property can be a `Blob`, `File`, `Uint8Array`, `ArrayBuffer`, `Buffer`, `URL` or a string (e.g. a URL or base64 encoded data).
+The `audio` property can be a `Uint8Array`, `ArrayBuffer`, `Buffer`, `string` (base64 encoded audio data), or a `URL`.
 
 To access the generated transcript:
 
 ```ts
 const text = transcript.text; // transcript text e.g. "Hello, world!"
 const segments = transcript.segments; // array of segments with start and end times, if available
-const language = transcript.language; // language of the transcript if available e.g. "en"
-const duration = transcript.duration; // duration of the transcript if available in seconds
+const language = transcript.language; // language of the transcript e.g. "en", if available
+const durationInSeconds = transcript.durationInSeconds; // duration of the transcript in seconds, if available
 ```
 
 ## Settings
