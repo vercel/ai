@@ -11,6 +11,7 @@ import {
   audioMimeTypeSignatures,
   detectMimeType,
 } from '../util/detect-mimetype';
+import { ProviderOptions } from '../types/provider-metadata';
 
 /**
 Generates transcripts using a transcript model.
@@ -57,7 +58,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
      */
-  providerOptions?: Record<string, Record<string, JSONValue>>;
+  providerOptions?: ProviderOptions;
 
   /**
 Maximum number of retries per transcript model call. Set to 0 to disable retries.
