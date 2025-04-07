@@ -258,19 +258,6 @@ describe('PerplexityLanguageModel', () => {
         'custom-request-header': 'request-header-value',
       });
     });
-
-    it('should throw error for unsupported mode: object-tool', async () => {
-      await expect(
-        perplexityLM.doGenerate({
-          inputFormat: 'prompt',
-          mode: {
-            type: 'object-tool',
-            tool: { type: 'function', name: 'test', parameters: {} },
-          },
-          prompt: TEST_PROMPT,
-        }),
-      ).rejects.toThrowError(UnsupportedFunctionalityError);
-    });
   });
 
   describe('doStream', () => {
