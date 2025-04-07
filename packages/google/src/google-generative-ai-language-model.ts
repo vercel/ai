@@ -68,7 +68,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   }
 
   private async getArgs({
-    mode,
     prompt,
     maxTokens,
     temperature,
@@ -79,10 +78,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
+    tools,
+    toolChoice,
     providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const type = mode.type;
-
     const warnings: LanguageModelV2CallWarning[] = [];
 
     const googleOptions = parseProviderOptions({
@@ -124,81 +123,30 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const { contents, systemInstruction } =
       convertToGoogleGenerativeAIMessages(prompt);
 
-    switch (type) {
-      case 'regular': {
-        const { tools, toolConfig, toolWarnings } = prepareTools(
-          mode,
-          this.settings.useSearchGrounding ?? false,
-          this.settings.dynamicRetrievalConfig,
-          this.modelId,
-        );
+    const {
+      tools: googleTools,
+      toolConfig: googleToolConfig,
+      toolWarnings,
+    } = prepareTools({
+      tools,
+      toolChoice,
+      useSearchGrounding: this.settings.useSearchGrounding ?? false,
+      dynamicRetrievalConfig: this.settings.dynamicRetrievalConfig,
+      modelId: this.modelId,
+    });
 
-        return {
-          args: {
-            generationConfig,
-            contents,
-            systemInstruction,
-            safetySettings: this.settings.safetySettings,
-            tools,
-            toolConfig,
-            cachedContent: this.settings.cachedContent,
-          },
-          warnings: [...warnings, ...toolWarnings],
-        };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            generationConfig: {
-              ...generationConfig,
-              responseMimeType: 'application/json',
-              responseSchema:
-                mode.schema != null &&
-                // Google GenAI does not support all OpenAPI Schema features,
-                // so this is needed as an escape hatch:
-                this.supportsStructuredOutputs
-                  ? convertJSONSchemaToOpenAPISchema(mode.schema)
-                  : undefined,
-            },
-            contents,
-            systemInstruction,
-            safetySettings: this.settings.safetySettings,
-            cachedContent: this.settings.cachedContent,
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          args: {
-            generationConfig,
-            contents,
-            tools: {
-              functionDeclarations: [
-                {
-                  name: mode.tool.name,
-                  description: mode.tool.description ?? '',
-                  parameters: convertJSONSchemaToOpenAPISchema(
-                    mode.tool.parameters,
-                  ),
-                },
-              ],
-            },
-            toolConfig: { functionCallingConfig: { mode: 'ANY' } },
-            safetySettings: this.settings.safetySettings,
-            cachedContent: this.settings.cachedContent,
-          },
-          warnings,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
+    return {
+      args: {
+        generationConfig,
+        contents,
+        systemInstruction,
+        safetySettings: this.settings.safetySettings,
+        tools: googleTools,
+        toolConfig: googleToolConfig,
+        cachedContent: this.settings.cachedContent,
+      },
+      warnings: [...warnings, ...toolWarnings],
+    };
   }
 
   supportsUrl(url: URL): boolean {
