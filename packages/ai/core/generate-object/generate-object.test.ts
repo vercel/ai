@@ -725,8 +725,8 @@ describe('output = "object"', () => {
     it('should pass provider options to model in json mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ providerMetadata }) => {
-            expect(providerMetadata).toStrictEqual({
+          doGenerate: async ({ providerOptions }) => {
+            expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
             });
 
@@ -752,8 +752,8 @@ describe('output = "object"', () => {
     it('should pass provider options to model in tool mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ providerMetadata }) => {
-            expect(providerMetadata).toStrictEqual({
+          doGenerate: async ({ providerOptions }) => {
+            expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
             });
 

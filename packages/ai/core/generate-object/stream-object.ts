@@ -616,7 +616,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 modelSupportsImageUrls: model.supportsImageUrls,
                 modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
               }),
-              providerMetadata: providerOptions,
+              providerOptions,
               abortSignal,
               headers,
             };
@@ -663,7 +663,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 modelSupportsImageUrls: model.supportsImageUrls,
                 modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context,
               }),
-              providerMetadata: providerOptions,
+              providerOptions,
               abortSignal,
               headers,
             };

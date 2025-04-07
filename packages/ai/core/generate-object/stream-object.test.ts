@@ -1118,8 +1118,8 @@ describe('streamObject', () => {
       it('should pass provider options to model in json mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ providerMetadata }) => {
-              expect(providerMetadata).toStrictEqual({
+            doStream: async ({ providerOptions }) => {
+              expect(providerOptions).toStrictEqual({
                 aProvider: { someKey: 'someValue' },
               });
 
@@ -1155,8 +1155,8 @@ describe('streamObject', () => {
       it('should pass provider options to model in tool mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ providerMetadata }) => {
-              expect(providerMetadata).toStrictEqual({
+            doStream: async ({ providerOptions }) => {
+              expect(providerOptions).toStrictEqual({
                 aProvider: { someKey: 'someValue' },
               });
 

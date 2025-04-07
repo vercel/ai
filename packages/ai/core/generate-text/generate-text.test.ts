@@ -1005,8 +1005,8 @@ describe('options.providerOptions', () => {
   it('should pass provider options to model', async () => {
     const result = await generateText({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ providerMetadata }) => {
-          expect(providerMetadata).toStrictEqual({
+        doGenerate: async ({ providerOptions }) => {
+          expect(providerOptions).toStrictEqual({
             aProvider: { someKey: 'someValue' },
           });
 

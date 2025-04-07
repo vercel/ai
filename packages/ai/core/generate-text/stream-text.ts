@@ -1034,7 +1034,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   inputFormat: promptFormat,
                   responseFormat: output?.responseFormat({ model }),
                   prompt: promptMessages,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                   abortSignal,
                   headers,
                 }),

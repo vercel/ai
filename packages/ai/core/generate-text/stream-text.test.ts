@@ -2954,8 +2954,8 @@ describe('streamText', () => {
     it('should pass provider metadata to model', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
-          doStream: async ({ providerMetadata }) => {
-            expect(providerMetadata).toStrictEqual({
+          doStream: async ({ providerOptions }) => {
+            expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
             });
 
