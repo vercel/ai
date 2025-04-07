@@ -90,36 +90,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       schema: googleGenerativeAIProviderOptionsSchema,
     });
 
-    const generationConfig = {
-      // standardized settings:
-      maxOutputTokens: maxTokens,
-      temperature,
-      topK,
-      topP,
-      frequencyPenalty,
-      presencePenalty,
-      stopSequences,
-      seed,
-
-      // response format:
-      responseMimeType:
-        responseFormat?.type === 'json' ? 'application/json' : undefined,
-      responseSchema:
-        responseFormat?.type === 'json' &&
-        responseFormat.schema != null &&
-        // Google GenAI does not support all OpenAPI Schema features,
-        // so this is needed as an escape hatch:
-        this.supportsStructuredOutputs
-          ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
-          : undefined,
-      ...(this.settings.audioTimestamp && {
-        audioTimestamp: this.settings.audioTimestamp,
-      }),
-
-      // provider options:
-      responseModalities: googleOptions?.responseModalities,
-    };
-
     const { contents, systemInstruction } =
       convertToGoogleGenerativeAIMessages(prompt);
 
@@ -137,7 +107,35 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     return {
       args: {
-        generationConfig,
+        generationConfig: {
+          // standardized settings:
+          maxOutputTokens: maxTokens,
+          temperature,
+          topK,
+          topP,
+          frequencyPenalty,
+          presencePenalty,
+          stopSequences,
+          seed,
+
+          // response format:
+          responseMimeType:
+            responseFormat?.type === 'json' ? 'application/json' : undefined,
+          responseSchema:
+            responseFormat?.type === 'json' &&
+            responseFormat.schema != null &&
+            // Google GenAI does not support all OpenAPI Schema features,
+            // so this is needed as an escape hatch:
+            this.supportsStructuredOutputs
+              ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
+              : undefined,
+          ...(this.settings.audioTimestamp && {
+            audioTimestamp: this.settings.audioTimestamp,
+          }),
+
+          // provider options:
+          responseModalities: googleOptions?.responseModalities,
+        },
         contents,
         systemInstruction,
         safetySettings: this.settings.safetySettings,

@@ -175,20 +175,18 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const baseArgs: BedrockConverseInput = {
-      system,
-      additionalModelRequestFields: this.settings.additionalModelRequestFields,
-      ...(Object.keys(inferenceConfig).length > 0 && {
-        inferenceConfig,
-      }),
-      messages,
-      ...providerOptions?.bedrock,
-    };
-
     const { toolConfig, toolWarnings } = prepareTools({ tools, toolChoice });
+
     return {
       command: {
-        ...baseArgs,
+        system,
+        messages,
+        additionalModelRequestFields:
+          this.settings.additionalModelRequestFields,
+        ...(Object.keys(inferenceConfig).length > 0 && {
+          inferenceConfig,
+        }),
+        ...providerOptions?.bedrock,
         ...(toolConfig.tools?.length ? { toolConfig } : {}),
       },
       warnings: [...warnings, ...toolWarnings],

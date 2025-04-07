@@ -109,49 +109,44 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       }),
     });
 
-    const baseArgs = {
-      // model id:
-      model: this.modelId,
-
-      // model specific settings:
-      user: this.settings.user,
-      parallel_tool_calls: this.settings.parallelToolCalls,
-
-      // standardized settings:
-      max_tokens: maxTokens,
-      temperature,
-      top_p: topP,
-      frequency_penalty: frequencyPenalty,
-      presence_penalty: presencePenalty,
-      stop: stopSequences,
-      seed,
-
-      // response format:
-      response_format:
-        // json object response format is not supported for streaming:
-        stream === false && responseFormat?.type === 'json'
-          ? { type: 'json_object' }
-          : undefined,
-
-      // provider options:
-      reasoning_format: groqOptions?.reasoningFormat,
-
-      // messages:
-      messages: convertToGroqChatMessages(prompt),
-    };
-
     const {
       tools: groqTools,
       toolChoice: groqToolChoice,
       toolWarnings,
-    } = prepareTools({
-      tools,
-      toolChoice,
-    });
+    } = prepareTools({ tools, toolChoice });
 
     return {
       args: {
-        ...baseArgs,
+        // model id:
+        model: this.modelId,
+
+        // model specific settings:
+        user: this.settings.user,
+        parallel_tool_calls: this.settings.parallelToolCalls,
+
+        // standardized settings:
+        max_tokens: maxTokens,
+        temperature,
+        top_p: topP,
+        frequency_penalty: frequencyPenalty,
+        presence_penalty: presencePenalty,
+        stop: stopSequences,
+        seed,
+
+        // response format:
+        response_format:
+          // json object response format is not supported for streaming:
+          stream === false && responseFormat?.type === 'json'
+            ? { type: 'json_object' }
+            : undefined,
+
+        // provider options:
+        reasoning_format: groqOptions?.reasoningFormat,
+
+        // messages:
+        messages: convertToGroqChatMessages(prompt),
+
+        // tools:
         tools: groqTools,
         tool_choice: groqToolChoice,
       },

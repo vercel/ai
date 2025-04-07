@@ -68,42 +68,37 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const chatPrompt = convertToCohereChatPrompt(prompt);
 
-    const baseArgs = {
-      // model id:
-      model: this.modelId,
-
-      // standardized settings:
-      frequency_penalty: frequencyPenalty,
-      presence_penalty: presencePenalty,
-      max_tokens: maxTokens,
-      temperature,
-      p: topP,
-      k: topK,
-      seed,
-      stop_sequences: stopSequences,
-
-      // response format:
-      response_format:
-        responseFormat?.type === 'json'
-          ? { type: 'json_object', json_schema: responseFormat.schema }
-          : undefined,
-
-      // messages:
-      messages: chatPrompt,
-    };
-
     const {
       tools: cohereTools,
       toolChoice: cohereToolChoice,
       toolWarnings,
-    } = prepareTools({
-      tools,
-      toolChoice,
-    });
+    } = prepareTools({ tools, toolChoice });
 
     return {
       args: {
-        ...baseArgs,
+        // model id:
+        model: this.modelId,
+
+        // standardized settings:
+        frequency_penalty: frequencyPenalty,
+        presence_penalty: presencePenalty,
+        max_tokens: maxTokens,
+        temperature,
+        p: topP,
+        k: topK,
+        seed,
+        stop_sequences: stopSequences,
+
+        // response format:
+        response_format:
+          responseFormat?.type === 'json'
+            ? { type: 'json_object', json_schema: responseFormat.schema }
+            : undefined,
+
+        // messages:
+        messages: chatPrompt,
+
+        // tools:
         tools: cohereTools,
         tool_choice: cohereToolChoice,
       },
