@@ -66,7 +66,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   }
 
   private async getArgs({
-    mode,
     prompt,
     maxTokens = 4096, // 4096: max model output tokens TODO update default in v5
     temperature,
@@ -77,10 +76,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
+    tools,
+    toolChoice,
     providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const type = mode.type;
-
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (frequencyPenalty != null) {
@@ -187,47 +186,22 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       baseArgs.max_tokens = maxTokens + thinkingBudget;
     }
 
-    switch (type) {
-      case 'regular': {
-        const {
-          tools,
-          tool_choice,
-          toolWarnings,
-          betas: toolsBetas,
-        } = prepareTools(mode);
+    const {
+      tools: anthropicTools,
+      toolChoice: anthropicToolChoice,
+      toolWarnings,
+      betas: toolsBetas,
+    } = prepareTools({ tools, toolChoice });
 
-        return {
-          args: { ...baseArgs, tools, tool_choice },
-          warnings: [...warnings, ...toolWarnings],
-          betas: new Set([...messagesBetas, ...toolsBetas]),
-        };
-      }
-
-      case 'object-json': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'json-mode object generation',
-        });
-      }
-
-      case 'object-tool': {
-        const { name, description, parameters } = mode.tool;
-
-        return {
-          args: {
-            ...baseArgs,
-            tools: [{ name, description, input_schema: parameters }],
-            tool_choice: { type: 'tool', name },
-          },
-          warnings,
-          betas: messagesBetas,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
+    return {
+      args: {
+        ...baseArgs,
+        tools: anthropicTools,
+        tool_choice: anthropicToolChoice,
+      },
+      warnings: [...warnings, ...toolWarnings],
+      betas: new Set([...messagesBetas, ...toolsBetas]),
+    };
   }
 
   private async getHeaders({

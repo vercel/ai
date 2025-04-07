@@ -39,7 +39,7 @@ it('should correctly prepare function tools', () => {
       input_schema: { type: 'object', properties: {} },
     },
   ]);
-  expect(result.tool_choice).toBeUndefined();
+  expect(result.toolChoice).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
 
@@ -84,7 +84,7 @@ it('should correctly prepare provider-defined tools', () => {
       type: 'bash_20241022',
     },
   ]);
-  expect(result.tool_choice).toBeUndefined();
+  expect(result.toolChoice).toBeUndefined();
   expect(result.toolWarnings).toEqual([]);
 });
 
@@ -101,7 +101,7 @@ it('should add warnings for unsupported tools', () => {
     ],
   });
   expect(result.tools).toEqual([]);
-  expect(result.tool_choice).toBeUndefined();
+  expect(result.toolChoice).toBeUndefined();
   expect(result.toolWarnings).toEqual([
     {
       type: 'unsupported-tool',
@@ -128,7 +128,7 @@ it('should handle tool choice "auto"', () => {
     ],
     toolChoice: { type: 'auto' },
   });
-  expect(result.tool_choice).toEqual({ type: 'auto' });
+  expect(result.toolChoice).toEqual({ type: 'auto' });
 });
 
 it('should handle tool choice "required"', () => {
@@ -144,7 +144,7 @@ it('should handle tool choice "required"', () => {
     ],
     toolChoice: { type: 'required' },
   });
-  expect(result.tool_choice).toEqual({ type: 'any' });
+  expect(result.toolChoice).toEqual({ type: 'any' });
 });
 
 it('should handle tool choice "none"', () => {
@@ -161,7 +161,7 @@ it('should handle tool choice "none"', () => {
     toolChoice: { type: 'none' },
   });
   expect(result.tools).toBeUndefined();
-  expect(result.tool_choice).toBeUndefined();
+  expect(result.toolChoice).toBeUndefined();
 });
 
 it('should handle tool choice "tool"', () => {
@@ -177,5 +177,5 @@ it('should handle tool choice "tool"', () => {
     ],
     toolChoice: { type: 'tool', toolName: 'testFunction' },
   });
-  expect(result.tool_choice).toEqual({ type: 'tool', name: 'testFunction' });
+  expect(result.toolChoice).toEqual({ type: 'tool', name: 'testFunction' });
 });

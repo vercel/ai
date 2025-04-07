@@ -1,28 +1,30 @@
 import {
-  LanguageModelV2,
+  LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { AnthropicTool, AnthropicToolChoice } from './anthropic-api-types';
 
-export function prepareTools(
-  mode: Parameters<LanguageModelV2['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-): {
+export function prepareTools({
+  tools,
+  toolChoice,
+}: {
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice: LanguageModelV2CallOptions['toolChoice'];
+}): {
   tools: Array<AnthropicTool> | undefined;
-  tool_choice: AnthropicToolChoice | undefined;
+  toolChoice: AnthropicToolChoice | undefined;
   toolWarnings: LanguageModelV2CallWarning[];
   betas: Set<string>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
+  tools = tools?.length ? tools : undefined;
 
   const toolWarnings: LanguageModelV2CallWarning[] = [];
   const betas = new Set<string>();
 
   if (tools == null) {
-    return { tools: undefined, tool_choice: undefined, toolWarnings, betas };
+    return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
   }
 
   const anthropicTools: AnthropicTool[] = [];
@@ -97,12 +99,10 @@ export function prepareTools(
     }
   }
 
-  const toolChoice = mode.toolChoice;
-
   if (toolChoice == null) {
     return {
       tools: anthropicTools,
-      tool_choice: undefined,
+      toolChoice: undefined,
       toolWarnings,
       betas,
     };
@@ -114,24 +114,24 @@ export function prepareTools(
     case 'auto':
       return {
         tools: anthropicTools,
-        tool_choice: { type: 'auto' },
+        toolChoice: { type: 'auto' },
         toolWarnings,
         betas,
       };
     case 'required':
       return {
         tools: anthropicTools,
-        tool_choice: { type: 'any' },
+        toolChoice: { type: 'any' },
         toolWarnings,
         betas,
       };
     case 'none':
       // Anthropic does not support 'none' tool choice, so we remove the tools:
-      return { tools: undefined, tool_choice: undefined, toolWarnings, betas };
+      return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
     case 'tool':
       return {
         tools: anthropicTools,
-        tool_choice: { type: 'tool', name: toolChoice.toolName },
+        toolChoice: { type: 'tool', name: toolChoice.toolName },
         toolWarnings,
         betas,
       };
