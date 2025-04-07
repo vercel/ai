@@ -88,9 +88,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
     const googleOptions = parseProviderOptions({
       provider: 'google',
       providerOptions: providerMetadata,
-      schema: z.object({
-        responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).nullish(),
-      }),
+      schema: googleGenerativeAIProviderOptionsSchema,
     });
 
     const generationConfig = {
@@ -623,3 +621,10 @@ const chunkSchema = z.object({
     })
     .nullish(),
 });
+
+const googleGenerativeAIProviderOptionsSchema = z.object({
+  responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).nullish(),
+});
+export type GoogleGenerativeAIProviderOptions = z.infer<
+  typeof googleGenerativeAIProviderOptionsSchema
+>;

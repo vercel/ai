@@ -2,6 +2,8 @@ import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
 
 // https://deepinfra.com/models/text-generation
 export type DeepInfraChatModelId =
+  | 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'
+  | 'meta-llama/Llama-4-Scout-17B-16E-Instruct'
   | 'meta-llama/Llama-3.3-70B-Instruct'
   | 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
   | 'meta-llama/Meta-Llama-3.1-70B-Instruct'

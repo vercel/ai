@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/mistral",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -19,7 +19,8 @@
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run"
+    "test:node": "vitest --config vitest.node.config.js --run",
+    "test:node:watch": "vitest --config vitest.node.config.js"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -31,7 +32,7 @@
   },
   "dependencies": {
     "@ai-sdk/provider": "1.1.0",
-    "@ai-sdk/provider-utils": "2.2.3"
+    "@ai-sdk/provider-utils": "2.2.4"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

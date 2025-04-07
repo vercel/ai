@@ -100,6 +100,7 @@ export function createVertexAnthropic(
         baseURL,
         headers: options.headers ?? {},
         fetch: options.fetch,
+        supportsImageUrls: false,
         buildRequestUrl: (baseURL, isStreaming) =>
           `${baseURL}/${modelId}:${
             isStreaming ? 'streamRawPredict' : 'rawPredict'

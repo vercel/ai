@@ -1,5 +1,26 @@
 # @ai-sdk/deepinfra
 
+## 0.2.7
+
+### Patch Changes
+
+- 264b1e0: feat (providers/deepinfra): add llama 4 models
+
+## 0.2.6
+
+### Patch Changes
+
+- Updated dependencies [2c19b9a]
+  - @ai-sdk/provider-utils@2.2.4
+  - @ai-sdk/openai-compatible@0.2.6
+
+## 0.2.5
+
+### Patch Changes
+
+- Updated dependencies [d186cca]
+  - @ai-sdk/openai-compatible@0.2.5
+
 ## 0.2.4
 
 ### Patch Changes

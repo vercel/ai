@@ -229,7 +229,11 @@ const result = await generateText({
 
 for (const file of result.files) {
   if (file.mimeType.startsWith('image/')) {
-    // show the image
+    // The file object provides multiple data formats:
+    // Access images as base64 string, Uint8Array binary data, or check type
+    // - file.base64: string (data URL format)
+    // - file.uint8Array: Uint8Array (binary data)
+    // - file.mimeType: string (e.g. "image/png")
   }
 }
 ```
