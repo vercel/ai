@@ -29,7 +29,7 @@ as body parameters.
 export async function transcribe({
   model,
   audio,
-  providerOptions,
+  providerOptions = {},
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -89,7 +89,7 @@ Only applicable for HTTP-based providers.
       audio: audioData,
       abortSignal,
       headers,
-      providerOptions: providerOptions ?? {},
+      providerOptions,
       mimeType:
         detectMimeType({
           data: audioData,
