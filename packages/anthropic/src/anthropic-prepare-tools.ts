@@ -10,7 +10,7 @@ export function prepareTools({
   toolChoice,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
-  toolChoice: LanguageModelV2CallOptions['toolChoice'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
 }): {
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;

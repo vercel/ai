@@ -1,7 +1,7 @@
 import { prepareTools } from './anthropic-prepare-tools';
 
 it('should return undefined tools and tool_choice when tools are null', () => {
-  const result = prepareTools({ type: 'regular', tools: undefined });
+  const result = prepareTools({ tools: undefined });
   expect(result).toEqual({
     tools: undefined,
     tool_choice: undefined,
@@ -11,7 +11,7 @@ it('should return undefined tools and tool_choice when tools are null', () => {
 });
 
 it('should return undefined tools and tool_choice when tools are empty', () => {
-  const result = prepareTools({ type: 'regular', tools: [] });
+  const result = prepareTools({ tools: [] });
   expect(result).toEqual({
     tools: undefined,
     tool_choice: undefined,
@@ -22,7 +22,6 @@ it('should return undefined tools and tool_choice when tools are empty', () => {
 
 it('should correctly prepare function tools', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'function',
@@ -45,7 +44,6 @@ it('should correctly prepare function tools', () => {
 
 it('should correctly prepare provider-defined tools', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'provider-defined',
@@ -90,7 +88,6 @@ it('should correctly prepare provider-defined tools', () => {
 
 it('should add warnings for unsupported tools', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'provider-defined',
@@ -117,7 +114,6 @@ it('should add warnings for unsupported tools', () => {
 
 it('should handle tool choice "auto"', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'function',
@@ -133,7 +129,6 @@ it('should handle tool choice "auto"', () => {
 
 it('should handle tool choice "required"', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'function',
@@ -149,7 +144,6 @@ it('should handle tool choice "required"', () => {
 
 it('should handle tool choice "none"', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'function',
@@ -166,7 +160,6 @@ it('should handle tool choice "none"', () => {
 
 it('should handle tool choice "tool"', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'function',
