@@ -1,8 +1,13 @@
-import { TranscriptionModelV1 } from '@ai-sdk/provider';
+import {
+  TranscriptionModelV1,
+  TranscriptionModelV1CallOptions,
+  TranscriptionModelV1CallWarning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -12,22 +17,6 @@ import {
   OpenAITranscriptionModelId,
   OpenAITranscriptionModelOptions,
 } from './openai-transcription-settings';
-import { TranscriptionModelV1CallOptions } from '@ai-sdk/provider';
-
-export type OpenAITranscriptionCallOptions = Omit<
-  TranscriptionModelV1CallOptions,
-  'providerOptions'
-> & {
-  providerOptions?: {
-    openai?: OpenAIProviderOptions;
-  };
-};
-
-interface OpenAITranscriptionModelConfig extends OpenAIConfig {
-  _internal?: {
-    currentDate?: () => Date;
-  };
-}
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
 const OpenAIProviderOptionsSchema = z.object({
@@ -68,7 +57,20 @@ const OpenAIProviderOptionsSchema = z.object({
     ),
 });
 
-export type OpenAIProviderOptions = z.infer<typeof OpenAIProviderOptionsSchema>;
+export type OpenAITranscriptionCallOptions = Omit<
+  TranscriptionModelV1CallOptions,
+  'providerOptions'
+> & {
+  providerOptions?: {
+    openai?: z.infer<typeof OpenAIProviderOptionsSchema>;
+  };
+};
+
+interface OpenAITranscriptionModelConfig extends OpenAIConfig {
+  _internal?: {
+    currentDate?: () => Date;
+  };
+}
 
 // https://platform.openai.com/docs/guides/speech-to-text#supported-languages
 const languageMap = {
@@ -143,16 +145,21 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     private readonly config: OpenAITranscriptionModelConfig,
   ) {}
 
-  async doGenerate({
+  private getArgs({
     audio,
     mimeType,
     providerOptions,
-    headers,
-    abortSignal,
-  }: OpenAITranscriptionCallOptions): Promise<
-    Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>
-  > {
-    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+  }: OpenAITranscriptionCallOptions) {
+    const warnings: TranscriptionModelV1CallWarning[] = [];
+
+    // Parse provider options
+    const openAIOptions = parseProviderOptions({
+      provider: 'openai',
+      providerOptions,
+      schema: OpenAIProviderOptionsSchema,
+    });
+
+    // Create form data with base fields
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
@@ -162,39 +169,52 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     formData.append('model', this.modelId);
     formData.append('file', new File([blob], 'audio', { type: mimeType }));
 
-    // Add any additional provider options
-    if (providerOptions?.openai) {
+    // Add provider-specific options
+    if (openAIOptions) {
       const transcriptionModelOptions: OpenAITranscriptionModelOptions = {
-        include: providerOptions.openai.include,
-        language: providerOptions.openai.language,
-        prompt: providerOptions.openai.prompt,
-        response_format: providerOptions.openai.responseFormat,
-        temperature: providerOptions.openai.temperature,
-        timestamp_granularities: providerOptions.openai.timestampGranularities,
+        include: openAIOptions.include,
+        language: openAIOptions.language,
+        prompt: openAIOptions.prompt,
+        response_format: openAIOptions.responseFormat,
+        temperature: openAIOptions.temperature,
+        timestamp_granularities: openAIOptions.timestampGranularities,
       };
 
       for (const key in transcriptionModelOptions) {
-        formData.append(
-          key,
+        const value =
           transcriptionModelOptions[
             key as keyof OpenAITranscriptionModelOptions
-          ] as string,
-        );
+          ];
+        if (value !== undefined) {
+          formData.append(key, value as string);
+        }
       }
     }
+
+    return {
+      formData,
+      warnings,
+    };
+  }
+
+  async doGenerate(
+    options: OpenAITranscriptionCallOptions,
+  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { formData, warnings } = this.getArgs(options);
 
     const { value: response, responseHeaders } = await postFormDataToApi({
       url: this.config.url({
         path: '/audio/transcriptions',
         modelId: this.modelId,
       }),
-      headers: combineHeaders(this.config.headers(), headers),
+      headers: combineHeaders(this.config.headers(), options.headers),
       formData,
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         openaiTranscriptionResponseSchema,
       ),
-      abortSignal,
+      abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
 
@@ -213,7 +233,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
       })),
       language,
       durationInSeconds: response.duration,
-      warnings: [],
+      warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
