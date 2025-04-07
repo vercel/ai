@@ -275,6 +275,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       function_call,
       toolWarnings,
     } = prepareTools({
+      tools,
+      toolChoice,
       useLegacyFunctionCalling,
       structuredOutputs: this.supportsStructuredOutputs,
     });

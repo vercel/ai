@@ -465,25 +465,22 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
         },
+      ],
+      toolChoice: {
+        type: 'tool',
+        toolName: 'test-tool',
       },
       prompt: TEST_PROMPT,
     });
@@ -559,25 +556,22 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
         },
+      ],
+      toolChoice: {
+        type: 'tool',
+        toolName: 'test-tool',
       },
       prompt: TEST_PROMPT,
     });
@@ -609,25 +603,22 @@ describe('doGenerate', () => {
 
       result = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: {
-          type: 'regular',
-          tools: [
-            {
-              type: 'function',
-              name: 'test-tool',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
-          ],
-          toolChoice: {
-            type: 'tool',
-            toolName: 'test-tool',
           },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
         },
         prompt: TEST_PROMPT,
       });
@@ -783,7 +774,7 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
-    it('should use json_schema & strict in object-json mode when structuredOutputs are enabled', async () => {
+    it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06', {
@@ -792,8 +783,8 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: {
-          type: 'object-json',
+        responseFormat: {
+          type: 'json',
           schema: {
             type: 'object',
             properties: { value: { type: 'string' } },
@@ -825,7 +816,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should set name & description in object-json mode when structuredOutputs are enabled', async () => {
+    it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06', {
@@ -834,8 +825,8 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: {
-          type: 'object-json',
+        responseFormat: {
+          type: 'json',
           name: 'test-name',
           description: 'test description',
           schema: {
@@ -870,7 +861,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should allow for undefined schema in object-json mode when structuredOutputs are enabled', async () => {
+    it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
       const model = provider.chat('gpt-4o-2024-08-06', {
@@ -879,8 +870,8 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: {
-          type: 'object-json',
+        responseFormat: {
+          type: 'json',
           name: 'test-name',
           description: 'test description',
         },
@@ -896,7 +887,7 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should set strict in object-tool mode when structuredOutputs are enabled', async () => {
+    it('should set strict with tool calls when structuredOutputs are enabled', async () => {
       prepareJsonResponse({
         tool_calls: [
           {
@@ -916,9 +907,8 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: {
-          type: 'object-tool',
-          tool: {
+        tools: [
+          {
             type: 'function',
             name: 'test-tool',
             description: 'test description',
@@ -930,7 +920,8 @@ describe('doGenerate', () => {
               $schema: 'http://json-schema.org/draft-07/schema#',
             },
           },
-        },
+        ],
+        toolChoice: { type: 'required' },
         prompt: TEST_PROMPT,
       });
 
@@ -988,25 +979,22 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-        toolChoice: {
-          type: 'tool',
-          toolName: 'test-tool',
         },
+      ],
+      toolChoice: {
+        type: 'tool',
+        toolName: 'test-tool',
       },
       prompt: TEST_PROMPT,
     });
@@ -1472,22 +1460,19 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
     });
 
@@ -1603,22 +1588,19 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
     });
 
@@ -1747,22 +1729,19 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'searchGoogle',
-            parameters: {
-              type: 'object',
-              properties: { query: { type: 'string' } },
-              required: ['query'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'searchGoogle',
+          parameters: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
     });
 
@@ -1847,22 +1826,19 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
     });
 
@@ -1920,22 +1896,19 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
     });
 
@@ -2464,22 +2437,19 @@ describe('doStream simulated streaming', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-      },
+        },
+      ],
       prompt: TEST_PROMPT,
     });
 
