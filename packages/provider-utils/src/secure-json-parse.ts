@@ -25,11 +25,6 @@ const suspectProtoRx = /"__proto__"\s*:/;
 const suspectConstructorRx = /"constructor"\s*:/;
 
 function _parse(text: string) {
-  // utf8 BOM checker (https://github.com/fastify/secure-json-parse/pull/5)
-  if (text && text.charCodeAt(0) === 0xfeff) {
-    text = text.slice(1);
-  }
-
   // Parse normally
   const obj = JSON.parse(text);
 
