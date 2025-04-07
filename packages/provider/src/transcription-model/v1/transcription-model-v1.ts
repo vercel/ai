@@ -71,6 +71,17 @@ Warnings for the call, e.g. unsupported settings.
     warnings: Array<TranscriptionModelV1CallWarning>;
 
     /**
+Optional request information for telemetry and debugging purposes.
+     */
+    request?: {
+      /**
+Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
+Non-HTTP(s) providers should not set this.
+       */
+      body?: string;
+    };
+
+    /**
 Response information for telemetry and debugging purposes.
      */
     response: {
@@ -91,8 +102,10 @@ Response headers.
     };
 
     /**
-Provider metadata for telemetry and debugging purposes.
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
      */
-    providerMetadata: Record<string, Record<string, JSONValue>>;
+    providerMetadata?: Record<string, Record<string, JSONValue>>;
   }>;
 };
