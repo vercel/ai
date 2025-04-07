@@ -75,6 +75,7 @@ function filter(obj: any) {
 }
 
 export function secureJsonParse(text: string) {
+  // Performance optimization, see https://github.com/fastify/secure-json-parse/pull/90
   const { stackTraceLimit } = Error;
   Error.stackTraceLimit = 0;
   try {
