@@ -137,7 +137,7 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     durationInSeconds: number | undefined;
     warnings: Array<TranscriptionWarning>;
     responses: Array<TranscriptionModelResponseMetadata>;
-    providerMetadata: Record<string, Record<string, JSONValue>>;
+    providerMetadata: Record<string, Record<string, JSONValue>> | undefined;
   }) {
     this.text = options.text;
     this.segments = options.segments;
@@ -145,6 +145,6 @@ class DefaultTranscriptionResult implements TranscriptionResult {
     this.durationInSeconds = options.durationInSeconds;
     this.warnings = options.warnings;
     this.responses = options.responses;
-    this.providerMetadata = options.providerMetadata;
+    this.providerMetadata = options.providerMetadata ?? {};
   }
 }
