@@ -7,7 +7,7 @@ describe('getEnvironment', () => {
 
     const result = getEnvironment(customEnv);
 
-    expect(customEnv).toEqual({ CUSTOM_VAR: 'custom_value' });
+    expect(customEnv).toStrictEqual({ CUSTOM_VAR: 'custom_value' });
     expect(result).not.toBe(customEnv);
   });
 });
