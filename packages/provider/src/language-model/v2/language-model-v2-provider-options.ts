@@ -1,8 +1,8 @@
 import { JSONValue } from '../../json-value/json-value';
 
 /**
- * Additional provider-specific metadata.
- * Metadata are additional outputs from the provider.
+ * Additional provider-specific options.
+ * Options are additional input to the provider.
  * They are passed through to the provider from the AI SDK
  * and enable provider-specific functionality
  * that can be fully encapsulated in the provider.
@@ -21,7 +21,7 @@ import { JSONValue } from '../../json-value/json-value';
  * }
  * ```
  */
-export type LanguageModelV2ProviderMetadata = Record<
+export type LanguageModelV2ProviderOptions = Record<
   string,
   Record<string, JSONValue>
 >;
