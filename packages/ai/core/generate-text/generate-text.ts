@@ -354,7 +354,7 @@ A function that attempts to repair a tool call that failed to parse.
                 inputFormat: promptFormat,
                 responseFormat: output?.responseFormat({ model }),
                 prompt: promptMessages,
-                providerMetadata: providerOptions,
+                providerOptions,
                 abortSignal,
                 headers,
               });

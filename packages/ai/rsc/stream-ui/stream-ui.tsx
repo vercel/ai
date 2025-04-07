@@ -281,7 +281,7 @@ functionality that can be fully encapsulated in the provider.
         modelSupportsImageUrls: model.supportsImageUrls,
         modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
       }),
-      providerMetadata: providerOptions,
+      providerOptions,
       abortSignal,
       headers,
     }),

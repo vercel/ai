@@ -539,7 +539,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   ...prepareCallSettings(settings),
                   inputFormat: standardizedPrompt.type,
                   prompt: promptMessages,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                   abortSignal,
                   headers,
                 });
@@ -664,7 +664,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   ...prepareCallSettings(settings),
                   inputFormat,
                   prompt: promptMessages,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                   abortSignal,
                   headers,
                 });

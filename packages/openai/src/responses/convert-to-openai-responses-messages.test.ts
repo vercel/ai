@@ -149,7 +149,7 @@ describe('convertToOpenAIResponsesMessages', () => {
                 type: 'image',
                 image: new Uint8Array([0, 1, 2, 3]),
                 mimeType: 'image/png',
-                providerMetadata: {
+                providerOptions: {
                   openai: {
                     imageDetail: 'low',
                   },
