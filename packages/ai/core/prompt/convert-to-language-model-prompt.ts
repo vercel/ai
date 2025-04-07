@@ -273,7 +273,7 @@ function convertPartToLanguageModelPart(
 
   let mimeType: string | undefined = part.mimeType;
   let data: DataContent | URL;
-  let content: URL | ArrayBuffer | string;
+  let content: DataContent | URL | string;
   let normalizedData: Uint8Array | URL;
 
   const type = part.type;

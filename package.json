@@ -37,7 +37,7 @@
     "react": "19.0.0-rc-cc1ec60d0d-20240607",
     "react-dom": "19.0.0-rc-cc1ec60d0d-20240607",
     "turbo": "2.4.4",
-    "typescript": "5.6.3",
+    "typescript": "5.8.3",
     "vitest": "2.1.4"
   },
   "engines": {
