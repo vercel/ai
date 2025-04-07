@@ -2,7 +2,6 @@ import { prepareTools } from './cohere-prepare-tools';
 
 it('should return undefined tools when no tools are provided', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [],
   });
 
@@ -22,7 +21,6 @@ it('should process function tools correctly', () => {
   };
 
   const result = prepareTools({
-    type: 'regular',
     tools: [functionTool],
   });
 
@@ -44,7 +42,6 @@ it('should process function tools correctly', () => {
 
 it('should add warnings for provider-defined tools', () => {
   const result = prepareTools({
-    type: 'regular',
     tools: [
       {
         type: 'provider-defined' as const,
@@ -82,7 +79,6 @@ describe('tool choice handling', () => {
 
   it('should handle auto tool choice', () => {
     const result = prepareTools({
-      type: 'regular',
       tools: [basicTool],
       toolChoice: { type: 'auto' },
     });
@@ -92,7 +88,6 @@ describe('tool choice handling', () => {
 
   it('should handle none tool choice', () => {
     const result = prepareTools({
-      type: 'regular',
       tools: [basicTool],
       toolChoice: { type: 'none' },
     });
@@ -115,7 +110,6 @@ describe('tool choice handling', () => {
 
   it('should handle required tool choice', () => {
     const result = prepareTools({
-      type: 'regular',
       tools: [basicTool],
       toolChoice: { type: 'required' },
     });
@@ -138,7 +132,6 @@ describe('tool choice handling', () => {
 
   it('should handle tool type tool choice by filtering tools', () => {
     const result = prepareTools({
-      type: 'regular',
       tools: [basicTool],
       toolChoice: { type: 'tool', toolName: 'testFunction' },
     });

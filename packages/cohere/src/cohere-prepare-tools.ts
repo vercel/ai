@@ -1,14 +1,17 @@
 import {
-  LanguageModelV2,
+  LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
+import { CohereToolChoice } from './cohere-chat-prompt';
 
-export function prepareTools(
-  mode: Parameters<LanguageModelV2['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-): {
+export function prepareTools({
+  tools,
+  toolChoice,
+}: {
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+}): {
   tools:
     | Array<{
         type: 'function';
@@ -19,10 +22,12 @@ export function prepareTools(
         };
       }>
     | undefined;
-  toolChoice: 'NONE' | 'REQUIRED' | undefined;
+  toolChoice: CohereToolChoice;
   toolWarnings: LanguageModelV2CallWarning[];
 } {
-  const tools = mode.tools?.length ? mode.tools : undefined;
+  // when the tools array is empty, change it to undefined to prevent errors:
+  tools = tools?.length ? tools : undefined;
+
   const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   if (tools == null) {
@@ -52,8 +57,6 @@ export function prepareTools(
       });
     }
   }
-
-  const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
     return { tools: cohereTools, toolChoice: undefined, toolWarnings };

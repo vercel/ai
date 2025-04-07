@@ -53,7 +53,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   }
 
   private getArgs({
-    mode,
     prompt,
     maxTokens,
     temperature,
@@ -64,9 +63,9 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
+    tools,
+    toolChoice,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const type = mode.type;
-
     const chatPrompt = convertToCohereChatPrompt(prompt);
 
     const baseArgs = {
@@ -93,60 +92,23 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       messages: chatPrompt,
     };
 
-    switch (type) {
-      case 'regular': {
-        const { tools, toolChoice, toolWarnings } = prepareTools(mode);
+    const {
+      tools: cohereTools,
+      toolChoice: cohereToolChoice,
+      toolWarnings,
+    } = prepareTools({
+      tools,
+      toolChoice,
+    });
 
-        return {
-          args: {
-            ...baseArgs,
-            tools,
-            tool_choice: toolChoice,
-          },
-          warnings: toolWarnings,
-        };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format:
-              mode.schema == null
-                ? { type: 'json_object' }
-                : { type: 'json_object', json_schema: mode.schema },
-          },
-          warnings: [],
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          args: {
-            ...baseArgs,
-            tools: [
-              {
-                type: 'function',
-                function: {
-                  name: mode.tool.name,
-                  description: mode.tool.description ?? '',
-                  parameters: mode.tool.parameters,
-                },
-              },
-            ],
-            tool_choice: 'REQUIRED',
-          },
-          warnings: [],
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new UnsupportedFunctionalityError({
-          functionality: `Unsupported mode: ${_exhaustiveCheck}`,
-        });
-      }
-    }
+    return {
+      args: {
+        ...baseArgs,
+        tools: cohereTools,
+        tool_choice: cohereToolChoice,
+      },
+      warnings: toolWarnings,
+    };
   }
 
   async doGenerate(
