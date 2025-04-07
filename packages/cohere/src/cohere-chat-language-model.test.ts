@@ -69,7 +69,6 @@ describe('doGenerate', () => {
 
     const { text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -179,7 +178,6 @@ describe('doGenerate', () => {
 
     const { usage } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -196,7 +194,6 @@ describe('doGenerate', () => {
 
     const { response } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -212,7 +209,6 @@ describe('doGenerate', () => {
 
     const { finishReason } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -226,7 +222,6 @@ describe('doGenerate', () => {
 
     const { rawResponse } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -245,7 +240,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -417,7 +411,6 @@ describe('doGenerate', () => {
 
     await provider('command-r-plus').doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -437,7 +430,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       responseFormat: {
         type: 'json',
@@ -475,7 +467,6 @@ describe('doGenerate', () => {
 
     const { request } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -582,7 +573,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -759,7 +749,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -784,7 +773,6 @@ describe('doStream', () => {
 
     const { rawResponse } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -804,7 +792,6 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -836,7 +823,6 @@ describe('doStream', () => {
 
     await provider('command-r-plus').doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -856,7 +842,6 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 

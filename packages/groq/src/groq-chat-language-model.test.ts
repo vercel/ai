@@ -114,7 +114,6 @@ describe('doGenerate', () => {
 
     const { text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -128,7 +127,6 @@ describe('doGenerate', () => {
 
     const { reasoning } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -143,7 +141,6 @@ describe('doGenerate', () => {
 
     const { usage } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -162,7 +159,6 @@ describe('doGenerate', () => {
 
     const { response } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -181,7 +177,6 @@ describe('doGenerate', () => {
 
     const { usage } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -199,7 +194,6 @@ describe('doGenerate', () => {
 
     const response = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -214,7 +208,6 @@ describe('doGenerate', () => {
 
     const response = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -230,7 +223,6 @@ describe('doGenerate', () => {
 
     const { rawResponse } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -249,7 +241,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -267,7 +258,6 @@ describe('doGenerate', () => {
       user: 'test-user-id',
     }).doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         groq: { reasoningFormat: 'hidden' },
@@ -348,7 +338,6 @@ describe('doGenerate', () => {
 
     await provider('gemma2-9b-it').doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -448,7 +437,6 @@ describe('doGenerate', () => {
 
     const { request } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -499,7 +487,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -546,7 +533,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1033,7 +1019,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1065,7 +1050,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1092,7 +1076,6 @@ describe('doStream', () => {
 
     const { rawResponse } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1112,7 +1095,6 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1135,7 +1117,6 @@ describe('doStream', () => {
 
     await provider('gemma2-9b-it').doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -1155,7 +1136,6 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 

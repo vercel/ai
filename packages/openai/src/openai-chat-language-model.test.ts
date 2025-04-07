@@ -227,7 +227,6 @@ describe('doGenerate', () => {
 
     const { text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -242,7 +241,6 @@ describe('doGenerate', () => {
 
     const { usage } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -257,7 +255,6 @@ describe('doGenerate', () => {
 
     const { request } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -275,7 +272,6 @@ describe('doGenerate', () => {
 
     const { response } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -294,7 +290,6 @@ describe('doGenerate', () => {
 
     const { usage } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -313,7 +308,6 @@ describe('doGenerate', () => {
       .chat('gpt-3.5-turbo', { logprobs: 1 })
       .doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
     expect(response.logprobs).toStrictEqual(
@@ -329,7 +323,6 @@ describe('doGenerate', () => {
 
     const response = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -344,7 +337,6 @@ describe('doGenerate', () => {
 
     const response = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -358,7 +350,6 @@ describe('doGenerate', () => {
 
     const { rawResponse } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -377,7 +368,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -399,7 +389,6 @@ describe('doGenerate', () => {
       })
       .doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -421,7 +410,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: { reasoningEffort: 'low' },
@@ -442,7 +430,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -460,7 +447,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: { reasoningEffort: 'low' },
@@ -541,7 +527,6 @@ describe('doGenerate', () => {
 
     await provider.chat('gpt-3.5-turbo').doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -688,7 +673,6 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: { type: 'text' },
       });
@@ -706,7 +690,6 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: { type: 'json' },
       });
@@ -727,7 +710,6 @@ describe('doGenerate', () => {
 
       const { warnings } = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -766,7 +748,6 @@ describe('doGenerate', () => {
 
       const { warnings } = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -1078,7 +1059,6 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1106,7 +1086,6 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1126,7 +1105,6 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         temperature: 0.5,
         topP: 0.7,
@@ -1170,7 +1148,6 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         maxTokens: 1000,
       });
@@ -1190,7 +1167,6 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -1217,7 +1193,6 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -1251,7 +1226,6 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1269,7 +1243,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1290,7 +1263,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1317,7 +1289,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1338,7 +1309,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1438,7 +1408,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2020,7 +1989,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2058,7 +2026,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2083,7 +2050,6 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2099,7 +2065,6 @@ describe('doStream', () => {
 
     const { rawResponse } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2119,7 +2084,6 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2145,7 +2109,6 @@ describe('doStream', () => {
 
     await provider.chat('gpt-3.5-turbo').doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -2177,7 +2140,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2218,7 +2180,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2251,7 +2212,6 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -2274,7 +2234,6 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -2307,7 +2266,6 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -2348,7 +2306,6 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -2465,7 +2422,6 @@ describe('doStream simulated streaming', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2578,7 +2534,6 @@ describe('doStream simulated streaming', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 

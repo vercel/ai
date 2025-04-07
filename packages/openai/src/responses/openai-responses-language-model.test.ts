@@ -119,7 +119,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
         });
 
         expect(result.text).toStrictEqual('answer text');
@@ -129,7 +128,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
         });
 
         expect(result.usage).toStrictEqual({
@@ -150,7 +148,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
         });
 
         expect(result.providerMetadata).toStrictEqual({
@@ -165,7 +162,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send model id, settings, and input', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -190,7 +186,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should remove unsupported settings for o1', async () => {
         const { warnings } = await createModel('o1-mini').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -227,7 +222,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should remove unsupported settings for o3', async () => {
         const { warnings } = await createModel('o3').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: [
             { role: 'system', content: 'You are a helpful assistant.' },
             { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -261,7 +255,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send response format json schema', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           responseFormat: {
             type: 'json',
@@ -305,7 +298,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send response format json object', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           responseFormat: {
             type: 'json',
@@ -330,7 +322,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send parallelToolCalls provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -353,7 +344,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send store provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -376,7 +366,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send user provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -399,7 +388,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send previous response id provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -422,7 +410,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send metadata provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -445,7 +432,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send reasoningEffort provider option', async () => {
         const { warnings } = await createModel('o3').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -470,7 +456,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should send instructions provider option', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           providerOptions: {
             openai: {
@@ -740,7 +725,6 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should warn about unsupported settings', async () => {
         const { warnings } = await createModel('gpt-4o').doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           stopSequences: ['\n\n'],
           topK: 0.1,
@@ -1017,7 +1001,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
         });
 
         expect(result.text).toStrictEqual(outputText);
@@ -1027,7 +1010,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
         });
 
         expect(result.sources).toStrictEqual([
@@ -1086,7 +1068,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('gpt-4o').doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1135,7 +1116,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('gpt-4o').doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1317,7 +1297,6 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('gpt-4o-mini').doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 

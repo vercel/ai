@@ -152,7 +152,6 @@ describe('doGenerate', () => {
     });
     await modelWithUser.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
     expect(await server.calls[0].requestBody).toMatchObject({
@@ -165,7 +164,6 @@ describe('doGenerate', () => {
 
     const { text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -180,7 +178,6 @@ describe('doGenerate', () => {
 
     const { text, reasoning } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -198,7 +195,6 @@ describe('doGenerate', () => {
 
     const { usage } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -217,7 +213,6 @@ describe('doGenerate', () => {
 
     const { response } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -236,7 +231,6 @@ describe('doGenerate', () => {
 
     const { usage } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -254,7 +248,6 @@ describe('doGenerate', () => {
 
     const response = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -269,7 +262,6 @@ describe('doGenerate', () => {
 
     const response = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -283,7 +275,6 @@ describe('doGenerate', () => {
 
     const { rawResponse } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -302,7 +293,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -319,7 +309,6 @@ describe('doGenerate', () => {
       user: 'test-user-id',
     }).doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -335,7 +324,6 @@ describe('doGenerate', () => {
 
     await provider('grok-beta').doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
@@ -356,7 +344,6 @@ describe('doGenerate', () => {
 
     await provider('grok-beta').doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
@@ -438,7 +425,6 @@ describe('doGenerate', () => {
 
     await provider('grok-beta').doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -519,7 +505,6 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: { type: 'text' },
       });
@@ -537,7 +522,6 @@ describe('doGenerate', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: { type: 'json' },
       });
@@ -565,7 +549,6 @@ describe('doGenerate', () => {
 
       const { warnings } = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -611,7 +594,6 @@ describe('doGenerate', () => {
 
       const { warnings } = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -861,7 +843,6 @@ describe('doGenerate', () => {
 
     const { request } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -890,7 +871,6 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -914,7 +894,6 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -939,7 +918,6 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -992,7 +970,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1040,7 +1017,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1557,7 +1533,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1589,7 +1564,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1617,7 +1591,6 @@ describe('doStream', () => {
 
     const { rawResponse } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1637,7 +1610,6 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1662,7 +1634,6 @@ describe('doStream', () => {
 
     await provider('grok-beta').doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -1682,7 +1653,6 @@ describe('doStream', () => {
 
     await provider('grok-beta').doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
@@ -1704,7 +1674,6 @@ describe('doStream', () => {
 
     await provider('grok-beta').doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
@@ -1725,7 +1694,6 @@ describe('doStream', () => {
 
     const { request } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1753,7 +1721,6 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1781,7 +1748,6 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1806,7 +1772,6 @@ describe('doStream', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1890,7 +1855,6 @@ describe('doStream simulated streaming', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1927,7 +1891,6 @@ describe('doStream simulated streaming', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2104,7 +2067,6 @@ describe('metadata extraction', () => {
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -2143,7 +2105,6 @@ describe('metadata extraction', () => {
 
     const result = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 

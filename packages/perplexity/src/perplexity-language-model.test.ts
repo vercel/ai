@@ -94,7 +94,6 @@ describe('PerplexityLanguageModel', () => {
 
       const result = await perplexityLM.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -114,7 +113,6 @@ describe('PerplexityLanguageModel', () => {
       prepareJsonResponse({ content: '' });
       await perplexityLM.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
       const requestBody = await jsonServer.calls[0].requestBody;
@@ -128,7 +126,6 @@ describe('PerplexityLanguageModel', () => {
       prepareJsonResponse({ content: '' });
       await perplexityLM.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         providerOptions: {
           perplexity: {
@@ -154,7 +151,6 @@ describe('PerplexityLanguageModel', () => {
 
       const result = await perplexityLM.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -186,7 +182,6 @@ describe('PerplexityLanguageModel', () => {
 
       const result = await perplexityLM.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -220,7 +215,6 @@ describe('PerplexityLanguageModel', () => {
 
       const result = await perplexityLM.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -253,7 +247,6 @@ describe('PerplexityLanguageModel', () => {
 
       await lmWithCustomHeaders.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         headers: { 'Custom-Request-Header': 'request-header-value' },
       });
@@ -366,7 +359,6 @@ describe('PerplexityLanguageModel', () => {
 
       const { stream } = await perplexityLM.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -416,7 +408,6 @@ describe('PerplexityLanguageModel', () => {
 
       const { stream } = await perplexityLM.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -479,7 +470,6 @@ describe('PerplexityLanguageModel', () => {
 
       await perplexityLM.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -505,7 +495,6 @@ describe('PerplexityLanguageModel', () => {
       });
       const { stream } = await perplexityLM.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -567,7 +556,6 @@ describe('PerplexityLanguageModel', () => {
 
       const { stream } = await perplexityLM.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -622,7 +610,6 @@ describe('PerplexityLanguageModel', () => {
 
       await lmWithCustomHeaders.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         headers: { 'Custom-Request-Header': 'request-header-value' },
       });
