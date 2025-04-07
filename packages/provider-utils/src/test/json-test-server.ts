@@ -32,7 +32,7 @@ export class JsonTestServer {
     );
   }
 
-  async getRequestBody() {
+  async getRequestBodyJson() {
     expect(this.request).toBeDefined();
     return JSON.parse(await this.request!.text());
   }

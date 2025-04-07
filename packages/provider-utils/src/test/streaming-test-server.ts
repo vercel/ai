@@ -48,7 +48,7 @@ export class StreamingTestServer {
     );
   }
 
-  async getRequestBody() {
+  async getRequestBodyJson() {
     expect(this.request).toBeDefined();
     return JSON.parse(await this.request!.text());
   }
