@@ -7,16 +7,17 @@ description: Learn how to transcribe audio with the AI SDK.
 
 <Note type="warning">Transcription is an experimental feature.</Note>
 
-The AI SDK provides the [`transcibe`](/docs/reference/ai-sdk-core/transcribe)
+The AI SDK provides the [`transcribe`](/docs/reference/ai-sdk-core/transcribe)
 function to transcribe audio using a transcription model.
 
 ```ts
-import { experimental_transcibe as transcibe } from 'ai';
+import { experimental_transcribe as transcribe } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { readFile } from 'fs/promises';
 
-const transcript = await transcibe({
+const transcript = await transcribe({
   model: openai.transcription('whisper-1'),
-  audio: audioData,
+  audio: await readFile('audio.mp3'),
 });
 ```
 
@@ -38,12 +39,13 @@ const duration = transcript.duration; // duration of the transcript if available
 Transcription models often have provider or model-specific settings which you can set using the `providerOptions` parameter.
 
 ```ts highlight={"9"}
-import { experimental_transcibe as transcibe } from 'ai';
+import { experimental_transcribe as transcribe } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { readFile } from 'fs/promises';
 
-const transcript = await transcibe({
+const transcript = await transcribe({
   model: openai.transcription('whisper-1'),
-  audio: audioData,
+  audio: await readFile('audio.mp3'),
   providerOptions: {
     openai: {
       timestampGranularities: ['word'],
@@ -54,33 +56,35 @@ const transcript = await transcibe({
 
 ### Abort Signals and Timeouts
 
-`transcibe` accepts an optional `abortSignal` parameter of
+`transcribe` accepts an optional `abortSignal` parameter of
 type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
 that you can use to abort the transcription process or set a timeout.
 
 ```ts highlight={"7"}
 import { openai } from '@ai-sdk/openai';
-import { experimental_transcibe as transcibe } from 'ai';
+import { experimental_transcribe as transcribe } from 'ai';
+import { readFile } from 'fs/promises';
 
-const transcript = await transcibe({
+const transcript = await transcribe({
   model: openai.transcription('whisper-1'),
-  audio: audioData,
+  audio: await readFile('audio.mp3'),
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
 });
 ```
 
 ### Custom Headers
 
-`transcibe` accepts an optional `headers` parameter of type `Record<string, string>`
+`transcribe` accepts an optional `headers` parameter of type `Record<string, string>`
 that you can use to add custom headers to the transcription request.
 
 ```ts highlight={"7"}
 import { openai } from '@ai-sdk/openai';
-import { experimental_transcibe as transcibe } from 'ai';
+import { experimental_transcribe as transcribe } from 'ai';
+import { readFile } from 'fs/promises';
 
-const transcript = await transcibe({
+const transcript = await transcribe({
   model: openai.transcription('whisper-1'),
-  audio: audioData,
+  audio: await readFile('audio.mp3'),
   headers: { 'X-Custom-Header': 'custom-value' },
 });
 ```
@@ -90,9 +94,13 @@ const transcript = await transcibe({
 Warnings (e.g. unsupported parameters) are available on the `warnings` property.
 
 ```ts
-const transcript = await transcibe({
+import { openai } from '@ai-sdk/openai';
+import { experimental_transcribe as transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const transcript = await transcribe({
   model: openai.transcription('whisper-1'),
-  audio: audioData,
+  audio: await readFile('audio.mp3'),
 });
 
 const warnings = transcript.warnings;
@@ -100,7 +108,7 @@ const warnings = transcript.warnings;
 
 ### Error Handling
 
-When `transcibe` cannot generate a valid transcript, it throws a [`AI_NoTranscriptGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-transcript-generated-error).
+When `transcribe` cannot generate a valid transcript, it throws a [`AI_NoTranscriptGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-transcript-generated-error).
 
 This error can arise for any the following reasons:
 
@@ -114,12 +122,17 @@ The error preserves the following information to help you log the issue:
 
 ```ts
 import {
-  experimental_transcibe as transcibe,
+  experimental_transcribe as transcribe,
   NoTranscriptGeneratedError,
 } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { readFile } from 'fs/promises';
 
 try {
-  await transcibe({ model, audio });
+  await transcribe({
+    model: openai.transcription('whisper-1'),
+    audio: await readFile('audio.mp3'),
+  });
 } catch (error) {
   if (NoTranscriptGeneratedError.isInstance(error)) {
     console.log('NoTranscriptGeneratedError');
