@@ -52,6 +52,22 @@ describe('createChildProcess', () => {
     childProcessWithCustomEnv.kill();
   });
 
+  it('should not mutate the original environment object', async () => {
+    const originalConfig = {
+      command: process.execPath,
+      env: { CUSTOM_VAR: 'custom_value' },
+    };
+    const originalConfigCopy = JSON.parse(JSON.stringify(originalConfig));
+
+    const childProcessWithCustomEnv = await createChildProcess(
+      originalConfig,
+      new AbortController().signal,
+    );
+
+    expect(originalConfig.env).toEqual(originalConfigCopy.env);
+    childProcessWithCustomEnv.kill();
+  });
+
   it('should spawn a child process with args', async () => {
     const childProcessWithArgs = await createChildProcess(
       { command: process.execPath, args: ['-c', 'echo', 'test'] },
