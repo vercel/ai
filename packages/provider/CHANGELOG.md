@@ -1,5 +1,12 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.1
+
+### Major Changes
+
+- c57e248: chore (provider): remove mode
+- 33f4a6a: chore (provider): rename providerMetadata inputs to providerOptions
+
 ## 2.0.0-canary.0
 
 ### Major Changes
