@@ -8,10 +8,16 @@ import {
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
-import { OpenAITranscriptionModelId, OpenAITranscriptionModelOptions } from './openai-transcription-settings';
+import {
+  OpenAITranscriptionModelId,
+  OpenAITranscriptionModelOptions,
+} from './openai-transcription-settings';
 import { TranscriptionModelV1CallOptions } from '@ai-sdk/provider';
 
-export type OpenAITranscriptionCallOptions = Omit<TranscriptionModelV1CallOptions, 'providerOptions'> & {
+export type OpenAITranscriptionCallOptions = Omit<
+  TranscriptionModelV1CallOptions,
+  'providerOptions'
+> & {
   providerOptions?: {
     openai?: OpenAIProviderOptions;
   };
@@ -25,17 +31,44 @@ interface OpenAITranscriptionModelConfig extends OpenAIConfig {
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
 const OpenAIProviderOptionsSchema = z.object({
-  include: z.array(z.string()).optional().describe('Additional information to include in the transcription response.'),
-  language: z.string().optional().describe('The language of the input audio in ISO-639-1 format.'),
-  prompt: z.string().optional().describe('An optional text to guide the model\'s style or continue a previous audio segment.'),
-  responseFormat: z.enum(['json', 'text', 'srt', 'verbose_json', 'vtt']).optional().default('json').describe('The format of the output.'),
-  temperature: z.number().min(0).max(1).optional().default(0).describe('The sampling temperature, between 0 and 1.'),
-  timestampGranularities: z.array(z.enum(['word', 'segment'])).optional().default(['segment']).describe('The timestamp granularities to populate for this transcription.')
+  include: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Additional information to include in the transcription response.',
+    ),
+  language: z
+    .string()
+    .optional()
+    .describe('The language of the input audio in ISO-639-1 format.'),
+  prompt: z
+    .string()
+    .optional()
+    .describe(
+      "An optional text to guide the model's style or continue a previous audio segment.",
+    ),
+  responseFormat: z
+    .enum(['json', 'text', 'srt', 'verbose_json', 'vtt'])
+    .optional()
+    .default('json')
+    .describe('The format of the output.'),
+  temperature: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .default(0)
+    .describe('The sampling temperature, between 0 and 1.'),
+  timestampGranularities: z
+    .array(z.enum(['word', 'segment']))
+    .optional()
+    .default(['segment'])
+    .describe(
+      'The timestamp granularities to populate for this transcription.',
+    ),
 });
 
-export type OpenAIProviderOptions = z.infer<
-  typeof OpenAIProviderOptionsSchema
->;
+export type OpenAIProviderOptions = z.infer<typeof OpenAIProviderOptionsSchema>;
 
 // https://platform.openai.com/docs/guides/speech-to-text#supported-languages
 const languageMap = {
@@ -129,7 +162,6 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     formData.append('model', this.modelId);
     formData.append('file', new File([blob], 'audio', { type: mimeType }));
 
-  
     // Add any additional provider options
     if (providerOptions?.openai) {
       const transcriptionModelOptions: OpenAITranscriptionModelOptions = {
@@ -142,7 +174,12 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
       };
 
       for (const key in transcriptionModelOptions) {
-        formData.append(key, transcriptionModelOptions[key as keyof OpenAITranscriptionModelOptions] as string);
+        formData.append(
+          key,
+          transcriptionModelOptions[
+            key as keyof OpenAITranscriptionModelOptions
+          ] as string,
+        );
       }
     }
 
