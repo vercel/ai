@@ -2620,7 +2620,7 @@ describe('streamText', () => {
                     {
                       role: 'user',
                       content: [{ type: 'text', text: 'test-input' }],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                     {
                       role: 'assistant',
@@ -2628,10 +2628,10 @@ describe('streamText', () => {
                         {
                           type: 'text',
                           text: 'part 1 \n ',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                       ],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -2677,7 +2677,7 @@ describe('streamText', () => {
                     {
                       role: 'user',
                       content: [{ type: 'text', text: 'test-input' }],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                     {
                       role: 'assistant',
@@ -2685,15 +2685,15 @@ describe('streamText', () => {
                         {
                           type: 'text',
                           text: 'part 1 \n ',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                         {
                           type: 'text',
                           text: 'no-whitespace',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                       ],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -2749,7 +2749,7 @@ describe('streamText', () => {
                     {
                       role: 'user',
                       content: [{ type: 'text', text: 'test-input' }],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                     {
                       role: 'assistant',
@@ -2757,20 +2757,20 @@ describe('streamText', () => {
                         {
                           type: 'text',
                           text: 'part 1 \n ',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                         {
                           type: 'text',
                           text: 'no-whitespace',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                         {
                           type: 'text',
                           text: 'immediatefollow  ',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                       ],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ]);
 

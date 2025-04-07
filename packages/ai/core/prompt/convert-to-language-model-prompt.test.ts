@@ -527,8 +527,8 @@ describe('convertToLanguageModelPrompt', () => {
       });
     });
 
-    describe('provider metadata', async () => {
-      it('should add provider metadata to messages', async () => {
+    describe('provider options', async () => {
+      it('should add provider options to messages', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
@@ -564,7 +564,7 @@ describe('convertToLanguageModelPrompt', () => {
                 providerMetadata: undefined,
               },
             ],
-            providerMetadata: {
+            providerOptions: {
               'test-provider': {
                 'key-a': 'test-value-1',
                 'key-b': 'test-value-2',
@@ -782,7 +782,7 @@ describe('convertToLanguageModelMessage', () => {
     });
 
     describe('reasoning parts', () => {
-      it('should pass through provider metadata', () => {
+      it('should pass through provider options', () => {
         const result = convertToLanguageModelMessage(
           {
             role: 'assistant',
@@ -808,7 +808,7 @@ describe('convertToLanguageModelMessage', () => {
             {
               type: 'reasoning',
               text: 'hello, world!',
-              providerMetadata: {
+              providerOptions: {
                 'test-provider': {
                   'key-a': 'test-value-1',
                   'key-b': 'test-value-2',
@@ -870,7 +870,7 @@ describe('convertToLanguageModelMessage', () => {
     });
 
     describe('tool call parts', () => {
-      it('should pass through provider metadata', () => {
+      it('should pass through provider options', () => {
         const result = convertToLanguageModelMessage(
           {
             role: 'assistant',
@@ -900,7 +900,7 @@ describe('convertToLanguageModelMessage', () => {
               args: {},
               toolCallId: 'toolCallId',
               toolName: 'toolName',
-              providerMetadata: {
+              providerOptions: {
                 'test-provider': {
                   'key-a': 'test-value-1',
                   'key-b': 'test-value-2',
@@ -969,7 +969,7 @@ describe('convertToLanguageModelMessage', () => {
         });
       });
 
-      it('should handle provider metadata', async () => {
+      it('should handle provider options', async () => {
         const result = convertToLanguageModelMessage(
           {
             role: 'assistant',
@@ -997,7 +997,7 @@ describe('convertToLanguageModelMessage', () => {
               type: 'file',
               data: 'dGVzdA==',
               mimeType: 'application/pdf',
-              providerMetadata: {
+              providerOptions: {
                 'test-provider': {
                   'key-a': 'test-value-1',
                   'key-b': 'test-value-2',
@@ -1070,7 +1070,7 @@ describe('convertToLanguageModelMessage', () => {
             result: { some: 'result' },
             toolCallId: 'toolCallId',
             toolName: 'toolName',
-            providerMetadata: {
+            providerOptions: {
               'test-provider': {
                 'key-a': 'test-value-1',
                 'key-b': 'test-value-2',
