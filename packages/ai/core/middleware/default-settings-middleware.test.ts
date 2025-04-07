@@ -46,7 +46,7 @@ describe('defaultSettingsMiddleware', () => {
       const middleware = defaultSettingsMiddleware({
         settings: {
           temperature: 0.7,
-          providerMetadata: {
+          providerOptions: {
             anthropic: {
               cacheControl: { type: 'ephemeral' },
             },
@@ -62,7 +62,7 @@ describe('defaultSettingsMiddleware', () => {
       });
 
       expect(result.temperature).toBe(0.7);
-      expect(result.providerMetadata).toEqual({
+      expect(result.providerOptions).toEqual({
         anthropic: {
           cacheControl: { type: 'ephemeral' },
         },
@@ -72,7 +72,7 @@ describe('defaultSettingsMiddleware', () => {
     it('should merge complex provider metadata objects', async () => {
       const middleware = defaultSettingsMiddleware({
         settings: {
-          providerMetadata: {
+          providerOptions: {
             anthropic: {
               cacheControl: { type: 'ephemeral' },
               feature: { enabled: true },
@@ -88,7 +88,7 @@ describe('defaultSettingsMiddleware', () => {
         type: 'generate',
         params: {
           ...BASE_PARAMS,
-          providerMetadata: {
+          providerOptions: {
             anthropic: {
               feature: { enabled: false },
               otherSetting: 'value',
@@ -97,7 +97,7 @@ describe('defaultSettingsMiddleware', () => {
         },
       });
 
-      expect(result.providerMetadata).toEqual({
+      expect(result.providerOptions).toEqual({
         anthropic: {
           cacheControl: { type: 'ephemeral' },
           feature: { enabled: false },
@@ -112,7 +112,7 @@ describe('defaultSettingsMiddleware', () => {
     it('should handle nested provider metadata objects correctly', async () => {
       const middleware = defaultSettingsMiddleware({
         settings: {
-          providerMetadata: {
+          providerOptions: {
             anthropic: {
               tools: {
                 retrieval: { enabled: true },
@@ -127,7 +127,7 @@ describe('defaultSettingsMiddleware', () => {
         type: 'generate',
         params: {
           ...BASE_PARAMS,
-          providerMetadata: {
+          providerOptions: {
             anthropic: {
               tools: {
                 retrieval: { enabled: false },
@@ -138,7 +138,7 @@ describe('defaultSettingsMiddleware', () => {
         },
       });
 
-      expect(result.providerMetadata).toEqual({
+      expect(result.providerOptions).toEqual({
         anthropic: {
           tools: {
             retrieval: { enabled: false },

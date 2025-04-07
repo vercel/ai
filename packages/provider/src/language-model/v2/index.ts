@@ -1,4 +1,3 @@
-export * from './language-model-v2-source';
 export * from './language-model-v2';
 export * from './language-model-v2-call-options';
 export * from './language-model-v2-call-warning';
@@ -9,4 +8,6 @@ export * from './language-model-v2-logprobs';
 export * from './language-model-v2-prompt';
 export * from './language-model-v2-provider-defined-tool';
 export * from './language-model-v2-provider-metadata';
+export * from './language-model-v2-provider-options';
+export * from './language-model-v2-source';
 export * from './language-model-v2-tool-choice';

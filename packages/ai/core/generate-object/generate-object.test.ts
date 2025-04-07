@@ -45,7 +45,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -85,7 +85,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -125,7 +125,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -169,7 +169,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -217,7 +217,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -403,7 +403,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -450,7 +450,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -501,7 +501,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -725,8 +725,8 @@ describe('output = "object"', () => {
     it('should pass provider options to model in json mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ providerMetadata }) => {
-            expect(providerMetadata).toStrictEqual({
+          doGenerate: async ({ providerOptions }) => {
+            expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
             });
 
@@ -752,8 +752,8 @@ describe('output = "object"', () => {
     it('should pass provider options to model in tool mode', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          doGenerate: async ({ providerMetadata }) => {
-            expect(providerMetadata).toStrictEqual({
+          doGenerate: async ({ providerOptions }) => {
+            expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
             });
 
@@ -1016,7 +1016,7 @@ describe('output = "array"', () => {
             {
               role: 'user',
               content: [{ type: 'text', text: 'prompt' }],
-              providerMetadata: undefined,
+              providerOptions: undefined,
             },
           ]);
 
@@ -1114,7 +1114,7 @@ describe('output = "no-schema"', () => {
             {
               role: 'user',
               content: [{ type: 'text', text: 'prompt' }],
-              providerMetadata: undefined,
+              providerOptions: undefined,
             },
           ]);
 
@@ -1326,7 +1326,7 @@ describe('options.messages', () => {
                   type: 'text',
                 },
               ],
-              providerMetadata: undefined,
+              providerOptions: undefined,
               role: 'user',
             },
             {
@@ -1335,13 +1335,13 @@ describe('options.messages', () => {
                   args: {
                     value: 'test-value',
                   },
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                   toolCallId: 'call-1',
                   toolName: 'test-tool',
                   type: 'tool-call',
                 },
               ],
-              providerMetadata: undefined,
+              providerOptions: undefined,
               role: 'assistant',
             },
             {
@@ -1349,14 +1349,14 @@ describe('options.messages', () => {
                 {
                   content: undefined,
                   isError: undefined,
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                   result: 'test result',
                   toolCallId: 'call-1',
                   toolName: 'test-tool',
                   type: 'tool-result',
                 },
               ],
-              providerMetadata: undefined,
+              providerOptions: undefined,
               role: 'tool',
             },
           ]);

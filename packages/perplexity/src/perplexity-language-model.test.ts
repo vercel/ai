@@ -130,7 +130,7 @@ describe('PerplexityLanguageModel', () => {
         inputFormat: 'prompt',
         mode: { type: 'regular' },
         prompt: TEST_PROMPT,
-        providerMetadata: {
+        providerOptions: {
           perplexity: {
             search_recency_filter: 'month',
             return_images: true,

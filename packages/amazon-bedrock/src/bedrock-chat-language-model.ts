@@ -65,7 +65,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
-    providerMetadata,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]): {
     command: BedrockConverseInput;
     warnings: LanguageModelV2CallWarning[];
@@ -115,7 +115,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     // Parse thinking options from provider metadata
     const reasoningConfigOptions =
       BedrockReasoningConfigOptionsSchema.safeParse(
-        providerMetadata?.bedrock?.reasoning_config,
+        providerOptions?.bedrock?.reasoning_config,
       );
 
     if (!reasoningConfigOptions.success) {
@@ -183,7 +183,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         inferenceConfig,
       }),
       messages,
-      ...providerMetadata?.bedrock,
+      ...providerOptions?.bedrock,
     };
 
     switch (type) {

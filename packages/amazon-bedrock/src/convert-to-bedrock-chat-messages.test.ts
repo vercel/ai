@@ -24,7 +24,7 @@ describe('system messages', () => {
       {
         role: 'system',
         content: 'Hello',
-        providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+        providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
       },
     ]);
 
@@ -99,7 +99,7 @@ describe('user messages', () => {
       {
         role: 'user',
         content: [{ type: 'text', text: 'Hello' }],
-        providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+        providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
       },
     ]);
 
@@ -233,7 +233,7 @@ describe('assistant messages', () => {
       {
         role: 'assistant',
         content: [{ type: 'text', text: 'Hello' }],
-        providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+        providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
       },
     ]);
 

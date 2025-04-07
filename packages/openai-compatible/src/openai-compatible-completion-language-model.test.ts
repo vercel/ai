@@ -284,7 +284,7 @@ describe('doGenerate', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
         },
@@ -305,7 +305,7 @@ describe('doGenerate', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
         },
@@ -552,7 +552,7 @@ describe('doStream', () => {
     await model.doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
         },
@@ -574,7 +574,7 @@ describe('doStream', () => {
     await model.doStream({
       inputFormat: 'prompt',
       mode: { type: 'regular' },
-      providerMetadata: {
+      providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
         },

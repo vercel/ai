@@ -269,7 +269,7 @@ describe('doGenerate', () => {
       inputFormat: 'prompt',
       mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         groq: { reasoningFormat: 'hidden' },
       },
     });

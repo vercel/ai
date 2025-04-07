@@ -93,7 +93,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
-    providerMetadata,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -190,12 +190,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
       // openai specific settings:
       // TODO remove in next major version; we auto-map maxTokens now
-      max_completion_tokens: providerMetadata?.openai?.maxCompletionTokens,
-      store: providerMetadata?.openai?.store,
-      metadata: providerMetadata?.openai?.metadata,
-      prediction: providerMetadata?.openai?.prediction,
+      max_completion_tokens: providerOptions?.openai?.maxCompletionTokens,
+      store: providerOptions?.openai?.store,
+      metadata: providerOptions?.openai?.metadata,
+      prediction: providerOptions?.openai?.prediction,
       reasoning_effort:
-        providerMetadata?.openai?.reasoningEffort ??
+        providerOptions?.openai?.reasoningEffort ??
         this.settings.reasoningEffort,
 
       // messages:

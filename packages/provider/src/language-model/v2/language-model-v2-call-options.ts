@@ -3,7 +3,7 @@ import { LanguageModelV2CallSettings } from './language-model-v2-call-settings';
 import { LanguageModelV2FunctionTool } from './language-model-v2-function-tool';
 import { LanguageModelV2Prompt } from './language-model-v2-prompt';
 import { LanguageModelV2ProviderDefinedTool } from './language-model-v2-provider-defined-tool';
-import { LanguageModelV2ProviderMetadata } from './language-model-v2-provider-metadata';
+import { LanguageModelV2ProviderOptions } from './language-model-v2-provider-options';
 import { LanguageModelV2ToolChoice } from './language-model-v2-tool-choice';
 
 export type LanguageModelV2CallOptions = LanguageModelV2CallSettings & {
@@ -82,9 +82,9 @@ the language model interface.
   prompt: LanguageModelV2Prompt;
 
   /**
-Additional provider-specific metadata.
-The metadata is passed through to the provider from the AI SDK and enables
-provider-specific functionality that can be fully encapsulated in the provider.
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 };

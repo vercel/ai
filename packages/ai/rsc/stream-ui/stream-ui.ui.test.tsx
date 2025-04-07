@@ -269,8 +269,8 @@ describe('options.providerMetadata', () => {
   it('should pass provider metadata to model', async () => {
     const result = await streamUI({
       model: new MockLanguageModelV2({
-        doStream: async ({ providerMetadata }) => {
-          expect(providerMetadata).toStrictEqual({
+        doStream: async ({ providerOptions }) => {
+          expect(providerOptions).toStrictEqual({
             aProvider: { someKey: 'someValue' },
           });
 

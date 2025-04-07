@@ -6,7 +6,7 @@ import 'dotenv/config';
 const logProviderMetadataMiddleware: LanguageModelV2Middleware = {
   transformParams: async ({ params }) => {
     console.log(
-      'providerMetadata: ' + JSON.stringify(params.providerMetadata, null, 2),
+      'providerOptions: ' + JSON.stringify(params.providerOptions, null, 2),
     );
     return params;
   },

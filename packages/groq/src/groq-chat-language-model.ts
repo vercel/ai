@@ -75,7 +75,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     responseFormat,
     seed,
     stream,
-    providerMetadata,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0] & {
     stream: boolean;
   }) {
@@ -104,7 +104,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
     const groqOptions = parseProviderOptions({
       provider: 'groq',
-      providerOptions: providerMetadata,
+      providerOptions,
       schema: z.object({
         reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).nullish(),
       }),

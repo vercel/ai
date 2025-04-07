@@ -48,7 +48,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -108,7 +108,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
               return {
@@ -167,7 +167,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -230,7 +230,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -327,7 +327,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -1118,8 +1118,8 @@ describe('streamObject', () => {
       it('should pass provider options to model in json mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ providerMetadata }) => {
-              expect(providerMetadata).toStrictEqual({
+            doStream: async ({ providerOptions }) => {
+              expect(providerOptions).toStrictEqual({
                 aProvider: { someKey: 'someValue' },
               });
 
@@ -1155,8 +1155,8 @@ describe('streamObject', () => {
       it('should pass provider options to model in tool mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ providerMetadata }) => {
-              expect(providerMetadata).toStrictEqual({
+            doStream: async ({ providerOptions }) => {
+              expect(providerOptions).toStrictEqual({
                 aProvider: { someKey: 'someValue' },
               });
 
@@ -1221,7 +1221,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -1593,7 +1593,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -1748,7 +1748,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -1840,7 +1840,7 @@ describe('streamObject', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -2220,7 +2220,7 @@ describe('streamObject', () => {
                     type: 'text',
                   },
                 ],
-                providerMetadata: undefined,
+                providerOptions: undefined,
                 role: 'user',
               },
               {
@@ -2229,13 +2229,13 @@ describe('streamObject', () => {
                     args: {
                       value: 'test-value',
                     },
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                     toolCallId: 'call-1',
                     toolName: 'test-tool',
                     type: 'tool-call',
                   },
                 ],
-                providerMetadata: undefined,
+                providerOptions: undefined,
                 role: 'assistant',
               },
               {
@@ -2243,14 +2243,14 @@ describe('streamObject', () => {
                   {
                     content: undefined,
                     isError: undefined,
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                     result: 'test result',
                     toolCallId: 'call-1',
                     toolName: 'test-tool',
                     type: 'tool-result',
                   },
                 ],
-                providerMetadata: undefined,
+                providerOptions: undefined,
                 role: 'tool',
               },
             ]);

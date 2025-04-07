@@ -1,4 +1,4 @@
-import { LanguageModelV2ProviderMetadata } from './language-model-v2-provider-metadata';
+import { LanguageModelV2ProviderOptions } from './language-model-v2-provider-options';
 
 /**
 A prompt is a list of messages.
@@ -44,11 +44,11 @@ export type LanguageModelV2Message =
       }
   ) & {
     /**
-     * Additional provider-specific metadata. They are passed through
+     * Additional provider-specific options. They are passed through
      * to the provider from the AI SDK and enable provider-specific
      * functionality that can be fully encapsulated in the provider.
      */
-    providerMetadata?: LanguageModelV2ProviderMetadata;
+    providerOptions?: LanguageModelV2ProviderOptions;
   };
 
 /**
@@ -63,11 +63,11 @@ The text content.
   text: string;
 
   /**
-   * Additional provider-specific metadata. They are passed through
+   * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -87,11 +87,11 @@ An optional signature for verifying that the reasoning originated from the model
   signature?: string;
 
   /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -106,11 +106,11 @@ Redacted reasoning data.
   data: string;
 
   /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -131,11 +131,11 @@ Optional mime type of the image.
   mimeType?: string;
 
   /**
-   * Additional provider-specific metadata. They are passed through
+   * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -162,11 +162,11 @@ Mime type of the file.
   mimeType: string;
 
   /**
-   * Additional provider-specific metadata. They are passed through
+   * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -191,11 +191,11 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
   args: unknown;
 
   /**
-   * Additional provider-specific metadata. They are passed through
+   * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -253,9 +253,9 @@ Mime type of the image.
   >;
 
   /**
-   * Additional provider-specific metadata. They are passed through
+   * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }

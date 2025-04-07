@@ -59,10 +59,10 @@ export function convertToAnthropicMessagesPrompt({
           });
         }
 
-        system = block.messages.map(({ content, providerMetadata }) => ({
+        system = block.messages.map(({ content, providerOptions }) => ({
           type: 'text',
           text: content,
-          cache_control: getCacheControl(providerMetadata),
+          cache_control: getCacheControl(providerOptions),
         }));
 
         break;
@@ -85,9 +85,9 @@ export function convertToAnthropicMessagesPrompt({
                 const isLastPart = j === content.length - 1;
 
                 const cacheControl =
-                  getCacheControl(part.providerMetadata) ??
+                  getCacheControl(part.providerOptions) ??
                   (isLastPart
-                    ? getCacheControl(message.providerMetadata)
+                    ? getCacheControl(message.providerOptions)
                     : undefined);
 
                 switch (part.type) {
@@ -163,9 +163,9 @@ export function convertToAnthropicMessagesPrompt({
                 const isLastPart = i === content.length - 1;
 
                 const cacheControl =
-                  getCacheControl(part.providerMetadata) ??
+                  getCacheControl(part.providerOptions) ??
                   (isLastPart
-                    ? getCacheControl(message.providerMetadata)
+                    ? getCacheControl(message.providerOptions)
                     : undefined);
 
                 const toolResultContent =
@@ -232,9 +232,9 @@ export function convertToAnthropicMessagesPrompt({
             // for the last part of a message,
             // check also if the message has cache control.
             const cacheControl =
-              getCacheControl(part.providerMetadata) ??
+              getCacheControl(part.providerOptions) ??
               (isLastContentPart
-                ? getCacheControl(message.providerMetadata)
+                ? getCacheControl(message.providerOptions)
                 : undefined);
 
             switch (part.type) {

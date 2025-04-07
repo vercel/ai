@@ -746,7 +746,7 @@ describe('cache control', () => {
           {
             role: 'system',
             content: 'system message',
-            providerMetadata: {
+            providerOptions: {
               anthropic: { cacheControl: { type: 'ephemeral' } },
             },
           },
@@ -781,7 +781,7 @@ describe('cache control', () => {
               {
                 type: 'text',
                 text: 'test',
-                providerMetadata: {
+                providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
                   },
@@ -822,7 +822,7 @@ describe('cache control', () => {
               { type: 'text', text: 'part1' },
               { type: 'text', text: 'part2' },
             ],
-            providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -869,7 +869,7 @@ describe('cache control', () => {
               {
                 type: 'text',
                 text: 'test',
-                providerMetadata: {
+                providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
                   },
@@ -914,7 +914,7 @@ describe('cache control', () => {
                 toolCallId: 'test-id',
                 toolName: 'test-tool',
                 args: { some: 'arg' },
-                providerMetadata: {
+                providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
                   },
@@ -959,7 +959,7 @@ describe('cache control', () => {
               { type: 'text', text: 'part1' },
               { type: 'text', text: 'part2' },
             ],
-            providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -1008,7 +1008,7 @@ describe('cache control', () => {
                 toolName: 'test',
                 toolCallId: 'test',
                 result: { test: 'test' },
-                providerMetadata: {
+                providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
                   },
@@ -1061,7 +1061,7 @@ describe('cache control', () => {
                 result: { test: 'part2' },
               },
             ],
-            providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },

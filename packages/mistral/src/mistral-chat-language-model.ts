@@ -70,7 +70,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
-    providerMetadata,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -134,8 +134,8 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // mistral-specific provider options:
-      document_image_limit: providerMetadata?.mistral?.documentImageLimit,
-      document_page_limit: providerMetadata?.mistral?.documentPageLimit,
+      document_image_limit: providerOptions?.mistral?.documentImageLimit,
+      document_page_limit: providerOptions?.mistral?.documentPageLimit,
 
       // messages:
       messages: convertToMistralChatMessages(prompt),

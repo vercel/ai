@@ -332,7 +332,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               parallelToolCalls: false,
             },
@@ -355,7 +355,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               store: false,
             },
@@ -378,7 +378,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               store: false,
             },
@@ -401,7 +401,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               previousResponseId: 'resp_123',
             },
@@ -424,7 +424,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               user: 'user_123',
             },
@@ -447,7 +447,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               reasoningEffort: 'low',
             },
@@ -472,7 +472,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
           mode: { type: 'regular' },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               instructions: 'You are a friendly assistant.',
             },
@@ -617,7 +617,7 @@ describe('OpenAIResponsesLanguageModel', () => {
             },
           },
           prompt: TEST_PROMPT,
-          providerMetadata: {
+          providerOptions: {
             openai: {
               strictSchemas: false,
             },

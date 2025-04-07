@@ -181,7 +181,7 @@ describe('streamText', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -278,7 +278,7 @@ describe('streamText', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -360,7 +360,7 @@ describe('streamText', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -420,7 +420,7 @@ describe('streamText', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -492,7 +492,7 @@ describe('streamText', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -2357,7 +2357,7 @@ describe('streamText', () => {
                     {
                       role: 'user',
                       content: [{ type: 'text', text: 'test-input' }],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -2415,7 +2415,7 @@ describe('streamText', () => {
                     {
                       role: 'user',
                       content: [{ type: 'text', text: 'test-input' }],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                     {
                       role: 'assistant',
@@ -2423,7 +2423,7 @@ describe('streamText', () => {
                         {
                           type: 'reasoning',
                           text: 'thinking',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                           signature: undefined,
                         },
                         {
@@ -2431,10 +2431,10 @@ describe('streamText', () => {
                           toolCallId: 'call-1',
                           toolName: 'tool1',
                           args: { value: 'value' },
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                       ],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                     {
                       role: 'tool',
@@ -2446,10 +2446,10 @@ describe('streamText', () => {
                           result: 'result1',
                           content: undefined,
                           isError: undefined,
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                       ],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -2581,7 +2581,7 @@ describe('streamText', () => {
                     {
                       role: 'user',
                       content: [{ type: 'text', text: 'test-input' }],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -2620,7 +2620,7 @@ describe('streamText', () => {
                     {
                       role: 'user',
                       content: [{ type: 'text', text: 'test-input' }],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                     {
                       role: 'assistant',
@@ -2628,10 +2628,10 @@ describe('streamText', () => {
                         {
                           type: 'text',
                           text: 'part 1 \n ',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                       ],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -2677,7 +2677,7 @@ describe('streamText', () => {
                     {
                       role: 'user',
                       content: [{ type: 'text', text: 'test-input' }],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                     {
                       role: 'assistant',
@@ -2685,15 +2685,15 @@ describe('streamText', () => {
                         {
                           type: 'text',
                           text: 'part 1 \n ',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                         {
                           type: 'text',
                           text: 'no-whitespace',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                       ],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -2749,7 +2749,7 @@ describe('streamText', () => {
                     {
                       role: 'user',
                       content: [{ type: 'text', text: 'test-input' }],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                     {
                       role: 'assistant',
@@ -2757,20 +2757,20 @@ describe('streamText', () => {
                         {
                           type: 'text',
                           text: 'part 1 \n ',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                         {
                           type: 'text',
                           text: 'no-whitespace',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                         {
                           type: 'text',
                           text: 'immediatefollow  ',
-                          providerMetadata: undefined,
+                          providerOptions: undefined,
                         },
                       ],
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ]);
 
@@ -2954,8 +2954,8 @@ describe('streamText', () => {
     it('should pass provider metadata to model', async () => {
       const result = streamText({
         model: new MockLanguageModelV2({
-          doStream: async ({ providerMetadata }) => {
-            expect(providerMetadata).toStrictEqual({
+          doStream: async ({ providerOptions }) => {
+            expect(providerOptions).toStrictEqual({
               aProvider: { someKey: 'someValue' },
             });
 
@@ -3200,7 +3200,7 @@ describe('streamText', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'test-input' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -3267,7 +3267,7 @@ describe('streamText', () => {
                     type: 'text',
                   },
                 ],
-                providerMetadata: undefined,
+                providerOptions: undefined,
                 role: 'user',
               },
               {
@@ -3276,13 +3276,13 @@ describe('streamText', () => {
                     args: {
                       value: 'test-value',
                     },
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                     toolCallId: 'call-1',
                     toolName: 'test-tool',
                     type: 'tool-call',
                   },
                 ],
-                providerMetadata: undefined,
+                providerOptions: undefined,
                 role: 'assistant',
               },
               {
@@ -3290,14 +3290,14 @@ describe('streamText', () => {
                   {
                     content: undefined,
                     isError: undefined,
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                     result: 'test result',
                     toolCallId: 'call-1',
                     toolName: 'test-tool',
                     type: 'tool-result',
                   },
                 ],
-                providerMetadata: undefined,
+                providerOptions: undefined,
                 role: 'tool',
               },
             ]);
@@ -4476,7 +4476,7 @@ describe('streamText', () => {
             },
             {
               content: [{ text: 'prompt', type: 'text' }],
-              providerMetadata: undefined,
+              providerOptions: undefined,
               role: 'user',
             },
           ],

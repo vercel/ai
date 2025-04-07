@@ -7,9 +7,9 @@ import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 
 function getOpenAIMetadata(message: {
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderMetadata;
 }) {
-  return message?.providerMetadata?.openaiCompatible ?? {};
+  return message?.providerOptions?.openaiCompatible ?? {};
 }
 
 export function convertToOpenAICompatibleChatMessages(

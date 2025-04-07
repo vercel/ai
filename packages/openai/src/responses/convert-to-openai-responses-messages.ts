@@ -67,7 +67,7 @@ export function convertToOpenAIResponsesMessages({
                         };base64,${convertUint8ArrayToBase64(part.image)}`,
 
                   // OpenAI specific extension: image detail
-                  detail: part.providerMetadata?.openai?.imageDetail,
+                  detail: part.providerOptions?.openai?.imageDetail,
                 };
               }
               case 'file': {

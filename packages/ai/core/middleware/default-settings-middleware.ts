@@ -1,7 +1,7 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2Middleware,
-  LanguageModelV2ProviderMetadata,
+  LanguageModelV2ProviderOptions,
 } from '@ai-sdk/provider';
 import { mergeObjects } from '../util/merge-objects';
 
@@ -13,7 +13,7 @@ export function defaultSettingsMiddleware({
 }: {
   settings: Partial<
     LanguageModelV2CallOptions & {
-      providerMetadata?: LanguageModelV2ProviderMetadata;
+      providerOptions?: LanguageModelV2ProviderOptions;
     }
   >;
 }): LanguageModelV2Middleware {
@@ -23,9 +23,9 @@ export function defaultSettingsMiddleware({
       return {
         ...settings,
         ...params,
-        providerMetadata: mergeObjects(
-          settings.providerMetadata,
-          params.providerMetadata,
+        providerOptions: mergeObjects(
+          settings.providerOptions,
+          params.providerOptions,
         ),
 
         // special case for temperature 0

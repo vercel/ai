@@ -89,7 +89,7 @@ describe('result.text', () => {
             {
               role: 'user',
               content: [{ type: 'text', text: 'prompt' }],
-              providerMetadata: undefined,
+              providerOptions: undefined,
             },
           ]);
 
@@ -227,7 +227,7 @@ describe('result.toolCalls', () => {
             {
               role: 'user',
               content: [{ type: 'text', text: 'test-input' }],
-              providerMetadata: undefined,
+              providerOptions: undefined,
             },
           ]);
 
@@ -301,7 +301,7 @@ describe('result.toolResults', () => {
             {
               role: 'user',
               content: [{ type: 'text', text: 'test-input' }],
-              providerMetadata: undefined,
+              providerOptions: undefined,
             },
           ]);
 
@@ -530,7 +530,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                 ]);
 
@@ -584,7 +584,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                   {
                     role: 'assistant',
@@ -594,10 +594,10 @@ describe('options.maxSteps', () => {
                         toolCallId: 'call-1',
                         toolName: 'tool1',
                         args: { value: 'value' },
-                        providerMetadata: undefined,
+                        providerOptions: undefined,
                       },
                     ],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                   {
                     role: 'tool',
@@ -609,10 +609,10 @@ describe('options.maxSteps', () => {
                         result: 'result1',
                         content: undefined,
                         isError: undefined,
-                        providerMetadata: undefined,
+                        providerOptions: undefined,
                       },
                     ],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                 ]);
                 return {
@@ -711,7 +711,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                 ]);
 
@@ -739,7 +739,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                   {
                     role: 'assistant',
@@ -747,10 +747,10 @@ describe('options.maxSteps', () => {
                       {
                         type: 'text',
                         text: 'part 1 \n ',
-                        providerMetadata: undefined,
+                        providerOptions: undefined,
                       },
                     ],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                 ]);
 
@@ -799,7 +799,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                   {
                     role: 'assistant',
@@ -807,15 +807,15 @@ describe('options.maxSteps', () => {
                       {
                         type: 'text',
                         text: 'part 1 \n ',
-                        providerMetadata: undefined,
+                        providerOptions: undefined,
                       },
                       {
                         type: 'text',
                         text: 'no-whitespace',
-                        providerMetadata: undefined,
+                        providerOptions: undefined,
                       },
                     ],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                 ]);
 
@@ -858,7 +858,7 @@ describe('options.maxSteps', () => {
                   {
                     role: 'user',
                     content: [{ type: 'text', text: 'test-input' }],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                   {
                     role: 'assistant',
@@ -866,20 +866,20 @@ describe('options.maxSteps', () => {
                       {
                         type: 'text',
                         text: 'part 1 \n ',
-                        providerMetadata: undefined,
+                        providerOptions: undefined,
                       },
                       {
                         type: 'text',
                         text: 'no-whitespace',
-                        providerMetadata: undefined,
+                        providerOptions: undefined,
                       },
                       {
                         type: 'text',
                         text: 'immediatefollow  ',
-                        providerMetadata: undefined,
+                        providerOptions: undefined,
                       },
                     ],
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                   },
                 ]);
 
@@ -1005,8 +1005,8 @@ describe('options.providerOptions', () => {
   it('should pass provider options to model', async () => {
     const result = await generateText({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ providerMetadata }) => {
-          expect(providerMetadata).toStrictEqual({
+        doGenerate: async ({ providerOptions }) => {
+          expect(providerOptions).toStrictEqual({
             aProvider: { someKey: 'someValue' },
           });
 
@@ -1239,7 +1239,7 @@ describe('tools with custom schema', () => {
             {
               role: 'user',
               content: [{ type: 'text', text: 'test-input' }],
-              providerMetadata: undefined,
+              providerOptions: undefined,
             },
           ]);
 
@@ -1312,7 +1312,7 @@ describe('options.messages', () => {
                   type: 'text',
                 },
               ],
-              providerMetadata: undefined,
+              providerOptions: undefined,
               role: 'user',
             },
             {
@@ -1321,13 +1321,13 @@ describe('options.messages', () => {
                   args: {
                     value: 'test-value',
                   },
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                   toolCallId: 'call-1',
                   toolName: 'test-tool',
                   type: 'tool-call',
                 },
               ],
-              providerMetadata: undefined,
+              providerOptions: undefined,
               role: 'assistant',
             },
             {
@@ -1335,14 +1335,14 @@ describe('options.messages', () => {
                 {
                   content: undefined,
                   isError: undefined,
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                   result: 'test result',
                   toolCallId: 'call-1',
                   toolName: 'test-tool',
                   type: 'tool-result',
                 },
               ],
-              providerMetadata: undefined,
+              providerOptions: undefined,
               role: 'tool',
             },
           ]);
@@ -1474,7 +1474,7 @@ describe('options.output', () => {
         prompt: [
           {
             content: [{ text: 'prompt', type: 'text' }],
-            providerMetadata: undefined,
+            providerOptions: undefined,
             role: 'user',
           },
         ],
@@ -1537,7 +1537,7 @@ describe('options.output', () => {
             },
             {
               content: [{ text: 'prompt', type: 'text' }],
-              providerMetadata: undefined,
+              providerOptions: undefined,
               role: 'user',
             },
           ],
@@ -1601,7 +1601,7 @@ describe('options.output', () => {
           prompt: [
             {
               content: [{ text: 'prompt', type: 'text' }],
-              providerMetadata: undefined,
+              providerOptions: undefined,
               role: 'user',
             },
           ],

@@ -79,7 +79,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
-    providerMetadata,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const type = mode.type;
 
@@ -87,7 +87,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     const googleOptions = parseProviderOptions({
       provider: 'google',
-      providerOptions: providerMetadata,
+      providerOptions,
       schema: googleGenerativeAIProviderOptionsSchema,
     });
 

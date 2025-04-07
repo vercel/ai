@@ -53,7 +53,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
 
         for (const message of block.messages) {
           system.push({ text: message.content });
-          if (getCachePoint(message.providerMetadata)) {
+          if (getCachePoint(message.providerOptions)) {
             system.push(BEDROCK_CACHE_POINT);
           }
         }
@@ -65,7 +65,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
         const bedrockContent: BedrockUserMessage['content'] = [];
 
         for (const message of block.messages) {
-          const { role, content, providerMetadata } = message;
+          const { role, content, providerOptions } = message;
           switch (role) {
             case 'user': {
               for (let j = 0; j < content.length; j++) {
@@ -179,7 +179,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
             }
           }
 
-          if (getCachePoint(providerMetadata)) {
+          if (getCachePoint(providerOptions)) {
             bedrockContent.push(BEDROCK_CACHE_POINT);
           }
         }
@@ -262,7 +262,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
               }
             }
           }
-          if (getCachePoint(message.providerMetadata)) {
+          if (getCachePoint(message.providerOptions)) {
             bedrockContent.push(BEDROCK_CACHE_POINT);
           }
         }

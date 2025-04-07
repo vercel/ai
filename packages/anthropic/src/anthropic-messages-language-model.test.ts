@@ -75,7 +75,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           temperature: 0.5,
           topP: 0.7,
           topK: 0.1,
-          providerMetadata: {
+          providerOptions: {
             anthropic: {
               thinking: { type: 'enabled', budgetTokens: 1000 },
             } satisfies AnthropicProviderOptions,
@@ -476,7 +476,7 @@ describe('AnthropicMessagesLanguageModel', () => {
           {
             role: 'user',
             content: [{ type: 'text', text: 'Hello' }],
-            providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },

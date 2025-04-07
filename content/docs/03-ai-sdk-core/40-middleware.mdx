@@ -108,8 +108,7 @@ const model = wrapLanguageModel({
     settings: {
       temperature: 0.5,
       maxTokens: 800,
-      // note: use providerMetadata instead of providerOptions here:
-      providerMetadata: { openai: { store: false } },
+      providerOptions: { openai: { store: false } },
     },
   }),
 });

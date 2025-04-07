@@ -66,7 +66,7 @@ export function convertToLanguageModelMessage(
       return {
         role: 'system',
         content: message.content,
-        providerMetadata:
+        providerOptions:
           message.providerOptions ?? message.experimental_providerMetadata,
       };
     }
@@ -76,7 +76,7 @@ export function convertToLanguageModelMessage(
         return {
           role: 'user',
           content: [{ type: 'text', text: message.content }],
-          providerMetadata:
+          providerOptions:
             message.providerOptions ?? message.experimental_providerMetadata,
         };
       }
@@ -87,7 +87,7 @@ export function convertToLanguageModelMessage(
           .map(part => convertPartToLanguageModelPart(part, downloadedAssets))
           // remove empty text parts:
           .filter(part => part.type !== 'text' || part.text !== ''),
-        providerMetadata:
+        providerOptions:
           message.providerOptions ?? message.experimental_providerMetadata,
       };
     }
@@ -97,7 +97,7 @@ export function convertToLanguageModelMessage(
         return {
           role: 'assistant',
           content: [{ type: 'text', text: message.content }],
-          providerMetadata:
+          providerOptions:
             message.providerOptions ?? message.experimental_providerMetadata,
         };
       }
@@ -123,7 +123,7 @@ export function convertToLanguageModelMessage(
                       : convertDataContentToBase64String(part.data),
                   filename: part.filename,
                   mimeType: part.mimeType,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                 };
               }
               case 'reasoning': {
@@ -131,21 +131,21 @@ export function convertToLanguageModelMessage(
                   type: 'reasoning',
                   text: part.text,
                   signature: part.signature,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                 };
               }
               case 'redacted-reasoning': {
                 return {
                   type: 'redacted-reasoning',
                   data: part.data,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                 };
               }
               case 'text': {
                 return {
                   type: 'text' as const,
                   text: part.text,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                 };
               }
               case 'tool-call': {
@@ -154,12 +154,12 @@ export function convertToLanguageModelMessage(
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
                   args: part.args,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                 };
               }
             }
           }),
-        providerMetadata:
+        providerOptions:
           message.providerOptions ?? message.experimental_providerMetadata,
       };
     }
@@ -174,10 +174,10 @@ export function convertToLanguageModelMessage(
           result: part.result,
           content: part.experimental_content,
           isError: part.isError,
-          providerMetadata:
+          providerOptions:
             part.providerOptions ?? part.experimental_providerMetadata,
         })),
-        providerMetadata:
+        providerOptions:
           message.providerOptions ?? message.experimental_providerMetadata,
       };
     }
@@ -266,7 +266,7 @@ function convertPartToLanguageModelPart(
     return {
       type: 'text',
       text: part.text,
-      providerMetadata:
+      providerOptions:
         part.providerOptions ?? part.experimental_providerMetadata,
     };
   }
@@ -347,7 +347,7 @@ function convertPartToLanguageModelPart(
         type: 'image',
         image: normalizedData,
         mimeType,
-        providerMetadata:
+        providerOptions:
           part.providerOptions ?? part.experimental_providerMetadata,
       };
     }
@@ -366,7 +366,7 @@ function convertPartToLanguageModelPart(
             : normalizedData,
         filename: part.filename,
         mimeType,
-        providerMetadata:
+        providerOptions:
           part.providerOptions ?? part.experimental_providerMetadata,
       };
     }
