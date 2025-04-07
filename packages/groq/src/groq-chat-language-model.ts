@@ -63,7 +63,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   }
 
   private getArgs({
-    mode,
     prompt,
     maxTokens,
     temperature,
@@ -75,12 +74,12 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     responseFormat,
     seed,
     stream,
+    tools,
+    toolChoice,
     providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0] & {
     stream: boolean;
   }) {
-    const type = mode.type;
-
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
@@ -141,59 +140,23 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       messages: convertToGroqChatMessages(prompt),
     };
 
-    switch (type) {
-      case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareTools({ mode });
-        return {
-          args: {
-            ...baseArgs,
-            tools,
-            tool_choice,
-          },
-          warnings: [...warnings, ...toolWarnings],
-        };
-      }
+    const {
+      tools: groqTools,
+      toolChoice: groqToolChoice,
+      toolWarnings,
+    } = prepareTools({
+      tools,
+      toolChoice,
+    });
 
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format:
-              // json object response format is not supported for streaming:
-              stream === false ? { type: 'json_object' } : undefined,
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          args: {
-            ...baseArgs,
-            tool_choice: {
-              type: 'function',
-              function: { name: mode.tool.name },
-            },
-            tools: [
-              {
-                type: 'function',
-                function: {
-                  name: mode.tool.name,
-                  description: mode.tool.description,
-                  parameters: mode.tool.parameters,
-                },
-              },
-            ],
-          },
-          warnings,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
+    return {
+      args: {
+        ...baseArgs,
+        tools: groqTools,
+        tool_choice: groqToolChoice,
+      },
+      warnings: [...warnings, ...toolWarnings],
+    };
   }
 
   async doGenerate(
