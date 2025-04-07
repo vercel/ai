@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.0-canary.3
+
+### Patch Changes
+
+- Updated dependencies [c57e248]
+- Updated dependencies [33f4a6a]
+  - @ai-sdk/provider@2.0.0-canary.1
+  - @ai-sdk/provider-utils@3.0.0-canary.2
+  - @ai-sdk/ui-utils@2.0.0-canary.2
+
 ## 5.0.0-canary.2
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ai-sdk/vue
 
+## 2.0.0-canary.2
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@3.0.0-canary.2
+- @ai-sdk/ui-utils@2.0.0-canary.2
+
 ## 2.0.0-canary.1
 
 ### Patch Changes
