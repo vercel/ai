@@ -45,7 +45,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -85,7 +85,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -125,7 +125,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -169,7 +169,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -217,7 +217,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -403,7 +403,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -450,7 +450,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -501,7 +501,7 @@ describe('output = "object"', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
