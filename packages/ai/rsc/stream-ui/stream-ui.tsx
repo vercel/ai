@@ -266,15 +266,12 @@ functionality that can be fully encapsulated in the provider.
   });
   const result = await retry(async () =>
     model.doStream({
-      mode: {
-        type: 'regular',
-        ...prepareToolsAndToolChoice({
-          tools,
-          toolChoice,
-          activeTools: undefined,
-        }),
-      },
       ...prepareCallSettings(settings),
+      ...prepareToolsAndToolChoice({
+        tools,
+        toolChoice,
+        activeTools: undefined,
+      }),
       inputFormat: validatedPrompt.type,
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
