@@ -1,7 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { experimental_transcribe as transcribe } from 'ai';
 import 'dotenv/config';
-import { readFile } from 'fs/promises';
 
 async function main() {
   const result = await transcribe({
