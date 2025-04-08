@@ -1,4 +1,12 @@
 import {
+  JSONObject,
+  LanguageModelV2Message,
+  LanguageModelV2Prompt,
+  LanguageModelV2ProviderMetadata,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
+import {
   BEDROCK_CACHE_POINT,
   BedrockAssistantMessage,
   BedrockCachePoint,
@@ -8,17 +16,6 @@ import {
   BedrockSystemMessages,
   BedrockUserMessage,
 } from './bedrock-api-types';
-import {
-  JSONObject,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
-  LanguageModelV2ProviderMetadata,
-  UnsupportedFunctionalityError,
-} from '@ai-sdk/provider';
-import {
-  convertUint8ArrayToBase64,
-  createIdGenerator,
-} from '@ai-sdk/provider-utils';
 
 const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 

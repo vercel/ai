@@ -4,6 +4,7 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
 } from '@ai-sdk/provider';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
 import {
@@ -19,7 +20,6 @@ import {
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { splitDataUrl } from './split-data-url';
 import { StandardizedPrompt } from './standardize-prompt';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 export async function convertToLanguageModelPrompt({
   prompt,

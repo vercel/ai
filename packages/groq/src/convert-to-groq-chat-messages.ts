@@ -2,7 +2,6 @@ import {
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { GroqChatPrompt } from './groq-api-types';
 
 export function convertToGroqChatMessages(
@@ -30,23 +29,24 @@ export function convertToGroqChatMessages(
               case 'text': {
                 return { type: 'text', text: part.text };
               }
-              case 'image': {
+              case 'file': {
+                if (!part.mimeType.startsWith('image/')) {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: 'Non-image file content parts',
+                  });
+                }
+
                 return {
                   type: 'image_url',
                   image_url: {
                     url:
-                      part.image instanceof URL
-                        ? part.image.toString()
+                      part.data instanceof URL
+                        ? part.data.toString()
                         : `data:${
                             part.mimeType ?? 'image/jpeg'
-                          };base64,${convertUint8ArrayToBase64(part.image)}`,
+                          };base64,${part.data}`,
                   },
                 };
-              }
-              case 'file': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'File content parts in user messages',
-                });
               }
             }
           }),
