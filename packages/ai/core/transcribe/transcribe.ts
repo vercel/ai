@@ -1,17 +1,17 @@
-import { TranscriptionModelV1, JSONValue } from '@ai-sdk/provider';
+import { JSONValue, TranscriptionModelV1 } from '@ai-sdk/provider';
 import { NoTranscriptGeneratedError } from '../../errors/no-transcript-generated-error';
-import { prepareRetries } from '../prompt/prepare-retries';
-import { TranscriptionWarning } from '../types/transcription-model';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
-import { TranscriptionResult } from './transcribe-result';
+import { download } from '../../util/download';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { download } from '../../util/download';
+import { prepareRetries } from '../prompt/prepare-retries';
+import { ProviderOptions } from '../types/provider-metadata';
+import { TranscriptionWarning } from '../types/transcription-model';
+import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMimeTypeSignatures,
   detectMimeType,
 } from '../util/detect-mimetype';
-import { ProviderOptions } from '../types/provider-metadata';
+import { TranscriptionResult } from './transcribe-result';
 
 /**
 Generates transcripts using a transcription model.
@@ -81,7 +81,7 @@ Only applicable for HTTP-based providers.
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
   const audioData =
     audio instanceof URL
-      ? new Uint8Array((await download({ url: audio })).data)
+      ? (await download({ url: audio })).data
       : convertDataContentToUint8Array(audio);
 
   const result = await retry(() =>
@@ -90,7 +90,7 @@ Only applicable for HTTP-based providers.
       abortSignal,
       headers,
       providerOptions,
-      mimeType:
+      mediaType:
         detectMimeType({
           data: audioData,
           signatures: audioMimeTypeSignatures,
