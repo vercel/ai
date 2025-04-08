@@ -117,13 +117,23 @@ An optional signature for verifying that the reasoning originated from the model
     /**
 Generated files as base64 encoded strings or binary data.
 The files should be returned without any unnecessary conversion.
-If the API returns base64 encoded strings, the files should be returned
-as base64 encoded strings. If the API returns binary data, the files should
-be returned as binary data.
      */
     files?: Array<{
+      /**
+Generated file data as base64 encoded strings or binary data.
+The file data should be returned without any unnecessary conversion.
+If the API returns base64 encoded strings, the file data should be returned
+as base64 encoded strings. If the API returns binary data, the file data should
+be returned as binary data.
+       */
       data: string | Uint8Array;
-      mimeType: string;
+
+      /**
+The IANA media type of the file.
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
+       */
+      mediaType: string;
     }>;
 
     /**
@@ -307,7 +317,13 @@ export type LanguageModelV2StreamPart =
   // Files:
   | {
       type: 'file';
-      mimeType: string;
+
+      /**
+The IANA media type of the file.
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
+       */
+      mediaType: string;
 
       /**
 Generated file data as base64 encoded strings or binary data.
