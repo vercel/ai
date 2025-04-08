@@ -699,7 +699,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         }
 
         const {
-          result: { stream, warnings, response: response, request },
+          result: { stream, warnings, response, request },
           doStreamSpan,
           startTimestampMs,
         } = await retry(() =>
