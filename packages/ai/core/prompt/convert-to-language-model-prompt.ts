@@ -350,12 +350,12 @@ function convertPartToLanguageModelPart(
 
       return {
         type: 'file',
+        mimeType: mimeType ?? 'image/*', // any image
+        filename: undefined,
         data:
           normalizedData instanceof Uint8Array
             ? convertUint8ArrayToBase64(normalizedData) // TODO prevent double conversion
             : normalizedData,
-        mimeType: mimeType ?? 'image/*', // any image
-        filename: undefined,
         providerOptions:
           part.providerOptions ?? part.experimental_providerMetadata,
       };
@@ -369,12 +369,12 @@ function convertPartToLanguageModelPart(
 
       return {
         type: 'file',
+        mimeType,
+        filename: part.filename,
         data:
           normalizedData instanceof Uint8Array
             ? convertDataContentToBase64String(normalizedData)
             : normalizedData,
-        filename: part.filename,
-        mimeType,
         providerOptions:
           part.providerOptions ?? part.experimental_providerMetadata,
       };
