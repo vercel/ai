@@ -73,7 +73,7 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       audio: audioData,
-      mimeType: 'audio/wav',
+      mediaType: 'audio/wav',
     });
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
@@ -95,7 +95,7 @@ describe('doGenerate', () => {
 
     await provider.transcription('whisper-1').doGenerate({
       audio: audioData,
-      mimeType: 'audio/wav',
+      mediaType: 'audio/wav',
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -118,7 +118,7 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       audio: audioData,
-      mimeType: 'audio/wav',
+      mediaType: 'audio/wav',
     });
 
     expect(result.text).toBe('Hello from the Vercel AI SDK!');
@@ -144,7 +144,7 @@ describe('doGenerate', () => {
 
     const result = await customModel.doGenerate({
       audio: audioData,
-      mimeType: 'audio/wav',
+      mediaType: 'audio/wav',
     });
 
     expect(result.response).toMatchObject({
@@ -173,10 +173,64 @@ describe('doGenerate', () => {
 
     const result = await customModel.doGenerate({
       audio: audioData,
-      mimeType: 'audio/wav',
+      mediaType: 'audio/wav',
     });
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
     expect(result.response.modelId).toBe('whisper-1');
+  });
+
+  it('should work when no words, language, or duration are returned', async () => {
+    server.urls['https://api.openai.com/v1/audio/transcriptions'].response = {
+      type: 'json-value',
+      body: {
+        task: 'transcribe',
+        text: 'Hello from the Vercel AI SDK!',
+        _request_id: 'req_1234',
+      },
+    };
+
+    const testDate = new Date(0);
+    const customModel = new OpenAITranscriptionModel('whisper-1', {
+      provider: 'test-provider',
+      url: () => 'https://api.openai.com/v1/audio/transcriptions',
+      headers: () => ({}),
+      _internal: {
+        currentDate: () => testDate,
+      },
+    });
+
+    const result = await customModel.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "durationInSeconds": undefined,
+        "language": undefined,
+        "providerMetadata": {
+          "openai": {
+            "transcript": {
+              "text": "Hello from the Vercel AI SDK!",
+            },
+          },
+        },
+        "response": {
+          "body": {
+            "text": "Hello from the Vercel AI SDK!",
+          },
+          "headers": {
+            "content-length": "85",
+            "content-type": "application/json",
+          },
+          "modelId": "whisper-1",
+          "timestamp": 1970-01-01T00:00:00.000Z,
+        },
+        "segments": [],
+        "text": "Hello from the Vercel AI SDK!",
+        "warnings": [],
+      }
+    `);
   });
 });

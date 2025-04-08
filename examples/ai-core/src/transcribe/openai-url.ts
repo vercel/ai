@@ -6,8 +6,7 @@ async function main() {
   const result = await transcribe({
     model: openai.transcription('whisper-1'),
     audio: new URL(
-      '/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
-      'https://github.com',
+      'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
     ),
   });
 
