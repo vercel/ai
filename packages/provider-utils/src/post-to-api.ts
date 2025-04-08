@@ -41,6 +41,36 @@ export const postJsonToApi = async <T>({
     fetch,
   });
 
+export const postFormDataToApi = async <T>({
+  url,
+  headers,
+  formData,
+  failedResponseHandler,
+  successfulResponseHandler,
+  abortSignal,
+  fetch,
+}: {
+  url: string;
+  headers?: Record<string, string | undefined>;
+  formData: FormData;
+  failedResponseHandler: ResponseHandler<APICallError>;
+  successfulResponseHandler: ResponseHandler<T>;
+  abortSignal?: AbortSignal;
+  fetch?: FetchFunction;
+}) =>
+  postToApi({
+    url,
+    headers,
+    body: {
+      content: formData,
+      values: Object.fromEntries((formData as any).entries()),
+    },
+    failedResponseHandler,
+    successfulResponseHandler,
+    abortSignal,
+    fetch,
+  });
+
 export const postToApi = async <T>({
   url,
   headers = {},
