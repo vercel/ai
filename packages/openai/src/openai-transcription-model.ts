@@ -197,7 +197,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = this.getArgs(options);
 
-    const { value: response, responseHeaders } = await postFormDataToApi({
+    const {
+      value: response,
+      responseHeaders,
+      rawValue: rawResponse,
+    } = await postFormDataToApi({
       url: this.config.url({
         path: '/audio/transcriptions',
         modelId: this.modelId,
@@ -232,15 +236,9 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
-        body: response,
+        body: rawResponse,
       },
-
-      // When using format `verbose_json` on `whisper-1`, OpenAI includes the things like `task` and enhanced `segments` information.
-      providerMetadata: {
-        openai: {
-          transcript: response,
-        },
-      },
+      providerMetadata: {},
     };
   }
 }

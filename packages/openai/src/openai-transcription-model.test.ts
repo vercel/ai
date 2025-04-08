@@ -209,15 +209,11 @@ describe('doGenerate', () => {
       {
         "durationInSeconds": undefined,
         "language": undefined,
-        "providerMetadata": {
-          "openai": {
-            "transcript": {
-              "text": "Hello from the Vercel AI SDK!",
-            },
-          },
-        },
+        "providerMetadata": {},
         "response": {
           "body": {
+            "_request_id": "req_1234",
+            "task": "transcribe",
             "text": "Hello from the Vercel AI SDK!",
           },
           "headers": {
