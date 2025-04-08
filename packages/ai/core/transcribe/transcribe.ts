@@ -14,10 +14,10 @@ import {
 import { ProviderOptions } from '../types/provider-metadata';
 
 /**
-Generates transcripts using a transcript model.
+Generates transcripts using a transcription model.
 
 @param model - The transcription model to use.
-@param audio - The audio data to transcribe as DataContent (string | Uint8Array<ArrayBufferLike> | ArrayBuffer | Buffer<ArrayBufferLike>).
+@param audio - The audio data to transcribe as DataContent (string | Uint8Array | ArrayBuffer | Buffer) or a URL.
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
