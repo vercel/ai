@@ -141,12 +141,12 @@ For example, a tool that searches for courses can return a list of courses, whil
 
 ## Rendering User Interfaces on the Server
 
-The **AI SDK RSC (`ai/rsc`)** takes advantage of RSCs to solve the problem of managing all your React components on the client side, allowing you to render React components on the server and stream them to the client.
+The **AI SDK RSC (`@ai-sdk/rsc`)** takes advantage of RSCs to solve the problem of managing all your React components on the client side, allowing you to render React components on the server and stream them to the client.
 
 Rather than conditionally rendering user interfaces on the client based on the data returned by the language model, you can directly stream them from the server during a model generation.
 
 ```tsx highlight="3,22-31,38" filename="app/action.ts"
-import { createStreamableUI } from 'ai/rsc'
+import { createStreamableUI } from '@ai-sdk/rsc'
 
 const uiStream = createStreamableUI();
 
@@ -187,7 +187,7 @@ return {
 }
 ```
 
-The [`createStreamableUI`](/docs/reference/ai-sdk-rsc/create-streamable-ui) function belongs to the `ai/rsc` module and creates a stream that can send React components to the client.
+The [`createStreamableUI`](/docs/reference/ai-sdk-rsc/create-streamable-ui) function belongs to the `@ai-sdk/rsc` module and creates a stream that can send React components to the client.
 
 On the server, you render the `<WeatherCard/>` component with the props passed to it, and then stream it to the client. On the client side, you only need to render the UI that is streamed from the server.
 

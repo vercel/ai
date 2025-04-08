@@ -7,7 +7,6 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['rsc/**/*.ui.test.ts{,x}'],
-    exclude: ['**/node_modules/**'],
+    include: ['src/**/*.ui.test.ts', 'src/**/*.ui.test.tsx'],
   },
 });

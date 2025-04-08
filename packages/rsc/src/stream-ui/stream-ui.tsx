@@ -2,29 +2,29 @@ import { LanguageModelV2 } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { ReactNode } from 'react';
 import { z } from 'zod';
-import { CallSettings } from '../../core/prompt/call-settings';
-import { convertToLanguageModelPrompt } from '../../core/prompt/convert-to-language-model-prompt';
-import { prepareCallSettings } from '../../core/prompt/prepare-call-settings';
-import { prepareRetries } from '../../core/prompt/prepare-retries';
-import { prepareToolsAndToolChoice } from '../../core/prompt/prepare-tools-and-tool-choice';
-import { Prompt } from '../../core/prompt/prompt';
-import { standardizePrompt } from '../../core/prompt/standardize-prompt';
 import {
   CallWarning,
   FinishReason,
   ProviderMetadata,
-  ToolChoice,
-} from '../../core/types';
-import { ProviderOptions } from '../../core/types/provider-metadata';
-import {
+  ProviderOptions,
   LanguageModelUsage,
+  ToolChoice,
+  Prompt,
+  CallSettings,
+  InvalidToolArgumentsError,
+  NoSuchToolError,
+} from 'ai';
+import {
   calculateLanguageModelUsage,
-} from '../../core/types/usage';
-import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
-import { NoSuchToolError } from '../../errors/no-such-tool-error';
-import { createResolvablePromise } from '../../util/create-resolvable-promise';
-import { isAsyncGenerator } from '../../util/is-async-generator';
-import { isGenerator } from '../../util/is-generator';
+  standardizePrompt,
+  prepareToolsAndToolChoice,
+  prepareRetries,
+  prepareCallSettings,
+  convertToLanguageModelPrompt,
+} from 'ai/internal';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
+import { isAsyncGenerator } from '../util/is-async-generator';
+import { isGenerator } from '../util/is-generator';
 import { createStreamableUI } from '../streamable-ui/create-streamable-ui';
 
 type Streamable = ReactNode | Promise<ReactNode>;
