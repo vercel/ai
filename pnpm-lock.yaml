@@ -1785,6 +1785,9 @@ importers:
       '@ai-sdk/provider':
         specifier: 2.0.0-canary.1
         version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: 3.0.0-canary.2
+        version: link:../provider-utils
       ai:
         specifier: 5.0.0-canary.3
         version: link:../ai

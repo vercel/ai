@@ -40,6 +40,7 @@
   "dependencies": {
     "ai": "5.0.0-canary.3",
     "@ai-sdk/provider": "2.0.0-canary.1",
+    "@ai-sdk/provider-utils": "3.0.0-canary.2",
     "jsondiffpatch": "0.6.0"
   },
   "devDependencies": {
