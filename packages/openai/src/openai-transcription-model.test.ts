@@ -61,8 +61,8 @@ describe('doGenerate', () => {
             end: 35,
           },
         ],
-        duration: 35,
-        language: 'english',
+        durationInSeconds: 35,
+        language: 'en',
         _request_id: 'req_1234',
       },
     };
