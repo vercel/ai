@@ -8,9 +8,9 @@ import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
 import {
-  detectMimeType,
-  imageMimeTypeSignatures,
-} from '../util/detect-mimetype';
+  detectMediaType,
+  imageMediaTypeSignatures,
+} from '../util/detect-media-type';
 import { FilePart, ImagePart, TextPart } from './content-part';
 import {
   convertDataContentToBase64String,
@@ -60,7 +60,7 @@ export function convertToLanguageModelMessage(
   message: CoreMessage,
   downloadedAssets: Record<
     string,
-    { mimeType: string | undefined; data: Uint8Array }
+    { mediaType: string | undefined; data: Uint8Array }
   >,
 ): LanguageModelV2Message {
   const role = message.role;
@@ -125,7 +125,7 @@ export function convertToLanguageModelMessage(
                       ? part.data
                       : convertDataContentToBase64String(part.data),
                   filename: part.filename,
-                  mimeType: part.mimeType,
+                  mediaType: part.mediaType ?? part.mimeType,
                   providerOptions,
                 };
               }
@@ -200,7 +200,9 @@ async function downloadAssets(
   downloadImplementation: typeof download,
   modelSupportsImageUrls: boolean | undefined,
   modelSupportsUrl: (url: URL) => boolean,
-): Promise<Record<string, { mimeType: string | undefined; data: Uint8Array }>> {
+): Promise<
+  Record<string, { mediaType: string | undefined; data: Uint8Array }>
+> {
   const urls = messages
     .filter(message => message.role === 'user')
     .map(message => message.content)
@@ -259,7 +261,7 @@ function convertPartToLanguageModelPart(
   part: TextPart | ImagePart | FilePart,
   downloadedAssets: Record<
     string,
-    { mimeType: string | undefined; data: Uint8Array }
+    { mediaType: string | undefined; data: Uint8Array }
   >,
 ): LanguageModelV2TextPart | LanguageModelV2FilePart {
   if (part.type === 'text') {
@@ -271,7 +273,7 @@ function convertPartToLanguageModelPart(
     };
   }
 
-  let mimeType: string | undefined = part.mimeType;
+  let mediaType: string | undefined = part.mediaType ?? part.mimeType;
   let data: DataContent | URL;
   let content: DataContent | URL | string;
   let normalizedData: Uint8Array | URL;
@@ -302,15 +304,15 @@ function convertPartToLanguageModelPart(
   if (content instanceof URL) {
     // If the content is a data URL, we want to convert that to a Uint8Array
     if (content.protocol === 'data:') {
-      const { mimeType: dataUrlMimeType, base64Content } = splitDataUrl(
+      const { mediaType: dataUrlMediaType, base64Content } = splitDataUrl(
         content.toString(),
       );
 
-      if (dataUrlMimeType == null || base64Content == null) {
+      if (dataUrlMediaType == null || base64Content == null) {
         throw new Error(`Invalid data URL format in part ${type}`);
       }
 
-      mimeType = dataUrlMimeType;
+      mediaType = dataUrlMediaType;
       normalizedData = convertDataContentToUint8Array(base64Content);
     } else {
       /**
@@ -321,7 +323,7 @@ function convertPartToLanguageModelPart(
       const downloadedFile = downloadedAssets[content.toString()];
       if (downloadedFile) {
         normalizedData = downloadedFile.data;
-        mimeType ??= downloadedFile.mimeType;
+        mediaType ??= downloadedFile.mediaType;
       } else {
         normalizedData = content;
       }
@@ -336,21 +338,21 @@ function convertPartToLanguageModelPart(
   // we can create the LanguageModelV2Part.
   switch (type) {
     case 'image': {
-      // When possible, try to detect the mimetype automatically
-      // to deal with incorrect mimetype inputs.
-      // When detection fails, use provided mimetype.
+      // When possible, try to detect the media type automatically
+      // to deal with incorrect media type inputs.
+      // When detection fails, use provided media type.
 
       if (normalizedData instanceof Uint8Array) {
-        mimeType =
-          detectMimeType({
+        mediaType =
+          detectMediaType({
             data: normalizedData,
-            signatures: imageMimeTypeSignatures,
-          }) ?? mimeType;
+            signatures: imageMediaTypeSignatures,
+          }) ?? mediaType;
       }
 
       return {
         type: 'file',
-        mimeType: mimeType ?? 'image/*', // any image
+        mediaType: mediaType ?? 'image/*', // any image
         filename: undefined,
         data:
           normalizedData instanceof Uint8Array
@@ -362,14 +364,14 @@ function convertPartToLanguageModelPart(
     }
 
     case 'file': {
-      // We should have a mimeType at this point, if not, throw an error.
-      if (mimeType == null) {
-        throw new Error(`Mime type is missing for file part`);
+      // We should have a mediaType at this point, if not, throw an error.
+      if (mediaType == null) {
+        throw new Error(`Media type is missing for file part`);
       }
 
       return {
         type: 'file',
-        mimeType,
+        mediaType,
         filename: part.filename,
         data:
           normalizedData instanceof Uint8Array

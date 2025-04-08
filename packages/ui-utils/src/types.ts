@@ -191,8 +191,23 @@ export type SourceUIPart = {
  */
 export type FileUIPart = {
   type: 'file';
-  mimeType: string;
-  data: string; // base64 encoded data
+
+  /**
+   * IANA media type of the file.
+   *
+   * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+   */
+  mediaType: string;
+
+  /**
+   * @deprecated Use `mediaType` instead.
+   */
+  mimeType?: string;
+
+  /**
+   * The base64 encoded data.
+   */
+  data: string;
 };
 
 /**

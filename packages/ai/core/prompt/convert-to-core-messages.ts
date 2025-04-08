@@ -82,9 +82,16 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
 
             for (const part of block) {
               switch (part.type) {
-                case 'file':
                 case 'text': {
                   content.push(part);
+                  break;
+                }
+                case 'file': {
+                  content.push({
+                    type: 'file' as const,
+                    data: part.data,
+                    mediaType: part.mediaType ?? part.mimeType,
+                  });
                   break;
                 }
                 case 'reasoning': {

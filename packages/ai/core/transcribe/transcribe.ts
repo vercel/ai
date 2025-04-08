@@ -8,9 +8,9 @@ import { ProviderOptions } from '../types/provider-metadata';
 import { TranscriptionWarning } from '../types/transcription-model';
 import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
-  audioMimeTypeSignatures,
-  detectMimeType,
-} from '../util/detect-mimetype';
+  audioMediaTypeSignatures,
+  detectMediaType,
+} from '../util/detect-media-type';
 import { TranscriptionResult } from './transcribe-result';
 
 /**
@@ -91,9 +91,9 @@ Only applicable for HTTP-based providers.
       headers,
       providerOptions,
       mediaType:
-        detectMimeType({
+        detectMediaType({
           data: audioData,
-          signatures: audioMimeTypeSignatures,
+          signatures: audioMediaTypeSignatures,
         }) ?? 'audio/wav',
     }),
   );

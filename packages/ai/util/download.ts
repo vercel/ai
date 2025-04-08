@@ -2,7 +2,7 @@ import { DownloadError } from './download-error';
 
 export async function download({ url }: { url: URL }): Promise<{
   data: Uint8Array;
-  mimeType: string | undefined;
+  mediaType: string | undefined;
 }> {
   const urlText = url.toString();
   try {
@@ -18,7 +18,7 @@ export async function download({ url }: { url: URL }): Promise<{
 
     return {
       data: new Uint8Array(await response.arrayBuffer()),
-      mimeType: response.headers.get('content-type') ?? undefined,
+      mediaType: response.headers.get('content-type') ?? undefined,
     };
   } catch (error) {
     if (DownloadError.isInstance(error)) {

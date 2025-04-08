@@ -46,11 +46,11 @@ const modelWithFiles = new MockLanguageModelV2({
     files: [
       {
         data: new Uint8Array([1, 2, 3]),
-        mimeType: 'image/png',
+        mediaType: 'image/png',
       },
       {
         data: 'QkFVRw==',
-        mimeType: 'image/jpeg',
+        mediaType: 'image/jpeg',
       },
     ],
   }),
@@ -750,7 +750,7 @@ describe('options.maxSteps', () => {
                   files: [
                     {
                       data: new Uint8Array([1, 2, 3]),
-                      mimeType: 'image/png',
+                      mediaType: 'image/png',
                       filename: 'test.png',
                     },
                   ],
@@ -856,7 +856,7 @@ describe('options.maxSteps', () => {
                   files: [
                     {
                       data: 'QkFVRw==',
-                      mimeType: 'image/jpeg',
+                      mediaType: 'image/jpeg',
                       filename: 'test.jpeg',
                     },
                   ],

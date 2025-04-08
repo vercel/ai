@@ -411,7 +411,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "files": [
       DefaultGeneratedFile {
         "base64Data": undefined,
-        "mimeType": "image/png",
+        "mediaType": "image/png",
         "uint8ArrayData": Uint8Array [
           1,
           2,
@@ -554,7 +554,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "files": [
       DefaultGeneratedFile {
         "base64Data": "QkFVRw==",
-        "mimeType": "image/jpeg",
+        "mediaType": "image/jpeg",
         "uint8ArrayData": undefined,
       },
     ],
@@ -618,7 +618,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
 [
   DefaultGeneratedFile {
     "base64Data": "QkFVRw==",
-    "mimeType": "image/jpeg",
+    "mediaType": "image/jpeg",
     "uint8ArrayData": undefined,
   },
 ]
@@ -712,7 +712,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "files": [
       DefaultGeneratedFile {
         "base64Data": undefined,
-        "mimeType": "image/png",
+        "mediaType": "image/png",
         "uint8ArrayData": Uint8Array [
           1,
           2,
@@ -855,7 +855,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "files": [
       DefaultGeneratedFile {
         "base64Data": "QkFVRw==",
-        "mimeType": "image/jpeg",
+        "mediaType": "image/jpeg",
         "uint8ArrayData": undefined,
       },
     ],
@@ -919,7 +919,7 @@ exports[`result.files > should contain files 1`] = `
 [
   DefaultGeneratedFile {
     "base64Data": undefined,
-    "mimeType": "image/png",
+    "mediaType": "image/png",
     "uint8ArrayData": Uint8Array [
       1,
       2,
@@ -928,7 +928,7 @@ exports[`result.files > should contain files 1`] = `
   },
   DefaultGeneratedFile {
     "base64Data": "QkFVRw==",
-    "mimeType": "image/jpeg",
+    "mediaType": "image/jpeg",
     "uint8ArrayData": undefined,
   },
 ]
@@ -1155,7 +1155,7 @@ exports[`result.steps > should contain files 1`] = `
     "files": [
       DefaultGeneratedFile {
         "base64Data": undefined,
-        "mimeType": "image/png",
+        "mediaType": "image/png",
         "uint8ArrayData": Uint8Array [
           1,
           2,
@@ -1164,7 +1164,7 @@ exports[`result.steps > should contain files 1`] = `
       },
       DefaultGeneratedFile {
         "base64Data": "QkFVRw==",
-        "mimeType": "image/jpeg",
+        "mediaType": "image/jpeg",
         "uint8ArrayData": undefined,
       },
     ],
@@ -1184,12 +1184,12 @@ exports[`result.steps > should contain files 1`] = `
           "content": [
             {
               "data": "AQID",
-              "mimeType": "image/png",
+              "mediaType": "image/png",
               "type": "file",
             },
             {
               "data": "QkFVRw==",
-              "mimeType": "image/jpeg",
+              "mediaType": "image/jpeg",
               "type": "file",
             },
             {

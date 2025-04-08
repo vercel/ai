@@ -42,7 +42,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
       ...files.map(file => ({
         type: 'file' as const,
         data: file.base64,
-        mimeType: file.mimeType,
+        mediaType: file.mediaType,
       })),
       { type: 'text' as const, text },
       ...toolCalls,

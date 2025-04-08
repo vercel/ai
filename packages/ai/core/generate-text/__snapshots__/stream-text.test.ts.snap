@@ -2396,13 +2396,13 @@ exports[`streamText > options.onFinish > should send files 1`] = `
   "files": [
     DefaultGeneratedFileWithType {
       "base64Data": "Hello World",
-      "mimeType": "text/plain",
+      "mediaType": undefined,
       "type": "file",
       "uint8ArrayData": undefined,
     },
     DefaultGeneratedFileWithType {
       "base64Data": "QkFVRw==",
-      "mimeType": "image/jpeg",
+      "mediaType": undefined,
       "type": "file",
       "uint8ArrayData": undefined,
     },
@@ -2421,12 +2421,12 @@ exports[`streamText > options.onFinish > should send files 1`] = `
         "content": [
           {
             "data": "Hello World",
-            "mimeType": "text/plain",
+            "mediaType": undefined,
             "type": "file",
           },
           {
             "data": "QkFVRw==",
-            "mimeType": "image/jpeg",
+            "mediaType": undefined,
             "type": "file",
           },
           {
@@ -2448,13 +2448,13 @@ exports[`streamText > options.onFinish > should send files 1`] = `
       "files": [
         DefaultGeneratedFileWithType {
           "base64Data": "Hello World",
-          "mimeType": "text/plain",
+          "mediaType": undefined,
           "type": "file",
           "uint8ArrayData": undefined,
         },
         DefaultGeneratedFileWithType {
           "base64Data": "QkFVRw==",
-          "mimeType": "image/jpeg",
+          "mediaType": undefined,
           "type": "file",
           "uint8ArrayData": undefined,
         },
@@ -2474,12 +2474,12 @@ exports[`streamText > options.onFinish > should send files 1`] = `
             "content": [
               {
                 "data": "Hello World",
-                "mimeType": "text/plain",
+                "mediaType": undefined,
                 "type": "file",
               },
               {
                 "data": "QkFVRw==",
-                "mimeType": "image/jpeg",
+                "mediaType": undefined,
                 "type": "file",
               },
               {
@@ -3217,13 +3217,13 @@ exports[`streamText > result.files > should contain files 1`] = `
 [
   DefaultGeneratedFileWithType {
     "base64Data": "Hello World",
-    "mimeType": "text/plain",
+    "mediaType": undefined,
     "type": "file",
     "uint8ArrayData": undefined,
   },
   DefaultGeneratedFileWithType {
     "base64Data": "QkFVRw==",
-    "mimeType": "image/jpeg",
+    "mediaType": undefined,
     "type": "file",
     "uint8ArrayData": undefined,
   },
@@ -3430,7 +3430,7 @@ exports[`streamText > result.fullStream > should send files 1`] = `
   },
   DefaultGeneratedFileWithType {
     "base64Data": "Hello World",
-    "mimeType": "text/plain",
+    "mediaType": undefined,
     "type": "file",
     "uint8ArrayData": undefined,
   },
@@ -3440,7 +3440,7 @@ exports[`streamText > result.fullStream > should send files 1`] = `
   },
   DefaultGeneratedFileWithType {
     "base64Data": "QkFVRw==",
-    "mimeType": "image/jpeg",
+    "mediaType": undefined,
     "type": "file",
     "uint8ArrayData": undefined,
   },
@@ -4153,11 +4153,11 @@ exports[`streamText > result.pipeDataStreamToResponse > should write file conten
 [
   "f:{"messageId":"msg-0"}
 ",
-  "k:{"mimeType":"text/plain","data":"Hello World"}
+  "k:{"data":"Hello World"}
 ",
   "0:"Hello!"
 ",
-  "k:{"mimeType":"image/jpeg","data":"QkFVRw=="}
+  "k:{"data":"QkFVRw=="}
 ",
   "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
@@ -4369,13 +4369,13 @@ exports[`streamText > result.steps > should add the files from the model respons
     "files": [
       DefaultGeneratedFileWithType {
         "base64Data": "Hello World",
-        "mimeType": "text/plain",
+        "mediaType": undefined,
         "type": "file",
         "uint8ArrayData": undefined,
       },
       DefaultGeneratedFileWithType {
         "base64Data": "QkFVRw==",
-        "mimeType": "image/jpeg",
+        "mediaType": undefined,
         "type": "file",
         "uint8ArrayData": undefined,
       },
@@ -4395,12 +4395,12 @@ exports[`streamText > result.steps > should add the files from the model respons
           "content": [
             {
               "data": "Hello World",
-              "mimeType": "text/plain",
+              "mediaType": undefined,
               "type": "file",
             },
             {
               "data": "QkFVRw==",
-              "mimeType": "image/jpeg",
+              "mediaType": undefined,
               "type": "file",
             },
             {
@@ -4636,11 +4636,11 @@ exports[`streamText > result.toDataStream > should send file content 1`] = `
 [
   "f:{"messageId":"msg-0"}
 ",
-  "k:{"mimeType":"text/plain","data":"Hello World"}
+  "k:{"data":"Hello World"}
 ",
   "0:"Hello!"
 ",
-  "k:{"mimeType":"image/jpeg","data":"QkFVRw=="}
+  "k:{"data":"QkFVRw=="}
 ",
   "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",

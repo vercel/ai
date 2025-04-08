@@ -23,7 +23,7 @@ describe('download', () => {
     });
 
     expect(result.data).toEqual(expectedBytes);
-    expect(result.mimeType).toBe('application/octet-stream');
+    expect(result.mediaType).toBe('application/octet-stream');
   });
 
   it('should throw DownloadError when response is not ok', async () => {
