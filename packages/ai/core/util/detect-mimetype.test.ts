@@ -327,7 +327,17 @@ describe('detectMimeType', () => {
       ).toBeUndefined();
     });
 
-    it('should return undefined for empty arrays', () => {
+    it('should return undefined for unknown audio formats', () => {
+      const unknownBytes = new Uint8Array([0x00, 0x01, 0x02, 0x03]);
+      expect(
+        detectMimeType({
+          data: unknownBytes,
+          signatures: audioMimeTypeSignatures,
+        }),
+      ).toBeUndefined();
+    });
+
+    it('should return undefined for empty arrays for image', () => {
       const emptyBytes = new Uint8Array([]);
       expect(
         detectMimeType({
@@ -337,7 +347,17 @@ describe('detectMimeType', () => {
       ).toBeUndefined();
     });
 
-    it('should return undefined for arrays shorter than signature length', () => {
+    it('should return undefined for empty arrays for audio', () => {
+      const emptyBytes = new Uint8Array([]);
+      expect(
+        detectMimeType({
+          data: emptyBytes,
+          signatures: audioMimeTypeSignatures,
+        }),
+      ).toBeUndefined();
+    });
+
+    it('should return undefined for arrays shorter than signature length for image', () => {
       const shortBytes = new Uint8Array([0x89, 0x50]); // Incomplete PNG signature
       expect(
         detectMimeType({
@@ -347,12 +367,32 @@ describe('detectMimeType', () => {
       ).toBeUndefined();
     });
 
-    it('should return undefined for invalid base64 strings', () => {
+    it('should return undefined for arrays shorter than signature length for audio', () => {
+      const shortBytes = new Uint8Array([0x4f, 0x67]); // Incomplete OGG signature
+      expect(
+        detectMimeType({
+          data: shortBytes,
+          signatures: audioMimeTypeSignatures,
+        }),
+      ).toBeUndefined();
+    });
+
+    it('should return undefined for invalid base64 strings for image', () => {
       const invalidBase64 = 'invalid123';
       expect(
         detectMimeType({
           data: invalidBase64,
           signatures: imageMimeTypeSignatures,
+        }),
+      ).toBeUndefined();
+    });
+
+    it('should return undefined for invalid base64 strings for audio', () => {
+      const invalidBase64 = 'invalid123';
+      expect(
+        detectMimeType({
+          data: invalidBase64,
+          signatures: audioMimeTypeSignatures,
         }),
       ).toBeUndefined();
     });
