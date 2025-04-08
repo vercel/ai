@@ -43,6 +43,7 @@ const elevenlabs = createElevenLabs({
 ```
 
 You can use the following optional settings to customize the ElevenLabs provider instance:
+
 - **apiKey** _string_
 
   API key that is being sent using the `Authorization` header.
@@ -78,7 +79,7 @@ const model = elevenlabs.transcription('scribe_v1', {
 });
 ```
 
-You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format can sometimes improve transcription performance if known beforehand. 
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format can sometimes improve transcription performance if known beforehand.
 
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
@@ -135,7 +136,6 @@ The following provider options are available:
   Allowed values: `'pcm_s16le_16'`, `'other'`.
   For `'pcm_s16le_16'`, the input audio must be 16-bit PCM at a 16kHz sample rate, single channel (mono), and little-endian byte order.
   Latency will be lower than with passing an encoded waveform.
-
 
 ### Model Capabilities
 

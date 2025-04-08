@@ -30,7 +30,9 @@ const ElevenLabsProviderOptionsSchema = z.object({
     .boolean()
     .optional()
     .default(true)
-    .describe('Whether to tag audio events like (laughter), (footsteps), etc. in the transcription.'),
+    .describe(
+      'Whether to tag audio events like (laughter), (footsteps), etc. in the transcription.',
+    ),
   numSpeakers: z
     .number()
     .int()
@@ -51,7 +53,9 @@ const ElevenLabsProviderOptionsSchema = z.object({
     .boolean()
     .optional()
     .default(false)
-    .describe('Whether to annotate which speaker is currently talking in the uploaded file.'),
+    .describe(
+      'Whether to annotate which speaker is currently talking in the uploaded file.',
+    ),
   additionalFormats: z
     .array(
       z.union([
@@ -243,41 +247,72 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
 }
 
 const elevenlabsTranscriptionResponseSchema = z.object({
-  language_code: z.string().describe("The detected language code (e.g. 'eng' for English)."),
-  language_probability: z.number().describe("The confidence score of the language detection (0 to 1)."),
-  text: z.string().describe("The raw text of the transcription."),
+  language_code: z
+    .string()
+    .describe("The detected language code (e.g. 'eng' for English)."),
+  language_probability: z
+    .number()
+    .describe('The confidence score of the language detection (0 to 1).'),
+  text: z.string().describe('The raw text of the transcription.'),
   words: z
     .array(
       z.object({
-        text: z.string().describe("The word or sound that was transcribed."),
-        type: z.enum(["word", "spacing", "audio_event"]).describe("The type of the word or sound. 'audio_event' is used for non-word sounds like laughter or footsteps."),
-        start: z.number().optional().describe("The start time of the word or sound in seconds."),
-        end: z.number().optional().describe("The end time of the word or sound in seconds."),
-        speaker_id: z.string().optional().describe("Unique identifier for the speaker of this word."),
+        text: z.string().describe('The word or sound that was transcribed.'),
+        type: z
+          .enum(['word', 'spacing', 'audio_event'])
+          .describe(
+            "The type of the word or sound. 'audio_event' is used for non-word sounds like laughter or footsteps.",
+          ),
+        start: z
+          .number()
+          .optional()
+          .describe('The start time of the word or sound in seconds.'),
+        end: z
+          .number()
+          .optional()
+          .describe('The end time of the word or sound in seconds.'),
+        speaker_id: z
+          .string()
+          .optional()
+          .describe('Unique identifier for the speaker of this word.'),
         characters: z
           .array(
             z.object({
-              text: z.string().describe("The character that was transcribed."),
-              start: z.number().optional().describe("The start time of the character in seconds."),
-              end: z.number().optional().describe("The end time of the character in seconds."),
-            })
+              text: z.string().describe('The character that was transcribed.'),
+              start: z
+                .number()
+                .optional()
+                .describe('The start time of the character in seconds.'),
+              end: z
+                .number()
+                .optional()
+                .describe('The end time of the character in seconds.'),
+            }),
           )
           .optional()
-          .describe("The characters that make up the word and their timing information."),
-      })
+          .describe(
+            'The characters that make up the word and their timing information.',
+          ),
+      }),
     )
     .optional()
-    .describe("List of words with their timing information."),
+    .describe('List of words with their timing information.'),
   additional_formats: z
     .array(
       z.object({
-        requested_format: z.string().describe("The requested format."),
-        file_extension: z.string().describe("The file extension of the additional format."),
-        content_type: z.string().describe("The content type of the additional format."),
-        is_base64_encoded: z.boolean().describe("Whether the content is base64 encoded."),
-        content: z.string().describe("The content of the additional format."),
-      })
+        requested_format: z.string().describe('The requested format.'),
+        file_extension: z
+          .string()
+          .describe('The file extension of the additional format.'),
+        content_type: z
+          .string()
+          .describe('The content type of the additional format.'),
+        is_base64_encoded: z
+          .boolean()
+          .describe('Whether the content is base64 encoded.'),
+        content: z.string().describe('The content of the additional format.'),
+      }),
     )
     .optional()
-    .describe("Optional requested additional formats of the transcript."),
+    .describe('Optional requested additional formats of the transcript.'),
 });
