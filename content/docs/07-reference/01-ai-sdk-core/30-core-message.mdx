@@ -107,10 +107,10 @@ export interface ImagePart {
   image: DataContent | URL;
 
   /**
-   * Optional mime type of the image.
+   * Optional IANA media type of the image.
    * We recommend leaving this out as it will be detected automatically.
    */
-  mimeType?: string;
+  mediaType?: string;
 }
 ```
 
@@ -130,9 +130,9 @@ export interface FilePart {
   data: DataContent | URL;
 
   /**
-   * Mime type of the file.
+   * IANA media type of the file.
    */
-  mimeType: string;
+  mediaType: string;
 }
 ```
 

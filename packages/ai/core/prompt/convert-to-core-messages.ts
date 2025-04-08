@@ -90,7 +90,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                   content.push({
                     type: 'file' as const,
                     data: part.data,
-                    mediaType: part.mediaType ?? part.mimeType,
+                    mediaType: part.mediaType ?? (part as any).mimeType, // TODO migration, remove
                   });
                   break;
                 }

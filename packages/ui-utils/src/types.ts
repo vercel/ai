@@ -200,11 +200,6 @@ export type FileUIPart = {
   mediaType: string;
 
   /**
-   * @deprecated Use `mediaType` instead.
-   */
-  mimeType?: string;
-
-  /**
    * The base64 encoded data.
    */
   data: string;

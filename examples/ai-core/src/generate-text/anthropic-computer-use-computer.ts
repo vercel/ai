@@ -36,7 +36,7 @@ async function main() {
         experimental_toToolResultContent(result) {
           return typeof result === 'string'
             ? [{ type: 'text', text: result }]
-            : [{ type: 'image', data: result.data, mimeType: 'image/png' }];
+            : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
         },
       }),
     },

@@ -863,7 +863,7 @@ export function createFeatureTestSuite({
                         data: fs
                           .readFileSync('./data/ai.pdf')
                           .toString('base64'),
-                        mimeType: 'application/pdf',
+                        mediaType: 'application/pdf',
                       },
                     ],
                   },
@@ -897,7 +897,7 @@ export function createFeatureTestSuite({
                           data: Buffer.from(
                             fs.readFileSync('./data/galileo.mp3'),
                           ),
-                          mimeType: 'audio/mpeg',
+                          mediaType: 'audio/mpeg',
                         },
                       ],
                     },

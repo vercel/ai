@@ -144,7 +144,7 @@ const toolTests = (model: LanguageModelV2) => {
                     {
                       type: 'image',
                       data: result.data,
-                      mimeType: 'image/png',
+                      mediaType: 'image/png',
                     },
                   ];
             },
