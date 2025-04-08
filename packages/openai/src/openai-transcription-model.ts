@@ -238,7 +238,6 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
         headers: responseHeaders,
         body: rawResponse,
       },
-      providerMetadata: {},
     };
   }
 }
