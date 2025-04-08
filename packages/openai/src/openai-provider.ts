@@ -1,10 +1,9 @@
 import {
-  EmbeddingModelV2,
-  ImageModelV2,
-  LanguageModelV2,
-  ProviderV2,
-  TranscriptionModelV2,
-  SpeechModelV2,
+  EmbeddingModelV1,
+  ImageModelV1,
+  TranscriptionModelV1,
+  LanguageModelV1,
+  ProviderV1,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -12,81 +11,114 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './openai-chat-language-model';
-import { OpenAIChatModelId } from './openai-chat-options';
+import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import { OpenAICompletionLanguageModel } from './openai-completion-language-model';
-import { OpenAICompletionModelId } from './openai-completion-options';
+import {
+  OpenAICompletionModelId,
+  OpenAICompletionSettings,
+} from './openai-completion-settings';
 import { OpenAIEmbeddingModel } from './openai-embedding-model';
-import { OpenAIEmbeddingModelId } from './openai-embedding-options';
+import {
+  OpenAIEmbeddingModelId,
+  OpenAIEmbeddingSettings,
+} from './openai-embedding-settings';
 import { OpenAIImageModel } from './openai-image-model';
-import { OpenAIImageModelId } from './openai-image-settings';
-import { openaiTools } from './openai-tools';
+import {
+  OpenAIImageModelId,
+  OpenAIImageSettings,
+} from './openai-image-settings';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
-import { OpenAITranscriptionModelId } from './openai-transcription-options';
+import { OpenAITranscriptionModelId } from './openai-transcription-settings';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
-import { OpenAISpeechModel } from './openai-speech-model';
-import { OpenAISpeechModelId } from './openai-speech-options';
+import { openaiTools } from './openai-tools';
 
-export interface OpenAIProvider extends ProviderV2 {
-  (modelId: OpenAIResponsesModelId): LanguageModelV2;
+export interface OpenAIProvider extends ProviderV1 {
+  (
+    modelId: 'gpt-3.5-turbo-instruct',
+    settings?: OpenAICompletionSettings,
+  ): OpenAICompletionLanguageModel;
+  (modelId: OpenAIChatModelId, settings?: OpenAIChatSettings): LanguageModelV1;
 
   /**
 Creates an OpenAI model for text generation.
    */
-  languageModel(modelId: OpenAIResponsesModelId): OpenAIResponsesLanguageModel;
+  languageModel(
+    modelId: 'gpt-3.5-turbo-instruct',
+    settings?: OpenAICompletionSettings,
+  ): OpenAICompletionLanguageModel;
+  languageModel(
+    modelId: OpenAIChatModelId,
+    settings?: OpenAIChatSettings,
+  ): LanguageModelV1;
 
   /**
 Creates an OpenAI chat model for text generation.
    */
-  chat(modelId: OpenAIChatModelId): LanguageModelV2;
+  chat(
+    modelId: OpenAIChatModelId,
+    settings?: OpenAIChatSettings,
+  ): LanguageModelV1;
 
   /**
 Creates an OpenAI responses API model for text generation.
    */
-  responses(modelId: OpenAIResponsesModelId): LanguageModelV2;
+  responses(modelId: OpenAIResponsesModelId): LanguageModelV1;
 
   /**
 Creates an OpenAI completion model for text generation.
    */
-  completion(modelId: OpenAICompletionModelId): LanguageModelV2;
+  completion(
+    modelId: OpenAICompletionModelId,
+    settings?: OpenAICompletionSettings,
+  ): LanguageModelV1;
 
   /**
 Creates a model for text embeddings.
    */
-  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
+  embedding(
+    modelId: OpenAIEmbeddingModelId,
+    settings?: OpenAIEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
 
   /**
 Creates a model for text embeddings.
 
 @deprecated Use `textEmbeddingModel` instead.
    */
-  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
+  textEmbedding(
+    modelId: OpenAIEmbeddingModelId,
+    settings?: OpenAIEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
 
   /**
 Creates a model for text embeddings.
    */
-  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
-
-  /**
-Creates a model for image generation.
-@deprecated Use `imageModel` instead.
-   */
-  image(modelId: OpenAIImageModelId): ImageModelV2;
+  textEmbeddingModel(
+    modelId: OpenAIEmbeddingModelId,
+    settings?: OpenAIEmbeddingSettings,
+  ): EmbeddingModelV1<string>;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(modelId: OpenAIImageModelId): ImageModelV2;
+  image(
+    modelId: OpenAIImageModelId,
+    settings?: OpenAIImageSettings,
+  ): ImageModelV1;
+
+  /**
+Creates a model for image generation.
+   */
+  imageModel(
+    modelId: OpenAIImageModelId,
+    settings?: OpenAIImageSettings,
+  ): ImageModelV1;
 
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV2;
-
-  /**
-Creates a model for speech generation.
-   */
-  speech(modelId: OpenAISpeechModelId): SpeechModelV2;
+  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV1;
 
   /**
 OpenAI-specific tools.
@@ -121,6 +153,13 @@ Custom headers to include in the requests.
   headers?: Record<string, string>;
 
   /**
+OpenAI compatibility mode. Should be set to `strict` when using the OpenAI API,
+and `compatible` when using 3rd party providers. In `compatible` mode, newer
+information such as streamOptions are not being sent. Defaults to 'compatible'.
+   */
+  compatibility?: 'strict' | 'compatible';
+
+  /**
 Provider name. Overrides the `openai` default name for 3rd party providers.
    */
   name?: string;
@@ -141,6 +180,9 @@ export function createOpenAI(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://api.openai.com/v1';
 
+  // we default to compatible, because strict breaks providers like Groq:
+  const compatibility = options.compatibility ?? 'compatible';
+
   const providerName = options.name ?? 'openai';
 
   const getHeaders = () => ({
@@ -154,32 +196,46 @@ export function createOpenAI(
     ...options.headers,
   });
 
-  const createChatModel = (modelId: OpenAIChatModelId) =>
-    new OpenAIChatLanguageModel(modelId, {
+  const createChatModel = (
+    modelId: OpenAIChatModelId,
+    settings: OpenAIChatSettings = {},
+  ) =>
+    new OpenAIChatLanguageModel(modelId, settings, {
       provider: `${providerName}.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
+      compatibility,
       fetch: options.fetch,
     });
 
-  const createCompletionModel = (modelId: OpenAICompletionModelId) =>
-    new OpenAICompletionLanguageModel(modelId, {
+  const createCompletionModel = (
+    modelId: OpenAICompletionModelId,
+    settings: OpenAICompletionSettings = {},
+  ) =>
+    new OpenAICompletionLanguageModel(modelId, settings, {
       provider: `${providerName}.completion`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
+      compatibility,
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (modelId: OpenAIEmbeddingModelId) =>
-    new OpenAIEmbeddingModel(modelId, {
+  const createEmbeddingModel = (
+    modelId: OpenAIEmbeddingModelId,
+    settings: OpenAIEmbeddingSettings = {},
+  ) =>
+    new OpenAIEmbeddingModel(modelId, settings, {
       provider: `${providerName}.embedding`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const createImageModel = (modelId: OpenAIImageModelId) =>
-    new OpenAIImageModel(modelId, {
+  const createImageModel = (
+    modelId: OpenAIImageModelId,
+    settings: OpenAIImageSettings = {},
+  ) =>
+    new OpenAIImageModel(modelId, settings, {
       provider: `${providerName}.image`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -194,22 +250,24 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createSpeechModel = (modelId: OpenAISpeechModelId) =>
-    new OpenAISpeechModel(modelId, {
-      provider: `${providerName}.speech`,
-      url: ({ path }) => `${baseURL}${path}`,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
-
-  const createLanguageModel = (modelId: OpenAIResponsesModelId) => {
+  const createLanguageModel = (
+    modelId: OpenAIChatModelId | OpenAICompletionModelId,
+    settings?: OpenAIChatSettings | OpenAICompletionSettings,
+  ) => {
     if (new.target) {
       throw new Error(
         'The OpenAI model function cannot be called with the new keyword.',
       );
     }
 
-    return createResponsesModel(modelId);
+    if (modelId === 'gpt-3.5-turbo-instruct') {
+      return createCompletionModel(
+        modelId,
+        settings as OpenAICompletionSettings,
+      );
+    }
+
+    return createChatModel(modelId, settings as OpenAIChatSettings);
   };
 
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
@@ -221,8 +279,11 @@ export function createOpenAI(
     });
   };
 
-  const provider = function (modelId: OpenAIResponsesModelId) {
-    return createLanguageModel(modelId);
+  const provider = function (
+    modelId: OpenAIChatModelId | OpenAICompletionModelId,
+    settings?: OpenAIChatSettings | OpenAICompletionSettings,
+  ) {
+    return createLanguageModel(modelId, settings);
   };
 
   provider.languageModel = createLanguageModel;
@@ -239,15 +300,14 @@ export function createOpenAI(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  provider.speech = createSpeechModel;
-  provider.speechModel = createSpeechModel;
-
   provider.tools = openaiTools;
 
   return provider as OpenAIProvider;
 }
 
 /**
-Default OpenAI provider instance.
+Default OpenAI provider instance. It uses 'strict' compatibility mode.
  */
-export const openai = createOpenAI();
+export const openai = createOpenAI({
+  compatibility: 'strict', // strict for OpenAI API
+});
