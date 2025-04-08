@@ -16,13 +16,10 @@ import { ElevenLabsProvider } from '.';
 
 type ElevenLabsTranscriptionLanguageModel = {
   transcription: ElevenLabsTranscriptionModel;
-}
+};
 
 export interface ElevenLabsProvider extends ProviderV1 {
-  (
-    modelId: 'scribe_v1',
-    settings?: {},
-  ): ElevenLabsTranscriptionLanguageModel;
+  (modelId: 'scribe_v1', settings?: {}): ElevenLabsTranscriptionLanguageModel;
 
   /**
 Creates a model for transcription.
