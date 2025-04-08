@@ -6,4 +6,6 @@ export * from '../openai-embedding-model';
 export * from '../openai-embedding-settings';
 export * from '../openai-image-model';
 export * from '../openai-image-settings';
+export * from '../openai-transcription-model';
+export * from '../openai-transcription-settings';
 export * from '../responses/openai-responses-language-model';
