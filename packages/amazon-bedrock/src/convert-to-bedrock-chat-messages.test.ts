@@ -36,8 +36,8 @@ describe('system messages', () => {
 });
 
 describe('user messages', () => {
-  it('should convert messages with file, image, and text parts to multiple parts', async () => {
-    const fileData = new Uint8Array([0, 1, 2, 3]);
+  it('should convert messages with image parts', async () => {
+    const imageData = new Uint8Array([0, 1, 2, 3]);
 
     const { messages } = convertToBedrockChatMessages([
       {
@@ -45,14 +45,9 @@ describe('user messages', () => {
         content: [
           { type: 'text', text: 'Hello' },
           {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
-            mimeType: 'image/png',
-          },
-          {
             type: 'file',
-            data: Buffer.from(fileData).toString('base64'),
-            mimeType: 'application/pdf',
+            data: Buffer.from(imageData).toString('base64'),
+            mediaType: 'image/png',
           },
         ],
       },
@@ -69,6 +64,33 @@ describe('user messages', () => {
               source: { bytes: 'AAECAw==' },
             },
           },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert messages with document parts', async () => {
+    const fileData = new Uint8Array([0, 1, 2, 3]);
+
+    const { messages } = convertToBedrockChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Hello' },
+          {
+            type: 'file',
+            data: Buffer.from(fileData).toString('base64'),
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { text: 'Hello' },
           {
             document: {
               format: 'pdf',
@@ -462,7 +484,7 @@ describe('tool messages', () => {
               {
                 type: 'image',
                 data: 'base64data',
-                mimeType: 'image/jpeg',
+                mediaType: 'image/jpeg',
               },
             ],
           },
@@ -505,7 +527,7 @@ describe('tool messages', () => {
                 {
                   type: 'image',
                   data: 'base64data',
-                  mimeType: 'image/webp', // unsupported format
+                  mediaType: 'image/webp', // unsupported format
                 },
               ],
             },
@@ -530,7 +552,7 @@ describe('tool messages', () => {
                 {
                   type: 'image',
                   data: 'base64data',
-                  // missing mimeType
+                  // missing mediaType
                 },
               ],
             },

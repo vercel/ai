@@ -8,9 +8,9 @@ describe('user messages', () => {
         content: [
           { type: 'text', text: 'Hello' },
           {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
-            mimeType: 'image/png',
+            type: 'file',
+            data: 'AAECAw==',
+            mediaType: 'image/png',
           },
         ],
       },
@@ -28,7 +28,7 @@ describe('user messages', () => {
           {
             type: 'file',
             data: new URL('https://example.com/document.pdf'),
-            mimeType: 'application/pdf',
+            mediaType: 'application/pdf',
           },
         ],
       },

@@ -14,7 +14,7 @@ async function main() {
           {
             type: 'file',
             data: fs.readFileSync('./data/ai.pdf'),
-            mimeType: 'application/pdf',
+            mediaType: 'application/pdf',
           },
         ],
       },

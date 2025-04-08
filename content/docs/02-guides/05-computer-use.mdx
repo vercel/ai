@@ -110,7 +110,7 @@ const computerTool = anthropic.tools.computer_20241022({
   experimental_toToolResultContent(result) {
     return typeof result === 'string'
       ? [{ type: 'text', text: result }]
-      : [{ type: 'image', data: result.data, mimeType: 'image/png' }];
+      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
   },
 });
 ```

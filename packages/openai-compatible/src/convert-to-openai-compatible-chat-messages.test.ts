@@ -19,9 +19,9 @@ describe('user messages', () => {
         content: [
           { type: 'text', text: 'Hello' },
           {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
-            mimeType: 'image/png',
+            type: 'file',
+            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            mediaType: 'image/png',
           },
         ],
       },
@@ -47,9 +47,9 @@ describe('user messages', () => {
         role: 'user',
         content: [
           {
-            type: 'image',
-            image: new URL('https://example.com/image.jpg'),
-            mimeType: 'image/jpeg',
+            type: 'file',
+            data: new URL('https://example.com/image.jpg'),
+            mediaType: 'image/*',
           },
         ],
       },
@@ -248,9 +248,9 @@ describe('provider-specific metadata merging', () => {
         role: 'user',
         content: [
           {
-            type: 'image',
-            image: imageUrl,
-            mimeType: 'image/jpeg',
+            type: 'file',
+            data: imageUrl,
+            mediaType: 'image/*',
             providerOptions: {
               openaiCompatible: {
                 cacheControl: { type: 'ephemeral' },
@@ -310,9 +310,9 @@ describe('provider-specific metadata merging', () => {
             },
           },
           {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
-            mimeType: 'image/png',
+            type: 'file',
+            data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+            mediaType: 'image/png',
             providerOptions: {
               openaiCompatible: { alt_text: 'A sample image' },
             },
@@ -483,9 +483,9 @@ describe('provider-specific metadata merging', () => {
             },
           },
           {
-            type: 'image',
-            image: new Uint8Array([9, 8, 7, 6]),
-            mimeType: 'image/png',
+            type: 'file',
+            data: Buffer.from([9, 8, 7, 6]).toString('base64'),
+            mediaType: 'image/png',
             providerOptions: {
               openaiCompatible: { imagePartLevel: 'image-data' },
             },

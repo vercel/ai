@@ -32,7 +32,7 @@ async function main() {
         }
 
         case 'file': {
-          if (delta.mimeType.startsWith('image/')) {
+          if (delta.mediaType.startsWith('image/')) {
             console.log();
             await presentImages([delta]);
           }

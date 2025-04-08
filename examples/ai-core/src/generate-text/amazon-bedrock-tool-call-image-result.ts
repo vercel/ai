@@ -34,7 +34,7 @@ async function main() {
             {
               type: 'image',
               data: Buffer.from(result.bytes).toString('base64'),
-              mimeType: 'image/jpeg',
+              mediaType: 'image/jpeg',
             },
           ];
         },

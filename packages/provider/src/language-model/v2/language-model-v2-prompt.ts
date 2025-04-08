@@ -22,11 +22,7 @@ export type LanguageModelV2Message =
       }
     | {
         role: 'user';
-        content: Array<
-          | LanguageModelV2TextPart
-          | LanguageModelV2ImagePart
-          | LanguageModelV2FilePart
-        >;
+        content: Array<LanguageModelV2TextPart | LanguageModelV2FilePart>;
       }
     | {
         role: 'assistant';
@@ -114,31 +110,6 @@ Redacted reasoning data.
 }
 
 /**
-Image content part of a prompt. It contains an image.
- */
-// TODO merge into file part in language model v2
-export interface LanguageModelV2ImagePart {
-  type: 'image';
-
-  /**
-Image data as a Uint8Array (e.g. from a Blob or Buffer) or a URL.
-   */
-  image: Uint8Array | URL;
-
-  /**
-Optional mime type of the image.
-   */
-  mimeType?: string;
-
-  /**
-   * Additional provider-specific options. They are passed through
-   * to the provider from the AI SDK and enable provider-specific
-   * functionality that can be fully encapsulated in the provider.
-   */
-  providerOptions?: LanguageModelV2ProviderOptions;
-}
-
-/**
 File content part of a prompt. It contains a file.
  */
 export interface LanguageModelV2FilePart {
@@ -154,12 +125,17 @@ File data as base64 encoded string or as a URL.
    */
   // Note: base64-encoded strings are used to prevent
   // unnecessary conversions from string to buffer to string
+  // TODO support Uint8Array | string | URL
   data: string | URL;
 
   /**
-Mime type of the file.
+IANA media type of the file.
+
+Can support wildcards, e.g. `image/*` (in which case the provider needs to take appropriate action).
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
-  mimeType: string;
+  mediaType: string;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -246,9 +222,11 @@ base-64 encoded image data
         data: string;
 
         /**
-Mime type of the image.
+IANA media type of the image.
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
          */
-        mimeType?: string;
+        mediaType?: string;
       }
   >;
 

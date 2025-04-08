@@ -349,7 +349,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
       ],
@@ -361,7 +361,7 @@ const result = await generateText({
 The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
-and the `mimeType` should be set to `'application/pdf'`.
+and the `mediaType` should be set to `'application/pdf'`.
 
 ### Completion Models
 

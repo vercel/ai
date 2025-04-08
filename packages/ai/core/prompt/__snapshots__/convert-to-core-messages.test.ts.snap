@@ -755,7 +755,7 @@ exports[`convertToCoreMessages > user message > should handle user message with 
       },
       {
         "data": "dGVzdA==",
-        "mimeType": "application/pdf",
+        "mediaType": "application/pdf",
         "type": "file",
       },
     ],

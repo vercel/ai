@@ -211,10 +211,11 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                         'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
                     },
                     {
-                      name: 'mimeType',
+                      name: 'mediaType',
                       type: 'string',
                       isOptional: true,
-                      description: 'The mime type of the image. Optional.',
+                      description:
+                        'The IANA media type of the image. Optional.',
                     },
                   ],
                 },
@@ -233,9 +234,9 @@ To see `streamObject` in action, check out the [additional examples](#more-examp
                         'The file content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
                     },
                     {
-                      name: 'mimeType',
+                      name: 'mediaType',
                       type: 'string',
-                      description: 'The mime type of the file.',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },

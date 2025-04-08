@@ -24,7 +24,7 @@ async function main() {
             data:
               'https://user.phil.hhu.de/~cwurm/wp-content/uploads/' +
               '2020/01/7181-attention-is-all-you-need.pdf',
-            mimeType: 'application/pdf',
+            mediaType: 'application/pdf',
           },
         ],
       },

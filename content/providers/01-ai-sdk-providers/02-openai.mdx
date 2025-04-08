@@ -336,7 +336,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
       ],
@@ -348,7 +348,7 @@ const result = await generateText({
 The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
-and the `mimeType` should be set to `'application/pdf'`.
+and the `mediaType` should be set to `'application/pdf'`.
 
 #### Predicted Outputs
 
@@ -506,7 +506,7 @@ const result = await generateText({
         { type: 'text', text: 'What is the audio saying?' },
         {
           type: 'file',
-          mimeType: 'audio/mpeg',
+          mediaType: 'audio/mpeg',
           data: fs.readFileSync('./data/galileo.mp3'),
         },
       ],
@@ -641,7 +641,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
           filename: 'ai.pdf', // optional
         },
       ],
@@ -653,7 +653,7 @@ const result = await generateText({
 The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
-and the `mimeType` should be set to `'application/pdf'`.
+and the `mediaType` should be set to `'application/pdf'`.
 
 ### Completion Models
 
@@ -804,3 +804,67 @@ const model = openai.image('dall-e-3');
 | ---------- | ------------------------------- |
 | `dall-e-3` | 1024x1024, 1792x1024, 1024x1792 |
 | `dall-e-2` | 256x256, 512x512, 1024x1024     |
+
+## Transcription Models
+
+You can create models that call the [OpenAI transcription API](https://platform.openai.com/docs/api-reference/audio/transcribe)
+using the `.transcription()` factory method.
+
+The first argument is the model id e.g. `whisper-1`.
+
+```ts
+const model = openai.transcription('whisper-1');
+```
+
+OpenAI transcription models support an `audio` argument which can be a `DataContent` (`string | Uint8Array | ArrayBuffer | Buffer`) or a `URL`.
+
+```ts
+const model = openai.transcription('whisper-1', {
+  audio: new Uint8Array([1, 2, 3, 4]),
+});
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the input language in ISO-639-1 (e.g. `en`) format will improve accuracy and latency.
+
+```ts highlight="6"
+import { experimental_transcribe as transcribe } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await transcribe({
+  model: openai.transcription('whisper-1'),
+  audio: new Uint8Array([1, 2, 3, 4]),
+  providerOptions: { openai: { language: 'en' } },
+});
+```
+
+The following provider options are available:
+
+- **timestampGranularities** _string[]_
+  The granularity of the timestamps in the transcription.
+  Defaults to `['segment']`.
+  Possible values are `['word']`, `['segment']`, and `['word', 'segment']`.
+  Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
+
+- **language** _string_
+  The language of the input audio. Supplying the input language in ISO-639-1 format (e.g. 'en') will improve accuracy and latency.
+  Optional.
+
+- **prompt** _string_
+  An optional text to guide the model's style or continue a previous audio segment. The prompt should match the audio language.
+  Optional.
+
+- **temperature** _number_
+  The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. If set to 0, the model will use log probability to automatically increase the temperature until certain thresholds are hit.
+  Defaults to 0.
+  Optional.
+
+- **include** _string[]_
+  Additional information to include in the transcription response.
+
+### Model Capabilities
+
+| Model                    | Transcription       | Duration            | Segments            | Language            |
+| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
+| `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |

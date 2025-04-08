@@ -58,8 +58,24 @@ export type UrlHandlers<
 class TestServerCall {
   constructor(private request: Request) {}
 
+  // TODO: rename to requestBodyJson
   get requestBody() {
     return this.request!.text().then(JSON.parse);
+  }
+
+  get requestBodyMultipart() {
+    return this.request!.headers.get('content-type')?.startsWith(
+      'multipart/form-data',
+    )
+      ? // For multipart/form-data, return the form data entries as an object
+        this.request!.formData().then(formData => {
+          const entries: Record<string, any> = {};
+          formData.forEach((value, key) => {
+            entries[key] = value;
+          });
+          return entries;
+        })
+      : null;
   }
 
   get requestCredentials() {

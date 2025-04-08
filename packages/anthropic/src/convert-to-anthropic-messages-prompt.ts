@@ -5,7 +5,6 @@ import {
   LanguageModelV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
   AnthropicCacheControl,
@@ -100,51 +99,50 @@ export function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  case 'image': {
-                    anthropicContent.push({
-                      type: 'image',
-                      source:
-                        part.image instanceof URL
-                          ? {
-                              type: 'url',
-                              url: part.image.toString(),
-                            }
-                          : {
-                              type: 'base64',
-                              media_type: part.mimeType ?? 'image/jpeg',
-                              data: convertUint8ArrayToBase64(part.image),
-                            },
-                      cache_control: cacheControl,
-                    });
-
-                    break;
-                  }
-
                   case 'file': {
-                    if (part.data instanceof URL) {
-                      // The AI SDK automatically downloads files for user file parts with URLs
+                    if (part.mediaType.startsWith('image/')) {
+                      anthropicContent.push({
+                        type: 'image',
+                        source:
+                          part.data instanceof URL
+                            ? {
+                                type: 'url',
+                                url: part.data.toString(),
+                              }
+                            : {
+                                type: 'base64',
+                                media_type:
+                                  part.mediaType === 'image/*'
+                                    ? 'image/jpeg'
+                                    : part.mediaType,
+                                data: part.data,
+                              },
+                        cache_control: cacheControl,
+                      });
+                    } else if (part.mediaType === 'application/pdf') {
+                      if (part.data instanceof URL) {
+                        // The AI SDK automatically downloads files for user file parts with URLs
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'PDF File URLs in user messages',
+                        });
+                      }
+
+                      betas.add('pdfs-2024-09-25');
+
+                      anthropicContent.push({
+                        type: 'document',
+                        source: {
+                          type: 'base64',
+                          media_type: 'application/pdf',
+                          data: part.data,
+                        },
+                        cache_control: cacheControl,
+                      });
+                    } else {
                       throw new UnsupportedFunctionalityError({
-                        functionality: 'Image URLs in user messages',
+                        functionality: `media type: ${part.mediaType}`,
                       });
                     }
-
-                    if (part.mimeType !== 'application/pdf') {
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'Non-PDF files in user messages',
-                      });
-                    }
-
-                    betas.add('pdfs-2024-09-25');
-
-                    anthropicContent.push({
-                      type: 'document',
-                      source: {
-                        type: 'base64',
-                        media_type: 'application/pdf',
-                        data: part.data,
-                      },
-                      cache_control: cacheControl,
-                    });
 
                     break;
                   }
@@ -183,7 +181,7 @@ export function convertToAnthropicMessagesPrompt({
                               type: 'image' as const,
                               source: {
                                 type: 'base64' as const,
-                                media_type: part.mimeType ?? 'image/jpeg',
+                                media_type: part.mediaType ?? 'image/jpeg',
                                 data: part.data,
                               },
                               cache_control: undefined,
@@ -302,7 +300,7 @@ export function convertToAnthropicMessagesPrompt({
 
       default: {
         const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+        throw new Error(`content type: ${_exhaustiveCheck}`);
       }
     }
   }

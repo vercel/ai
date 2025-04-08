@@ -8,6 +8,11 @@ export type ToolResultContent = Array<
   | {
       type: 'image';
       data: string; // base64 encoded png image, e.g. screenshot
+      mediaType?: string; // e.g. 'image/png';
+
+      /**
+       * @deprecated Use `mediaType` instead.
+       */
       mimeType?: string; // e.g. 'image/png';
     }
 >;
@@ -18,7 +23,7 @@ export const toolResultContentSchema: z.ZodType<ToolResultContent> = z.array(
     z.object({
       type: z.literal('image'),
       data: z.string(),
-      mimeType: z.string().optional(),
+      mediaType: z.string().optional(),
     }),
   ]),
 );
