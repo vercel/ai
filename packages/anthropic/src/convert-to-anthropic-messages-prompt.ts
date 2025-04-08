@@ -100,51 +100,50 @@ export function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  case 'image': {
-                    anthropicContent.push({
-                      type: 'image',
-                      source:
-                        part.image instanceof URL
-                          ? {
-                              type: 'url',
-                              url: part.image.toString(),
-                            }
-                          : {
-                              type: 'base64',
-                              media_type: part.mimeType ?? 'image/jpeg',
-                              data: convertUint8ArrayToBase64(part.image),
-                            },
-                      cache_control: cacheControl,
-                    });
-
-                    break;
-                  }
-
                   case 'file': {
-                    if (part.data instanceof URL) {
-                      // The AI SDK automatically downloads files for user file parts with URLs
+                    if (part.mimeType.startsWith('image/')) {
+                      anthropicContent.push({
+                        type: 'image',
+                        source:
+                          part.data instanceof URL
+                            ? {
+                                type: 'url',
+                                url: part.data.toString(),
+                              }
+                            : {
+                                type: 'base64',
+                                media_type:
+                                  part.mimeType === 'image/*'
+                                    ? 'image/jpeg'
+                                    : part.mimeType,
+                                data: part.data,
+                              },
+                        cache_control: cacheControl,
+                      });
+                    } else if (part.mimeType === 'application/pdf') {
+                      if (part.data instanceof URL) {
+                        // The AI SDK automatically downloads files for user file parts with URLs
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'PDF File URLs in user messages',
+                        });
+                      }
+
+                      betas.add('pdfs-2024-09-25');
+
+                      anthropicContent.push({
+                        type: 'document',
+                        source: {
+                          type: 'base64',
+                          media_type: 'application/pdf',
+                          data: part.data,
+                        },
+                        cache_control: cacheControl,
+                      });
+                    } else {
                       throw new UnsupportedFunctionalityError({
-                        functionality: 'Image URLs in user messages',
+                        functionality: `unsupported file content type: ${part.mimeType}`,
                       });
                     }
-
-                    if (part.mimeType !== 'application/pdf') {
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'Non-PDF files in user messages',
-                      });
-                    }
-
-                    betas.add('pdfs-2024-09-25');
-
-                    anthropicContent.push({
-                      type: 'document',
-                      source: {
-                        type: 'base64',
-                        media_type: 'application/pdf',
-                        data: part.data,
-                      },
-                      cache_control: cacheControl,
-                    });
 
                     break;
                   }

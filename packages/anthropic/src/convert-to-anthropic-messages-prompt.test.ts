@@ -49,8 +49,8 @@ describe('user messages', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new Uint8Array([0, 1, 2, 3]),
+              type: 'file',
+              data: 'AAECAw==',
               mimeType: 'image/png',
             },
           ],
@@ -90,9 +90,9 @@ describe('user messages', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new URL('https://example.com/image.png'),
-              mimeType: 'image/png',
+              type: 'file',
+              data: new URL('https://example.com/image.png'),
+              mimeType: 'image/*',
             },
           ],
         },
@@ -182,28 +182,9 @@ describe('user messages', () => {
         sendReasoning: true,
         warnings: [],
       }),
-    ).toThrow('Non-PDF files in user messages');
-  });
-
-  it('should throw error for URL-based file parts', async () => {
-    expect(() =>
-      convertToAnthropicMessagesPrompt({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                data: 'base64data',
-                mimeType: 'text/plain',
-              },
-            ],
-          },
-        ],
-        sendReasoning: true,
-        warnings: [],
-      }),
-    ).toThrow('Non-PDF files in user messages');
+    ).toThrow(
+      "'unsupported file content type: text/plain' functionality not supported.",
+    );
   });
 });
 
