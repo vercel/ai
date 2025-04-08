@@ -64,7 +64,7 @@ use further optimizations if this flag is set to `true`.
 
 Defaults to `false`.
 */
-  // TODO v2: rename to supportsGrammarGuidedGeneration?
+  // TODO v2: rename to supportsGrammarGuidedGeneration? supports output schemas?
   readonly supportsStructuredOutputs?: boolean;
 
   /**

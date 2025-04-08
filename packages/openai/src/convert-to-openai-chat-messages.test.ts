@@ -54,9 +54,9 @@ describe('user messages', () => {
           content: [
             { type: 'text', text: 'Hello' },
             {
-              type: 'image',
-              image: new Uint8Array([0, 1, 2, 3]),
+              type: 'file',
               mimeType: 'image/png',
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
             },
           ],
         },
@@ -84,9 +84,9 @@ describe('user messages', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new Uint8Array([0, 1, 2, 3]),
+              type: 'file',
               mimeType: 'image/png',
+              data: Buffer.from([0, 1, 2, 3]).toString('base64'),
               providerOptions: {
                 openai: {
                   imageDetail: 'low',
@@ -122,14 +122,16 @@ describe('user messages', () => {
             {
               role: 'user',
               content: [
-                { type: 'file', data: 'AAECAw==', mimeType: 'image/png' },
+                {
+                  type: 'file',
+                  data: 'AAECAw==',
+                  mimeType: 'application/something',
+                },
               ],
             },
           ],
         }),
-      ).toThrow(
-        "'File content part type image/png in user messages' functionality not supported.",
-      );
+      ).toThrow('file part media type application/something');
     });
 
     it('should throw for URL data', () => {
@@ -148,9 +150,7 @@ describe('user messages', () => {
             },
           ],
         }),
-      ).toThrow(
-        "'File content parts with URL data' functionality not supported.",
-      );
+      ).toThrow('audio file parts with URLs');
     });
 
     it('should add audio content for audio/wav file parts', () => {
@@ -330,9 +330,7 @@ describe('user messages', () => {
           ],
           systemMessageMode: 'system',
         });
-      }).toThrow(
-        "'File content part type text/plain in user messages' functionality not supported.",
-      );
+      }).toThrow('file part media type text/plain');
     });
 
     it('should throw error for file URLs', async () => {
@@ -352,9 +350,7 @@ describe('user messages', () => {
           ],
           systemMessageMode: 'system',
         });
-      }).toThrow(
-        "'File content parts with URL data' functionality not supported.",
-      );
+      }).toThrow('PDF file parts with URLs');
     });
   });
 });

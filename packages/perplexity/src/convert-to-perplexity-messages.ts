@@ -1,6 +1,5 @@
 import {
   LanguageModelV2Prompt,
-  LanguageModelV2TextPart,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { PerplexityPrompt } from './perplexity-language-model-prompt';
@@ -22,10 +21,14 @@ export function convertToPerplexityMessages(
         messages.push({
           role,
           content: content
-            .filter(
-              (part): part is LanguageModelV2TextPart => part.type === 'text',
-            )
-            .map(part => part.text)
+            .map(part => {
+              switch (part.type) {
+                case 'text': {
+                  return part.text;
+                }
+              }
+            })
+            .filter(Boolean)
             .join(''),
         });
         break;
