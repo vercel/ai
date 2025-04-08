@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.1.1
+
+### Patch Changes
+
+- c21fa6d: feat: add transcription with experimental_transcribe
+
 ## 1.1.0
 
 ### Minor Changes
