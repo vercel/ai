@@ -1,5 +1,17 @@
 # ai
 
+## 4.3.3
+
+### Patch Changes
+
+- 3e88f4d: fix (ai/mcp): prevent mutation of customEnv
+- c21fa6d: feat: add transcription with experimental_transcribe
+- Updated dependencies [c21fa6d]
+  - @ai-sdk/provider-utils@2.2.5
+  - @ai-sdk/provider@1.1.1
+  - @ai-sdk/react@1.2.7
+  - @ai-sdk/ui-utils@1.2.6
+
 ## 4.3.2
 
 ### Patch Changes

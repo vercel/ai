@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "2.2.11",
+  "version": "2.2.12",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -49,10 +49,10 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "1.2.6",
-    "@ai-sdk/google": "1.2.8",
-    "@ai-sdk/provider": "1.1.0",
-    "@ai-sdk/provider-utils": "2.2.4",
+    "@ai-sdk/anthropic": "1.2.7",
+    "@ai-sdk/google": "1.2.9",
+    "@ai-sdk/provider": "1.1.1",
+    "@ai-sdk/provider-utils": "2.2.5",
     "google-auth-library": "^9.15.0"
   },
   "devDependencies": {

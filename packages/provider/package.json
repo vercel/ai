@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider",
-  "version": "2.0.0-beta.1",
+  "version": "1.1.1",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -11,11 +11,11 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\""
   },
   "exports": {
@@ -34,7 +34,7 @@
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
-    "typescript": "5.8.3"
+    "typescript": "5.6.3"
   },
   "engines": {
     "node": ">=18"
@@ -42,7 +42,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://ai-sdk.dev/docs",
+  "homepage": "https://sdk.vercel.ai/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"
