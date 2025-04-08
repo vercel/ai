@@ -176,12 +176,7 @@ describe('doGenerate', () => {
       mimeType: 'audio/wav',
     });
 
-    expect(result.response.timestamp.getTime()).toBeGreaterThanOrEqual(
-      testDate.getTime(),
-    );
-    expect(result.response.timestamp.getTime()).toBeLessThanOrEqual(
-      testDate.getTime(),
-    );
+    expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
     expect(result.response.modelId).toBe('whisper-1');
   });
 });
