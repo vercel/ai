@@ -25,14 +25,14 @@ describe('system messages', () => {
 });
 
 describe('user messages', () => {
-  it('should add image parts for UInt8Array images', async () => {
+  it('should add image parts', async () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
         role: 'user',
         content: [
           {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
+            type: 'file',
+            data: 'AAECAw==',
             mimeType: 'image/png',
           },
         ],

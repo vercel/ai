@@ -7,6 +7,7 @@ import {
 } from '@ai-sdk/provider';
 
 // Re-export LanguageModelV2 types for the middleware:
+// TODO remove in v5
 export type {
   LanguageModelV2,
   LanguageModelV2CallOptions,
@@ -14,7 +15,6 @@ export type {
   LanguageModelV2FilePart,
   LanguageModelV2FinishReason,
   LanguageModelV2FunctionToolCall,
-  LanguageModelV2ImagePart,
   LanguageModelV2Message,
   LanguageModelV2ObjectGenerationMode,
   LanguageModelV2Prompt,

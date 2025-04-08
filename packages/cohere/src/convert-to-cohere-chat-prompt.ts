@@ -25,9 +25,9 @@ export function convertToCohereChatPrompt(
                 case 'text': {
                   return part.text;
                 }
-                case 'image': {
+                case 'file': {
                   throw new UnsupportedFunctionalityError({
-                    functionality: 'image-part',
+                    functionality: 'File URL data',
                   });
                 }
               }

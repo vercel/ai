@@ -8,8 +8,8 @@ describe('user messages', () => {
         content: [
           { type: 'text', text: 'Hello' },
           {
-            type: 'image',
-            image: new Uint8Array([0, 1, 2, 3]),
+            type: 'file',
+            data: 'AAECAw==',
             mimeType: 'image/png',
           },
         ],

@@ -1,10 +1,10 @@
 import {
   LanguageModelV2FilePart,
-  LanguageModelV2ImagePart,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
 } from '@ai-sdk/provider';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
 import {
@@ -261,10 +261,7 @@ function convertPartToLanguageModelPart(
     string,
     { mimeType: string | undefined; data: Uint8Array }
   >,
-):
-  | LanguageModelV2TextPart
-  | LanguageModelV2ImagePart
-  | LanguageModelV2FilePart {
+): LanguageModelV2TextPart | LanguageModelV2FilePart {
   if (part.type === 'text') {
     return {
       type: 'text',
@@ -350,10 +347,15 @@ function convertPartToLanguageModelPart(
             signatures: imageMimeTypeSignatures,
           }) ?? mimeType;
       }
+
       return {
-        type: 'image',
-        image: normalizedData,
-        mimeType,
+        type: 'file',
+        mimeType: mimeType ?? 'image/*', // any image
+        filename: undefined,
+        data:
+          normalizedData instanceof Uint8Array
+            ? convertUint8ArrayToBase64(normalizedData) // TODO prevent double conversion
+            : normalizedData,
         providerOptions:
           part.providerOptions ?? part.experimental_providerMetadata,
       };
@@ -367,12 +369,12 @@ function convertPartToLanguageModelPart(
 
       return {
         type: 'file',
+        mimeType,
+        filename: part.filename,
         data:
           normalizedData instanceof Uint8Array
             ? convertDataContentToBase64String(normalizedData)
             : normalizedData,
-        filename: part.filename,
-        mimeType,
         providerOptions:
           part.providerOptions ?? part.experimental_providerMetadata,
       };

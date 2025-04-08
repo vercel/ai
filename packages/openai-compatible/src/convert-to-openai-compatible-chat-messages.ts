@@ -3,7 +3,6 @@ import {
   LanguageModelV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatPrompt } from './openai-compatible-api-types';
 
 function getOpenAIMetadata(message: {
@@ -42,24 +41,26 @@ export function convertToOpenAICompatibleChatMessages(
               case 'text': {
                 return { type: 'text', text: part.text, ...partMetadata };
               }
-              case 'image': {
-                return {
-                  type: 'image_url',
-                  image_url: {
-                    url:
-                      part.image instanceof URL
-                        ? part.image.toString()
-                        : `data:${
-                            part.mimeType ?? 'image/jpeg'
-                          };base64,${convertUint8ArrayToBase64(part.image)}`,
-                  },
-                  ...partMetadata,
-                };
-              }
               case 'file': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'File content parts in user messages',
-                });
+                if (part.mimeType.startsWith('image/')) {
+                  const mimeType =
+                    part.mimeType === 'image/*' ? 'image/jpeg' : part.mimeType;
+
+                  return {
+                    type: 'image_url',
+                    image_url: {
+                      url:
+                        part.data instanceof URL
+                          ? part.data.toString()
+                          : `data:${mimeType};base64,${part.data}`,
+                    },
+                    ...partMetadata,
+                  };
+                } else {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `file part media type ${part.mimeType}`,
+                  });
+                }
               }
             }
           }),

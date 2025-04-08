@@ -39,9 +39,9 @@ describe('convertToLanguageModelPrompt', () => {
             role: 'user',
             content: [
               {
-                type: 'image',
+                type: 'file',
                 mimeType: 'image/png',
-                image: new Uint8Array([0, 1, 2, 3]),
+                data: 'AAECAw==',
               },
             ],
           },
@@ -80,9 +80,9 @@ describe('convertToLanguageModelPrompt', () => {
             role: 'user',
             content: [
               {
-                type: 'image',
+                type: 'file',
                 mimeType: 'image/png',
-                image: new Uint8Array([0, 1, 2, 3]),
+                data: 'AAECAw==',
               },
             ],
           },
@@ -627,8 +627,9 @@ describe('convertToLanguageModelMessage', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new URL('https://example.com/image.jpg'),
+              type: 'file',
+              data: new URL('https://example.com/image.jpg'),
+              mimeType: 'image/*', // wildcard since we don't know the exact type
             },
           ],
         });
@@ -652,8 +653,8 @@ describe('convertToLanguageModelMessage', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new Uint8Array([255, 216, 255, 221]),
+              type: 'file',
+              data: '/9j/3Q==',
               mimeType: 'image/jpeg',
             },
           ],
@@ -679,8 +680,8 @@ describe('convertToLanguageModelMessage', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new Uint8Array([255, 216, 255, 221]),
+              type: 'file',
+              data: '/9j/3Q==',
               mimeType: 'image/jpeg',
             },
           ],
