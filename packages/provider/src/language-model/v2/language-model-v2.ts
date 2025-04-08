@@ -270,8 +270,7 @@ settings.
     /**
 Optional raw response data.
      */
-    // TODO rename to response in v2
-    rawResponse?: {
+    response?: {
       /**
 Response headers.
        */

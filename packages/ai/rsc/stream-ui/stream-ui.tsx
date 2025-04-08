@@ -366,7 +366,7 @@ functionality that can be fully encapsulated in the provider.
               finishReason: value.finishReason,
               usage: calculateLanguageModelUsage(value.usage),
               warnings: result.warnings,
-              rawResponse: result.rawResponse,
+              rawResponse: result.response,
             };
             break;
           }
