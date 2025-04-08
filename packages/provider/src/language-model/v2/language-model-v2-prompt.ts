@@ -130,7 +130,11 @@ File data as base64 encoded string or as a URL.
 
   /**
 Mime type of the file.
+
+Can support wildcards, e.g. `image/*` (in which case the provider needs to take appropriate action).
    */
+  // TODO rename to mediaType or contentType
+  // https://www.iana.org/assignments/media-types/media-types.xhtml
   mimeType: string;
 
   /**

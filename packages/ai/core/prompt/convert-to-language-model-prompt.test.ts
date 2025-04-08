@@ -629,7 +629,7 @@ describe('convertToLanguageModelMessage', () => {
             {
               type: 'file',
               data: new URL('https://example.com/image.jpg'),
-              mimeType: 'image/png',
+              mimeType: 'image/*', // wildcard since we don't know the exact type
             },
           ],
         });

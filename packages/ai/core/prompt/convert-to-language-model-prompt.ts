@@ -354,7 +354,7 @@ function convertPartToLanguageModelPart(
           normalizedData instanceof Uint8Array
             ? convertUint8ArrayToBase64(normalizedData) // TODO prevent double conversion
             : normalizedData,
-        mimeType: mimeType ?? 'image/png', // TODO buggy what if it is a URL?
+        mimeType: mimeType ?? 'image/*', // any image
         filename: undefined,
         providerOptions:
           part.providerOptions ?? part.experimental_providerMetadata,
