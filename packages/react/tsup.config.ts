@@ -9,5 +9,5 @@ export default defineConfig([
     external: ['vue'],
     dts: true,
     sourcemap: true,
-  }
+  },
 ]);

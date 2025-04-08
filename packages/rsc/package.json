@@ -3,7 +3,6 @@
   "version": "1.0.0-canary.1",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "type": "module",
   "main": "./dist/rsc-client.mjs",
   "module": "./dist/rsc-client.mjs",
   "types": "./dist/index.d.ts",
