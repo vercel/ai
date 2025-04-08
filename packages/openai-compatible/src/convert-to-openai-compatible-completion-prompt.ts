@@ -54,13 +54,9 @@ export function convertToOpenAICompatibleCompletionPrompt({
               case 'text': {
                 return part.text;
               }
-              case 'image': {
-                throw new UnsupportedFunctionalityError({
-                  functionality: 'images',
-                });
-              }
             }
           })
+          .filter(Boolean)
           .join('');
 
         text += `${user}:\n${userMessage}\n\n`;
