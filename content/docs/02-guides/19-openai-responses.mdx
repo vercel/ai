@@ -180,7 +180,7 @@ import { openai } from '@ai-sdk/openai';
 
 // Completions API
 const { text } = await generateText({
-  model: openai.responses('gpt-4o', { parallelToolCalls: false }),
+  model: openai('gpt-4o', { parallelToolCalls: false }),
   prompt: 'Explain the concept of quantum entanglement.',
 });
 
