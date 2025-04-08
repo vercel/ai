@@ -54,7 +54,7 @@ export const audioMimeTypeSignatures = [
   {
     mimeType: 'audio/mpeg' as const,
     bytesPrefix: [0xff, 0xfb],
-    base64Prefix: 'SUQzBA',
+    base64Prefix: '//s=',
   },
   {
     mimeType: 'audio/wav' as const,
@@ -74,12 +74,12 @@ export const audioMimeTypeSignatures = [
   {
     mimeType: 'audio/aac' as const,
     bytesPrefix: [0x40, 0x15, 0x00, 0x00],
-    base64Prefix: 'AAC',
+    base64Prefix: 'QBUA',
   },
   {
     mimeType: 'audio/mp4' as const,
     bytesPrefix: [0x66, 0x74, 0x79, 0x70],
-    base64Prefix: 'AAAA',
+    base64Prefix: 'ZnR5cA',
   },
 ] as const;
 
