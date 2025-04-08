@@ -232,6 +232,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
+        body: response,
       },
 
       // When using format `verbose_json` on `whisper-1`, OpenAI includes the things like `task` and enhanced `segments` information.
