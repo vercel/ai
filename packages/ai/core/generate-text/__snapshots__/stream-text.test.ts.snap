@@ -982,7 +982,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       {
         "content": [
           {
-            "text": "part 1 
+            "text": "part 1
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
             "type": "text",
@@ -1014,7 +1014,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           {
             "content": [
               {
-                "text": "part 1 
+                "text": "part 1
  ",
                 "type": "text",
               },
@@ -1028,7 +1028,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       },
       "sources": [],
       "stepType": "initial",
-      "text": "part 1 
+      "text": "part 1
  ",
       "toolCalls": [],
       "toolResults": [],
@@ -1056,7 +1056,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           {
             "content": [
               {
-                "text": "part 1 
+                "text": "part 1
  no-whitespace",
                 "type": "text",
               },
@@ -1111,7 +1111,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           {
             "content": [
               {
-                "text": "part 1 
+                "text": "part 1
  no-whitespaceimmediatefollow  ",
                 "type": "text",
               },
@@ -1177,7 +1177,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           {
             "content": [
               {
-                "text": "part 1 
+                "text": "part 1
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
                 "type": "text",
@@ -1204,7 +1204,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "warnings": undefined,
     },
   ],
-  "text": "part 1 
+  "text": "part 1
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
   "toolCalls": [],
@@ -1237,7 +1237,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1 
+              "text": "part 1
  ",
               "type": "text",
             },
@@ -1251,7 +1251,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     "sources": [],
     "stepType": "initial",
-    "text": "part 1 
+    "text": "part 1
  ",
     "toolCalls": [],
     "toolResults": [],
@@ -1279,7 +1279,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1 
+              "text": "part 1
  no-whitespace",
               "type": "text",
             },
@@ -1334,7 +1334,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1 
+              "text": "part 1
  no-whitespaceimmediatefollow  ",
               "type": "text",
             },
@@ -1400,7 +1400,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1 
+              "text": "part 1
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
               "type": "text",
@@ -1480,7 +1480,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "type": "text-delta",
   },
   {
-    "textDelta": "1 
+    "textDelta": "1
 ",
     "type": "text-delta",
   },
@@ -1738,7 +1738,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.operationId": "ai.streamText",
       "ai.prompt": "{"prompt":"test-input"}",
       "ai.response.finishReason": "stop",
-      "ai.response.text": "part 1 
+      "ai.response.text": "part 1
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
       "ai.settings.maxRetries": 2,
@@ -1763,7 +1763,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.model": "mock-model-id",
       "ai.response.msToFinish": 500,
       "ai.response.msToFirstChunk": 100,
-      "ai.response.text": "part 1 
+      "ai.response.text": "part 1
  ",
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.settings.maxRetries": 2,
@@ -1946,7 +1946,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1 
+              "text": "part 1
  ",
               "type": "text",
             },
@@ -1960,7 +1960,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     "sources": [],
     "stepType": "initial",
-    "text": "part 1 
+    "text": "part 1
  ",
     "toolCalls": [],
     "toolResults": [],
@@ -1988,7 +1988,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1 
+              "text": "part 1
  no-whitespace",
               "type": "text",
             },
@@ -2043,7 +2043,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1 
+              "text": "part 1
  no-whitespaceimmediatefollow  ",
               "type": "text",
             },
@@ -2109,7 +2109,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         {
           "content": [
             {
-              "text": "part 1 
+              "text": "part 1
  no-whitespaceimmediatefollow  final value keep all whitespace
  end",
               "type": "text",
@@ -2396,13 +2396,13 @@ exports[`streamText > options.onFinish > should send files 1`] = `
   "files": [
     DefaultGeneratedFileWithType {
       "base64Data": "Hello World",
-      "mediaType": undefined,
+      "mediaType": "text/plain",
       "type": "file",
       "uint8ArrayData": undefined,
     },
     DefaultGeneratedFileWithType {
       "base64Data": "QkFVRw==",
-      "mediaType": undefined,
+      "mediaType": "image/jpeg",
       "type": "file",
       "uint8ArrayData": undefined,
     },
@@ -2421,12 +2421,12 @@ exports[`streamText > options.onFinish > should send files 1`] = `
         "content": [
           {
             "data": "Hello World",
-            "mediaType": undefined,
+            "mediaType": "text/plain",
             "type": "file",
           },
           {
             "data": "QkFVRw==",
-            "mediaType": undefined,
+            "mediaType": "image/jpeg",
             "type": "file",
           },
           {
@@ -2448,13 +2448,13 @@ exports[`streamText > options.onFinish > should send files 1`] = `
       "files": [
         DefaultGeneratedFileWithType {
           "base64Data": "Hello World",
-          "mediaType": undefined,
+          "mediaType": "text/plain",
           "type": "file",
           "uint8ArrayData": undefined,
         },
         DefaultGeneratedFileWithType {
           "base64Data": "QkFVRw==",
-          "mediaType": undefined,
+          "mediaType": "image/jpeg",
           "type": "file",
           "uint8ArrayData": undefined,
         },
@@ -2474,12 +2474,12 @@ exports[`streamText > options.onFinish > should send files 1`] = `
             "content": [
               {
                 "data": "Hello World",
-                "mediaType": undefined,
+                "mediaType": "text/plain",
                 "type": "file",
               },
               {
                 "data": "QkFVRw==",
-                "mediaType": undefined,
+                "mediaType": "image/jpeg",
                 "type": "file",
               },
               {
@@ -3217,13 +3217,13 @@ exports[`streamText > result.files > should contain files 1`] = `
 [
   DefaultGeneratedFileWithType {
     "base64Data": "Hello World",
-    "mediaType": undefined,
+    "mediaType": "text/plain",
     "type": "file",
     "uint8ArrayData": undefined,
   },
   DefaultGeneratedFileWithType {
     "base64Data": "QkFVRw==",
-    "mediaType": undefined,
+    "mediaType": "image/jpeg",
     "type": "file",
     "uint8ArrayData": undefined,
   },
@@ -3430,7 +3430,7 @@ exports[`streamText > result.fullStream > should send files 1`] = `
   },
   DefaultGeneratedFileWithType {
     "base64Data": "Hello World",
-    "mediaType": undefined,
+    "mediaType": "text/plain",
     "type": "file",
     "uint8ArrayData": undefined,
   },
@@ -3440,7 +3440,7 @@ exports[`streamText > result.fullStream > should send files 1`] = `
   },
   DefaultGeneratedFileWithType {
     "base64Data": "QkFVRw==",
-    "mediaType": undefined,
+    "mediaType": "image/jpeg",
     "type": "file",
     "uint8ArrayData": undefined,
   },
@@ -4153,11 +4153,11 @@ exports[`streamText > result.pipeDataStreamToResponse > should write file conten
 [
   "f:{"messageId":"msg-0"}
 ",
-  "k:{"data":"Hello World"}
+  "k:{"mimeType":"text/plain","data":"Hello World"}
 ",
   "0:"Hello!"
 ",
-  "k:{"data":"QkFVRw=="}
+  "k:{"mimeType":"image/jpeg","data":"QkFVRw=="}
 ",
   "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
@@ -4369,13 +4369,13 @@ exports[`streamText > result.steps > should add the files from the model respons
     "files": [
       DefaultGeneratedFileWithType {
         "base64Data": "Hello World",
-        "mediaType": undefined,
+        "mediaType": "text/plain",
         "type": "file",
         "uint8ArrayData": undefined,
       },
       DefaultGeneratedFileWithType {
         "base64Data": "QkFVRw==",
-        "mediaType": undefined,
+        "mediaType": "image/jpeg",
         "type": "file",
         "uint8ArrayData": undefined,
       },
@@ -4395,12 +4395,12 @@ exports[`streamText > result.steps > should add the files from the model respons
           "content": [
             {
               "data": "Hello World",
-              "mediaType": undefined,
+              "mediaType": "text/plain",
               "type": "file",
             },
             {
               "data": "QkFVRw==",
-              "mediaType": undefined,
+              "mediaType": "image/jpeg",
               "type": "file",
             },
             {
@@ -4636,11 +4636,11 @@ exports[`streamText > result.toDataStream > should send file content 1`] = `
 [
   "f:{"messageId":"msg-0"}
 ",
-  "k:{"data":"Hello World"}
+  "k:{"mimeType":"text/plain","data":"Hello World"}
 ",
   "0:"Hello!"
 ",
-  "k:{"data":"QkFVRw=="}
+  "k:{"mimeType":"image/jpeg","data":"QkFVRw=="}
 ",
   "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
