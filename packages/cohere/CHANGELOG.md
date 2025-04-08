@@ -1,5 +1,13 @@
 # @ai-sdk/cohere
 
+## 1.2.6
+
+### Patch Changes
+
+- Updated dependencies [c21fa6d]
+  - @ai-sdk/provider-utils@2.2.5
+  - @ai-sdk/provider@1.1.1
+
 ## 1.2.5
 
 ### Patch Changes
