@@ -182,9 +182,7 @@ describe('user messages', () => {
         sendReasoning: true,
         warnings: [],
       }),
-    ).toThrow(
-      "'unsupported file content type: text/plain' functionality not supported.",
-    );
+    ).toThrow('media type: text/plain');
   });
 });
 

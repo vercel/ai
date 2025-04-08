@@ -140,7 +140,7 @@ export function convertToAnthropicMessagesPrompt({
                       });
                     } else {
                       throw new UnsupportedFunctionalityError({
-                        functionality: `unsupported media type: ${part.mediaType}`,
+                        functionality: `media type: ${part.mediaType}`,
                       });
                     }
 
@@ -300,7 +300,7 @@ export function convertToAnthropicMessagesPrompt({
 
       default: {
         const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+        throw new Error(`content type: ${_exhaustiveCheck}`);
       }
     }
   }
