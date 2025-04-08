@@ -36,15 +36,16 @@ export function convertToGroqChatMessages(
                   });
                 }
 
+                const mimeType =
+                  part.mimeType === 'image/*' ? 'image/jpeg' : part.mimeType;
+
                 return {
                   type: 'image_url',
                   image_url: {
                     url:
                       part.data instanceof URL
                         ? part.data.toString()
-                        : `data:${
-                            part.mimeType ?? 'image/jpeg'
-                          };base64,${part.data}`,
+                        : `data:${mimeType};base64,${part.data}`,
                   },
                 };
               }
