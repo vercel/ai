@@ -208,7 +208,7 @@ describe('detectMimeType', () => {
     });
 
     it('should detect MP3 from base64', () => {
-      const mp3Base64 = 'SUQzBA'; // Base64 string starting with MP3 signature
+      const mp3Base64 = '//s='; // Base64 string starting with MP3 signature
       expect(
         detectMimeType({
           data: mp3Base64,
@@ -287,7 +287,7 @@ describe('detectMimeType', () => {
     });
 
     it('should detect AAC from base64', () => {
-      const aacBase64 = 'AAC'; // Base64 string starting with AAC signature
+      const aacBase64 = 'QBUA'; // Base64 string starting with AAC signature
       expect(
         detectMimeType({
           data: aacBase64,
@@ -306,7 +306,7 @@ describe('detectMimeType', () => {
     });
 
     it('should detect MP4 from base64', () => {
-      const mp4Base64 = 'AAAA'; // Base64 string starting with MP4 signature
+      const mp4Base64 = 'ZnR5cA'; // Base64 string starting with MP4 signature
       expect(
         detectMimeType({
           data: mp4Base64,
