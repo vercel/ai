@@ -38,7 +38,7 @@ const durationInSeconds = transcript.durationInSeconds; // duration of the trans
 
 Transcription models often have provider or model-specific settings which you can set using the `providerOptions` parameter.
 
-```ts highlight={"9"}
+```ts highlight="8-12"
 import { experimental_transcribe as transcribe } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
@@ -60,7 +60,7 @@ const transcript = await transcribe({
 type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
 that you can use to abort the transcription process or set a timeout.
 
-```ts highlight={"7"}
+```ts highlight="8"
 import { openai } from '@ai-sdk/openai';
 import { experimental_transcribe as transcribe } from 'ai';
 import { readFile } from 'fs/promises';
@@ -77,7 +77,7 @@ const transcript = await transcribe({
 `transcribe` accepts an optional `headers` parameter of type `Record<string, string>`
 that you can use to add custom headers to the transcription request.
 
-```ts highlight={"7"}
+```ts highlight="8"
 import { openai } from '@ai-sdk/openai';
 import { experimental_transcribe as transcribe } from 'ai';
 import { readFile } from 'fs/promises';
