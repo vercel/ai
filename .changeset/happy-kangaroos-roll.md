@@ -1,7 +1,6 @@
 ---
 '@ai-sdk/provider-utils': patch
 '@ai-sdk/provider': patch
-'ai-core-examples': patch
 '@ai-sdk/openai': patch
 'ai': patch
 ---
