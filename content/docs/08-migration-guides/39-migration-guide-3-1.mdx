@@ -90,7 +90,7 @@ The AI SDK RSC API was launched as part of version 3.0. This API introduced the 
 The following example Server Action uses the `render` function using the model provider directly from OpenAI. You first create an OpenAI provider instance with the OpenAI SDK. Then, you pass it to the provider key of the render function alongside a tool that returns a React Server Component, defined in the `render` key of the tool.
 
 ```tsx
-import { render } from 'ai/rsc';
+import { render } from '@ai-sdk/rsc';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { Spinner, Weather } from '@/components';
@@ -131,7 +131,7 @@ async function submitMessage(userInput = 'What is the weather in SF?') {
 With the new [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function, you can now use any compatible AI SDK provider. In this example, you import the AI SDK OpenAI provider. Then, you pass it to the [`model`](/docs/reference/ai-sdk-rsc/stream-ui#model) key of the new [`streamUI`](/docs/reference/ai-sdk-rsc/stream-ui) function. Finally, you declare a tool and return a React Server Component, defined in the [`generate`](/docs/reference/ai-sdk-rsc/stream-ui#tools-generate) key of the tool.
 
 ```tsx
-import { streamUI } from 'ai/rsc';
+import { streamUI } from '@ai-sdk/rsc';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 import { Spinner, Weather } from '@/components';

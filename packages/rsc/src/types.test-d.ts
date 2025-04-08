@@ -1,6 +1,6 @@
 import { expectTypeOf } from 'vitest';
 
-import type { StreamableValue } from './dist';
+import type { StreamableValue } from '../dist';
 
 describe('StreamableValue type', () => {
   it('should not contain types marked with @internal after compilation', () => {

@@ -1,7 +1,7 @@
 import * as jsondiffpatch from 'jsondiffpatch';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { createResolvablePromise } from '../util/create-resolvable-promise';
-import { isFunction } from '../util/is-function';
+import { createResolvablePromise } from './util/create-resolvable-promise';
+import { isFunction } from './util/is-function';
 import type {
   AIProvider,
   InferAIState,

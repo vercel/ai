@@ -26,3 +26,5 @@ export type {
   ToolContent,
   UserContent,
 } from './message';
+export type { Prompt } from './prompt';
+export type { CallSettings } from './call-settings';

@@ -1,5 +1,5 @@
-import { HANGING_STREAM_WARNING_TIME_MS } from '../../util/constants';
-import { createResolvablePromise } from '../../util/create-resolvable-promise';
+import { HANGING_STREAM_WARNING_TIME_MS } from 'ai/internal';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { createSuspendedChunk } from './create-suspended-chunk';
 
 // It's necessary to define the type manually here, otherwise TypeScript compiler

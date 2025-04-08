@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { readStreamableValue } from 'ai/rsc';
+import { readStreamableValue } from '@ai-sdk/rsc';
 
 export function Client({ actions }) {
   const [log, setLog] = useState('');

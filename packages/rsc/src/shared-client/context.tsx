@@ -4,7 +4,7 @@
 import * as React from 'react';
 
 import * as jsondiffpatch from 'jsondiffpatch';
-import { isFunction } from '../../util/is-function';
+import { isFunction } from '../util/is-function';
 import type {
   AIProvider,
   InferActions,
