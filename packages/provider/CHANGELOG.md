@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.1.2
+
+### Patch Changes
+
+- 013faa8: core (ai): change transcription model mimeType to mediaType
+
 ## 1.1.1
 
 ### Patch Changes
