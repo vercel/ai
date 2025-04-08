@@ -78,48 +78,40 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
                     });
                     break;
                   }
-                  case 'image': {
-                    if (part.image instanceof URL) {
-                      // The AI SDK automatically downloads images for user image parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'Image URLs in user messages',
-                      });
-                    }
 
-                    bedrockContent.push({
-                      image: {
-                        format: part.mimeType?.split(
-                          '/',
-                        )?.[1] as BedrockImageFormat,
-                        source: {
-                          bytes: convertUint8ArrayToBase64(
-                            part.image ?? (part.image as Uint8Array),
-                          ),
-                        },
-                      },
-                    });
-
-                    break;
-                  }
                   case 'file': {
                     if (part.data instanceof URL) {
                       // The AI SDK automatically downloads files for user file parts with URLs
                       throw new UnsupportedFunctionalityError({
-                        functionality: 'File URLs in user messages',
+                        functionality: 'File URL data',
                       });
                     }
 
-                    bedrockContent.push({
-                      document: {
-                        format: part.mimeType?.split(
-                          '/',
-                        )?.[1] as BedrockDocumentFormat,
-                        name: generateFileId(),
-                        source: {
-                          bytes: part.data,
+                    if (part.mimeType.startsWith('image/')) {
+                      const bedrockImageFormat =
+                        part.mimeType === 'image/*'
+                          ? undefined
+                          : part.mimeType?.split('/')?.[1];
+
+                      bedrockContent.push({
+                        image: {
+                          format: bedrockImageFormat as BedrockImageFormat,
+                          source: { bytes: part.data },
                         },
-                      },
-                    });
+                      });
+                    } else {
+                      bedrockContent.push({
+                        document: {
+                          format: part.mimeType?.split(
+                            '/',
+                          )?.[1] as BedrockDocumentFormat,
+                          name: generateFileId(),
+                          source: {
+                            bytes: part.data,
+                          },
+                        },
+                      });
+                    }
 
                     break;
                   }
