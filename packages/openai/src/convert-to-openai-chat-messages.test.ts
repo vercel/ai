@@ -55,7 +55,7 @@ describe('user messages', () => {
             { type: 'text', text: 'Hello' },
             {
               type: 'file',
-              mimeType: 'image/png',
+              mediaType: 'image/png',
               data: Buffer.from([0, 1, 2, 3]).toString('base64'),
             },
           ],
@@ -85,7 +85,7 @@ describe('user messages', () => {
           content: [
             {
               type: 'file',
-              mimeType: 'image/png',
+              mediaType: 'image/png',
               data: Buffer.from([0, 1, 2, 3]).toString('base64'),
               providerOptions: {
                 openai: {
@@ -125,7 +125,7 @@ describe('user messages', () => {
                 {
                   type: 'file',
                   data: 'AAECAw==',
-                  mimeType: 'application/something',
+                  mediaType: 'application/something',
                 },
               ],
             },
@@ -144,7 +144,7 @@ describe('user messages', () => {
                 {
                   type: 'file',
                   data: new URL('https://example.com/foo.wav'),
-                  mimeType: 'audio/wav',
+                  mediaType: 'audio/wav',
                 },
               ],
             },
@@ -162,7 +162,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'AAECAw==',
-                mimeType: 'audio/wav',
+                mediaType: 'audio/wav',
               },
             ],
           },
@@ -191,7 +191,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'AAECAw==',
-                mimeType: 'audio/mpeg',
+                mediaType: 'audio/mpeg',
               },
             ],
           },
@@ -220,7 +220,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'AAECAw==',
-                mimeType: 'audio/mp3', // not official but sometimes used
+                mediaType: 'audio/mp3', // not official but sometimes used
               },
             ],
           },
@@ -250,7 +250,7 @@ describe('user messages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: base64Data,
                 filename: 'document.pdf',
               },
@@ -286,7 +286,7 @@ describe('user messages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: base64Data,
               },
             ],
@@ -322,7 +322,7 @@ describe('user messages', () => {
               content: [
                 {
                   type: 'file',
-                  mimeType: 'text/plain',
+                  mediaType: 'text/plain',
                   data: base64Data,
                 },
               ],
@@ -342,7 +342,7 @@ describe('user messages', () => {
               content: [
                 {
                   type: 'file',
-                  mimeType: 'application/pdf',
+                  mediaType: 'application/pdf',
                   data: new URL('https://example.com/document.pdf'),
                 },
               ],

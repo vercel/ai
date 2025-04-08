@@ -10,7 +10,7 @@ describe('user messages', () => {
           {
             type: 'file',
             data: 'AAECAw==',
-            mimeType: 'image/png',
+            mediaType: 'image/png',
           },
         ],
       },
@@ -28,7 +28,7 @@ describe('user messages', () => {
           {
             type: 'file',
             data: new URL('https://example.com/document.pdf'),
-            mimeType: 'application/pdf',
+            mediaType: 'application/pdf',
           },
         ],
       },

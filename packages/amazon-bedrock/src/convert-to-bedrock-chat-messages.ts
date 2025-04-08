@@ -84,11 +84,11 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
                       });
                     }
 
-                    if (part.mimeType.startsWith('image/')) {
+                    if (part.mediaType.startsWith('image/')) {
                       const bedrockImageFormat =
-                        part.mimeType === 'image/*'
+                        part.mediaType === 'image/*'
                           ? undefined
-                          : part.mimeType?.split('/')?.[1];
+                          : part.mediaType?.split('/')?.[1];
 
                       bedrockContent.push({
                         image: {
@@ -99,7 +99,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
                     } else {
                       bedrockContent.push({
                         document: {
-                          format: part.mimeType?.split(
+                          format: part.mediaType?.split(
                             '/',
                           )?.[1] as BedrockDocumentFormat,
                           name: generateFileId(),
@@ -129,12 +129,12 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
                               text: part.text,
                             };
                           case 'image':
-                            if (!part.mimeType) {
+                            if (!part.mediaType) {
                               throw new Error(
                                 'Image mime type is required in tool result part content',
                               );
                             }
-                            const format = part.mimeType.split('/')[1];
+                            const format = part.mediaType.split('/')[1];
                             if (!isBedrockImageFormat(format)) {
                               throw new Error(
                                 `Unsupported image format: ${format}`,

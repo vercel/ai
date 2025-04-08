@@ -100,7 +100,7 @@ export function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'file': {
-                    if (part.mimeType.startsWith('image/')) {
+                    if (part.mediaType.startsWith('image/')) {
                       anthropicContent.push({
                         type: 'image',
                         source:
@@ -112,14 +112,14 @@ export function convertToAnthropicMessagesPrompt({
                             : {
                                 type: 'base64',
                                 media_type:
-                                  part.mimeType === 'image/*'
+                                  part.mediaType === 'image/*'
                                     ? 'image/jpeg'
-                                    : part.mimeType,
+                                    : part.mediaType,
                                 data: part.data,
                               },
                         cache_control: cacheControl,
                       });
-                    } else if (part.mimeType === 'application/pdf') {
+                    } else if (part.mediaType === 'application/pdf') {
                       if (part.data instanceof URL) {
                         // The AI SDK automatically downloads files for user file parts with URLs
                         throw new UnsupportedFunctionalityError({
@@ -140,7 +140,7 @@ export function convertToAnthropicMessagesPrompt({
                       });
                     } else {
                       throw new UnsupportedFunctionalityError({
-                        functionality: `unsupported file content type: ${part.mimeType}`,
+                        functionality: `unsupported media type: ${part.mediaType}`,
                       });
                     }
 
@@ -181,7 +181,7 @@ export function convertToAnthropicMessagesPrompt({
                               type: 'image' as const,
                               source: {
                                 type: 'base64' as const,
-                                media_type: part.mimeType ?? 'image/jpeg',
+                                media_type: part.mediaType ?? 'image/jpeg',
                                 data: part.data,
                               },
                               cache_control: undefined,

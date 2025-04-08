@@ -10,7 +10,7 @@ describe('user messages', () => {
           {
             type: 'file',
             data: 'AAECAw==',
-            mimeType: 'image/png',
+            mediaType: 'image/png',
           },
         ],
       },

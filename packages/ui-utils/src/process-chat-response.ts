@@ -203,7 +203,7 @@ export async function processChatResponse({
     onFilePart(value) {
       message.parts.push({
         type: 'file',
-        mimeType: value.mimeType,
+        mediaType: value.mimeType,
         data: value.data,
       });
 

@@ -51,7 +51,7 @@ describe('user messages', () => {
             {
               type: 'file',
               data: 'AAECAw==',
-              mimeType: 'image/png',
+              mediaType: 'image/png',
             },
           ],
         },
@@ -92,7 +92,7 @@ describe('user messages', () => {
             {
               type: 'file',
               data: new URL('https://example.com/image.png'),
-              mimeType: 'image/*',
+              mediaType: 'image/*',
             },
           ],
         },
@@ -132,7 +132,7 @@ describe('user messages', () => {
             {
               type: 'file',
               data: 'base64PDFdata',
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             },
           ],
         },
@@ -174,7 +174,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'base64data',
-                mimeType: 'text/plain',
+                mediaType: 'text/plain',
               },
             ],
           },
@@ -345,7 +345,7 @@ describe('tool messages', () => {
                 {
                   type: 'image',
                   data: 'AAECAw==',
-                  mimeType: 'image/png',
+                  mediaType: 'image/png',
                 },
               ],
             },

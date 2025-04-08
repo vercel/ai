@@ -33,7 +33,7 @@ describe('user messages', () => {
           {
             type: 'file',
             data: 'AAECAw==',
-            mimeType: 'image/png',
+            mediaType: 'image/png',
           },
         ],
       },
@@ -61,7 +61,7 @@ describe('user messages', () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
         role: 'user',
-        content: [{ type: 'file', data: 'AAECAw==', mimeType: 'image/png' }],
+        content: [{ type: 'file', data: 'AAECAw==', mediaType: 'image/png' }],
       },
     ]);
 
@@ -127,7 +127,7 @@ describe('assistant messages', () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
         role: 'assistant',
-        content: [{ type: 'file', data: 'AAECAw==', mimeType: 'image/png' }],
+        content: [{ type: 'file', data: 'AAECAw==', mediaType: 'image/png' }],
       },
     ]);
 
@@ -154,7 +154,9 @@ describe('assistant messages', () => {
       convertToGoogleGenerativeAIMessages([
         {
           role: 'assistant',
-          content: [{ type: 'file', data: 'AAECAw==', mimeType: 'image/jpeg' }],
+          content: [
+            { type: 'file', data: 'AAECAw==', mediaType: 'image/jpeg' },
+          ],
         },
       ]),
     ).toThrow('Only PNG images are supported in assistant messages');
@@ -169,7 +171,7 @@ describe('assistant messages', () => {
             {
               type: 'file',
               data: new URL('https://example.com/image.png'),
-              mimeType: 'image/png',
+              mediaType: 'image/png',
             },
           ],
         },

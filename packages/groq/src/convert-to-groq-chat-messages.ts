@@ -30,14 +30,14 @@ export function convertToGroqChatMessages(
                 return { type: 'text', text: part.text };
               }
               case 'file': {
-                if (!part.mimeType.startsWith('image/')) {
+                if (!part.mediaType.startsWith('image/')) {
                   throw new UnsupportedFunctionalityError({
                     functionality: 'Non-image file content parts',
                   });
                 }
 
-                const mimeType =
-                  part.mimeType === 'image/*' ? 'image/jpeg' : part.mimeType;
+                const mediaType =
+                  part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
                 return {
                   type: 'image_url',
@@ -45,7 +45,7 @@ export function convertToGroqChatMessages(
                     url:
                       part.data instanceof URL
                         ? part.data.toString()
-                        : `data:${mimeType};base64,${part.data}`,
+                        : `data:${mediaType};base64,${part.data}`,
                   },
                 };
               }

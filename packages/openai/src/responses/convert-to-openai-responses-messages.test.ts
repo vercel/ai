@@ -58,7 +58,7 @@ describe('convertToOpenAIResponsesMessages', () => {
               { type: 'text', text: 'Hello' },
               {
                 type: 'file',
-                mimeType: 'image/*',
+                mediaType: 'image/*',
                 data: new URL('https://example.com/image.jpg'),
               },
             ],
@@ -89,7 +89,7 @@ describe('convertToOpenAIResponsesMessages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'image/png',
+                mediaType: 'image/png',
                 data: Buffer.from([0, 1, 2, 3]).toString('base64'),
               },
             ],
@@ -119,7 +119,7 @@ describe('convertToOpenAIResponsesMessages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'image/*',
+                mediaType: 'image/*',
                 data: Buffer.from([0, 1, 2, 3]).toString('base64'),
               },
             ],
@@ -149,7 +149,7 @@ describe('convertToOpenAIResponsesMessages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'image/png',
+                mediaType: 'image/png',
                 data: Buffer.from([0, 1, 2, 3]).toString('base64'),
                 providerOptions: {
                   openai: {
@@ -187,7 +187,7 @@ describe('convertToOpenAIResponsesMessages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: base64Data,
                 filename: 'document.pdf',
               },
@@ -221,7 +221,7 @@ describe('convertToOpenAIResponsesMessages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: base64Data,
               },
             ],
@@ -255,7 +255,7 @@ describe('convertToOpenAIResponsesMessages', () => {
               content: [
                 {
                   type: 'file',
-                  mimeType: 'text/plain',
+                  mediaType: 'text/plain',
                   data: base64Data,
                 },
               ],
@@ -275,7 +275,7 @@ describe('convertToOpenAIResponsesMessages', () => {
               content: [
                 {
                   type: 'file',
-                  mimeType: 'application/pdf',
+                  mediaType: 'application/pdf',
                   data: new URL('https://example.com/document.pdf'),
                 },
               ],

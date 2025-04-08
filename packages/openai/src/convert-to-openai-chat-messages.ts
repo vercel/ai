@@ -63,9 +63,11 @@ export function convertToOpenAIChatMessages({
                 return { type: 'text', text: part.text };
               }
               case 'file': {
-                if (part.mimeType.startsWith('image/')) {
-                  const mimeType =
-                    part.mimeType === 'image/*' ? 'image/jpeg' : part.mimeType;
+                if (part.mediaType.startsWith('image/')) {
+                  const mediaType =
+                    part.mediaType === 'image/*'
+                      ? 'image/jpeg'
+                      : part.mediaType;
 
                   return {
                     type: 'image_url',
@@ -73,20 +75,20 @@ export function convertToOpenAIChatMessages({
                       url:
                         part.data instanceof URL
                           ? part.data.toString()
-                          : `data:${mimeType};base64,${part.data}`,
+                          : `data:${mediaType};base64,${part.data}`,
 
                       // OpenAI specific extension: image detail
                       detail: part.providerOptions?.openai?.imageDetail,
                     },
                   };
-                } else if (part.mimeType.startsWith('audio/')) {
+                } else if (part.mediaType.startsWith('audio/')) {
                   if (part.data instanceof URL) {
                     throw new UnsupportedFunctionalityError({
                       functionality: 'audio file parts with URLs',
                     });
                   }
 
-                  switch (part.mimeType) {
+                  switch (part.mediaType) {
                     case 'audio/wav': {
                       return {
                         type: 'input_audio',
@@ -103,11 +105,11 @@ export function convertToOpenAIChatMessages({
 
                     default: {
                       throw new UnsupportedFunctionalityError({
-                        functionality: `audio content parts with media type ${part.mimeType}`,
+                        functionality: `audio content parts with media type ${part.mediaType}`,
                       });
                     }
                   }
-                } else if (part.mimeType === 'application/pdf') {
+                } else if (part.mediaType === 'application/pdf') {
                   if (part.data instanceof URL) {
                     throw new UnsupportedFunctionalityError({
                       functionality: 'PDF file parts with URLs',
@@ -123,7 +125,7 @@ export function convertToOpenAIChatMessages({
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mimeType}`,
+                    functionality: `file part media type ${part.mediaType}`,
                   });
                 }
               }

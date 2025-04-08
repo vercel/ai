@@ -47,7 +47,7 @@ describe('user messages', () => {
           {
             type: 'file',
             data: Buffer.from(imageData).toString('base64'),
-            mimeType: 'image/png',
+            mediaType: 'image/png',
           },
         ],
       },
@@ -80,7 +80,7 @@ describe('user messages', () => {
           {
             type: 'file',
             data: Buffer.from(fileData).toString('base64'),
-            mimeType: 'application/pdf',
+            mediaType: 'application/pdf',
           },
         ],
       },
@@ -484,7 +484,7 @@ describe('tool messages', () => {
               {
                 type: 'image',
                 data: 'base64data',
-                mimeType: 'image/jpeg',
+                mediaType: 'image/jpeg',
               },
             ],
           },
@@ -527,7 +527,7 @@ describe('tool messages', () => {
                 {
                   type: 'image',
                   data: 'base64data',
-                  mimeType: 'image/webp', // unsupported format
+                  mediaType: 'image/webp', // unsupported format
                 },
               ],
             },
@@ -552,7 +552,7 @@ describe('tool messages', () => {
                 {
                   type: 'image',
                   data: 'base64data',
-                  // missing mimeType
+                  // missing mediaType
                 },
               ],
             },

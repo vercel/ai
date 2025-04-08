@@ -1132,11 +1132,11 @@ describe('doGenerate', () => {
     expect(files).toStrictEqual([
       {
         data: 'base64encodedimagedata',
-        mimeType: 'image/jpeg',
+        mediaType: 'image/jpeg',
       },
       {
         data: 'anotherbase64encodedimagedata',
-        mimeType: 'image/png',
+        mediaType: 'image/png',
       },
     ]);
   });
@@ -1187,11 +1187,11 @@ describe('doGenerate', () => {
     expect(files).toStrictEqual([
       {
         data: 'imagedata1',
-        mimeType: 'image/jpeg',
+        mediaType: 'image/jpeg',
       },
       {
         data: 'imagedata2',
-        mimeType: 'image/png',
+        mediaType: 'image/png',
       },
     ]);
   });
@@ -1258,11 +1258,11 @@ describe('doGenerate', () => {
     expect(files).toStrictEqual([
       {
         data: 'validimagedata',
-        mimeType: 'image/jpeg',
+        mediaType: 'image/jpeg',
       },
       {
         data: 'pdfdata',
-        mimeType: 'application/pdf',
+        mediaType: 'application/pdf',
       },
     ]);
   });
@@ -1783,7 +1783,7 @@ describe('doStream', () => {
 
     expect(events.filter(event => event.type === 'error')).toEqual([]); // no errors
     expect(events.filter(event => event.type === 'file')).toEqual([
-      { type: 'file', mimeType: 'text/plain', data: 'test' },
+      { type: 'file', mediaType: 'text/plain', data: 'test' },
     ]);
   });
 
