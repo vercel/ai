@@ -5,8 +5,10 @@ import 'dotenv/config';
 async function main() {
   const result = await transcribe({
     model: openai.transcription('whisper-1'),
-    // TBD
-    audio: new URL('https://sdk.vercel.ai/examples/ai-core/data/galileo.mp3'),
+    audio: new URL(
+      '/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+      'https://github.com',
+    ),
   });
 
   console.log('Text:', result.text);
