@@ -1,5 +1,14 @@
 # @ai-sdk/cerebras
 
+## 0.2.8
+
+### Patch Changes
+
+- Updated dependencies [013faa8]
+  - @ai-sdk/provider@1.1.2
+  - @ai-sdk/openai-compatible@0.2.8
+  - @ai-sdk/provider-utils@2.2.6
+
 ## 0.2.7
 
 ### Patch Changes
