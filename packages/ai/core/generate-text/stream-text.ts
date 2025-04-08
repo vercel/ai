@@ -8,6 +8,7 @@ import { InvalidStreamPartError } from '../../errors/invalid-stream-part-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { StreamData } from '../../streams/stream-data';
 import { asArray } from '../../util/as-array';
+import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
@@ -53,6 +54,7 @@ import {
 } from './run-tools-transformation';
 import { ResponseMessage, StepResult } from './step-result';
 import {
+  ConsumeStreamOptions,
   DataStreamOptions,
   StreamTextResult,
   TextStreamPart,
@@ -1591,10 +1593,14 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  async consumeStream(): Promise<void> {
-    const stream = this.fullStream;
-    for await (const part of stream) {
-      // no op
+  async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
+    try {
+      await consumeStream({
+        stream: this.fullStream,
+        onError: options?.onError,
+      });
+    } catch (error) {
+      options?.onError?.(error);
     }
   }
 

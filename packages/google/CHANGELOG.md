@@ -1,5 +1,40 @@
 # @ai-sdk/google
 
+## 1.2.10
+
+### Patch Changes
+
+- Updated dependencies [013faa8]
+  - @ai-sdk/provider@1.1.2
+  - @ai-sdk/provider-utils@2.2.6
+
+## 1.2.9
+
+### Patch Changes
+
+- Updated dependencies [c21fa6d]
+  - @ai-sdk/provider-utils@2.2.5
+  - @ai-sdk/provider@1.1.1
+
+## 1.2.8
+
+### Patch Changes
+
+- 1e8e66d: fix (provider/google): allow "OFF" for Google HarmBlockThreshold
+
+## 1.2.7
+
+### Patch Changes
+
+- 1789884: feat: add provider option schemas for vertex imagegen and google genai
+
+## 1.2.6
+
+### Patch Changes
+
+- Updated dependencies [2c19b9a]
+  - @ai-sdk/provider-utils@2.2.4
+
 ## 1.2.5
 
 ### Patch Changes

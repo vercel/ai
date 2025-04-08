@@ -1,5 +1,4 @@
 import {
-  InvalidArgumentError,
   LanguageModelV1,
   LanguageModelV1CallWarning,
   LanguageModelV1FinishReason,
@@ -33,6 +32,7 @@ type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
+  supportsImageUrls: boolean;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
@@ -41,7 +41,6 @@ type AnthropicMessagesConfig = {
 export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'tool';
-  readonly supportsImageUrls = true;
 
   readonly modelId: AnthropicMessagesModelId;
   readonly settings: AnthropicMessagesSettings;
@@ -64,6 +63,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  get supportsImageUrls(): boolean {
+    return this.config.supportsImageUrls;
   }
 
   private async getArgs({

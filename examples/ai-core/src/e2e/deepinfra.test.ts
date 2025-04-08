@@ -13,6 +13,8 @@ createFeatureTestSuite({
   name: 'DeepInfra',
   models: {
     languageModels: [
+      createChatModel('meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'),
+      createChatModel('meta-llama/Llama-4-Scout-17B-16E-Instruct'),
       createChatModel('deepseek-ai/DeepSeek-V3'),
       createChatModel('deepseek-ai/DeepSeek-R1'),
       createChatModel('deepseek-ai/DeepSeek-R1-Distill-Llama-70B'),

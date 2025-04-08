@@ -1,5 +1,38 @@
 # @ai-sdk/azure
 
+## 1.3.10
+
+### Patch Changes
+
+- Updated dependencies [013faa8]
+- Updated dependencies [013faa8]
+  - @ai-sdk/provider@1.1.2
+  - @ai-sdk/openai@1.3.9
+  - @ai-sdk/provider-utils@2.2.6
+
+## 1.3.9
+
+### Patch Changes
+
+- Updated dependencies [c21fa6d]
+  - @ai-sdk/provider-utils@2.2.5
+  - @ai-sdk/provider@1.1.1
+  - @ai-sdk/openai@1.3.8
+
+## 1.3.8
+
+### Patch Changes
+
+- e82024e: feat (provider/azure): add OpenAI responses API support
+
+## 1.3.7
+
+### Patch Changes
+
+- Updated dependencies [2c19b9a]
+  - @ai-sdk/provider-utils@2.2.4
+  - @ai-sdk/openai@1.3.7
+
 ## 1.3.6
 
 ### Patch Changes

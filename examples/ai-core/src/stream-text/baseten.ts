@@ -1,31 +1,14 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText } from 'ai';
-import 'dotenv/config';
 
-const BASETEN_MODEL_ID = '<deployment-id>';
-const BASETEN_DEPLOYMENT_ID = null;
-
-// see https://docs.baseten.co/api-reference/openai for more information
-const basetenExtraPayload = {
-  model_id: BASETEN_MODEL_ID,
-  deployment_id: BASETEN_DEPLOYMENT_ID,
-};
+const BASETEN_MODEL_ID = '<model-id>'; // e.g. 5q3z8xcw
+const BASETEN_MODEL_URL = `https://model-${BASETEN_MODEL_ID}.api.baseten.co/environments/production/sync/v1`;
 
 const baseten = createOpenAICompatible({
   name: 'baseten',
+  baseURL: BASETEN_MODEL_URL,
   headers: {
     Authorization: `Bearer ${process.env.BASETEN_API_KEY ?? ''}`,
-  },
-  baseURL: 'https://bridge.baseten.co/v1/direct',
-  fetch: async (url, request) => {
-    if (!request || !request.body) {
-      throw new Error('Request body is undefined');
-    }
-    const bodyWithBasetenPayload = JSON.stringify({
-      ...JSON.parse(String(request.body)),
-      baseten: basetenExtraPayload,
-    });
-    return await fetch(url, { ...request, body: bodyWithBasetenPayload });
   },
 });
 

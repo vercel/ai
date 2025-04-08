@@ -8,10 +8,22 @@
  * @param {ReadableStream} stream - The ReadableStream to be consumed.
  * @returns {Promise<void>} A promise that resolves when the stream is fully consumed.
  */
-export async function consumeStream(stream: ReadableStream): Promise<void> {
+export async function consumeStream({
+  stream,
+  onError,
+}: {
+  stream: ReadableStream;
+  onError?: (error: unknown) => void;
+}): Promise<void> {
   const reader = stream.getReader();
-  while (true) {
-    const { done } = await reader.read();
-    if (done) break;
+  try {
+    while (true) {
+      const { done } = await reader.read();
+      if (done) break;
+    }
+  } catch (error) {
+    onError?.(error);
+  } finally {
+    reader.releaseLock();
   }
 }

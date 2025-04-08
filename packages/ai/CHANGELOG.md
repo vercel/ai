@@ -1,5 +1,59 @@
 # ai
 
+## 4.3.4
+
+### Patch Changes
+
+- 013faa8: core (ai): change transcription model mimeType to mediaType
+- Updated dependencies [013faa8]
+  - @ai-sdk/provider@1.1.2
+  - @ai-sdk/provider-utils@2.2.6
+  - @ai-sdk/ui-utils@1.2.7
+  - @ai-sdk/react@1.2.8
+
+## 4.3.3
+
+### Patch Changes
+
+- 3e88f4d: fix (ai/mcp): prevent mutation of customEnv
+- c21fa6d: feat: add transcription with experimental_transcribe
+- Updated dependencies [c21fa6d]
+  - @ai-sdk/provider-utils@2.2.5
+  - @ai-sdk/provider@1.1.1
+  - @ai-sdk/react@1.2.7
+  - @ai-sdk/ui-utils@1.2.6
+
+## 4.3.2
+
+### Patch Changes
+
+- 665a567: fix (core): improve error handling in streamText's consumeStream method
+
+## 4.3.1
+
+### Patch Changes
+
+- 3d1bd38: feat(smooth-stream): chunking callbacks
+
+## 4.3.0
+
+### Minor Changes
+
+- 772a2d7: feat (core): Add finishReason field to NoObjectGeneratedError
+
+### Patch Changes
+
+- Updated dependencies [2c19b9a]
+  - @ai-sdk/provider-utils@2.2.4
+  - @ai-sdk/react@1.2.6
+  - @ai-sdk/ui-utils@1.2.5
+
+## 4.2.11
+
+### Patch Changes
+
+- c45d100: fix (core): send buffered text in smooth stream when stream parts change
+
 ## 4.2.10
 
 ### Patch Changes

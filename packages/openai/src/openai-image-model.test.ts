@@ -1,32 +1,38 @@
-import { JsonTestServer } from '@ai-sdk/provider-utils/test';
-import { createOpenAI } from './openai-provider';
+import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { OpenAIImageModel } from './openai-image-model';
+import { createOpenAI } from './openai-provider';
 
 const prompt = 'A cute baby sea otter';
 
 const provider = createOpenAI({ apiKey: 'test-api-key' });
 const model = provider.image('dall-e-3', { maxImagesPerCall: 2 });
 
+const server = createTestServer({
+  'https://api.openai.com/v1/images/generations': {},
+});
+
 describe('doGenerate', () => {
-  const server = new JsonTestServer(
-    'https://api.openai.com/v1/images/generations',
-  );
-
-  server.setupTestEnvironment();
-
-  function prepareJsonResponse() {
-    server.responseBodyJson = {
-      created: 1733837122,
-      data: [
-        {
-          revised_prompt:
-            'A charming visual illustration of a baby sea otter swimming joyously.',
-          b64_json: 'base64-image-1',
-        },
-        {
-          b64_json: 'base64-image-2',
-        },
-      ],
+  function prepareJsonResponse({
+    headers,
+  }: {
+    headers?: Record<string, string>;
+  } = {}) {
+    server.urls['https://api.openai.com/v1/images/generations'].response = {
+      type: 'json-value',
+      headers,
+      body: {
+        created: 1733837122,
+        data: [
+          {
+            revised_prompt:
+              'A charming visual illustration of a baby sea otter swimming joyously.',
+            b64_json: 'base64-image-1',
+          },
+          {
+            b64_json: 'base64-image-2',
+          },
+        ],
+      },
     };
   }
 
@@ -42,7 +48,7 @@ describe('doGenerate', () => {
       providerOptions: { openai: { style: 'vivid' } },
     });
 
-    expect(await server.getRequestBodyJson()).toStrictEqual({
+    expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'dall-e-3',
       prompt,
       n: 1,
@@ -76,9 +82,7 @@ describe('doGenerate', () => {
       },
     });
 
-    const requestHeaders = await server.getRequestHeaders();
-
-    expect(requestHeaders).toStrictEqual({
+    expect(server.calls[0].requestHeaders).toStrictEqual({
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
@@ -143,7 +147,13 @@ describe('doGenerate', () => {
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
-    prepareJsonResponse();
+    prepareJsonResponse({
+      headers: {
+        'x-request-id': 'test-request-id',
+        'x-ratelimit-remaining': '123',
+      },
+    });
+
     const testDate = new Date('2024-03-15T12:00:00Z');
 
     const customModel = new OpenAIImageModel(
@@ -158,11 +168,6 @@ describe('doGenerate', () => {
         },
       },
     );
-
-    server.responseHeaders = {
-      'x-request-id': 'test-request-id',
-      'x-ratelimit-remaining': '123',
-    };
 
     const result = await customModel.doGenerate({
       prompt,
