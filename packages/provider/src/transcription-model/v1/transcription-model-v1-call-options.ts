@@ -13,9 +13,11 @@ Accepts a `Uint8Array` or `string`, where `string` is a base64 encoded audio fil
   audio: Uint8Array | string;
 
   /**
-  The MIME type of the audio data.
+The IANA media type of the audio data.
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
-  mimeType: string;
+  mediaType: string;
 
   /**
 Additional provider-specific options that are passed through to the provider
