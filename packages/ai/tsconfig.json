@@ -3,6 +3,7 @@
   "compilerOptions": {
     "target": "ES2018",
     "stripInternal": true,
+    "lib": ["dom", "dom.iterable", "esnext"],
     "types": ["@types/node", "vitest/globals"]
   },
   "include": ["."],
