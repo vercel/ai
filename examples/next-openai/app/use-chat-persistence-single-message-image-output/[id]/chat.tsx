@@ -30,13 +30,13 @@ export default function Chat({
               return <div key={index}>{part.text}</div>;
             } else if (
               part.type === 'file' &&
-              part.mimeType.startsWith('image/')
+              part.mediaType.startsWith('image/')
             ) {
               return (
                 // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
                 <img
                   key={index}
-                  src={`data:${part.mimeType};base64,${part.data}`}
+                  src={`data:${part.mediaType};base64,${part.data}`}
                 />
               );
             }

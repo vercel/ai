@@ -88,7 +88,7 @@ export async function POST(request: Request) {
           {
             type: 'file',
             data: await file.arrayBuffer(),
-            mimeType: 'application/pdf',
+            mediaType: 'application/pdf',
           },
         ],
       },

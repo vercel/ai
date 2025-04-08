@@ -42,9 +42,11 @@ export function convertToOpenAICompatibleChatMessages(
                 return { type: 'text', text: part.text, ...partMetadata };
               }
               case 'file': {
-                if (part.mimeType.startsWith('image/')) {
-                  const mimeType =
-                    part.mimeType === 'image/*' ? 'image/jpeg' : part.mimeType;
+                if (part.mediaType.startsWith('image/')) {
+                  const mediaType =
+                    part.mediaType === 'image/*'
+                      ? 'image/jpeg'
+                      : part.mediaType;
 
                   return {
                     type: 'image_url',
@@ -52,13 +54,13 @@ export function convertToOpenAICompatibleChatMessages(
                       url:
                         part.data instanceof URL
                           ? part.data.toString()
-                          : `data:${mimeType};base64,${part.data}`,
+                          : `data:${mediaType};base64,${part.data}`,
                     },
                     ...partMetadata,
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mimeType}`,
+                    functionality: `file part media type ${part.mediaType}`,
                   });
                 }
               }

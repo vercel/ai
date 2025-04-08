@@ -39,7 +39,7 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
           parts.push({
             type: 'file',
             data: url,
-            mimeType: attachment.contentType,
+            mediaType: attachment.contentType,
           });
         }
         break;
@@ -48,16 +48,16 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
       case 'data:': {
         let header;
         let base64Content;
-        let mimeType;
+        let mediaType;
 
         try {
           [header, base64Content] = attachment.url.split(',');
-          mimeType = header.split(';')[0].split(':')[1];
+          mediaType = header.split(';')[0].split(':')[1];
         } catch (error) {
           throw new Error(`Error processing data URL: ${attachment.url}`);
         }
 
-        if (mimeType == null || base64Content == null) {
+        if (mediaType == null || base64Content == null) {
           throw new Error(`Invalid data URL format: ${attachment.url}`);
         }
 
@@ -83,7 +83,7 @@ export function attachmentsToParts(attachments: Attachment[]): ContentPart[] {
           parts.push({
             type: 'file',
             data: base64Content,
-            mimeType: attachment.contentType,
+            mediaType: attachment.contentType,
           });
         }
 

@@ -21,7 +21,7 @@ describe('user messages', () => {
           {
             type: 'file',
             data: Buffer.from([0, 1, 2, 3]).toString('base64'),
-            mimeType: 'image/png',
+            mediaType: 'image/png',
           },
         ],
       },
@@ -49,7 +49,7 @@ describe('user messages', () => {
           {
             type: 'file',
             data: new URL('https://example.com/image.jpg'),
-            mimeType: 'image/*',
+            mediaType: 'image/*',
           },
         ],
       },
@@ -250,7 +250,7 @@ describe('provider-specific metadata merging', () => {
           {
             type: 'file',
             data: imageUrl,
-            mimeType: 'image/*',
+            mediaType: 'image/*',
             providerOptions: {
               openaiCompatible: {
                 cacheControl: { type: 'ephemeral' },
@@ -312,7 +312,7 @@ describe('provider-specific metadata merging', () => {
           {
             type: 'file',
             data: Buffer.from([0, 1, 2, 3]).toString('base64'),
-            mimeType: 'image/png',
+            mediaType: 'image/png',
             providerOptions: {
               openaiCompatible: { alt_text: 'A sample image' },
             },
@@ -485,7 +485,7 @@ describe('provider-specific metadata merging', () => {
           {
             type: 'file',
             data: Buffer.from([9, 8, 7, 6]).toString('base64'),
-            mimeType: 'image/png',
+            mediaType: 'image/png',
             providerOptions: {
               openaiCompatible: { imagePartLevel: 'image-data' },
             },

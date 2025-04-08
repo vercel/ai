@@ -802,7 +802,7 @@ function asFiles(
   files:
     | Array<{
         data: string | Uint8Array;
-        mimeType: string;
+        mediaType: string;
       }>
     | undefined,
 ): Array<GeneratedFile> {

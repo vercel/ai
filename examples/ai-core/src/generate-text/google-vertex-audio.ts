@@ -17,7 +17,7 @@ async function main() {
           {
             type: 'file',
             data: Buffer.from(fs.readFileSync('./data/galileo.mp3')),
-            mimeType: 'audio/mpeg',
+            mediaType: 'audio/mpeg',
           },
         ],
       },

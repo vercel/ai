@@ -122,22 +122,22 @@ describe.each(Object.values(RUNTIME_VARIANTS))(
   },
 );
 
-const mimeTypeSignatures = [
-  { mimeType: 'image/gif' as const, bytes: [0x47, 0x49, 0x46] },
-  { mimeType: 'image/png' as const, bytes: [0x89, 0x50, 0x4e, 0x47] },
-  { mimeType: 'image/jpeg' as const, bytes: [0xff, 0xd8] },
-  { mimeType: 'image/webp' as const, bytes: [0x52, 0x49, 0x46, 0x46] },
+const mediaTypeSignatures = [
+  { mediaType: 'image/gif' as const, bytes: [0x47, 0x49, 0x46] },
+  { mediaType: 'image/png' as const, bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { mediaType: 'image/jpeg' as const, bytes: [0xff, 0xd8] },
+  { mediaType: 'image/webp' as const, bytes: [0x52, 0x49, 0x46, 0x46] },
 ];
 
-function detectImageMimeType(
+function detectImageMediaType(
   image: Uint8Array,
 ): 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' | undefined {
-  for (const { bytes, mimeType } of mimeTypeSignatures) {
+  for (const { bytes, mediaType } of mediaTypeSignatures) {
     if (
       image.length >= bytes.length &&
       bytes.every((byte, index) => image[index] === byte)
     ) {
-      return mimeType;
+      return mediaType;
     }
   }
 
@@ -166,8 +166,8 @@ const imageTest = (model: ImageModelV1) => {
     expect(image.uint8Array.length).toBeLessThan(10 * 1024 * 1024);
 
     // Verify PNG format
-    const mimeType = detectImageMimeType(image.uint8Array);
-    expect(mimeType).toBe('image/png');
+    const mediaType = detectImageMediaType(image.uint8Array);
+    expect(mediaType).toBe('image/png');
 
     // Create a temporary buffer to verify image dimensions
     const tempBuffer = Buffer.from(image.uint8Array);

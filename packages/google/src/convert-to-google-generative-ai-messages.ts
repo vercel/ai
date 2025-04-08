@@ -43,13 +43,18 @@ export function convertToGoogleGenerativeAIMessages(
 
             case 'file': {
               // default to image/jpeg for unknown image/* types
-              const mimeType =
-                part.mimeType === 'image/*' ? 'image/jpeg' : part.mimeType;
+              const mediaType =
+                part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
               parts.push(
                 part.data instanceof URL
-                  ? { fileData: { mimeType, fileUri: part.data.toString() } }
-                  : { inlineData: { mimeType, data: part.data } },
+                  ? {
+                      fileData: {
+                        mimeType: mediaType,
+                        fileUri: part.data.toString(),
+                      },
+                    }
+                  : { inlineData: { mimeType: mediaType, data: part.data } },
               );
 
               break;
@@ -76,7 +81,7 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'file': {
-                  if (part.mimeType !== 'image/png') {
+                  if (part.mediaType !== 'image/png') {
                     throw new UnsupportedFunctionalityError({
                       functionality:
                         'Only PNG images are supported in assistant messages',
@@ -92,7 +97,7 @@ export function convertToGoogleGenerativeAIMessages(
 
                   return {
                     inlineData: {
-                      mimeType: part.mimeType,
+                      mimeType: part.mediaType,
                       data: part.data,
                     },
                   };

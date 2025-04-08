@@ -135,7 +135,7 @@ Internal. For test use only. May change without notice.
                 }
                 parts.push({
                   type: 'file' as const,
-                  mimeType: part.mimeType,
+                  mediaType: part.mediaType ?? part.mimeType,
                   data: convertDataContentToBase64String(part.data),
                 });
                 break;

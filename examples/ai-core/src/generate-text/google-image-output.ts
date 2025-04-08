@@ -15,7 +15,7 @@ async function main() {
   console.log(result.text);
 
   for (const file of result.files) {
-    if (file.mimeType.startsWith('image/')) {
+    if (file.mediaType.startsWith('image/')) {
       await presentImages([file]);
     }
   }

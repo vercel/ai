@@ -93,7 +93,7 @@ describe('convertToCoreMessages', () => {
             {
               type: 'file',
               data: new URL('https://example.com/document.pdf'),
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             },
           ],
         },
@@ -282,7 +282,7 @@ describe('convertToCoreMessages', () => {
           parts: [
             {
               type: 'file',
-              mimeType: 'image/png',
+              mediaType: 'image/png',
               data: 'dGVzdA==',
             },
           ],
@@ -292,7 +292,7 @@ describe('convertToCoreMessages', () => {
       expect(result).toEqual([
         {
           role: 'assistant',
-          content: [{ type: 'file', mimeType: 'image/png', data: 'dGVzdA==' }],
+          content: [{ type: 'file', mediaType: 'image/png', data: 'dGVzdA==' }],
         },
       ] satisfies CoreMessage[]);
     });

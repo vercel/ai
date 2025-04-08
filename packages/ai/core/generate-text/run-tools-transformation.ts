@@ -169,7 +169,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           controller.enqueue(
             new DefaultGeneratedFileWithType({
               data: chunk.data,
-              mimeType: chunk.mimeType,
+              mediaType: chunk.mediaType,
             }),
           );
           break;

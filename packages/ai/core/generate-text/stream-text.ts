@@ -1684,7 +1684,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'file': {
               controller.enqueue(
                 formatDataStreamPart('file', {
-                  mimeType: chunk.mimeType,
+                  mimeType: chunk.mediaType,
                   data: chunk.base64,
                 }),
               );

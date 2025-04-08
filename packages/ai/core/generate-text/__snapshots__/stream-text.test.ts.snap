@@ -2396,13 +2396,13 @@ exports[`streamText > options.onFinish > should send files 1`] = `
   "files": [
     DefaultGeneratedFileWithType {
       "base64Data": "Hello World",
-      "mimeType": "text/plain",
+      "mediaType": "text/plain",
       "type": "file",
       "uint8ArrayData": undefined,
     },
     DefaultGeneratedFileWithType {
       "base64Data": "QkFVRw==",
-      "mimeType": "image/jpeg",
+      "mediaType": "image/jpeg",
       "type": "file",
       "uint8ArrayData": undefined,
     },
@@ -2421,12 +2421,12 @@ exports[`streamText > options.onFinish > should send files 1`] = `
         "content": [
           {
             "data": "Hello World",
-            "mimeType": "text/plain",
+            "mediaType": "text/plain",
             "type": "file",
           },
           {
             "data": "QkFVRw==",
-            "mimeType": "image/jpeg",
+            "mediaType": "image/jpeg",
             "type": "file",
           },
           {
@@ -2448,13 +2448,13 @@ exports[`streamText > options.onFinish > should send files 1`] = `
       "files": [
         DefaultGeneratedFileWithType {
           "base64Data": "Hello World",
-          "mimeType": "text/plain",
+          "mediaType": "text/plain",
           "type": "file",
           "uint8ArrayData": undefined,
         },
         DefaultGeneratedFileWithType {
           "base64Data": "QkFVRw==",
-          "mimeType": "image/jpeg",
+          "mediaType": "image/jpeg",
           "type": "file",
           "uint8ArrayData": undefined,
         },
@@ -2474,12 +2474,12 @@ exports[`streamText > options.onFinish > should send files 1`] = `
             "content": [
               {
                 "data": "Hello World",
-                "mimeType": "text/plain",
+                "mediaType": "text/plain",
                 "type": "file",
               },
               {
                 "data": "QkFVRw==",
-                "mimeType": "image/jpeg",
+                "mediaType": "image/jpeg",
                 "type": "file",
               },
               {
@@ -3217,13 +3217,13 @@ exports[`streamText > result.files > should contain files 1`] = `
 [
   DefaultGeneratedFileWithType {
     "base64Data": "Hello World",
-    "mimeType": "text/plain",
+    "mediaType": "text/plain",
     "type": "file",
     "uint8ArrayData": undefined,
   },
   DefaultGeneratedFileWithType {
     "base64Data": "QkFVRw==",
-    "mimeType": "image/jpeg",
+    "mediaType": "image/jpeg",
     "type": "file",
     "uint8ArrayData": undefined,
   },
@@ -3430,7 +3430,7 @@ exports[`streamText > result.fullStream > should send files 1`] = `
   },
   DefaultGeneratedFileWithType {
     "base64Data": "Hello World",
-    "mimeType": "text/plain",
+    "mediaType": "text/plain",
     "type": "file",
     "uint8ArrayData": undefined,
   },
@@ -3440,7 +3440,7 @@ exports[`streamText > result.fullStream > should send files 1`] = `
   },
   DefaultGeneratedFileWithType {
     "base64Data": "QkFVRw==",
-    "mimeType": "image/jpeg",
+    "mediaType": "image/jpeg",
     "type": "file",
     "uint8ArrayData": undefined,
   },
@@ -4369,13 +4369,13 @@ exports[`streamText > result.steps > should add the files from the model respons
     "files": [
       DefaultGeneratedFileWithType {
         "base64Data": "Hello World",
-        "mimeType": "text/plain",
+        "mediaType": "text/plain",
         "type": "file",
         "uint8ArrayData": undefined,
       },
       DefaultGeneratedFileWithType {
         "base64Data": "QkFVRw==",
-        "mimeType": "image/jpeg",
+        "mediaType": "image/jpeg",
         "type": "file",
         "uint8ArrayData": undefined,
       },
@@ -4395,12 +4395,12 @@ exports[`streamText > result.steps > should add the files from the model respons
           "content": [
             {
               "data": "Hello World",
-              "mimeType": "text/plain",
+              "mediaType": "text/plain",
               "type": "file",
             },
             {
               "data": "QkFVRw==",
-              "mimeType": "image/jpeg",
+              "mediaType": "image/jpeg",
               "type": "file",
             },
             {

@@ -114,13 +114,13 @@ const modelWithFiles = new MockLanguageModelV2({
       {
         type: 'file',
         data: 'Hello World',
-        mimeType: 'text/plain',
+        mediaType: 'text/plain',
       },
       { type: 'text-delta', textDelta: 'Hello!' },
       {
         type: 'file',
         data: 'QkFVRw==',
-        mimeType: 'image/jpeg',
+        mediaType: 'image/jpeg',
       },
       {
         type: 'finish',

@@ -191,7 +191,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
         },
       ],
     },
@@ -391,7 +391,7 @@ const result = await generateText({
 });
 
 for (const file of result.files) {
-  if (file.mimeType.startsWith('image/')) {
+  if (file.mediaType.startsWith('image/')) {
     // show the image
   }
 }

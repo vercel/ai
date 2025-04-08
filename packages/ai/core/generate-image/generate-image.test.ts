@@ -109,18 +109,18 @@ describe('generateImage', () => {
         result.images.map(image => ({
           base64: image.base64,
           uint8Array: image.uint8Array,
-          mimeType: image.mimeType,
+          mediaType: image.mediaType,
         })),
       ).toStrictEqual([
         {
           base64: pngBase64,
           uint8Array: convertBase64ToUint8Array(pngBase64),
-          mimeType: 'image/png',
+          mediaType: 'image/png',
         },
         {
           base64: jpegBase64,
           uint8Array: convertBase64ToUint8Array(jpegBase64),
-          mimeType: 'image/jpeg',
+          mediaType: 'image/jpeg',
         },
       ]);
     });
@@ -139,11 +139,11 @@ describe('generateImage', () => {
       expect({
         base64: result.image.base64,
         uint8Array: result.image.uint8Array,
-        mimeType: result.image.mimeType,
+        mediaType: result.image.mediaType,
       }).toStrictEqual({
         base64: pngBase64,
         uint8Array: convertBase64ToUint8Array(pngBase64),
-        mimeType: 'image/png',
+        mediaType: 'image/png',
       });
     });
   });

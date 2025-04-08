@@ -29,18 +29,20 @@ export function convertToMistralChatMessages(
               }
 
               case 'file': {
-                if (part.mimeType.startsWith('image/')) {
-                  const mimeType =
-                    part.mimeType === 'image/*' ? 'image/jpeg' : part.mimeType;
+                if (part.mediaType.startsWith('image/')) {
+                  const mediaType =
+                    part.mediaType === 'image/*'
+                      ? 'image/jpeg'
+                      : part.mediaType;
 
                   return {
                     type: 'image_url',
                     image_url:
                       part.data instanceof URL
                         ? part.data.toString()
-                        : `data:${mimeType};base64,${part.data}`,
+                        : `data:${mediaType};base64,${part.data}`,
                   };
-                } else if (part.mimeType === 'application/pdf') {
+                } else if (part.mediaType === 'application/pdf') {
                   return {
                     type: 'document_url',
                     document_url: part.data.toString(),

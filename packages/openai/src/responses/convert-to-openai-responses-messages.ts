@@ -56,21 +56,23 @@ export function convertToOpenAIResponsesMessages({
                 return { type: 'input_text', text: part.text };
               }
               case 'file': {
-                if (part.mimeType.startsWith('image/')) {
-                  const mimeType =
-                    part.mimeType === 'image/*' ? 'image/jpeg' : part.mimeType;
+                if (part.mediaType.startsWith('image/')) {
+                  const mediaType =
+                    part.mediaType === 'image/*'
+                      ? 'image/jpeg'
+                      : part.mediaType;
 
                   return {
                     type: 'input_image',
                     image_url:
                       part.data instanceof URL
                         ? part.data.toString()
-                        : `data:${mimeType};base64,${part.data}`,
+                        : `data:${mediaType};base64,${part.data}`,
 
                     // OpenAI specific extension: image detail
                     detail: part.providerOptions?.openai?.imageDetail,
                   };
-                } else if (part.mimeType === 'application/pdf') {
+                } else if (part.mediaType === 'application/pdf') {
                   if (part.data instanceof URL) {
                     // The AI SDK automatically downloads files for user file parts with URLs
                     throw new UnsupportedFunctionalityError({
@@ -85,7 +87,7 @@ export function convertToOpenAIResponsesMessages({
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
-                    functionality: `file part media type ${part.mimeType}`,
+                    functionality: `file part media type ${part.mediaType}`,
                   });
                 }
               }
