@@ -209,7 +209,6 @@ describe('doGenerate', () => {
       {
         "durationInSeconds": undefined,
         "language": undefined,
-        "providerMetadata": {},
         "response": {
           "body": {
             "_request_id": "req_1234",
