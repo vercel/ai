@@ -1,14 +1,35 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
 import { useChat } from '@ai-sdk/react';
-import { useRef, useState } from 'react';
+import { Attachment, getTextFromDataUrl } from '@ai-sdk/ui-utils';
+import { useEffect, useRef, useState } from 'react';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } = useChat({
     api: '/api/chat',
   });
+
+  const [attachments, setAttachments] = useState<
+    (Attachment & { id: string })[]
+  >([]);
+
+  useEffect(() => {
+    attachments.forEach(attachment => {
+      const message = messages.find(message =>
+        message.experimental_attachments?.find(
+          attachment => attachment.url === attachment.url,
+        ),
+      );
+
+      if (message) {
+        attachment.id = message.id;
+      }
+    });
+
+    setAttachments([...attachments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
 
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -16,6 +37,7 @@ export default function Page() {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-2 p-2">
+        Attachments: {JSON.stringify(attachments)}
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>

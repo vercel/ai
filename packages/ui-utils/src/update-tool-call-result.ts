@@ -18,6 +18,7 @@ export function updateToolCallResult({
   toolCallId: string;
   toolResult: unknown;
 }) {
+  console.log('updateToolCallResult', messages, toolCallId, result);
   const lastMessage = messages[messages.length - 1];
 
   const invocationPart = lastMessage.parts.find(

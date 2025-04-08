@@ -6,12 +6,13 @@ export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
       api: '/api/use-chat-tools',
-      maxSteps: 5,
+      // maxSteps: 5,
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {
         // artificial 2 second delay
         await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('onToolCall', toolCall);
 
         if (toolCall.toolName === 'getLocation') {
           const cities = [
@@ -20,7 +21,11 @@ export default function Chat() {
             'Chicago',
             'San Francisco',
           ];
-          return cities[Math.floor(Math.random() * cities.length)];
+          const city = cities[Math.floor(Math.random() * cities.length)];
+          addToolResult({
+            toolCallId: toolCall.toolCallId,
+            result: city,
+          });
         }
       },
     });
