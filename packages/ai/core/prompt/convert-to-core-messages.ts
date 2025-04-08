@@ -4,7 +4,7 @@ import {
   ReasoningUIPart,
   TextUIPart,
   ToolInvocationUIPart,
-} from '@ai-sdk/ui-utils';
+} from '../types';
 import { ToolSet } from '../generate-text/tool-set';
 import {
   AssistantContent,

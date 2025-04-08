@@ -2,7 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { formatDataStreamPart, type Message } from '@ai-sdk/ui-utils';
+import { formatDataStreamPart, type Message } from 'ai';
 import { render } from '@testing-library/svelte';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';

@@ -10,7 +10,7 @@ import {
   parsePartialJson,
   type DeepPartial,
   type Schema,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import { type z } from 'zod';
 import {
   getStructuredObjectContext,

@@ -1,7 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { processTextStream } from './process-text-stream';
-import { TextUIPart, UIMessage, UseChatOptions } from './types';
+import { TextUIPart, UIMessage, UseChatOptions } from '../types';
 
 export async function processChatTextResponse({
   stream,

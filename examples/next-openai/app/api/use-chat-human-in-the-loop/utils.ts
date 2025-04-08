@@ -1,6 +1,7 @@
-import { formatDataStreamPart, Message } from '@ai-sdk/ui-utils';
 import {
   convertToCoreMessages,
+  formatDataStreamPart,
+  Message,
   DataStreamWriter,
   ToolExecutionOptions,
   ToolSet,

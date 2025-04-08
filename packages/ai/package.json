@@ -40,7 +40,14 @@
     "./internal": {
       "types": "./dist/internal/index.d.ts",
       "import": "./dist/internal/index.mjs",
+      "module": "./dist/internal/index.mjs",
       "require": "./dist/internal/index.js"
+    },
+    "./ui": {
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.mjs",
+      "module": "./dist/ui/index.mjs",
+      "require": "./dist/ui/index.js"
     },
     "./test": {
       "types": "./test/dist/index.d.ts",
@@ -51,13 +58,14 @@
     "./mcp-stdio": {
       "types": "./mcp-stdio/dist/index.d.ts",
       "import": "./mcp-stdio/dist/index.mjs",
+      "module": "./mcp-stdio/dist/index.mjs",
       "require": "./mcp-stdio/dist/index.js"
     }
   },
   "dependencies": {
     "@ai-sdk/provider": "2.0.0-canary.1",
     "@ai-sdk/provider-utils": "3.0.0-canary.2",
-    "@ai-sdk/ui-utils": "2.0.0-canary.2",
+    "zod-to-json-schema": "^3.24.1",
     "@opentelemetry/api": "1.9.0",
     "jsondiffpatch": "0.6.0"
   },
@@ -69,7 +77,8 @@
     "eslint-config-vercel-ai": "workspace:*",
     "tsup": "^7.2.0",
     "typescript": "5.8.3",
-    "zod": "3.23.8"
+    "zod": "3.23.8",
+    "@types/json-schema": "7.0.15"
   },
   "peerDependencies": {
     "zod": "^3.23.8"

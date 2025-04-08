@@ -1,4 +1,4 @@
-import { Attachment } from './types';
+import { Attachment } from '../types';
 
 export async function prepareAttachmentsForRequest(
   attachmentsFromOptions: FileList | Array<Attachment> | undefined,

@@ -1,4 +1,4 @@
-import { JSONValue, formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { JSONValue, formatDataStreamPart } from '../core';
 import { HANGING_STREAM_WARNING_TIME_MS } from '../util/constants';
 
 /**

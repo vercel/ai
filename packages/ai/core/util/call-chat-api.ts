@@ -1,6 +1,6 @@
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
-import { IdGenerator, JSONValue, UIMessage, UseChatOptions } from './types';
+import { IdGenerator, JSONValue, UIMessage, UseChatOptions } from '../types';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;

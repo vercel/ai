@@ -1,4 +1,4 @@
-import { Schema } from '@ai-sdk/ui-utils';
+import { Schema } from '../util';
 import { z } from 'zod';
 import { ToolResultContent } from '../prompt/tool-result-content';
 import { CoreMessage } from '../prompt/message';

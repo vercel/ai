@@ -4,7 +4,7 @@ import {
   DeepPartial,
   parsePartialJson,
   Schema,
-} from '@ai-sdk/ui-utils';
+} from '../../core';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors';
 import { injectJsonInstruction } from '../generate-object/inject-json-instruction';
