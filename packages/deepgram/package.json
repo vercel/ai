@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/solid",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,8 +29,8 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "@ai-sdk/provider-utils": "2.2.5",
-    "@ai-sdk/ui-utils": "1.2.6",
+    "@ai-sdk/provider-utils": "2.2.6",
+    "@ai-sdk/ui-utils": "1.2.7",
     "@solid-primitives/trigger": "^1.1.0",
     "zod": "^3.23.8"
   },

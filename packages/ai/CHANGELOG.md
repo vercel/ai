@@ -1,5 +1,16 @@
 # ai
 
+## 4.3.4
+
+### Patch Changes
+
+- 013faa8: core (ai): change transcription model mimeType to mediaType
+- Updated dependencies [013faa8]
+  - @ai-sdk/provider@1.1.2
+  - @ai-sdk/provider-utils@2.2.6
+  - @ai-sdk/ui-utils@1.2.7
+  - @ai-sdk/react@1.2.8
+
 ## 4.3.3
 
 ### Patch Changes

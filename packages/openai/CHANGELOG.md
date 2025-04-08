@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 1.3.9
+
+### Patch Changes
+
+- 013faa8: core (ai): change transcription model mimeType to mediaType
+- 013faa8: fix (provider/openai): increase transcription model resilience
+- Updated dependencies [013faa8]
+  - @ai-sdk/provider@1.1.2
+  - @ai-sdk/provider-utils@2.2.6
+
 ## 1.3.8
 
 ### Patch Changes
