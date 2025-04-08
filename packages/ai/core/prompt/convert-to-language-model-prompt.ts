@@ -1,6 +1,5 @@
 import {
   LanguageModelV2FilePart,
-  LanguageModelV2ImagePart,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
@@ -20,6 +19,7 @@ import {
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { splitDataUrl } from './split-data-url';
 import { StandardizedPrompt } from './standardize-prompt';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 export async function convertToLanguageModelPrompt({
   prompt,
@@ -261,10 +261,7 @@ function convertPartToLanguageModelPart(
     string,
     { mimeType: string | undefined; data: Uint8Array }
   >,
-):
-  | LanguageModelV2TextPart
-  | LanguageModelV2ImagePart
-  | LanguageModelV2FilePart {
+): LanguageModelV2TextPart | LanguageModelV2FilePart {
   if (part.type === 'text') {
     return {
       type: 'text',
@@ -350,10 +347,15 @@ function convertPartToLanguageModelPart(
             signatures: imageMimeTypeSignatures,
           }) ?? mimeType;
       }
+
       return {
-        type: 'image',
-        image: normalizedData,
-        mimeType,
+        type: 'file',
+        data:
+          normalizedData instanceof Uint8Array
+            ? convertUint8ArrayToBase64(normalizedData) // TODO prevent double conversion
+            : normalizedData,
+        mimeType: mimeType ?? 'image/png', // TODO buggy what if it is a URL?
+        filename: undefined,
         providerOptions:
           part.providerOptions ?? part.experimental_providerMetadata,
       };
