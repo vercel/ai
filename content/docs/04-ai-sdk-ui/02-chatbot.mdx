@@ -624,9 +624,9 @@ messages.map(message => (
     {message.parts.map((part, index) => {
       if (part.type === 'text') {
         return <div key={index}>{part.text}</div>;
-      } else if (part.type === 'file' && part.mimeType.startsWith('image/')) {
+      } else if (part.type === 'file' && part.mediaType.startsWith('image/')) {
         return (
-          <img key={index} src={`data:${part.mimeType};base64,${part.data}`} />
+          <img key={index} src={`data:${part.mediaType};base64,${part.data}`} />
         );
       }
     })}
