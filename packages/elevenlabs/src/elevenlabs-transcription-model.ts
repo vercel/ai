@@ -189,7 +189,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
             key as keyof ElevenLabsTranscriptionModelOptions
           ];
         if (value !== undefined) {
-          formData.append(key, value as string);
+          formData.append(key, String(value));
         }
       }
     }

@@ -26,8 +26,10 @@ import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: elevenlabs('eleven_turbo_v2_5'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  model: elevenlabs.transcription('scribe_v1'),
+  audio: new URL(
+    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+  ),
 });
 ```
 
