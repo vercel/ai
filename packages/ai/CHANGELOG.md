@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.0-canary.5
+
+### Patch Changes
+
+- b71fe8d: fix(ai): remove jsondiffpatch dependency
+- d91b50d: chore(ui-utils): merge into ai package
+- Updated dependencies [d1a1aa1]
+  - @ai-sdk/provider@2.0.0-canary.3
+  - @ai-sdk/provider-utils@3.0.0-canary.4
+
 ## 5.0.0-canary.4
 
 ### Major Changes

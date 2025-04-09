@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "5.0.0-canary.4",
+  "version": "5.0.0-canary.5",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -57,8 +57,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "2.0.0-canary.2",
-    "@ai-sdk/provider-utils": "3.0.0-canary.3",
+    "@ai-sdk/provider": "2.0.0-canary.3",
+    "@ai-sdk/provider-utils": "3.0.0-canary.4",
     "@opentelemetry/api": "1.9.0",
     "zod-to-json-schema": "^3.24.1"
   },
