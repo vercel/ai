@@ -12,7 +12,17 @@
     "moduleResolution": "Bundler",
     "rootDir": "./src",
     "outDir": "./build",
-    "skipLibCheck": true
+    "composite": true
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/ai"
+    },
+    {
+      "path": "../../packages/openai"
+    }
+  ]
 }

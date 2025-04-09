@@ -12,3 +12,5 @@ server/dist
 public/dist
 .turbo
 test-results
+*.tsbuildinfo
+examples/*/build

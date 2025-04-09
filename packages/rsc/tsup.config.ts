@@ -22,7 +22,7 @@ export default defineConfig([
   },
   // RSC APIs - types
   {
-    entry: ['src/index.ts'],
+    entry: ['src/types/index.ts'],
     outDir: 'dist',
     dts: true,
     outExtension() {

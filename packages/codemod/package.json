@@ -8,17 +8,18 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "clean": "rm -rf dist",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "dev": "tsup --watch",
     "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.ts --run",
     "test:watch": "vitest",
     "scaffold": "tsx scripts/scaffold-codemod.ts"
   },
   "devDependencies": {
+    "ai": "5.0.0-canary.5",
     "@types/cli-progress": "^3.11.6",
     "@types/debug": "^4.1.12",
     "@types/jscodeshift": "^0.12.0",

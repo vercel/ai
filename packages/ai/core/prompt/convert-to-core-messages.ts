@@ -6,12 +6,8 @@ import {
   ToolInvocationUIPart,
 } from '../types';
 import { ToolSet } from '../generate-text/tool-set';
-import {
-  AssistantContent,
-  CoreMessage,
-  ToolCallPart,
-  ToolResultPart,
-} from '../prompt';
+import { AssistantContent, CoreMessage } from './message';
+import { ToolCallPart, ToolResultPart } from './content-part';
 import { attachmentsToParts } from './attachments-to-parts';
 import { MessageConversionError } from './message-conversion-error';
 

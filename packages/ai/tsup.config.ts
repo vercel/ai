@@ -3,7 +3,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   // Universal APIs
   {
-    entry: ['streams/index.ts'],
+    entry: ['index.ts'],
     format: ['cjs', 'esm'],
     external: ['react', 'svelte', 'vue'],
     dts: true,
@@ -20,7 +20,7 @@ export default defineConfig([
   // Test utilities
   {
     entry: ['test/index.ts'],
-    outDir: 'test/dist',
+    outDir: 'dist/test',
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
@@ -28,7 +28,7 @@ export default defineConfig([
   // MCP stdio
   {
     entry: ['mcp-stdio/index.ts'],
-    outDir: 'mcp-stdio/dist',
+    outDir: 'dist/mcp-stdio',
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
