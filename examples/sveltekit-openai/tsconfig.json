@@ -14,5 +14,22 @@
     "declaration": true,
     "declarationMap": true,
     "stripInternal": true
-  }
+  },
+  "references": [
+    {
+      "path": "../../packages/ai"
+    },
+    {
+      "path": "../../packages/openai"
+    },
+    {
+      "path": "../../packages/provider-utils"
+    },
+    {
+      "path": "../../packages/svelte"
+    },
+    {
+      "path": "../../packages/ui-utils"
+    }
+  ]
 }

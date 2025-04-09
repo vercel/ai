@@ -9,17 +9,14 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "mcp-stdio/**/*",
-    "rsc/dist/**/*",
-    "test/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
-    "clean": "rm -rf dist && rm -rf rsc/dist",
+    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm clean && tsup --watch",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:edge": "vitest --config vitest.edge.config.js --run",
@@ -43,15 +40,15 @@
       "require": "./dist/internal/index.js"
     },
     "./test": {
-      "types": "./test/dist/index.d.ts",
-      "import": "./test/dist/index.mjs",
-      "module": "./test/dist/index.mjs",
-      "require": "./test/dist/index.js"
+      "types": "./dist/test/index.d.ts",
+      "import": "./dist/test/index.mjs",
+      "module": "./dist/test/index.mjs",
+      "require": "./dist/test/index.js"
     },
     "./mcp-stdio": {
-      "types": "./mcp-stdio/dist/index.d.ts",
-      "import": "./mcp-stdio/dist/index.mjs",
-      "require": "./mcp-stdio/dist/index.js"
+      "types": "./dist/mcp-stdio/index.d.ts",
+      "import": "./dist/mcp-stdio/index.mjs",
+      "require": "./dist/mcp-stdio/index.js"
     }
   },
   "dependencies": {

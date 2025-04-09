@@ -9,7 +9,7 @@ export default defineConfig([
   },
   {
     entry: ['src/internal/index.ts'],
-    outDir: 'internal/dist',
+    outDir: 'dist/internal',
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,

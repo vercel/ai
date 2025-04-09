@@ -6,12 +6,7 @@ import {
   ToolInvocationUIPart,
 } from '@ai-sdk/ui-utils';
 import { ToolSet } from '../generate-text/tool-set';
-import {
-  AssistantContent,
-  CoreMessage,
-  ToolCallPart,
-  ToolResultPart,
-} from '../prompt';
+import { AssistantContent, CoreMessage, ToolCallPart, ToolResultPart } from '.';
 import { attachmentsToParts } from './attachments-to-parts';
 import { MessageConversionError } from './message-conversion-error';
 
