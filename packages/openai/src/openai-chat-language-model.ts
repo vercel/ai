@@ -379,52 +379,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    if (this.settings.simulateStreaming) {
-      const result = await this.doGenerate(options);
-
-      const simulatedStream = new ReadableStream<LanguageModelV2StreamPart>({
-        start(controller) {
-          controller.enqueue({ type: 'response-metadata', ...result.response });
-          if (result.text) {
-            controller.enqueue({
-              type: 'text-delta',
-              textDelta: result.text,
-            });
-          }
-          if (result.toolCalls) {
-            for (const toolCall of result.toolCalls) {
-              controller.enqueue({
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                argsTextDelta: toolCall.args,
-              });
-
-              controller.enqueue({
-                type: 'tool-call',
-                ...toolCall,
-              });
-            }
-          }
-          controller.enqueue({
-            type: 'finish',
-            finishReason: result.finishReason,
-            usage: result.usage,
-            logprobs: result.logprobs,
-            providerMetadata: result.providerMetadata,
-          });
-          controller.close();
-        },
-      });
-
-      return {
-        stream: simulatedStream,
-        response: result.response,
-        warnings: result.warnings,
-      };
-    }
-
     const { args, warnings } = this.getArgs(options);
 
     const body = {
