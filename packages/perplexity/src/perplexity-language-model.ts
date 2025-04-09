@@ -3,7 +3,6 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -150,9 +149,12 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
         completionTokens: response.usage?.completion_tokens ?? Number.NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders, body: rawResponse },
       request: { body: JSON.stringify(args) },
-      response: getResponseMetadata(response),
+      response: {
+        ...getResponseMetadata(response),
+        headers: responseHeaders,
+        body: rawResponse,
+      },
       warnings,
       sources: response.citations?.map(url => ({
         sourceType: 'url',
@@ -318,7 +320,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
       request: { body: JSON.stringify(body) },
       warnings,
     };

@@ -239,10 +239,34 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(response).toStrictEqual({
-        id: 'test-id',
-        modelId: 'test-model',
-      });
+      expect(response).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "content": [
+              {
+                "text": "",
+                "type": "text",
+              },
+            ],
+            "id": "test-id",
+            "model": "test-model",
+            "role": "assistant",
+            "stop_reason": "end_turn",
+            "stop_sequence": null,
+            "type": "message",
+            "usage": {
+              "input_tokens": 4,
+              "output_tokens": 30,
+            },
+          },
+          "headers": {
+            "content-length": "203",
+            "content-type": "application/json",
+          },
+          "id": "test-id",
+          "modelId": "test-model",
+        }
+      `);
     });
 
     it('should expose the raw response headers', async () => {
@@ -252,12 +276,12 @@ describe('AnthropicMessagesLanguageModel', () => {
         },
       });
 
-      const { rawResponse } = await model.doGenerate({
+      const { response } = await model.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
-      expect(rawResponse?.headers).toStrictEqual({
+      expect(response?.headers).toStrictEqual({
         // default headers:
         'content-length': '237',
         'content-type': 'application/json',
@@ -784,12 +808,12 @@ describe('AnthropicMessagesLanguageModel', () => {
         ],
       };
 
-      const { rawResponse } = await model.doStream({
+      const { response } = await model.doStream({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
-      expect(rawResponse?.headers).toStrictEqual({
+      expect(response?.headers).toStrictEqual({
         // default headers:
         'content-type': 'text/event-stream',
         'cache-control': 'no-cache',

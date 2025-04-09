@@ -169,7 +169,11 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response).toStrictEqual({
+    expect({
+      id: response?.id,
+      timestamp: response?.timestamp,
+      modelId: response?.modelId,
+    }).toStrictEqual({
       id: 'test-id',
       timestamp: new Date(123 * 1000),
       modelId: 'test-model',
@@ -181,12 +185,12 @@ describe('doGenerate', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doGenerate({
+    const { response } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '314',
       'content-type': 'application/json',
@@ -500,12 +504,12 @@ describe('doStream', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doStream({
+    const { response } = await model.doStream({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',

@@ -285,10 +285,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         rawPrompt: undefined,
         rawSettings: {},
       },
-      rawResponse: {
-        headers: responseHeaders,
-        body: rawResponse,
-      },
       request: {
         body: JSON.stringify(body),
       },
@@ -296,6 +292,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         id: response.id,
         timestamp: new Date(response.created_at * 1000),
         modelId: response.model,
+        headers: responseHeaders,
+        body: rawResponse,
       },
       providerMetadata: {
         openai: {
@@ -464,8 +462,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         rawPrompt: undefined,
         rawSettings: {},
       },
-      rawResponse: { headers: responseHeaders },
       request: { body: JSON.stringify(body) },
+      response: { headers: responseHeaders },
       warnings,
     };
   }

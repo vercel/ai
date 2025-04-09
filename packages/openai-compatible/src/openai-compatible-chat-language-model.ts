@@ -259,10 +259,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       },
       providerMetadata,
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders, body: rawResponse },
-      response: getResponseMetadata(responseBody),
-      warnings,
       request: { body },
+      response: {
+        ...getResponseMetadata(responseBody),
+        headers: responseHeaders,
+        body: rawResponse,
+      },
+      warnings,
     };
   }
 
@@ -318,7 +321,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       return {
         stream: simulatedStream,
         rawCall: result.rawCall,
-        rawResponse: result.rawResponse,
+        response: result.response,
         warnings: result.warnings,
       };
     }
@@ -631,9 +634,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
-      warnings,
       request: { body },
+      response: { headers: responseHeaders },
+      warnings,
     };
   }
 }

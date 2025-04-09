@@ -102,10 +102,14 @@ describe('PerplexityLanguageModel', () => {
         promptTokens: 10,
         completionTokens: 20,
       });
-      expect(result.response).toEqual({
+      expect({
+        id: result.response?.id,
+        timestamp: result.response?.timestamp,
+        modelId: result.response?.modelId,
+      }).toStrictEqual({
         id: 'test-id',
-        modelId,
         timestamp: new Date(1680000000 * 1000),
+        modelId,
       });
     });
 

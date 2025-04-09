@@ -154,9 +154,8 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         rawSettings,
       },
       response: {
+        // TODO timestamp, model id
         id: response.generation_id ?? undefined,
-      },
-      rawResponse: {
         headers: responseHeaders,
         body: rawResponse,
       },
@@ -331,7 +330,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         },
         rawSettings,
       },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
       warnings,
       request: { body: JSON.stringify({ ...args, stream: true }) },
     };

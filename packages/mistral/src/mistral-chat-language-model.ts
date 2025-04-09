@@ -212,12 +212,12 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
         completionTokens: response.usage.completion_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: {
+      request: { body: JSON.stringify(args) },
+      response: {
+        ...getResponseMetadata(response),
         headers: responseHeaders,
         body: rawResponse,
       },
-      request: { body: JSON.stringify(args) },
-      response: getResponseMetadata(response),
       warnings,
     };
   }
@@ -356,7 +356,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
       request: { body: JSON.stringify(body) },
       warnings,
     };

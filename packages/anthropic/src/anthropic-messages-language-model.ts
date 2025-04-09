@@ -308,13 +308,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         completionTokens: response.usage.output_tokens,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: {
-        headers: responseHeaders,
-        body: rawResponse,
-      },
       response: {
         id: response.id ?? undefined,
         modelId: response.model ?? undefined,
+        headers: responseHeaders,
+        body: rawResponse,
       },
       warnings,
       providerMetadata: {
@@ -560,7 +558,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
       warnings,
       request: { body: JSON.stringify(body) },
     };

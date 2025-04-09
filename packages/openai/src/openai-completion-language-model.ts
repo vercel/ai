@@ -173,10 +173,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders, body: rawResponse },
-      response: getResponseMetadata(response),
-      warnings,
       request: { body: JSON.stringify(args) },
+      response: {
+        ...getResponseMetadata(response),
+        headers: responseHeaders,
+        body: rawResponse,
+      },
+      warnings,
     };
   }
 
@@ -293,7 +296,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
       warnings,
       request: { body: JSON.stringify(body) },
     };

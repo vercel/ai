@@ -58,18 +58,18 @@ function createTestModel({
     },
   ]),
   rawCall = { rawPrompt: 'prompt', rawSettings: {} },
-  rawResponse = undefined,
+  response = undefined,
   request = undefined,
   warnings,
 }: {
   stream?: ReadableStream<LanguageModelV2StreamPart>;
-  rawResponse?: { headers: Record<string, string> };
+  response?: { headers: Record<string, string> };
   rawCall?: { rawPrompt: string; rawSettings: Record<string, unknown> };
   request?: { body: string };
   warnings?: LanguageModelV2CallWarning[];
 } = {}): LanguageModelV2 {
   return new MockLanguageModelV2({
-    doStream: async () => ({ stream, rawCall, rawResponse, request, warnings }),
+    doStream: async () => ({ stream, rawCall, response, request, warnings }),
   });
 }
 
@@ -1801,7 +1801,7 @@ describe('streamText', () => {
               usage: { completionTokens: 10, promptTokens: 3 },
             },
           ]),
-          rawResponse: { headers: { call: '2' } },
+          response: { headers: { call: '2' } },
         }),
         ...defaultSettings(),
       });
@@ -2152,7 +2152,7 @@ describe('streamText', () => {
               },
             },
           ]),
-          rawResponse: { headers: { call: '2' } },
+          response: { headers: { call: '2' } },
         }),
         tools: {
           tool1: {
@@ -2364,7 +2364,7 @@ describe('streamText', () => {
                       },
                     ]),
                     rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-                    rawResponse: { headers: { call: '1' } },
+                    response: { headers: { call: '1' } },
                   };
                 }
                 case 1: {
@@ -2445,7 +2445,7 @@ describe('streamText', () => {
                       },
                     ]),
                     rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-                    rawResponse: { headers: { call: '2' } },
+                    response: { headers: { call: '2' } },
                   };
                 }
                 default:
@@ -2693,7 +2693,7 @@ describe('streamText', () => {
                       },
                     ]),
                     rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-                    rawResponse: { headers: { call: '3' } },
+                    response: { headers: { call: '3' } },
                   };
                 }
                 case 3: {
@@ -2752,7 +2752,7 @@ describe('streamText', () => {
                       },
                     ]),
                     rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-                    rawResponse: { headers: { call: '3' } },
+                    response: { headers: { call: '3' } },
                   };
                 }
                 default:
@@ -3842,7 +3842,7 @@ describe('streamText', () => {
                 },
               },
             ]),
-            rawResponse: { headers: { call: '2' } },
+            response: { headers: { call: '2' } },
           }),
           tools: {
             tool1: {
@@ -3897,7 +3897,7 @@ describe('streamText', () => {
                 },
               },
             ]),
-            rawResponse: { headers: { call: '2' } },
+            response: { headers: { call: '2' } },
           }),
           tools: {
             tool1: tool({

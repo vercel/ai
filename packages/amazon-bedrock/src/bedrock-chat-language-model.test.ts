@@ -718,12 +718,12 @@ describe('doStream', () => {
       ],
     };
 
-    const response = await model.doStream({
+    const result = await model.doStream({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(response.rawResponse?.headers).toEqual({
+    expect(result.response?.headers).toEqual({
       'cache-control': 'no-cache',
       connection: 'keep-alive',
       'content-type': 'text/event-stream',
@@ -1224,12 +1224,12 @@ describe('doGenerate', () => {
   it('should include trace information in providerMetadata', async () => {
     prepareJsonResponse({ trace: mockTrace });
 
-    const response = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(response.providerMetadata?.bedrock.trace).toMatchObject(mockTrace);
+    expect(result.providerMetadata?.bedrock.trace).toMatchObject(mockTrace);
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -1255,12 +1255,12 @@ describe('doGenerate', () => {
       },
     };
 
-    const response = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(response.rawResponse?.headers).toEqual({
+    expect(result.response?.headers).toEqual({
       'x-amzn-requestid': 'test-request-id',
       'x-amzn-trace-id': 'test-trace-id',
       'content-type': 'application/json',

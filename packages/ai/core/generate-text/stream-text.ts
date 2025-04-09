@@ -979,7 +979,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           };
 
           const {
-            result: { stream, warnings, rawResponse, request },
+            result: { stream, warnings, response, request },
             doStreamSpan,
             startTimestampMs,
           } = await retry(() =>
@@ -1386,7 +1386,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     request: stepRequest,
                     response: {
                       ...stepResponse,
-                      headers: rawResponse?.headers,
+                      headers: response?.headers,
                     },
                     warnings,
                     isContinued: nextStepType === 'continue',
@@ -1405,7 +1405,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       logprobs: stepLogProbs,
                       response: {
                         ...stepResponse,
-                        headers: rawResponse?.headers,
+                        headers: response?.headers,
                       },
                     });
 
