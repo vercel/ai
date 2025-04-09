@@ -1330,6 +1330,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      ai:
+        specifier: 5.0.0-canary.5
+        version: link:../ai
       msw:
         specifier: 2.6.4
         version: 2.6.4(@types/node@20.17.24)(typescript@5.8.3)

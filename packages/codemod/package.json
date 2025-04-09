@@ -19,6 +19,7 @@
     "scaffold": "tsx scripts/scaffold-codemod.ts"
   },
   "devDependencies": {
+    "ai": "5.0.0-canary.5",
     "@types/cli-progress": "^3.11.6",
     "@types/debug": "^4.1.12",
     "@types/jscodeshift": "^0.12.0",
