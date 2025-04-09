@@ -2,7 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { formatDataStreamPart } from 'ai';
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/vue';

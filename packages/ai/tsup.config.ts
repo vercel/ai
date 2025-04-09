@@ -17,14 +17,6 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
   },
-  // UI utils & types
-  {
-    entry: ['ui/index.ts'],
-    outDir: 'dist/ui',
-    format: ['cjs', 'esm'],
-    dts: true,
-    sourcemap: true,
-  },
   // Test utilities
   {
     entry: ['test/index.ts'],
