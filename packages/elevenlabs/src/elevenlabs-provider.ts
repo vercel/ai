@@ -1,9 +1,5 @@
 import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
-import {
-  FetchFunction,
-  loadApiKey,
-  withoutTrailingSlash,
-} from '@ai-sdk/provider-utils';
+import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
 
@@ -23,11 +19,6 @@ Creates a model for transcription.
 }
 
 export interface ElevenLabsProviderSettings {
-  /**
-Base URL for the ElevenLabs API calls.
-     */
-  baseURL?: string;
-
   /**
 API key for authenticating requests.
      */
@@ -51,9 +42,6 @@ Create an ElevenLabs provider instance.
 export function createElevenLabs(
   options: ElevenLabsProviderSettings = {},
 ): ElevenLabsProvider {
-  const baseURL =
-    withoutTrailingSlash(options.baseURL) ?? 'https://api.elevenlabs.io/';
-
   const getHeaders = () => ({
     'xi-api-key': loadApiKey({
       apiKey: options.apiKey,
@@ -66,7 +54,7 @@ export function createElevenLabs(
   const createTranscriptionModel = (modelId: ElevenLabsTranscriptionModelId) =>
     new ElevenLabsTranscriptionModel(modelId, {
       provider: `elevenlabs.transcription`,
-      url: ({ path }) => `${baseURL}${path}`,
+      url: ({ path }) => `https://api.elevenlabs.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });
