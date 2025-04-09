@@ -150,9 +150,25 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"gpt-3.5-turbo-instruct","prompt":"Hello"}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "echo": undefined,
+          "frequency_penalty": undefined,
+          "logit_bias": undefined,
+          "max_tokens": undefined,
+          "model": "gpt-3.5-turbo-instruct",
+          "presence_penalty": undefined,
+          "prompt": "Hello",
+          "seed": undefined,
+          "stop": undefined,
+          "suffix": undefined,
+          "temperature": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   it('should send additional response information', async () => {
@@ -481,10 +497,26 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      // body: '{"model":"gpt-3.5-turbo-instruct","prompt":"Hello","stream":true,"stream_options":{"include_usage":true}}',
-      body: '{"model":"gpt-3.5-turbo-instruct","prompt":"Hello","stream":true}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "echo": undefined,
+          "frequency_penalty": undefined,
+          "logit_bias": undefined,
+          "max_tokens": undefined,
+          "model": "gpt-3.5-turbo-instruct",
+          "presence_penalty": undefined,
+          "prompt": "Hello",
+          "seed": undefined,
+          "stop": undefined,
+          "stream": true,
+          "suffix": undefined,
+          "temperature": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {
