@@ -211,7 +211,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         completionTokens: usageMetadata?.candidatesTokenCount ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders, body: rawResponse },
       warnings,
       providerMetadata: {
         google: {
@@ -224,6 +223,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         generateId: this.config.generateId,
       }),
       request: { body },
+      response: {
+        // TODO timestamp, model id, id
+        headers: responseHeaders,
+        body: rawResponse,
+      },
     };
   }
 
@@ -380,7 +384,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
       warnings,
       request: { body },
     };
