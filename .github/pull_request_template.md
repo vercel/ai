@@ -1,3 +1,11 @@
+<!--
+Welcome to contributing to AI SDK! We're excited to see your changes.
+
+We suggest you read the following contributing guide we've created before submitting:
+
+https://github.com/vercel/ai/blob/main/CONTRIBUTING.md
+-->
+
 ## Background
 <!-- Why was this necessary? -->
 
