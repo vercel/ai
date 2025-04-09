@@ -1,4 +1,4 @@
-import { DataStreamString, formatDataStreamPart } from 'ai';
+import { DataStreamString, formatDataStreamPart } from '../util';
 import { DataStreamWriter } from './data-stream-writer';
 
 export function createDataStream({

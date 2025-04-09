@@ -29,6 +29,7 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
+    "ai": "5.0.0-canary.4",
     "@ai-sdk/provider-utils": "3.0.0-canary.3",
     "swr": "^2.2.5",
     "throttleit": "2.1.0"

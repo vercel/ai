@@ -51,6 +51,7 @@
     }
   },
   "dependencies": {
+    "ai": "5.0.0-canary.4",
     "@ai-sdk/provider-utils": "3.0.0-canary.3"
   },
   "devDependencies": {

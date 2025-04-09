@@ -60,9 +60,11 @@
     "@ai-sdk/provider": "2.0.0-canary.2",
     "@ai-sdk/provider-utils": "3.0.0-canary.3",
     "@opentelemetry/api": "1.9.0",
+    "zod-to-json-schema": "^3.24.1",
     "jsondiffpatch": "0.6.0"
   },
   "devDependencies": {
+    "@types/json-schema": "7.0.15",
     "@edge-runtime/vm": "^5.0.0",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",

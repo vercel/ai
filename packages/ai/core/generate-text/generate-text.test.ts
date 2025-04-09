@@ -1,6 +1,6 @@
 import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import { jsonSchema } from '../../util';
+import { jsonSchema } from '../util';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
