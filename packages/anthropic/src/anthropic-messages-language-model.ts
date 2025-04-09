@@ -167,6 +167,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     return url.protocol === 'https:';
   }
 
+  supportsUrl(url: URL): boolean {
+    return url.protocol === 'https:';
+  }
+
   get provider(): string {
     return this.config.provider;
   }
