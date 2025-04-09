@@ -7,7 +7,7 @@ import {
   ToolInvocation,
   ToolInvocationUIPart,
 } from '../types';
-import {extractMaxToolInvocationStep } from '../util'
+import { extractMaxToolInvocationStep } from '../util';
 import { ResponseMessage } from '../generate-text/step-result';
 import { convertDataContentToBase64String } from './data-content';
 import { AISDKError } from '@ai-sdk/provider';
