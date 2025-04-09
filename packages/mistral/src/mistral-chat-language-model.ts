@@ -14,13 +14,13 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToMistralChatMessages } from './convert-to-mistral-chat-messages';
+import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
   MistralChatModelId,
   MistralChatSettings,
 } from './mistral-chat-settings';
 import { mistralFailedResponseHandler } from './mistral-error';
-import { getResponseMetadata } from './get-response-metadata';
 import { prepareTools } from './mistral-prepare-tools';
 
 type MistralChatConfig = {
@@ -162,7 +162,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args: body, warnings } = this.getArgs(options);
 
     const {
       responseHeaders,
@@ -171,7 +171,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
+      body,
       failedResponseHandler: mistralFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         mistralChatResponseSchema,
@@ -180,7 +180,6 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
     // extract text content.
@@ -190,7 +189,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     // when there is a trailing assistant message, mistral will send the
     // content of that message again. we skip this repeated content to
     // avoid duplication, e.g. in continuation mode.
-    const lastMessage = rawPrompt[rawPrompt.length - 1];
+    const lastMessage = body.messages[body.messages.length - 1];
     if (
       lastMessage.role === 'assistant' &&
       text?.startsWith(lastMessage.content)
@@ -211,8 +210,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
         promptTokens: response.usage.prompt_tokens,
         completionTokens: response.usage.completion_tokens,
       },
-      rawCall: { rawPrompt, rawSettings },
-      request: { body: JSON.stringify(args) },
+      request: { body },
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
@@ -226,7 +224,6 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = this.getArgs(options);
-
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -240,8 +237,6 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
-
-    const { messages: rawPrompt, ...rawSettings } = args;
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
@@ -301,7 +296,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             // content of that message again. we skip this repeated content to
             // avoid duplication, e.g. in continuation mode.
             if (chunkNumber <= 2) {
-              const lastMessage = rawPrompt[rawPrompt.length - 1];
+              const lastMessage = body.messages[body.messages.length - 1];
 
               if (
                 lastMessage.role === 'assistant' &&
@@ -355,9 +350,8 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
+      request: { body },
       response: { headers: responseHeaders },
-      request: { body: JSON.stringify(body) },
       warnings,
     };
   }

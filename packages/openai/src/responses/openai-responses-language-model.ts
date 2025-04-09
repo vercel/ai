@@ -281,13 +281,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
       },
-      rawCall: {
-        rawPrompt: undefined,
-        rawSettings: {},
-      },
-      request: {
-        body: JSON.stringify(body),
-      },
+      request: { body },
       response: {
         id: response.id,
         timestamp: new Date(response.created_at * 1000),
@@ -458,11 +452,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      rawCall: {
-        rawPrompt: undefined,
-        rawSettings: {},
-      },
-      request: { body: JSON.stringify(body) },
+      request: { body },
       response: { headers: responseHeaders },
       warnings,
     };

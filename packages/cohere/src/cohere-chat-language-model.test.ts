@@ -358,9 +358,34 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"command-r-plus","messages":[{"role":"system","content":"you are a friendly bot!"},{"role":"user","content":"Hello"}]}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "frequency_penalty": undefined,
+          "k": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "you are a friendly bot!",
+              "role": "system",
+            },
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+          "p": undefined,
+          "presence_penalty": undefined,
+          "response_format": undefined,
+          "seed": undefined,
+          "stop_sequences": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+        },
+      }
+    `);
   });
 
   it('should handle string "null" tool call arguments', async () => {
@@ -727,9 +752,35 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"command-r-plus","messages":[{"role":"system","content":"you are a friendly bot!"},{"role":"user","content":"Hello"}],"stream":true}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "frequency_penalty": undefined,
+          "k": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "you are a friendly bot!",
+              "role": "system",
+            },
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "command-r-plus",
+          "p": undefined,
+          "presence_penalty": undefined,
+          "response_format": undefined,
+          "seed": undefined,
+          "stop_sequences": undefined,
+          "stream": true,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+        },
+      }
+    `);
   });
 
   it('should handle empty tool call arguments', async () => {

@@ -24,7 +24,6 @@ describe('simulateStreamingMiddleware', () => {
           text: 'This is a test response',
           finishReason: 'stop',
           usage: { promptTokens: 10, completionTokens: 10 },
-          rawCall: { rawPrompt: '', rawSettings: {} },
         };
       },
     });
@@ -50,7 +49,6 @@ describe('simulateStreamingMiddleware', () => {
           reasoning: 'This is the reasoning process',
           finishReason: 'stop',
           usage: { promptTokens: 10, completionTokens: 10 },
-          rawCall: { rawPrompt: '', rawSettings: {} },
         };
       },
     });
@@ -79,7 +77,6 @@ describe('simulateStreamingMiddleware', () => {
           ],
           finishReason: 'stop',
           usage: { promptTokens: 10, completionTokens: 10 },
-          rawCall: { rawPrompt: '', rawSettings: {} },
         };
       },
     });
@@ -108,7 +105,6 @@ describe('simulateStreamingMiddleware', () => {
           ],
           finishReason: 'stop',
           usage: { promptTokens: 10, completionTokens: 10 },
-          rawCall: { rawPrompt: '', rawSettings: {} },
         };
       },
     });
@@ -147,7 +143,6 @@ describe('simulateStreamingMiddleware', () => {
           ],
           finishReason: 'tool-calls',
           usage: { promptTokens: 10, completionTokens: 10 },
-          rawCall: { rawPrompt: '', rawSettings: {} },
         };
       },
     });
@@ -172,7 +167,6 @@ describe('simulateStreamingMiddleware', () => {
           text: 'This is a test response',
           finishReason: 'stop',
           usage: { promptTokens: 10, completionTokens: 10 },
-          rawCall: { rawPrompt: '', rawSettings: {} },
           providerMetadata: { custom: { key: 'value' } },
         };
       },
@@ -198,7 +192,6 @@ describe('simulateStreamingMiddleware', () => {
           text: '',
           finishReason: 'stop',
           usage: { promptTokens: 10, completionTokens: 0 },
-          rawCall: { rawPrompt: '', rawSettings: {} },
         };
       },
     });
@@ -223,7 +216,6 @@ describe('simulateStreamingMiddleware', () => {
           text: 'This is a test response',
           finishReason: 'stop',
           usage: { promptTokens: 10, completionTokens: 10 },
-          rawCall: { rawPrompt: '', rawSettings: {} },
           warnings: [
             { type: 'other', message: 'Test warning', code: 'test_warning' },
           ],

@@ -1,6 +1,6 @@
 export type LanguageModelRequestMetadata = {
   /**
-  Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
+Request HTTP body that was sent to the provider API.
      */
-  body?: string;
+  body?: unknown;
 };

@@ -161,7 +161,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { prompt: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
     return {
@@ -172,8 +171,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       },
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
-      rawCall: { rawPrompt, rawSettings },
-      request: { body: JSON.stringify(args) },
+      request: { body: args },
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
@@ -213,8 +211,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
-
-    const { prompt: rawPrompt, ...rawSettings } = args;
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
@@ -295,7 +291,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
       response: { headers: responseHeaders },
       warnings,
       request: { body: JSON.stringify(body) },

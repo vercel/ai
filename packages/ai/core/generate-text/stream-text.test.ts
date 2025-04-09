@@ -12,7 +12,6 @@ import {
   convertResponseStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { jsonSchema } from '../util';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { ToolExecutionError } from '../../errors/tool-execution-error';
@@ -23,6 +22,7 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
 import { tool } from '../tool/tool';
+import { jsonSchema } from '../util';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
@@ -57,19 +57,17 @@ function createTestModel({
       usage: { completionTokens: 10, promptTokens: 3 },
     },
   ]),
-  rawCall = { rawPrompt: 'prompt', rawSettings: {} },
-  response = undefined,
   request = undefined,
+  response = undefined,
   warnings,
 }: {
   stream?: ReadableStream<LanguageModelV2StreamPart>;
-  response?: { headers: Record<string, string> };
-  rawCall?: { rawPrompt: string; rawSettings: Record<string, unknown> };
   request?: { body: string };
+  response?: { headers: Record<string, string> };
   warnings?: LanguageModelV2CallWarning[];
 } = {}): LanguageModelV2 {
   return new MockLanguageModelV2({
-    doStream: async () => ({ stream, rawCall, response, request, warnings }),
+    doStream: async () => ({ stream, request, response, warnings }),
   });
 }
 
@@ -104,7 +102,6 @@ const modelWithSources = new MockLanguageModelV2({
         usage: { completionTokens: 10, promptTokens: 3 },
       },
     ]),
-    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
   }),
 });
 
@@ -129,7 +126,6 @@ const modelWithFiles = new MockLanguageModelV2({
         usage: { completionTokens: 10, promptTokens: 3 },
       },
     ]),
-    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
   }),
 });
 
@@ -161,7 +157,6 @@ const modelWithReasoning = new MockLanguageModelV2({
         usage: { completionTokens: 10, promptTokens: 3 },
       },
     ]),
-    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
   }),
 });
 
@@ -191,7 +186,6 @@ describe('streamText', () => {
                   usage: { completionTokens: 10, promptTokens: 3 },
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           },
         }),
@@ -288,7 +282,6 @@ describe('streamText', () => {
                   usage: { completionTokens: 10, promptTokens: 3 },
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           },
         }),
@@ -358,7 +351,6 @@ describe('streamText', () => {
                   usage: { completionTokens: 10, promptTokens: 3 },
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           },
         }),
@@ -426,7 +418,6 @@ describe('streamText', () => {
                   usage: { completionTokens: 10, promptTokens: 3 },
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           },
         }),
@@ -545,7 +536,6 @@ describe('streamText', () => {
                   usage: { promptTokens: 53, completionTokens: 17 },
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           },
         }),
@@ -2363,7 +2353,6 @@ describe('streamText', () => {
                         usage: { completionTokens: 10, promptTokens: 3 },
                       },
                     ]),
-                    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                     response: { headers: { call: '1' } },
                   };
                 }
@@ -2444,7 +2433,6 @@ describe('streamText', () => {
                         usage: { completionTokens: 5, promptTokens: 1 },
                       },
                     ]),
-                    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                     response: { headers: { call: '2' } },
                   };
                 }
@@ -2576,7 +2564,6 @@ describe('streamText', () => {
                         usage: { completionTokens: 20, promptTokens: 10 },
                       },
                     ]),
-                    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                   };
                 }
                 case 1: {
@@ -2627,7 +2614,6 @@ describe('streamText', () => {
                         usage: { completionTokens: 5, promptTokens: 30 },
                       },
                     ]),
-                    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                   };
                 }
                 case 2: {
@@ -2692,7 +2678,6 @@ describe('streamText', () => {
                         usage: { completionTokens: 2, promptTokens: 3 },
                       },
                     ]),
-                    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                     response: { headers: { call: '3' } },
                   };
                 }
@@ -2751,7 +2736,6 @@ describe('streamText', () => {
                         usage: { completionTokens: 2, promptTokens: 3 },
                       },
                     ]),
-                    rawCall: { rawPrompt: 'prompt', rawSettings: {} },
                     response: { headers: { call: '3' } },
                   };
                 }
@@ -2887,7 +2871,6 @@ describe('streamText', () => {
                   usage: { completionTokens: 10, promptTokens: 3 },
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           },
         }),
@@ -2921,7 +2904,6 @@ describe('streamText', () => {
                   usage: { completionTokens: 10, promptTokens: 3 },
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           },
         }),
@@ -3175,7 +3157,6 @@ describe('streamText', () => {
                   usage: { completionTokens: 10, promptTokens: 3 },
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           },
         }),
@@ -3261,7 +3242,6 @@ describe('streamText', () => {
                   usage: { completionTokens: 10, promptTokens: 3 },
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             };
           },
         }),
@@ -3309,7 +3289,6 @@ describe('streamText', () => {
                 { type: 'text-delta', textDelta: ', ' },
                 { type: 'text-delta', textDelta: 'world!' },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: {} },
             }),
           });
         }
@@ -3473,7 +3452,9 @@ describe('streamText', () => {
 
               if (chunk.type === 'step-finish') {
                 if (chunk.request.body != null) {
-                  chunk.request.body = chunk.request.body.toUpperCase();
+                  chunk.request.body = (
+                    chunk.request.body as string
+                  ).toUpperCase();
                 }
               }
 
@@ -4398,7 +4379,6 @@ describe('streamText', () => {
                     usage: { completionTokens: 10, promptTokens: 3 },
                   },
                 ]),
-                rawCall: { rawPrompt: 'prompt', rawSettings: {} },
               };
             },
           }),

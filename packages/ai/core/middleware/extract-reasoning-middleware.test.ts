@@ -17,7 +17,6 @@ describe('extractReasoningMiddleware', () => {
             text: '<think>analyzing the request</think>Here is the response',
             finishReason: 'stop',
             usage: { promptTokens: 10, completionTokens: 10 },
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -41,7 +40,6 @@ describe('extractReasoningMiddleware', () => {
             text: '<think>analyzing the request\n</think>',
             finishReason: 'stop',
             usage: { promptTokens: 10, completionTokens: 10 },
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -65,7 +63,6 @@ describe('extractReasoningMiddleware', () => {
             text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
             finishReason: 'stop',
             usage: { promptTokens: 10, completionTokens: 10 },
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -91,7 +88,6 @@ describe('extractReasoningMiddleware', () => {
             text: 'analyzing the request</think>Here is the response',
             finishReason: 'stop',
             usage: { promptTokens: 10, completionTokens: 10 },
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -132,7 +128,6 @@ describe('extractReasoningMiddleware', () => {
             text: '<think>analyzing the request</think>Here is the response',
             finishReason: 'stop',
             usage: { promptTokens: 10, completionTokens: 10 },
-            rawCall: { rawPrompt: '', rawSettings: {} },
             reasoning: undefined,
           };
         },
@@ -176,7 +171,6 @@ describe('extractReasoningMiddleware', () => {
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -281,7 +275,6 @@ describe('extractReasoningMiddleware', () => {
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -385,7 +378,6 @@ describe('extractReasoningMiddleware', () => {
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });
@@ -481,7 +473,6 @@ describe('extractReasoningMiddleware', () => {
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
-            rawCall: { rawPrompt: '', rawSettings: {} },
           };
         },
       });

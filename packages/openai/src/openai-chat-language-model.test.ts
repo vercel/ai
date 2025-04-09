@@ -258,9 +258,41 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"gpt-3.5-turbo","messages":[{"role":"user","content":"Hello"}]}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "frequency_penalty": undefined,
+          "function_call": undefined,
+          "functions": undefined,
+          "logit_bias": undefined,
+          "logprobs": undefined,
+          "max_completion_tokens": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "metadata": undefined,
+          "model": "gpt-3.5-turbo",
+          "parallel_tool_calls": undefined,
+          "prediction": undefined,
+          "presence_penalty": undefined,
+          "reasoning_effort": undefined,
+          "response_format": undefined,
+          "seed": undefined,
+          "stop": undefined,
+          "store": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_logprobs": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   it('should send additional response information', async () => {
@@ -2055,9 +2087,45 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"gpt-3.5-turbo","messages":[{"role":"user","content":"Hello"}],"stream":true,"stream_options":{"include_usage":true}}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "frequency_penalty": undefined,
+          "function_call": undefined,
+          "functions": undefined,
+          "logit_bias": undefined,
+          "logprobs": undefined,
+          "max_completion_tokens": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "metadata": undefined,
+          "model": "gpt-3.5-turbo",
+          "parallel_tool_calls": undefined,
+          "prediction": undefined,
+          "presence_penalty": undefined,
+          "reasoning_effort": undefined,
+          "response_format": undefined,
+          "seed": undefined,
+          "stop": undefined,
+          "store": undefined,
+          "stream": true,
+          "stream_options": {
+            "include_usage": true,
+          },
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_logprobs": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   it('should expose the raw response headers', async () => {

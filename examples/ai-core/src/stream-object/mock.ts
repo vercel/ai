@@ -22,7 +22,6 @@ async function main() {
             usage: { completionTokens: 10, promptTokens: 3 },
           },
         ]),
-        rawCall: { rawPrompt: null, rawSettings: {} },
       }),
     }),
     schema: z.object({ content: z.string() }),

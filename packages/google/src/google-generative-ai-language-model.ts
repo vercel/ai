@@ -210,7 +210,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         promptTokens: usageMetadata?.promptTokenCount ?? NaN,
         completionTokens: usageMetadata?.candidatesTokenCount ?? NaN,
       },
-      rawCall: { rawPrompt, rawSettings },
       warnings,
       providerMetadata: {
         google: {
@@ -383,7 +382,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
       response: { headers: responseHeaders },
       warnings,
       request: { body },

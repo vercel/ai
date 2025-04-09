@@ -115,7 +115,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args: body, warnings } = this.getArgs(options);
 
     const {
       responseHeaders,
@@ -124,7 +124,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     } = await postJsonToApi({
       url: `${this.config.baseURL}/chat/completions`,
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: args,
+      body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
         errorToMessage,
@@ -136,7 +136,6 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
     const text = choice.message.content;
 
@@ -148,8 +147,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
         promptTokens: response.usage?.prompt_tokens ?? Number.NaN,
         completionTokens: response.usage?.completion_tokens ?? Number.NaN,
       },
-      rawCall: { rawPrompt, rawSettings },
-      request: { body: JSON.stringify(args) },
+      request: { body },
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
@@ -200,8 +198,6 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
-
-    const { messages: rawPrompt, ...rawSettings } = args;
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
@@ -319,9 +315,8 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
+      request: { body },
       response: { headers: responseHeaders },
-      request: { body: JSON.stringify(body) },
       warnings,
     };
   }

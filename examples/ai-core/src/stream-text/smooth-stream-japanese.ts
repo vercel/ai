@@ -21,7 +21,6 @@ async function main() {
           ],
           chunkDelayInMs: 400,
         }),
-        rawCall: { rawPrompt: null, rawSettings: {} },
       }),
     }),
 

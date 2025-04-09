@@ -3,8 +3,8 @@ import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { createAnthropic } from './anthropic-provider';
 import { AnthropicProviderOptions } from './anthropic-messages-language-model';
+import { createAnthropic } from './anthropic-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -456,9 +456,33 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(request).toStrictEqual({
-        body: '{"model":"claude-3-haiku-20240307","max_tokens":4096,"messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}]}',
-      });
+      expect(request).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stop_sequences": undefined,
+            "system": undefined,
+            "temperature": undefined,
+            "tool_choice": undefined,
+            "tools": undefined,
+            "top_k": undefined,
+            "top_p": undefined,
+          },
+        }
+      `);
     });
   });
 
@@ -956,9 +980,34 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(request).toStrictEqual({
-        body: '{"model":"claude-3-haiku-20240307","max_tokens":4096,"messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}],"stream":true}',
-      });
+      expect(request).toMatchInlineSnapshot(`
+        {
+          "body": {
+            "max_tokens": 4096,
+            "messages": [
+              {
+                "content": [
+                  {
+                    "cache_control": undefined,
+                    "text": "Hello",
+                    "type": "text",
+                  },
+                ],
+                "role": "user",
+              },
+            ],
+            "model": "claude-3-haiku-20240307",
+            "stop_sequences": undefined,
+            "stream": true,
+            "system": undefined,
+            "temperature": undefined,
+            "tool_choice": undefined,
+            "tools": undefined,
+            "top_k": undefined,
+            "top_p": undefined,
+          },
+        }
+      `);
     });
   });
 });

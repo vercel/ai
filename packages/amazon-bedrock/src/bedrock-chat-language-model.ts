@@ -6,7 +6,6 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2ProviderMetadata,
   LanguageModelV2StreamPart,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -217,8 +216,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
-
     const providerMetadata =
       response.trace || response.usage
         ? {
@@ -288,7 +285,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         promptTokens: response.usage?.inputTokens ?? Number.NaN,
         completionTokens: response.usage?.outputTokens ?? Number.NaN,
       },
-      rawCall: { rawPrompt, rawSettings },
       response: {
         // TODO add id, timestamp, etc
         headers: responseHeaders,
@@ -321,8 +317,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
-
-    const { messages: rawPrompt, ...rawSettings } = args;
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage = {
@@ -522,7 +516,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
       response: { headers: responseHeaders },
       warnings,
     };

@@ -156,32 +156,13 @@ Finish reason.
     };
 
     /**
-Raw prompt and setting information for observability provider integration.
-     */
-    // TODO v2: remove in v2 (now there is request)
-    rawCall: {
-      /**
-Raw prompt after expansion and conversion to the format that the
-provider uses to send the information to their API.
-       */
-      rawPrompt: unknown;
-
-      /**
-Raw settings that are used for the API call. Includes provider-specific
-settings.
-       */
-      rawSettings: Record<string, unknown>;
-    };
-
-    /**
 Optional request information for telemetry and debugging purposes.
      */
     request?: {
       /**
-Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
-Non-HTTP(s) providers should not set this.
+Request HTTP body that was sent to the provider API.
        */
-      body?: string;
+      body?: unknown;
     };
 
     /**
@@ -209,7 +190,7 @@ Response headers.
       headers?: Record<string, string>;
 
       /**
-Response body.
+Response HTTP body.
 */
       body?: unknown;
     };
@@ -250,21 +231,13 @@ by the user.
     stream: ReadableStream<LanguageModelV2StreamPart>;
 
     /**
-Raw prompt and setting information for observability provider integration.
+Optional request information for telemetry and debugging purposes.
      */
-    // TODO remove in v2 (there is now request)
-    rawCall: {
+    request?: {
       /**
-Raw prompt after expansion and conversion to the format that the
-provider uses to send the information to their API.
-       */
-      rawPrompt: unknown;
-
-      /**
-Raw settings that are used for the API call. Includes provider-specific
-settings.
-       */
-      rawSettings: Record<string, unknown>;
+Request HTTP body that was sent to the provider API.
+   */
+      body?: unknown;
     };
 
     /**
@@ -275,17 +248,6 @@ Optional raw response data.
 Response headers.
        */
       headers?: Record<string, string>;
-    };
-
-    /**
-Optional request information for telemetry and debugging purposes.
-     */
-    request?: {
-      /**
-Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
-Non-HTTP(s) providers should not set this.
-   */
-      body?: string;
     };
 
     /**

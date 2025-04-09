@@ -297,9 +297,34 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"mistral-small-latest","messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}]}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "document_image_limit": undefined,
+          "document_page_limit": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "mistral-small-latest",
+          "random_seed": undefined,
+          "response_format": undefined,
+          "safe_prompt": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_p": undefined,
+        },
+      }
+    `);
   });
 
   it('should extract text response when message content is a content object', async () => {
@@ -569,9 +594,35 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"mistral-small-latest","messages":[{"role":"user","content":[{"type":"text","text":"Hello"}]}],"stream":true}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "document_image_limit": undefined,
+          "document_page_limit": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": [
+                {
+                  "text": "Hello",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+          "model": "mistral-small-latest",
+          "random_seed": undefined,
+          "response_format": undefined,
+          "safe_prompt": undefined,
+          "stream": true,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_p": undefined,
+        },
+      }
+    `);
   });
 
   it('should stream text with content objects', async () => {
