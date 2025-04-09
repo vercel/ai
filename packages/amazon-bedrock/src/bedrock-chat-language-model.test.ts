@@ -170,7 +170,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -224,23 +223,20 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          parameters: {
+            type: 'object',
+            properties: { value: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-        toolChoice: { type: 'tool', toolName: 'test-tool' },
-      },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'test-tool' },
       prompt: TEST_PROMPT,
     });
 
@@ -335,34 +331,31 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool-1',
-            parameters: {
-              type: 'object',
-              properties: { value1: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool-1',
+          parameters: {
+            type: 'object',
+            properties: { value1: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-          {
-            type: 'function',
-            name: 'test-tool-2',
-            parameters: {
-              type: 'object',
-              properties: { value2: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+        },
+        {
+          type: 'function',
+          name: 'test-tool-2',
+          parameters: {
+            type: 'object',
+            properties: { value2: { type: 'string' } },
+            required: ['value'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
-        ],
-        toolChoice: { type: 'tool', toolName: 'test-tool' },
-      },
+        },
+      ],
+      toolChoice: { type: 'tool', toolName: 'test-tool' },
       prompt: TEST_PROMPT,
     });
 
@@ -435,7 +428,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -479,7 +471,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -520,7 +511,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -561,7 +551,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -592,7 +581,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
     const result = await convertReadableStreamToArray(stream);
@@ -618,7 +606,6 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -637,9 +624,8 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         bedrock: {
           guardrailConfig: {
             guardrailIdentifier: '-1',
@@ -691,7 +677,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -735,7 +720,6 @@ describe('doStream', () => {
 
     const response = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -798,7 +782,6 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: optionsHeaders,
     });
@@ -832,7 +815,6 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -861,9 +843,8 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         bedrock: {
           foo: 'bar',
         },
@@ -907,7 +888,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -950,12 +930,11 @@ describe('doStream', () => {
 
     await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: [
         {
           role: 'system',
           content: 'System Prompt',
-          providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+          providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
         },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
@@ -1013,7 +992,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1062,7 +1040,6 @@ describe('doStream', () => {
 
     const { stream } = await model.doStream({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1140,7 +1117,6 @@ describe('doGenerate', () => {
 
     const { text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1154,7 +1130,6 @@ describe('doGenerate', () => {
 
     const { usage } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1169,7 +1144,6 @@ describe('doGenerate', () => {
 
     const { finishReason } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1181,7 +1155,6 @@ describe('doGenerate', () => {
 
     const { finishReason } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1193,7 +1166,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1208,7 +1180,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       maxTokens: 100,
       temperature: 0.5,
@@ -1224,62 +1195,13 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass tool specification in object-tool mode', async () => {
-    prepareJsonResponse({});
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      mode: {
-        type: 'object-tool',
-        tool: {
-          name: 'test-tool',
-          type: 'function',
-          parameters: {
-            type: 'object',
-            properties: {
-              property1: { type: 'string' },
-              property2: { type: 'number' },
-            },
-            required: ['property1', 'property2'],
-            additionalProperties: false,
-          },
-        },
-      },
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.calls[0].requestBody).toMatchObject({
-      toolConfig: {
-        tools: [
-          {
-            toolSpec: {
-              name: 'test-tool',
-              inputSchema: {
-                json: {
-                  type: 'object',
-                  properties: {
-                    property1: { type: 'string' },
-                    property2: { type: 'number' },
-                  },
-                  required: ['property1', 'property2'],
-                  additionalProperties: false,
-                },
-              },
-            },
-          },
-        ],
-      },
-    });
-  });
-
   it('should support guardrails', async () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         bedrock: {
           guardrailConfig: {
             guardrailIdentifier: '-1',
@@ -1304,7 +1226,6 @@ describe('doGenerate', () => {
 
     const response = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1336,7 +1257,6 @@ describe('doGenerate', () => {
 
     const response = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1353,26 +1273,23 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: {
-        type: 'regular',
-        tools: [
-          {
-            type: 'function',
-            name: 'test-tool-1',
-            description: 'A test tool',
-            parameters: {
-              type: 'object',
-              properties: {
-                param1: { type: 'string' },
-                param2: { type: 'number' },
-              },
-              required: ['param1'],
-              additionalProperties: false,
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool-1',
+          description: 'A test tool',
+          parameters: {
+            type: 'object',
+            properties: {
+              param1: { type: 'string' },
+              param2: { type: 'number' },
             },
+            required: ['param1'],
+            additionalProperties: false,
           },
-        ],
-        toolChoice: { type: 'auto' },
-      },
+        },
+      ],
+      toolChoice: { type: 'auto' },
       prompt: TEST_PROMPT,
     });
 
@@ -1431,7 +1348,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       headers: optionsHeaders,
     });
@@ -1466,7 +1382,6 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1483,9 +1398,8 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
-      providerMetadata: {
+      providerOptions: {
         bedrock: {
           foo: 'bar',
         },
@@ -1511,7 +1425,6 @@ describe('doGenerate', () => {
 
     const response = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1534,12 +1447,11 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: [
         {
           role: 'system',
           content: 'System Prompt',
-          providerMetadata: { bedrock: { cachePoint: { type: 'default' } } },
+          providerOptions: { bedrock: { cachePoint: { type: 'default' } } },
         },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
       ],
@@ -1562,7 +1474,7 @@ describe('doGenerate', () => {
           reasoningContent: {
             reasoningText: {
               text: reasoningText,
-              signature: signature,
+              signature,
             },
           },
         },
@@ -1572,7 +1484,6 @@ describe('doGenerate', () => {
 
     const { reasoning, text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1604,7 +1515,6 @@ describe('doGenerate', () => {
 
     const { reasoning, text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1633,7 +1543,6 @@ describe('doGenerate', () => {
 
     const { reasoning, text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 
@@ -1670,7 +1579,6 @@ describe('doGenerate', () => {
 
     const { reasoning, text } = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
     });
 

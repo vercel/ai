@@ -263,8 +263,7 @@ A function that attempts to repair a tool call that failed to parse.
     }),
     tracer,
     fn: async span => {
-      const mode = {
-        type: 'regular' as const,
+      const toolsAndToolChoice = {
         ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
       };
 
@@ -325,12 +324,13 @@ A function that attempts to repair a tool call that failed to parse.
                 },
                 'ai.prompt.tools': {
                   // convert the language model level tools:
-                  input: () => mode.tools?.map(tool => JSON.stringify(tool)),
+                  input: () =>
+                    toolsAndToolChoice.tools?.map(tool => JSON.stringify(tool)),
                 },
                 'ai.prompt.toolChoice': {
                   input: () =>
-                    mode.toolChoice != null
-                      ? JSON.stringify(mode.toolChoice)
+                    toolsAndToolChoice.toolChoice != null
+                      ? JSON.stringify(toolsAndToolChoice.toolChoice)
                       : undefined,
                 },
 
@@ -349,12 +349,12 @@ A function that attempts to repair a tool call that failed to parse.
             tracer,
             fn: async span => {
               const result = await model.doGenerate({
-                mode,
                 ...callSettings,
+                ...toolsAndToolChoice,
                 inputFormat: promptFormat,
                 responseFormat: output?.responseFormat({ model }),
                 prompt: promptMessages,
-                providerMetadata: providerOptions,
+                providerOptions,
                 abortSignal,
                 headers,
               });
@@ -802,7 +802,7 @@ function asFiles(
   files:
     | Array<{
         data: string | Uint8Array;
-        mimeType: string;
+        mediaType: string;
       }>
     | undefined,
 ): Array<GeneratedFile> {

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/valibot",
-  "version": "1.0.0-canary.1",
+  "version": "1.0.0-canary.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -27,13 +27,13 @@
     }
   },
   "dependencies": {
-    "ai": "5.0.0-canary.1"
+    "ai": "5.0.0-canary.3"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
-    "typescript": "5.6.3",
+    "typescript": "5.8.3",
     "valibot": "^1.0.0-rc.0 || ^1.0.0"
   },
   "peerDependencies": {

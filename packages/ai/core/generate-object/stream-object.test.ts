@@ -23,9 +23,9 @@ describe('streamObject', () => {
       it('should send object deltas with json mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              expect(mode).toStrictEqual({
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: undefined,
                 description: undefined,
                 schema: {
@@ -48,7 +48,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -90,9 +90,9 @@ describe('streamObject', () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
             supportsStructuredOutputs: true,
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: undefined,
                 description: undefined,
                 schema: {
@@ -108,7 +108,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
               return {
@@ -149,9 +149,9 @@ describe('streamObject', () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
             supportsStructuredOutputs: true,
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: 'test-name',
                 description: 'test description',
                 schema: {
@@ -167,7 +167,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -210,10 +210,9 @@ describe('streamObject', () => {
       it('should send object deltas with tool mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-tool',
-                tool: {
+            doStream: async ({ prompt, tools, toolChoice }) => {
+              expect(tools).toStrictEqual([
+                {
                   type: 'function',
                   name: 'json',
                   description: 'Respond with a JSON object.',
@@ -225,12 +224,13 @@ describe('streamObject', () => {
                     type: 'object',
                   },
                 },
-              });
+              ]);
+              expect(toolChoice).toStrictEqual({ type: 'required' });
               expect(prompt).toStrictEqual([
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -307,10 +307,9 @@ describe('streamObject', () => {
       it('should  use name and description with tool mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-tool',
-                tool: {
+            doStream: async ({ prompt, tools, toolChoice }) => {
+              expect(tools).toStrictEqual([
+                {
                   type: 'function',
                   name: 'test-name',
                   description: 'test description',
@@ -322,12 +321,14 @@ describe('streamObject', () => {
                     type: 'object',
                   },
                 },
-              });
+              ]);
+              expect(toolChoice).toStrictEqual({ type: 'required' });
+
               expect(prompt).toStrictEqual([
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -1118,8 +1119,8 @@ describe('streamObject', () => {
       it('should pass provider options to model in json mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ providerMetadata }) => {
-              expect(providerMetadata).toStrictEqual({
+            doStream: async ({ providerOptions }) => {
+              expect(providerOptions).toStrictEqual({
                 aProvider: { someKey: 'someValue' },
               });
 
@@ -1155,8 +1156,8 @@ describe('streamObject', () => {
       it('should pass provider options to model in tool mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ providerMetadata }) => {
-              expect(providerMetadata).toStrictEqual({
+            doStream: async ({ providerOptions }) => {
+              expect(providerOptions).toStrictEqual({
                 aProvider: { someKey: 'someValue' },
               });
 
@@ -1197,9 +1198,9 @@ describe('streamObject', () => {
       it('should send object deltas with json mode', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: undefined,
                 description: undefined,
                 schema: jsonSchema({
@@ -1221,7 +1222,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -1557,9 +1558,9 @@ describe('streamObject', () => {
       beforeEach(async () => {
         result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: undefined,
                 description: undefined,
                 schema: {
@@ -1593,7 +1594,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -1712,9 +1713,9 @@ describe('streamObject', () => {
       beforeEach(async () => {
         result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, mode }) => {
-              assert.deepStrictEqual(mode, {
-                type: 'object-json',
+            doStream: async ({ prompt, responseFormat }) => {
+              expect(responseFormat).toStrictEqual({
+                type: 'json',
                 name: undefined,
                 description: undefined,
                 schema: {
@@ -1748,7 +1749,7 @@ describe('streamObject', () => {
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'prompt' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
@@ -1824,9 +1825,9 @@ describe('streamObject', () => {
     it('should send object deltas with json mode', async () => {
       const result = streamObject({
         model: new MockLanguageModelV2({
-          doStream: async ({ prompt, mode }) => {
-            assert.deepStrictEqual(mode, {
-              type: 'object-json',
+          doStream: async ({ prompt, responseFormat }) => {
+            expect(responseFormat).toStrictEqual({
+              type: 'json',
               name: undefined,
               description: undefined,
               schema: undefined,
@@ -1840,7 +1841,7 @@ describe('streamObject', () => {
               {
                 role: 'user',
                 content: [{ type: 'text', text: 'prompt' }],
-                providerMetadata: undefined,
+                providerOptions: undefined,
               },
             ]);
 
@@ -2220,7 +2221,7 @@ describe('streamObject', () => {
                     type: 'text',
                   },
                 ],
-                providerMetadata: undefined,
+                providerOptions: undefined,
                 role: 'user',
               },
               {
@@ -2229,13 +2230,13 @@ describe('streamObject', () => {
                     args: {
                       value: 'test-value',
                     },
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                     toolCallId: 'call-1',
                     toolName: 'test-tool',
                     type: 'tool-call',
                   },
                 ],
-                providerMetadata: undefined,
+                providerOptions: undefined,
                 role: 'assistant',
               },
               {
@@ -2243,14 +2244,14 @@ describe('streamObject', () => {
                   {
                     content: undefined,
                     isError: undefined,
-                    providerMetadata: undefined,
+                    providerOptions: undefined,
                     result: 'test result',
                     toolCallId: 'call-1',
                     toolName: 'test-tool',
                     type: 'tool-result',
                   },
                 ],
-                providerMetadata: undefined,
+                providerOptions: undefined,
                 role: 'tool',
               },
             ]);

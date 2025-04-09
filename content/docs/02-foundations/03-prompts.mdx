@@ -235,7 +235,7 @@ const result = await generateText({
         { type: 'text', text: 'What is the file about?' },
         {
           type: 'file',
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
           data: fs.readFileSync('./data/example.pdf'),
           filename: 'example.pdf', // optional, not used by all providers
         },
@@ -260,7 +260,7 @@ const result = await generateText({
         { type: 'text', text: 'What is the audio saying?' },
         {
           type: 'file',
-          mimeType: 'audio/mpeg',
+          mediaType: 'audio/mpeg',
           data: fs.readFileSync('./data/galileo.mp3'),
         },
       ],
@@ -341,7 +341,7 @@ const result = await generateText({
       content: [
         {
           type: 'file',
-          mimeType: 'image/png',
+          mediaType: 'image/png',
           data: fs.readFileSync('./data/roquefort.jpg'),
         },
       ],
@@ -448,7 +448,7 @@ const result = await generateText({
             {
               type: 'image',
               data: fs.readFileSync('./data/roquefort-nutrition-data.png'),
-              mimeType: 'image/png',
+              mediaType: 'image/png',
             },
           ],
         },

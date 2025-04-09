@@ -5,7 +5,7 @@ import {
   createStreamableValue,
   getMutableAIState as $getMutableAIState,
   streamUI,
-} from 'ai/rsc';
+} from '@ai-sdk/rsc';
 import { Message, BotMessage } from './message';
 import { z } from 'zod';
 

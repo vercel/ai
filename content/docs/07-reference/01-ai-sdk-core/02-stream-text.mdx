@@ -115,10 +115,10 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The image content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
                     },
                     {
-                      name: 'mimeType',
+                      name: 'mediaType',
                       type: 'string',
                       isOptional: true,
-                      description: 'The mime type of the image. Optional.',
+                      description: 'The IANA media type of the image.',
                     },
                   ],
                 },
@@ -137,9 +137,9 @@ To see `streamText` in action, check out [these examples](#examples).
                         'The file content of the message part. String are either base64 encoded content, base64 data URLs, or http(s) URLs.',
                     },
                     {
-                      name: 'mimeType',
+                      name: 'mediaType',
                       type: 'string',
-                      description: 'The mime type of the file.',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },
@@ -961,9 +961,9 @@ To see `streamText` in action, check out [these examples](#examples).
                       description: 'File as a Uint8Array.',
                     },
                     {
-                      name: 'mimeType',
+                      name: 'mediaType',
                       type: 'string',
-                      description: 'MIME type of the file.',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },
@@ -1205,9 +1205,9 @@ To see `streamText` in action, check out [these examples](#examples).
                       description: 'File as a Uint8Array.',
                     },
                     {
-                      name: 'mimeType',
+                      name: 'mediaType',
                       type: 'string',
-                      description: 'MIME type of the file.',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },
@@ -1447,9 +1447,9 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'File as a Uint8Array.',
             },
             {
-              name: 'mimeType',
+              name: 'mediaType',
               type: 'string',
-              description: 'MIME type of the file.',
+              description: 'The IANA media type of the file.',
             },
           ],
         },
@@ -1621,9 +1621,9 @@ To see `streamText` in action, check out [these examples](#examples).
                       description: 'File as a Uint8Array.',
                     },
                     {
-                      name: 'mimeType',
+                      name: 'mediaType',
                       type: 'string',
-                      description: 'MIME type of the file.',
+                      description: 'The IANA media type of the file.',
                     },
                   ],
                 },
@@ -1866,9 +1866,9 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'File as a Uint8Array.',
             },
             {
-              name: 'mimeType',
+              name: 'mediaType',
               type: 'string',
-              description: 'MIME type of the file.',
+              description: 'The IANA media type of the file.',
             },
           ],
         },
@@ -2274,13 +2274,26 @@ To see `streamText` in action, check out [these examples](#examples).
     },
     {
       name: 'consumeStream',
-      type: '() => Promise<void>',
+      type: '(options?: ConsumeStreamOptions) => Promise<void>',
       description:
-        'Consumes the stream without processing the parts. This is useful to force the stream to finish.',
+        'Consumes the stream without processing the parts. This is useful to force the stream to finish. If an error occurs, it is passed to the optional `onError` callback.',
+      properties: [
+        {
+          type: 'ConsumeStreamOptions',
+          parameters: [
+            {
+              name: 'onError',
+              type: '(error: unknown) => void',
+              isOptional: true,
+              description: 'The error callback.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'pipeDataStreamToResponse',
-      type: '(response: ServerResponse, options: PipeDataStreamToResponseOptions } => void',
+      type: '(response: ServerResponse, options: PipeDataStreamToResponseOptions) => void',
       description:
         'Writes stream data output to a Node.js response-like object. It sets a `Content-Type` header to `text/plain; charset=utf-8` and writes each stream data part as a separate chunk.',
       properties: [

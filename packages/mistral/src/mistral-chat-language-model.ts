@@ -59,7 +59,6 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
   }
 
   private getArgs({
-    mode,
     prompt,
     maxTokens,
     temperature,
@@ -70,10 +69,10 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
-    providerMetadata,
+    providerOptions,
+    tools,
+    toolChoice,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const type = mode.type;
-
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
@@ -134,49 +133,30 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // mistral-specific provider options:
-      document_image_limit: providerMetadata?.mistral?.documentImageLimit,
-      document_page_limit: providerMetadata?.mistral?.documentPageLimit,
+      document_image_limit: providerOptions?.mistral?.documentImageLimit,
+      document_page_limit: providerOptions?.mistral?.documentPageLimit,
 
       // messages:
       messages: convertToMistralChatMessages(prompt),
     };
 
-    switch (type) {
-      case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareTools(mode);
+    const {
+      tools: mistralTools,
+      toolChoice: mistralToolChoice,
+      toolWarnings,
+    } = prepareTools({
+      tools,
+      toolChoice,
+    });
 
-        return {
-          args: { ...baseArgs, tools, tool_choice },
-          warnings: [...warnings, ...toolWarnings],
-        };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format: { type: 'json_object' },
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          args: {
-            ...baseArgs,
-            tool_choice: 'any',
-            tools: [{ type: 'function', function: mode.tool }],
-          },
-          warnings,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
+    return {
+      args: {
+        ...baseArgs,
+        tools: mistralTools,
+        tool_choice: mistralToolChoice,
+      },
+      warnings: [...warnings, ...toolWarnings],
+    };
   }
 
   async doGenerate(

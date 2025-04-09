@@ -49,9 +49,9 @@ describe('user messages', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'image/png',
+              type: 'file',
+              data: 'AAECAw==',
+              mediaType: 'image/png',
             },
           ],
         },
@@ -90,9 +90,9 @@ describe('user messages', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new URL('https://example.com/image.png'),
-              mimeType: 'image/png',
+              type: 'file',
+              data: new URL('https://example.com/image.png'),
+              mediaType: 'image/*',
             },
           ],
         },
@@ -123,7 +123,7 @@ describe('user messages', () => {
     });
   });
 
-  it('should add PDF file parts', async () => {
+  it('should add PDF file parts for base64 PDFs', async () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -132,7 +132,7 @@ describe('user messages', () => {
             {
               type: 'file',
               data: 'base64PDFdata',
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             },
           ],
         },
@@ -164,6 +164,46 @@ describe('user messages', () => {
     });
   });
 
+  it('should add PDF file parts for URL PDFs', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new URL('https://example.com/document.pdf'),
+              mediaType: 'application/pdf',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'url',
+                  url: 'https://example.com/document.pdf',
+                },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['pdfs-2024-09-25']),
+    });
+  });
+
   it('should throw error for non-PDF file types', async () => {
     expect(() =>
       convertToAnthropicMessagesPrompt({
@@ -174,7 +214,7 @@ describe('user messages', () => {
               {
                 type: 'file',
                 data: 'base64data',
-                mimeType: 'text/plain',
+                mediaType: 'text/plain',
               },
             ],
           },
@@ -182,28 +222,7 @@ describe('user messages', () => {
         sendReasoning: true,
         warnings: [],
       }),
-    ).toThrow('Non-PDF files in user messages');
-  });
-
-  it('should throw error for URL-based file parts', async () => {
-    expect(() =>
-      convertToAnthropicMessagesPrompt({
-        prompt: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'file',
-                data: 'base64data',
-                mimeType: 'text/plain',
-              },
-            ],
-          },
-        ],
-        sendReasoning: true,
-        warnings: [],
-      }),
-    ).toThrow('Non-PDF files in user messages');
+    ).toThrow('media type: text/plain');
   });
 });
 
@@ -364,7 +383,7 @@ describe('tool messages', () => {
                 {
                   type: 'image',
                   data: 'AAECAw==',
-                  mimeType: 'image/png',
+                  mediaType: 'image/png',
                 },
               ],
             },
@@ -746,7 +765,7 @@ describe('cache control', () => {
           {
             role: 'system',
             content: 'system message',
-            providerMetadata: {
+            providerOptions: {
               anthropic: { cacheControl: { type: 'ephemeral' } },
             },
           },
@@ -781,7 +800,7 @@ describe('cache control', () => {
               {
                 type: 'text',
                 text: 'test',
-                providerMetadata: {
+                providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
                   },
@@ -822,7 +841,7 @@ describe('cache control', () => {
               { type: 'text', text: 'part1' },
               { type: 'text', text: 'part2' },
             ],
-            providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -869,7 +888,7 @@ describe('cache control', () => {
               {
                 type: 'text',
                 text: 'test',
-                providerMetadata: {
+                providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
                   },
@@ -914,7 +933,7 @@ describe('cache control', () => {
                 toolCallId: 'test-id',
                 toolName: 'test-tool',
                 args: { some: 'arg' },
-                providerMetadata: {
+                providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
                   },
@@ -959,7 +978,7 @@ describe('cache control', () => {
               { type: 'text', text: 'part1' },
               { type: 'text', text: 'part2' },
             ],
-            providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -1008,7 +1027,7 @@ describe('cache control', () => {
                 toolName: 'test',
                 toolCallId: 'test',
                 result: { test: 'test' },
-                providerMetadata: {
+                providerOptions: {
                   anthropic: {
                     cacheControl: { type: 'ephemeral' },
                   },
@@ -1061,7 +1080,7 @@ describe('cache control', () => {
                 result: { test: 'part2' },
               },
             ],
-            providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },

@@ -101,7 +101,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   }
 
   private getArgs({
-    mode,
     prompt,
     maxTokens,
     temperature,
@@ -109,20 +108,17 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     topK,
     frequencyPenalty,
     presencePenalty,
-    providerMetadata,
+    providerOptions,
     stopSequences,
     responseFormat,
     seed,
+    toolChoice,
+    tools,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const type = mode.type;
-
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
     }
 
     if (
@@ -138,103 +134,57 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const baseArgs = {
-      // model id:
-      model: this.modelId,
+    const {
+      tools: openaiTools,
+      toolChoice: openaiToolChoice,
+      toolWarnings,
+    } = prepareTools({
+      tools,
+      toolChoice,
+    });
 
-      // model specific settings:
-      user: this.settings.user,
+    return {
+      args: {
+        // model id:
+        model: this.modelId,
 
-      // standardized settings:
-      max_tokens: maxTokens,
-      temperature,
-      top_p: topP,
-      frequency_penalty: frequencyPenalty,
-      presence_penalty: presencePenalty,
-      response_format:
-        responseFormat?.type === 'json'
-          ? this.supportsStructuredOutputs === true &&
-            responseFormat.schema != null
-            ? {
-                type: 'json_schema',
-                json_schema: {
-                  schema: responseFormat.schema,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                },
-              }
-            : { type: 'json_object' }
-          : undefined,
+        // model specific settings:
+        user: this.settings.user,
 
-      stop: stopSequences,
-      seed,
-      ...providerMetadata?.[this.providerOptionsName],
+        // standardized settings:
+        max_tokens: maxTokens,
+        temperature,
+        top_p: topP,
+        frequency_penalty: frequencyPenalty,
+        presence_penalty: presencePenalty,
+        response_format:
+          responseFormat?.type === 'json'
+            ? this.supportsStructuredOutputs === true &&
+              responseFormat.schema != null
+              ? {
+                  type: 'json_schema',
+                  json_schema: {
+                    schema: responseFormat.schema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                  },
+                }
+              : { type: 'json_object' }
+            : undefined,
 
-      // messages:
-      messages: convertToOpenAICompatibleChatMessages(prompt),
+        stop: stopSequences,
+        seed,
+        ...providerOptions?.[this.providerOptionsName],
+
+        // messages:
+        messages: convertToOpenAICompatibleChatMessages(prompt),
+
+        // tools:
+        tools: openaiTools,
+        tool_choice: openaiToolChoice,
+      },
+      warnings: [...warnings, ...toolWarnings],
     };
-
-    switch (type) {
-      case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareTools({
-          mode,
-          structuredOutputs: this.supportsStructuredOutputs,
-        });
-
-        return {
-          args: { ...baseArgs, tools, tool_choice },
-          warnings: [...warnings, ...toolWarnings],
-        };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format:
-              this.supportsStructuredOutputs === true && mode.schema != null
-                ? {
-                    type: 'json_schema',
-                    json_schema: {
-                      schema: mode.schema,
-                      name: mode.name ?? 'response',
-                      description: mode.description,
-                    },
-                  }
-                : { type: 'json_object' },
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          args: {
-            ...baseArgs,
-            tool_choice: {
-              type: 'function',
-              function: { name: mode.tool.name },
-            },
-            tools: [
-              {
-                type: 'function',
-                function: {
-                  name: mode.tool.name,
-                  description: mode.tool.description,
-                  parameters: mode.tool.parameters,
-                },
-              },
-            ],
-          },
-          warnings,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
   }
 
   async doGenerate(

@@ -34,7 +34,7 @@ async function main() {
           {
             type: 'file',
             data: geminiFile.file.uri,
-            mimeType: geminiFile.file.mimeType,
+            mediaType: geminiFile.file.mimeType,
           },
         ],
       },

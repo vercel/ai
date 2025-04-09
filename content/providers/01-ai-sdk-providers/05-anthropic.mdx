@@ -326,7 +326,7 @@ const computerTool = anthropic.tools.computer_20241022({
   experimental_toToolResultContent(result) {
     return typeof result === 'string'
       ? [{ type: 'text', text: result }]
-      : [{ type: 'image', data: result.data, mimeType: 'image/png' }];
+      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
   },
 });
 ```
@@ -344,6 +344,34 @@ These tools can be used in conjunction with the `sonnet-3-5-sonnet-20240620` mod
 Anthropic Sonnet `claude-3-5-sonnet-20241022` supports reading PDF files.
 You can pass PDF files as part of the message content using the `file` type:
 
+Option 1: URL-based PDF document
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-3-5-sonnet-20241022'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'What is an embedding model according to this document?',
+        },
+        {
+          type: 'file',
+          data: new URL(
+            'https://github.com/vercel/ai/blob/main/examples/ai-core/data/ai.pdf?raw=true',
+          ),
+          mimeType: 'application/pdf',
+        },
+      ],
+    },
+  ],
+});
+```
+
+Option 2: Base64-encoded PDF document
+
 ```ts
 const result = await generateText({
   model: anthropic('claude-3-5-sonnet-20241022'),
@@ -358,7 +386,7 @@ const result = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mimeType: 'application/pdf',
+          mediaType: 'application/pdf',
         },
       ],
     },
@@ -369,7 +397,7 @@ const result = await generateText({
 The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
-and the `mimeType` should be set to `'application/pdf'`.
+and the `mediaType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 

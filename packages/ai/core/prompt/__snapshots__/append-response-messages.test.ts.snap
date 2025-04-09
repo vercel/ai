@@ -406,7 +406,7 @@ exports[`appendResponseMessages > after user message > appends assistant message
       },
       {
         "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
-        "mimeType": "image/png",
+        "mediaType": "image/png",
         "type": "file",
       },
     ],

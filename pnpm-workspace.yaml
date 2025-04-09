@@ -3,4 +3,4 @@ packages:
   - 'packages/*'
   - 'tools/*'
   - 'examples/*'
-  - 'packages/ai/tests/e2e/next-server'
+  - 'packages/rsc/tests/e2e/next-server'

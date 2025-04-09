@@ -8,6 +8,7 @@ import { InvalidStreamPartError } from '../../errors/invalid-stream-part-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { StreamData } from '../../streams/stream-data';
 import { asArray } from '../../util/as-array';
+import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
@@ -53,6 +54,7 @@ import {
 } from './run-tools-transformation';
 import { ResponseMessage, StepResult } from './step-result';
 import {
+  ConsumeStreamOptions,
   DataStreamOptions,
   StreamTextResult,
   TextStreamPart,
@@ -972,8 +974,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
           });
 
-          const mode = {
-            type: 'regular' as const,
+          const toolsAndToolChoice = {
             ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
           };
 
@@ -1000,12 +1001,15 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   },
                   'ai.prompt.tools': {
                     // convert the language model level tools:
-                    input: () => mode.tools?.map(tool => JSON.stringify(tool)),
+                    input: () =>
+                      toolsAndToolChoice.tools?.map(tool =>
+                        JSON.stringify(tool),
+                      ),
                   },
                   'ai.prompt.toolChoice': {
                     input: () =>
-                      mode.toolChoice != null
-                        ? JSON.stringify(mode.toolChoice)
+                      toolsAndToolChoice.toolChoice != null
+                        ? JSON.stringify(toolsAndToolChoice.toolChoice)
                         : undefined,
                   },
 
@@ -1027,12 +1031,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 startTimestampMs: now(), // get before the call
                 doStreamSpan,
                 result: await model.doStream({
-                  mode,
                   ...prepareCallSettings(settings),
+                  ...toolsAndToolChoice,
                   inputFormat: promptFormat,
                   responseFormat: output?.responseFormat({ model }),
                   prompt: promptMessages,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                   abortSignal,
                   headers,
                 }),
@@ -1591,10 +1595,14 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  async consumeStream(): Promise<void> {
-    const stream = this.fullStream;
-    for await (const part of stream) {
-      // no op
+  async consumeStream(options?: ConsumeStreamOptions): Promise<void> {
+    try {
+      await consumeStream({
+        stream: this.fullStream,
+        onError: options?.onError,
+      });
+    } catch (error) {
+      options?.onError?.(error);
     }
   }
 
@@ -1676,7 +1684,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'file': {
               controller.enqueue(
                 formatDataStreamPart('file', {
-                  mimeType: chunk.mimeType,
+                  mimeType: chunk.mediaType,
                   data: chunk.base64,
                 }),
               );

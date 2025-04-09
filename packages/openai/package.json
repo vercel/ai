@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/openai",
-  "version": "2.0.0-canary.1",
+  "version": "2.0.0-canary.2",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -38,14 +38,14 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "2.0.0-canary.0",
-    "@ai-sdk/provider-utils": "3.0.0-canary.1"
+    "@ai-sdk/provider": "2.0.0-canary.1",
+    "@ai-sdk/provider-utils": "3.0.0-canary.2"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
-    "typescript": "5.6.3",
+    "typescript": "5.8.3",
     "zod": "3.23.8"
   },
   "peerDependencies": {

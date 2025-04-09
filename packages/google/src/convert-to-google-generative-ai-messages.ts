@@ -2,7 +2,6 @@ import {
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
@@ -42,41 +41,20 @@ export function convertToGoogleGenerativeAIMessages(
               break;
             }
 
-            case 'image': {
-              parts.push(
-                part.image instanceof URL
-                  ? {
-                      fileData: {
-                        mimeType: part.mimeType ?? 'image/jpeg',
-                        fileUri: part.image.toString(),
-                      },
-                    }
-                  : {
-                      inlineData: {
-                        mimeType: part.mimeType ?? 'image/jpeg',
-                        data: convertUint8ArrayToBase64(part.image),
-                      },
-                    },
-              );
-
-              break;
-            }
-
             case 'file': {
+              // default to image/jpeg for unknown image/* types
+              const mediaType =
+                part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
+
               parts.push(
                 part.data instanceof URL
                   ? {
                       fileData: {
-                        mimeType: part.mimeType,
+                        mimeType: mediaType,
                         fileUri: part.data.toString(),
                       },
                     }
-                  : {
-                      inlineData: {
-                        mimeType: part.mimeType,
-                        data: part.data,
-                      },
-                    },
+                  : { inlineData: { mimeType: mediaType, data: part.data } },
               );
 
               break;
@@ -103,7 +81,7 @@ export function convertToGoogleGenerativeAIMessages(
                 }
 
                 case 'file': {
-                  if (part.mimeType !== 'image/png') {
+                  if (part.mediaType !== 'image/png') {
                     throw new UnsupportedFunctionalityError({
                       functionality:
                         'Only PNG images are supported in assistant messages',
@@ -119,7 +97,7 @@ export function convertToGoogleGenerativeAIMessages(
 
                   return {
                     inlineData: {
-                      mimeType: part.mimeType,
+                      mimeType: part.mediaType,
                       data: part.data,
                     },
                   };

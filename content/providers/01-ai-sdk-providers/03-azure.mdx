@@ -223,6 +223,146 @@ The following optional settings are available for OpenAI chat models:
   A unique identifier representing your end-user, which can help OpenAI to
   monitor and detect abuse. Learn more.
 
+### Responses Models
+
+You can use the Azure OpenAI responses API with the `azure.responses(deploymentName)` factory method.
+
+```ts
+const model = azure.responses('your-deployment-name');
+```
+
+Further configuration can be done using OpenAI provider options.
+You can validate the provider options using the `OpenAIResponsesProviderOptions` type.
+
+```ts
+import { azure, OpenAIResponsesProviderOptions } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  providerOptions: {
+    openai: {
+      parallelToolCalls: false,
+      store: false,
+      user: 'user_123',
+      // ...
+    } satisfies OpenAIResponsesProviderOptions,
+  },
+  // ...
+});
+```
+
+The following provider options are available:
+
+- **parallelToolCalls** _boolean_
+  Whether to use parallel tool calls. Defaults to `true`.
+
+- **store** _boolean_
+  Whether to store the generation. Defaults to `true`.
+
+- **metadata** _Record&lt;string, string&gt;_
+  Additional metadata to store with the generation.
+
+- **previousResponseId** _string_
+  The ID of the previous response. You can use it to continue a conversation. Defaults to `undefined`.
+
+- **instructions** _string_
+  Instructions for the model.
+  They can be used to change the system or developer message when continuing a conversation using the `previousResponseId` option.
+  Defaults to `undefined`.
+
+- **user** _string_
+  A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse. Defaults to `undefined`.
+
+- **reasoningEffort** _'low' | 'medium' | 'high'_
+  Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
+
+- **strictSchemas** _boolean_
+  Whether to use strict JSON schemas in tools and when generating JSON outputs. Defaults to `true`.
+
+The Azure OpenAI responses provider also returns provider-specific metadata:
+
+```ts
+const { providerMetadata } = await generateText({
+  model: azure.responses('your-deployment-name'),
+});
+
+const openaiMetadata = providerMetadata?.openai;
+```
+
+The following OpenAI-specific metadata is returned:
+
+- **responseId** _string_
+  The ID of the response. Can be used to continue a conversation.
+
+- **cachedPromptTokens** _number_
+  The number of prompt tokens that were a cache hit.
+
+- **reasoningTokens** _number_
+  The number of reasoning tokens that the model generated.
+
+#### Web Search
+
+The Azure OpenAI responses provider supports web search through the `azure.tools.webSearchPreview` tool.
+
+You can force the use of the web search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'web_search_preview' }`.
+
+```ts
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  prompt: 'What happened in San Francisco last week?',
+  tools: {
+    web_search_preview: azure.tools.webSearchPreview({
+      // optional configuration:
+      searchContextSize: 'high',
+      userLocation: {
+        type: 'approximate',
+        city: 'San Francisco',
+        region: 'California',
+      },
+    }),
+  },
+  // Force web search tool:
+  toolChoice: { type: 'tool', toolName: 'web_search_preview' },
+});
+
+// URL sources
+const sources = result.sources;
+```
+
+#### PDF support
+
+The Azure OpenAI Responses API supports reading PDF files.
+You can pass PDF files as part of the message content using the `file` type:
+
+```ts
+const result = await generateText({
+  model: azure.responses('your-deployment-name'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'What is an embedding model?',
+        },
+        {
+          type: 'file',
+          data: fs.readFileSync('./data/ai.pdf'),
+          mediaType: 'application/pdf',
+          filename: 'ai.pdf', // optional
+        },
+      ],
+    },
+  ],
+});
+```
+
+The model will have access to the contents of the PDF file and
+respond to questions about it.
+The PDF file should be passed using the `data` field,
+and the `mediaType` should be set to `'application/pdf'`.
+
 ### Completion Models
 
 You can create models that call the completions API using the `.completion()` factory method.

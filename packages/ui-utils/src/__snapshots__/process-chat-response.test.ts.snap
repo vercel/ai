@@ -396,12 +396,12 @@ exports[`scenario: server provides file parts > should call the onFinish functio
         },
         {
           "data": "Hello World",
-          "mimeType": "text/plain",
+          "mediaType": "text/plain",
           "type": "file",
         },
         {
           "data": "{"key": "value"}",
-          "mimeType": "application/json",
+          "mediaType": "application/json",
           "type": "file",
         },
       ],
@@ -448,7 +448,7 @@ exports[`scenario: server provides file parts > should call the update function 
         },
         {
           "data": "Hello World",
-          "mimeType": "text/plain",
+          "mediaType": "text/plain",
           "type": "file",
         },
       ],
@@ -470,7 +470,7 @@ exports[`scenario: server provides file parts > should call the update function 
         },
         {
           "data": "Hello World",
-          "mimeType": "text/plain",
+          "mediaType": "text/plain",
           "type": "file",
         },
       ],
@@ -492,12 +492,12 @@ exports[`scenario: server provides file parts > should call the update function 
         },
         {
           "data": "Hello World",
-          "mimeType": "text/plain",
+          "mediaType": "text/plain",
           "type": "file",
         },
         {
           "data": "{"key": "value"}",
-          "mimeType": "application/json",
+          "mediaType": "application/json",
           "type": "file",
         },
       ],

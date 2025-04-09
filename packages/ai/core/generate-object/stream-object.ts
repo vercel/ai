@@ -603,8 +603,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
             });
 
             callOptions = {
-              mode: {
-                type: 'object-json',
+              responseFormat: {
+                type: 'json',
                 schema: outputStrategy.jsonSchema,
                 name: schemaName,
                 description: schemaDescription,
@@ -616,7 +616,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 modelSupportsImageUrls: model.supportsImageUrls,
                 modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
               }),
-              providerMetadata: providerOptions,
+              providerOptions,
               abortSignal,
               headers,
             };
@@ -646,16 +646,16 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
             });
 
             callOptions = {
-              mode: {
-                type: 'object-tool',
-                tool: {
+              tools: [
+                {
                   type: 'function',
                   name: schemaName ?? 'json',
                   description:
                     schemaDescription ?? 'Respond with a JSON object.',
                   parameters: outputStrategy.jsonSchema!,
                 },
-              },
+              ],
+              toolChoice: { type: 'required' },
               ...prepareCallSettings(settings),
               inputFormat: standardizedPrompt.type,
               prompt: await convertToLanguageModelPrompt({
@@ -663,7 +663,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 modelSupportsImageUrls: model.supportsImageUrls,
                 modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context,
               }),
-              providerMetadata: providerOptions,
+              providerOptions,
               abortSignal,
               headers,
             };

@@ -8,7 +8,10 @@ import { prepareRetries } from '../prompt/prepare-retries';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
-import { detectImageMimeType } from '../util/detect-image-mimetype';
+import {
+  detectMediaType,
+  imageMediaTypeSignatures,
+} from '../util/detect-media-type';
 
 /**
 Generates images using an image model.
@@ -146,7 +149,11 @@ Only applicable for HTTP-based providers.
         image =>
           new DefaultGeneratedFile({
             data: image,
-            mimeType: detectImageMimeType(image) ?? 'image/png',
+            mediaType:
+              detectMediaType({
+                data: image,
+                signatures: imageMediaTypeSignatures,
+              }) ?? 'image/png',
           }),
       ),
     );

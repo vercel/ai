@@ -57,8 +57,9 @@ describe('convertToOpenAIResponsesMessages', () => {
             content: [
               { type: 'text', text: 'Hello' },
               {
-                type: 'image',
-                image: new URL('https://example.com/image.jpg'),
+                type: 'file',
+                mediaType: 'image/*',
+                data: new URL('https://example.com/image.jpg'),
               },
             ],
           },
@@ -87,9 +88,9 @@ describe('convertToOpenAIResponsesMessages', () => {
             role: 'user',
             content: [
               {
-                type: 'image',
-                image: new Uint8Array([0, 1, 2, 3]),
-                mimeType: 'image/png',
+                type: 'file',
+                mediaType: 'image/png',
+                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
               },
             ],
           },
@@ -117,8 +118,9 @@ describe('convertToOpenAIResponsesMessages', () => {
             role: 'user',
             content: [
               {
-                type: 'image',
-                image: new Uint8Array([0, 1, 2, 3]),
+                type: 'file',
+                mediaType: 'image/*',
+                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
               },
             ],
           },
@@ -146,10 +148,10 @@ describe('convertToOpenAIResponsesMessages', () => {
             role: 'user',
             content: [
               {
-                type: 'image',
-                image: new Uint8Array([0, 1, 2, 3]),
-                mimeType: 'image/png',
-                providerMetadata: {
+                type: 'file',
+                mediaType: 'image/png',
+                data: Buffer.from([0, 1, 2, 3]).toString('base64'),
+                providerOptions: {
                   openai: {
                     imageDetail: 'low',
                   },
@@ -185,7 +187,7 @@ describe('convertToOpenAIResponsesMessages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: base64Data,
                 filename: 'document.pdf',
               },
@@ -219,7 +221,7 @@ describe('convertToOpenAIResponsesMessages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: base64Data,
               },
             ],
@@ -253,7 +255,7 @@ describe('convertToOpenAIResponsesMessages', () => {
               content: [
                 {
                   type: 'file',
-                  mimeType: 'text/plain',
+                  mediaType: 'text/plain',
                   data: base64Data,
                 },
               ],
@@ -261,7 +263,7 @@ describe('convertToOpenAIResponsesMessages', () => {
           ],
           systemMessageMode: 'system',
         });
-      }).toThrow('Only PDF files are supported in user messages');
+      }).toThrow('file part media type text/plain');
     });
 
     it('should throw error for file URLs', async () => {
@@ -273,7 +275,7 @@ describe('convertToOpenAIResponsesMessages', () => {
               content: [
                 {
                   type: 'file',
-                  mimeType: 'application/pdf',
+                  mediaType: 'application/pdf',
                   data: new URL('https://example.com/document.pdf'),
                 },
               ],
@@ -281,7 +283,7 @@ describe('convertToOpenAIResponsesMessages', () => {
           ],
           systemMessageMode: 'system',
         });
-      }).toThrow('File URLs in user messages');
+      }).toThrow('PDF file parts with URLs');
     });
   });
 

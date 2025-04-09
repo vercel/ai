@@ -78,7 +78,7 @@ describe('appendResponseMessages', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'image/png',
+                mediaType: 'image/png',
                 data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=',
               },
             ],

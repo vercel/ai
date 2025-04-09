@@ -29,7 +29,7 @@ describe('convertToLanguageModelPrompt', () => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'image/png',
+              mediaType: 'image/png',
             };
           },
         });
@@ -39,9 +39,9 @@ describe('convertToLanguageModelPrompt', () => {
             role: 'user',
             content: [
               {
-                type: 'image',
-                mimeType: 'image/png',
-                image: new Uint8Array([0, 1, 2, 3]),
+                type: 'file',
+                mediaType: 'image/png',
+                data: 'AAECAw==',
               },
             ],
           },
@@ -70,7 +70,7 @@ describe('convertToLanguageModelPrompt', () => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'image/png',
+              mediaType: 'image/png',
             };
           },
         });
@@ -80,9 +80,9 @@ describe('convertToLanguageModelPrompt', () => {
             role: 'user',
             content: [
               {
-                type: 'image',
-                mimeType: 'image/png',
-                image: new Uint8Array([0, 1, 2, 3]),
+                type: 'file',
+                mediaType: 'image/png',
+                data: 'AAECAw==',
               },
             ],
           },
@@ -102,7 +102,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: new URL('https://example.com/document.pdf'),
-                    mimeType: 'application/pdf',
+                    mediaType: 'application/pdf',
                   },
                 ],
               },
@@ -119,7 +119,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 data: new URL('https://example.com/document.pdf'),
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
               },
             ],
           },
@@ -137,7 +137,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: new URL('https://example.com/document.pdf'),
-                    mimeType: 'application/pdf',
+                    mediaType: 'application/pdf',
                   },
                 ],
               },
@@ -149,7 +149,7 @@ describe('convertToLanguageModelPrompt', () => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             };
           },
         });
@@ -160,7 +160,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
               },
             ],
@@ -180,7 +180,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: base64Data,
-                    mimeType: 'text/plain',
+                    mediaType: 'text/plain',
                   },
                 ],
               },
@@ -197,7 +197,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 data: base64Data,
-                mimeType: 'text/plain',
+                mediaType: 'text/plain',
               },
             ],
           },
@@ -216,7 +216,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: uint8Data,
-                    mimeType: 'text/plain',
+                    mediaType: 'text/plain',
                   },
                 ],
               },
@@ -233,7 +233,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 data: 'SGVsbG8=', // base64 encoded "Hello"
-                mimeType: 'text/plain',
+                mediaType: 'text/plain',
               },
             ],
           },
@@ -251,7 +251,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: new URL('https://example.com/document.pdf'),
-                    mimeType: 'application/pdf',
+                    mediaType: 'application/pdf',
                   },
                 ],
               },
@@ -263,7 +263,7 @@ describe('convertToLanguageModelPrompt', () => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             };
           },
         });
@@ -274,7 +274,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
               },
             ],
@@ -293,7 +293,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: 'https://example.com/document.pdf',
-                    mimeType: 'application/pdf',
+                    mediaType: 'application/pdf',
                   },
                 ],
               },
@@ -305,7 +305,7 @@ describe('convertToLanguageModelPrompt', () => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             };
           },
         });
@@ -316,7 +316,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
               },
             ],
@@ -335,7 +335,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: 'https://example.com/document.pdf',
-                    mimeType: 'application/pdf',
+                    mediaType: 'application/pdf',
                   },
                 ],
               },
@@ -348,7 +348,7 @@ describe('convertToLanguageModelPrompt', () => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             };
           },
         });
@@ -359,7 +359,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
               },
             ],
@@ -378,7 +378,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: new URL('https://example.com/document.pdf'),
-                    mimeType: 'application/pdf',
+                    mediaType: 'application/pdf',
                   },
                 ],
               },
@@ -395,7 +395,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: new URL('https://example.com/document.pdf'),
               },
             ],
@@ -414,7 +414,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: 'https://example.com/document.pdf',
-                    mimeType: 'application/pdf',
+                    mediaType: 'application/pdf',
                   },
                 ],
               },
@@ -426,7 +426,7 @@ describe('convertToLanguageModelPrompt', () => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             };
           },
         });
@@ -437,7 +437,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
               },
             ],
@@ -456,7 +456,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: 'SGVsbG8sIFdvcmxkIQ==', // "Hello, World!" in base64
-                    mimeType: 'text/plain',
+                    mediaType: 'text/plain',
                     filename: 'hello.txt',
                   },
                 ],
@@ -474,7 +474,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 data: 'SGVsbG8sIFdvcmxkIQ==',
-                mimeType: 'text/plain',
+                mediaType: 'text/plain',
                 filename: 'hello.txt',
               },
             ],
@@ -493,7 +493,7 @@ describe('convertToLanguageModelPrompt', () => {
                   {
                     type: 'file',
                     data: new URL('https://example.com/document.pdf'),
-                    mimeType: 'application/pdf',
+                    mediaType: 'application/pdf',
                     filename: 'important-document.pdf',
                   },
                 ],
@@ -506,7 +506,7 @@ describe('convertToLanguageModelPrompt', () => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
               data: new Uint8Array([0, 1, 2, 3]),
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             };
           },
         });
@@ -517,7 +517,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
                 filename: 'important-document.pdf',
               },
@@ -527,8 +527,8 @@ describe('convertToLanguageModelPrompt', () => {
       });
     });
 
-    describe('provider metadata', async () => {
-      it('should add provider metadata to messages', async () => {
+    describe('provider options', async () => {
+      it('should add provider options to messages', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
             type: 'messages',
@@ -564,7 +564,7 @@ describe('convertToLanguageModelPrompt', () => {
                 providerMetadata: undefined,
               },
             ],
-            providerMetadata: {
+            providerOptions: {
               'test-provider': {
                 'key-a': 'test-value-1',
                 'key-b': 'test-value-2',
@@ -627,8 +627,9 @@ describe('convertToLanguageModelMessage', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new URL('https://example.com/image.jpg'),
+              type: 'file',
+              data: new URL('https://example.com/image.jpg'),
+              mediaType: 'image/*', // wildcard since we don't know the exact type
             },
           ],
         });
@@ -652,22 +653,22 @@ describe('convertToLanguageModelMessage', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new Uint8Array([255, 216, 255, 221]),
-              mimeType: 'image/jpeg',
+              type: 'file',
+              data: '/9j/3Q==',
+              mediaType: 'image/jpeg',
             },
           ],
         });
       });
 
-      it('should prefer detected mimetype', async () => {
+      it('should prefer detected mediaType', async () => {
         const result = convertToLanguageModelMessage(
           {
             role: 'user',
             content: [
               {
                 type: 'image',
-                // incorrect mimetype:
+                // incorrect mediaType:
                 image: 'data:image/png;base64,/9j/3Q==',
               },
             ],
@@ -679,9 +680,9 @@ describe('convertToLanguageModelMessage', () => {
           role: 'user',
           content: [
             {
-              type: 'image',
-              image: new Uint8Array([255, 216, 255, 221]),
-              mimeType: 'image/jpeg',
+              type: 'file',
+              data: '/9j/3Q==',
+              mediaType: 'image/jpeg',
             },
           ],
         });
@@ -697,7 +698,7 @@ describe('convertToLanguageModelMessage', () => {
               {
                 type: 'file',
                 data: 'https://example.com/image.jpg',
-                mimeType: 'image/jpg',
+                mediaType: 'image/jpg',
               },
             ],
           },
@@ -710,7 +711,7 @@ describe('convertToLanguageModelMessage', () => {
             {
               type: 'file',
               data: new URL('https://example.com/image.jpg'),
-              mimeType: 'image/jpg',
+              mediaType: 'image/jpg',
             },
           ],
         });
@@ -724,7 +725,7 @@ describe('convertToLanguageModelMessage', () => {
               {
                 type: 'file',
                 data: 'data:image/jpg;base64,dGVzdA==',
-                mimeType: 'image/jpg',
+                mediaType: 'image/jpg',
               },
             ],
           },
@@ -737,7 +738,7 @@ describe('convertToLanguageModelMessage', () => {
             {
               type: 'file',
               data: 'dGVzdA==',
-              mimeType: 'image/jpg',
+              mediaType: 'image/jpg',
             },
           ],
         });
@@ -782,7 +783,7 @@ describe('convertToLanguageModelMessage', () => {
     });
 
     describe('reasoning parts', () => {
-      it('should pass through provider metadata', () => {
+      it('should pass through provider options', () => {
         const result = convertToLanguageModelMessage(
           {
             role: 'assistant',
@@ -808,7 +809,7 @@ describe('convertToLanguageModelMessage', () => {
             {
               type: 'reasoning',
               text: 'hello, world!',
-              providerMetadata: {
+              providerOptions: {
                 'test-provider': {
                   'key-a': 'test-value-1',
                   'key-b': 'test-value-2',
@@ -870,7 +871,7 @@ describe('convertToLanguageModelMessage', () => {
     });
 
     describe('tool call parts', () => {
-      it('should pass through provider metadata', () => {
+      it('should pass through provider options', () => {
         const result = convertToLanguageModelMessage(
           {
             role: 'assistant',
@@ -900,7 +901,7 @@ describe('convertToLanguageModelMessage', () => {
               args: {},
               toolCallId: 'toolCallId',
               toolName: 'toolName',
-              providerMetadata: {
+              providerOptions: {
                 'test-provider': {
                   'key-a': 'test-value-1',
                   'key-b': 'test-value-2',
@@ -921,7 +922,7 @@ describe('convertToLanguageModelMessage', () => {
               {
                 type: 'file',
                 data: 'dGVzdA==', // "test" in base64
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
               },
             ],
           },
@@ -934,7 +935,7 @@ describe('convertToLanguageModelMessage', () => {
             {
               type: 'file',
               data: 'dGVzdA==',
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             },
           ],
         });
@@ -948,7 +949,7 @@ describe('convertToLanguageModelMessage', () => {
               {
                 type: 'file',
                 data: 'dGVzdA==',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 filename: 'test-document.pdf',
               },
             ],
@@ -962,14 +963,14 @@ describe('convertToLanguageModelMessage', () => {
             {
               type: 'file',
               data: 'dGVzdA==',
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
               filename: 'test-document.pdf',
             },
           ],
         });
       });
 
-      it('should handle provider metadata', async () => {
+      it('should handle provider options', async () => {
         const result = convertToLanguageModelMessage(
           {
             role: 'assistant',
@@ -977,7 +978,7 @@ describe('convertToLanguageModelMessage', () => {
               {
                 type: 'file',
                 data: 'dGVzdA==',
-                mimeType: 'application/pdf',
+                mediaType: 'application/pdf',
                 providerOptions: {
                   'test-provider': {
                     'key-a': 'test-value-1',
@@ -996,8 +997,8 @@ describe('convertToLanguageModelMessage', () => {
             {
               type: 'file',
               data: 'dGVzdA==',
-              mimeType: 'application/pdf',
-              providerMetadata: {
+              mediaType: 'application/pdf',
+              providerOptions: {
                 'test-provider': {
                   'key-a': 'test-value-1',
                   'key-b': 'test-value-2',
@@ -1070,7 +1071,7 @@ describe('convertToLanguageModelMessage', () => {
             result: { some: 'result' },
             toolCallId: 'toolCallId',
             toolName: 'toolName',
-            providerMetadata: {
+            providerOptions: {
               'test-provider': {
                 'key-a': 'test-value-1',
                 'key-b': 'test-value-2',
@@ -1123,7 +1124,7 @@ describe('convertToLanguageModelMessage', () => {
               toolCallId: 'toolCallId',
               result: { some: 'result' },
               experimental_content: [
-                { type: 'image', data: 'dGVzdA==', mimeType: 'image/png' },
+                { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
               ],
             },
           ],
@@ -1140,7 +1141,7 @@ describe('convertToLanguageModelMessage', () => {
             toolCallId: 'toolCallId',
             toolName: 'toolName',
             content: [
-              { type: 'image', data: 'dGVzdA==', mimeType: 'image/png' },
+              { type: 'image', data: 'dGVzdA==', mediaType: 'image/png' },
             ],
           },
         ],

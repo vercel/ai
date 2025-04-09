@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "dependencies": {
-    "@ai-sdk/openai": "2.0.0-canary.1",
+    "@ai-sdk/openai": "2.0.0-canary.2",
     "@hono/node-server": "1.13.7",
-    "ai": "5.0.0-canary.1",
+    "ai": "5.0.0-canary.3",
     "dotenv": "16.4.5",
     "hono": "4.6.9"
   },
@@ -17,6 +17,6 @@
   "devDependencies": {
     "@types/node": "20.17.24",
     "tsx": "4.19.2",
-    "typescript": "5.6.3"
+    "typescript": "5.8.3"
   }
 }

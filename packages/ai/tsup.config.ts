@@ -9,6 +9,18 @@ export default defineConfig([
     dts: true,
     sourcemap: true,
   },
+  // Internal APIs
+  {
+    entry: ['internal/index.ts'],
+    // This bundle isn't actually used,
+    // we export the internal bundle with @internal from the root package
+    // and provide different types in package.json for the exports
+    // to save duplicating 40kb for bundle size
+    outDir: 'dist/internal',
+    format: ['cjs', 'esm'],
+    dts: true,
+    sourcemap: true,
+  },
   // Test utilities
   {
     entry: ['test/index.ts'],
@@ -16,39 +28,6 @@ export default defineConfig([
     format: ['cjs', 'esm'],
     dts: true,
     sourcemap: true,
-  },
-  // RSC APIs - shared client
-  {
-    // Entry is `.mts` as the entrypoints that import it will be ESM so it needs exact imports that includes the `.mjs` extension.
-    entry: ['rsc/rsc-shared.mts'],
-    outDir: 'rsc/dist',
-    format: ['esm'],
-    external: ['react', 'zod'],
-    dts: true,
-    sourcemap: true,
-  },
-  // RSC APIs - server, client
-  {
-    entry: ['rsc/rsc-server.ts', 'rsc/rsc-client.ts'],
-    outDir: 'rsc/dist',
-    format: ['esm'],
-    external: ['react', 'zod', /\/rsc-shared/],
-    dts: true,
-    sourcemap: true,
-  },
-  // RSC APIs - types
-  {
-    entry: ['rsc/index.ts'],
-    outDir: 'rsc/dist',
-    dts: true,
-    outExtension() {
-      return {
-        // It must be `.d.ts` instead of `.d.mts` to support node resolution.
-        // See https://github.com/vercel/ai/issues/1028.
-        dts: '.d.ts',
-        js: '.mjs',
-      };
-    },
   },
   // MCP stdio
   {

@@ -15,9 +15,9 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { PerplexityLanguageModelId } from './perplexity-language-model-settings';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
+import { PerplexityLanguageModelId } from './perplexity-language-model-settings';
 
 type PerplexityChatConfig = {
   baseURL: string;
@@ -46,7 +46,6 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
   }
 
   private getArgs({
-    mode,
     prompt,
     maxTokens,
     temperature,
@@ -57,10 +56,8 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
-    providerMetadata,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
-    const type = mode.type;
-
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
@@ -84,63 +81,36 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const baseArgs = {
-      // model id:
-      model: this.modelId,
+    return {
+      args: {
+        // model id:
+        model: this.modelId,
 
-      // standardized settings:
-      frequency_penalty: frequencyPenalty,
-      max_tokens: maxTokens,
-      presence_penalty: presencePenalty,
-      temperature,
-      top_k: topK,
-      top_p: topP,
+        // standardized settings:
+        frequency_penalty: frequencyPenalty,
+        max_tokens: maxTokens,
+        presence_penalty: presencePenalty,
+        temperature,
+        top_k: topK,
+        top_p: topP,
 
-      // response format:
-      response_format:
-        responseFormat?.type === 'json'
-          ? {
-              type: 'json_schema',
-              json_schema: { schema: responseFormat.schema },
-            }
-          : undefined,
+        // response format:
+        response_format:
+          responseFormat?.type === 'json'
+            ? {
+                type: 'json_schema',
+                json_schema: { schema: responseFormat.schema },
+              }
+            : undefined,
 
-      // provider extensions
-      ...(providerMetadata?.perplexity ?? {}),
+        // provider extensions
+        ...(providerOptions?.perplexity ?? {}),
 
-      // messages:
-      messages: convertToPerplexityMessages(prompt),
+        // messages:
+        messages: convertToPerplexityMessages(prompt),
+      },
+      warnings,
     };
-
-    switch (type) {
-      case 'regular': {
-        return { args: baseArgs, warnings };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            response_format: {
-              type: 'json_schema',
-              json_schema: { schema: mode.schema },
-            },
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        throw new UnsupportedFunctionalityError({
-          functionality: 'tool-mode object generation',
-        });
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
   }
 
   async doGenerate(

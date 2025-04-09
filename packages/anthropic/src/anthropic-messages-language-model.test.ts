@@ -70,12 +70,11 @@ describe('AnthropicMessagesLanguageModel', () => {
 
         const result = await model.doGenerate({
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
           prompt: TEST_PROMPT,
           temperature: 0.5,
           topP: 0.7,
           topK: 0.1,
-          providerMetadata: {
+          providerOptions: {
             anthropic: {
               thinking: { type: 'enabled', budgetTokens: 1000 },
             } satisfies AnthropicProviderOptions,
@@ -121,7 +120,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { text } = await provider('claude-3-haiku-20240307').doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -142,7 +140,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { reasoning, text } = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -165,7 +162,6 @@ describe('AnthropicMessagesLanguageModel', () => {
         'claude-3-haiku-20240307',
       ).doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -188,22 +184,19 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { toolCalls, finishReason, text } = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: {
-          type: 'regular',
-          tools: [
-            {
-              type: 'function',
-              name: 'test-tool',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
-          ],
-        },
+          },
+        ],
         prompt: TEST_PROMPT,
       });
 
@@ -219,77 +212,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(finishReason).toStrictEqual('tool-calls');
     });
 
-    it('should support object-tool mode', async () => {
-      prepareJsonResponse({
-        content: [
-          { type: 'text', text: 'Some text\n\n' },
-          {
-            type: 'tool_use',
-            id: 'toolu_1',
-            name: 'json',
-            input: { value: 'example value' },
-          },
-        ],
-        stopReason: 'tool_use',
-      });
-
-      const { toolCalls, finishReason } = await model.doGenerate({
-        inputFormat: 'prompt',
-        mode: {
-          type: 'object-tool',
-          tool: {
-            type: 'function',
-            name: 'json',
-            description: 'Respond with a JSON object.',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-        },
-        prompt: TEST_PROMPT,
-      });
-
-      expect(toolCalls).toStrictEqual([
-        {
-          toolCallId: 'toolu_1',
-          toolCallType: 'function',
-          toolName: 'json',
-          args: '{"value":"example value"}',
-        },
-      ]);
-      expect(finishReason).toStrictEqual('tool-calls');
-
-      // check request to Anthropic
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        max_tokens: 4096,
-        messages: [
-          {
-            content: [{ text: 'Hello', type: 'text' }],
-            role: 'user',
-          },
-        ],
-        model: 'claude-3-haiku-20240307',
-        tool_choice: { name: 'json', type: 'tool' },
-        tools: [
-          {
-            description: 'Respond with a JSON object.',
-            input_schema: {
-              $schema: 'http://json-schema.org/draft-07/schema#',
-              additionalProperties: false,
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              type: 'object',
-            },
-            name: 'json',
-          },
-        ],
-      });
-    });
-
     it('should extract usage', async () => {
       prepareJsonResponse({
         usage: { input_tokens: 20, output_tokens: 5 },
@@ -297,7 +219,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { usage } = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -315,7 +236,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { response } = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -334,7 +254,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { rawResponse } = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -353,7 +272,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         temperature: 0.5,
         maxTokens: 100,
@@ -381,25 +299,22 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       await model.doGenerate({
         inputFormat: 'prompt',
-        mode: {
-          type: 'regular',
-          tools: [
-            {
-              type: 'function',
-              name: 'test-tool',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
-          ],
-          toolChoice: {
-            type: 'tool',
-            toolName: 'test-tool',
           },
+        ],
+        toolChoice: {
+          type: 'tool',
+          toolName: 'test-tool',
         },
         prompt: TEST_PROMPT,
       });
@@ -441,7 +356,7 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       await provider('claude-3-haiku-20240307').doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
+
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -470,13 +385,12 @@ describe('AnthropicMessagesLanguageModel', () => {
       const model = provider('claude-3-haiku-20240307');
 
       const result = await model.doGenerate({
-        mode: { type: 'regular' },
         inputFormat: 'messages',
         prompt: [
           {
             role: 'user',
             content: [{ type: 'text', text: 'Hello' }],
-            providerMetadata: {
+            providerOptions: {
               anthropic: {
                 cacheControl: { type: 'ephemeral' },
               },
@@ -515,7 +429,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { request } = await model.doGenerate({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -543,7 +456,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -593,7 +505,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -641,7 +552,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -686,7 +596,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -739,22 +648,19 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: {
-          type: 'regular',
-          tools: [
-            {
-              type: 'function',
-              name: 'test-tool',
-              parameters: {
-                type: 'object',
-                properties: { value: { type: 'string' } },
-                required: ['value'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
-          ],
-        },
+          },
+        ],
         prompt: TEST_PROMPT,
       });
 
@@ -851,7 +757,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -881,7 +786,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { rawResponse } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -912,7 +816,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -949,7 +852,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       await provider('claude-3-haiku-20240307').doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -986,7 +888,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { stream } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 
@@ -1028,7 +929,6 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       const { request } = await model.doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
       });
 

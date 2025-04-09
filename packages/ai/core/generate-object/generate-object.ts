@@ -530,8 +530,8 @@ export async function generateObject<SCHEMA, RESULT>({
               tracer,
               fn: async span => {
                 const result = await model.doGenerate({
-                  mode: {
-                    type: 'object-json',
+                  responseFormat: {
+                    type: 'json',
                     schema: outputStrategy.jsonSchema,
                     name: schemaName,
                     description: schemaDescription,
@@ -539,7 +539,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   ...prepareCallSettings(settings),
                   inputFormat: standardizedPrompt.type,
                   prompt: promptMessages,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                   abortSignal,
                   headers,
                 });
@@ -651,20 +651,20 @@ export async function generateObject<SCHEMA, RESULT>({
               tracer,
               fn: async span => {
                 const result = await model.doGenerate({
-                  mode: {
-                    type: 'object-tool',
-                    tool: {
+                  tools: [
+                    {
                       type: 'function',
                       name: schemaName ?? 'json',
                       description:
                         schemaDescription ?? 'Respond with a JSON object.',
                       parameters: outputStrategy.jsonSchema!,
                     },
-                  },
+                  ],
+                  toolChoice: { type: 'required' },
                   ...prepareCallSettings(settings),
                   inputFormat,
                   prompt: promptMessages,
-                  providerMetadata: providerOptions,
+                  providerOptions,
                   abortSignal,
                   headers,
                 });

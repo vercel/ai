@@ -5,7 +5,6 @@ import {
   LanguageModelV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   AnthropicAssistantMessage,
   AnthropicCacheControl,
@@ -59,10 +58,10 @@ export function convertToAnthropicMessagesPrompt({
           });
         }
 
-        system = block.messages.map(({ content, providerMetadata }) => ({
+        system = block.messages.map(({ content, providerOptions }) => ({
           type: 'text',
           text: content,
-          cache_control: getCacheControl(providerMetadata),
+          cache_control: getCacheControl(providerOptions),
         }));
 
         break;
@@ -85,9 +84,9 @@ export function convertToAnthropicMessagesPrompt({
                 const isLastPart = j === content.length - 1;
 
                 const cacheControl =
-                  getCacheControl(part.providerMetadata) ??
+                  getCacheControl(part.providerOptions) ??
                   (isLastPart
-                    ? getCacheControl(message.providerMetadata)
+                    ? getCacheControl(message.providerOptions)
                     : undefined);
 
                 switch (part.type) {
@@ -100,51 +99,49 @@ export function convertToAnthropicMessagesPrompt({
                     break;
                   }
 
-                  case 'image': {
-                    anthropicContent.push({
-                      type: 'image',
-                      source:
-                        part.image instanceof URL
-                          ? {
-                              type: 'url',
-                              url: part.image.toString(),
-                            }
-                          : {
-                              type: 'base64',
-                              media_type: part.mimeType ?? 'image/jpeg',
-                              data: convertUint8ArrayToBase64(part.image),
-                            },
-                      cache_control: cacheControl,
-                    });
-
-                    break;
-                  }
-
                   case 'file': {
-                    if (part.data instanceof URL) {
-                      // The AI SDK automatically downloads files for user file parts with URLs
+                    if (part.mediaType.startsWith('image/')) {
+                      anthropicContent.push({
+                        type: 'image',
+                        source:
+                          part.data instanceof URL
+                            ? {
+                                type: 'url',
+                                url: part.data.toString(),
+                              }
+                            : {
+                                type: 'base64',
+                                media_type:
+                                  part.mediaType === 'image/*'
+                                    ? 'image/jpeg'
+                                    : part.mediaType,
+                                data: part.data,
+                              },
+                        cache_control: cacheControl,
+                      });
+                    } else if (part.mediaType === 'application/pdf') {
+                      betas.add('pdfs-2024-09-25');
+
+                      anthropicContent.push({
+                        type: 'document',
+                        source:
+                          part.data instanceof URL
+                            ? {
+                                type: 'url',
+                                url: part.data.toString(),
+                              }
+                            : {
+                                type: 'base64',
+                                media_type: 'application/pdf',
+                                data: part.data,
+                              },
+                        cache_control: cacheControl,
+                      });
+                    } else {
                       throw new UnsupportedFunctionalityError({
-                        functionality: 'Image URLs in user messages',
+                        functionality: `media type: ${part.mediaType}`,
                       });
                     }
-
-                    if (part.mimeType !== 'application/pdf') {
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'Non-PDF files in user messages',
-                      });
-                    }
-
-                    betas.add('pdfs-2024-09-25');
-
-                    anthropicContent.push({
-                      type: 'document',
-                      source: {
-                        type: 'base64',
-                        media_type: 'application/pdf',
-                        data: part.data,
-                      },
-                      cache_control: cacheControl,
-                    });
 
                     break;
                   }
@@ -163,9 +160,9 @@ export function convertToAnthropicMessagesPrompt({
                 const isLastPart = i === content.length - 1;
 
                 const cacheControl =
-                  getCacheControl(part.providerMetadata) ??
+                  getCacheControl(part.providerOptions) ??
                   (isLastPart
-                    ? getCacheControl(message.providerMetadata)
+                    ? getCacheControl(message.providerOptions)
                     : undefined);
 
                 const toolResultContent =
@@ -183,7 +180,7 @@ export function convertToAnthropicMessagesPrompt({
                               type: 'image' as const,
                               source: {
                                 type: 'base64' as const,
-                                media_type: part.mimeType ?? 'image/jpeg',
+                                media_type: part.mediaType ?? 'image/jpeg',
                                 data: part.data,
                               },
                               cache_control: undefined,
@@ -232,9 +229,9 @@ export function convertToAnthropicMessagesPrompt({
             // for the last part of a message,
             // check also if the message has cache control.
             const cacheControl =
-              getCacheControl(part.providerMetadata) ??
+              getCacheControl(part.providerOptions) ??
               (isLastContentPart
-                ? getCacheControl(message.providerMetadata)
+                ? getCacheControl(message.providerOptions)
                 : undefined);
 
             switch (part.type) {
@@ -302,7 +299,7 @@ export function convertToAnthropicMessagesPrompt({
 
       default: {
         const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+        throw new Error(`content type: ${_exhaustiveCheck}`);
       }
     }
   }

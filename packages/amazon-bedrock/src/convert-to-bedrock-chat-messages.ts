@@ -1,4 +1,12 @@
 import {
+  JSONObject,
+  LanguageModelV2Message,
+  LanguageModelV2Prompt,
+  LanguageModelV2ProviderMetadata,
+  UnsupportedFunctionalityError,
+} from '@ai-sdk/provider';
+import { createIdGenerator } from '@ai-sdk/provider-utils';
+import {
   BEDROCK_CACHE_POINT,
   BedrockAssistantMessage,
   BedrockCachePoint,
@@ -8,17 +16,6 @@ import {
   BedrockSystemMessages,
   BedrockUserMessage,
 } from './bedrock-api-types';
-import {
-  JSONObject,
-  LanguageModelV2Message,
-  LanguageModelV2Prompt,
-  LanguageModelV2ProviderMetadata,
-  UnsupportedFunctionalityError,
-} from '@ai-sdk/provider';
-import {
-  convertUint8ArrayToBase64,
-  createIdGenerator,
-} from '@ai-sdk/provider-utils';
 
 const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
@@ -53,7 +50,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
 
         for (const message of block.messages) {
           system.push({ text: message.content });
-          if (getCachePoint(message.providerMetadata)) {
+          if (getCachePoint(message.providerOptions)) {
             system.push(BEDROCK_CACHE_POINT);
           }
         }
@@ -65,7 +62,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
         const bedrockContent: BedrockUserMessage['content'] = [];
 
         for (const message of block.messages) {
-          const { role, content, providerMetadata } = message;
+          const { role, content, providerOptions } = message;
           switch (role) {
             case 'user': {
               for (let j = 0; j < content.length; j++) {
@@ -78,48 +75,40 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
                     });
                     break;
                   }
-                  case 'image': {
-                    if (part.image instanceof URL) {
-                      // The AI SDK automatically downloads images for user image parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'Image URLs in user messages',
-                      });
-                    }
 
-                    bedrockContent.push({
-                      image: {
-                        format: part.mimeType?.split(
-                          '/',
-                        )?.[1] as BedrockImageFormat,
-                        source: {
-                          bytes: convertUint8ArrayToBase64(
-                            part.image ?? (part.image as Uint8Array),
-                          ),
-                        },
-                      },
-                    });
-
-                    break;
-                  }
                   case 'file': {
                     if (part.data instanceof URL) {
                       // The AI SDK automatically downloads files for user file parts with URLs
                       throw new UnsupportedFunctionalityError({
-                        functionality: 'File URLs in user messages',
+                        functionality: 'File URL data',
                       });
                     }
 
-                    bedrockContent.push({
-                      document: {
-                        format: part.mimeType?.split(
-                          '/',
-                        )?.[1] as BedrockDocumentFormat,
-                        name: generateFileId(),
-                        source: {
-                          bytes: part.data,
+                    if (part.mediaType.startsWith('image/')) {
+                      const bedrockImageFormat =
+                        part.mediaType === 'image/*'
+                          ? undefined
+                          : part.mediaType?.split('/')?.[1];
+
+                      bedrockContent.push({
+                        image: {
+                          format: bedrockImageFormat as BedrockImageFormat,
+                          source: { bytes: part.data },
                         },
-                      },
-                    });
+                      });
+                    } else {
+                      bedrockContent.push({
+                        document: {
+                          format: part.mediaType?.split(
+                            '/',
+                          )?.[1] as BedrockDocumentFormat,
+                          name: generateFileId(),
+                          source: {
+                            bytes: part.data,
+                          },
+                        },
+                      });
+                    }
 
                     break;
                   }
@@ -140,12 +129,12 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
                               text: part.text,
                             };
                           case 'image':
-                            if (!part.mimeType) {
+                            if (!part.mediaType) {
                               throw new Error(
                                 'Image mime type is required in tool result part content',
                               );
                             }
-                            const format = part.mimeType.split('/')[1];
+                            const format = part.mediaType.split('/')[1];
                             if (!isBedrockImageFormat(format)) {
                               throw new Error(
                                 `Unsupported image format: ${format}`,
@@ -179,7 +168,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
             }
           }
 
-          if (getCachePoint(providerMetadata)) {
+          if (getCachePoint(providerOptions)) {
             bedrockContent.push(BEDROCK_CACHE_POINT);
           }
         }
@@ -262,7 +251,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
               }
             }
           }
-          if (getCachePoint(message.providerMetadata)) {
+          if (getCachePoint(message.providerOptions)) {
             bedrockContent.push(BEDROCK_CACHE_POINT);
           }
         }

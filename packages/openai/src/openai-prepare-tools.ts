@@ -1,18 +1,18 @@
 import {
   JSONSchema7,
-  LanguageModelV2,
+  LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 
 export function prepareTools({
-  mode,
+  tools,
+  toolChoice,
   useLegacyFunctionCalling = false,
   structuredOutputs,
 }: {
-  mode: Parameters<LanguageModelV2['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  };
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   useLegacyFunctionCalling: boolean | undefined;
   structuredOutputs: boolean;
 }): {
@@ -25,7 +25,7 @@ export function prepareTools({
       strict?: boolean;
     };
   }[];
-  tool_choice?:
+  toolChoice?:
     | 'auto'
     | 'none'
     | 'required'
@@ -41,15 +41,13 @@ export function prepareTools({
   toolWarnings: Array<LanguageModelV2CallWarning>;
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
+  tools = tools?.length ? tools : undefined;
 
   const toolWarnings: LanguageModelV2CallWarning[] = [];
 
   if (tools == null) {
-    return { tools: undefined, tool_choice: undefined, toolWarnings };
+    return { tools: undefined, toolChoice: undefined, toolWarnings };
   }
-
-  const toolChoice = mode.toolChoice;
 
   if (useLegacyFunctionCalling) {
     const openaiFunctions: Array<{
@@ -129,7 +127,7 @@ export function prepareTools({
   }
 
   if (toolChoice == null) {
-    return { tools: openaiTools, tool_choice: undefined, toolWarnings };
+    return { tools: openaiTools, toolChoice: undefined, toolWarnings };
   }
 
   const type = toolChoice.type;
@@ -138,11 +136,11 @@ export function prepareTools({
     case 'auto':
     case 'none':
     case 'required':
-      return { tools: openaiTools, tool_choice: type, toolWarnings };
+      return { tools: openaiTools, toolChoice: type, toolWarnings };
     case 'tool':
       return {
         tools: openaiTools,
-        tool_choice: {
+        toolChoice: {
           type: 'function',
           function: {
             name: toolChoice.toolName,
@@ -153,7 +151,7 @@ export function prepareTools({
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+        functionality: `tool choice type: ${_exhaustiveCheck}`,
       });
     }
   }

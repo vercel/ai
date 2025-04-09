@@ -1,21 +1,23 @@
 import {
   JSONObject,
-  LanguageModelV2,
+  LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { BedrockTool, BedrockToolConfiguration } from './bedrock-api-types';
 
-export function prepareTools(
-  mode: Parameters<LanguageModelV2['doGenerate']>[0]['mode'] & {
-    type: 'regular';
-  },
-): {
+export function prepareTools({
+  tools,
+  toolChoice,
+}: {
+  tools: LanguageModelV2CallOptions['tools'];
+  toolChoice?: LanguageModelV2CallOptions['toolChoice'];
+}): {
   toolConfig: BedrockToolConfiguration; // note: do not rename, name required by Bedrock
   toolWarnings: LanguageModelV2CallWarning[];
 } {
   // when the tools array is empty, change it to undefined to prevent errors:
-  const tools = mode.tools?.length ? mode.tools : undefined;
+  tools = tools?.length ? tools : undefined;
 
   if (tools == null) {
     return {
@@ -42,8 +44,6 @@ export function prepareTools(
       });
     }
   }
-
-  const toolChoice = mode.toolChoice;
 
   if (toolChoice == null) {
     return {
@@ -82,7 +82,7 @@ export function prepareTools(
     default: {
       const _exhaustiveCheck: never = type;
       throw new UnsupportedFunctionalityError({
-        functionality: `Unsupported tool choice type: ${_exhaustiveCheck}`,
+        functionality: `tool choice type: ${_exhaustiveCheck}`,
       });
     }
   }

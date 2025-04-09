@@ -1,4 +1,4 @@
-import { LanguageModelV2ProviderMetadata } from './language-model-v2-provider-metadata';
+import { LanguageModelV2ProviderOptions } from './language-model-v2-provider-options';
 
 /**
 A prompt is a list of messages.
@@ -22,11 +22,7 @@ export type LanguageModelV2Message =
       }
     | {
         role: 'user';
-        content: Array<
-          | LanguageModelV2TextPart
-          | LanguageModelV2ImagePart
-          | LanguageModelV2FilePart
-        >;
+        content: Array<LanguageModelV2TextPart | LanguageModelV2FilePart>;
       }
     | {
         role: 'assistant';
@@ -44,11 +40,11 @@ export type LanguageModelV2Message =
       }
   ) & {
     /**
-     * Additional provider-specific metadata. They are passed through
+     * Additional provider-specific options. They are passed through
      * to the provider from the AI SDK and enable provider-specific
      * functionality that can be fully encapsulated in the provider.
      */
-    providerMetadata?: LanguageModelV2ProviderMetadata;
+    providerOptions?: LanguageModelV2ProviderOptions;
   };
 
 /**
@@ -63,11 +59,11 @@ The text content.
   text: string;
 
   /**
-   * Additional provider-specific metadata. They are passed through
+   * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -87,11 +83,11 @@ An optional signature for verifying that the reasoning originated from the model
   signature?: string;
 
   /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
+   * Additional provider-specific options. They are passed through
+   * to the provider from the AI SDK and enable provider-specific
+   * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -106,36 +102,11 @@ Redacted reasoning data.
   data: string;
 
   /**
-Additional provider-specific metadata. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
-   */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
-}
-
-/**
-Image content part of a prompt. It contains an image.
- */
-// TODO merge into file part in language model v2
-export interface LanguageModelV2ImagePart {
-  type: 'image';
-
-  /**
-Image data as a Uint8Array (e.g. from a Blob or Buffer) or a URL.
-   */
-  image: Uint8Array | URL;
-
-  /**
-Optional mime type of the image.
-   */
-  mimeType?: string;
-
-  /**
-   * Additional provider-specific metadata. They are passed through
+   * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -154,19 +125,24 @@ File data as base64 encoded string or as a URL.
    */
   // Note: base64-encoded strings are used to prevent
   // unnecessary conversions from string to buffer to string
+  // TODO support Uint8Array | string | URL
   data: string | URL;
 
   /**
-Mime type of the file.
+IANA media type of the file.
+
+Can support wildcards, e.g. `image/*` (in which case the provider needs to take appropriate action).
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
-  mimeType: string;
+  mediaType: string;
 
   /**
-   * Additional provider-specific metadata. They are passed through
+   * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -191,11 +167,11 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
   args: unknown;
 
   /**
-   * Additional provider-specific metadata. They are passed through
+   * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }
 
 /**
@@ -246,16 +222,18 @@ base-64 encoded image data
         data: string;
 
         /**
-Mime type of the image.
+IANA media type of the image.
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
          */
-        mimeType?: string;
+        mediaType?: string;
       }
   >;
 
   /**
-   * Additional provider-specific metadata. They are passed through
+   * Additional provider-specific options. They are passed through
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerOptions?: LanguageModelV2ProviderOptions;
 }

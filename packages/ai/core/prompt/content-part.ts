@@ -59,7 +59,14 @@ Image data. Can either be:
   image: DataContent | URL;
 
   /**
-Optional mime type of the image.
+Optional IANA media type of the image.
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
+   */
+  mediaType?: string;
+
+  /**
+@deprecated Use `mediaType` instead.
    */
   mimeType?: string;
 
@@ -82,6 +89,7 @@ functionality that can be fully encapsulated in the provider.
 export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   type: z.literal('image'),
   image: z.union([dataContentSchema, z.instanceof(URL)]),
+  mediaType: z.string().optional(),
   mimeType: z.string().optional(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional(),
@@ -107,9 +115,16 @@ Optional filename of the file.
   filename?: string;
 
   /**
-Mime type of the file.
+IANA media type of the file.
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
-  mimeType: string;
+  mediaType: string;
+
+  /**
+@deprecated Use `mediaType` instead.
+   */
+  mimeType?: string;
 
   /**
 Additional provider-specific metadata. They are passed through
@@ -131,7 +146,8 @@ export const filePartSchema: z.ZodType<FilePart> = z.object({
   type: z.literal('file'),
   data: z.union([dataContentSchema, z.instanceof(URL)]),
   filename: z.string().optional(),
-  mimeType: z.string(),
+  mediaType: z.string(),
+  mimeType: z.string().optional(),
   providerOptions: providerMetadataSchema.optional(),
   experimental_providerMetadata: providerMetadataSchema.optional(),
 });

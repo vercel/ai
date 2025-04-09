@@ -39,7 +39,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   }
 
   private getArgs({
-    mode,
     maxTokens,
     temperature,
     stopSequences,
@@ -49,25 +48,20 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     frequencyPenalty,
     seed,
     prompt,
-    providerMetadata,
+    providerOptions,
+    tools,
+    toolChoice,
     responseFormat,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
     const modelConfig = getResponsesModelConfig(this.modelId);
-    const type = mode.type;
 
     if (topK != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'topK',
-      });
+      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
     }
 
     if (seed != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'seed',
-      });
+      warnings.push({ type: 'unsupported-setting', setting: 'seed' });
     }
 
     if (presencePenalty != null) {
@@ -85,10 +79,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     }
 
     if (stopSequences != null) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'stopSequences',
-      });
+      warnings.push({ type: 'unsupported-setting', setting: 'stopSequences' });
     }
 
     const { messages, warnings: messageWarnings } =
@@ -101,7 +92,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const openaiOptions = parseProviderOptions({
       provider: 'openai',
-      providerOptions: providerMetadata,
+      providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
     });
 
@@ -169,68 +160,24 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }
     }
 
-    switch (type) {
-      case 'regular': {
-        const { tools, tool_choice, toolWarnings } = prepareResponsesTools({
-          mode,
-          strict: isStrict, // TODO support provider options on tools
-        });
+    const {
+      tools: openaiTools,
+      toolChoice: openaiToolChoice,
+      toolWarnings,
+    } = prepareResponsesTools({
+      tools,
+      toolChoice,
+      strict: isStrict,
+    });
 
-        return {
-          args: {
-            ...baseArgs,
-            tools,
-            tool_choice,
-          },
-          warnings: [...warnings, ...toolWarnings],
-        };
-      }
-
-      case 'object-json': {
-        return {
-          args: {
-            ...baseArgs,
-            text: {
-              format:
-                mode.schema != null
-                  ? {
-                      type: 'json_schema',
-                      strict: isStrict,
-                      name: mode.name ?? 'response',
-                      description: mode.description,
-                      schema: mode.schema,
-                    }
-                  : { type: 'json_object' },
-            },
-          },
-          warnings,
-        };
-      }
-
-      case 'object-tool': {
-        return {
-          args: {
-            ...baseArgs,
-            tool_choice: { type: 'function', name: mode.tool.name },
-            tools: [
-              {
-                type: 'function',
-                name: mode.tool.name,
-                description: mode.tool.description,
-                parameters: mode.tool.parameters,
-                strict: isStrict,
-              },
-            ],
-          },
-          warnings,
-        };
-      }
-
-      default: {
-        const _exhaustiveCheck: never = type;
-        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
-      }
-    }
+    return {
+      args: {
+        ...baseArgs,
+        tools: openaiTools,
+        tool_choice: openaiToolChoice,
+      },
+      warnings: [...warnings, ...toolWarnings],
+    };
   }
 
   async doGenerate(

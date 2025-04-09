@@ -17,7 +17,7 @@ export type ToolResultContent = Array<
   | {
       type: 'image';
       data: string; // base64 encoded png image, e.g. screenshot
-      mimeType?: string; // e.g. 'image/png';
+      mediaType?: string; // e.g. 'image/png';
     }
 >;
 

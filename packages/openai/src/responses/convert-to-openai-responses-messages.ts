@@ -3,7 +3,6 @@ import {
   LanguageModelV2Prompt,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { OpenAIResponsesPrompt } from './openai-responses-api-types';
 
 export function convertToOpenAIResponsesMessages({
@@ -56,42 +55,40 @@ export function convertToOpenAIResponsesMessages({
               case 'text': {
                 return { type: 'input_text', text: part.text };
               }
-              case 'image': {
-                return {
-                  type: 'input_image',
-                  image_url:
-                    part.image instanceof URL
-                      ? part.image.toString()
-                      : `data:${
-                          part.mimeType ?? 'image/jpeg'
-                        };base64,${convertUint8ArrayToBase64(part.image)}`,
-
-                  // OpenAI specific extension: image detail
-                  detail: part.providerMetadata?.openai?.imageDetail,
-                };
-              }
               case 'file': {
-                if (part.data instanceof URL) {
-                  // The AI SDK automatically downloads files for user file parts with URLs
-                  throw new UnsupportedFunctionalityError({
-                    functionality: 'File URLs in user messages',
-                  });
-                }
+                if (part.mediaType.startsWith('image/')) {
+                  const mediaType =
+                    part.mediaType === 'image/*'
+                      ? 'image/jpeg'
+                      : part.mediaType;
 
-                switch (part.mimeType) {
-                  case 'application/pdf': {
-                    return {
-                      type: 'input_file',
-                      filename: part.filename ?? `part-${index}.pdf`,
-                      file_data: `data:application/pdf;base64,${part.data}`,
-                    };
-                  }
-                  default: {
+                  return {
+                    type: 'input_image',
+                    image_url:
+                      part.data instanceof URL
+                        ? part.data.toString()
+                        : `data:${mediaType};base64,${part.data}`,
+
+                    // OpenAI specific extension: image detail
+                    detail: part.providerOptions?.openai?.imageDetail,
+                  };
+                } else if (part.mediaType === 'application/pdf') {
+                  if (part.data instanceof URL) {
+                    // The AI SDK automatically downloads files for user file parts with URLs
                     throw new UnsupportedFunctionalityError({
-                      functionality:
-                        'Only PDF files are supported in user messages',
+                      functionality: 'PDF file parts with URLs',
                     });
                   }
+
+                  return {
+                    type: 'input_file',
+                    filename: part.filename ?? `part-${index}.pdf`,
+                    file_data: `data:application/pdf;base64,${part.data}`,
+                  };
+                } else {
+                  throw new UnsupportedFunctionalityError({
+                    functionality: `file part media type ${part.mediaType}`,
+                  });
                 }
               }
             }
