@@ -58,8 +58,7 @@
     "@ai-sdk/provider": "2.0.0-canary.2",
     "@ai-sdk/provider-utils": "3.0.0-canary.3",
     "@ai-sdk/ui-utils": "2.0.0-canary.3",
-    "@opentelemetry/api": "1.9.0",
-    "jsondiffpatch": "0.6.0"
+    "@opentelemetry/api": "1.9.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
