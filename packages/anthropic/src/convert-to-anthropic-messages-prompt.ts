@@ -121,13 +121,6 @@ export function convertToAnthropicMessagesPrompt({
                   }
 
                   case 'file': {
-                    if (part.data instanceof URL) {
-                      // The AI SDK automatically downloads files for user file parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'Image URLs in user messages',
-                      });
-                    }
-
                     if (part.mimeType !== 'application/pdf') {
                       throw new UnsupportedFunctionalityError({
                         functionality: 'Non-PDF files in user messages',
@@ -138,11 +131,17 @@ export function convertToAnthropicMessagesPrompt({
 
                     anthropicContent.push({
                       type: 'document',
-                      source: {
-                        type: 'base64',
-                        media_type: 'application/pdf',
-                        data: part.data,
-                      },
+                      source:
+                        part.data instanceof URL
+                          ? {
+                              type: 'url',
+                              url: part.data.toString(),
+                            }
+                          : {
+                              type: 'base64',
+                              media_type: 'application/pdf',
+                              data: part.data,
+                            },
                       cache_control: cacheControl,
                     });
 

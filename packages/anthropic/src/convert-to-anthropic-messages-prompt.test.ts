@@ -123,7 +123,7 @@ describe('user messages', () => {
     });
   });
 
-  it('should add PDF file parts', async () => {
+  it('should add PDF file parts for base64 PDFs', async () => {
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
         {
@@ -153,6 +153,46 @@ describe('user messages', () => {
                   type: 'base64',
                   media_type: 'application/pdf',
                   data: 'base64PDFdata',
+                },
+              },
+            ],
+          },
+        ],
+        system: undefined,
+      },
+      betas: new Set(['pdfs-2024-09-25']),
+    });
+  });
+
+  it('should add PDF file parts for URL PDFs', async () => {
+    const result = convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: new URL('https://example.com/document.pdf'),
+              mimeType: 'application/pdf',
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'url',
+                  url: 'https://example.com/document.pdf',
                 },
               },
             ],
