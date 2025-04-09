@@ -2,7 +2,7 @@
 
 - [ ] Tests for the changes have been added (for bug fixes / features)
 - [ ] Docs have been added / updated (for bug fixes / features)
-- [ ] You've followed the [PR contributing guidelines](https://github.com/vercel/ai/blob/main/CONTRIBUTING.md#submitting-pull-requests) for adding changesets to version packages and fixing prettier issues
+- [ ] You've followed the [PR contributing guidelines](https://github.com/vercel/ai/blob/main/CONTRIBUTING.md#submitting-pull-requests) for adding a *patch* changeset to version packages and fixing prettier issues
 
 * **What kind of change does this PR introduce?** (Bug fix, feature, docs update, ...)
 
