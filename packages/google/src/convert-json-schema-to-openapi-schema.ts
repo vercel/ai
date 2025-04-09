@@ -28,6 +28,7 @@ export function convertJSONSchemaToOpenAPISchema(
     const: constValue,
     minLength,
     enum: enumValues,
+    additionalProperties,
   } = jsonSchema;
 
   const result: Record<string, unknown> = {};
@@ -115,6 +116,13 @@ export function convertJSONSchemaToOpenAPISchema(
     result.minLength = minLength;
   }
 
+  if (additionalProperties === true) {
+    result.additionalProperties = true;
+  } else if (additionalProperties) {
+    result.additionalProperties =
+      convertJSONSchemaToOpenAPISchema(additionalProperties);
+  }
+
   return result;
 }
 
@@ -124,6 +132,7 @@ function isEmptyObjectSchema(jsonSchema: JSONSchema7Definition): boolean {
     typeof jsonSchema === 'object' &&
     jsonSchema.type === 'object' &&
     (jsonSchema.properties == null ||
-      Object.keys(jsonSchema.properties).length === 0)
+      Object.keys(jsonSchema.properties).length === 0) &&
+    !jsonSchema.additionalProperties
   );
 }

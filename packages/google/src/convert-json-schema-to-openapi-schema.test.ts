@@ -23,6 +23,53 @@ it('should remove additionalProperties and $schema', () => {
   expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
 });
 
+it('supports additionalProperties: true', () => {
+  const input: JSONSchema7 = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' },
+    },
+    additionalProperties: true,
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' },
+    },
+    additionalProperties: true,
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
+// z.record(z.string())
+it('supports `additionalProperties` as an object', () => {
+  const input: JSONSchema7 = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' },
+    },
+    additionalProperties: { type: 'string' },
+  };
+
+  const expected = {
+    type: 'object',
+    properties: {
+      name: { type: 'string' },
+      age: { type: 'number' },
+    },
+    additionalProperties: { type: 'string' },
+  };
+
+  expect(convertJSONSchemaToOpenAPISchema(input)).toEqual(expected);
+});
+
 it('should handle nested objects and arrays', () => {
   const input: JSONSchema7 = {
     type: 'object',
