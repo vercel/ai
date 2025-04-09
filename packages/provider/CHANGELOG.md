@@ -1,5 +1,17 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.2
+
+### Major Changes
+
+- abf9a79: chore: rename mimeType to mediaType
+- 6dc848c: chore (provider): remove image parts
+
+### Patch Changes
+
+- a166433: feat: add transcription with experimental_transcribe
+- 0a87932: core (ai): change transcription model mimeType to mediaType
+
 ## 2.0.0-canary.1
 
 ### Major Changes
