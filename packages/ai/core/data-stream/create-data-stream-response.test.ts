@@ -1,7 +1,7 @@
 import { expect, it, describe } from 'vitest';
 import { createDataStreamResponse } from './create-data-stream-response';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { formatDataStreamPart } from 'ai';
 
 describe('createDataStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {

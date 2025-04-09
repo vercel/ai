@@ -1,7 +1,7 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { processChatTextResponse } from './process-chat-text-response';
-import { Message } from './types';
+import { Message } from '../types';
 
 function createTextStream(chunks: string[]): ReadableStream<Uint8Array> {
   return convertArrayToReadableStream(chunks).pipeThrough(

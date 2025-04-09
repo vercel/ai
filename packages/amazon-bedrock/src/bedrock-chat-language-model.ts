@@ -289,7 +289,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         completionTokens: response.usage?.outputTokens ?? Number.NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      response: {
+        // TODO add id, timestamp, etc
+        headers: responseHeaders,
+      },
       warnings,
       reasoning: reasoning.length > 0 ? reasoning : undefined,
       ...(providerMetadata && { providerMetadata }),
@@ -520,7 +523,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
       warnings,
     };
   }

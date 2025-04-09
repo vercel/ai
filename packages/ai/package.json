@@ -1,6 +1,6 @@
 {
   "name": "ai",
-  "version": "5.0.0-canary.4",
+  "version": "5.0.0-canary.5",
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -37,6 +37,7 @@
     "./internal": {
       "types": "./dist/internal/index.d.ts",
       "import": "./dist/internal/index.mjs",
+      "module": "./dist/internal/index.mjs",
       "require": "./dist/internal/index.js"
     },
     "./test": {
@@ -48,16 +49,18 @@
     "./mcp-stdio": {
       "types": "./dist/mcp-stdio/index.d.ts",
       "import": "./dist/mcp-stdio/index.mjs",
+      "module": "./dist/mcp-stdio/index.mjs",
       "require": "./dist/mcp-stdio/index.js"
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "2.0.0-canary.2",
-    "@ai-sdk/provider-utils": "3.0.0-canary.3",
-    "@ai-sdk/ui-utils": "2.0.0-canary.3",
-    "@opentelemetry/api": "1.9.0"
+    "@ai-sdk/provider": "2.0.0-canary.3",
+    "@ai-sdk/provider-utils": "3.0.0-canary.4",
+    "@opentelemetry/api": "1.9.0",
+    "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
+    "@types/json-schema": "7.0.15",
     "@edge-runtime/vm": "^5.0.0",
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",

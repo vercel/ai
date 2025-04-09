@@ -10,7 +10,7 @@ import {
   Schema,
   isDeepEqualData,
   parsePartialJson,
-} from '@ai-sdk/ui-utils';
+} from '../util';
 import { ServerResponse } from 'http';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
@@ -699,7 +699,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         }
 
         const {
-          result: { stream, warnings, rawResponse, request },
+          result: { stream, warnings, response, request },
           doStreamSpan,
           startTimestampMs,
         } = await retry(() =>
@@ -754,7 +754,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         // pipe chunks through a transformation stream that extracts metadata:
         let accumulatedText = '';
         let textDelta = '';
-        let response: {
+        let fullResponse: {
           id: string;
           timestamp: Date;
           modelId: string;
@@ -846,10 +846,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
                 switch (chunk.type) {
                   case 'response-metadata': {
-                    response = {
-                      id: chunk.id ?? response.id,
-                      timestamp: chunk.timestamp ?? response.timestamp,
-                      modelId: chunk.modelId ?? response.modelId,
+                    fullResponse = {
+                      id: chunk.id ?? fullResponse.id,
+                      timestamp: chunk.timestamp ?? fullResponse.timestamp,
+                      modelId: chunk.modelId ?? fullResponse.modelId,
                     };
                     break;
                   }
@@ -867,14 +867,18 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     usage = calculateLanguageModelUsage(chunk.usage);
                     providerMetadata = chunk.providerMetadata;
 
-                    controller.enqueue({ ...chunk, usage, response });
+                    controller.enqueue({
+                      ...chunk,
+                      usage,
+                      response: fullResponse,
+                    });
 
                     // resolve promises that can be resolved now:
                     self.usagePromise.resolve(usage);
                     self.providerMetadataPromise.resolve(providerMetadata);
                     self.responsePromise.resolve({
-                      ...response,
-                      headers: rawResponse?.headers,
+                      ...fullResponse,
+                      headers: response?.headers,
                     });
 
                     // resolve the object promise with the latest object:
@@ -882,7 +886,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       latestObjectJson,
                       {
                         text: accumulatedText,
-                        response,
+                        response: fullResponse,
                         usage,
                       },
                     );
@@ -896,7 +900,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                           'No object generated: response did not match schema.',
                         cause: validationResult.error,
                         text: accumulatedText,
-                        response,
+                        response: fullResponse,
                         usage,
                         finishReason: finishReason,
                       });
@@ -930,10 +934,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         'ai.response.object': {
                           output: () => JSON.stringify(object),
                         },
-                        'ai.response.id': response.id,
-                        'ai.response.model': response.modelId,
+                        'ai.response.id': fullResponse.id,
+                        'ai.response.model': fullResponse.modelId,
                         'ai.response.timestamp':
-                          response.timestamp.toISOString(),
+                          fullResponse.timestamp.toISOString(),
 
                         'ai.usage.promptTokens': finalUsage.promptTokens,
                         'ai.usage.completionTokens':
@@ -941,8 +945,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
                         // standardized gen-ai llm span attributes:
                         'gen_ai.response.finish_reasons': [finishReason],
-                        'gen_ai.response.id': response.id,
-                        'gen_ai.response.model': response.modelId,
+                        'gen_ai.response.id': fullResponse.id,
+                        'gen_ai.response.model': fullResponse.modelId,
                         'gen_ai.usage.input_tokens': finalUsage.promptTokens,
                         'gen_ai.usage.output_tokens':
                           finalUsage.completionTokens,
@@ -974,8 +978,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     object,
                     error,
                     response: {
-                      ...response,
-                      headers: rawResponse?.headers,
+                      ...fullResponse,
+                      headers: response?.headers,
                     },
                     warnings,
                     providerMetadata,

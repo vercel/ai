@@ -28,12 +28,6 @@
     },
     {
       "path": "../provider-utils"
-    },
-    {
-      "path": "../react"
-    },
-    {
-      "path": "../ui-utils"
-    },
+    }
   ]
 }

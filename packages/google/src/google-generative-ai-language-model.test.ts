@@ -363,12 +363,12 @@ describe('doGenerate', () => {
   it('should expose the raw response headers', async () => {
     prepareJsonResponse({ headers: { 'test-header': 'test-value' } });
 
-    const { rawResponse } = await model.doGenerate({
+    const { response } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '804',
       'content-type': 'application/json',
@@ -1459,12 +1459,12 @@ describe('doStream', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doStream({
+    const { response } = await model.doStream({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',

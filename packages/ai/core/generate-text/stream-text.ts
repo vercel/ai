@@ -1,6 +1,6 @@
 import { AISDKError, LanguageModelV2Source } from '@ai-sdk/provider';
 import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
-import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { DataStreamString, formatDataStreamPart } from '../util';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
@@ -979,7 +979,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           };
 
           const {
-            result: { stream, warnings, rawResponse, request },
+            result: { stream, warnings, response, request },
             doStreamSpan,
             startTimestampMs,
           } = await retry(() =>
@@ -1386,7 +1386,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     request: stepRequest,
                     response: {
                       ...stepResponse,
-                      headers: rawResponse?.headers,
+                      headers: response?.headers,
                     },
                     warnings,
                     isContinued: nextStepType === 'continue',
@@ -1405,7 +1405,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       logprobs: stepLogProbs,
                       response: {
                         ...stepResponse,
-                        headers: rawResponse?.headers,
+                        headers: response?.headers,
                       },
                     });
 

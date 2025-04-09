@@ -1,6 +1,6 @@
 import { LanguageModelV2FunctionToolCall } from '@ai-sdk/provider';
 import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
-import { Schema, asSchema } from '@ai-sdk/ui-utils';
+import { Schema, asSchema } from '../util';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { ToolCallRepairError } from '../../errors/tool-call-repair-error';

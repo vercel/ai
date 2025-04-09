@@ -8,7 +8,7 @@ import {
   TextUIPart,
   ToolInvocationUIPart,
   UIMessage,
-} from './types';
+} from '../types';
 
 export function getMessageParts(
   message: Message | CreateMessage | UIMessage,

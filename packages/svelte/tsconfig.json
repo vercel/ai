@@ -27,7 +27,7 @@
       "path": "../provider-utils"
     },
     {
-      "path": "../ui-utils"
+      "path": "../ai"
     }
   ],
   "include": [

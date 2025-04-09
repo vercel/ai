@@ -183,10 +183,13 @@ export class OpenAICompatibleCompletionLanguageModel
       },
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders, body: rawResponse },
-      response: getResponseMetadata(response),
-      warnings,
       request: { body: JSON.stringify(args) },
+      response: {
+        ...getResponseMetadata(response),
+        headers: responseHeaders,
+        body: rawResponse,
+      },
+      warnings,
     };
   }
 
@@ -289,9 +292,9 @@ export class OpenAICompatibleCompletionLanguageModel
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
-      warnings,
       request: { body: JSON.stringify(body) },
+      response: { headers: responseHeaders },
+      warnings,
     };
   }
 }

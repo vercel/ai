@@ -1,9 +1,9 @@
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { jsonSchema } from '@ai-sdk/ui-utils';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod';
 import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
+import { jsonSchema } from '../util';
 import { MockTracer } from '../test/mock-tracer';
 import { generateObject } from './generate-object';
 import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
@@ -308,8 +308,6 @@ describe('output = "object"', () => {
               id: 'test-id-from-model',
               timestamp: new Date(10000),
               modelId: 'test-response-model-id',
-            },
-            rawResponse: {
               headers: {
                 'custom-response-header': 'response-header-value',
               },
@@ -350,8 +348,6 @@ describe('output = "object"', () => {
               id: 'test-id-from-model',
               timestamp: new Date(10000),
               modelId: 'test-response-model-id',
-            },
-            rawResponse: {
               headers: {
                 'custom-response-header': 'response-header-value',
               },

@@ -3,7 +3,7 @@ import {
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { jsonSchema } from '@ai-sdk/ui-utils';
+import { jsonSchema } from '../util';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod';
 import {
@@ -701,7 +701,7 @@ describe('streamObject', () => {
                 },
               ]),
               rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              rawResponse: { headers: { call: '2' } },
+              response: { headers: { call: '2' } },
             }),
           }),
           schema: z.object({ content: z.string() }),
@@ -746,7 +746,7 @@ describe('streamObject', () => {
                 },
               ]),
               rawCall: { rawPrompt: 'prompt', rawSettings: {} },
-              rawResponse: { headers: { call: '2' } },
+              response: { headers: { call: '2' } },
             }),
           }),
           schema: z.object({ content: z.string() }),

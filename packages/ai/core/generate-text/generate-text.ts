@@ -364,6 +364,8 @@ A function that attempts to repair a tool call that failed to parse.
                 id: result.response?.id ?? generateId(),
                 timestamp: result.response?.timestamp ?? currentDate(),
                 modelId: result.response?.modelId ?? model.modelId,
+                headers: result.response?.headers,
+                body: result.response?.body,
               };
 
               // Add response information to the span:
@@ -527,9 +529,6 @@ A function that attempts to repair a tool call that failed to parse.
           request: currentModelResponse.request ?? {},
           response: {
             ...currentModelResponse.response,
-            headers: currentModelResponse.rawResponse?.headers,
-            body: currentModelResponse.rawResponse?.body,
-
             // deep clone msgs to avoid mutating past messages in multi-step:
             messages: structuredClone(responseMessages),
           },
@@ -591,8 +590,6 @@ A function that attempts to repair a tool call that failed to parse.
         request: currentModelResponse.request ?? {},
         response: {
           ...currentModelResponse.response,
-          headers: currentModelResponse.rawResponse?.headers,
-          body: currentModelResponse.rawResponse?.body,
           messages: responseMessages,
         },
         logprobs: currentModelResponse.logprobs,

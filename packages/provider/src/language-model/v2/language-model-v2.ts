@@ -174,22 +174,6 @@ settings.
     };
 
     /**
-Optional response information for telemetry and debugging purposes.
-     */
-    // TODO rename to `response` in v2
-    rawResponse?: {
-      /**
-Response headers.
-      */
-      headers?: Record<string, string>;
-
-      /**
-Response body.
-      */
-      body?: unknown;
-    };
-
-    /**
 Optional request information for telemetry and debugging purposes.
      */
     request?: {
@@ -218,6 +202,16 @@ Timestamp for the start of the generated response, if the provider sends one.
 The ID of the response model that was used to generate the response, if the provider sends one.
      */
       modelId?: string;
+
+      /**
+Response headers.
+      */
+      headers?: Record<string, string>;
+
+      /**
+Response body.
+*/
+      body?: unknown;
     };
 
     warnings?: LanguageModelV2CallWarning[];
@@ -276,8 +270,7 @@ settings.
     /**
 Optional raw response data.
      */
-    // TODO rename to response in v2
-    rawResponse?: {
+    response?: {
       /**
 Response headers.
        */

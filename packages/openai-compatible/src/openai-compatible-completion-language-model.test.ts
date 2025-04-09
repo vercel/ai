@@ -167,11 +167,35 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response).toStrictEqual({
-      id: 'test-id',
-      timestamp: new Date(123 * 1000),
-      modelId: 'test-model',
-    });
+    expect(response).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "choices": [
+            {
+              "finish_reason": "stop",
+              "index": 0,
+              "text": "",
+            },
+          ],
+          "created": 123,
+          "id": "test-id",
+          "model": "test-model",
+          "object": "text_completion",
+          "usage": {
+            "completion_tokens": 30,
+            "prompt_tokens": 4,
+            "total_tokens": 34,
+          },
+        },
+        "headers": {
+          "content-length": "204",
+          "content-type": "application/json",
+        },
+        "id": "test-id",
+        "modelId": "test-model",
+        "timestamp": 1970-01-01T00:02:03.000Z,
+      }
+    `);
   });
 
   it('should extract finish reason', async () => {
@@ -211,12 +235,12 @@ describe('doGenerate', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doGenerate({
+    const { response } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '250',
       'content-type': 'application/json',
@@ -468,12 +492,12 @@ describe('doStream', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doStream({
+    const { response } = await model.doStream({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',

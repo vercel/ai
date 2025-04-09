@@ -29,7 +29,7 @@
       "path": "../../packages/svelte"
     },
     {
-      "path": "../../packages/ui-utils"
+      "path": "../../packages/ai"
     }
   ]
 }
