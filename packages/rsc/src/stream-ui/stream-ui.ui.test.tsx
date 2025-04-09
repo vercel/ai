@@ -67,7 +67,6 @@ const mockTextModel = new MockLanguageModelV2({
           usage: { completionTokens: 10, promptTokens: 3 },
         },
       ]),
-      rawCall: { rawPrompt: 'prompt', rawSettings: {} },
     };
   },
 });
@@ -90,7 +89,6 @@ const mockToolModel = new MockLanguageModelV2({
           usage: { completionTokens: 10, promptTokens: 3 },
         },
       ]),
-      rawCall: { rawPrompt: 'prompt', rawSettings: {} },
     };
   },
 });
@@ -253,7 +251,6 @@ describe('options.headers', () => {
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
         },
       }),
@@ -287,7 +284,6 @@ describe('options.providerMetadata', () => {
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           };
         },
       }),
@@ -327,7 +323,6 @@ describe('model.supportsUrl binding', () => {
                 usage: { completionTokens: 10, promptTokens: 3 },
               },
             ]),
-            rawCall: { rawPrompt: 'prompt', rawSettings: {} },
           }),
         });
       }

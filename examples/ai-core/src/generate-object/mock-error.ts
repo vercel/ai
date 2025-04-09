@@ -9,7 +9,6 @@ async function main() {
       model: new MockLanguageModelV2({
         defaultObjectGenerationMode: 'json',
         doGenerate: async () => ({
-          rawCall: { rawPrompt: null, rawSettings: {} },
           response: {
             id: 'id-1',
             timestamp: new Date(123),

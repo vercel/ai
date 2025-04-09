@@ -13,7 +13,6 @@ import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
 
 const dummyResponseValues = {
-  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
   finishReason: 'stop' as const,
   usage: { promptTokens: 10, completionTokens: 20 },
 };

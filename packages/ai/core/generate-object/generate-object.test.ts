@@ -9,7 +9,6 @@ import { generateObject } from './generate-object';
 import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 
 const dummyResponseValues = {
-  rawCall: { rawPrompt: 'prompt', rawSettings: {} },
   finishReason: 'stop' as const,
   usage: { promptTokens: 10, completionTokens: 20 },
   response: { id: 'id-1', timestamp: new Date(123), modelId: 'm-1' },

@@ -88,8 +88,8 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
 
       return {
         stream: simulatedStream,
-        rawCall: result.rawCall,
-        rawResponse: result.response,
+        request: result.request,
+        response: result.response,
         warnings: result.warnings,
       };
     },

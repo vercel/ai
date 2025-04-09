@@ -211,8 +211,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
         promptTokens: response.usage.prompt_tokens,
         completionTokens: response.usage.completion_tokens,
       },
-      rawCall: { rawPrompt, rawSettings },
-      request: { body: JSON.stringify(args) },
+      request: { body: args },
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
