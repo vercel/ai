@@ -12,4 +12,4 @@
 <!-- What did you change? -->
 
 ## Future Work
-<!-- Things not covered by the PR that should be done in future PRs -->
+<!-- Feel free to mention things not covered by this PR that can be done in future PRs -->
