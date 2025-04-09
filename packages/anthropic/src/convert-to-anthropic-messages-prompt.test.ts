@@ -173,7 +173,7 @@ describe('user messages', () => {
             {
               type: 'file',
               data: new URL('https://example.com/document.pdf'),
-              mimeType: 'application/pdf',
+              mediaType: 'application/pdf',
             },
           ],
         },
