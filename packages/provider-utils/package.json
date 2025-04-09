@@ -37,8 +37,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "2.0.0-canary.1",
-    "secure-json-parse": "^2.7.0"
+    "@ai-sdk/provider": "2.0.0-canary.1"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
