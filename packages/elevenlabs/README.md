@@ -23,9 +23,9 @@ import { elevenlabs } from '@ai-sdk/elevenlabs';
 
 ```ts
 import { elevenlabs } from '@ai-sdk/elevenlabs';
-import { generateText } from 'ai';
+import { experimental_transcribe as transcribe } from 'ai';
 
-const { text } = await generateText({
+const { text } = await transcribe({
   model: elevenlabs.transcription('scribe_v1'),
   audio: new URL(
     'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
