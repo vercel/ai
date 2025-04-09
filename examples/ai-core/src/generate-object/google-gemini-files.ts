@@ -14,7 +14,7 @@ async function main() {
 
   const geminiFile = await fileManager.uploadFile(filePath, {
     name: `ai-${Math.random().toString(36).substring(7)}`,
-    mediaType: 'application/pdf',
+    mimeType: 'application/pdf',
   });
 
   const { object: summary } = await generateObject({
