@@ -139,8 +139,17 @@ Update your root page (`src/routes/+page.svelte`) with the following code to sho
 
 <main>
   <ul>
-    {#each chat.messages as message}
-      <li>{message.role}: {message.content}</li>
+    {#each chat.messages as message, messageIndex (messageIndex)}
+      <li>
+        <div>{message.role}</div>
+        <div>
+          {#each message.parts as part, partIndex (partIndex)}
+            {#if part.type === 'text'}
+              <div>{part.text}</div>
+            {/if}
+          {/each}
+        </div>
+      </li>
     {/each}
   </ul>
   <form onsubmit={chat.handleSubmit}>
@@ -152,9 +161,11 @@ Update your root page (`src/routes/+page.svelte`) with the following code to sho
 
 This page utilizes the `Chat` class, which will, by default, use the `POST` route handler you created earlier. The hook provides functions and state for handling user input and form submission. The `Chat` class provides multiple utility functions and state variables:
 
-- `messages` - the current chat messages (an array of objects with `id`, `role`, and `content` properties).
+- `messages` - the current chat messages (an array of objects with `id`, `role`, and `parts` properties).
 - `input` - the current value of the user's input field.
 - `handleSubmit` - function to handle form submission.
+
+The LLM's response is accessed through the message `parts` array. Each message contains an ordered array of `parts` that represents everything the model generated in its response. These parts can include plain text, reasoning tokens, and more that you will see later. The `parts` array preserves the sequence of the model's outputs, allowing you to display or process each component in the order it was generated.
 
 ## Running Your Application
 
@@ -244,14 +255,18 @@ To display the tool invocations in your UI, update your `src/routes/+page.svelte
 
 <main>
   <ul>
-    {#each chat.messages as message}
+    {#each chat.messages as message, messageIndex (messageIndex)}
       <li>
-        {message.role}:
-        {#if message.toolInvocations}
-          <pre>{JSON.stringify(message.toolInvocations, null, 2)}</pre>
-        {:else}
-          {message.content}
-        {/if}
+        <div>{message.role}</div>
+        <div>
+          {#each message.parts as part, partIndex (partIndex)}
+            {#if part.type === 'text'}
+              <div>{part.text}</div>
+            {:else if part.type === 'tool-invocation'}
+              <pre>{JSON.stringify(part.toolInvocation, null, 2)}</pre>
+            {/if}
+          {/each}
+        </div>
       </li>
     {/each}
   </ul>
@@ -262,7 +277,7 @@ To display the tool invocations in your UI, update your `src/routes/+page.svelte
 </main>
 ```
 
-With this change, you check each message for any tool calls (`toolInvocations`). These tool calls will be displayed as stringified JSON. Otherwise, you show the message content as before.
+With this change, you're updating the UI to handle different message parts. For text parts, you display the text content as before. For tool invocations, you display a JSON representation of the tool call and its result.
 
 Now, when you ask about the weather, you'll see the tool invocation and its result displayed in your chat interface.
 
