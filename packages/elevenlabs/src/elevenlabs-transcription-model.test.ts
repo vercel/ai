@@ -190,12 +190,57 @@ describe('doGenerate', () => {
     expect(result.response.modelId).toBe('scribe_v1');
   });
 
-  it('should work when no words, language, or duration are returned', async () => {
+  it('should work when no additional formats are returned', async () => {
     server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
       type: 'json-value',
       body: {
+        language_code: 'en',
+        language_probability: 0.98,
         text: 'Hello world!',
-        _request_id: 'req_1234',
+        words: [
+          {
+            text: 'Hello',
+            type: 'word',
+            start: 0,
+            end: 0.5,
+            speaker_id: 'speaker_1',
+            characters: [
+              {
+                text: 'text',
+                start: 0,
+                end: 0.1,
+              },
+            ],
+          },
+          {
+            text: ' ',
+            type: 'spacing',
+            start: 0.5,
+            end: 0.5,
+            speaker_id: 'speaker_1',
+            characters: [
+              {
+                text: 'text',
+                start: 0,
+                end: 0.1,
+              },
+            ],
+          },
+          {
+            text: 'world!',
+            type: 'word',
+            start: 0.5,
+            end: 1.2,
+            speaker_id: 'speaker_1',
+            characters: [
+              {
+                text: 'text',
+                start: 0,
+                end: 0.1,
+              },
+            ],
+          },
+        ],
       },
     };
 
@@ -216,22 +261,82 @@ describe('doGenerate', () => {
 
     expect(result).toMatchInlineSnapshot(`
       {
-        "durationInSeconds": undefined,
-        "language": undefined,
+        "durationInSeconds": 1.2,
+        "language": "en",
         "response": {
           "body": {
-            "_request_id": "req_1234",
-            "task": "transcribe",
+            "language_code": "en",
+            "language_probability": 0.98,
             "text": "Hello world!",
+            "words": [
+              {
+                "characters": [
+                  {
+                    "end": 0.1,
+                    "start": 0,
+                    "text": "text",
+                  },
+                ],
+                "end": 0.5,
+                "speaker_id": "speaker_1",
+                "start": 0,
+                "text": "Hello",
+                "type": "word",
+              },
+              {
+                "characters": [
+                  {
+                    "end": 0.1,
+                    "start": 0,
+                    "text": "text",
+                  },
+                ],
+                "end": 0.5,
+                "speaker_id": "speaker_1",
+                "start": 0.5,
+                "text": " ",
+                "type": "spacing",
+              },
+              {
+                "characters": [
+                  {
+                    "end": 0.1,
+                    "start": 0,
+                    "text": "text",
+                  },
+                ],
+                "end": 1.2,
+                "speaker_id": "speaker_1",
+                "start": 0.5,
+                "text": "world!",
+                "type": "word",
+              },
+            ],
           },
           "headers": {
-            "content-length": "85",
+            "content-length": "467",
             "content-type": "application/json",
           },
           "modelId": "scribe_v1",
           "timestamp": 1970-01-01T00:00:00.000Z,
         },
-        "segments": [],
+        "segments": [
+          {
+            "endSecond": 0.5,
+            "startSecond": 0,
+            "text": "Hello",
+          },
+          {
+            "endSecond": 0.5,
+            "startSecond": 0.5,
+            "text": " ",
+          },
+          {
+            "endSecond": 1.2,
+            "startSecond": 0.5,
+            "text": "world!",
+          },
+        ],
         "text": "Hello world!",
         "warnings": [],
       }
