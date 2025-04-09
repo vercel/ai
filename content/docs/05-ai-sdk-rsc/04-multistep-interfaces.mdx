@@ -27,7 +27,7 @@ To build this kind of application you will leverage two concepts, **tool composi
 
 ## Overview
 
-In order to build a multistep interface with `ai/rsc`, you will need a few things:
+In order to build a multistep interface with `@ai-sdk/rsc`, you will need a few things:
 
 - A Server Action that calls and returns the result from the `streamUI` function
 - Tool(s) (sub-tasks necessary to complete your overall task)
@@ -49,7 +49,7 @@ The turn-by-turn implementation is the simplest form of multistep interfaces. In
 In the following example, you specify two tools (`searchFlights` and `lookupFlight`) that the model can use to search for flights and lookup details for a specific flight.
 
 ```tsx filename="app/actions.tsx"
-import { streamUI } from 'ai/rsc';
+import { streamUI } from '@ai-sdk/rsc';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
@@ -137,7 +137,7 @@ export async function submitUserMessage(input: string) {
 Next, create an AI context that will hold the UI State and AI State.
 
 ```ts filename='app/ai.ts'
-import { createAI } from 'ai/rsc';
+import { createAI } from '@ai-sdk/rsc';
 import { submitUserMessage } from './actions';
 
 export const AI = createAI<any[], React.ReactNode[]>({
@@ -175,7 +175,7 @@ To call your Server Action, update your root page with the following:
 
 import { useState } from 'react';
 import { AI } from './ai';
-import { useActions, useUIState } from 'ai/rsc';
+import { useActions, useUIState } from '@ai-sdk/rsc';
 
 export default function Page() {
   const [input, setInput] = useState<string>('');
@@ -224,7 +224,7 @@ To add user interaction, you will have to convert the component into a client co
 ```tsx filename="components/flights.tsx"
 'use client';
 
-import { useActions, useUIState } from 'ai/rsc';
+import { useActions, useUIState } from '@ai-sdk/rsc';
 import { ReactNode } from 'react';
 
 interface FlightsProps {

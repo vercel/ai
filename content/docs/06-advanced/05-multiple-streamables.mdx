@@ -12,7 +12,7 @@ The AI SDK RSC APIs allow you to compose and return any number of streamable UIs
 ```tsx file='app/actions.tsx'
 'use server';
 
-import { createStreamableUI } from 'ai/rsc';
+import { createStreamableUI } from '@ai-sdk/rsc';
 
 export async function getWeather() {
   const weatherUI = createStreamableUI();

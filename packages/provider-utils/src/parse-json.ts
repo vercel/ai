@@ -3,7 +3,7 @@ import {
   JSONValue,
   TypeValidationError,
 } from '@ai-sdk/provider';
-import SecureJSON from 'secure-json-parse';
+import { secureJsonParse } from './secure-json-parse';
 import { ZodSchema } from 'zod';
 import { safeValidateTypes, validateTypes } from './validate-types';
 import { Validator } from './validator';
@@ -38,7 +38,7 @@ export function parseJSON<T>({
   schema?: ZodSchema<T> | Validator<T>;
 }): T {
   try {
-    const value = SecureJSON.parse(text);
+    const value = secureJsonParse(text);
 
     if (schema == null) {
       return value;
@@ -91,7 +91,7 @@ export function safeParseJSON<T>({
   schema?: ZodSchema<T> | Validator<T>;
 }): ParseResult<T> {
   try {
-    const value = SecureJSON.parse(text);
+    const value = secureJsonParse(text);
 
     if (schema == null) {
       return { success: true, value: value as T, rawValue: value };
@@ -114,7 +114,7 @@ export function safeParseJSON<T>({
 
 export function isParsableJson(input: string): boolean {
   try {
-    SecureJSON.parse(input);
+    secureJsonParse(input);
     return true;
   } catch {
     return false;

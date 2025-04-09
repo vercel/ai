@@ -1,5 +1,25 @@
 # ai
 
+## 5.0.0-canary.4
+
+### Major Changes
+
+- e1cbf8a: chore(@ai-sdk/rsc): extract to separate package
+
+### Patch Changes
+
+- 225f087: fix (ai/mcp): prevent mutation of customEnv
+- a166433: feat: add transcription with experimental_transcribe
+- 0a87932: core (ai): change transcription model mimeType to mediaType
+- Updated dependencies [a166433]
+- Updated dependencies [abf9a79]
+- Updated dependencies [9f95b35]
+- Updated dependencies [0a87932]
+- Updated dependencies [6dc848c]
+  - @ai-sdk/provider-utils@3.0.0-canary.3
+  - @ai-sdk/provider@2.0.0-canary.2
+  - @ai-sdk/ui-utils@2.0.0-canary.3
+
 ## 5.0.0-canary.3
 
 ### Patch Changes
