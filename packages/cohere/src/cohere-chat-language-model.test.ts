@@ -146,9 +146,39 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response).toStrictEqual({
-      id: 'test-id',
-    });
+    expect(response).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "finish_reason": "COMPLETE",
+          "generation_id": "test-id",
+          "message": {
+            "content": [
+              {
+                "text": "",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          "response_id": "0cf61ae0-1f60-4c18-9802-be7be809e712",
+          "usage": {
+            "billed_units": {
+              "input_tokens": 9,
+              "output_tokens": 415,
+            },
+            "tokens": {
+              "input_tokens": 4,
+              "output_tokens": 30,
+            },
+          },
+        },
+        "headers": {
+          "content-length": "287",
+          "content-type": "application/json",
+        },
+        "id": "test-id",
+      }
+    `);
   });
 
   it('should extract finish reason', async () => {
@@ -169,12 +199,12 @@ describe('doGenerate', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doGenerate({
+    const { response } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '316',
       'content-type': 'application/json',
@@ -623,12 +653,12 @@ describe('doStream', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doStream({
+    const { response } = await model.doStream({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',
