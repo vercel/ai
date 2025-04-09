@@ -465,8 +465,6 @@ describe('result.response', () => {
             id: 'test-id-from-model',
             timestamp: new Date(10000),
             modelId: 'test-response-model-id',
-          },
-          rawResponse: {
             headers: {
               'custom-response-header': 'response-header-value',
             },
@@ -608,8 +606,6 @@ describe('options.maxSteps', () => {
                     id: 'test-id-2-from-model',
                     timestamp: new Date(10000),
                     modelId: 'test-response-model-id',
-                  },
-                  rawResponse: {
                     headers: {
                       'custom-response-header': 'response-header-value',
                     },
@@ -737,6 +733,10 @@ describe('options.maxSteps', () => {
                     id: 'test-id-2-from-model',
                     timestamp: new Date(10000),
                     modelId: 'test-response-model-id',
+                    // test handling of custom response headers:
+                    headers: {
+                      'custom-response-header': 'response-header-value',
+                    },
                   },
                   sources: [
                     {
@@ -755,12 +755,6 @@ describe('options.maxSteps', () => {
                     },
                   ],
                   usage: { completionTokens: 5, promptTokens: 30 },
-                  // test handling of custom response headers:
-                  rawResponse: {
-                    headers: {
-                      'custom-response-header': 'response-header-value',
-                    },
-                  },
                 };
               }
               case 2: {

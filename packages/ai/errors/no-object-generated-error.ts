@@ -73,17 +73,17 @@ export function verifyNoObjectGeneratedError(
   error: unknown,
   expected: {
     message: string;
-    response: LanguageModelResponseMetadata;
+    response: LanguageModelResponseMetadata & {
+      body?: string;
+    };
     usage: LanguageModelUsage;
     finishReason: FinishReason;
   },
 ) {
   expect(NoObjectGeneratedError.isInstance(error)).toBeTruthy();
   const noObjectGeneratedError = error as NoObjectGeneratedError;
-  expect(noObjectGeneratedError.message).toStrictEqual(expected.message);
-  expect(noObjectGeneratedError.response).toStrictEqual(expected.response);
-  expect(noObjectGeneratedError.usage).toStrictEqual(expected.usage);
-  expect(noObjectGeneratedError.finishReason).toStrictEqual(
-    expected.finishReason,
-  );
+  expect(noObjectGeneratedError.message).toEqual(expected.message);
+  expect(noObjectGeneratedError.response).toEqual(expected.response);
+  expect(noObjectGeneratedError.usage).toEqual(expected.usage);
+  expect(noObjectGeneratedError.finishReason).toEqual(expected.finishReason);
 }

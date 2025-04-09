@@ -364,6 +364,8 @@ A function that attempts to repair a tool call that failed to parse.
                 id: result.response?.id ?? generateId(),
                 timestamp: result.response?.timestamp ?? currentDate(),
                 modelId: result.response?.modelId ?? model.modelId,
+                headers: result.response?.headers,
+                body: result.response?.body,
               };
 
               // Add response information to the span:

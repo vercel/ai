@@ -545,6 +545,8 @@ export async function generateObject<SCHEMA, RESULT>({
                   id: result.response?.id ?? generateId(),
                   timestamp: result.response?.timestamp ?? currentDate(),
                   modelId: result.response?.modelId ?? model.modelId,
+                  headers: result.response?.headers,
+                  body: result.response?.body,
                 };
 
                 if (result.text === undefined) {
@@ -671,6 +673,8 @@ export async function generateObject<SCHEMA, RESULT>({
                   id: result.response?.id ?? generateId(),
                   timestamp: result.response?.timestamp ?? currentDate(),
                   modelId: result.response?.modelId ?? model.modelId,
+                  headers: result.response?.headers,
+                  body: result.response?.body,
                 };
 
                 if (objectText === undefined) {
@@ -748,7 +752,7 @@ export async function generateObject<SCHEMA, RESULT>({
             text: result,
             response,
             usage: calculateLanguageModelUsage(usage),
-            finishReason: finishReason,
+            finishReason,
           });
         }
 
@@ -768,7 +772,7 @@ export async function generateObject<SCHEMA, RESULT>({
             text: result,
             response,
             usage: calculateLanguageModelUsage(usage),
-            finishReason: finishReason,
+            finishReason,
           });
         }
 
