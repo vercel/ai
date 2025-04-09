@@ -137,9 +137,26 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"gpt-3.5-turbo-instruct","prompt":"Hello"}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "echo": undefined,
+          "frequency_penalty": undefined,
+          "logit_bias": undefined,
+          "logprobs": undefined,
+          "max_tokens": undefined,
+          "model": "gpt-3.5-turbo-instruct",
+          "presence_penalty": undefined,
+          "prompt": "Hello",
+          "seed": undefined,
+          "stop": undefined,
+          "suffix": undefined,
+          "temperature": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   it('should send additional response information', async () => {
