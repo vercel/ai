@@ -1,5 +1,17 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-canary.3
+
+### Patch Changes
+
+- a166433: feat: add transcription with experimental_transcribe
+- 9f95b35: refactor (provider-utils): copy relevant code from `secure-json-parse` into codebase
+- Updated dependencies [a166433]
+- Updated dependencies [abf9a79]
+- Updated dependencies [0a87932]
+- Updated dependencies [6dc848c]
+  - @ai-sdk/provider@2.0.0-canary.2
+
 ## 3.0.0-canary.2
 
 ### Patch Changes

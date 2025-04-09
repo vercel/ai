@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "3.0.0-canary.2",
+  "version": "3.0.0-canary.3",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -51,7 +51,7 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider-utils": "3.0.0-canary.2"
+    "@ai-sdk/provider-utils": "3.0.0-canary.3"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.5",

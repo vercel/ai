@@ -1,5 +1,18 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-canary.3
+
+### Patch Changes
+
+- 61ab528: Add support for URL-based PDF documents in the Anthropic provider
+- Updated dependencies [a166433]
+- Updated dependencies [abf9a79]
+- Updated dependencies [9f95b35]
+- Updated dependencies [0a87932]
+- Updated dependencies [6dc848c]
+  - @ai-sdk/provider-utils@3.0.0-canary.3
+  - @ai-sdk/provider@2.0.0-canary.2
+
 ## 2.0.0-canary.2
 
 ### Patch Changes

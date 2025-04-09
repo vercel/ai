@@ -120,22 +120,21 @@ export function convertToAnthropicMessagesPrompt({
                         cache_control: cacheControl,
                       });
                     } else if (part.mediaType === 'application/pdf') {
-                      if (part.data instanceof URL) {
-                        // The AI SDK automatically downloads files for user file parts with URLs
-                        throw new UnsupportedFunctionalityError({
-                          functionality: 'PDF File URLs in user messages',
-                        });
-                      }
-
                       betas.add('pdfs-2024-09-25');
 
                       anthropicContent.push({
                         type: 'document',
-                        source: {
-                          type: 'base64',
-                          media_type: 'application/pdf',
-                          data: part.data,
-                        },
+                        source:
+                          part.data instanceof URL
+                            ? {
+                                type: 'url',
+                                url: part.data.toString(),
+                              }
+                            : {
+                                type: 'base64',
+                                media_type: 'application/pdf',
+                                data: part.data,
+                              },
                         cache_control: cacheControl,
                       });
                     } else {

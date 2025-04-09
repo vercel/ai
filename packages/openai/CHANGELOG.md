@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 2.0.0-canary.3
+
+### Patch Changes
+
+- a166433: feat: add transcription with experimental_transcribe
+- 0a87932: core (ai): change transcription model mimeType to mediaType
+- 0a87932: fix (provider/openai): increase transcription model resilience
+- Updated dependencies [a166433]
+- Updated dependencies [abf9a79]
+- Updated dependencies [9f95b35]
+- Updated dependencies [0a87932]
+- Updated dependencies [6dc848c]
+  - @ai-sdk/provider-utils@3.0.0-canary.3
+  - @ai-sdk/provider@2.0.0-canary.2
+
 ## 2.0.0-canary.2
 
 ### Patch Changes
