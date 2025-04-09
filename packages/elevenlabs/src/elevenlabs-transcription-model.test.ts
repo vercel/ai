@@ -91,7 +91,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
-      model: 'scribe_v1',
+      model_id: 'scribe_v1',
     });
   });
 
