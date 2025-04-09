@@ -73,7 +73,7 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 2. **Add a patch changeset**: If you're updating any packages and want to ensure they're released, add a **patch** changeset to your branch by running `pnpm changeset` in the workspace root.
 
    - **Please do not use minor or major changesets**, we'll let you know when you need to use a different changeset type than patch.
-   - You don't need to select any of the `examples/*` packages, not needed.
+   - You don't need to select any of the `examples/*` packages, as they are not released.
 
 3. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them. We don't require a specific commit message format, but please be descriptive.
 4. **Fix prettier issues**: Run `pnpm prettier-fix` to fix any formatting issues in your code.
