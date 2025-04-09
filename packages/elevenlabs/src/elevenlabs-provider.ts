@@ -1,8 +1,5 @@
 import {
-  EmbeddingModelV1,
-  ImageModelV1,
   TranscriptionModelV1,
-  LanguageModelV1,
   ProviderV1,
 } from '@ai-sdk/provider';
 import {
@@ -12,14 +9,11 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
-import { ElevenLabsProvider } from '.';
 
-type ElevenLabsTranscriptionLanguageModel = {
-  transcription: ElevenLabsTranscriptionModel;
-};
-
-export interface ElevenLabsProvider extends ProviderV1 {
-  (modelId: 'scribe_v1', settings?: {}): ElevenLabsTranscriptionLanguageModel;
+export interface ElevenLabsProvider extends Pick<ProviderV1, 'transcriptionModel'> {
+  (modelId: 'scribe_v1', settings?: {}): {
+    transcription: ElevenLabsTranscriptionModel;
+  };
 
   /**
 Creates a model for transcription.
@@ -76,12 +70,18 @@ export function createElevenLabs(
       fetch: options.fetch,
     });
 
-  const provider: ElevenLabsProvider = () => ({
-    transcription: createTranscriptionModel,
-    transcriptionModel: createTranscriptionModel,
-  });
+  const provider = function (
+    modelId: ElevenLabsTranscriptionModelId,
+  ) {
+    return {
+      transcription: createTranscriptionModel(modelId),
+    };
+  };
 
-  return provider;
+  provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
+
+  return provider as ElevenLabsProvider;
 }
 
 /**
