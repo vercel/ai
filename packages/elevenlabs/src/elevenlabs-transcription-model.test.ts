@@ -5,9 +5,12 @@ import { createElevenLabs } from './elevenlabs-provider';
 const provider = createElevenLabs({ apiKey: 'test-api-key' });
 const model = provider.transcription('scribe_v1');
 
-const getAudioData = () => fetch(
-  'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
-).then(response => response.arrayBuffer()).then(buffer => new Uint8Array(buffer));
+const getAudioData = () =>
+  fetch(
+    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
+  )
+    .then(response => response.arrayBuffer())
+    .then(buffer => new Uint8Array(buffer));
 
 const server = createTestServer({
   'https://api.elevenlabs.io/v1/speech-to-text': {},
