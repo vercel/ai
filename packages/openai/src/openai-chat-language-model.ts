@@ -1,12 +1,12 @@
 import {
   InvalidResponseDataError,
   LanguageModelV2,
+  LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2LogProbs,
   LanguageModelV2ProviderMetadata,
   LanguageModelV2StreamPart,
-  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -95,7 +95,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV2['doGenerate']>[0]) {
+  }: LanguageModelV2CallOptions) {
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (topK != null) {
@@ -118,24 +118,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const useLegacyFunctionCalling = this.settings.useLegacyFunctionCalling;
-
-    if (useLegacyFunctionCalling && this.settings.parallelToolCalls === true) {
-      throw new UnsupportedFunctionalityError({
-        functionality: 'useLegacyFunctionCalling with parallelToolCalls',
-      });
-    }
-
-    if (useLegacyFunctionCalling && this.supportsStructuredOutputs) {
-      throw new UnsupportedFunctionalityError({
-        functionality: 'structuredOutputs with useLegacyFunctionCalling',
-      });
-    }
-
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
       {
         prompt,
-        useLegacyFunctionCalling,
         systemMessageMode: getSystemMessageMode(this.modelId),
       },
     );
@@ -271,13 +256,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     const {
       tools: openaiTools,
       toolChoice: openaiToolChoice,
-      functions,
-      function_call,
       toolWarnings,
     } = prepareTools({
       tools,
       toolChoice,
-      useLegacyFunctionCalling,
       structuredOutputs: this.supportsStructuredOutputs,
     });
 
@@ -286,8 +268,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         ...baseArgs,
         tools: openaiTools,
         tool_choice: openaiToolChoice,
-        functions,
-        function_call,
       },
       warnings: [...warnings, ...toolWarnings],
     };
@@ -343,22 +323,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
     return {
       text: choice.message.content ?? undefined,
-      toolCalls:
-        this.settings.useLegacyFunctionCalling && choice.message.function_call
-          ? [
-              {
-                toolCallType: 'function',
-                toolCallId: generateId(),
-                toolName: choice.message.function_call.name,
-                args: choice.message.function_call.arguments,
-              },
-            ]
-          : choice.message.tool_calls?.map(toolCall => ({
-              toolCallType: 'function',
-              toolCallId: toolCall.id ?? generateId(),
-              toolName: toolCall.function.name,
-              args: toolCall.function.arguments!,
-            })),
+      toolCalls: choice.message.tool_calls?.map(toolCall => ({
+        toolCallType: 'function',
+        toolCallId: toolCall.id ?? generateId(),
+        toolName: toolCall.function.name,
+        args: toolCall.function.arguments!,
+      })),
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       usage: {
         promptTokens: response.usage?.prompt_tokens ?? NaN,
@@ -476,8 +446,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     let logprobs: LanguageModelV2LogProbs;
     let isFirstChunk = true;
 
-    const { useLegacyFunctionCalling } = this.settings;
-
     const providerMetadata: LanguageModelV2ProviderMetadata = { openai: {} };
 
     return {
@@ -574,20 +542,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               logprobs.push(...mappedLogprobs);
             }
 
-            const mappedToolCalls: typeof delta.tool_calls =
-              useLegacyFunctionCalling && delta.function_call != null
-                ? [
-                    {
-                      type: 'function',
-                      id: generateId(),
-                      function: delta.function_call,
-                      index: 0,
-                    },
-                  ]
-                : delta.tool_calls;
-
-            if (mappedToolCalls != null) {
-              for (const toolCallDelta of mappedToolCalls) {
+            if (delta.tool_calls != null) {
+              for (const toolCallDelta of delta.tool_calls) {
                 const index = toolCallDelta.index;
 
                 // Tool call start. OpenAI returns all information except the arguments in the first chunk.
@@ -748,12 +704,6 @@ const openaiChatResponseSchema = z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
-        function_call: z
-          .object({
-            arguments: z.string(),
-            name: z.string(),
-          })
-          .nullish(),
         tool_calls: z
           .array(
             z.object({
@@ -805,12 +755,6 @@ const openaiChatChunkSchema = z.union([
           .object({
             role: z.enum(['assistant']).nullish(),
             content: z.string().nullish(),
-            function_call: z
-              .object({
-                name: z.string().optional(),
-                arguments: z.string().optional(),
-              })
-              .nullish(),
             tool_calls: z
               .array(
                 z.object({
