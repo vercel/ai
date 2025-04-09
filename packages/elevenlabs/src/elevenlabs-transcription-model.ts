@@ -18,7 +18,7 @@ import {
   ElevenLabsTranscriptionModelOptions,
 } from './elevenlabs-transcription-settings';
 
-// https://platform.openai.com/docs/api-reference/audio/createTranscription
+// https://elevenlabs.io/docs/api-reference/speech-to-text/convert
 const ElevenLabsProviderOptionsSchema = z.object({
   languageCode: z
     .string()
