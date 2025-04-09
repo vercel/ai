@@ -71,10 +71,10 @@ We greatly appreciate your pull requests. Here are the steps to submit them:
 
 1. **Create a New Branch**: Initiate your changes in a fresh branch. It's recommended to name the branch in a manner that signifies the changes you're implementing.
 3. **Add a changeset**: If you're updating any packages and want to ensure they're released, add a changeset to your branch by running `pnpm changeset` in the workspace root. For most changes you should use a **patch** bump.
-2. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them.
-3. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
-4. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves.
-5. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
+4. **Commit Your Changes**: Ensure your commits are succinct and clear, detailing what modifications have been made and the reasons behind them.
+5. **Push the Changes to Your GitHub Repository**: After committing your changes, push them to your GitHub repository.
+6. **Open a Pull Request**: Propose your changes for review. Furnish a lucid title and description of your contributions. Make sure to link any relevant issues your PR resolves.
+7. **Respond to Feedback**: Stay receptive to and address any feedback or alteration requests from the project maintainers.
 
 ### Fixing Prettier Issues
 
