@@ -258,7 +258,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         completionTokens: responseBody.usage?.completion_tokens ?? NaN,
       },
       providerMetadata,
-      rawCall: { rawPrompt, rawSettings },
       request: { body },
       response: {
         ...getResponseMetadata(responseBody),
@@ -320,7 +319,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       });
       return {
         stream: simulatedStream,
-        rawCall: result.rawCall,
+        request: result.request,
         response: result.response,
         warnings: result.warnings,
       };
@@ -633,7 +632,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
       request: { body },
       response: { headers: responseHeaders },
       warnings,

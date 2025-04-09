@@ -307,7 +307,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
       },
-      rawCall: { rawPrompt, rawSettings },
+      request: { body: args },
       response: {
         id: response.id ?? undefined,
         modelId: response.model ?? undefined,
@@ -322,7 +322,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           cacheReadInputTokens: response.usage.cache_read_input_tokens ?? null,
         },
       },
-      request: { body: JSON.stringify(args) },
     };
   }
 
@@ -557,10 +556,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
+      request: { body },
       response: { headers: responseHeaders },
       warnings,
-      request: { body: JSON.stringify(body) },
     };
   }
 }

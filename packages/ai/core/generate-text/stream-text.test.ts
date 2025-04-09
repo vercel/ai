@@ -12,7 +12,6 @@ import {
   convertResponseStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import { jsonSchema } from '../util';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { ToolExecutionError } from '../../errors/tool-execution-error';
@@ -23,6 +22,7 @@ import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
 import { tool } from '../tool/tool';
+import { jsonSchema } from '../util';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
@@ -57,19 +57,17 @@ function createTestModel({
       usage: { completionTokens: 10, promptTokens: 3 },
     },
   ]),
-  rawCall = { rawPrompt: 'prompt', rawSettings: {} },
-  response = undefined,
   request = undefined,
+  response = undefined,
   warnings,
 }: {
   stream?: ReadableStream<LanguageModelV2StreamPart>;
-  response?: { headers: Record<string, string> };
-  rawCall?: { rawPrompt: string; rawSettings: Record<string, unknown> };
   request?: { body: string };
+  response?: { headers: Record<string, string> };
   warnings?: LanguageModelV2CallWarning[];
 } = {}): LanguageModelV2 {
   return new MockLanguageModelV2({
-    doStream: async () => ({ stream, rawCall, response, request, warnings }),
+    doStream: async () => ({ stream, request, response, warnings }),
   });
 }
 

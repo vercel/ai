@@ -172,7 +172,6 @@ export class OpenAICompatibleCompletionLanguageModel
       fetch: this.config.fetch,
     });
 
-    const { prompt: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
     return {
@@ -182,8 +181,7 @@ export class OpenAICompatibleCompletionLanguageModel
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
-      rawCall: { rawPrompt, rawSettings },
-      request: { body: JSON.stringify(args) },
+      request: { body: args },
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
@@ -217,8 +215,6 @@ export class OpenAICompatibleCompletionLanguageModel
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
-
-    const { prompt: rawPrompt, ...rawSettings } = args;
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     let usage: { promptTokens: number; completionTokens: number } = {
@@ -291,8 +287,7 @@ export class OpenAICompatibleCompletionLanguageModel
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
-      request: { body: JSON.stringify(body) },
+      request: { body },
       response: { headers: responseHeaders },
       warnings,
     };

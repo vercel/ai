@@ -364,8 +364,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         promptTokens: response.usage?.prompt_tokens ?? NaN,
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
-      rawCall: { rawPrompt, rawSettings },
-      request: { body: JSON.stringify(body) },
+      request: { body },
       response: {
         ...getResponseMetadata(response),
         headers: responseHeaders,
@@ -421,7 +420,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
       return {
         stream: simulatedStream,
-        rawCall: result.rawCall,
         response: result.response,
         warnings: result.warnings,
       };
@@ -713,9 +711,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      rawCall: { rawPrompt, rawSettings },
+      request: { body },
       response: { headers: responseHeaders },
-      request: { body: JSON.stringify(body) },
       warnings,
     };
   }

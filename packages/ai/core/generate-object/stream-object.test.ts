@@ -465,7 +465,6 @@ describe('streamObject', () => {
                   logprobs: [{ token: '-', logprob: 1, topLogprobs: [] }],
                 },
               ]),
-              rawCall: { rawPrompt: 'prompt', rawSettings: { logprobs: 0 } },
             }),
           }),
           schema: z.object({ content: z.string() }),

@@ -126,8 +126,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages, ...rawSettings } = args;
-
     const text = response.message.content?.[0]?.text ?? '';
 
     return {
@@ -147,12 +145,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         promptTokens: response.usage.tokens.input_tokens,
         completionTokens: response.usage.tokens.output_tokens,
       },
-      rawCall: {
-        rawPrompt: {
-          messages,
-        },
-        rawSettings,
-      },
+      request: { body: args },
       response: {
         // TODO timestamp, model id
         id: response.generation_id ?? undefined,
@@ -160,7 +153,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         body: rawResponse,
       },
       warnings,
-      request: { body: JSON.stringify(args) },
     };
   }
 
@@ -324,15 +316,9 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      rawCall: {
-        rawPrompt: {
-          messages,
-        },
-        rawSettings,
-      },
+      request: { body: { ...args, stream: true } },
       response: { headers: responseHeaders },
       warnings,
-      request: { body: JSON.stringify({ ...args, stream: true }) },
     };
   }
 }

@@ -6,10 +6,9 @@ async function main() {
   const { text, usage } = await generateText({
     model: new MockLanguageModelV2({
       doGenerate: async () => ({
-        rawCall: { rawPrompt: null, rawSettings: {} },
+        text: `Hello, world!`,
         finishReason: 'stop',
         usage: { promptTokens: 10, completionTokens: 20 },
-        text: `Hello, world!`,
       }),
     }),
     prompt: 'Hello, test!',
