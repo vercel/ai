@@ -7,8 +7,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/openai": "2.0.0-canary.3",
-    "ai": "5.0.0-canary.4",
+    "@ai-sdk/openai": "2.0.0-canary.4",
+    "ai": "5.0.0-canary.5",
     "dotenv": "16.4.5",
     "express": "5.0.1"
   },

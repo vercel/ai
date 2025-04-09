@@ -1,5 +1,14 @@
 # @ai-sdk/deepinfra
 
+## 1.0.0-canary.4
+
+### Patch Changes
+
+- Updated dependencies [d1a1aa1]
+  - @ai-sdk/provider@2.0.0-canary.3
+  - @ai-sdk/openai-compatible@1.0.0-canary.4
+  - @ai-sdk/provider-utils@3.0.0-canary.4
+
 ## 1.0.0-canary.3
 
 ### Patch Changes

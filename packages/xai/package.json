@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/xai",
-  "version": "2.0.0-canary.3",
+  "version": "2.0.0-canary.4",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,9 +30,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "1.0.0-canary.3",
-    "@ai-sdk/provider": "2.0.0-canary.2",
-    "@ai-sdk/provider-utils": "3.0.0-canary.3"
+    "@ai-sdk/openai-compatible": "1.0.0-canary.4",
+    "@ai-sdk/provider": "2.0.0-canary.3",
+    "@ai-sdk/provider-utils": "3.0.0-canary.4"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

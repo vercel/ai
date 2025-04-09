@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.3
+
+### Major Changes
+
+- d1a1aa1: chore (provider): merge rawRequest into request (language model v2)
+
 ## 2.0.0-canary.2
 
 ### Major Changes
