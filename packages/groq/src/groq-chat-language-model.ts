@@ -198,8 +198,11 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders, body: rawResponse },
-      response: getResponseMetadata(response),
+      response: {
+        ...getResponseMetadata(response),
+        headers: responseHeaders,
+        body: rawResponse,
+      },
       warnings,
       request: { body },
     };
@@ -442,7 +445,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
       warnings,
       request: { body },
     };
