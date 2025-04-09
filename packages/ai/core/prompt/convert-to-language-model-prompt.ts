@@ -275,7 +275,7 @@ function convertPartToLanguageModelPart(
 
   let mediaType: string | undefined = part.mediaType ?? part.mimeType;
   let data: DataContent | URL;
-  let content: URL | DataContent;
+  let content: DataContent | URL | string;
   let normalizedData: Uint8Array | URL;
 
   const type = part.type;
