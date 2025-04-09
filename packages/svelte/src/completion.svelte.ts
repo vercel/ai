@@ -4,7 +4,7 @@ import {
   type JSONValue,
   type RequestOptions,
   callCompletionApi,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import {
   KeyedCompletionStore,
   getCompletionContext,

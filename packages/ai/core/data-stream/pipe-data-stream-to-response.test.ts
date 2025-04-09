@@ -1,6 +1,6 @@
 import { expect, it, describe } from 'vitest';
 import { pipeDataStreamToResponse } from './pipe-data-stream-to-response';
-import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { formatDataStreamPart } from 'ai';
 import { createMockServerResponse } from '../test/mock-server-response';
 
 describe('pipeDataStreamToResponse', () => {

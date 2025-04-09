@@ -4,7 +4,7 @@ import {
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
-import { Schema } from '@ai-sdk/ui-utils';
+import { Schema } from '../util';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { CallSettings } from '../prompt/call-settings';

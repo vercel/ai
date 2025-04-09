@@ -1,4 +1,4 @@
-import { Message } from '@ai-sdk/ui-utils';
+import { Message } from '../types';
 import { CoreMessage } from './message';
 
 /**

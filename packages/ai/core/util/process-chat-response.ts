@@ -3,7 +3,7 @@ import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import {
   calculateLanguageModelUsage,
   LanguageModelUsage,
-} from './duplicated/usage';
+} from '../types/duplicated/usage';
 import { parsePartialJson } from './parse-partial-json';
 import { processDataStream } from './process-data-stream';
 import type {
@@ -14,7 +14,7 @@ import type {
   ToolInvocationUIPart,
   UIMessage,
   UseChatOptions,
-} from './types';
+} from '../types';
 
 export async function processChatResponse({
   stream,

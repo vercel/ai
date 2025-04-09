@@ -1,6 +1,6 @@
 import { AISDKError, LanguageModelV2Source } from '@ai-sdk/provider';
 import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
-import { DataStreamString, formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { DataStreamString, formatDataStreamPart } from '../util';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';

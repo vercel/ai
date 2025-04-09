@@ -1,10 +1,5 @@
 import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
-import {
-  asSchema,
-  DeepPartial,
-  parsePartialJson,
-  Schema,
-} from '@ai-sdk/ui-utils';
+import { asSchema, DeepPartial, parsePartialJson, Schema } from '../../core';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors';
 import { injectJsonInstruction } from '../generate-object/inject-json-instruction';

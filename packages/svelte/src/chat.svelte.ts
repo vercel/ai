@@ -15,7 +15,7 @@ import {
   getMessageParts,
   updateToolCallResult,
   isAssistantMessageWithCompletedToolCalls,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   KeyedChatStore,

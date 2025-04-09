@@ -1,5 +1,5 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { Message } from '@ai-sdk/ui-utils';
+import { Message } from '../types';
 
 const name = 'AI_MessageConversionError';
 const marker = `vercel.ai.error.${name}`;

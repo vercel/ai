@@ -2,9 +2,9 @@ import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it, vi } from 'vitest';
 import { DataStreamString, formatDataStreamPart } from './data-stream-parts';
-import { LanguageModelUsage } from './duplicated/usage';
+import { LanguageModelUsage } from '../types/duplicated/usage';
 import { processChatResponse } from './process-chat-response';
-import { JSONValue, Message } from './types';
+import { JSONValue, Message } from '../types';
 
 function createDataProtocolStream(
   dataPartTexts: DataStreamString[],

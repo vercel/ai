@@ -1,4 +1,4 @@
-import { Message } from '@ai-sdk/ui-utils';
+import { Message } from '../types';
 import { detectPromptType } from './detect-prompt-type';
 import type { CoreMessage } from './message';
 

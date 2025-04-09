@@ -1,4 +1,4 @@
-import { ToolInvocationUIPart, UIMessage } from './types';
+import { ToolInvocationUIPart, UIMessage } from '../types';
 
 /**
  * Updates the result of a specific tool invocation in the last message of the given messages array.

@@ -8,7 +8,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { safeValidateTypes, ValidationResult } from '@ai-sdk/provider-utils';
-import { asSchema, DeepPartial, Schema } from '@ai-sdk/ui-utils';
+import { asSchema, DeepPartial, Schema } from '../util';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import {

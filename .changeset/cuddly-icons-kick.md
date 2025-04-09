@@ -2,7 +2,6 @@
 '@ai-sdk/provider-utils': major
 '@ai-sdk/google-vertex': major
 '@ai-sdk/anthropic': major
-'@ai-sdk/ui-utils': major
 '@ai-sdk/react': major
 '@ai-sdk/vue': major
 'ai': major

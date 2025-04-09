@@ -1,6 +1,6 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { formatDataStreamPart } from '@ai-sdk/ui-utils';
+import { formatDataStreamPart } from 'ai';
 import { expect, it } from 'vitest';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { Source } from '../types/language-model';

@@ -1,4 +1,4 @@
-import { Attachment, Message } from '@ai-sdk/ui-utils';
+import { Attachment, Message } from '../types';
 import { convertToCoreMessages } from './convert-to-core-messages';
 import { tool } from '../tool/tool';
 import { z } from 'zod';

@@ -5,7 +5,7 @@ import type {
   Message,
   UIMessage,
   UseChatOptions,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import {
   callChatApi,
   extractMaxToolInvocationStep,
@@ -16,7 +16,7 @@ import {
   prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { computed, ref, unref } from 'vue';

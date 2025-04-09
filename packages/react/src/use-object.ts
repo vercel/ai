@@ -9,7 +9,7 @@ import {
   isDeepEqualData,
   parsePartialJson,
   Schema,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import { useCallback, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 import z from 'zod';

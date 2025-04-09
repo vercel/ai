@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { UIMessage, useChat } from './use-chat';
-import { JSONValue } from '@ai-sdk/ui-utils';
+import { JSONValue } from 'ai';
 
 const bodyOptions = ref<{
   id: string;

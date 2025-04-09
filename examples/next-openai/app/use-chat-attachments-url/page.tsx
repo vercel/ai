@@ -4,7 +4,7 @@
 import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { Attachment } from '@ai-sdk/ui-utils';
+import { Attachment } from 'ai';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } = useChat({

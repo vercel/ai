@@ -1,4 +1,4 @@
-import { ToolInvocation } from './types';
+import { ToolInvocation } from '../types';
 
 export function extractMaxToolInvocationStep(
   toolInvocations: ToolInvocation[] | undefined,

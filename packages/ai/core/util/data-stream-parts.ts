@@ -3,7 +3,7 @@ import {
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
-import { JSONValue } from './types';
+import { JSONValue } from '../types';
 
 export type DataStreamString =
   `${(typeof DataStreamStringPrefixes)[keyof typeof DataStreamStringPrefixes]}:${string}\n`;

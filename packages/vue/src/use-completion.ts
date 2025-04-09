@@ -1,9 +1,5 @@
-import type {
-  JSONValue,
-  RequestOptions,
-  UseCompletionOptions,
-} from '@ai-sdk/ui-utils';
-import { callCompletionApi } from '@ai-sdk/ui-utils';
+import type { JSONValue, RequestOptions, UseCompletionOptions } from 'ai';
+import { callCompletionApi } from 'ai';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { ref, unref } from 'vue';
