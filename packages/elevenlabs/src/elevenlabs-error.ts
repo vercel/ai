@@ -4,6 +4,7 @@ import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 export const elevenlabsErrorDataSchema = z.object({
   error: z.object({
     message: z.string(),
+    code: z.number(),
   }),
 });
 
