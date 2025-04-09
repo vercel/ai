@@ -275,11 +275,40 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response).toStrictEqual({
-      id: 'test-id',
-      timestamp: new Date(123 * 1000),
-      modelId: 'test-model',
-    });
+    expect(response).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "choices": [
+            {
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null,
+              "message": {
+                "content": "",
+                "role": "assistant",
+              },
+            },
+          ],
+          "created": 123,
+          "id": "test-id",
+          "model": "test-model",
+          "object": "chat.completion",
+          "system_fingerprint": "fp_3bc1b5746c",
+          "usage": {
+            "completion_tokens": 30,
+            "prompt_tokens": 4,
+            "total_tokens": 34,
+          },
+        },
+        "headers": {
+          "content-length": "291",
+          "content-type": "application/json",
+        },
+        "id": "test-id",
+        "modelId": "test-model",
+        "timestamp": 1970-01-01T00:02:03.000Z,
+      }
+    `);
   });
 
   it('should support partial usage', async () => {
@@ -348,12 +377,12 @@ describe('doGenerate', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doGenerate({
+    const { response } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '337',
       'content-type': 'application/json',
@@ -2036,12 +2065,12 @@ describe('doStream', () => {
       headers: { 'test-header': 'test-value' },
     });
 
-    const { rawResponse } = await model.doStream({
+    const { response } = await model.doStream({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',
@@ -2398,22 +2427,59 @@ describe('doStream simulated streaming', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-        modelId: 'o1-preview',
-        timestamp: expect.any(Date),
-      },
-      { type: 'text-delta', textDelta: 'Hello, World!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 30 },
-        logprobs: undefined,
-        providerMetadata: { openai: {} },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "body": {
+            "choices": [
+              {
+                "finish_reason": "stop",
+                "index": 0,
+                "logprobs": null,
+                "message": {
+                  "content": "Hello, World!",
+                  "role": "assistant",
+                },
+              },
+            ],
+            "created": 1711115037,
+            "id": "chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd",
+            "model": "o1-preview",
+            "object": "chat.completion",
+            "system_fingerprint": "fp_3bc1b5746c",
+            "usage": {
+              "completion_tokens": 30,
+              "prompt_tokens": 4,
+              "total_tokens": 34,
+            },
+          },
+          "headers": {
+            "content-length": "342",
+            "content-type": "application/json",
+          },
+          "id": "chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd",
+          "modelId": "o1-preview",
+          "timestamp": 2024-03-22T13:43:57.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "textDelta": "Hello, World!",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "logprobs": undefined,
+          "providerMetadata": {
+            "openai": {},
+          },
+          "type": "finish",
+          "usage": {
+            "completionTokens": 30,
+            "promptTokens": 4,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool calls', async () => {
@@ -2453,35 +2519,79 @@ describe('doStream simulated streaming', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-        modelId: 'o1-preview',
-        timestamp: expect.any(Date),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 30 },
-        logprobs: undefined,
-        providerMetadata: { openai: {} },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "body": {
+            "choices": [
+              {
+                "finish_reason": "stop",
+                "index": 0,
+                "logprobs": null,
+                "message": {
+                  "content": "",
+                  "role": "assistant",
+                  "tool_calls": [
+                    {
+                      "function": {
+                        "arguments": "{"value":"Sparkle Day"}",
+                        "name": "test-tool",
+                      },
+                      "id": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+                      "type": "function",
+                    },
+                  ],
+                },
+              },
+            ],
+            "created": 1711115037,
+            "id": "chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd",
+            "model": "o1-preview",
+            "object": "chat.completion",
+            "system_fingerprint": "fp_3bc1b5746c",
+            "usage": {
+              "completion_tokens": 30,
+              "prompt_tokens": 4,
+              "total_tokens": 34,
+            },
+          },
+          "headers": {
+            "content-length": "475",
+            "content-type": "application/json",
+          },
+          "id": "chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd",
+          "modelId": "o1-preview",
+          "timestamp": 2024-03-22T13:43:57.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "argsTextDelta": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "stop",
+          "logprobs": undefined,
+          "providerMetadata": {
+            "openai": {},
+          },
+          "type": "finish",
+          "usage": {
+            "completionTokens": 30,
+            "promptTokens": 4,
+          },
+        },
+      ]
+    `);
   });
 
   it('should send reasoning tokens', async () => {
@@ -2507,25 +2617,63 @@ describe('doStream simulated streaming', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
-        modelId: 'o1-preview',
-        timestamp: expect.any(Date),
-      },
-      { type: 'text-delta', textDelta: 'Hello, World!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { promptTokens: 15, completionTokens: 20 },
-        logprobs: undefined,
-        providerMetadata: {
-          openai: {
-            reasoningTokens: 10,
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "body": {
+            "choices": [
+              {
+                "finish_reason": "stop",
+                "index": 0,
+                "logprobs": null,
+                "message": {
+                  "content": "Hello, World!",
+                  "role": "assistant",
+                },
+              },
+            ],
+            "created": 1711115037,
+            "id": "chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd",
+            "model": "o1-preview",
+            "object": "chat.completion",
+            "system_fingerprint": "fp_3bc1b5746c",
+            "usage": {
+              "completion_tokens": 20,
+              "completion_tokens_details": {
+                "reasoning_tokens": 10,
+              },
+              "prompt_tokens": 15,
+              "total_tokens": 35,
+            },
+          },
+          "headers": {
+            "content-length": "395",
+            "content-type": "application/json",
+          },
+          "id": "chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd",
+          "modelId": "o1-preview",
+          "timestamp": 2024-03-22T13:43:57.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "textDelta": "Hello, World!",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "logprobs": undefined,
+          "providerMetadata": {
+            "openai": {
+              "reasoningTokens": 10,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "completionTokens": 20,
+            "promptTokens": 15,
           },
         },
-      },
-    ]);
+      ]
+    `);
   });
 });

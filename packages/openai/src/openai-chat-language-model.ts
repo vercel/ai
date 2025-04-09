@@ -365,9 +365,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         completionTokens: response.usage?.completion_tokens ?? NaN,
       },
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders, body: rawResponse },
       request: { body: JSON.stringify(body) },
-      response: getResponseMetadata(response),
+      response: {
+        ...getResponseMetadata(response),
+        headers: responseHeaders,
+        body: rawResponse,
+      },
       warnings,
       logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
       providerMetadata,
@@ -415,10 +418,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           controller.close();
         },
       });
+
       return {
         stream: simulatedStream,
         rawCall: result.rawCall,
-        rawResponse: result.rawResponse,
+        response: result.response,
         warnings: result.warnings,
       };
     }
@@ -710,7 +714,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         }),
       ),
       rawCall: { rawPrompt, rawSettings },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
       request: { body: JSON.stringify(body) },
       warnings,
     };
