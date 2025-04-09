@@ -55,11 +55,11 @@ export function createElevenLabs(
     withoutTrailingSlash(options.baseURL) ?? 'https://api.elevenlabs.io/';
 
   const getHeaders = () => ({
-    Authorization: `Bearer ${loadApiKey({
+    'xi-api-key': loadApiKey({
       apiKey: options.apiKey,
       environmentVariableName: 'ELEVENLABS_API_KEY',
       description: 'ElevenLabs',
-    })}`,
+    }),
     ...options.headers,
   });
 
