@@ -14,5 +14,10 @@
     "build",
     "node_modules",
     "tsup.config.ts"
+  ],
+  "references": [
+    {
+      "path": "../ai"
+    }
   ]
 }
