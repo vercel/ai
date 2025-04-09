@@ -1,5 +1,5 @@
 import { LanguageModelV2StreamPart } from '@ai-sdk/provider';
-import { generateId } from '@ai-sdk/ui-utils';
+import { generateId } from '../util';
 import { Tracer } from '@opentelemetry/api';
 import { ToolExecutionError } from '../../errors';
 import { CoreMessage } from '../prompt/message';

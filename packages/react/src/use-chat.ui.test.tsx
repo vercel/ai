@@ -8,7 +8,7 @@ import {
   generateId,
   getTextFromDataUrl,
   Message,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

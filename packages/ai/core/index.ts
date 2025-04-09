@@ -1,29 +1,6 @@
 // re-exports:
 export { createIdGenerator, generateId } from '@ai-sdk/provider-utils';
 export type { IDGenerator } from '@ai-sdk/provider-utils';
-export {
-  formatDataStreamPart,
-  jsonSchema,
-  parseDataStreamPart,
-  processDataStream,
-  processTextStream,
-  zodSchema,
-} from '@ai-sdk/ui-utils';
-export type {
-  Attachment,
-  ChatRequest,
-  ChatRequestOptions,
-  CreateMessage,
-  DataStreamPart,
-  DeepPartial,
-  IdGenerator,
-  JSONValue,
-  Message,
-  UIMessage,
-  RequestOptions,
-  Schema,
-  ToolInvocation,
-} from '@ai-sdk/ui-utils';
 
 // directory exports:
 export * from './data-stream';
@@ -37,6 +14,7 @@ export * from './prompt';
 export * from './registry';
 export * from './tool';
 export * from './types';
+export * from './util';
 
 // telemetry types:
 export type { TelemetrySettings } from './telemetry/telemetry-settings';

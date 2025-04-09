@@ -10,7 +10,7 @@ import {
   Schema,
   isDeepEqualData,
   parsePartialJson,
-} from '@ai-sdk/ui-utils';
+} from '../util';
 import { ServerResponse } from 'http';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';

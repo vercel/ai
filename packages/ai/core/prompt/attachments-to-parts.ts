@@ -1,4 +1,4 @@
-import { Attachment } from '@ai-sdk/ui-utils';
+import { Attachment } from '../types';
 import { FilePart, ImagePart, TextPart } from './content-part';
 import {
   convertDataContentToUint8Array,

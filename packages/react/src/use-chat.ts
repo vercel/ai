@@ -6,7 +6,7 @@ import type {
   Message,
   UIMessage,
   UseChatOptions,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import {
   callChatApi,
   extractMaxToolInvocationStep,
@@ -17,7 +17,7 @@ import {
   prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
-} from '@ai-sdk/ui-utils';
+} from 'ai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { throttle } from './throttle';

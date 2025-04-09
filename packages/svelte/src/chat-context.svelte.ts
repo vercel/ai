@@ -1,4 +1,4 @@
-import type { JSONValue, UIMessage } from '@ai-sdk/ui-utils';
+import type { JSONValue, UIMessage } from 'ai';
 import { createContext, KeyedStore } from './utils.svelte.js';
 
 class ChatStore {

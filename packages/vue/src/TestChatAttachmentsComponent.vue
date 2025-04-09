@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useChat } from './use-chat';
-import { getTextFromDataUrl } from '@ai-sdk/ui-utils';
+import { getTextFromDataUrl } from 'ai';
 
 const { messages, handleSubmit, handleInputChange, status, input } = useChat();
 const attachments = ref<FileList>();

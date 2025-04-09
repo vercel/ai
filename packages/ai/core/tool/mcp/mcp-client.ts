@@ -1,5 +1,5 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
-import { jsonSchema } from '@ai-sdk/ui-utils';
+import { jsonSchema } from '../../util';
 import { z, ZodType } from 'zod';
 import { MCPClientError } from '../../../errors';
 import { inferParameters, tool, Tool, ToolExecutionOptions } from '../tool';

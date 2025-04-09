@@ -1,6 +1,6 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
-import { Message } from '@ai-sdk/ui-utils';
+import { Message } from '../types';
 import { z } from 'zod';
 import { ToolSet } from '../generate-text/tool-set';
 import { convertToCoreMessages } from './convert-to-core-messages';

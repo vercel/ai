@@ -3,7 +3,7 @@ import {
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { jsonSchema } from '@ai-sdk/ui-utils';
+import { jsonSchema } from '../util';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod';
 import {
