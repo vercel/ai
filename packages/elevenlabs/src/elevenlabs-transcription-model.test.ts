@@ -100,8 +100,6 @@ describe('doGenerate', () => {
 
     const provider = createElevenLabs({
       apiKey: 'test-api-key',
-      organization: 'test-organization',
-      project: 'test-project',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
@@ -122,8 +120,6 @@ describe('doGenerate', () => {
       ),
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
-      'elevenlabs-organization': 'test-organization',
-      'elevenlabs-project': 'test-project',
     });
   });
 
@@ -198,8 +194,7 @@ describe('doGenerate', () => {
     server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
       type: 'json-value',
       body: {
-        task: 'transcribe',
-        text: 'Hello from the Vercel AI SDK!',
+        text: 'Hello world!',
         _request_id: 'req_1234',
       },
     };
