@@ -18,23 +18,6 @@ import { OpenAISpeechAPITypes } from './openai-api-types';
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
 const OpenAIProviderOptionsSchema = z.object({
-  voice: z
-    .enum([
-      'alloy',
-      'ash',
-      'ballad',
-      'coral',
-      'echo',
-      'fable',
-      'onyx',
-      'nova',
-      'sage',
-      'shimmer',
-      'verse',
-    ])
-    .default('alloy')
-    .optional()
-    .describe('The voice to use when generating the audio.'),
   instructions: z
     .string()
     .optional()
