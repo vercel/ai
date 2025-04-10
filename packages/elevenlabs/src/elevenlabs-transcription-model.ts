@@ -234,21 +234,21 @@ const elevenlabsTranscriptionResponseSchema = z.object({
       z.object({
         text: z.string(),
         type: z.enum(['word', 'spacing', 'audio_event']),
-        start: z.number().optional(),
-        end: z.number().optional(),
-        speaker_id: z.string().optional(),
+        start: z.number().nullish(),
+        end: z.number().nullish(),
+        speaker_id: z.string().nullish(),
         characters: z
           .array(
             z.object({
               text: z.string(),
-              start: z.number().optional(),
-              end: z.number().optional(),
+              start: z.number().nullish(),
+              end: z.number().nullish(),
             }),
           )
-          .optional(),
+          .nullish(),
       }),
     )
-    .optional(),
+    .nullish(),
   additional_formats: z
     .array(
       z.object({
@@ -259,5 +259,5 @@ const elevenlabsTranscriptionResponseSchema = z.object({
         content: z.string(),
       }),
     )
-    .optional(),
+    .nullish(),
 });
