@@ -12,10 +12,7 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
-import {
-  BedrockChatModelId,
-  BedrockChatSettings,
-} from './bedrock-chat-settings';
+import { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import {
   BedrockEmbeddingModelId,
@@ -84,15 +81,9 @@ and `sessionToken` settings.
 }
 
 export interface AmazonBedrockProvider extends ProviderV2 {
-  (
-    modelId: BedrockChatModelId,
-    settings?: BedrockChatSettings,
-  ): LanguageModelV2;
+  (modelId: BedrockChatModelId): LanguageModelV2;
 
-  languageModel(
-    modelId: BedrockChatModelId,
-    settings?: BedrockChatSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: BedrockChatModelId): LanguageModelV2;
 
   embedding(
     modelId: BedrockEmbeddingModelId,
@@ -162,28 +153,22 @@ export function createAmazonBedrock(
         })}.amazonaws.com`,
     ) ?? `https://bedrock-runtime.us-east-1.amazonaws.com`;
 
-  const createChatModel = (
-    modelId: BedrockChatModelId,
-    settings: BedrockChatSettings = {},
-  ) =>
-    new BedrockChatLanguageModel(modelId, settings, {
+  const createChatModel = (modelId: BedrockChatModelId) =>
+    new BedrockChatLanguageModel(modelId, {
       baseUrl: getBaseUrl,
       headers: options.headers ?? {},
       fetch: sigv4Fetch,
       generateId,
     });
 
-  const provider = function (
-    modelId: BedrockChatModelId,
-    settings?: BedrockChatSettings,
-  ) {
+  const provider = function (modelId: BedrockChatModelId) {
     if (new.target) {
       throw new Error(
         'The Amazon Bedrock model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   const createEmbeddingModel = (
