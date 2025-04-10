@@ -25,6 +25,8 @@ export const dataContentSchema: z.ZodType<DataContent> = z.union([
   ),
 ]);
 
+// TODO function that convert to LanguageModelV2DataContent <<
+
 /**
 Converts data content to a base64-encoded string.
 

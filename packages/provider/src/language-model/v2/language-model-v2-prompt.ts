@@ -1,3 +1,4 @@
+import { LanguageModelV2DataContent } from './language-model-v2-data-content';
 import { LanguageModelV2ProviderOptions } from './language-model-v2-provider-options';
 
 /**
@@ -123,7 +124,7 @@ export interface LanguageModelV2FilePart {
   /**
 File data. Can be a Uint8Array, base64 encoded data as a string or a URL.
 */
-  data: Uint8Array | string | URL;
+  data: LanguageModelV2DataContent;
 
   /**
 IANA media type of the file.

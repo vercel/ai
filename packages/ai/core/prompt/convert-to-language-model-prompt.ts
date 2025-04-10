@@ -267,7 +267,7 @@ function convertPartToLanguageModelPart(
   let mediaType: string | undefined = part.mediaType ?? part.mimeType;
   let data: DataContent | URL;
   let content: DataContent | URL | string;
-  let normalizedData: Uint8Array | URL;
+  let normalizedData: Uint8Array | string | URL; // binary | base64 | url
 
   const type = part.type;
   switch (type) {
@@ -304,7 +304,7 @@ function convertPartToLanguageModelPart(
       }
 
       mediaType = dataUrlMediaType;
-      normalizedData = convertDataContentToUint8Array(base64Content);
+      normalizedData = base64Content;
     } else {
       /**
        * If the content is a URL, we should first see if it was downloaded. And if not,
@@ -319,10 +319,6 @@ function convertPartToLanguageModelPart(
         normalizedData = content;
       }
     }
-  } else {
-    // Since we know now the content is not a URL, we can attempt to normalize
-    // the data assuming it is some sort of data.
-    normalizedData = convertDataContentToUint8Array(content);
   }
 
   // Now that we have the normalized data either as a URL or a Uint8Array,
