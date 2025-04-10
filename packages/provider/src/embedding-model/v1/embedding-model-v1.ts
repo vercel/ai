@@ -1,7 +1,8 @@
+import { LanguageModelV2ProviderOptions } from '../../language-model';
 import { EmbeddingModelV1Embedding } from './embedding-model-v1-embedding';
 
 /**
-Specification for an embedding model that implements the embedding model 
+Specification for an embedding model that implements the embedding model
 interface version 1.
 
 VALUE is the type of the values that the model can embed.
@@ -54,6 +55,8 @@ List of values to embed.
 Abort signal for cancelling the operation.
      */
     abortSignal?: AbortSignal;
+
+    providerOptions?: LanguageModelV2ProviderOptions;
 
     /**
   Additional HTTP headers to be sent with the request.
