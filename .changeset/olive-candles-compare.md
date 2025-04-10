@@ -4,4 +4,4 @@
 'ai': patch
 ---
 
-feat: add speech with experimental_speak
+feat: add speech with experimental_generateSpeech

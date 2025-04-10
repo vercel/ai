@@ -1,9 +1,9 @@
 import { openai } from '@ai-sdk/openai';
-import { experimental_speak as speak } from 'ai';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
 import 'dotenv/config';
 
 async function main() {
-  const result = await speak({
+  const result = await generateSpeech({
     model: openai.speech('tts-1'),
     text: 'Hello from the Vercel AI SDK!',
     providerOptions: {

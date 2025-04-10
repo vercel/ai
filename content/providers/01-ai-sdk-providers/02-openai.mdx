@@ -899,10 +899,10 @@ const model = openai.speech('tts-1', {
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying a voice to use for the generated audio.
 
 ```ts highlight="6"
-import { experimental_speak as speak } from 'ai';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const result = await speak({
+const result = await generateSpeech({
   model: openai.speech('tts-1'),
   text: 'Hello, world!',
   providerOptions: { openai: { voice: 'nova' } },

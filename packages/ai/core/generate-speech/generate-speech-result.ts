@@ -3,7 +3,7 @@ import { SpeechModelResponseMetadata } from '../types/speech-model-response-meta
 import { SpeechWarning } from '../types';
 
 /**
-The result of a `speak` call.
+The result of a `generateSpeech` call.
 It contains the audio data and additional information.
  */
 export interface SpeechResult {

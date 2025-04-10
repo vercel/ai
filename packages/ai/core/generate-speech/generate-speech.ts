@@ -4,7 +4,7 @@ import { prepareRetries } from '../prompt/prepare-retries';
 import { ProviderOptions } from '../types/provider-metadata';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
-import { SpeechResult } from './speak-result';
+import { SpeechResult } from './generate-speech-result';
 
 /**
 Generates speech audio using a speech model.
@@ -19,7 +19,7 @@ as body parameters.
 
 @returns A result object that contains the generated audio data.
  */
-export async function speak({
+export async function generateSpeech({
   model,
   text,
   voice,

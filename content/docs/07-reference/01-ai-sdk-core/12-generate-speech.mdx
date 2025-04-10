@@ -1,20 +1,20 @@
 ---
-title: speak
-description: API Reference for speak.
+title: generateSpeech
+description: API Reference for generateSpeech.
 ---
 
-# `speak()`
+# `generateSpeech()`
 
-<Note type="warning">`speak` is an experimental feature.</Note>
+<Note type="warning">`generateSpeech` is an experimental feature.</Note>
 
 Generates speech audio from text.
 
 ```ts
-import { experimental_speak as speak } from 'ai';
+import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
-const { audioData, contentType } = await speak({
+const { audioData, contentType } = await generateSpeech({
   model: openai.speech('tts-1'),
   text: 'Hello from the Vercel AI SDK!',
 });
@@ -25,7 +25,7 @@ console.log(audioData);
 ## Import
 
 <Snippet
-  text={`import { experimental_speak as speak } from "ai"`}
+  text={`import { experimental_generateSpeech as generateSpeech } from "ai"`}
   prompt={false}
 />
 

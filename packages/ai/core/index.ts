@@ -37,7 +37,7 @@ export * from './embed';
 export * from './generate-image';
 export * from './generate-object';
 export * from './generate-text';
-export * from './speak';
+export * from './generate-speech';
 export * from './transcribe';
 export * from './middleware';
 export * from './prompt';

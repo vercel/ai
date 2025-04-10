@@ -1,6 +1,6 @@
 import { JSONValue, SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
 import { MockSpeechModelV1 } from '../test/mock-speech-model-v1';
-import { speak } from './speak';
+import { generateSpeech } from './generate-speech';
 
 const audioData = new ArrayBuffer(4); // Sample audio data
 const testDate = new Date(2024, 0, 1);
@@ -27,14 +27,14 @@ const createMockResponse = (options: {
   providerMetadata: options.providerMetadata ?? {},
 });
 
-describe('speak', () => {
+describe('generateSpeech', () => {
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
     let capturedArgs!: Parameters<SpeechModelV1['doGenerate']>[0];
 
-    await speak({
+    await generateSpeech({
       model: new MockSpeechModelV1({
         doGenerate: async args => {
           capturedArgs = args;
@@ -59,7 +59,7 @@ describe('speak', () => {
   });
 
   it('should return warnings', async () => {
-    const result = await speak({
+    const result = await generateSpeech({
       model: new MockSpeechModelV1({
         doGenerate: async () =>
           createMockResponse({
@@ -89,7 +89,7 @@ describe('speak', () => {
   });
 
   it('should return the audio data', async () => {
-    const result = await speak({
+    const result = await generateSpeech({
       model: new MockSpeechModelV1({
         doGenerate: async () =>
           createMockResponse({
@@ -118,7 +118,7 @@ describe('speak', () => {
   describe('error handling', () => {
     it('should throw NoSpeechGeneratedError when no audio is returned', async () => {
       await expect(
-        speak({
+        generateSpeech({
           model: new MockSpeechModelV1({
             doGenerate: async () =>
               createMockResponse({
@@ -142,7 +142,7 @@ describe('speak', () => {
 
     it('should include response headers in error when no audio generated', async () => {
       await expect(
-        speak({
+        generateSpeech({
           model: new MockSpeechModelV1({
             doGenerate: async () =>
               createMockResponse({
@@ -174,7 +174,7 @@ describe('speak', () => {
   it('should return response metadata', async () => {
     const testHeaders = { 'x-test': 'value' };
 
-    const result = await speak({
+    const result = await generateSpeech({
       model: new MockSpeechModelV1({
         doGenerate: async () =>
           createMockResponse({
