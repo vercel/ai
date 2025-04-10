@@ -12,7 +12,7 @@ import {
 } from '../util/detect-media-type';
 import { FilePart, ImagePart, TextPart } from './content-part';
 import {
-  convertDataContentToBinaryOrBase64OrURL,
+  convertToLanguageModelV2DataContent,
   DataContent,
 } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
@@ -110,8 +110,9 @@ export function convertToLanguageModelMessage(
 
             switch (part.type) {
               case 'file': {
-                const { data, mediaType } =
-                  convertDataContentToBinaryOrBase64OrURL(part.data);
+                const { data, mediaType } = convertToLanguageModelV2DataContent(
+                  part.data,
+                );
                 return {
                   type: 'file',
                   data,
@@ -275,7 +276,7 @@ function convertPartToLanguageModelPart(
   }
 
   const { data: convertedData, mediaType: convertedMediaType } =
-    convertDataContentToBinaryOrBase64OrURL(originalData);
+    convertToLanguageModelV2DataContent(originalData);
 
   let mediaType: string | undefined =
     convertedMediaType ?? part.mediaType ?? part.mimeType;
