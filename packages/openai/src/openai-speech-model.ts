@@ -147,7 +147,6 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     return {
       audioData: audioBuffer,
       contentType,
-      durationInSeconds: undefined, // OpenAI doesn't provide duration information
       warnings,
       request: {
         body: JSON.stringify(requestBody),

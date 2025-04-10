@@ -41,12 +41,6 @@ export type SpeechModelV1 = {
     contentType: string;
 
     /**
-     * The duration of the generated audio in seconds.
-     * May be undefined if the duration couldn't be determined.
-     */
-    durationInSeconds: number | undefined;
-
-    /**
      * Warnings for the call, e.g. unsupported settings.
      */
     warnings: Array<SpeechModelV1CallWarning>;
