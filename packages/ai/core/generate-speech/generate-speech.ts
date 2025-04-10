@@ -89,7 +89,7 @@ Only applicable for HTTP-based providers.
     }),
   );
 
-  if (!result.audioData) {
+  if (!result.audioData || result.audioData.byteLength === 0) {
     throw new NoSpeechGeneratedError({ responses: [result.response] });
   }
 
