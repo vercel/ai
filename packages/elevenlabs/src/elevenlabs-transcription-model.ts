@@ -22,82 +22,82 @@ import {
 const ElevenLabsProviderOptionsSchema = z.object({
   languageCode: z
     .string()
-    .optional(),
+    .nullish(),
   tagAudioEvents: z
     .boolean()
-    .optional()
+    .nullish()
     .default(true),
   numSpeakers: z
     .number()
     .int()
     .min(1)
     .max(32)
-    .optional(),
+    .nullish(),
   timestampsGranularity: z
     .enum(['none', 'word', 'character'])
-    .optional()
+    .nullish()
     .default('word'),
   diarize: z
     .boolean()
-    .optional()
+    .nullish()
     .default(false),
   additionalFormats: z
     .array(
       z.union([
         z.object({
           format: z.literal('docx'),
-          include_speakers: z.boolean().optional(),
-          include_timestamps: z.boolean().optional(),
-          max_segment_chars: z.number().optional(),
-          max_segment_duration_s: z.number().optional(),
-          segment_on_silence_longer_than_s: z.number().optional(),
+          include_speakers: z.boolean().nullish(),
+          include_timestamps: z.boolean().nullish(),
+          max_segment_chars: z.number().nullish(),
+          max_segment_duration_s: z.number().nullish(),
+          segment_on_silence_longer_than_s: z.number().nullish(),
         }),
         z.object({
           format: z.literal('html'),
-          include_speakers: z.boolean().optional(),
-          include_timestamps: z.boolean().optional(),
-          max_segment_chars: z.number().optional(),
-          max_segment_duration_s: z.number().optional(),
-          segment_on_silence_longer_than_s: z.number().optional(),
+          include_speakers: z.boolean().nullish(),
+          include_timestamps: z.boolean().nullish(),
+          max_segment_chars: z.number().nullish(),
+          max_segment_duration_s: z.number().nullish(),
+          segment_on_silence_longer_than_s: z.number().nullish(),
         }),
         z.object({
           format: z.literal('pdf'),
-          include_speakers: z.boolean().optional(),
-          include_timestamps: z.boolean().optional(),
-          max_segment_chars: z.number().optional(),
-          max_segment_duration_s: z.number().optional(),
-          segment_on_silence_longer_than_s: z.number().optional(),
+          include_speakers: z.boolean().nullish(),
+          include_timestamps: z.boolean().nullish(),
+          max_segment_chars: z.number().nullish(),
+          max_segment_duration_s: z.number().nullish(),
+          segment_on_silence_longer_than_s: z.number().nullish(),
         }),
         z.object({
           format: z.literal('segmented_json'),
-          max_segment_chars: z.number().optional(),
-          max_segment_duration_s: z.number().optional(),
-          segment_on_silence_longer_than_s: z.number().optional(),
+          max_segment_chars: z.number().nullish(),
+          max_segment_duration_s: z.number().nullish(),
+          segment_on_silence_longer_than_s: z.number().nullish(),
         }),
         z.object({
           format: z.literal('srt'),
-          include_speakers: z.boolean().optional(),
-          include_timestamps: z.boolean().optional(),
-          max_characters_per_line: z.number().optional(),
-          max_segment_chars: z.number().optional(),
-          max_segment_duration_s: z.number().optional(),
-          segment_on_silence_longer_than_s: z.number().optional(),
+          include_speakers: z.boolean().nullish(),
+          include_timestamps: z.boolean().nullish(),
+          max_characters_per_line: z.number().nullish(),
+          max_segment_chars: z.number().nullish(),
+          max_segment_duration_s: z.number().nullish(),
+          segment_on_silence_longer_than_s: z.number().nullish(),
         }),
         z.object({
           format: z.literal('txt'),
-          include_speakers: z.boolean().optional(),
-          include_timestamps: z.boolean().optional(),
-          max_characters_per_line: z.number().optional(),
-          max_segment_chars: z.number().optional(),
-          max_segment_duration_s: z.number().optional(),
-          segment_on_silence_longer_than_s: z.number().optional(),
+          include_speakers: z.boolean().nullish(),
+          include_timestamps: z.boolean().nullish(),
+          max_characters_per_line: z.number().nullish(),
+          max_segment_chars: z.number().nullish(),
+          max_segment_duration_s: z.number().nullish(),
+          segment_on_silence_longer_than_s: z.number().nullish(),
         }),
       ]),
     )
-    .optional(),
+    .nullish(),
   file_format: z
     .enum(['pcm_s16le_16', 'other'])
-    .optional()
+    .nullish()
     .default('other'),
 });
 
@@ -155,13 +155,24 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
     // Add provider-specific options
     if (elevenlabsOptions) {
       const transcriptionModelOptions: ElevenLabsTranscriptionModelOptions = {
-        language_code: elevenlabsOptions.languageCode,
-        tag_audio_events: elevenlabsOptions.tagAudioEvents,
-        num_speakers: elevenlabsOptions.numSpeakers,
-        timestamps_granularity: elevenlabsOptions.timestampsGranularity,
-        diarize: elevenlabsOptions.diarize,
-        additional_formats: elevenlabsOptions.additionalFormats,
-        file_format: elevenlabsOptions.file_format,
+        language_code: elevenlabsOptions.languageCode ?? undefined,
+        tag_audio_events: elevenlabsOptions.tagAudioEvents ?? undefined,
+        num_speakers: elevenlabsOptions.numSpeakers ?? undefined,
+        timestamps_granularity: elevenlabsOptions.timestampsGranularity ?? undefined,
+        diarize: elevenlabsOptions.diarize ?? undefined,
+        additional_formats: elevenlabsOptions.additionalFormats?.map(format => {
+          const result: any = { format: format.format };
+          
+          if ('include_speakers' in format) result.include_speakers = format.include_speakers ?? undefined;
+          if ('include_timestamps' in format) result.include_timestamps = format.include_timestamps ?? undefined;
+          if ('max_segment_chars' in format) result.max_segment_chars = format.max_segment_chars ?? undefined;
+          if ('max_segment_duration_s' in format) result.max_segment_duration_s = format.max_segment_duration_s ?? undefined;
+          if ('segment_on_silence_longer_than_s' in format) result.segment_on_silence_longer_than_s = format.segment_on_silence_longer_than_s ?? undefined;
+          if ('max_characters_per_line' in format) result.max_characters_per_line = format.max_characters_per_line ?? undefined;
+          
+          return result;
+        }),
+        file_format: elevenlabsOptions.file_format ?? undefined,
       };
 
       for (const key in transcriptionModelOptions) {
