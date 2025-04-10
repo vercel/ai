@@ -23,7 +23,7 @@
     "@ai-sdk/provider": "1.1.2",
     "@ai-sdk/replicate": "0.2.6",
     "@ai-sdk/togetherai": "0.2.8",
-    "@ai-sdk/xai": "1.2.9",
+    "@ai-sdk/xai": "1.2.10",
     "@ai-sdk/valibot": "0.1.16",
     "@google/generative-ai": "0.21.0",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
