@@ -262,8 +262,6 @@ describe('doGenerate', () => {
       {
         "body": {
           "frequency_penalty": undefined,
-          "function_call": undefined,
-          "functions": undefined,
           "logit_bias": undefined,
           "logprobs": undefined,
           "max_completion_tokens": undefined,
@@ -1944,8 +1942,6 @@ describe('doStream', () => {
       {
         "body": {
           "frequency_penalty": undefined,
-          "function_call": undefined,
-          "functions": undefined,
           "logit_bias": undefined,
           "logprobs": undefined,
           "max_completion_tokens": undefined,
