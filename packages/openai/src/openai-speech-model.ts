@@ -92,7 +92,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     });
 
     // Create request body
-    const requestBody: Record<string, any> = {
+    const requestBody: Record<string, unknown> = {
       model: this.modelId,
       input: text,
       voice: 'alloy',
