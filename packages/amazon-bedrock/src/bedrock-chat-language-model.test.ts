@@ -180,7 +180,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 34 },
+        usage: { inputTokens: 4, outputTokens: 34 },
       },
     ]);
   });
@@ -265,7 +265,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'tool-calls',
-        usage: { promptTokens: NaN, completionTokens: NaN },
+        usage: { inputTokens: undefined, outputTokens: undefined },
       },
     ]);
   });
@@ -405,7 +405,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'tool-calls',
-        usage: { promptTokens: NaN, completionTokens: NaN },
+        usage: { inputTokens: undefined, outputTokens: undefined },
       },
     ]);
   });
@@ -445,10 +445,7 @@ describe('doStream', () => {
       {
         finishReason: 'error',
         type: 'finish',
-        usage: {
-          completionTokens: NaN,
-          promptTokens: NaN,
-        },
+        usage: { inputTokens: undefined, outputTokens: undefined },
       },
     ]);
   });
@@ -488,7 +485,7 @@ describe('doStream', () => {
       {
         finishReason: 'error',
         type: 'finish',
-        usage: { promptTokens: NaN, completionTokens: NaN },
+        usage: { inputTokens: undefined, outputTokens: undefined },
       },
     ]);
   });
@@ -528,7 +525,7 @@ describe('doStream', () => {
       {
         finishReason: 'error',
         type: 'finish',
-        usage: { promptTokens: NaN, completionTokens: NaN },
+        usage: { inputTokens: undefined, outputTokens: undefined },
       },
     ]);
   });
@@ -568,7 +565,7 @@ describe('doStream', () => {
       {
         finishReason: 'error',
         type: 'finish',
-        usage: { promptTokens: NaN, completionTokens: NaN },
+        usage: { inputTokens: undefined, outputTokens: undefined },
       },
     ]);
   });
@@ -592,7 +589,7 @@ describe('doStream', () => {
       {
         finishReason: 'error',
         type: 'finish',
-        usage: { promptTokens: NaN, completionTokens: NaN },
+        usage: { inputTokens: undefined, outputTokens: undefined },
       },
     ]);
   });
@@ -685,7 +682,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 34 },
+        usage: { inputTokens: 4, outputTokens: 34 },
         providerMetadata: {
           bedrock: {
             trace: mockTrace,
@@ -896,7 +893,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 34 },
+        usage: { inputTokens: 4, outputTokens: 34 },
         providerMetadata: {
           bedrock: {
             usage: {
@@ -1006,7 +1003,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: NaN, completionTokens: NaN },
+        usage: { inputTokens: undefined, outputTokens: undefined },
       },
     ]);
   });
@@ -1049,7 +1046,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: NaN, completionTokens: NaN },
+        usage: { inputTokens: undefined, outputTokens: undefined },
       },
     ]);
   });
@@ -1134,8 +1131,8 @@ describe('doGenerate', () => {
     });
 
     expect(usage).toStrictEqual({
-      promptTokens: 4,
-      completionTokens: 34,
+      inputTokens: 4,
+      outputTokens: 34,
     });
   });
 
@@ -1437,8 +1434,8 @@ describe('doGenerate', () => {
       },
     });
     expect(response.usage).toEqual({
-      promptTokens: 4,
-      completionTokens: 34,
+      inputTokens: 4,
+      outputTokens: 34,
     });
   });
 

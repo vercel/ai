@@ -6,6 +6,7 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2ProviderMetadata,
   LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -282,8 +283,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         response.stopReason as BedrockStopReason,
       ),
       usage: {
-        promptTokens: response.usage?.inputTokens ?? Number.NaN,
-        completionTokens: response.usage?.outputTokens ?? Number.NaN,
+        inputTokens: response.usage?.inputTokens,
+        outputTokens: response.usage?.outputTokens,
       },
       response: {
         // TODO add id, timestamp, etc
@@ -319,9 +320,9 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     });
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    let usage = {
-      promptTokens: Number.NaN,
-      completionTokens: Number.NaN,
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
     };
     let providerMetadata: LanguageModelV2ProviderMetadata | undefined =
       undefined;
@@ -380,11 +381,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             }
 
             if (value.metadata) {
-              usage = {
-                promptTokens: value.metadata.usage?.inputTokens ?? Number.NaN,
-                completionTokens:
-                  value.metadata.usage?.outputTokens ?? Number.NaN,
-              };
+              usage.inputTokens =
+                value.metadata.usage?.inputTokens ?? usage.inputTokens;
+              usage.outputTokens =
+                value.metadata.usage?.outputTokens ?? usage.outputTokens;
 
               const cacheUsage =
                 value.metadata.usage?.cacheReadInputTokens != null ||
