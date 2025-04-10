@@ -22,34 +22,23 @@ import {
 const OpenAIProviderOptionsSchema = z.object({
   include: z
     .array(z.string())
-    .optional()
-    .describe(
-      'Additional information to include in the transcription response.',
-    ),
+    .optional(),
   language: z
     .string()
-    .optional()
-    .describe('The language of the input audio in ISO-639-1 format.'),
+    .optional(),
   prompt: z
     .string()
-    .optional()
-    .describe(
-      "An optional text to guide the model's style or continue a previous audio segment.",
-    ),
+    .optional(),
   temperature: z
     .number()
     .min(0)
     .max(1)
     .optional()
-    .default(0)
-    .describe('The sampling temperature, between 0 and 1.'),
+    .default(0),
   timestampGranularities: z
     .array(z.enum(['word', 'segment']))
     .optional()
     .default(['segment'])
-    .describe(
-      'The timestamp granularities to populate for this transcription.',
-    ),
 });
 
 export type OpenAITranscriptionCallOptions = Omit<
