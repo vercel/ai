@@ -14,13 +14,12 @@ import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
-const { audio, mediaType } = await generateSpeech({
+const { audio } = await generateSpeech({
   model: openai.speech('tts-1'),
   text: 'Hello from the AI SDK!',
 });
 
 console.log(audio);
-console.log(mediaType);
 ```
 
 ## Import
@@ -79,8 +78,30 @@ console.log(mediaType);
   content={[
     {
       name: 'audio',
-      type: 'string | Uint8Array',
-      description: 'The audio data as a base64 encoded string or binary data.',
+      type: 'GeneratedFile',
+      description: 'The generated audio.',
+      properties: [
+        {
+          type: 'GeneratedFile',
+          parameters: [
+            {
+              name: 'base64',
+              type: 'string',
+              description: 'Audio as a base64 encoded string.',
+            },
+            {
+              name: 'uint8Array',
+              type: 'Uint8Array',
+              description: 'Audio as a Uint8Array.',
+            },
+            {
+              name: 'mimeType',
+              type: 'string',
+              description: 'MIME type of the audio.',
+            },
+          ],
+        },
+      ],
     },
     {
       name: 'warnings',

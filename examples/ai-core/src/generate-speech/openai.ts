@@ -15,7 +15,6 @@ async function main() {
   });
 
   console.log('Audio:', result.audio);
-  console.log('Media Type:', result.mediaType);
   console.log('Warnings:', result.warnings);
   console.log('Responses:', result.responses);
   console.log('Provider Metadata:', result.providerMetadata);

@@ -114,7 +114,6 @@ describe('doGenerate', () => {
     });
 
     expect(result.audio).toStrictEqual(audio);
-    expect(result.mediaType).toBe('audio/opus');
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
@@ -187,7 +186,6 @@ describe('doGenerate', () => {
       });
 
       expect(result.audio).toStrictEqual(audio);
-      expect(result.mediaType).toBe(`audio/${format}`);
     }
   });
 

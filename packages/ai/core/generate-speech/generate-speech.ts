@@ -5,6 +5,8 @@ import { ProviderOptions } from '../types/provider-metadata';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
+import { DefaultGeneratedFile, GeneratedFile } from '../generate-text/generated-file';
+import { audioMimeTypeSignatures, detectMimeType } from '../util/detect-mimetype';
 
 /**
 Generates speech audio using a speech model.
@@ -94,8 +96,13 @@ Only applicable for HTTP-based providers.
   }
 
   return new DefaultSpeechResult({
-    audio: result.audio,
-    mediaType: result.mediaType,
+    audio: new DefaultGeneratedFile({
+      data: result.audio,
+      mimeType: detectMimeType({
+        data: result.audio,
+        signatures: audioMimeTypeSignatures,
+      }) ?? 'audio/mp3',
+    }),
     warnings: result.warnings,
     responses: [result.response],
     providerMetadata: result.providerMetadata,
@@ -103,21 +110,18 @@ Only applicable for HTTP-based providers.
 }
 
 class DefaultSpeechResult implements SpeechResult {
-  readonly audio: string | Uint8Array;
-  readonly mediaType: string;
+  readonly audio: GeneratedFile;
   readonly warnings: Array<SpeechWarning>;
   readonly responses: Array<SpeechModelResponseMetadata>;
   readonly providerMetadata: Record<string, Record<string, JSONValue>>;
 
   constructor(options: {
-    audio: string | Uint8Array;
-    mediaType: string;
+    audio: GeneratedFile;
     warnings: Array<SpeechWarning>;
     responses: Array<SpeechModelResponseMetadata>;
     providerMetadata: Record<string, Record<string, JSONValue>> | undefined;
   }) {
     this.audio = options.audio;
-    this.mediaType = options.mediaType;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata ?? {};

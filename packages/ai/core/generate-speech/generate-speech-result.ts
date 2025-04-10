@@ -1,6 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechWarning } from '../types';
+import { GeneratedFile } from '../generate-text';
 
 /**
 The result of a `generateSpeech` call.
@@ -10,14 +11,7 @@ export interface SpeechResult {
   /**
    * The audio data as a base64 encoded string or binary data.
    */
-  readonly audio: string | Uint8Array;
-
-  /**
-  The IANA media type of the audio data.
-
-  @see https://www.iana.org/assignments/media-types/media-types.xhtml
-   */
-  readonly mediaType: string;
+  readonly audio: GeneratedFile;
 
   /**
   Warnings for the call, e.g. unsupported settings.

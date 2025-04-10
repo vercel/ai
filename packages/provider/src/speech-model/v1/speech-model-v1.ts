@@ -39,12 +39,6 @@ export type SpeechModelV1 = {
     audio: string | Uint8Array;
 
     /**
-     * The MIME type of the audio data.
-     * For example: 'audio/mp3', 'audio/wav', etc.
-     */
-    mediaType: string;
-
-    /**
      * Warnings for the call, e.g. unsupported settings.
      */
     warnings: Array<SpeechModelV1CallWarning>;

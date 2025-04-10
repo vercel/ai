@@ -120,7 +120,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     const { requestBody, warnings } = this.getArgs(options);
 
     const {
-      value: audioBuffer,
+      value: audio,
       responseHeaders,
       rawValue: rawResponse,
     } = await postJsonToApi({
@@ -137,8 +137,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     });
 
     return {
-      audio: audioBuffer,
-      mediaType: `audio/${options.providerOptions?.openai?.response_format ?? 'mp3'}`,
+      audio,
       warnings,
       request: {
         body: JSON.stringify(requestBody),
