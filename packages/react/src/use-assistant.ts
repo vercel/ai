@@ -144,6 +144,8 @@ export function useAssistant({
 
     setInput('');
 
+    setError(undefined);
+
     const abortController = new AbortController();
 
     try {
