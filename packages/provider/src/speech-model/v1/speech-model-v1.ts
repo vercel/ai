@@ -30,9 +30,13 @@ export type SpeechModelV1 = {
    */
   doGenerate(options: SpeechModelV1CallOptions): PromiseLike<{
     /**
-     * The audio data as a binary buffer.
+     * Generated audio as an ArrayBuffer.
+     * The audio should be returned without any unnecessary conversion.
+     * If the API returns base64 encoded strings, the audio should be returned
+     * as base64 encoded strings. If the API returns binary data, the audio
+     * should be returned as binary data.
      */
-    audioData: ArrayBuffer;
+    audio: string | Uint8Array;
 
     /**
      * The MIME type of the audio data.

@@ -89,12 +89,12 @@ Only applicable for HTTP-based providers.
     }),
   );
 
-  if (!result.audioData || result.audioData.byteLength === 0) {
+  if (!result.audio || result.audio.length === 0) {
     throw new NoSpeechGeneratedError({ responses: [result.response] });
   }
 
   return new DefaultSpeechResult({
-    audioData: result.audioData,
+    audio: result.audio,
     contentType: result.contentType,
     warnings: result.warnings,
     responses: [result.response],
@@ -103,20 +103,20 @@ Only applicable for HTTP-based providers.
 }
 
 class DefaultSpeechResult implements SpeechResult {
-  readonly audioData: ArrayBuffer;
+  readonly audio: string | Uint8Array;
   readonly contentType: string;
   readonly warnings: Array<SpeechWarning>;
   readonly responses: Array<SpeechModelResponseMetadata>;
   readonly providerMetadata: Record<string, Record<string, JSONValue>>;
 
   constructor(options: {
-    audioData: ArrayBuffer;
+    audio: string | Uint8Array;
     contentType: string;
     warnings: Array<SpeechWarning>;
     responses: Array<SpeechModelResponseMetadata>;
     providerMetadata: Record<string, Record<string, JSONValue>> | undefined;
   }) {
-    this.audioData = options.audioData;
+    this.audio = options.audio;
     this.contentType = options.contentType;
     this.warnings = options.warnings;
     this.responses = options.responses;

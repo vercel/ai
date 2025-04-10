@@ -2,13 +2,13 @@ import { JSONValue, SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/prov
 import { MockSpeechModelV1 } from '../test/mock-speech-model-v1';
 import { generateSpeech } from './generate-speech';
 
-const audioData = new ArrayBuffer(4); // Sample audio data
+const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
 
 const sampleText = 'This is a sample text to convert to speech.';
 
 const createMockResponse = (options: {
-  audioData: ArrayBuffer;
+  audio: Uint8Array;
   contentType: string;
   warnings?: SpeechModelV1CallWarning[];
   timestamp?: Date;
@@ -16,7 +16,7 @@ const createMockResponse = (options: {
   headers?: Record<string, string>;
   providerMetadata?: Record<string, Record<string, JSONValue>>;
 }) => ({
-  audioData: options.audioData,
+  audio: options.audio,
   contentType: options.contentType ?? 'audio/mp3',
   warnings: options.warnings ?? [],
   response: {
@@ -39,7 +39,7 @@ describe('generateSpeech', () => {
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
-            audioData,
+            audio,
             contentType: 'audio/mp3',
           });
         },
@@ -64,7 +64,7 @@ describe('generateSpeech', () => {
       model: new MockSpeechModelV1({
         doGenerate: async () =>
           createMockResponse({
-            audioData,
+            audio,
             contentType: 'audio/mp3',
             warnings: [
               {
@@ -95,7 +95,7 @@ describe('generateSpeech', () => {
       model: new MockSpeechModelV1({
         doGenerate: async () =>
           createMockResponse({
-            audioData,
+            audio,
             contentType: 'audio/mp3',
           }),
       }),
@@ -103,7 +103,7 @@ describe('generateSpeech', () => {
     });
 
     expect(result).toEqual({
-      audioData,
+      audio,
       contentType: 'audio/mp3',
       warnings: [],
       responses: [
@@ -124,7 +124,7 @@ describe('generateSpeech', () => {
           model: new MockSpeechModelV1({
             doGenerate: async () =>
               createMockResponse({
-                audioData: new ArrayBuffer(0),
+                audio: new Uint8Array(),
                 contentType: 'audio/mp3',
                 timestamp: testDate,
               }),
@@ -149,7 +149,7 @@ describe('generateSpeech', () => {
           model: new MockSpeechModelV1({
             doGenerate: async () =>
               createMockResponse({
-                audioData: new ArrayBuffer(0),
+                audio: new Uint8Array(),
                 contentType: 'audio/mp3',
                 timestamp: testDate,
                 headers: {
@@ -182,7 +182,7 @@ describe('generateSpeech', () => {
       model: new MockSpeechModelV1({
         doGenerate: async () =>
           createMockResponse({
-            audioData,
+            audio,
             contentType: 'audio/mp3',
             timestamp: testDate,
             modelId: 'test-model',

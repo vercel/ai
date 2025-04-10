@@ -8,9 +8,9 @@ It contains the audio data and additional information.
  */
 export interface SpeechResult {
   /**
-   * The audio data as a binary buffer.
+   * The audio data as a base64 encoded string or binary data.
    */
-  readonly audioData: ArrayBuffer;
+  readonly audio: string | Uint8Array;
 
   /**
    * The content type of the audio data (e.g., 'audio/mp3', 'audio/wav').

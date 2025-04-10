@@ -17,7 +17,7 @@ describe('doGenerate', () => {
     headers?: Record<string, string>;
     format?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
   } = {}) {
-    const audioBuffer = new ArrayBuffer(100); // Mock audio data
+    const audioBuffer = new Uint8Array(100); // Mock audio data
     server.urls['https://api.openai.com/v1/audio/speech'].response = {
       type: 'binary',
       headers: {
@@ -95,7 +95,14 @@ describe('doGenerate', () => {
   });
 
   it('should return audio data with correct content type', async () => {
-    const audioBuffer = prepareAudioResponse({ format: 'opus' });
+    const audio = new Uint8Array(100); // Mock audio data
+    prepareAudioResponse({
+      format: 'opus',
+      headers: {
+        'x-request-id': 'test-request-id',
+        'x-ratelimit-remaining': '123',
+      },
+    });
 
     const result = await model.doGenerate({
       text: 'Hello from the Vercel AI SDK!',
@@ -106,7 +113,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(result.audioData).toStrictEqual(audioBuffer);
+    expect(result.audio).toStrictEqual(audio);
     expect(result.contentType).toBe('audio/opus');
   });
 
@@ -168,7 +175,7 @@ describe('doGenerate', () => {
     const formats = ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'] as const;
 
     for (const format of formats) {
-      const audioBuffer = prepareAudioResponse({ format });
+      const audio = prepareAudioResponse({ format });
 
       const result = await model.doGenerate({
         text: 'Hello from the Vercel AI SDK!',
@@ -179,7 +186,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(result.audioData).toStrictEqual(audioBuffer);
+      expect(result.audio).toStrictEqual(audio);
       expect(result.contentType).toBe(`audio/${format}`);
     }
   });
