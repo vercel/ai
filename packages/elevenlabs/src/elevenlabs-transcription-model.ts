@@ -20,27 +20,14 @@ import {
 
 // https://elevenlabs.io/docs/api-reference/speech-to-text/convert
 const ElevenLabsProviderOptionsSchema = z.object({
-  languageCode: z
-    .string()
-    .nullish(),
-  tagAudioEvents: z
-    .boolean()
-    .nullish()
-    .default(true),
-  numSpeakers: z
-    .number()
-    .int()
-    .min(1)
-    .max(32)
-    .nullish(),
+  languageCode: z.string().nullish(),
+  tagAudioEvents: z.boolean().nullish().default(true),
+  numSpeakers: z.number().int().min(1).max(32).nullish(),
   timestampsGranularity: z
     .enum(['none', 'word', 'character'])
     .nullish()
     .default('word'),
-  diarize: z
-    .boolean()
-    .nullish()
-    .default(false),
+  diarize: z.boolean().nullish().default(false),
   additionalFormats: z
     .array(
       z.union([
@@ -95,10 +82,7 @@ const ElevenLabsProviderOptionsSchema = z.object({
       ]),
     )
     .nullish(),
-  file_format: z
-    .enum(['pcm_s16le_16', 'other'])
-    .nullish()
-    .default('other'),
+  file_format: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
 });
 
 export type ElevenLabsTranscriptionCallOptions = Omit<
@@ -158,18 +142,28 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
         language_code: elevenlabsOptions.languageCode ?? undefined,
         tag_audio_events: elevenlabsOptions.tagAudioEvents ?? undefined,
         num_speakers: elevenlabsOptions.numSpeakers ?? undefined,
-        timestamps_granularity: elevenlabsOptions.timestampsGranularity ?? undefined,
+        timestamps_granularity:
+          elevenlabsOptions.timestampsGranularity ?? undefined,
         diarize: elevenlabsOptions.diarize ?? undefined,
         additional_formats: elevenlabsOptions.additionalFormats?.map(format => {
           const result: any = { format: format.format };
-          
-          if ('include_speakers' in format) result.include_speakers = format.include_speakers ?? undefined;
-          if ('include_timestamps' in format) result.include_timestamps = format.include_timestamps ?? undefined;
-          if ('max_segment_chars' in format) result.max_segment_chars = format.max_segment_chars ?? undefined;
-          if ('max_segment_duration_s' in format) result.max_segment_duration_s = format.max_segment_duration_s ?? undefined;
-          if ('segment_on_silence_longer_than_s' in format) result.segment_on_silence_longer_than_s = format.segment_on_silence_longer_than_s ?? undefined;
-          if ('max_characters_per_line' in format) result.max_characters_per_line = format.max_characters_per_line ?? undefined;
-          
+
+          if ('include_speakers' in format)
+            result.include_speakers = format.include_speakers ?? undefined;
+          if ('include_timestamps' in format)
+            result.include_timestamps = format.include_timestamps ?? undefined;
+          if ('max_segment_chars' in format)
+            result.max_segment_chars = format.max_segment_chars ?? undefined;
+          if ('max_segment_duration_s' in format)
+            result.max_segment_duration_s =
+              format.max_segment_duration_s ?? undefined;
+          if ('segment_on_silence_longer_than_s' in format)
+            result.segment_on_silence_longer_than_s =
+              format.segment_on_silence_longer_than_s ?? undefined;
+          if ('max_characters_per_line' in format)
+            result.max_characters_per_line =
+              format.max_characters_per_line ?? undefined;
+
           return result;
         }),
         file_format: elevenlabsOptions.file_format ?? undefined,
@@ -246,27 +240,16 @@ const elevenlabsTranscriptionResponseSchema = z.object({
     .array(
       z.object({
         text: z.string(),
-        type: z
-          .enum(['word', 'spacing', 'audio_event']),
-        start: z
-          .number()
-          .optional(),
-        end: z
-          .number()
-          .optional(),
-        speaker_id: z
-          .string()
-          .optional(),
+        type: z.enum(['word', 'spacing', 'audio_event']),
+        start: z.number().optional(),
+        end: z.number().optional(),
+        speaker_id: z.string().optional(),
         characters: z
           .array(
             z.object({
               text: z.string(),
-              start: z
-                .number()
-                .optional(),
-              end: z
-                .number()
-                .optional()
+              start: z.number().optional(),
+              end: z.number().optional(),
             }),
           )
           .optional(),
@@ -277,11 +260,9 @@ const elevenlabsTranscriptionResponseSchema = z.object({
     .array(
       z.object({
         requested_format: z.string(),
-        file_extension: z
-          .string(),
+        file_extension: z.string(),
         content_type: z.string(),
-        is_base64_encoded: z
-          .boolean(),
+        is_base64_encoded: z.boolean(),
         content: z.string(),
       }),
     )
