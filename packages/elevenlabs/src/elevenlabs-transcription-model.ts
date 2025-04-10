@@ -15,8 +15,8 @@ import { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
 import {
   ElevenLabsTranscriptionModelId,
-  ElevenLabsTranscriptionModelOptions,
 } from './elevenlabs-transcription-settings';
+import { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
 // https://elevenlabs.io/docs/api-reference/speech-to-text/convert
 const ElevenLabsProviderOptionsSchema = z.object({
@@ -138,7 +138,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
 
     // Add provider-specific options
     if (elevenlabsOptions) {
-      const transcriptionModelOptions: ElevenLabsTranscriptionModelOptions = {
+      const transcriptionModelOptions: ElevenLabsTranscriptionAPITypes = {
         language_code: elevenlabsOptions.languageCode ?? undefined,
         tag_audio_events: elevenlabsOptions.tagAudioEvents ?? undefined,
         num_speakers: elevenlabsOptions.numSpeakers ?? undefined,
@@ -172,7 +172,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
       for (const key in transcriptionModelOptions) {
         const value =
           transcriptionModelOptions[
-            key as keyof ElevenLabsTranscriptionModelOptions
+            key as keyof ElevenLabsTranscriptionAPITypes
           ];
         if (value !== undefined) {
           formData.append(key, String(value));
