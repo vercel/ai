@@ -3,7 +3,6 @@
 exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should be called for each step 1`] = `
 [
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
@@ -83,7 +82,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -206,7 +204,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
 exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should contain all steps 1`] = `
 [
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
@@ -286,7 +283,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -364,7 +360,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
 exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onStepFinish should be called for each step 1`] = `
 [
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -407,7 +402,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "files": [
       DefaultGeneratedFile {
         "base64Data": undefined,
@@ -477,7 +471,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -550,7 +543,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "files": [
       DefaultGeneratedFile {
         "base64Data": "QkFVRw==",
@@ -665,7 +657,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
 exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > result.steps should contain all steps 1`] = `
 [
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -708,7 +699,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "files": [
       DefaultGeneratedFile {
         "base64Data": undefined,
@@ -778,7 +768,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -851,7 +840,6 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "files": [
       DefaultGeneratedFile {
         "base64Data": "QkFVRw==",
@@ -1086,7 +1074,6 @@ exports[`result.sources > should contain sources 1`] = `
 exports[`result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -1151,7 +1138,6 @@ exports[`result.steps > should add the reasoning from the model response to the 
 exports[`result.steps > should contain files 1`] = `
 [
   {
-    "experimental_providerMetadata": undefined,
     "files": [
       DefaultGeneratedFile {
         "base64Data": undefined,
@@ -1222,7 +1208,6 @@ exports[`result.steps > should contain files 1`] = `
 exports[`result.steps > should contain sources 1`] = `
 [
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "stop",
     "isContinued": false,

@@ -42,7 +42,6 @@ it('should forward text deltas correctly', async () => {
       finishReason: 'stop',
       logprobs: undefined,
       usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-      experimental_providerMetadata: undefined,
     },
   ]);
 });
@@ -103,7 +102,6 @@ it('should handle immediate tool execution', async () => {
       finishReason: 'stop',
       logprobs: undefined,
       usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-      experimental_providerMetadata: undefined,
     },
   ]);
 });
@@ -167,7 +165,6 @@ it('should hold off on sending finish until the delayed tool result is received'
       finishReason: 'stop',
       logprobs: undefined,
       usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-      experimental_providerMetadata: undefined,
     },
   ]);
 });
@@ -239,7 +236,6 @@ it('should try to repair tool call when the tool name is not found', async () =>
       finishReason: 'stop',
       logprobs: undefined,
       usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-      experimental_providerMetadata: undefined,
     },
   ]);
 });

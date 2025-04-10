@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  ProviderMetadata,
   providerMetadataSchema,
   ProviderOptions,
 } from '../types/provider-metadata';
@@ -27,11 +26,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
- */
-  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -41,7 +35,6 @@ export const textPartSchema: z.ZodType<TextPart> = z.object({
   type: z.literal('text'),
   text: z.string(),
   providerOptions: providerMetadataSchema.optional(),
-  experimental_providerMetadata: providerMetadataSchema.optional(),
 });
 
 /**
@@ -76,11 +69,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
- */
-  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -92,7 +80,6 @@ export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   mediaType: z.string().optional(),
   mimeType: z.string().optional(),
   providerOptions: providerMetadataSchema.optional(),
-  experimental_providerMetadata: providerMetadataSchema.optional(),
 });
 
 /**
@@ -132,11 +119,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
- */
-  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -149,7 +131,6 @@ export const filePartSchema: z.ZodType<FilePart> = z.object({
   mediaType: z.string(),
   mimeType: z.string().optional(),
   providerOptions: providerMetadataSchema.optional(),
-  experimental_providerMetadata: providerMetadataSchema.optional(),
 });
 
 /**
@@ -174,11 +155,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
- */
-  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -188,7 +164,6 @@ export const reasoningPartSchema: z.ZodType<ReasoningPart> = z.object({
   type: z.literal('reasoning'),
   text: z.string(),
   providerOptions: providerMetadataSchema.optional(),
-  experimental_providerMetadata: providerMetadataSchema.optional(),
 });
 
 /**
@@ -208,11 +183,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
- */
-  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -223,7 +193,6 @@ export const redactedReasoningPartSchema: z.ZodType<RedactedReasoningPart> =
     type: z.literal('redacted-reasoning'),
     data: z.string(),
     providerOptions: providerMetadataSchema.optional(),
-    experimental_providerMetadata: providerMetadataSchema.optional(),
   });
 
 /**
@@ -253,11 +222,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
- */
-  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -269,7 +233,6 @@ export const toolCallPartSchema: z.ZodType<ToolCallPart> = z.object({
   toolName: z.string(),
   args: z.unknown(),
   providerOptions: providerMetadataSchema.optional(),
-  experimental_providerMetadata: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolCallPart>; // necessary bc args is optional on Zod type
 
 /**
@@ -309,11 +272,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
- */
-  experimental_providerMetadata?: ProviderMetadata;
 }
 
 /**
@@ -327,5 +285,4 @@ export const toolResultPartSchema: z.ZodType<ToolResultPart> = z.object({
   content: toolResultContentSchema.optional(),
   isError: z.boolean().optional(),
   providerOptions: providerMetadataSchema.optional(),
-  experimental_providerMetadata: providerMetadataSchema.optional(),
 }) as z.ZodType<ToolResultPart>; // necessary bc result is optional on Zod type

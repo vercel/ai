@@ -63,11 +63,6 @@ results that can be fully encapsulated in the provider.
   readonly providerMetadata: ProviderMetadata | undefined;
 
   /**
-@deprecated Use `providerMetadata` instead.
-   */
-  readonly experimental_providerMetadata: ProviderMetadata | undefined;
-
-  /**
   Converts the object to a JSON response.
   The response will have a status code of 200 and a content type of `application/json; charset=utf-8`.
      */

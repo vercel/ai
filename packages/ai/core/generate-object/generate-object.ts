@@ -121,11 +121,6 @@ functionality that can be fully encapsulated in the provider.
       providerOptions?: ProviderOptions;
 
       /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
-
-      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -205,11 +200,6 @@ functionality that can be fully encapsulated in the provider.
       providerOptions?: ProviderOptions;
 
       /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
-
-      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -275,11 +265,6 @@ functionality that can be fully encapsulated in the provider.
       providerOptions?: ProviderOptions;
 
       /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
-
-      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -330,11 +315,6 @@ functionality that can be fully encapsulated in the provider.
       providerOptions?: ProviderOptions;
 
       /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
-
-      /**
        * Internal. For test use only. May change without notice.
        */
       _internal?: {
@@ -359,8 +339,7 @@ export async function generateObject<SCHEMA, RESULT>({
   headers,
   experimental_repairText: repairText,
   experimental_telemetry: telemetry,
-  experimental_providerMetadata,
-  providerOptions = experimental_providerMetadata,
+  providerOptions,
   _internal: {
     generateId = originalGenerateId,
     currentDate = () => new Date(),
@@ -387,7 +366,6 @@ export async function generateObject<SCHEMA, RESULT>({
     mode?: 'auto' | 'json' | 'tool';
     experimental_repairText?: RepairTextFunction;
     experimental_telemetry?: TelemetrySettings;
-    experimental_providerMetadata?: ProviderMetadata;
     providerOptions?: ProviderOptions;
 
     /**
@@ -839,7 +817,6 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly usage: GenerateObjectResult<T>['usage'];
   readonly warnings: GenerateObjectResult<T>['warnings'];
   readonly logprobs: GenerateObjectResult<T>['logprobs'];
-  readonly experimental_providerMetadata: GenerateObjectResult<T>['experimental_providerMetadata'];
   readonly providerMetadata: GenerateObjectResult<T>['providerMetadata'];
   readonly response: GenerateObjectResult<T>['response'];
   readonly request: GenerateObjectResult<T>['request'];
@@ -859,7 +836,6 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.usage = options.usage;
     this.warnings = options.warnings;
     this.providerMetadata = options.providerMetadata;
-    this.experimental_providerMetadata = options.providerMetadata;
     this.response = options.response;
     this.request = options.request;
     this.logprobs = options.logprobs;

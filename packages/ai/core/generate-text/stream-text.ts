@@ -207,8 +207,7 @@ export function streamText<
   experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
-  experimental_providerMetadata,
-  providerOptions = experimental_providerMetadata,
+  providerOptions,
   experimental_toolCallStreaming = false,
   toolCallStreaming = experimental_toolCallStreaming,
   experimental_activeTools: activeTools,
@@ -273,11 +272,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
     providerOptions?: ProviderOptions;
-
-    /**
-@deprecated Use `providerOptions` instead.
- */
-    experimental_providerMetadata?: ProviderMetadata;
 
     /**
 Limits the tools that are available for the model to call without
@@ -478,9 +472,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['finishReason']>
   >();
   private readonly providerMetadataPromise = new DelayedPromise<
-    Awaited<
-      StreamTextResult<TOOLS, PARTIAL_OUTPUT>['experimental_providerMetadata']
-    >
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['providerMetadata']>
   >();
   private readonly textPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['text']>
@@ -748,8 +740,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               ...part.response,
               messages: [...recordedResponse.messages, ...stepMessages],
             },
-            providerMetadata: part.experimental_providerMetadata,
-            experimental_providerMetadata: part.experimental_providerMetadata,
+            providerMetadata: part.providerMetadata,
             isContinued: part.isContinued,
           };
 
@@ -799,9 +790,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.responsePromise.resolve(lastStep.response);
           self.toolCallsPromise.resolve(lastStep.toolCalls);
           self.toolResultsPromise.resolve(lastStep.toolResults);
-          self.providerMetadataPromise.resolve(
-            lastStep.experimental_providerMetadata,
-          );
+          self.providerMetadataPromise.resolve(lastStep.providerMetadata);
           self.reasoningPromise.resolve(lastStep.reasoning);
           self.reasoningDetailsPromise.resolve(lastStep.reasoningDetails);
 
@@ -839,8 +828,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             response: lastStep.response,
             warnings: lastStep.warnings,
             providerMetadata: lastStep.providerMetadata,
-            experimental_providerMetadata:
-              lastStep.experimental_providerMetadata,
             steps: recordedSteps,
           });
 
@@ -1249,8 +1236,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       // store usage and finish reason for promises and onFinish callback:
                       stepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
-                      stepProviderMetadata =
-                        chunk.experimental_providerMetadata;
+                      stepProviderMetadata = chunk.providerMetadata;
                       stepLogProbs = chunk.logprobs;
 
                       // Telemetry for finish event timing
@@ -1381,7 +1367,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     finishReason: stepFinishReason,
                     usage: stepUsage,
                     providerMetadata: stepProviderMetadata,
-                    experimental_providerMetadata: stepProviderMetadata,
                     logprobs: stepLogProbs,
                     request: stepRequest,
                     response: {
@@ -1401,7 +1386,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       finishReason: stepFinishReason,
                       usage: combinedUsage,
                       providerMetadata: stepProviderMetadata,
-                      experimental_providerMetadata: stepProviderMetadata,
                       logprobs: stepLogProbs,
                       response: {
                         ...stepResponse,
@@ -1502,10 +1486,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   get finishReason() {
     return this.finishReasonPromise.value;
-  }
-
-  get experimental_providerMetadata() {
-    return this.providerMetadataPromise.value;
   }
 
   get providerMetadata() {
