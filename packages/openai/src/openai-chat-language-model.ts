@@ -1,13 +1,12 @@
 import {
   InvalidResponseDataError,
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2ProviderMetadata,
+  LanguageModelV1,
+  LanguageModelV1CallWarning,
+  LanguageModelV1FinishReason,
+  LanguageModelV1LogProbs,
+  LanguageModelV1ProviderMetadata,
+  LanguageModelV1StreamPart,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -17,53 +16,75 @@ import {
   createJsonResponseHandler,
   generateId,
   isParsableJson,
-  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
-import { getResponseMetadata } from './get-response-metadata';
+import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
-import {
-  OpenAIChatModelId,
-  openaiProviderOptions,
-} from './openai-chat-options';
+import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
 import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
+import { getResponseMetadata } from './get-response-metadata';
 import { prepareTools } from './openai-prepare-tools';
 
 type OpenAIChatConfig = {
   provider: string;
+  compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
 };
 
-export class OpenAIChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2';
+export class OpenAIChatLanguageModel implements LanguageModelV1 {
+  readonly specificationVersion = 'v1';
 
   readonly modelId: OpenAIChatModelId;
-
-  readonly supportedUrls = {
-    'image/*': [/^https?:\/\/.*$/],
-  };
+  readonly settings: OpenAIChatSettings;
 
   private readonly config: OpenAIChatConfig;
 
-  constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {
+  constructor(
+    modelId: OpenAIChatModelId,
+    settings: OpenAIChatSettings,
+    config: OpenAIChatConfig,
+  ) {
     this.modelId = modelId;
+    this.settings = settings;
     this.config = config;
+  }
+
+  get supportsStructuredOutputs(): boolean {
+    // enable structured outputs for reasoning models by default:
+    // TODO in the next major version, remove this and always use json mode for models
+    // that support structured outputs (blacklist other models)
+    return this.settings.structuredOutputs ?? isReasoningModel(this.modelId);
+  }
+
+  get defaultObjectGenerationMode() {
+    // audio models don't support structured outputs:
+    if (isAudioModel(this.modelId)) {
+      return 'tool';
+    }
+
+    return this.supportsStructuredOutputs ? 'json' : 'tool';
   }
 
   get provider(): string {
     return this.config.provider;
   }
 
-  private async getArgs({
+  get supportsImageUrls(): boolean {
+    // image urls can be sent if downloadImages is disabled (default):
+    return !this.settings.downloadImages;
+  }
+
+  private getArgs({
+    mode,
     prompt,
-    maxOutputTokens,
+    maxTokens,
     temperature,
     topP,
     topK,
@@ -72,21 +93,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     stopSequences,
     responseFormat,
     seed,
-    tools,
-    toolChoice,
-    providerOptions,
-  }: LanguageModelV2CallOptions) {
-    const warnings: LanguageModelV2CallWarning[] = [];
+    providerMetadata,
+  }: Parameters<LanguageModelV1['doGenerate']>[0]) {
+    const type = mode.type;
 
-    // Parse provider options
-    const openaiOptions =
-      (await parseProviderOptions({
-        provider: 'openai',
-        providerOptions,
-        schema: openaiProviderOptions,
-      })) ?? {};
-
-    const structuredOutputs = openaiOptions.structuredOutputs ?? true;
+    const warnings: LanguageModelV1CallWarning[] = [];
 
     if (topK != null) {
       warnings.push({
@@ -98,7 +109,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !structuredOutputs
+      !this.supportsStructuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -108,53 +119,66 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+    const useLegacyFunctionCalling = this.settings.useLegacyFunctionCalling;
+
+    if (useLegacyFunctionCalling && this.settings.parallelToolCalls === true) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'useLegacyFunctionCalling with parallelToolCalls',
+      });
+    }
+
+    if (useLegacyFunctionCalling && this.supportsStructuredOutputs) {
+      throw new UnsupportedFunctionalityError({
+        functionality: 'structuredOutputs with useLegacyFunctionCalling',
+      });
+    }
+
     const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
       {
         prompt,
+        useLegacyFunctionCalling,
         systemMessageMode: getSystemMessageMode(this.modelId),
       },
     );
 
     warnings.push(...messageWarnings);
 
-    const strictJsonSchema = openaiOptions.strictJsonSchema ?? false;
-
     const baseArgs = {
       // model id:
       model: this.modelId,
 
       // model specific settings:
-      logit_bias: openaiOptions.logitBias,
+      logit_bias: this.settings.logitBias,
       logprobs:
-        openaiOptions.logprobs === true ||
-        typeof openaiOptions.logprobs === 'number'
+        this.settings.logprobs === true ||
+        typeof this.settings.logprobs === 'number'
           ? true
           : undefined,
       top_logprobs:
-        typeof openaiOptions.logprobs === 'number'
-          ? openaiOptions.logprobs
-          : typeof openaiOptions.logprobs === 'boolean'
-            ? openaiOptions.logprobs
+        typeof this.settings.logprobs === 'number'
+          ? this.settings.logprobs
+          : typeof this.settings.logprobs === 'boolean'
+            ? this.settings.logprobs
               ? 0
               : undefined
             : undefined,
-      user: openaiOptions.user,
-      parallel_tool_calls: openaiOptions.parallelToolCalls,
+      user: this.settings.user,
+      parallel_tool_calls: this.settings.parallelToolCalls,
 
       // standardized settings:
-      max_tokens: maxOutputTokens,
+      max_tokens: maxTokens,
       temperature,
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? structuredOutputs && responseFormat.schema != null
+          ? this.supportsStructuredOutputs && responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
                   schema: responseFormat.schema,
-                  strict: strictJsonSchema,
+                  strict: true,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
                 },
@@ -165,13 +189,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       seed,
 
       // openai specific settings:
-      // TODO remove in next major version; we auto-map maxOutputTokens now
-      max_completion_tokens: openaiOptions.maxCompletionTokens,
-      store: openaiOptions.store,
-      metadata: openaiOptions.metadata,
-      prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
-      service_tier: openaiOptions.serviceTier,
+      // TODO remove in next major version; we auto-map maxTokens now
+      max_completion_tokens: providerMetadata?.openai?.maxCompletionTokens,
+      store: providerMetadata?.openai?.store,
+      metadata: providerMetadata?.openai?.metadata,
+      prediction: providerMetadata?.openai?.prediction,
+      reasoning_effort:
+        providerMetadata?.openai?.reasoningEffort ??
+        this.settings.reasoningEffort,
 
       // messages:
       messages,
@@ -241,59 +266,108 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         }
         baseArgs.max_tokens = undefined;
       }
-    } else if (
-      this.modelId.startsWith('gpt-4o-search-preview') ||
-      this.modelId.startsWith('gpt-4o-mini-search-preview')
-    ) {
+    } else if (this.modelId.startsWith('gpt-4o-search-preview')) {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
           type: 'unsupported-setting',
           setting: 'temperature',
           details:
-            'temperature is not supported for the search preview models and has been removed.',
+            'temperature is not supported for the gpt-4o-search-preview model and has been removed.',
         });
       }
     }
+    switch (type) {
+      case 'regular': {
+        const { tools, tool_choice, functions, function_call, toolWarnings } =
+          prepareTools({
+            mode,
+            useLegacyFunctionCalling,
+            structuredOutputs: this.supportsStructuredOutputs,
+          });
 
-    // Validate flex processing support
-    if (
-      openaiOptions.serviceTier === 'flex' &&
-      !supportsFlexProcessing(this.modelId)
-    ) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'serviceTier',
-        details: 'flex processing is only available for o3 and o4-mini models',
-      });
-      baseArgs.service_tier = undefined;
+        return {
+          args: {
+            ...baseArgs,
+            tools,
+            tool_choice,
+            functions,
+            function_call,
+          },
+          warnings: [...warnings, ...toolWarnings],
+        };
+      }
+
+      case 'object-json': {
+        return {
+          args: {
+            ...baseArgs,
+            response_format:
+              this.supportsStructuredOutputs && mode.schema != null
+                ? {
+                    type: 'json_schema',
+                    json_schema: {
+                      schema: mode.schema,
+                      strict: true,
+                      name: mode.name ?? 'response',
+                      description: mode.description,
+                    },
+                  }
+                : { type: 'json_object' },
+          },
+          warnings,
+        };
+      }
+
+      case 'object-tool': {
+        return {
+          args: useLegacyFunctionCalling
+            ? {
+                ...baseArgs,
+                function_call: {
+                  name: mode.tool.name,
+                },
+                functions: [
+                  {
+                    name: mode.tool.name,
+                    description: mode.tool.description,
+                    parameters: mode.tool.parameters,
+                  },
+                ],
+              }
+            : {
+                ...baseArgs,
+                tool_choice: {
+                  type: 'function',
+                  function: { name: mode.tool.name },
+                },
+                tools: [
+                  {
+                    type: 'function',
+                    function: {
+                      name: mode.tool.name,
+                      description: mode.tool.description,
+                      parameters: mode.tool.parameters,
+                      strict: this.supportsStructuredOutputs ? true : undefined,
+                    },
+                  },
+                ],
+              },
+          warnings,
+        };
+      }
+
+      default: {
+        const _exhaustiveCheck: never = type;
+        throw new Error(`Unsupported type: ${_exhaustiveCheck}`);
+      }
     }
-
-    const {
-      tools: openaiTools,
-      toolChoice: openaiToolChoice,
-      toolWarnings,
-    } = prepareTools({
-      tools,
-      toolChoice,
-      structuredOutputs,
-      strictJsonSchema,
-    });
-
-    return {
-      args: {
-        ...baseArgs,
-        tools: openaiTools,
-        tool_choice: openaiToolChoice,
-      },
-      warnings: [...warnings, ...toolWarnings],
-    };
   }
 
   async doGenerate(
-    options: Parameters<LanguageModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args: body, warnings } = await this.getArgs(options);
+    options: Parameters<LanguageModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
+    const { args: body, warnings } = this.getArgs(options);
 
     const {
       responseHeaders,
@@ -314,29 +388,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
+    const { messages: rawPrompt, ...rawSettings } = body;
     const choice = response.choices[0];
-    const content: Array<LanguageModelV2Content> = [];
-
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
-    }
-
-    // tool calls:
-    for (const toolCall of choice.message.tool_calls ?? []) {
-      content.push({
-        type: 'tool-call' as const,
-        toolCallId: toolCall.id ?? generateId(),
-        toolName: toolCall.function.name,
-        input: toolCall.function.arguments!,
-      });
-    }
 
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
     const promptTokenDetails = response.usage?.prompt_tokens_details;
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const providerMetadata: LanguageModelV1ProviderMetadata = { openai: {} };
+    if (completionTokenDetails?.reasoning_tokens != null) {
+      providerMetadata.openai.reasoningTokens =
+        completionTokenDetails?.reasoning_tokens;
+    }
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata.openai.acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
@@ -345,42 +407,104 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       providerMetadata.openai.rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
     }
-    if (choice.logprobs?.content != null) {
-      providerMetadata.openai.logprobs = choice.logprobs.content;
+    if (promptTokenDetails?.cached_tokens != null) {
+      providerMetadata.openai.cachedPromptTokens =
+        promptTokenDetails?.cached_tokens;
     }
 
     return {
-      content,
+      text: choice.message.content ?? undefined,
+      toolCalls:
+        this.settings.useLegacyFunctionCalling && choice.message.function_call
+          ? [
+              {
+                toolCallType: 'function',
+                toolCallId: generateId(),
+                toolName: choice.message.function_call.name,
+                args: choice.message.function_call.arguments,
+              },
+            ]
+          : choice.message.tool_calls?.map(toolCall => ({
+              toolCallType: 'function',
+              toolCallId: toolCall.id ?? generateId(),
+              toolName: toolCall.function.name,
+              args: toolCall.function.arguments!,
+            })),
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       usage: {
-        inputTokens: response.usage?.prompt_tokens ?? undefined,
-        outputTokens: response.usage?.completion_tokens ?? undefined,
-        totalTokens: response.usage?.total_tokens ?? undefined,
-        reasoningTokens: completionTokenDetails?.reasoning_tokens ?? undefined,
-        cachedInputTokens: promptTokenDetails?.cached_tokens ?? undefined,
+        promptTokens: response.usage?.prompt_tokens ?? NaN,
+        completionTokens: response.usage?.completion_tokens ?? NaN,
       },
-      request: { body },
-      response: {
-        ...getResponseMetadata(response),
-        headers: responseHeaders,
-        body: rawResponse,
-      },
+      rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders, body: rawResponse },
+      request: { body: JSON.stringify(body) },
+      response: getResponseMetadata(response),
       warnings,
+      logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
       providerMetadata,
     };
   }
 
   async doStream(
-    options: Parameters<LanguageModelV2['doStream']>[0],
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = await this.getArgs(options);
+    options: Parameters<LanguageModelV1['doStream']>[0],
+  ): Promise<Awaited<ReturnType<LanguageModelV1['doStream']>>> {
+    if (this.settings.simulateStreaming) {
+      const result = await this.doGenerate(options);
+
+      const simulatedStream = new ReadableStream<LanguageModelV1StreamPart>({
+        start(controller) {
+          controller.enqueue({ type: 'response-metadata', ...result.response });
+          if (result.text) {
+            controller.enqueue({
+              type: 'text-delta',
+              textDelta: result.text,
+            });
+          }
+          if (result.toolCalls) {
+            for (const toolCall of result.toolCalls) {
+              controller.enqueue({
+                type: 'tool-call-delta',
+                toolCallType: 'function',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                argsTextDelta: toolCall.args,
+              });
+
+              controller.enqueue({
+                type: 'tool-call',
+                ...toolCall,
+              });
+            }
+          }
+          controller.enqueue({
+            type: 'finish',
+            finishReason: result.finishReason,
+            usage: result.usage,
+            logprobs: result.logprobs,
+            providerMetadata: result.providerMetadata,
+          });
+          controller.close();
+        },
+      });
+      return {
+        stream: simulatedStream,
+        rawCall: result.rawCall,
+        rawResponse: result.rawResponse,
+        warnings: result.warnings,
+      };
+    }
+
+    const { args, warnings } = this.getArgs(options);
 
     const body = {
       ...args,
       stream: true,
-      stream_options: {
-        include_usage: true,
-      },
+
+      // only include stream_options when in strict compatibility mode:
+      stream_options:
+        this.config.compatibility === 'strict'
+          ? { include_usage: true }
+          : undefined,
     };
 
     const { responseHeaders, value: response } = await postJsonToApi({
@@ -398,6 +522,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
+    const { messages: rawPrompt, ...rawSettings } = args;
+
     const toolCalls: Array<{
       id: string;
       type: 'function';
@@ -408,32 +534,28 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       hasFinished: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const usage: LanguageModelV2Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
+    let finishReason: LanguageModelV1FinishReason = 'unknown';
+    let usage: {
+      promptTokens: number | undefined;
+      completionTokens: number | undefined;
+    } = {
+      promptTokens: undefined,
+      completionTokens: undefined,
     };
+    let logprobs: LanguageModelV1LogProbs;
     let isFirstChunk = true;
-    let isActiveText = false;
 
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const { useLegacyFunctionCalling } = this.settings;
+
+    const providerMetadata: LanguageModelV1ProviderMetadata = { openai: {} };
 
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof openaiChatChunkSchema>>,
-          LanguageModelV2StreamPart
+          LanguageModelV1StreamPart
         >({
-          start(controller) {
-            controller.enqueue({ type: 'stream-start', warnings });
-          },
-
           transform(chunk, controller) {
-            if (options.includeRawChunks) {
-              controller.enqueue({ type: 'raw', rawValue: chunk.rawValue });
-            }
-
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
               finishReason = 'error';
@@ -460,28 +582,37 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens ?? undefined;
-              usage.outputTokens = value.usage.completion_tokens ?? undefined;
-              usage.totalTokens = value.usage.total_tokens ?? undefined;
-              usage.reasoningTokens =
-                value.usage.completion_tokens_details?.reasoning_tokens ??
-                undefined;
-              usage.cachedInputTokens =
-                value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
+              const {
+                prompt_tokens,
+                completion_tokens,
+                prompt_tokens_details,
+                completion_tokens_details,
+              } = value.usage;
 
-              if (
-                value.usage.completion_tokens_details
-                  ?.accepted_prediction_tokens != null
-              ) {
-                providerMetadata.openai.acceptedPredictionTokens =
-                  value.usage.completion_tokens_details?.accepted_prediction_tokens;
+              usage = {
+                promptTokens: prompt_tokens ?? undefined,
+                completionTokens: completion_tokens ?? undefined,
+              };
+
+              if (completion_tokens_details?.reasoning_tokens != null) {
+                providerMetadata.openai.reasoningTokens =
+                  completion_tokens_details?.reasoning_tokens;
               }
               if (
-                value.usage.completion_tokens_details
-                  ?.rejected_prediction_tokens != null
+                completion_tokens_details?.accepted_prediction_tokens != null
+              ) {
+                providerMetadata.openai.acceptedPredictionTokens =
+                  completion_tokens_details?.accepted_prediction_tokens;
+              }
+              if (
+                completion_tokens_details?.rejected_prediction_tokens != null
               ) {
                 providerMetadata.openai.rejectedPredictionTokens =
-                  value.usage.completion_tokens_details?.rejected_prediction_tokens;
+                  completion_tokens_details?.rejected_prediction_tokens;
+              }
+              if (prompt_tokens_details?.cached_tokens != null) {
+                providerMetadata.openai.cachedPromptTokens =
+                  prompt_tokens_details?.cached_tokens;
               }
             }
 
@@ -491,10 +622,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               finishReason = mapOpenAIFinishReason(choice.finish_reason);
             }
 
-            if (choice?.logprobs?.content != null) {
-              providerMetadata.openai.logprobs = choice.logprobs.content;
-            }
-
             if (choice?.delta == null) {
               return;
             }
@@ -502,20 +629,34 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
             const delta = choice.delta;
 
             if (delta.content != null) {
-              if (!isActiveText) {
-                controller.enqueue({ type: 'text-start', id: '0' });
-                isActiveText = true;
-              }
-
               controller.enqueue({
                 type: 'text-delta',
-                id: '0',
-                delta: delta.content,
+                textDelta: delta.content,
               });
             }
 
-            if (delta.tool_calls != null) {
-              for (const toolCallDelta of delta.tool_calls) {
+            const mappedLogprobs = mapOpenAIChatLogProbsOutput(
+              choice?.logprobs,
+            );
+            if (mappedLogprobs?.length) {
+              if (logprobs === undefined) logprobs = [];
+              logprobs.push(...mappedLogprobs);
+            }
+
+            const mappedToolCalls: typeof delta.tool_calls =
+              useLegacyFunctionCalling && delta.function_call != null
+                ? [
+                    {
+                      type: 'function',
+                      id: generateId(),
+                      function: delta.function_call,
+                      index: 0,
+                    },
+                  ]
+                : delta.tool_calls;
+
+            if (mappedToolCalls != null) {
+              for (const toolCallDelta of mappedToolCalls) {
                 const index = toolCallDelta.index;
 
                 // Tool call start. OpenAI returns all information except the arguments in the first chunk.
@@ -541,12 +682,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                     });
                   }
 
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
                   toolCalls[index] = {
                     id: toolCallDelta.id,
                     type: 'function',
@@ -566,9 +701,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                     // send delta if the argument text has already started:
                     if (toolCall.function.arguments.length > 0) {
                       controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
+                        type: 'tool-call-delta',
+                        toolCallType: 'function',
+                        toolCallId: toolCall.id,
+                        toolName: toolCall.function.name,
+                        argsTextDelta: toolCall.function.arguments,
                       });
                     }
 
@@ -576,15 +713,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                     // (some providers send the full tool call in one chunk):
                     if (isParsableJson(toolCall.function.arguments)) {
                       controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
-
-                      controller.enqueue({
                         type: 'tool-call',
+                        toolCallType: 'function',
                         toolCallId: toolCall.id ?? generateId(),
                         toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
+                        args: toolCall.function.arguments,
                       });
                       toolCall.hasFinished = true;
                     }
@@ -607,9 +740,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
                 // send delta
                 controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
+                  type: 'tool-call-delta',
+                  toolCallType: 'function',
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.function.name,
+                  argsTextDelta: toolCallDelta.function.arguments ?? '',
                 });
 
                 // check if tool call is complete
@@ -619,15 +754,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                   isParsableJson(toolCall.function.arguments)
                 ) {
                   controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
                     type: 'tool-call',
+                    toolCallType: 'function',
                     toolCallId: toolCall.id ?? generateId(),
                     toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
+                    args: toolCall.function.arguments,
                   });
                   toolCall.hasFinished = true;
                 }
@@ -636,21 +767,23 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
-            if (isActiveText) {
-              controller.enqueue({ type: 'text-end', id: '0' });
-            }
-
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage,
+              logprobs,
+              usage: {
+                promptTokens: usage.promptTokens ?? NaN,
+                completionTokens: usage.completionTokens ?? NaN,
+              },
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
         }),
       ),
-      request: { body },
-      response: { headers: responseHeaders },
+      rawCall: { rawPrompt, rawSettings },
+      rawResponse: { headers: responseHeaders },
+      request: { body: JSON.stringify(body) },
+      warnings,
     };
   }
 }
@@ -659,7 +792,6 @@ const openaiTokenUsageSchema = z
   .object({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
-    total_tokens: z.number().nullish(),
     prompt_tokens_details: z
       .object({
         cached_tokens: z.number().nullish(),
@@ -686,6 +818,12 @@ const openaiChatResponseSchema = z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
         content: z.string().nullish(),
+        function_call: z
+          .object({
+            arguments: z.string(),
+            name: z.string(),
+          })
+          .nullish(),
         tool_calls: z
           .array(
             z.object({
@@ -715,7 +853,7 @@ const openaiChatResponseSchema = z.object({
                 ),
               }),
             )
-            .nullish(),
+            .nullable(),
         })
         .nullish(),
       finish_reason: z.string().nullish(),
@@ -737,12 +875,18 @@ const openaiChatChunkSchema = z.union([
           .object({
             role: z.enum(['assistant']).nullish(),
             content: z.string().nullish(),
+            function_call: z
+              .object({
+                name: z.string().optional(),
+                arguments: z.string().optional(),
+              })
+              .nullish(),
             tool_calls: z
               .array(
                 z.object({
                   index: z.number(),
                   id: z.string().nullish(),
-                  type: z.literal('function').nullish(),
+                  type: z.literal('function').optional(),
                   function: z.object({
                     name: z.string().nullish(),
                     arguments: z.string().nullish(),
@@ -767,10 +911,10 @@ const openaiChatChunkSchema = z.union([
                   ),
                 }),
               )
-              .nullish(),
+              .nullable(),
           })
           .nullish(),
-        finish_reason: z.string().nullish(),
+        finish_reason: z.string().nullable().optional(),
         index: z.number(),
       }),
     ),
@@ -780,11 +924,16 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return modelId.startsWith('o');
+  return (
+    modelId === 'o1' ||
+    modelId.startsWith('o1-') ||
+    modelId === 'o3' ||
+    modelId.startsWith('o3-')
+  );
 }
 
-function supportsFlexProcessing(modelId: string) {
-  return modelId.startsWith('o3') || modelId.startsWith('o4-mini');
+function isAudioModel(modelId: string) {
+  return modelId.startsWith('gpt-4o-audio-preview');
 }
 
 function getSystemMessageMode(modelId: string) {
@@ -811,22 +960,10 @@ const reasoningModels = {
   'o1-preview-2024-09-12': {
     systemMessageMode: 'remove',
   },
-  o3: {
-    systemMessageMode: 'developer',
-  },
-  'o3-2025-04-16': {
-    systemMessageMode: 'developer',
-  },
   'o3-mini': {
     systemMessageMode: 'developer',
   },
   'o3-mini-2025-01-31': {
-    systemMessageMode: 'developer',
-  },
-  'o4-mini': {
-    systemMessageMode: 'developer',
-  },
-  'o4-mini-2025-04-16': {
     systemMessageMode: 'developer',
   },
 } as const;
