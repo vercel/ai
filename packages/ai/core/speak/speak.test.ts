@@ -1,22 +1,22 @@
-import { JSONValue, SpeechModelV1, SpeechWarning } from '@ai-sdk/provider';
+import { JSONValue, SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
 import { MockSpeechModelV1 } from '../test/mock-speech-model-v1';
 import { speak } from './speak';
 
-const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
+const audioData = new ArrayBuffer(4); // Sample audio data
 const testDate = new Date(2024, 0, 1);
 
 const sampleText = 'This is a sample text to convert to speech.';
 
 const createMockResponse = (options: {
-  audio?: Uint8Array;
+  audio?: ArrayBuffer;
   contentType?: string;
-  warnings?: SpeechWarning[];
+  warnings?: SpeechModelV1CallWarning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
   providerMetadata?: Record<string, Record<string, JSONValue>>;
 }) => ({
-  audio: options.audio,
+  audioData: options.audio ?? new ArrayBuffer(0),
   contentType: options.contentType ?? 'audio/mp3',
   warnings: options.warnings ?? [],
   response: {
