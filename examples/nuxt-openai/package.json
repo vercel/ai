@@ -9,9 +9,9 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@ai-sdk/vue": "2.0.0-canary.4",
-    "@ai-sdk/openai": "2.0.0-canary.4",
-    "ai": "5.0.0-canary.5",
+    "@ai-sdk/vue": "2.0.0-canary.5",
+    "@ai-sdk/openai": "2.0.0-canary.5",
+    "ai": "5.0.0-canary.6",
     "openai": "4.52.6",
     "zod": "3.23.8"
   },

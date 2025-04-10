@@ -1,5 +1,15 @@
 # @ai-sdk/xai
 
+## 2.0.0-canary.5
+
+### Patch Changes
+
+- a7d3fbd: feat (providers/xai): add grok-3 models
+- Updated dependencies [6f6bb89]
+  - @ai-sdk/provider@2.0.0-canary.4
+  - @ai-sdk/openai-compatible@1.0.0-canary.5
+  - @ai-sdk/provider-utils@3.0.0-canary.5
+
 ## 2.0.0-canary.4
 
 ### Patch Changes
