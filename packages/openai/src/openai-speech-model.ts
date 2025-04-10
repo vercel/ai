@@ -146,7 +146,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
 
     return {
       audio: audioBuffer,
-      contentType: `audio/${options.providerOptions?.openai?.response_format ?? 'mp3'}`,
+      mediaType: `audio/${options.providerOptions?.openai?.response_format ?? 'mp3'}`,
       warnings,
       request: {
         body: JSON.stringify(requestBody),

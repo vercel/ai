@@ -13,9 +13,11 @@ export interface SpeechResult {
   readonly audio: string | Uint8Array;
 
   /**
-   * The content type of the audio data (e.g., 'audio/mp3', 'audio/wav').
+  The IANA media type of the audio data.
+
+  @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
-  readonly contentType: string;
+  readonly mediaType: string;
 
   /**
   Warnings for the call, e.g. unsupported settings.

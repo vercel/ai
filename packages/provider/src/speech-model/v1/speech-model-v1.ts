@@ -42,7 +42,7 @@ export type SpeechModelV1 = {
      * The MIME type of the audio data.
      * For example: 'audio/mp3', 'audio/wav', etc.
      */
-    contentType: string;
+    mediaType: string;
 
     /**
      * Warnings for the call, e.g. unsupported settings.

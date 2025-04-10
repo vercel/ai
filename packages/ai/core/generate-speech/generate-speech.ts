@@ -95,7 +95,7 @@ Only applicable for HTTP-based providers.
 
   return new DefaultSpeechResult({
     audio: result.audio,
-    contentType: result.contentType,
+    mediaType: result.mediaType,
     warnings: result.warnings,
     responses: [result.response],
     providerMetadata: result.providerMetadata,
@@ -104,20 +104,20 @@ Only applicable for HTTP-based providers.
 
 class DefaultSpeechResult implements SpeechResult {
   readonly audio: string | Uint8Array;
-  readonly contentType: string;
+  readonly mediaType: string;
   readonly warnings: Array<SpeechWarning>;
   readonly responses: Array<SpeechModelResponseMetadata>;
   readonly providerMetadata: Record<string, Record<string, JSONValue>>;
 
   constructor(options: {
     audio: string | Uint8Array;
-    contentType: string;
+    mediaType: string;
     warnings: Array<SpeechWarning>;
     responses: Array<SpeechModelResponseMetadata>;
     providerMetadata: Record<string, Record<string, JSONValue>> | undefined;
   }) {
     this.audio = options.audio;
-    this.contentType = options.contentType;
+    this.mediaType = options.mediaType;
     this.warnings = options.warnings;
     this.responses = options.responses;
     this.providerMetadata = options.providerMetadata ?? {};
