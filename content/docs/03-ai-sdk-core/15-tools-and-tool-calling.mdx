@@ -768,6 +768,10 @@ const tools = await mcpClient.tools({
         format: z.enum(['json', 'text']).optional(),
       }),
     },
+    // For tools with zero arguments, you should use an empty object:
+    'tool-with-no-args': {
+      parameters: z.object({}),
+    },
   },
 });
 ```
