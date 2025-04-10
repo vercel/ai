@@ -5,8 +5,14 @@ import { ProviderOptions } from '../types/provider-metadata';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
-import { DefaultGeneratedFile, GeneratedFile } from '../generate-text/generated-file';
-import { audioMimeTypeSignatures, detectMimeType } from '../util/detect-mimetype';
+import {
+  DefaultGeneratedFile,
+  GeneratedFile,
+} from '../generate-text/generated-file';
+import {
+  audioMimeTypeSignatures,
+  detectMimeType,
+} from '../util/detect-mimetype';
 
 /**
 Generates speech audio using a speech model.

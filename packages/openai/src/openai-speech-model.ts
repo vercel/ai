@@ -1,7 +1,4 @@
-import {
-  SpeechModelV1,
-  SpeechModelV1CallWarning,
-} from '@ai-sdk/provider';
+import { SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -11,25 +8,18 @@ import {
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
-import {
-  OpenAISpeechModelId,
-} from './openai-speech-settings';
+import { OpenAISpeechModelId } from './openai-speech-settings';
 import { OpenAISpeechAPITypes } from './openai-api-types';
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
 const OpenAIProviderOptionsSchema = z.object({
-  instructions: z
-    .string()
-    .nullish(),
-  speed: z
-    .number()
-    .min(0.25)
-    .max(4.0)
-    .default(1.0)
-    .nullish(),
+  instructions: z.string().nullish(),
+  speed: z.number().min(0.25).max(4.0).default(1.0).nullish(),
 });
 
-export type OpenAISpeechCallOptions = z.infer<typeof OpenAIProviderOptionsSchema>;
+export type OpenAISpeechCallOptions = z.infer<
+  typeof OpenAIProviderOptionsSchema
+>;
 
 interface OpenAISpeechModelConfig extends OpenAIConfig {
   _internal?: {
@@ -49,7 +39,14 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     private readonly config: OpenAISpeechModelConfig,
   ) {}
 
-  private getArgs({ text, voice = 'alloy', outputMediaType = 'mp3', speed, instructions, providerOptions }: Parameters<SpeechModelV1['doGenerate']>[0]) {
+  private getArgs({
+    text,
+    voice = 'alloy',
+    outputMediaType = 'mp3',
+    speed,
+    instructions,
+    providerOptions,
+  }: Parameters<SpeechModelV1['doGenerate']>[0]) {
     const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
@@ -61,13 +58,16 @@ export class OpenAISpeechModel implements SpeechModelV1 {
 
     let responseFormat = outputMediaType;
 
-    if (outputMediaType && !['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'].includes(outputMediaType)) {
+    if (
+      outputMediaType &&
+      !['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'].includes(outputMediaType)
+    ) {
       warnings.push({
         type: 'unsupported-setting',
         setting: 'outputMediaType',
         details: `Unsupported output media type: ${outputMediaType}. Using mp3 instead.`,
       });
-      
+
       responseFormat = 'mp3';
     }
 
