@@ -5,6 +5,7 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2ProviderMetadata,
   LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -180,7 +181,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
     const choice = response.choices[0];
 
     return {
@@ -194,8 +194,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       })),
       finishReason: mapGroqFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: response.usage?.prompt_tokens ?? NaN,
-        completionTokens: response.usage?.completion_tokens ?? NaN,
+        inputTokens: response.usage?.prompt_tokens ?? undefined,
+        outputTokens: response.usage?.completion_tokens ?? undefined,
       },
       response: {
         ...getResponseMetadata(response),
@@ -231,8 +231,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
-
     const toolCalls: Array<{
       id: string;
       type: 'function';
@@ -244,12 +242,9 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     }> = [];
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    let usage: {
-      promptTokens: number | undefined;
-      completionTokens: number | undefined;
-    } = {
-      promptTokens: undefined,
-      completionTokens: undefined,
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
     };
     let isFirstChunk = true;
 
@@ -287,11 +282,9 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
             }
 
             if (value.x_groq?.usage != null) {
-              usage = {
-                promptTokens: value.x_groq.usage.prompt_tokens ?? undefined,
-                completionTokens:
-                  value.x_groq.usage.completion_tokens ?? undefined,
-              };
+              usage.inputTokens = value.x_groq.usage.prompt_tokens ?? undefined;
+              usage.outputTokens =
+                value.x_groq.usage.completion_tokens ?? undefined;
             }
 
             const choice = value.choices[0];
@@ -434,10 +427,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: {
-                promptTokens: usage.promptTokens ?? NaN,
-                completionTokens: usage.completionTokens ?? NaN,
-              },
+              usage,
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
