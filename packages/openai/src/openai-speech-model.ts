@@ -1,6 +1,5 @@
 import {
   SpeechModelV1,
-  SpeechModelV1CallOptions,
   SpeechModelV1CallWarning,
 } from '@ai-sdk/provider';
 import {
@@ -54,14 +53,7 @@ const OpenAIProviderOptionsSchema = z.object({
     .describe('The speed of the generated audio.'),
 });
 
-export type OpenAISpeechCallOptions = Omit<
-  SpeechModelV1CallOptions,
-  'providerOptions'
-> & {
-  providerOptions?: {
-    openai?: z.infer<typeof OpenAIProviderOptionsSchema>;
-  };
-};
+export type OpenAISpeechCallOptions = z.infer<typeof OpenAIProviderOptionsSchema>;
 
 interface OpenAISpeechModelConfig extends OpenAIConfig {
   _internal?: {
@@ -81,7 +73,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     private readonly config: OpenAISpeechModelConfig,
   ) {}
 
-  private getArgs({ text, providerOptions }: OpenAISpeechCallOptions) {
+  private getArgs({ text, providerOptions }: Parameters<SpeechModelV1['doGenerate']>[0]) {
     const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
@@ -122,7 +114,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
   }
 
   async doGenerate(
-    options: OpenAISpeechCallOptions,
+    options: Parameters<SpeechModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = this.getArgs(options);
