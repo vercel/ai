@@ -19,7 +19,7 @@ async function main() {
             type: 'finish',
             finishReason: 'stop',
             logprobs: undefined,
-            usage: { completionTokens: 10, promptTokens: 3 },
+            usage: { inputTokens: 3, outputTokens: 10 },
           },
         ]),
       }),

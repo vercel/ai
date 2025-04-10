@@ -23,7 +23,7 @@ describe('simulateStreamingMiddleware', () => {
         return {
           text: 'This is a test response',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 10 },
+          usage: { inputTokens: 10, outputTokens: 10 },
         };
       },
     });
@@ -48,7 +48,7 @@ describe('simulateStreamingMiddleware', () => {
           text: 'This is a test response',
           reasoning: 'This is the reasoning process',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 10 },
+          usage: { inputTokens: 10, outputTokens: 10 },
         };
       },
     });
@@ -76,7 +76,7 @@ describe('simulateStreamingMiddleware', () => {
             { type: 'text', text: 'Second reasoning step', signature: 'abc' },
           ],
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 10 },
+          usage: { inputTokens: 10, outputTokens: 10 },
         };
       },
     });
@@ -104,7 +104,7 @@ describe('simulateStreamingMiddleware', () => {
             { type: 'redacted', data: 'data' },
           ],
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 10 },
+          usage: { inputTokens: 10, outputTokens: 10 },
         };
       },
     });
@@ -142,7 +142,7 @@ describe('simulateStreamingMiddleware', () => {
             },
           ],
           finishReason: 'tool-calls',
-          usage: { promptTokens: 10, completionTokens: 10 },
+          usage: { inputTokens: 10, outputTokens: 10 },
         };
       },
     });
@@ -166,7 +166,7 @@ describe('simulateStreamingMiddleware', () => {
         return {
           text: 'This is a test response',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 10 },
+          usage: { inputTokens: 10, outputTokens: 10 },
           providerMetadata: { custom: { key: 'value' } },
         };
       },
@@ -191,7 +191,7 @@ describe('simulateStreamingMiddleware', () => {
         return {
           text: '',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 0 },
+          usage: { inputTokens: 10, outputTokens: 0 },
         };
       },
     });
@@ -215,7 +215,7 @@ describe('simulateStreamingMiddleware', () => {
         return {
           text: 'This is a test response',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 10 },
+          usage: { inputTokens: 10, outputTokens: 10 },
           warnings: [
             { type: 'other', message: 'Test warning', code: 'test_warning' },
           ],

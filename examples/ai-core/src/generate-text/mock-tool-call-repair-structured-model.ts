@@ -8,7 +8,7 @@ async function main() {
   const result = await generateText({
     model: new MockLanguageModelV2({
       doGenerate: async () => ({
-        usage: { promptTokens: 10, completionTokens: 20 },
+        usage: { inputTokens: 10, outputTokens: 20 },
         finishReason: 'tool-calls',
         toolCalls: [
           {

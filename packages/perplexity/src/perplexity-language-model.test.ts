@@ -377,7 +377,7 @@ describe('PerplexityLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
+          usage: { inputTokens: 10, outputTokens: 20 },
           providerMetadata: {
             perplexity: {
               images: null,
@@ -442,7 +442,7 @@ describe('PerplexityLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
+          usage: { inputTokens: 10, outputTokens: 20 },
           providerMetadata: {
             perplexity: {
               images: null,
@@ -513,7 +513,7 @@ describe('PerplexityLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
+          usage: { inputTokens: 10, outputTokens: 20 },
           providerMetadata: {
             perplexity: {
               images: [

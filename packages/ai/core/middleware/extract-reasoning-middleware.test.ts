@@ -16,7 +16,7 @@ describe('extractReasoningMiddleware', () => {
           return {
             text: '<think>analyzing the request</think>Here is the response',
             finishReason: 'stop',
-            usage: { promptTokens: 10, completionTokens: 10 },
+            usage: { inputTokens: 10, outputTokens: 10 },
           };
         },
       });
@@ -39,7 +39,7 @@ describe('extractReasoningMiddleware', () => {
           return {
             text: '<think>analyzing the request\n</think>',
             finishReason: 'stop',
-            usage: { promptTokens: 10, completionTokens: 10 },
+            usage: { inputTokens: 10, outputTokens: 10 },
           };
         },
       });
@@ -62,7 +62,7 @@ describe('extractReasoningMiddleware', () => {
           return {
             text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
             finishReason: 'stop',
-            usage: { promptTokens: 10, completionTokens: 10 },
+            usage: { inputTokens: 10, outputTokens: 10 },
           };
         },
       });
@@ -87,7 +87,7 @@ describe('extractReasoningMiddleware', () => {
           return {
             text: 'analyzing the request</think>Here is the response',
             finishReason: 'stop',
-            usage: { promptTokens: 10, completionTokens: 10 },
+            usage: { inputTokens: 10, outputTokens: 10 },
           };
         },
       });
@@ -127,7 +127,7 @@ describe('extractReasoningMiddleware', () => {
           return {
             text: '<think>analyzing the request</think>Here is the response',
             finishReason: 'stop',
-            usage: { promptTokens: 10, completionTokens: 10 },
+            usage: { inputTokens: 10, outputTokens: 10 },
             reasoning: undefined,
           };
         },
@@ -168,7 +168,7 @@ describe('extractReasoningMiddleware', () => {
                 type: 'finish',
                 finishReason: 'stop',
                 logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
           };
@@ -272,7 +272,7 @@ describe('extractReasoningMiddleware', () => {
                 type: 'finish',
                 finishReason: 'stop',
                 logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
           };
@@ -375,7 +375,7 @@ describe('extractReasoningMiddleware', () => {
                 type: 'finish',
                 finishReason: 'stop',
                 logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
           };
@@ -470,7 +470,7 @@ describe('extractReasoningMiddleware', () => {
                 type: 'finish',
                 finishReason: 'stop',
                 logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
           };

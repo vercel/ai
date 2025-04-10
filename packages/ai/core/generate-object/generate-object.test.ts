@@ -10,7 +10,7 @@ import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
-  usage: { promptTokens: 10, completionTokens: 20 },
+  usage: { inputTokens: 10, outputTokens: 20 },
   response: { id: 'id-1', timestamp: new Date(123), modelId: 'm-1' },
 };
 

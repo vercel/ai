@@ -1604,7 +1604,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         logprobs: undefined,
-        usage: { promptTokens: 53, completionTokens: 17 },
+        usage: { inputTokens: 53, outputTokens: 17 },
         providerMetadata: { openai: {} },
       },
     ]);
@@ -1739,7 +1739,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         logprobs: undefined,
-        usage: { promptTokens: 53, completionTokens: 17 },
+        usage: { inputTokens: 53, outputTokens: 17 },
         providerMetadata: { openai: {} },
       },
     ]);
@@ -1928,7 +1928,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         logprobs: undefined,
-        usage: { promptTokens: 53, completionTokens: 17 },
+        usage: { inputTokens: 53, outputTokens: 17 },
         providerMetadata: { openai: {} },
       },
     ]);
@@ -2005,7 +2005,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         logprobs: undefined,
-        usage: { promptTokens: 53, completionTokens: 17 },
+        usage: { inputTokens: 53, outputTokens: 17 },
         providerMetadata: { openai: {} },
       },
     ]);

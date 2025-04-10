@@ -10,7 +10,7 @@ async function main() {
       doGenerate: async () => ({
         text: `{"content":"Hello, world!"}`,
         finishReason: 'stop',
-        usage: { promptTokens: 10, completionTokens: 20 },
+        usage: { inputTokens: 10, outputTokens: 20 },
       }),
     }),
     schema: z.object({ content: z.string() }),

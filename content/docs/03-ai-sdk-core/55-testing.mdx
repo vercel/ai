@@ -35,7 +35,7 @@ const result = await generateText({
   model: new MockLanguageModelV1({
     doGenerate: async () => ({
       finishReason: 'stop',
-      usage: { promptTokens: 10, completionTokens: 20 },
+      usage: { inputTokens: 10, outputTokens: 20 },
       text: `Hello, world!`,
     }),
   }),
@@ -61,7 +61,7 @@ const result = streamText({
             type: 'finish',
             finishReason: 'stop',
             logprobs: undefined,
-            usage: { completionTokens: 10, promptTokens: 3 },
+            usage: { inputTokens: 3, outputTokens: 10 },
           },
         ],
       }),
@@ -83,7 +83,7 @@ const result = await generateObject({
     defaultObjectGenerationMode: 'json',
     doGenerate: async () => ({
       finishReason: 'stop',
-      usage: { promptTokens: 10, completionTokens: 20 },
+      usage: { inputTokens: 10, outputTokens: 20 },
       text: `{"content":"Hello, world!"}`,
     }),
   }),
@@ -115,7 +115,7 @@ const result = streamObject({
             type: 'finish',
             finishReason: 'stop',
             logprobs: undefined,
-            usage: { completionTokens: 10, promptTokens: 3 },
+            usage: { inputTokens: 3, outputTokens: 10 },
           },
         ],
       }),
