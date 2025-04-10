@@ -20,36 +20,14 @@ import {
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
 const OpenAIProviderOptionsSchema = z.object({
-  include: z
-    .array(z.string())
-    .optional()
-    .describe(
-      'Additional information to include in the transcription response.',
-    ),
-  language: z
-    .string()
-    .optional()
-    .describe('The language of the input audio in ISO-639-1 format.'),
-  prompt: z
-    .string()
-    .optional()
-    .describe(
-      "An optional text to guide the model's style or continue a previous audio segment.",
-    ),
-  temperature: z
-    .number()
-    .min(0)
-    .max(1)
-    .optional()
-    .default(0)
-    .describe('The sampling temperature, between 0 and 1.'),
+  include: z.array(z.string()).nullish(),
+  language: z.string().nullish(),
+  prompt: z.string().nullish(),
+  temperature: z.number().min(0).max(1).nullish().default(0),
   timestampGranularities: z
     .array(z.enum(['word', 'segment']))
-    .optional()
-    .default(['segment'])
-    .describe(
-      'The timestamp granularities to populate for this transcription.',
-    ),
+    .nullish()
+    .default(['segment']),
 });
 
 export type OpenAITranscriptionCallOptions = Omit<
@@ -167,11 +145,12 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     // Add provider-specific options
     if (openAIOptions) {
       const transcriptionModelOptions: OpenAITranscriptionModelOptions = {
-        include: openAIOptions.include,
-        language: openAIOptions.language,
-        prompt: openAIOptions.prompt,
-        temperature: openAIOptions.temperature,
-        timestamp_granularities: openAIOptions.timestampGranularities,
+        include: openAIOptions.include ?? undefined,
+        language: openAIOptions.language ?? undefined,
+        prompt: openAIOptions.prompt ?? undefined,
+        temperature: openAIOptions.temperature ?? undefined,
+        timestamp_granularities:
+          openAIOptions.timestampGranularities ?? undefined,
       };
 
       for (const key in transcriptionModelOptions) {
@@ -180,7 +159,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
             key as keyof OpenAITranscriptionModelOptions
           ];
         if (value !== undefined) {
-          formData.append(key, value as string);
+          formData.append(key, String(value));
         }
       }
     }
