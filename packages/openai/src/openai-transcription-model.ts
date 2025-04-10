@@ -22,22 +22,22 @@ import {
 const OpenAIProviderOptionsSchema = z.object({
   include: z
     .array(z.string())
-    .optional(),
+    .nullish(),
   language: z
     .string()
-    .optional(),
+    .nullish(),
   prompt: z
     .string()
-    .optional(),
+    .nullish(),
   temperature: z
     .number()
     .min(0)
     .max(1)
-    .optional()
+    .nullish()
     .default(0),
   timestampGranularities: z
     .array(z.enum(['word', 'segment']))
-    .optional()
+    .nullish()
     .default(['segment'])
 });
 
@@ -156,11 +156,11 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     // Add provider-specific options
     if (openAIOptions) {
       const transcriptionModelOptions: OpenAITranscriptionModelOptions = {
-        include: openAIOptions.include,
-        language: openAIOptions.language,
-        prompt: openAIOptions.prompt,
-        temperature: openAIOptions.temperature,
-        timestamp_granularities: openAIOptions.timestampGranularities,
+        include: openAIOptions.include ?? undefined,
+        language: openAIOptions.language ?? undefined,
+        prompt: openAIOptions.prompt ?? undefined,
+        temperature: openAIOptions.temperature ?? undefined,
+        timestamp_granularities: openAIOptions.timestampGranularities ?? undefined,
       };
 
       for (const key in transcriptionModelOptions) {
