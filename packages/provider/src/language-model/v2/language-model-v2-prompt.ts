@@ -121,12 +121,9 @@ export interface LanguageModelV2FilePart {
   filename?: string;
 
   /**
-File data as base64 encoded string or as a URL.
-   */
-  // Note: base64-encoded strings are used to prevent
-  // unnecessary conversions from string to buffer to string
-  // TODO support Uint8Array | string | URL
-  data: string | URL;
+File data. Can be a Uint8Array, base64 encoded data as a string or a URL.
+*/
+  data: Uint8Array | string | URL;
 
   /**
 IANA media type of the file.
