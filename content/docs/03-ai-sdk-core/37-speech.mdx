@@ -116,7 +116,10 @@ The error preserves the following information to help you log the issue:
 - `cause`: The cause of the error. You can use this for more detailed error handling.
 
 ```ts
-import { experimental_generateSpeech as generateSpeech, AI_NoAudioGeneratedError } from 'ai';
+import {
+  experimental_generateSpeech as generateSpeech,
+  AI_NoAudioGeneratedError,
+} from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 

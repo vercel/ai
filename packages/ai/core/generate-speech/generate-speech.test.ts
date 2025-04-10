@@ -1,4 +1,8 @@
-import { JSONValue, SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
+import {
+  JSONValue,
+  SpeechModelV1,
+  SpeechModelV1CallWarning,
+} from '@ai-sdk/provider';
 import { MockSpeechModelV1 } from '../test/mock-speech-model-v1';
 import { generateSpeech } from './generate-speech';
 
