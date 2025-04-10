@@ -3375,7 +3375,6 @@ describe('streamText', () => {
           type: 'step-finish',
           messageId: expect.any(String),
           providerMetadata: undefined,
-          experimental_providerMetadata: undefined,
           finishReason: 'stop',
           isContinued: false,
           logprobs: undefined,
@@ -3396,7 +3395,6 @@ describe('streamText', () => {
         {
           type: 'finish',
           providerMetadata: undefined,
-          experimental_providerMetadata: undefined,
           finishReason: 'stop',
           logprobs: undefined,
           response: {

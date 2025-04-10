@@ -32,11 +32,6 @@ results that can be fully encapsulated in the provider.
   readonly providerMetadata: Promise<ProviderMetadata | undefined>;
 
   /**
-@deprecated Use `providerMetadata` instead.
-   */
-  readonly experimental_providerMetadata: Promise<ProviderMetadata | undefined>;
-
-  /**
 Additional request information from the last step.
  */
   readonly request: Promise<LanguageModelRequestMetadata>;

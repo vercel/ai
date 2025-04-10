@@ -74,7 +74,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       finishReason: FinishReason;
       logprobs?: LogProbs;
       usage: LanguageModelUsage;
-      experimental_providerMetadata?: ProviderMetadata;
+      providerMetadata?: ProviderMetadata;
     }
   | {
       type: 'error';
@@ -306,7 +306,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             finishReason: chunk.finishReason,
             logprobs: chunk.logprobs,
             usage: calculateLanguageModelUsage(chunk.usage),
-            experimental_providerMetadata: chunk.providerMetadata,
+            providerMetadata: chunk.providerMetadata,
           };
           break;
         }

@@ -100,11 +100,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
 */
   providerMetadata: ProviderMetadata | undefined;
-
-  /**
-@deprecated Use `providerMetadata` instead.
-*/
-  experimental_providerMetadata?: ProviderMetadata;
 }) => Promise<void> | void;
 
 /**
@@ -170,11 +165,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
       providerOptions?: ProviderOptions;
-
-      /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
 
       /**
 Callback that is invoked when an error occurs during streaming.
@@ -263,11 +253,6 @@ functionality that can be fully encapsulated in the provider.
       providerOptions?: ProviderOptions;
 
       /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
-
-      /**
 Callback that is invoked when an error occurs during streaming.
 You can use it to log errors.
 The stream processing will pause until the callback promise is resolved.
@@ -329,11 +314,6 @@ functionality that can be fully encapsulated in the provider.
       providerOptions?: ProviderOptions;
 
       /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
-
-      /**
 Callback that is invoked when an error occurs during streaming.
 You can use it to log errors.
 The stream processing will pause until the callback promise is resolved.
@@ -369,8 +349,7 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   abortSignal,
   headers,
   experimental_telemetry: telemetry,
-  experimental_providerMetadata,
-  providerOptions = experimental_providerMetadata,
+  providerOptions,
   onError,
   onFinish,
   _internal: {
@@ -399,7 +378,6 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
     providerOptions?: ProviderOptions;
-    experimental_providerMetadata?: ProviderMetadata;
     onError?: StreamObjectOnErrorCallback;
     onFinish?: StreamObjectOnFinishCallback<RESULT>;
     _internal?: {
@@ -981,7 +959,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     },
                     warnings,
                     providerMetadata,
-                    experimental_providerMetadata: providerMetadata,
                   });
                 } catch (error) {
                   controller.enqueue({ type: 'error', error });
@@ -1019,10 +996,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
   get usage() {
     return this.usagePromise.value;
-  }
-
-  get experimental_providerMetadata() {
-    return this.providerMetadataPromise.value;
   }
 
   get providerMetadata() {
