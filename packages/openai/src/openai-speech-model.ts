@@ -95,6 +95,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     const requestBody: Record<string, any> = {
       model: this.modelId,
       input: text,
+      voice: 'alloy',
     };
 
     // Add provider-specific options
