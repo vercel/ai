@@ -1,16 +1,12 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { createElevenLabs } from './elevenlabs-provider';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
+const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createElevenLabs({ apiKey: 'test-api-key' });
 const model = provider.transcription('scribe_v1');
-
-const getAudioData = () =>
-  fetch(
-    'https://github.com/vercel/ai/raw/refs/heads/main/examples/ai-core/data/galileo.mp3',
-  )
-    .then(response => response.arrayBuffer())
-    .then(buffer => new Uint8Array(buffer));
 
 const server = createTestServer({
   'https://api.elevenlabs.io/v1/speech-to-text': {},
@@ -90,7 +86,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await model.doGenerate({
-      audio: await getAudioData(),
+      audio: audioData,
       mediaType: 'audio/wav',
     });
 
@@ -110,7 +106,7 @@ describe('doGenerate', () => {
     });
 
     await provider.transcription('scribe_v1').doGenerate({
-      audio: await getAudioData(),
+      audio: audioData,
       mediaType: 'audio/wav',
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -131,7 +127,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const result = await model.doGenerate({
-      audio: await getAudioData(),
+      audio: audioData,
       mediaType: 'audio/wav',
     });
 
@@ -157,7 +153,7 @@ describe('doGenerate', () => {
     });
 
     const result = await customModel.doGenerate({
-      audio: await getAudioData(),
+      audio: audioData,
       mediaType: 'audio/wav',
     });
 
@@ -186,7 +182,7 @@ describe('doGenerate', () => {
     });
 
     const result = await customModel.doGenerate({
-      audio: await getAudioData(),
+      audio: audioData,
       mediaType: 'audio/wav',
     });
 
@@ -259,7 +255,7 @@ describe('doGenerate', () => {
     });
 
     const result = await customModel.doGenerate({
-      audio: await getAudioData(),
+      audio: audioData,
       mediaType: 'audio/wav',
     });
 
