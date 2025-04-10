@@ -166,10 +166,10 @@ describe('doGenerate', () => {
 
   it('should handle different audio formats', async () => {
     const formats = ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'] as const;
-    
+
     for (const format of formats) {
       const audioBuffer = prepareAudioResponse({ format });
-      
+
       const result = await model.doGenerate({
         text: 'Hello from the Vercel AI SDK!',
         providerOptions: {
@@ -178,7 +178,7 @@ describe('doGenerate', () => {
           },
         },
       });
-      
+
       expect(result.audioData).toBe(audioBuffer);
       expect(result.contentType).toBe(`audio/${format}`);
     }

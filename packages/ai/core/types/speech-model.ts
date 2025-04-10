@@ -1,7 +1,4 @@
-import {
-  SpeechModelV1,
-  SpeechModelV1CallWarning,
-} from '@ai-sdk/provider';
+import { SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
 
 /**
 Transcription model that is used by the AI SDK Core functions.

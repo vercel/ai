@@ -20,12 +20,26 @@ import {
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
 const OpenAIProviderOptionsSchema = z.object({
   voice: z
-    .enum(['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse'])
+    .enum([
+      'alloy',
+      'ash',
+      'ballad',
+      'coral',
+      'echo',
+      'fable',
+      'onyx',
+      'nova',
+      'sage',
+      'shimmer',
+      'verse',
+    ])
     .describe('The voice to use when generating the audio.'),
   instructions: z
     .string()
     .optional()
-    .describe('Control the voice of your generated audio with additional instructions. Does not work with tts-1 or tts-1-hd.'),
+    .describe(
+      'Control the voice of your generated audio with additional instructions. Does not work with tts-1 or tts-1-hd.',
+    ),
   response_format: z
     .enum(['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'])
     .default('mp3')
@@ -65,10 +79,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     private readonly config: OpenAISpeechModelConfig,
   ) {}
 
-  private getArgs({
-    text,
-    providerOptions,
-  }: OpenAISpeechCallOptions) {
+  private getArgs({ text, providerOptions }: OpenAISpeechCallOptions) {
     const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
@@ -136,11 +147,16 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     const contentType = (() => {
       const format = requestBody.response_format || 'mp3';
       switch (format) {
-        case 'mp3': return 'audio/mp3';
-        case 'opus': return 'audio/opus';
-        case 'aac': return 'audio/aac';
-        case 'flac': return 'audio/flac';
-        default: return 'audio/mp3';
+        case 'mp3':
+          return 'audio/mp3';
+        case 'opus':
+          return 'audio/opus';
+        case 'aac':
+          return 'audio/aac';
+        case 'flac':
+          return 'audio/flac';
+        default:
+          return 'audio/mp3';
       }
     })();
 
