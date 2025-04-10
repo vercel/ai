@@ -26,43 +26,31 @@ const server = createTestServer({
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'anthropic.beta',
-        url: () => '',
-        headers: () => ({}),
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'anthropic.beta',
+      url: () => '',
+      headers: () => ({}),
+    });
 
     expect(model['providerOptionsName']).toBe('anthropic');
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'openai',
-        url: () => '',
-        headers: () => ({}),
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'openai',
+      url: () => '',
+      headers: () => ({}),
+    });
 
     expect(model['providerOptionsName']).toBe('openai');
   });
 
   it('should return empty for empty provider', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: '',
-        url: () => '',
-        headers: () => ({}),
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: '',
+      url: () => '',
+      headers: () => ({}),
+    });
 
     expect(model['providerOptionsName']).toBe('');
   });
@@ -147,16 +135,27 @@ describe('doGenerate', () => {
 
   it('should pass user setting to requests', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
-    const modelWithUser = provider('grok-beta', {
-      user: 'test-user-id',
-    });
+    const modelWithUser = provider('grok-beta');
     await modelWithUser.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
+      providerOptions: {
+        xai: {
+          user: 'test-user-id',
+        },
+      },
     });
-    expect(await server.calls[0].requestBody).toMatchObject({
-      user: 'test-user-id',
-    });
+    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "grok-beta",
+      }
+    `);
   });
 
   it('should extract text response', async () => {
@@ -328,11 +327,14 @@ describe('doGenerate', () => {
   it('should pass settings', async () => {
     prepareJsonResponse();
 
-    await provider('grok-beta', {
-      user: 'test-user-id',
-    }).doGenerate({
+    await provider('grok-beta').doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
+      providerOptions: {
+        'openai-compatible': {
+          user: 'test-user-id',
+        },
+      },
     });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
@@ -509,16 +511,12 @@ describe('doGenerate', () => {
     it('should not send a response_format when response format is text', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: false,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: false,
+      });
 
       await model.doGenerate({
         inputFormat: 'prompt',
@@ -553,16 +551,12 @@ describe('doGenerate', () => {
     it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: false,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: false,
+      });
 
       const { warnings } = await model.doGenerate({
         inputFormat: 'prompt',
@@ -598,16 +592,12 @@ describe('doGenerate', () => {
     it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: true,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
 
       const { warnings } = await model.doGenerate({
         inputFormat: 'prompt',
@@ -648,16 +638,12 @@ describe('doGenerate', () => {
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: true,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
 
       await model.doGenerate({
         inputFormat: 'prompt',
@@ -696,16 +682,12 @@ describe('doGenerate', () => {
     it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: true,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
 
       await model.doGenerate({
         inputFormat: 'prompt',
@@ -747,16 +729,12 @@ describe('doGenerate', () => {
     it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = new OpenAICompatibleChatLanguageModel(
-        'gpt-4o-2024-08-06',
-        {},
-        {
-          provider: 'test-provider',
-          url: () => 'https://my.api.com/v1/chat/completions',
-          headers: () => ({}),
-          supportsStructuredOutputs: true,
-        },
-      );
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        supportsStructuredOutputs: true,
+      });
 
       await model.doGenerate({
         inputFormat: 'prompt',
@@ -1774,16 +1752,12 @@ describe('metadata extraction', () => {
       },
     };
 
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'test-provider',
-        url: () => 'https://my.api.com/v1/chat/completions',
-        headers: () => ({}),
-        metadataExtractor: testMetadataExtractor,
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'test-provider',
+      url: () => 'https://my.api.com/v1/chat/completions',
+      headers: () => ({}),
+      metadataExtractor: testMetadataExtractor,
+    });
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
@@ -1812,16 +1786,12 @@ describe('metadata extraction', () => {
       ],
     };
 
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'test-provider',
-        url: () => 'https://my.api.com/v1/chat/completions',
-        headers: () => ({}),
-        metadataExtractor: testMetadataExtractor,
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'test-provider',
+      url: () => 'https://my.api.com/v1/chat/completions',
+      headers: () => ({}),
+      metadataExtractor: testMetadataExtractor,
+    });
 
     const result = await model.doStream({
       inputFormat: 'prompt',

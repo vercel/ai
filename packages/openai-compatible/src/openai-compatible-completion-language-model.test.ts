@@ -26,29 +26,21 @@ const server = createTestServer({
 
 describe('config', () => {
   it('should extract base name from provider string', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'anthropic.beta',
-        url: () => '',
-        headers: () => ({}),
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'anthropic.beta',
+      url: () => '',
+      headers: () => ({}),
+    });
 
     expect(model['providerOptionsName']).toBe('anthropic');
   });
 
   it('should handle provider without dot notation', () => {
-    const model = new OpenAICompatibleChatLanguageModel(
-      'gpt-4',
-      {},
-      {
-        provider: 'openai',
-        url: () => '',
-        headers: () => ({}),
-      },
-    );
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4', {
+      provider: 'openai',
+      url: () => '',
+      headers: () => ({}),
+    });
 
     expect(model['providerOptionsName']).toBe('openai');
   });
@@ -56,7 +48,7 @@ describe('config', () => {
   it('should return empty for empty provider', () => {
     const model = new OpenAICompatibleChatLanguageModel(
       'gpt-4',
-      {},
+
       {
         provider: '',
         url: () => '',

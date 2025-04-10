@@ -9,10 +9,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  CerebrasChatModelId,
-  CerebrasChatSettings,
-} from './cerebras-chat-settings';
+import { CerebrasChatModelId } from './cerebras-chat-settings';
 import { z } from 'zod';
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 
@@ -55,26 +52,17 @@ export interface CerebrasProvider extends ProviderV2 {
   /**
 Creates a Cerebras model for text generation.
 */
-  (
-    modelId: CerebrasChatModelId,
-    settings?: CerebrasChatSettings,
-  ): LanguageModelV2;
+  (modelId: CerebrasChatModelId): LanguageModelV2;
 
   /**
 Creates a Cerebras model for text generation.
 */
-  languageModel(
-    modelId: CerebrasChatModelId,
-    settings?: CerebrasChatSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: CerebrasChatModelId): LanguageModelV2;
 
   /**
 Creates a Cerebras chat model for text generation.
 */
-  chat(
-    modelId: CerebrasChatModelId,
-    settings?: CerebrasChatSettings,
-  ): LanguageModelV2;
+  chat(modelId: CerebrasChatModelId): LanguageModelV2;
 }
 
 export function createCerebras(
@@ -92,11 +80,8 @@ export function createCerebras(
     ...options.headers,
   });
 
-  const createLanguageModel = (
-    modelId: CerebrasChatModelId,
-    settings: CerebrasChatSettings = {},
-  ) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
+  const createLanguageModel = (modelId: CerebrasChatModelId) => {
+    return new OpenAICompatibleChatLanguageModel(modelId, {
       provider: `cerebras.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -106,10 +91,8 @@ export function createCerebras(
     });
   };
 
-  const provider = (
-    modelId: CerebrasChatModelId,
-    settings?: CerebrasChatSettings,
-  ) => createLanguageModel(modelId, settings);
+  const provider = (modelId: CerebrasChatModelId) =>
+    createLanguageModel(modelId);
 
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
