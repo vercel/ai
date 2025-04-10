@@ -13,13 +13,11 @@ import {
 import { z } from 'zod';
 import { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
-import {
-  ElevenLabsTranscriptionModelId,
-} from './elevenlabs-transcription-settings';
+import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
 import { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
 // https://elevenlabs.io/docs/api-reference/speech-to-text/convert
-const ElevenLabsProviderOptionsSchema = z.object({
+const elevenLabsProviderOptionsSchema = z.object({
   languageCode: z.string().nullish(),
   tagAudioEvents: z.boolean().nullish().default(true),
   numSpeakers: z.number().int().min(1).max(32).nullish(),
@@ -85,14 +83,9 @@ const ElevenLabsProviderOptionsSchema = z.object({
   file_format: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
 });
 
-export type ElevenLabsTranscriptionCallOptions = Omit<
-  TranscriptionModelV1CallOptions,
-  'providerOptions'
-> & {
-  providerOptions?: {
-    elevenlabs?: z.infer<typeof ElevenLabsProviderOptionsSchema>;
-  };
-};
+export type ElevenLabsTranscriptionCallOptions = z.infer<
+  typeof elevenLabsProviderOptionsSchema
+>;
 
 interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
   _internal?: {
@@ -116,14 +109,14 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
     audio,
     mediaType,
     providerOptions,
-  }: ElevenLabsTranscriptionCallOptions) {
+  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
     const elevenlabsOptions = parseProviderOptions({
       provider: 'elevenlabs',
       providerOptions,
-      schema: ElevenLabsProviderOptionsSchema,
+      schema: elevenLabsProviderOptionsSchema,
     });
 
     // Create form data with base fields
@@ -187,7 +180,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
   }
 
   async doGenerate(
-    options: ElevenLabsTranscriptionCallOptions,
+    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = this.getArgs(options);
