@@ -78,11 +78,7 @@ describe('doGenerate', () => {
       text: 'Hello from the AI SDK!',
       voice: 'nova',
       outputMediaType: 'opus',
-      providerOptions: {
-        openai: {
-          speed: 1.5,
-        },
-      },
+      speed: 1.5,
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({

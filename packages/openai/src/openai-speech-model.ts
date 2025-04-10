@@ -52,7 +52,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     private readonly config: OpenAISpeechModelConfig,
   ) {}
 
-  private getArgs({ text, voice = 'alloy', outputMediaType = 'mp3', providerOptions }: Parameters<SpeechModelV1['doGenerate']>[0]) {
+  private getArgs({ text, voice = 'alloy', outputMediaType = 'mp3', speed, instructions, providerOptions }: Parameters<SpeechModelV1['doGenerate']>[0]) {
     const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
@@ -80,14 +80,13 @@ export class OpenAISpeechModel implements SpeechModelV1 {
       input: text,
       voice,
       response_format: responseFormat,
+      speed,
+      instructions,
     };
 
     // Add provider-specific options
     if (openAIOptions) {
-      const speechModelOptions: OpenAISpeechAPITypes = {
-        speed: openAIOptions.speed,
-        instructions: openAIOptions.instructions,
-      };
+      const speechModelOptions: OpenAISpeechAPITypes = {};
 
       for (const key in speechModelOptions) {
         const value = speechModelOptions[key as keyof OpenAISpeechAPITypes];

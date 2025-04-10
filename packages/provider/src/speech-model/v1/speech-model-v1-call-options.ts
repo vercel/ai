@@ -22,6 +22,16 @@ export type SpeechModelV1CallOptions = {
   outputMediaType?: string;
 
   /**
+   * Instructions for the speech generation.
+   */
+  instructions?: string;
+
+  /**
+   * The speed of the speech generation.
+   */
+  speed?: number;
+
+  /**
    * Additional provider-specific options that are passed through to the provider
    * as body parameters.
    *
@@ -29,9 +39,7 @@ export type SpeechModelV1CallOptions = {
    * record is keyed by the provider-specific metadata key.
    * ```ts
    * {
-   *   "openai": {
-   *     "speed": 1.0
-   *   }
+   *   "openai": {}
    * }
    * ```
    */

@@ -889,7 +889,7 @@ import { openai } from '@ai-sdk/openai';
 const result = await generateSpeech({
   model: openai.speech('tts-1'),
   text: 'Hello, world!',
-  providerOptions: { openai: { speed: 1.5 } },
+  providerOptions: { openai: {} },
 });
 ```
 

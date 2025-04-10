@@ -46,6 +46,21 @@ The voice to use for speech generation.
   voice?: string;
 
   /**
+The output media type to use for speech generation.
+   */
+  outputMediaType?: string;
+  
+  /**
+    Instructions for the speech generation.
+  */
+  instructions?: string;
+  
+  /**
+  The speed of the speech generation.
+   */
+  speed?: number;
+
+  /**
 Additional provider-specific options that are passed through to the provider
 as body parameters.
 
@@ -53,9 +68,7 @@ The outer record is keyed by the provider name, and the inner
 record is keyed by the provider-specific metadata key.
 ```ts
 {
-  "openai": {
-    "voice": "alloy"
-  }
+  "openai": {}
 }
 ```
      */
@@ -85,6 +98,9 @@ Only applicable for HTTP-based providers.
     model.doGenerate({
       text,
       voice,
+      outputMediaType,
+      instructions,
+      speed,
       abortSignal,
       headers,
       providerOptions,

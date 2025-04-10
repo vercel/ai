@@ -7,11 +7,7 @@ async function main() {
     model: openai.speech('tts-1'),
     text: 'Hello from the AI SDK!',
     voice: 'nova',
-    providerOptions: {
-      openai: {
-        speed: 1.5,
-      },
-    },
+    speed: 1.5,
   });
 
   console.log('Audio:', result.audio);
