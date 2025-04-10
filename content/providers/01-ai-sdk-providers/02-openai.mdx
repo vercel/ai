@@ -876,3 +876,68 @@ The following provider options are available:
 | `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+
+## Speech Models
+
+You can create models that call the [OpenAI speech API](https://platform.openai.com/docs/api-reference/audio/speech)
+using the `.speech()` factory method.
+
+The first argument is the model id e.g. `tts-1`.
+
+```ts
+const model = openai.speech('tts-1');
+```
+
+OpenAI speech models support a `text` argument which can be a `string`.
+
+```ts
+const model = openai.speech('tts-1', {
+  text: 'Hello, world!',
+});
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying a voice to use for the generated audio.
+
+```ts highlight="6"
+import { experimental_speak as speak } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const result = await speak({
+  model: openai.speech('tts-1'),
+  text: 'Hello, world!',
+  providerOptions: { openai: { voice: 'nova' } },
+});
+```
+
+The following provider options are available:
+
+- **voice** _string_
+  The voice to use when generating the audio.
+  Required.
+  Supported voices are `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `onyx`, `nova`, `sage`, `shimmer`, and `verse`.
+  Defaults to `'alloy'`.
+
+- **instructions** _string_
+  Control the voice of your generated audio with additional instructions.
+  Does not work with `tts-1` or `tts-1-hd`.
+  Optional.
+
+- **response_format** _string_
+  The format to audio in.
+  Supported formats are `mp3`, `opus`, `aac`, `flac`, `wav`, and `pcm`.
+  Defaults to `mp3`.
+  Optional.
+
+- **speed** _number_
+  The speed of the generated audio.
+  Select a value from 0.25 to 4.0.
+  Defaults to 1.0.
+  Optional.
+
+### Model Capabilities
+
+| Model             | Instructions        |
+| ----------------- | ------------------- |
+| `tts-1`           | <Check size={18} /> |
+| `tts-1-hd`        | <Check size={18} /> |
+| `gpt-4o-mini-tts` | <Check size={18} /> |
