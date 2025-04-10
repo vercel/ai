@@ -19,7 +19,7 @@ export type SpeechModelV1CallOptions = {
    *
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
-  outputFormat?: string;
+  outputMediaType?: string;
 
   /**
    * Additional provider-specific options that are passed through to the provider
