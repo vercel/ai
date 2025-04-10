@@ -1,3 +1,4 @@
+import { delay } from '@ai-sdk/provider-utils';
 import type {
   ChatRequest,
   ChatRequestOptions,
@@ -21,6 +22,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { throttle } from './throttle';
+import { createDelayedCheck } from './util/delayed-check';
 import { useStableValue } from './util/use-stable-value';
 
 export type { CreateMessage, Message, UseChatOptions };
@@ -360,19 +362,22 @@ By default, it's set to 1, which means that only a single LLM call is made.
         mutateStatus('error');
       }
 
-      // auto-submit when all tool calls in the last assistant message have results
-      // and assistant has not answered yet
-      const messages = messagesRef.current;
-      if (
-        shouldResubmitMessages({
-          originalMaxToolInvocationStep: maxStep,
-          originalMessageCount: messageCount,
-          maxSteps,
-          messages,
-        })
-      ) {
-        await triggerRequest({ messages });
-      }
+      // auto-submit when all tool calls in the last assistant message have results and assistant has not answered yet
+      // if throttling enabled, wait for mutations to complete
+      const maybeResubmit = createDelayedCheck(async () => {
+        const messages = messagesRef.current;
+        if (
+          shouldResubmitMessages({
+            originalMaxToolInvocationStep: maxStep,
+            originalMessageCount: messageCount,
+            maxSteps,
+            messages,
+          })
+        ) {
+          await triggerRequest({ messages });
+        }
+      }, throttleWaitMs);
+      maybeResubmit();
     },
     [
       mutate,
@@ -539,7 +544,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
   };
 
   const addToolResult = useCallback(
-    ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
+    async ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
+      if (throttleWaitMs) await delay(throttleWaitMs);
+
       const currentMessages = messagesRef.current;
 
       updateToolCallResult({
@@ -568,7 +575,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         triggerRequest({ messages: currentMessages });
       }
     },
-    [mutate, status, triggerRequest],
+    [mutate, status, throttleWaitMs, triggerRequest],
   );
 
   return {
