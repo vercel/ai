@@ -1,7 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { experimental_createMCPClient, generateText } from 'ai';
 import 'dotenv/config';
-import { z } from 'zod';
 
 async function main() {
   const mcpClient = await experimental_createMCPClient({
@@ -14,21 +13,17 @@ async function main() {
     },
   });
 
+  const tools = await mcpClient.tools();
+
   const { text: answer } = await generateText({
     model: openai('gpt-4o-mini', { structuredOutputs: true }),
-    tools: await mcpClient.tools({
-      schemas: {
-        'find-product': {
-          parameters: z.object({}),
-        },
-      },
-    }),
+    tools,
     maxSteps: 10,
     onStepFinish: async ({ toolResults }) => {
       console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
     },
     system: 'You are a helpful chatbot',
-    prompt: 'Can you find a product called The Product?',
+    prompt: 'List all products, then find availability for Product 1.',
   });
 
   await mcpClient.close();
