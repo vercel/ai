@@ -159,7 +159,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
             key as keyof OpenAITranscriptionModelOptions
           ];
         if (value !== undefined) {
-          formData.append(key, String(value));
+          formData.append(key, value as string);
         }
       }
     }
