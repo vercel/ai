@@ -46,6 +46,31 @@ console.log(audio);
       description: 'The text to generate the speech from.',
     },
     {
+      name: 'voice',
+      type: 'string',
+      isOptional: true,
+      description: 'The voice to use for the speech.',
+    },
+    {
+      name: 'outputMediaType',
+      type: 'string',
+      isOptional: true,
+      description: 'The output media type to use for the speech.',
+    },
+    {
+      name: 'instructions',
+      type: 'string',
+      isOptional: true,
+      description: 'Instructions for the speech generation.',
+    },
+    {
+      name: 'speed',
+      type: 'number',
+      isOptional: true,
+      description: 'The speed of the speech generation.',
+    },
+
+    {
       name: 'providerOptions',
       type: 'Record<string, Record<string, JSONValue>>',
       isOptional: true,
