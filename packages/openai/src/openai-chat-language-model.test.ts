@@ -1298,6 +1298,30 @@ describe('doGenerate', () => {
       },
     });
   });
+
+  it('should remove temperature setting for gpt-4o-search-preview and add warning', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o-search-preview');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      temperature: 0.7,
+    });
+
+    const requestBody = await server.calls[0].requestBody;
+    expect(requestBody.model).toBe('gpt-4o-search-preview');
+    expect(requestBody.temperature).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'temperature',
+      details:
+        'temperature is not supported for the gpt-4o-search-preview model and has been removed.',
+    });
+  });
 });
 
 describe('doStream', () => {
