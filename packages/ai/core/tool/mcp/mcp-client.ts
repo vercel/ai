@@ -309,7 +309,11 @@ class MCPClient {
 
         const parameters =
           schemas === 'automatic'
-            ? jsonSchema(inputSchema as JSONSchema7)
+            ? jsonSchema({
+                ...inputSchema,
+                properties: inputSchema.properties ?? {},
+                additionalProperties: false,
+              } as JSONSchema7)
             : schemas[name].parameters;
 
         const self = this;
