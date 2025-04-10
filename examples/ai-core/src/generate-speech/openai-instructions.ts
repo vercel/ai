@@ -6,6 +6,7 @@ async function main() {
   const result = await generateSpeech({
     model: openai.speech('tts-1'),
     text: 'Hello from the AI SDK!',
+    instructions: 'Speak in a slow and steady tone',
   });
 
   console.log('Audio:', result.audio);
