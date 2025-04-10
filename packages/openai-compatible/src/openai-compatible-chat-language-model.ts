@@ -254,8 +254,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       })),
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: responseBody.usage?.prompt_tokens ?? NaN,
-        completionTokens: responseBody.usage?.completion_tokens ?? NaN,
+        inputTokens: responseBody.usage?.prompt_tokens ?? undefined,
+        outputTokens: responseBody.usage?.completion_tokens ?? undefined,
       },
       providerMetadata,
       request: { body },
@@ -294,8 +294,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
-
-    const { messages: rawPrompt, ...rawSettings } = args;
 
     const toolCalls: Array<{
       id: string;
@@ -570,8 +568,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               type: 'finish',
               finishReason,
               usage: {
-                promptTokens: usage.promptTokens ?? NaN,
-                completionTokens: usage.completionTokens ?? NaN,
+                inputTokens: usage.promptTokens ?? undefined,
+                outputTokens: usage.completionTokens ?? undefined,
               },
               providerMetadata,
             });
