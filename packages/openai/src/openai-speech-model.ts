@@ -79,11 +79,24 @@ export class OpenAISpeechModel implements SpeechModelV1 {
       schema: OpenAIProviderOptionsSchema,
     });
 
+    let responseFormat = outputMediaType ?? 'mp3';
+
+    if (outputMediaType && !['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'].includes(outputMediaType)) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'outputMediaType',
+        details: `Unsupported output media type: ${outputMediaType}. Using mp3 instead.`,
+      });
+      
+      responseFormat = 'mp3';
+    }
+
     // Create request body
     const requestBody: Record<string, unknown> = {
       model: this.modelId,
       input: text,
       voice: 'alloy',
+      response_format: responseFormat,
     };
 
     // Add provider-specific options
@@ -91,8 +104,6 @@ export class OpenAISpeechModel implements SpeechModelV1 {
       const speechModelOptions: OpenAISpeechAPITypes = {
         voice: openAIOptions.voice,
         speed: openAIOptions.speed,
-        response_format:
-          (outputMediaType as OpenAISpeechAPITypes['response_format']) ?? 'mp3',
         instructions: openAIOptions.instructions,
       };
 
