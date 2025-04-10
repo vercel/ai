@@ -18,6 +18,7 @@ import { readFile } from 'fs/promises';
 const audio = await generateSpeech({
   model: openai.speech('tts-1'),
   text: 'Hello, world!',
+  voice: 'alloy',
 });
 ```
 
@@ -43,7 +44,7 @@ const audio = await generateSpeech({
   text: 'Hello, world!',
   providerOptions: {
     openai: {
-      voice: 'nova',
+      speed: 1.5,
     },
   },
 });

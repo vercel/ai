@@ -76,11 +76,11 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       text: 'Hello from the AI SDK!',
+      voice: 'nova',
+      outputMediaType: 'opus',
       providerOptions: {
         openai: {
-          voice: 'nova',
           speed: 1.5,
-          response_format: 'opus',
         },
       },
     });
@@ -106,11 +106,7 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       text: 'Hello from the AI SDK!',
-      providerOptions: {
-        openai: {
-          response_format: 'opus',
-        },
-      },
+      outputMediaType: 'opus',
     });
 
     expect(result.audio).toStrictEqual(audio);

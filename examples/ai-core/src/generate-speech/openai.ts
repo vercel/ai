@@ -6,9 +6,9 @@ async function main() {
   const result = await generateSpeech({
     model: openai.speech('tts-1'),
     text: 'Hello from the AI SDK!',
+    voice: 'nova',
     providerOptions: {
       openai: {
-        voice: 'nova',
         speed: 1.5,
       },
     },
