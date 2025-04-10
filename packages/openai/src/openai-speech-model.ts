@@ -41,10 +41,6 @@ const OpenAIProviderOptionsSchema = z.object({
     .describe(
       'Control the voice of your generated audio with additional instructions. Does not work with tts-1 or tts-1-hd.',
     ),
-  response_format: z
-    .enum(['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'])
-    .default('mp3')
-    .describe('The format of the generated audio.'),
   speed: z
     .number()
     .min(0.25)
@@ -73,7 +69,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     private readonly config: OpenAISpeechModelConfig,
   ) {}
 
-  private getArgs({ text, providerOptions }: Parameters<SpeechModelV1['doGenerate']>[0]) {
+  private getArgs({ text, outputMediaType, providerOptions }: Parameters<SpeechModelV1['doGenerate']>[0]) {
     const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
@@ -95,7 +91,8 @@ export class OpenAISpeechModel implements SpeechModelV1 {
       const speechModelOptions: OpenAISpeechAPITypes = {
         voice: openAIOptions.voice,
         speed: openAIOptions.speed,
-        response_format: openAIOptions.response_format,
+        response_format:
+          (outputMediaType as OpenAISpeechAPITypes['response_format']) ?? 'mp3',
         instructions: openAIOptions.instructions,
       };
 
