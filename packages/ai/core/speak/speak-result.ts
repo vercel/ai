@@ -1,5 +1,6 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
+import { SpeechWarning } from '../types';
 
 /**
 The result of a `speak` call.
@@ -30,19 +31,4 @@ export interface SpeechResult {
   Provider metadata from the provider.
    */
   readonly providerMetadata: Record<string, Record<string, JSONValue>>;
-}
-
-/**
- * Warning information from the speech generation process.
- */
-export interface SpeechWarning {
-  /**
-   * The type of warning.
-   */
-  readonly type: string;
-
-  /**
-   * A human-readable message describing the warning.
-   */
-  readonly message: string;
 }

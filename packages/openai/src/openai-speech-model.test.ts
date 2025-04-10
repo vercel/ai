@@ -24,7 +24,7 @@ describe('doGenerate', () => {
         'content-type': `audio/${format}`,
         ...headers,
       },
-      body: audioBuffer,
+      body: Buffer.from(audioBuffer),
     };
     return audioBuffer;
   }
@@ -36,7 +36,7 @@ describe('doGenerate', () => {
       text: 'Hello from the Vercel AI SDK!',
     });
 
-    expect(JSON.parse(server.calls[0].requestBody as string)).toMatchObject({
+    expect(await server.calls[0].requestBody).toMatchObject({
       model: 'tts-1',
       input: 'Hello from the Vercel AI SDK!',
     });
@@ -85,7 +85,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(JSON.parse(server.calls[0].requestBody as string)).toMatchObject({
+    expect(await server.calls[0].requestBody).toMatchObject({
       model: 'tts-1',
       input: 'Hello from the Vercel AI SDK!',
       voice: 'nova',
@@ -106,7 +106,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(result.audioData).toBe(audioBuffer);
+    expect(result.audioData).toStrictEqual(audioBuffer);
     expect(result.contentType).toBe('audio/opus');
   });
 
@@ -179,7 +179,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(result.audioData).toBe(audioBuffer);
+      expect(result.audioData).toStrictEqual(audioBuffer);
       expect(result.contentType).toBe(`audio/${format}`);
     }
   });

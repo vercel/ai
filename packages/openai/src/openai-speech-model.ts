@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonResponseHandler,
+  createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -33,6 +33,8 @@ const OpenAIProviderOptionsSchema = z.object({
       'shimmer',
       'verse',
     ])
+    .default('alloy')
+    .optional()
     .describe('The voice to use when generating the audio.'),
   instructions: z
     .string()
@@ -136,33 +138,14 @@ export class OpenAISpeechModel implements SpeechModelV1 {
       headers: combineHeaders(this.config.headers(), options.headers),
       body: requestBody,
       failedResponseHandler: openaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        openaiSpeechResponseSchema,
-      ),
+      successfulResponseHandler: createBinaryResponseHandler(),
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
 
-    // Determine content type based on response_format
-    const contentType = (() => {
-      const format = requestBody.response_format || 'mp3';
-      switch (format) {
-        case 'mp3':
-          return 'audio/mp3';
-        case 'opus':
-          return 'audio/opus';
-        case 'aac':
-          return 'audio/aac';
-        case 'flac':
-          return 'audio/flac';
-        default:
-          return 'audio/mp3';
-      }
-    })();
-
     return {
-      audioData: audioBuffer,
-      contentType,
+      audioData: audioBuffer.buffer,
+      contentType: `audio/${options.providerOptions?.openai?.response_format ?? 'mp3'}`,
       warnings,
       request: {
         body: JSON.stringify(requestBody),
@@ -176,5 +159,3 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     };
   }
 }
-
-const openaiSpeechResponseSchema = z.instanceof(ArrayBuffer);
