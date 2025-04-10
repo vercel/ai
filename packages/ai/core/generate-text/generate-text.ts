@@ -122,8 +122,7 @@ export async function generateText<
   experimental_output: output,
   experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
-  experimental_providerMetadata,
-  providerOptions = experimental_providerMetadata,
+  providerOptions,
   experimental_activeTools: activeTools,
   experimental_repairToolCall: repairToolCall,
   _internal: {
@@ -181,11 +180,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
     providerOptions?: ProviderOptions;
-
-    /**
-@deprecated Use `providerOptions` instead.
-     */
-    experimental_providerMetadata?: ProviderMetadata;
 
     /**
 Limits the tools that are available for the model to call without
@@ -534,7 +528,6 @@ A function that attempts to repair a tool call that failed to parse.
             messages: structuredClone(responseMessages),
           },
           providerMetadata: currentModelResponse.providerMetadata,
-          experimental_providerMetadata: currentModelResponse.providerMetadata,
           isContinued: nextStepType === 'continue',
         };
         steps.push(currentStepResult);
@@ -712,10 +705,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   readonly warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
   readonly logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
-  readonly experimental_providerMetadata: GenerateTextResult<
-    TOOLS,
-    OUTPUT
-  >['experimental_providerMetadata'];
   readonly providerMetadata: GenerateTextResult<
     TOOLS,
     OUTPUT
@@ -762,7 +751,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.request = options.request;
     this.response = options.response;
     this.steps = options.steps;
-    this.experimental_providerMetadata = options.providerMetadata;
     this.providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;
     this.outputResolver = options.outputResolver;

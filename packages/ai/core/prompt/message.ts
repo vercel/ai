@@ -38,18 +38,12 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
- */
-  experimental_providerMetadata?: ProviderMetadata;
 };
 
 export const coreSystemMessageSchema: z.ZodType<CoreSystemMessage> = z.object({
   role: z.literal('system'),
   content: z.string(),
   providerOptions: providerMetadataSchema.optional(),
-  experimental_providerMetadata: providerMetadataSchema.optional(),
 });
 
 /**
@@ -65,11 +59,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
-*/
-  experimental_providerMetadata?: ProviderMetadata;
 };
 
 export const coreUserMessageSchema: z.ZodType<CoreUserMessage> = z.object({
@@ -79,7 +68,6 @@ export const coreUserMessageSchema: z.ZodType<CoreUserMessage> = z.object({
     z.array(z.union([textPartSchema, imagePartSchema, filePartSchema])),
   ]),
   providerOptions: providerMetadataSchema.optional(),
-  experimental_providerMetadata: providerMetadataSchema.optional(),
 });
 
 /**
@@ -100,11 +88,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
-*/
-  experimental_providerMetadata?: ProviderMetadata;
 };
 
 export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
@@ -123,7 +106,6 @@ export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
       ),
     ]),
     providerOptions: providerMetadataSchema.optional(),
-    experimental_providerMetadata: providerMetadataSchema.optional(),
   });
 
 /**
@@ -149,18 +131,12 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
   providerOptions?: ProviderOptions;
-
-  /**
-@deprecated Use `providerOptions` instead.
-*/
-  experimental_providerMetadata?: ProviderMetadata;
 };
 
 export const coreToolMessageSchema: z.ZodType<CoreToolMessage> = z.object({
   role: z.literal('tool'),
   content: z.array(toolResultPartSchema),
   providerOptions: providerMetadataSchema.optional(),
-  experimental_providerMetadata: providerMetadataSchema.optional(),
 });
 
 /**

@@ -42,7 +42,6 @@ function detectSingleMessageCharacteristics(
     message !== null &&
     'content' in message &&
     (Array.isArray(message.content) || // Core messages can have array content
-      'experimental_providerMetadata' in message ||
       'providerOptions' in message)
   ) {
     return 'has-core-specific-parts';
