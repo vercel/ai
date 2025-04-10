@@ -12,7 +12,6 @@
     "@ai-sdk/vue": "2.0.0-canary.4",
     "@ai-sdk/openai": "2.0.0-canary.4",
     "ai": "5.0.0-canary.5",
-    "openai": "4.52.6",
     "zod": "3.23.8"
   },
   "devDependencies": {
