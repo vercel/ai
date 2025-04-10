@@ -1,5 +1,13 @@
 # @ai-sdk/perplexity
 
+## 2.0.0-canary.5
+
+### Patch Changes
+
+- Updated dependencies [6f6bb89]
+  - @ai-sdk/provider@2.0.0-canary.4
+  - @ai-sdk/provider-utils@3.0.0-canary.5
+
 ## 2.0.0-canary.4
 
 ### Patch Changes

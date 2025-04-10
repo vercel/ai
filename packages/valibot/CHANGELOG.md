@@ -1,5 +1,11 @@
 # @ai-sdk/valibot
 
+## 1.0.0-canary.6
+
+### Patch Changes
+
+- ai@5.0.0-canary.6
+
 ## 1.0.0-canary.5
 
 ### Patch Changes

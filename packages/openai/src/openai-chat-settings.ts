@@ -75,19 +75,6 @@ When enabled, tool calls and object generation will be strict and follow the pro
   structuredOutputs?: boolean;
 
   /**
-Whether to use legacy function calling. Defaults to false.
-
-Required by some open source inference engines which do not support the `tools` API. May also
-provide a workaround for `parallelToolCalls` resulting in the provider buffering tool calls,
-which causes `streamObject` to be non-streaming.
-
-Prefer setting `parallelToolCalls: false` over this option.
-
-@deprecated this API is supported but deprecated by OpenAI.
-   */
-  useLegacyFunctionCalling?: boolean;
-
-  /**
 A unique identifier representing your end-user, which can help OpenAI to
 monitor and detect abuse. Learn more.
 */
@@ -101,16 +88,6 @@ private models or when the images are not publicly accessible.
 Defaults to `false`.
    */
   downloadImages?: boolean;
-
-  /**
-Simulates streaming by using a normal generate call and returning it as a stream.
-Enable this if the model that you are using does not support streaming.
-
-Defaults to `false`.
-
-@deprecated Use `simulateStreamingMiddleware` instead.
-   */
-  simulateStreaming?: boolean;
 
   /**
 Reasoning effort for reasoning models. Defaults to `medium`.

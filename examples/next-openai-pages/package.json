@@ -9,11 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "2.0.0-canary.4",
-    "@ai-sdk/react": "2.0.0-canary.4",
-    "ai": "5.0.0-canary.5",
+    "@ai-sdk/openai": "2.0.0-canary.5",
+    "@ai-sdk/react": "2.0.0-canary.5",
+    "ai": "5.0.0-canary.6",
     "next": "latest",
-    "openai": "4.52.6",
     "react": "^18",
     "react-dom": "^18",
     "zod": "3.23.8"

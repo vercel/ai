@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/vue",
-  "version": "2.0.0-canary.4",
+  "version": "2.0.0-canary.5",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -29,8 +29,8 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "ai": "5.0.0-canary.5",
-    "@ai-sdk/provider-utils": "3.0.0-canary.4",
+    "ai": "5.0.0-canary.6",
+    "@ai-sdk/provider-utils": "3.0.0-canary.5",
     "swrv": "^1.0.4"
   },
   "devDependencies": {

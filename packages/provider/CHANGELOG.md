@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.4
+
+### Major Changes
+
+- 6f6bb89: chore (provider): cleanup request and rawRequest (language model v2)
+
 ## 2.0.0-canary.3
 
 ### Major Changes
