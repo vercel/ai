@@ -1,5 +1,12 @@
 # @ai-sdk/openai
 
+## 1.3.10
+
+### Patch Changes
+
+- dbe53e7: adding support for gpt-4o-search-preview and handling unsupported parameters
+- 84ffaba: fix: propagate openai transcription fixes
+
 ## 1.3.9
 
 ### Patch Changes

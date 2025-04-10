@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.2.9
+
+### Patch Changes
+
+- 1bbc698: chore(openai-compatible): deprecate simulateStreaming
+
 ## 0.2.8
 
 ### Patch Changes
