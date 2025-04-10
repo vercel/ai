@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 // https://docs.mistral.ai/getting-started/models/models_overview/
 export type MistralChatModelId =
   // premier
@@ -14,11 +16,13 @@ export type MistralChatModelId =
   | 'open-mixtral-8x22b'
   | (string & {});
 
-export interface MistralChatSettings {
+export const mistralProviderOptions = z.object({
   /**
 Whether to inject a safety prompt before all conversations.
 
 Defaults to `false`.
    */
-  safePrompt?: boolean;
-}
+  safePrompt: z.boolean().nullish(),
+});
+
+export type MistralProviderOptions = z.infer<typeof mistralProviderOptions>;

@@ -11,6 +11,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -19,8 +20,9 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
   MistralChatModelId,
-  MistralChatSettings,
-} from './mistral-chat-settings';
+  mistralProviderOptions,
+  MistralProviderOptions,
+} from './mistral-chat-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
 
@@ -37,17 +39,11 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
   readonly supportsImageUrls = false;
 
   readonly modelId: MistralChatModelId;
-  readonly settings: MistralChatSettings;
 
   private readonly config: MistralChatConfig;
 
-  constructor(
-    modelId: MistralChatModelId,
-    settings: MistralChatSettings,
-    config: MistralChatConfig,
-  ) {
+  constructor(modelId: MistralChatModelId, config: MistralChatConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -75,6 +71,13 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     toolChoice,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
+
+    const options =
+      parseProviderOptions({
+        provider: 'mistral',
+        providerOptions,
+        schema: mistralProviderOptions,
+      }) ?? {};
 
     if (topK != null) {
       warnings.push({
@@ -121,7 +124,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       model: this.modelId,
 
       // model specific settings:
-      safe_prompt: this.settings.safePrompt,
+      safe_prompt: options.safePrompt,
 
       // standardized settings:
       max_tokens: maxTokens,
