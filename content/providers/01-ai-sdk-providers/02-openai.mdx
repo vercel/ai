@@ -177,16 +177,6 @@ The following optional settings are available for OpenAI chat models:
 
   Whether to enable parallel function calling during tool use. Defaults to `true`.
 
-- **useLegacyFunctionCalls** _boolean_
-
-  Whether to use legacy function calling. Defaults to false.
-
-  Required by some open source inference engines which do not support the `tools` API. May also
-  provide a workaround for `parallelToolCalls` resulting in the provider buffering tool calls,
-  which causes `streamObject` to be non-streaming.
-
-  Prefer setting `parallelToolCalls: false` over this option.
-
 - **structuredOutputs** _boolean_
 
   Whether to use [structured outputs](#structured-outputs).
@@ -204,12 +194,6 @@ The following optional settings are available for OpenAI chat models:
   Automatically download images and pass the image as data to the model.
   OpenAI supports image URLs for public models, so this is only needed for
   private models or when the images are not publicly accessible.
-  Defaults to `false`.
-
-- **simulateStreaming** _boolean_
-
-  Simulates streaming by using a normal generate call and returning it as a stream.
-  Enable this if the model that you are using does not support streaming.
   Defaults to `false`.
 
 - **reasoningEffort** _'low' | 'medium' | 'high'_
