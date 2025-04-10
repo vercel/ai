@@ -123,7 +123,7 @@ importers:
         specifier: 0.1.16
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 1.2.9
+        specifier: 1.2.10
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0

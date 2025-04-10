@@ -1,5 +1,11 @@
 # @ai-sdk/xai
 
+## 1.2.10
+
+### Patch Changes
+
+- 45de936: feat (providers/xai): add grok-3 models
+
 ## 1.2.9
 
 ### Patch Changes
