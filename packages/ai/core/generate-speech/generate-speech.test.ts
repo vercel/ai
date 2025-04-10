@@ -25,7 +25,7 @@ const createMockResponse = (options: {
   headers?: Record<string, string>;
   providerMetadata?: Record<string, Record<string, JSONValue>>;
 }) => ({
-  audio: options.audio,
+  audio: options.audio.uint8Array,
   warnings: options.warnings ?? [],
   response: {
     timestamp: options.timestamp ?? new Date(),
