@@ -5,6 +5,7 @@ import {
   LanguageModelV2FunctionToolCall,
   LanguageModelV2ProviderMetadata,
   LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -304,8 +305,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       toolCalls,
       finishReason: mapAnthropicStopReason(response.stop_reason),
       usage: {
-        promptTokens: response.usage.input_tokens,
-        completionTokens: response.usage.output_tokens,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
       },
       request: { body: args },
       response: {
@@ -343,12 +344,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
-
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const usage: { promptTokens: number; completionTokens: number } = {
-      promptTokens: Number.NaN,
-      completionTokens: Number.NaN,
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
     };
 
     const toolCallContentBlocks: Record<
@@ -506,8 +505,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               }
 
               case 'message_start': {
-                usage.promptTokens = value.message.usage.input_tokens;
-                usage.completionTokens = value.message.usage.output_tokens;
+                usage.inputTokens = value.message.usage.input_tokens;
+                usage.outputTokens = value.message.usage.output_tokens;
 
                 providerMetadata = {
                   anthropic: {
@@ -528,7 +527,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               }
 
               case 'message_delta': {
-                usage.completionTokens = value.usage.output_tokens;
+                usage.outputTokens = value.usage.output_tokens;
                 finishReason = mapAnthropicStopReason(value.delta.stop_reason);
                 return;
               }
