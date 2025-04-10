@@ -22,40 +22,25 @@ import {
 const ElevenLabsProviderOptionsSchema = z.object({
   languageCode: z
     .string()
-    .optional()
-    .describe(
-      'An ISO-639-1 or ISO-639-3 language_code corresponding to the language of the audio file. Can sometimes improve transcription performance if known beforehand. Defaults to null, in this case the language is predicted automatically.',
-    ),
+    .optional(),
   tagAudioEvents: z
     .boolean()
     .optional()
-    .default(true)
-    .describe(
-      'Whether to tag audio events like (laughter), (footsteps), etc. in the transcription.',
-    ),
+    .default(true),
   numSpeakers: z
     .number()
     .int()
     .min(1)
     .max(32)
-    .optional()
-    .describe(
-      'The maximum amount of speakers talking in the uploaded file. Can help with predicting who speaks when. The maximum amount of speakers that can be predicted is 32. Defaults to null, in this case the amount of speakers is set to the maximum value the model supports.',
-    ),
+    .optional(),
   timestampsGranularity: z
     .enum(['none', 'word', 'character'])
     .optional()
-    .default('word')
-    .describe(
-      "The granularity of the timestamps in the transcription. 'word' provides word-level timestamps and 'character' provides character-level timestamps per word.",
-    ),
+    .default('word'),
   diarize: z
     .boolean()
     .optional()
-    .default(false)
-    .describe(
-      'Whether to annotate which speaker is currently talking in the uploaded file.',
-    ),
+    .default(false),
   additionalFormats: z
     .array(
       z.union([
@@ -109,15 +94,11 @@ const ElevenLabsProviderOptionsSchema = z.object({
         }),
       ]),
     )
-    .optional()
-    .describe('A list of additional formats to export the transcript to.'),
+    .optional(),
   file_format: z
     .enum(['pcm_s16le_16', 'other'])
     .optional()
-    .default('other')
-    .describe(
-      'The format of input audio. For pcm_s16le_16, the input audio must be 16-bit PCM at a 16kHz sample rate, single channel (mono), and little-endian byte order. Latency will be lower than with passing an encoded waveform.',
-    ),
+    .default('other'),
 });
 
 export type ElevenLabsTranscriptionCallOptions = Omit<
@@ -247,72 +228,51 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
 }
 
 const elevenlabsTranscriptionResponseSchema = z.object({
-  language_code: z
-    .string()
-    .describe("The detected language code (e.g. 'eng' for English)."),
-  language_probability: z
-    .number()
-    .describe('The confidence score of the language detection (0 to 1).'),
-  text: z.string().describe('The raw text of the transcription.'),
+  language_code: z.string(),
+  language_probability: z.number(),
+  text: z.string(),
   words: z
     .array(
       z.object({
-        text: z.string().describe('The word or sound that was transcribed.'),
+        text: z.string(),
         type: z
-          .enum(['word', 'spacing', 'audio_event'])
-          .describe(
-            "The type of the word or sound. 'audio_event' is used for non-word sounds like laughter or footsteps.",
-          ),
+          .enum(['word', 'spacing', 'audio_event']),
         start: z
           .number()
-          .optional()
-          .describe('The start time of the word or sound in seconds.'),
+          .optional(),
         end: z
           .number()
-          .optional()
-          .describe('The end time of the word or sound in seconds.'),
+          .optional(),
         speaker_id: z
           .string()
-          .optional()
-          .describe('Unique identifier for the speaker of this word.'),
+          .optional(),
         characters: z
           .array(
             z.object({
-              text: z.string().describe('The character that was transcribed.'),
+              text: z.string(),
               start: z
                 .number()
-                .optional()
-                .describe('The start time of the character in seconds.'),
+                .optional(),
               end: z
                 .number()
                 .optional()
-                .describe('The end time of the character in seconds.'),
             }),
           )
-          .optional()
-          .describe(
-            'The characters that make up the word and their timing information.',
-          ),
+          .optional(),
       }),
     )
-    .optional()
-    .describe('List of words with their timing information.'),
+    .optional(),
   additional_formats: z
     .array(
       z.object({
-        requested_format: z.string().describe('The requested format.'),
+        requested_format: z.string(),
         file_extension: z
-          .string()
-          .describe('The file extension of the additional format.'),
-        content_type: z
-          .string()
-          .describe('The content type of the additional format.'),
+          .string(),
+        content_type: z.string(),
         is_base64_encoded: z
-          .boolean()
-          .describe('Whether the content is base64 encoded.'),
-        content: z.string().describe('The content of the additional format.'),
+          .boolean(),
+        content: z.string(),
       }),
     )
-    .optional()
-    .describe('Optional requested additional formats of the transcript.'),
+    .optional(),
 });
