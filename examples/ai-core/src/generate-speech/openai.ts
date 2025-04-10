@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function main() {
   const result = await generateSpeech({
     model: openai.speech('tts-1'),
-    text: 'Hello from the Vercel AI SDK!',
+    text: 'Hello from the AI SDK!',
     providerOptions: {
       openai: {
         voice: 'nova',

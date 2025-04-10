@@ -33,12 +33,12 @@ describe('doGenerate', () => {
     prepareAudioResponse();
 
     await model.doGenerate({
-      text: 'Hello from the Vercel AI SDK!',
+      text: 'Hello from the AI SDK!',
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({
       model: 'tts-1',
-      input: 'Hello from the Vercel AI SDK!',
+      input: 'Hello from the AI SDK!',
     });
   });
 
@@ -55,7 +55,7 @@ describe('doGenerate', () => {
     });
 
     await provider.speech('tts-1').doGenerate({
-      text: 'Hello from the Vercel AI SDK!',
+      text: 'Hello from the AI SDK!',
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -75,7 +75,7 @@ describe('doGenerate', () => {
     prepareAudioResponse();
 
     await model.doGenerate({
-      text: 'Hello from the Vercel AI SDK!',
+      text: 'Hello from the AI SDK!',
       providerOptions: {
         openai: {
           voice: 'nova',
@@ -87,7 +87,7 @@ describe('doGenerate', () => {
 
     expect(await server.calls[0].requestBody).toMatchObject({
       model: 'tts-1',
-      input: 'Hello from the Vercel AI SDK!',
+      input: 'Hello from the AI SDK!',
       voice: 'nova',
       speed: 1.5,
       response_format: 'opus',
@@ -105,7 +105,7 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      text: 'Hello from the Vercel AI SDK!',
+      text: 'Hello from the AI SDK!',
       providerOptions: {
         openai: {
           response_format: 'opus',
@@ -136,7 +136,7 @@ describe('doGenerate', () => {
     });
 
     const result = await customModel.doGenerate({
-      text: 'Hello from the Vercel AI SDK!',
+      text: 'Hello from the AI SDK!',
     });
 
     expect(result.response).toMatchObject({
@@ -164,7 +164,7 @@ describe('doGenerate', () => {
     });
 
     const result = await customModel.doGenerate({
-      text: 'Hello from the Vercel AI SDK!',
+      text: 'Hello from the AI SDK!',
     });
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
@@ -178,7 +178,7 @@ describe('doGenerate', () => {
       const audio = prepareAudioResponse({ format });
 
       const result = await model.doGenerate({
-        text: 'Hello from the Vercel AI SDK!',
+        text: 'Hello from the AI SDK!',
         providerOptions: {
           openai: {
             response_format: format,
@@ -195,7 +195,7 @@ describe('doGenerate', () => {
     prepareAudioResponse();
 
     const result = await model.doGenerate({
-      text: 'Hello from the Vercel AI SDK!',
+      text: 'Hello from the AI SDK!',
     });
 
     expect(result.warnings).toEqual([]);

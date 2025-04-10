@@ -14,12 +14,13 @@ import { experimental_generateSpeech as generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
-const { audioData, contentType } = await generateSpeech({
+const { audio, mediaType } = await generateSpeech({
   model: openai.speech('tts-1'),
-  text: 'Hello from the Vercel AI SDK!',
+  text: 'Hello from the AI SDK!',
 });
 
-console.log(audioData);
+console.log(audio);
+console.log(mediaType);
 ```
 
 ## Import
@@ -77,9 +78,9 @@ console.log(audioData);
 <PropertiesTable
   content={[
     {
-      name: 'audioData',
-      type: 'ArrayBuffer',
-      description: 'The audio data as a binary buffer.',
+      name: 'audio',
+      type: 'string | Uint8Array',
+      description: 'The audio data as a base64 encoded string or binary data.',
     },
     {
       name: 'warnings',
