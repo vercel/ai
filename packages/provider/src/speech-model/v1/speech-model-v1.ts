@@ -54,10 +54,9 @@ export type SpeechModelV1 = {
      */
     request?: {
       /**
-       * Raw request HTTP body that was sent to the provider API as a string (JSON should be stringified).
-       * Non-HTTP(s) providers should not set this.
+       * Response body (available only for providers that use HTTP requests).
        */
-      body?: string;
+      body?: unknown;
     };
 
     /**
