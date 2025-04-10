@@ -4,6 +4,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -177,8 +178,8 @@ export class OpenAICompatibleCompletionLanguageModel
     return {
       text: choice.text,
       usage: {
-        promptTokens: response.usage?.prompt_tokens ?? NaN,
-        completionTokens: response.usage?.completion_tokens ?? NaN,
+        inputTokens: response.usage?.prompt_tokens ?? undefined,
+        outputTokens: response.usage?.completion_tokens ?? undefined,
       },
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       request: { body: args },
@@ -217,9 +218,9 @@ export class OpenAICompatibleCompletionLanguageModel
     });
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    let usage: { promptTokens: number; completionTokens: number } = {
-      promptTokens: Number.NaN,
-      completionTokens: Number.NaN,
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
     };
     let isFirstChunk = true;
 
@@ -256,10 +257,8 @@ export class OpenAICompatibleCompletionLanguageModel
             }
 
             if (value.usage != null) {
-              usage = {
-                promptTokens: value.usage.prompt_tokens,
-                completionTokens: value.usage.completion_tokens,
-              };
+              usage.inputTokens = value.usage.prompt_tokens ?? undefined;
+              usage.outputTokens = value.usage.completion_tokens ?? undefined;
             }
 
             const choice = value.choices[0];

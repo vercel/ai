@@ -3,6 +3,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -278,8 +279,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }),
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
       usage: {
-        promptTokens: response.usage.input_tokens,
-        completionTokens: response.usage.output_tokens,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
       },
       request: { body },
       response: {
@@ -328,8 +329,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const self = this;
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    let promptTokens = NaN;
-    let completionTokens = NaN;
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
+    };
     let cachedPromptTokens: number | null = null;
     let reasoningTokens: number | null = null;
     let responseId: string | null = null;
@@ -413,8 +416,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 finishReason: value.response.incomplete_details?.reason,
                 hasToolCalls,
               });
-              promptTokens = value.response.usage.input_tokens;
-              completionTokens = value.response.usage.output_tokens;
+              usage.inputTokens = value.response.usage.input_tokens;
+              usage.outputTokens = value.response.usage.output_tokens;
               cachedPromptTokens =
                 value.response.usage.input_tokens_details?.cached_tokens ??
                 cachedPromptTokens;
@@ -438,7 +441,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: { promptTokens, completionTokens },
+              usage,
               ...((cachedPromptTokens != null || reasoningTokens != null) && {
                 providerMetadata: {
                   openai: {

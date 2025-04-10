@@ -151,10 +151,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      promptTokens: 20,
-      completionTokens: 5,
-    });
+    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
   });
 
   it('should send additional response information', async () => {
@@ -419,7 +416,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 32 },
+        usage: { inputTokens: 4, outputTokens: 32 },
       },
     ]);
   });
@@ -452,7 +449,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 32 },
+        usage: { inputTokens: 4, outputTokens: 32 },
       },
     ]);
   });
@@ -518,7 +515,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'tool-calls',
-        usage: { promptTokens: 183, completionTokens: 133 },
+        usage: { inputTokens: 183, outputTokens: 133 },
       },
     ]);
   });
@@ -656,7 +653,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: 4, completionTokens: 32 },
+        usage: { inputTokens: 4, outputTokens: 32 },
       },
     ]);
   });

@@ -17,7 +17,7 @@ it('should forward text deltas correctly', async () => {
         type: 'finish',
         finishReason: 'stop',
         logprobs: undefined,
-        usage: { completionTokens: 10, promptTokens: 3 },
+        usage: { inputTokens: 3, outputTokens: 10 },
       },
     ]);
 
@@ -61,7 +61,7 @@ it('should handle immediate tool execution', async () => {
         type: 'finish',
         finishReason: 'stop',
         logprobs: undefined,
-        usage: { completionTokens: 10, promptTokens: 3 },
+        usage: { inputTokens: 3, outputTokens: 10 },
       },
     ]);
 
@@ -122,7 +122,7 @@ it('should hold off on sending finish until the delayed tool result is received'
         type: 'finish',
         finishReason: 'stop',
         logprobs: undefined,
-        usage: { completionTokens: 10, promptTokens: 3 },
+        usage: { inputTokens: 3, outputTokens: 10 },
       },
     ]);
 
@@ -186,7 +186,7 @@ it('should try to repair tool call when the tool name is not found', async () =>
         type: 'finish',
         finishReason: 'stop',
         logprobs: undefined,
-        usage: { completionTokens: 10, promptTokens: 3 },
+        usage: { inputTokens: 3, outputTokens: 10 },
       },
     ]);
 

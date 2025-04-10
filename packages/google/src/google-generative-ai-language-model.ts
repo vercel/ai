@@ -5,6 +5,7 @@ import {
   LanguageModelV2ProviderMetadata,
   LanguageModelV2Source,
   LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -178,7 +179,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { contents: rawPrompt, ...rawSettings } = args;
     const candidate = response.candidates[0];
 
     const parts =
@@ -207,8 +207,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         hasToolCalls: toolCalls != null && toolCalls.length > 0,
       }),
       usage: {
-        promptTokens: usageMetadata?.promptTokenCount ?? NaN,
-        completionTokens: usageMetadata?.candidatesTokenCount ?? NaN,
+        inputTokens: usageMetadata?.promptTokenCount ?? undefined,
+        outputTokens: usageMetadata?.candidatesTokenCount ?? undefined,
       },
       warnings,
       providerMetadata: {
@@ -253,12 +253,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { contents: rawPrompt, ...rawSettings } = args;
-
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    let usage: { promptTokens: number; completionTokens: number } = {
-      promptTokens: Number.NaN,
-      completionTokens: Number.NaN,
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
     };
     let providerMetadata: LanguageModelV2ProviderMetadata | undefined =
       undefined;
@@ -283,10 +281,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             const usageMetadata = value.usageMetadata;
 
             if (usageMetadata != null) {
-              usage = {
-                promptTokens: usageMetadata.promptTokenCount ?? NaN,
-                completionTokens: usageMetadata.candidatesTokenCount ?? NaN,
-              };
+              usage.inputTokens = usageMetadata.promptTokenCount ?? undefined;
+              usage.outputTokens =
+                usageMetadata.candidatesTokenCount ?? undefined;
             }
 
             const candidate = value.candidates?.[0];

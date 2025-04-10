@@ -3,6 +3,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -207,8 +208,8 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       })),
       finishReason: mapMistralFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
+        inputTokens: response.usage.prompt_tokens,
+        outputTokens: response.usage.completion_tokens,
       },
       request: { body },
       response: {
@@ -239,9 +240,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     });
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    let usage: { promptTokens: number; completionTokens: number } = {
-      promptTokens: Number.NaN,
-      completionTokens: Number.NaN,
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
     };
     let chunkNumber = 0;
     let trimLeadingSpace = false;
@@ -270,10 +271,8 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             }
 
             if (value.usage != null) {
-              usage = {
-                promptTokens: value.usage.prompt_tokens,
-                completionTokens: value.usage.completion_tokens,
-              };
+              usage.inputTokens = value.usage.prompt_tokens;
+              usage.outputTokens = value.usage.completion_tokens;
             }
 
             const choice = value.choices[0];

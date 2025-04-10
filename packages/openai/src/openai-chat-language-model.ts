@@ -7,6 +7,7 @@ import {
   LanguageModelV2LogProbs,
   LanguageModelV2ProviderMetadata,
   LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -331,8 +332,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       })),
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       usage: {
-        promptTokens: response.usage?.prompt_tokens ?? NaN,
-        completionTokens: response.usage?.completion_tokens ?? NaN,
+        inputTokens: response.usage?.prompt_tokens ?? undefined,
+        outputTokens: response.usage?.completion_tokens ?? undefined,
       },
       request: { body },
       response: {
@@ -390,12 +391,9 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     }> = [];
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    let usage: {
-      promptTokens: number | undefined;
-      completionTokens: number | undefined;
-    } = {
-      promptTokens: undefined,
-      completionTokens: undefined,
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
     };
     let logprobs: LanguageModelV2LogProbs;
     let isFirstChunk = true;
@@ -442,10 +440,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 completion_tokens_details,
               } = value.usage;
 
-              usage = {
-                promptTokens: prompt_tokens ?? undefined,
-                completionTokens: completion_tokens ?? undefined,
-              };
+              usage.inputTokens = prompt_tokens ?? undefined;
+              usage.outputTokens = completion_tokens ?? undefined;
 
               if (completion_tokens_details?.reasoning_tokens != null) {
                 providerMetadata.openai.reasoningTokens =
@@ -612,10 +608,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               type: 'finish',
               finishReason,
               logprobs,
-              usage: {
-                promptTokens: usage.promptTokens ?? NaN,
-                completionTokens: usage.completionTokens ?? NaN,
-              },
+              usage,
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },

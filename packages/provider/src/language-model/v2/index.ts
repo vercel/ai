@@ -11,3 +11,4 @@ export * from './language-model-v2-provider-metadata';
 export * from './language-model-v2-provider-options';
 export * from './language-model-v2-source';
 export * from './language-model-v2-tool-choice';
+export * from './language-model-v2-usage';

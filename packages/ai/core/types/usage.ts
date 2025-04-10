@@ -1,3 +1,5 @@
+import { LanguageModelV2Usage } from '@ai-sdk/provider';
+
 /**
 Represents the number of tokens used in a prompt and completion.
  */
@@ -29,16 +31,13 @@ The number of tokens used in the embedding.
 };
 
 export function calculateLanguageModelUsage({
-  promptTokens,
-  completionTokens,
-}: {
-  promptTokens: number;
-  completionTokens: number;
-}): LanguageModelUsage {
+  inputTokens,
+  outputTokens,
+}: LanguageModelV2Usage): LanguageModelUsage {
   return {
-    promptTokens,
-    completionTokens,
-    totalTokens: promptTokens + completionTokens,
+    promptTokens: inputTokens ?? NaN,
+    completionTokens: outputTokens ?? NaN,
+    totalTokens: (inputTokens ?? 0) + (outputTokens ?? 0),
   };
 }
 

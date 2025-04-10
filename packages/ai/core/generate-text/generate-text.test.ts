@@ -14,7 +14,7 @@ import { StepResult } from './step-result';
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
-  usage: { promptTokens: 10, completionTokens: 20 },
+  usage: { inputTokens: 10, outputTokens: 20 },
 };
 
 const modelWithSources = new MockLanguageModelV2({
@@ -538,7 +538,7 @@ describe('options.maxSteps', () => {
                     },
                   ],
                   finishReason: 'tool-calls',
-                  usage: { completionTokens: 5, promptTokens: 10 },
+                  usage: { inputTokens: 10, outputTokens: 5 },
                   response: {
                     id: 'test-id-1-from-model',
                     timestamp: new Date(0),
@@ -695,7 +695,7 @@ describe('options.maxSteps', () => {
                   // trailing text is to be discarded, trailing whitespace is to be kept:
                   text: 'part 1 \n to-be-discarded',
                   finishReason: 'length', // trigger continue
-                  usage: { completionTokens: 20, promptTokens: 10 },
+                  usage: { inputTokens: 10, outputTokens: 20 },
                   response: {
                     id: 'test-id-1-from-model',
                     timestamp: new Date(0),
@@ -753,7 +753,7 @@ describe('options.maxSteps', () => {
                       filename: 'test.png',
                     },
                   ],
-                  usage: { completionTokens: 5, promptTokens: 30 },
+                  usage: { inputTokens: 30, outputTokens: 5 },
                 };
               }
               case 2: {
@@ -807,7 +807,7 @@ describe('options.maxSteps', () => {
                     timestamp: new Date(20000),
                     modelId: 'test-response-model-id',
                   },
-                  usage: { completionTokens: 2, promptTokens: 3 },
+                  usage: { inputTokens: 3, outputTokens: 2 },
                 };
               }
               case 3: {
@@ -858,7 +858,7 @@ describe('options.maxSteps', () => {
                     timestamp: new Date(20000),
                     modelId: 'test-response-model-id',
                   },
-                  usage: { completionTokens: 2, promptTokens: 3 },
+                  usage: { inputTokens: 3, outputTokens: 2 },
                 };
               }
               default:

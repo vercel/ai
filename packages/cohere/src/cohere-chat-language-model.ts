@@ -2,6 +2,7 @@ import {
   LanguageModelV2,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -142,8 +143,8 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         : [],
       finishReason: mapCohereFinishReason(response.finish_reason),
       usage: {
-        promptTokens: response.usage.tokens.input_tokens,
-        completionTokens: response.usage.tokens.output_tokens,
+        inputTokens: response.usage.tokens.input_tokens,
+        outputTokens: response.usage.tokens.output_tokens,
       },
       request: { body: args },
       response: {
@@ -173,12 +174,10 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages, ...rawSettings } = args;
-
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    let usage: { promptTokens: number; completionTokens: number } = {
-      promptTokens: Number.NaN,
-      completionTokens: Number.NaN,
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
     };
 
     let pendingToolCallDelta: {
@@ -295,10 +294,8 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                 finishReason = mapCohereFinishReason(value.delta.finish_reason);
                 const tokens = value.delta.usage.tokens;
 
-                usage = {
-                  promptTokens: tokens.input_tokens,
-                  completionTokens: tokens.output_tokens,
-                };
+                usage.inputTokens = tokens.input_tokens;
+                usage.outputTokens = tokens.output_tokens;
               }
 
               default: {

@@ -136,10 +136,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      promptTokens: 20,
-      completionTokens: 5,
-    });
+    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
   });
 
   it('should send request body', async () => {
@@ -420,7 +417,7 @@ describe('doStream', () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { promptTokens: 10, completionTokens: 362 },
+        usage: { inputTokens: 10, outputTokens: 362 },
       },
     ]);
   });
@@ -456,10 +453,7 @@ describe('doStream', () => {
       {
         finishReason: 'error',
         type: 'finish',
-        usage: {
-          completionTokens: NaN,
-          promptTokens: NaN,
-        },
+        usage: { inputTokens: undefined, outputTokens: undefined },
       },
     ]);
   });
@@ -482,10 +476,7 @@ describe('doStream', () => {
     expect(elements[1]).toStrictEqual({
       finishReason: 'error',
       type: 'finish',
-      usage: {
-        completionTokens: NaN,
-        promptTokens: NaN,
-      },
+      usage: { inputTokens: undefined, outputTokens: undefined },
     });
   });
 

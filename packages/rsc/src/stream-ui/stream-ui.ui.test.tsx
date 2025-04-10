@@ -64,7 +64,7 @@ const mockTextModel = new MockLanguageModelV2({
           type: 'finish',
           finishReason: 'stop',
           logprobs: undefined,
-          usage: { completionTokens: 10, promptTokens: 3 },
+          usage: { inputTokens: 3, outputTokens: 10 },
         },
       ]),
     };
@@ -86,7 +86,7 @@ const mockToolModel = new MockLanguageModelV2({
           type: 'finish',
           finishReason: 'stop',
           logprobs: undefined,
-          usage: { completionTokens: 10, promptTokens: 3 },
+          usage: { inputTokens: 3, outputTokens: 10 },
         },
       ]),
     };
@@ -248,7 +248,7 @@ describe('options.headers', () => {
                 type: 'finish',
                 finishReason: 'stop',
                 logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
           };
@@ -281,7 +281,7 @@ describe('options.providerMetadata', () => {
                 type: 'finish',
                 finishReason: 'stop',
                 logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
           };
@@ -320,7 +320,7 @@ describe('model.supportsUrl binding', () => {
                 type: 'finish',
                 finishReason: 'stop',
                 logprobs: undefined,
-                usage: { completionTokens: 10, promptTokens: 3 },
+                usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
           }),

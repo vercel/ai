@@ -222,10 +222,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(usage).toStrictEqual({
-        promptTokens: 20,
-        completionTokens: 5,
-      });
+      expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
     });
 
     it('should send additional response information', async () => {
@@ -525,10 +522,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           },
           type: 'finish',
-          usage: {
-            completionTokens: 227,
-            promptTokens: 17,
-          },
+          usage: { inputTokens: 17, outputTokens: 227 },
         },
       ]);
     });
@@ -575,10 +569,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           },
           type: 'finish',
-          usage: {
-            completionTokens: 227,
-            promptTokens: 17,
-          },
+          usage: { inputTokens: 17, outputTokens: 227 },
         },
       ]);
     });
@@ -620,10 +611,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           },
           type: 'finish',
-          usage: {
-            completionTokens: 227,
-            promptTokens: 17,
-          },
+          usage: { inputTokens: 17, outputTokens: 227 },
         },
       ]);
     });
@@ -663,10 +651,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           },
           type: 'finish',
-          usage: {
-            completionTokens: 227,
-            promptTokens: 17,
-          },
+          usage: { inputTokens: 17, outputTokens: 227 },
         },
       ]);
     });
@@ -784,10 +769,7 @@ describe('AnthropicMessagesLanguageModel', () => {
             },
           },
           type: 'finish',
-          usage: {
-            completionTokens: 65,
-            promptTokens: 441,
-          },
+          usage: { inputTokens: 441, outputTokens: 65 },
         },
       ]);
     });
@@ -950,7 +932,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { promptTokens: 17, completionTokens: 227 },
+          usage: { inputTokens: 17, outputTokens: 227 },
           providerMetadata: {
             anthropic: {
               cacheCreationInputTokens: 10,

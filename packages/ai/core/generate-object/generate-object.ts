@@ -571,17 +571,16 @@ export async function generateObject<SCHEMA, RESULT>({
                       'ai.response.timestamp':
                         responseData.timestamp.toISOString(),
 
-                      'ai.usage.promptTokens': result.usage.promptTokens,
-                      'ai.usage.completionTokens':
-                        result.usage.completionTokens,
+                      // TODO rename telemetry attributes to inputTokens and outputTokens
+                      'ai.usage.promptTokens': result.usage.inputTokens,
+                      'ai.usage.completionTokens': result.usage.outputTokens,
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
                       'gen_ai.response.id': responseData.id,
                       'gen_ai.response.model': responseData.modelId,
-                      'gen_ai.usage.prompt_tokens': result.usage.promptTokens,
-                      'gen_ai.usage.completion_tokens':
-                        result.usage.completionTokens,
+                      'gen_ai.usage.input_tokens': result.usage.inputTokens,
+                      'gen_ai.usage.output_tokens': result.usage.outputTokens,
                     },
                   }),
                 );
@@ -698,17 +697,16 @@ export async function generateObject<SCHEMA, RESULT>({
                       'ai.response.timestamp':
                         responseData.timestamp.toISOString(),
 
-                      'ai.usage.promptTokens': result.usage.promptTokens,
-                      'ai.usage.completionTokens':
-                        result.usage.completionTokens,
+                      // TODO rename telemetry attributes to inputTokens and outputTokens
+                      'ai.usage.promptTokens': result.usage.inputTokens,
+                      'ai.usage.completionTokens': result.usage.outputTokens,
 
                       // standardized gen-ai llm span attributes:
                       'gen_ai.response.finish_reasons': [result.finishReason],
                       'gen_ai.response.id': responseData.id,
                       'gen_ai.response.model': responseData.modelId,
-                      'gen_ai.usage.input_tokens': result.usage.promptTokens,
-                      'gen_ai.usage.output_tokens':
-                        result.usage.completionTokens,
+                      'gen_ai.usage.input_tokens': result.usage.inputTokens,
+                      'gen_ai.usage.output_tokens': result.usage.outputTokens,
                     },
                   }),
                 );
@@ -814,8 +812,9 @@ export async function generateObject<SCHEMA, RESULT>({
               output: () => JSON.stringify(object),
             },
 
-            'ai.usage.promptTokens': usage.promptTokens,
-            'ai.usage.completionTokens': usage.completionTokens,
+            // TODO rename telemetry attributes to inputTokens and outputTokens
+            'ai.usage.promptTokens': usage.inputTokens,
+            'ai.usage.completionTokens': usage.outputTokens,
           },
         }),
       );

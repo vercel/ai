@@ -15,7 +15,7 @@ async function main() {
             modelId: 'model-1',
           },
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
+          usage: { inputTokens: 10, outputTokens: 20 },
           text: `{"content":"Hello broken json`,
         }),
       }),

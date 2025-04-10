@@ -5,6 +5,7 @@ import { LanguageModelV2FunctionToolCall } from './language-model-v2-function-to
 import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
 import { LanguageModelV2ProviderMetadata } from './language-model-v2-provider-metadata';
 import { LanguageModelV2Source } from './language-model-v2-source';
+import { LanguageModelV2Usage } from './language-model-v2-usage';
 
 /**
 Specification for a language model that implements the language model interface version 2.
@@ -137,10 +138,24 @@ The IANA media type of the file.
     }>;
 
     /**
+Sources that have been used as input to generate the response.
+ */
+    sources?: LanguageModelV2Source[];
+
+    /**
 Tool calls that the model has generated.
 Can be undefined if the model did not generate any tool calls.
      */
     toolCalls?: Array<LanguageModelV2FunctionToolCall>;
+
+    /**
+Logprobs for the completion.
+`undefined` if the mode does not support logprobs or if was not enabled
+
+@deprecated will be changed into a provider-specific extension in v2
+ */
+    // TODO change in language model v2
+    logprobs?: LanguageModelV2LogProbs;
 
     /**
 Finish reason.
@@ -150,10 +165,14 @@ Finish reason.
     /**
   Usage information.
      */
-    usage: {
-      promptTokens: number;
-      completionTokens: number;
-    };
+    usage: LanguageModelV2Usage;
+
+    /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+     */
+    providerMetadata?: LanguageModelV2ProviderMetadata;
 
     /**
 Optional request information for telemetry and debugging purposes.
@@ -195,28 +214,10 @@ Response HTTP body.
       body?: unknown;
     };
 
+    /**
+Warnings for the call, e.g. unsupported settings.
+     */
     warnings?: LanguageModelV2CallWarning[];
-
-    /**
-Additional provider-specific metadata. They are passed through
-from the provider to the AI SDK and enable provider-specific
-results that can be fully encapsulated in the provider.
-     */
-    providerMetadata?: LanguageModelV2ProviderMetadata;
-
-    /**
-Sources that have been used as input to generate the response.
-     */
-    sources?: LanguageModelV2Source[];
-
-    /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled
-
-@deprecated will be changed into a provider-specific extension in v2
-     */
-    // TODO change in language model v2
-    logprobs?: LanguageModelV2LogProbs;
   }>;
 
   /**
@@ -318,7 +319,7 @@ be returned as binary data.
       type: 'finish';
       finishReason: LanguageModelV2FinishReason;
       providerMetadata?: LanguageModelV2ProviderMetadata;
-      usage: { promptTokens: number; completionTokens: number };
+      usage: LanguageModelV2Usage;
 
       // @deprecated - will be changed into a provider-specific extension in v2
       logprobs?: LanguageModelV2LogProbs;

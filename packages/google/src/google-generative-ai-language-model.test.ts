@@ -265,10 +265,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      promptTokens: 20,
-      completionTokens: 5,
-    });
+    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
   });
 
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
@@ -1448,7 +1445,7 @@ describe('doStream', () => {
             ],
           },
         },
-        usage: { promptTokens: 294, completionTokens: 233 },
+        usage: { inputTokens: 294, outputTokens: 233 },
       },
     ]);
   });
@@ -1590,7 +1587,7 @@ describe('doStream', () => {
             ],
           },
         },
-        usage: { promptTokens: 294, completionTokens: 233 },
+        usage: { inputTokens: 294, outputTokens: 233 },
       },
     ]);
   });

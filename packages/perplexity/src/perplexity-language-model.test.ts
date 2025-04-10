@@ -98,10 +98,7 @@ describe('PerplexityLanguageModel', () => {
       });
 
       expect(result.text).toBe('Hello, World!');
-      expect(result.usage).toEqual({
-        promptTokens: 10,
-        completionTokens: 20,
-      });
+      expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 20 });
       expect({
         id: result.response?.id,
         timestamp: result.response?.timestamp,
@@ -222,10 +219,7 @@ describe('PerplexityLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.usage).toEqual({
-        promptTokens: 10,
-        completionTokens: 20,
-      });
+      expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 20 });
 
       expect(result.providerMetadata).toEqual({
         perplexity: {
@@ -377,7 +371,7 @@ describe('PerplexityLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
+          usage: { inputTokens: 10, outputTokens: 20 },
           providerMetadata: {
             perplexity: {
               images: null,
@@ -442,7 +436,7 @@ describe('PerplexityLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
+          usage: { inputTokens: 10, outputTokens: 20 },
           providerMetadata: {
             perplexity: {
               images: null,
@@ -513,7 +507,7 @@ describe('PerplexityLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
+          usage: { inputTokens: 10, outputTokens: 20 },
           providerMetadata: {
             perplexity: {
               images: [
@@ -574,7 +568,7 @@ describe('PerplexityLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { promptTokens: 11, completionTokens: 21 },
+          usage: { inputTokens: 11, outputTokens: 21 },
           providerMetadata: {
             perplexity: {
               images: null,

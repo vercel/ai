@@ -2,15 +2,12 @@ import {
   JSONValue,
   LanguageModelV2CallOptions,
   LanguageModelV2FinishReason,
+  LanguageModelV2LogProbs,
+  LanguageModelV2ProviderMetadata,
   LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
-import {
-  DeepPartial,
-  Schema,
-  isDeepEqualData,
-  parsePartialJson,
-} from '../util';
 import { ServerResponse } from 'http';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
@@ -27,12 +24,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import {
-  CallWarning,
-  FinishReason,
-  LanguageModel,
-  LogProbs,
-} from '../types/language-model';
+import { CallWarning, LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
@@ -40,6 +32,12 @@ import {
   LanguageModelUsage,
   calculateLanguageModelUsage,
 } from '../types/usage';
+import {
+  DeepPartial,
+  Schema,
+  isDeepEqualData,
+  parsePartialJson,
+} from '../util';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -580,7 +578,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         let callOptions: LanguageModelV2CallOptions;
         let transformer: Transformer<
           LanguageModelV2StreamPart,
-          string | Omit<LanguageModelV2StreamPart, 'text-delta'>
+          ObjectStreamInputPart
         >;
 
         switch (mode) {
@@ -902,7 +900,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         text: accumulatedText,
                         response: fullResponse,
                         usage,
-                        finishReason: finishReason,
+                        finishReason,
                       });
                       self.objectPromise.reject(error);
                     }
@@ -1126,6 +1124,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 }
 
 export type ObjectStreamInputPart =
+  | string
   | {
       type: 'error';
       error: unknown;
@@ -1138,8 +1137,8 @@ export type ObjectStreamInputPart =
     }
   | {
       type: 'finish';
-      finishReason: FinishReason;
-      logprobs?: LogProbs;
-      usage: LanguageModelUsage;
-      providerMetadata?: ProviderMetadata;
+      finishReason: LanguageModelV2FinishReason;
+      logprobs?: LanguageModelV2LogProbs;
+      usage: LanguageModelV2Usage;
+      providerMetadata?: LanguageModelV2ProviderMetadata;
     };
