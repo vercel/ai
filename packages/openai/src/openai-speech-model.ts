@@ -14,8 +14,8 @@ import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
 import {
   OpenAISpeechModelId,
-  OpenAISpeechModelOptions,
 } from './openai-speech-settings';
+import { OpenAISpeechAPITypes } from './openai-api-types';
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
 const OpenAIProviderOptionsSchema = z.object({
@@ -100,7 +100,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
 
     // Add provider-specific options
     if (openAIOptions) {
-      const speechModelOptions: OpenAISpeechModelOptions = {
+      const speechModelOptions: OpenAISpeechAPITypes = {
         voice: openAIOptions.voice,
         speed: openAIOptions.speed,
         response_format: openAIOptions.response_format,
@@ -108,7 +108,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
       };
 
       for (const key in speechModelOptions) {
-        const value = speechModelOptions[key as keyof OpenAISpeechModelOptions];
+        const value = speechModelOptions[key as keyof OpenAISpeechAPITypes];
         if (value !== undefined) {
           requestBody[key] = value;
         }
