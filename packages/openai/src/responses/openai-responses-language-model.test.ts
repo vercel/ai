@@ -131,8 +131,8 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
 
         expect(result.usage).toStrictEqual({
-          promptTokens: 345,
-          completionTokens: 538,
+          inputTokens: 345,
+          outputTokens: 538,
         });
 
         expect(result.providerMetadata).toStrictEqual({
@@ -1030,10 +1030,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: {
-            completionTokens: 478,
-            promptTokens: 543,
-          },
+          usage: { inputTokens: 543, outputTokens: 478 },
           providerMetadata: {
             openai: {
               responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
@@ -1077,10 +1074,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'length',
-          usage: {
-            completionTokens: 0,
-            promptTokens: 0,
-          },
+          usage: { inputTokens: 0, outputTokens: 0 },
           providerMetadata: {
             openai: {
               responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
@@ -1200,10 +1194,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         {
           finishReason: 'tool-calls',
           type: 'finish',
-          usage: {
-            completionTokens: 0,
-            promptTokens: 0,
-          },
+          usage: { inputTokens: 0, outputTokens: 0 },
           providerMetadata: {
             openai: {
               responseId: 'resp_67cb13a755c08190acbe3839a49632fc',
@@ -1285,10 +1276,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: {
-            completionTokens: 834,
-            promptTokens: 327,
-          },
+          usage: { inputTokens: 327, outputTokens: 834 },
           providerMetadata: {
             openai: {
               responseId: 'resp_67cf3390786881908b27489d7e8cfb6b',

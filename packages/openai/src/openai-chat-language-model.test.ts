@@ -244,10 +244,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      promptTokens: 20,
-      completionTokens: 5,
-    });
+    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
   });
 
   it('should send request body', async () => {
@@ -354,10 +351,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      promptTokens: 20,
-      completionTokens: NaN,
-    });
+    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: undefined });
   });
 
   it('should extract logprobs', async () => {
@@ -1406,7 +1400,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'stop',
         logprobs: mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
-        usage: { promptTokens: 17, completionTokens: 227 },
+        usage: { inputTokens: 17, outputTokens: 227 },
         providerMetadata: { openai: {} },
       },
     ]);
@@ -1793,7 +1787,7 @@ describe('doStream', () => {
         type: 'finish',
         finishReason: 'tool-calls',
         logprobs: undefined,
-        usage: { promptTokens: 226, completionTokens: 20 },
+        usage: { inputTokens: 226, outputTokens: 20 },
         providerMetadata: { openai: {} },
       },
     ]);
@@ -1896,10 +1890,7 @@ describe('doStream', () => {
         finishReason: 'error',
         logprobs: undefined,
         type: 'finish',
-        usage: {
-          completionTokens: NaN,
-          promptTokens: NaN,
-        },
+        usage: { inputTokens: undefined, outputTokens: undefined },
         providerMetadata: { openai: {} },
       },
     ]);
@@ -1924,10 +1915,7 @@ describe('doStream', () => {
       finishReason: 'error',
       logprobs: undefined,
       type: 'finish',
-      usage: {
-        completionTokens: NaN,
-        promptTokens: NaN,
-      },
+      usage: { inputTokens: undefined, outputTokens: undefined },
       providerMetadata: { openai: {} },
     });
   });
@@ -2077,10 +2065,7 @@ describe('doStream', () => {
       type: 'finish',
       finishReason: 'stop',
       logprobs: undefined,
-      usage: {
-        promptTokens: 15,
-        completionTokens: 20,
-      },
+      usage: { inputTokens: 15, outputTokens: 20 },
       providerMetadata: {
         openai: { cachedPromptTokens: 1152 },
       },
@@ -2117,10 +2102,7 @@ describe('doStream', () => {
       type: 'finish',
       finishReason: 'stop',
       logprobs: undefined,
-      usage: {
-        promptTokens: 15,
-        completionTokens: 20,
-      },
+      usage: { inputTokens: 15, outputTokens: 20 },
       providerMetadata: {
         openai: {
           acceptedPredictionTokens: 123,
@@ -2204,7 +2186,7 @@ describe('doStream', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { promptTokens: 17, completionTokens: 227 },
+          usage: { inputTokens: 17, outputTokens: 227 },
           logprobs: undefined,
           providerMetadata: { openai: {} },
         },
@@ -2244,7 +2226,7 @@ describe('doStream', () => {
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { promptTokens: 15, completionTokens: 20 },
+          usage: { inputTokens: 15, outputTokens: 20 },
           logprobs: undefined,
           providerMetadata: {
             openai: {
