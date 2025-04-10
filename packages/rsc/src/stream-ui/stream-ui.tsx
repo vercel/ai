@@ -96,8 +96,7 @@ export async function streamUI<
   headers,
   initial,
   text,
-  experimental_providerMetadata,
-  providerOptions = experimental_providerMetadata,
+  providerOptions,
   onFinish,
   ...settings
 }: CallSettings &
@@ -128,11 +127,6 @@ to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
  */
     providerOptions?: ProviderOptions;
-
-    /**
-@deprecated Use `providerOptions` instead.
-*/
-    experimental_providerMetadata?: ProviderMetadata;
 
     /**
      * Callback that is called when the LLM response and the final object validation are finished.

@@ -9,7 +9,6 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
     "warnings": [],
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -31,7 +30,6 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
     "providerMetadata": undefined,
@@ -74,11 +72,6 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
     "type": "text-delta",
   },
   {
-    "experimental_providerMetadata": {
-      "custom": {
-        "key": "value",
-      },
-    },
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -104,11 +97,6 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": {
-      "custom": {
-        "key": "value",
-      },
-    },
     "finishReason": "stop",
     "logprobs": undefined,
     "providerMetadata": {
@@ -153,7 +141,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "type": "text-delta",
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -175,7 +162,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
     "providerMetadata": undefined,
@@ -220,7 +206,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "type": "text-delta",
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -242,7 +227,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
     "providerMetadata": undefined,
@@ -279,7 +263,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "type": "text-delta",
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -301,7 +284,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
     "providerMetadata": undefined,
@@ -334,7 +316,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with text respo
     "type": "text-delta",
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "isContinued": false,
     "logprobs": undefined,
@@ -356,7 +337,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with text respo
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "stop",
     "logprobs": undefined,
     "providerMetadata": undefined,
@@ -397,7 +377,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
     "type": "error",
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
     "isContinued": false,
     "logprobs": undefined,
@@ -419,7 +398,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
     "warnings": undefined,
   },
   {
-    "experimental_providerMetadata": undefined,
     "finishReason": "tool-calls",
     "logprobs": undefined,
     "providerMetadata": undefined,

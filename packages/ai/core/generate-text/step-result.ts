@@ -115,11 +115,6 @@ results that can be fully encapsulated in the provider.
   readonly providerMetadata: ProviderMetadata | undefined;
 
   /**
-@deprecated Use `providerMetadata` instead.
-   */
-  readonly experimental_providerMetadata: ProviderMetadata | undefined;
-
-  /**
 The type of step that this result is for. The first step is always
 an "initial" step, and subsequent steps are either "continue" steps
 or "tool-result" steps.

@@ -69,8 +69,7 @@ export function convertToLanguageModelMessage(
       return {
         role: 'system',
         content: message.content,
-        providerOptions:
-          message.providerOptions ?? message.experimental_providerMetadata,
+        providerOptions: message.providerOptions,
       };
     }
 
@@ -79,8 +78,7 @@ export function convertToLanguageModelMessage(
         return {
           role: 'user',
           content: [{ type: 'text', text: message.content }],
-          providerOptions:
-            message.providerOptions ?? message.experimental_providerMetadata,
+          providerOptions: message.providerOptions,
         };
       }
 
@@ -90,8 +88,7 @@ export function convertToLanguageModelMessage(
           .map(part => convertPartToLanguageModelPart(part, downloadedAssets))
           // remove empty text parts:
           .filter(part => part.type !== 'text' || part.text !== ''),
-        providerOptions:
-          message.providerOptions ?? message.experimental_providerMetadata,
+        providerOptions: message.providerOptions,
       };
     }
 
@@ -100,8 +97,7 @@ export function convertToLanguageModelMessage(
         return {
           role: 'assistant',
           content: [{ type: 'text', text: message.content }],
-          providerOptions:
-            message.providerOptions ?? message.experimental_providerMetadata,
+          providerOptions: message.providerOptions,
         };
       }
 
@@ -113,8 +109,7 @@ export function convertToLanguageModelMessage(
             part => part.type !== 'text' || part.text !== '',
           )
           .map(part => {
-            const providerOptions =
-              part.providerOptions ?? part.experimental_providerMetadata;
+            const providerOptions = part.providerOptions;
 
             switch (part.type) {
               case 'file': {
@@ -162,8 +157,7 @@ export function convertToLanguageModelMessage(
               }
             }
           }),
-        providerOptions:
-          message.providerOptions ?? message.experimental_providerMetadata,
+        providerOptions: message.providerOptions,
       };
     }
 
@@ -177,11 +171,9 @@ export function convertToLanguageModelMessage(
           result: part.result,
           content: part.experimental_content,
           isError: part.isError,
-          providerOptions:
-            part.providerOptions ?? part.experimental_providerMetadata,
+          providerOptions: part.providerOptions,
         })),
-        providerOptions:
-          message.providerOptions ?? message.experimental_providerMetadata,
+        providerOptions: message.providerOptions,
       };
     }
 
@@ -268,8 +260,7 @@ function convertPartToLanguageModelPart(
     return {
       type: 'text',
       text: part.text,
-      providerOptions:
-        part.providerOptions ?? part.experimental_providerMetadata,
+      providerOptions: part.providerOptions,
     };
   }
 
@@ -358,8 +349,7 @@ function convertPartToLanguageModelPart(
           normalizedData instanceof Uint8Array
             ? convertUint8ArrayToBase64(normalizedData) // TODO prevent double conversion
             : normalizedData,
-        providerOptions:
-          part.providerOptions ?? part.experimental_providerMetadata,
+        providerOptions: part.providerOptions,
       };
     }
 
@@ -377,8 +367,7 @@ function convertPartToLanguageModelPart(
           normalizedData instanceof Uint8Array
             ? convertDataContentToBase64String(normalizedData)
             : normalizedData,
-        providerOptions:
-          part.providerOptions ?? part.experimental_providerMetadata,
+        providerOptions: part.providerOptions,
       };
     }
   }
