@@ -20,25 +20,14 @@ import {
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
 const OpenAIProviderOptionsSchema = z.object({
-  include: z
-    .array(z.string())
-    .nullish(),
-  language: z
-    .string()
-    .nullish(),
-  prompt: z
-    .string()
-    .nullish(),
-  temperature: z
-    .number()
-    .min(0)
-    .max(1)
-    .nullish()
-    .default(0),
+  include: z.array(z.string()).nullish(),
+  language: z.string().nullish(),
+  prompt: z.string().nullish(),
+  temperature: z.number().min(0).max(1).nullish().default(0),
   timestampGranularities: z
     .array(z.enum(['word', 'segment']))
     .nullish()
-    .default(['segment'])
+    .default(['segment']),
 });
 
 export type OpenAITranscriptionCallOptions = Omit<
@@ -160,7 +149,8 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
         language: openAIOptions.language ?? undefined,
         prompt: openAIOptions.prompt ?? undefined,
         temperature: openAIOptions.temperature ?? undefined,
-        timestamp_granularities: openAIOptions.timestampGranularities ?? undefined,
+        timestamp_granularities:
+          openAIOptions.timestampGranularities ?? undefined,
       };
 
       for (const key in transcriptionModelOptions) {
