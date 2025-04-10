@@ -31,7 +31,7 @@ export type OpenAISpeechAPITypes = {
   response_format?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
 
   /**
-   * Control the voice of your generated audio with additional instructions.
+   * Instructions for the speech generation e.g. "Speak in a slow and steady tone".
    * Does not work with tts-1 or tts-1-hd.
    */
   instructions?: string;

@@ -20,16 +20,13 @@ import { OpenAISpeechAPITypes } from './openai-api-types';
 const OpenAIProviderOptionsSchema = z.object({
   instructions: z
     .string()
-    .optional()
-    .describe(
-      'Control the voice of your generated audio with additional instructions. Does not work with tts-1 or tts-1-hd.',
-    ),
+    .nullish(),
   speed: z
     .number()
     .min(0.25)
     .max(4.0)
     .default(1.0)
-    .describe('The speed of the generated audio.'),
+    .nullish(),
 });
 
 export type OpenAISpeechCallOptions = z.infer<typeof OpenAIProviderOptionsSchema>;

@@ -13,6 +13,10 @@ Generates speech audio using a speech model.
 
 @param model - The speech model to use.
 @param text - The text to convert to speech.
+@param voice - The voice to use for speech generation.
+@param outputMediaType - The output media type to use for speech generation.
+@param instructions - Instructions for the speech generation e.g. "Speak in a slow and steady tone".
+@param speed - The speed of the speech generation.
 @param providerOptions - Additional provider-specific options that are passed through to the provider
 as body parameters.
 @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
@@ -25,6 +29,9 @@ export async function generateSpeech({
   model,
   text,
   voice,
+  outputMediaType,
+  instructions,
+  speed,
   providerOptions = {},
   maxRetries: maxRetriesArg,
   abortSignal,
@@ -49,12 +56,12 @@ The voice to use for speech generation.
 The output media type to use for speech generation.
    */
   outputMediaType?: string;
-  
+
   /**
-    Instructions for the speech generation.
+    Instructions for the speech generation e.g. "Speak in a slow and steady tone".
   */
   instructions?: string;
-  
+
   /**
   The speed of the speech generation.
    */
@@ -114,10 +121,11 @@ Only applicable for HTTP-based providers.
   return new DefaultSpeechResult({
     audio: new DefaultGeneratedFile({
       data: result.audio,
-      mimeType: detectMimeType({
-        data: result.audio,
-        signatures: audioMimeTypeSignatures,
-      }) ?? 'audio/mp3',
+      mimeType:
+        detectMimeType({
+          data: result.audio,
+          signatures: audioMimeTypeSignatures,
+        }) ?? 'audio/mp3',
     }),
     warnings: result.warnings,
     responses: [result.response],

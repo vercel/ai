@@ -22,7 +22,7 @@ export type SpeechModelV1CallOptions = {
   outputMediaType?: string;
 
   /**
-   * Instructions for the speech generation.
+   * Instructions for the speech generation e.g. "Speak in a slow and steady tone".
    */
   instructions?: string;
 
