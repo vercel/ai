@@ -9,7 +9,7 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { GroqChatLanguageModel } from './groq-chat-language-model';
-import { GroqChatModelId, GroqChatSettings } from './groq-chat-settings';
+import { GroqChatModelId, GroqChatSettings } from './groq-chat-options';
 
 export interface GroqProvider extends ProviderV2 {
   /**

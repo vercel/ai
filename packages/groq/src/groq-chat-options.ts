@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 // https://console.groq.com/docs/models
 export type GroqChatModelId =
   // production models
@@ -19,17 +21,6 @@ export type GroqChatModelId =
 
 export interface GroqChatSettings {
   /**
-Whether to enable parallel function calling during tool use. Default to true.
-   */
-  parallelToolCalls?: boolean;
-
-  /**
-A unique identifier representing your end-user, which can help OpenAI to
-monitor and detect abuse. Learn more.
-*/
-  user?: string;
-
-  /**
 Automatically download images and pass the image as data to the model.
 Groq supports image URLs for public models, so this is only needed for
 private models or when the images are not publicly accessible.
@@ -38,3 +29,20 @@ Defaults to `false`.
    */
   downloadImages?: boolean;
 }
+
+export const groqProviderOptions = z.object({
+  reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).nullish(),
+
+  /**
+   * Whether to enable parallel function calling during tool use. Default to true.
+   */
+  parallelToolCalls: z.boolean().nullish(),
+
+  /**
+   * A unique identifier representing your end-user, which can help OpenAI to
+   * monitor and detect abuse. Learn more.
+   */
+  user: z.string().nullish(),
+});
+
+export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;
