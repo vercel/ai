@@ -1,0 +1,121 @@
+---
+title: speak
+description: API Reference for speak.
+---
+
+# `speak()`
+
+<Note type="warning">`speak` is an experimental feature.</Note>
+
+Generates speech audio from text.
+
+```ts
+import { experimental_speak as speak } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { readFile } from 'fs/promises';
+
+const { audioData, contentType } = await speak({
+  model: openai.speech('tts-1'),
+  text: 'Hello from the Vercel AI SDK!',
+});
+
+console.log(audioData);
+```
+
+## Import
+
+<Snippet
+  text={`import { experimental_speak as speak } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'SpeechModelV1',
+      description: 'The speech model to use.',
+    },
+    {
+      name: 'text',
+      type: 'string',
+      description: 'The text to generate the speech from.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'Record<string, Record<string, JSONValue>>',
+      isOptional: true,
+      description: 'Additional provider-specific options.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      isOptional: true,
+      description: 'Maximum number of retries. Default: 2.',
+    },
+    {
+      name: 'abortSignal',
+      type: 'AbortSignal',
+      isOptional: true,
+      description: 'An optional abort signal to cancel the call.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string>',
+      isOptional: true,
+      description: 'Additional HTTP headers for the request.',
+    },
+  ]}
+/>
+
+### Returns
+
+<PropertiesTable
+  content={[
+    {
+      name: 'audioData',
+      type: 'ArrayBuffer',
+      description: 'The audio data as a binary buffer.',
+    },
+    {
+      name: 'warnings',
+      type: 'SpeechWarning[]',
+      description:
+        'Warnings from the model provider (e.g. unsupported settings).',
+    },
+    {
+      name: 'responses',
+      type: 'Array<SpeechModelResponseMetadata>',
+      description:
+        'Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.',
+      properties: [
+        {
+          type: 'SpeechModelResponseMetadata',
+          parameters: [
+            {
+              name: 'timestamp',
+              type: 'Date',
+              description: 'Timestamp for the start of the generated response.',
+            },
+            {
+              name: 'modelId',
+              type: 'string',
+              description:
+                'The ID of the response model that was used to generate the response.',
+            },
+            {
+              name: 'headers',
+              type: 'Record<string, string>',
+              isOptional: true,
+              description: 'Response headers.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
