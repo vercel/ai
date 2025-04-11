@@ -58,12 +58,12 @@ This function does not stream the output. If you want to stream the output, use 
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<
-  SCHEMA extends z.Schema | Schema,
   TYPE extends SCHEMA extends z.Schema
     ? z.infer<SCHEMA>
     : SCHEMA extends Schema<infer T>
       ? T
       : never,
+  SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
   Output extends 'object' | 'array' | 'enum' | 'no-schema' = TYPE extends string
     ? 'enum'
     : 'object',
