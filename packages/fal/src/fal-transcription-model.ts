@@ -5,15 +5,16 @@ import {
 import {
   combineHeaders,
   createJsonResponseHandler,
+  createStatusCodeErrorResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  postToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { FalConfig } from './fal-config';
 import { falFailedResponseHandler } from './fal-error';
 import { FalTranscriptionModelId } from './fal-transcription-settings';
 import { FalTranscriptionAPITypes } from './fal-api-types';
-import { uploadFalAudio } from './fal-storage';
 
 // https://fal.ai/models/fal-ai/whisper/api?platform=http
 const falProviderOptionsSchema = z.object({
@@ -189,15 +190,8 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
       schema: falProviderOptionsSchema,
     });
 
-    const audioUrl = await uploadFalAudio({
-      audio: audio as Uint8Array,
-      mediaType,
-      apiKey: this.config.headers()['Authorization']?.split(' ')[1] ?? '',
-    });
-
     // Create form data with base fields
-    const body: FalTranscriptionAPITypes = {
-      audio_url: audioUrl,
+    const body: Omit<FalTranscriptionAPITypes, 'audio_url'> = {
       task: 'transcribe',
       diarize: true,
       chunk_level: 'word',
@@ -230,6 +224,47 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { body, warnings } = await this.getArgs(options);
+    
+    const { value: getUrlResponse } = await postJsonToApi({
+      url: this.config.url({
+        path: 'https://fal.run/storage/upload/initiate?storage_type=fal-cdn-v3',
+        modelId: this.modelId,
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body: {
+        content_type: options.mediaType,
+        file_name: `ai-sdk-${Date.now()}`,
+      },
+      failedResponseHandler: falFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        falGetUrlResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const { value: uploadResponse } = await postToApi({
+      url: this.config.url({
+        path: getUrlResponse.upload_url,
+        modelId: '',
+      }),
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        ...combineHeaders(this.config.headers(), options.headers),
+      },
+      body: {
+        content: options.audio,
+        values: options.audio,
+      },
+      failedResponseHandler: falFailedResponseHandler,
+      successfulResponseHandler: createStatusCodeErrorResponseHandler(),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    if (uploadResponse.statusCode !== 200) {
+      throw new Error('Failed to upload audio');
+    }
 
     const {
       value: response,
@@ -237,11 +272,14 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url({
-        path: '',
+        path: `https://queue.fal.run/fal-ai/${this.modelId}`,
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body,
+      body: {
+        ...body,
+        audio_url: getUrlResponse.file_url,
+      },
       failedResponseHandler: falFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         falTranscriptionResponseSchema,
@@ -270,6 +308,11 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
     };
   }
 }
+
+const falGetUrlResponseSchema = z.object({
+  upload_url: z.string(),
+  file_url: z.string(),
+});
 
 const falTranscriptionResponseSchema = z.object({
   text: z.string(),

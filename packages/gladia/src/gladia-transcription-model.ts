@@ -296,10 +296,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
         path: '/v2/upload',
         modelId: '',
       }),
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        ...combineHeaders(this.config.headers(), options.headers),
-      },
+      headers: combineHeaders(this.config.headers(), options.headers),
       formData,
       failedResponseHandler: gladiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

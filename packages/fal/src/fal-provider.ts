@@ -125,7 +125,7 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
   const createTranscriptionModel = (modelId: FalTranscriptionModelId) =>
     new FalTranscriptionModel(modelId, {
       provider: `fal.transcription`,
-      url: ({ modelId }) => `https://queue.fal.run/fal-ai/${modelId}`,
+      url: ({ path }) => path,
       headers: getHeaders,
       fetch: options.fetch,
     });
