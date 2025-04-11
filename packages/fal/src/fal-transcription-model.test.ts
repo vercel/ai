@@ -9,47 +9,9 @@ const provider = createFal({ apiKey: 'test-api-key' });
 const model = provider.transcription('wizper');
 
 const server = createTestServer({
-  'https://queue.fal.run/fal-ai/wizper': {
-    response: {
-      type: 'json-value',
-      body: {
-        text: 'Hello world!',
-        chunks: [
-          {
-            text: 'Hello',
-            timestamp: [0, 1],
-            speaker: 'speaker_1',
-          },
-          {
-            text: ' world!',
-            timestamp: [1, 3],
-            speaker: 'speaker_1',
-          }
-        ],
-        inferred_languages: ['en'],
-        diarization_segments: [
-          {
-            timestamp: [0, 3],
-            speaker: 'speaker_1',
-          },
-        ],
-      },
-    },
-  },
-  'https://fal.run/storage/upload/initiate?storage_type=fal-cdn-v3': {
-    response: {
-      type: 'json-value',
-      body: {
-        upload_url: 'https://storage.fal.run/mock-upload-url',
-        file_url: 'https://storage.fal.run/mock-file-url',
-      },
-    },
-  },
-  'https://storage.fal.run/mock-upload-url': {
-    response: {
-      type: 'empty',
-    },
-  },
+  'https://queue.fal.run/fal-ai/wizper': {},
+  'https://fal.run/storage/upload/initiate?storage_type=fal-cdn-v3': {},
+  'https://storage.fal.run/mock-upload-url': {},
 });
 
 describe('doGenerate', () => {
@@ -87,6 +49,18 @@ describe('doGenerate', () => {
           },
         ],
       },
+    };
+
+    server.urls['https://fal.run/storage/upload/initiate?storage_type=fal-cdn-v3'].response = {
+      type: 'json-value',
+      body: {
+        upload_url: 'https://storage.fal.run/mock-upload-url',
+        file_url: 'https://storage.fal.run/mock-file-url',
+      },
+    };
+
+    server.urls['https://storage.fal.run/mock-upload-url'].response = {
+      type: 'empty',
     };
   }
 
