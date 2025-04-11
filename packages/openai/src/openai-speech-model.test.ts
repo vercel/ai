@@ -15,7 +15,7 @@ describe('doGenerate', () => {
     format = 'mp3',
   }: {
     headers?: Record<string, string>;
-    format?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
+    format?: 'mp3' | 'audio/opus' | 'aac' | 'flac' | 'wav' | 'pcm';
   } = {}) {
     const audioBuffer = new Uint8Array(100); // Mock audio data
     server.urls['https://api.openai.com/v1/audio/speech'].response = {
@@ -71,13 +71,13 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass provider options', async () => {
+  it('should pass options', async () => {
     prepareAudioResponse();
 
     await model.doGenerate({
       text: 'Hello from the AI SDK!',
       voice: 'nova',
-      outputMediaType: 'opus',
+      outputMediaType: 'audio/opus',
       speed: 1.5,
     });
 
@@ -93,7 +93,7 @@ describe('doGenerate', () => {
   it('should return audio data with correct content type', async () => {
     const audio = new Uint8Array(100); // Mock audio data
     prepareAudioResponse({
-      format: 'opus',
+      format: 'audio/opus',
       headers: {
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',
@@ -102,7 +102,7 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       text: 'Hello from the AI SDK!',
-      outputMediaType: 'opus',
+      outputMediaType: 'audio/opus',
     });
 
     expect(result.audio).toStrictEqual(audio);
@@ -163,7 +163,7 @@ describe('doGenerate', () => {
   });
 
   it('should handle different audio formats', async () => {
-    const formats = ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'] as const;
+    const formats = ['mp3', 'audio/opus', 'aac', 'flac', 'wav', 'pcm'] as const;
 
     for (const format of formats) {
       const audio = prepareAudioResponse({ format });
