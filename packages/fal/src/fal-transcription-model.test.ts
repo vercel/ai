@@ -51,7 +51,9 @@ describe('doGenerate', () => {
       },
     };
 
-    server.urls['https://fal.run/storage/upload/initiate?storage_type=fal-cdn-v3'].response = {
+    server.urls[
+      'https://fal.run/storage/upload/initiate?storage_type=fal-cdn-v3'
+    ].response = {
       type: 'json-value',
       body: {
         upload_url: 'https://storage.fal.run/mock-upload-url',

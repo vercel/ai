@@ -574,7 +574,7 @@ const gladiaTranscriptionResultResponseSchema = z.object({
                 })
                 .nullable(),
               results: z.array(z.string()).nullable(),
-            })
+            }),
           )
           .nullish(),
         subtitles: z

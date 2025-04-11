@@ -21,7 +21,7 @@ const server = createTestServer({
           extension: 'mp3',
           size: 1024,
           audio_duration: 60,
-          number_of_channels: 2
+          number_of_channels: 2,
         },
       },
     },
