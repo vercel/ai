@@ -1,7 +1,7 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechWarning } from '../types';
-import { GeneratedFile } from '../generate-text';
+import { GeneratedAudioFile } from './generated-audio-file';
 
 /**
 The result of a `generateSpeech` call.
@@ -11,7 +11,7 @@ export interface SpeechResult {
   /**
    * The audio data as a base64 encoded string or binary data.
    */
-  readonly audio: GeneratedFile;
+  readonly audio: GeneratedAudioFile;
 
   /**
   Warnings for the call, e.g. unsupported settings.

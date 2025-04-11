@@ -1,4 +1,4 @@
-import { GeneratedFile } from 'ai';
+import { GeneratedAudioFile } from 'ai';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -15,7 +15,7 @@ const audioFormatMap = {
  * Saves a generated audio file to the output directory with unique timestamps.
  * @param audio - The generated audio file to save.
  */
-export async function saveAudioFile(audio: GeneratedFile) {
+export async function saveAudioFile(audio: GeneratedAudioFile) {
   const timestamp = Date.now();
   const extension =
     audio.mimeType in audioFormatMap

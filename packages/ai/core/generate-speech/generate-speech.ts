@@ -6,13 +6,10 @@ import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
 import {
-  DefaultGeneratedFile,
-  GeneratedFile,
-} from '../generate-text/generated-file';
-import {
   audioMimeTypeSignatures,
   detectMimeType,
 } from '../util/detect-mimetype';
+import { DefaultGeneratedAudioFile, GeneratedAudioFile } from './generated-audio-file';
 
 /**
 Generates speech audio using a speech model.
@@ -127,7 +124,7 @@ Only applicable for HTTP-based providers.
   }
 
   return new DefaultSpeechResult({
-    audio: new DefaultGeneratedFile({
+    audio: new DefaultGeneratedAudioFile({
       data: result.audio,
       mimeType:
         detectMimeType({
@@ -142,13 +139,13 @@ Only applicable for HTTP-based providers.
 }
 
 class DefaultSpeechResult implements SpeechResult {
-  readonly audio: GeneratedFile;
+  readonly audio: GeneratedAudioFile;
   readonly warnings: Array<SpeechWarning>;
   readonly responses: Array<SpeechModelResponseMetadata>;
   readonly providerMetadata: Record<string, Record<string, JSONValue>>;
 
   constructor(options: {
-    audio: GeneratedFile;
+    audio: GeneratedAudioFile;
     warnings: Array<SpeechWarning>;
     responses: Array<SpeechModelResponseMetadata>;
     providerMetadata: Record<string, Record<string, JSONValue>> | undefined;

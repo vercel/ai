@@ -5,12 +5,14 @@ import {
 } from '@ai-sdk/provider';
 import { MockSpeechModelV1 } from '../test/mock-speech-model-v1';
 import { generateSpeech } from './generate-speech';
-import { GeneratedFile } from '../generate-text';
-import { DefaultGeneratedFile } from '../generate-text/generated-file';
+import {
+  GeneratedAudioFile,
+  DefaultGeneratedAudioFile,
+} from './generated-audio-file';
 
 const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
-const mockFile = new DefaultGeneratedFile({
+const mockFile = new DefaultGeneratedAudioFile({
   data: audio,
   mimeType: 'audio/mp3',
 });
@@ -18,7 +20,7 @@ const mockFile = new DefaultGeneratedFile({
 const sampleText = 'This is a sample text to convert to speech.';
 
 const createMockResponse = (options: {
-  audio: GeneratedFile;
+  audio: GeneratedAudioFile;
   warnings?: SpeechModelV1CallWarning[];
   timestamp?: Date;
   modelId?: string;
@@ -131,7 +133,7 @@ describe('generateSpeech', () => {
           model: new MockSpeechModelV1({
             doGenerate: async () =>
               createMockResponse({
-                audio: new DefaultGeneratedFile({
+                audio: new DefaultGeneratedAudioFile({
                   data: new Uint8Array(),
                   mimeType: 'audio/mp3',
                 }),
@@ -158,7 +160,7 @@ describe('generateSpeech', () => {
           model: new MockSpeechModelV1({
             doGenerate: async () =>
               createMockResponse({
-                audio: new DefaultGeneratedFile({
+                audio: new DefaultGeneratedAudioFile({
                   data: new Uint8Array(),
                   mimeType: 'audio/mp3',
                 }),

@@ -102,11 +102,11 @@ console.log(audio);
   content={[
     {
       name: 'audio',
-      type: 'GeneratedFile',
+      type: 'GeneratedAudioFile',
       description: 'The generated audio.',
       properties: [
         {
-          type: 'GeneratedFile',
+          type: 'GeneratedAudioFile',
           parameters: [
             {
               name: 'base64',
@@ -121,7 +121,12 @@ console.log(audio);
             {
               name: 'mimeType',
               type: 'string',
-              description: 'MIME type of the audio.',
+              description: 'MIME type of the audio (e.g. "audio/mpeg").',
+            },
+            {
+              name: 'format',
+              type: 'string',
+              description: 'Format of the audio (e.g. "mp3").',
             },
           ],
         },
