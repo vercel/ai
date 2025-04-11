@@ -14,6 +14,13 @@ const DEFAULT_TOOLS: MCPTool[] = [
       },
     },
   },
+  {
+    name: 'mock-tool-no-args',
+    description: 'A mock tool for testing',
+    inputSchema: {
+      type: 'object',
+    },
+  },
 ];
 
 export class MockMCPTransport implements MCPTransport {

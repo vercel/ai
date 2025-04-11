@@ -357,12 +357,15 @@ describe('doGenerate', () => {
       logprobs: TEST_LOGPROBS,
     });
 
-    const response = await provider
-      .chat('gpt-3.5-turbo', { logprobs: 1 })
-      .doGenerate({
-        inputFormat: 'prompt',
-        prompt: TEST_PROMPT,
-      });
+    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
+      inputFormat: 'prompt',
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          logprobs: 1,
+        },
+      },
+    });
     expect(response.logprobs).toStrictEqual(
       mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
     );
@@ -433,17 +436,18 @@ describe('doGenerate', () => {
   it('should pass settings', async () => {
     prepareJsonResponse();
 
-    await provider
-      .chat('gpt-3.5-turbo', {
-        logitBias: { 50256: -100 },
-        logprobs: 2,
-        parallelToolCalls: false,
-        user: 'test-user-id',
-      })
-      .doGenerate({
-        inputFormat: 'prompt',
-        prompt: TEST_PROMPT,
-      });
+    await provider.chat('gpt-3.5-turbo').doGenerate({
+      inputFormat: 'prompt',
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          logitBias: { 50256: -100 },
+          logprobs: 2,
+          parallelToolCalls: false,
+          user: 'test-user-id',
+        },
+      },
+    });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'gpt-3.5-turbo',
@@ -479,37 +483,20 @@ describe('doGenerate', () => {
   it('should pass reasoningEffort setting from settings', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o1-mini', { reasoningEffort: 'high' });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'o1-mini',
-      messages: [{ role: 'user', content: 'Hello' }],
-      reasoning_effort: 'high',
-    });
-  });
-
-  it('should prioritize reasoningEffort from provider metadata over settings', async () => {
-    prepareJsonResponse({ content: '' });
-
-    const model = provider.chat('o1-mini', { reasoningEffort: 'high' });
+    const model = provider.chat('o1-mini');
 
     await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
-        openai: { reasoningEffort: 'low' },
+        openai: { reasoningEffort: 'high' },
       },
     });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'o1-mini',
       messages: [{ role: 'user', content: 'Hello' }],
-      reasoning_effort: 'low',
+      reasoning_effort: 'high',
     });
   });
 
@@ -1296,6 +1283,29 @@ describe('doGenerate', () => {
       metadata: {
         custom: 'value',
       },
+    });
+  });
+
+  it('should remove temperature setting for gpt-4o-search-preview and add warning', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o-search-preview');
+
+    const result = await model.doGenerate({
+      inputFormat: 'prompt',
+      prompt: TEST_PROMPT,
+      temperature: 0.7,
+    });
+
+    const requestBody = await server.calls[0].requestBody;
+    expect(requestBody.model).toBe('gpt-4o-search-preview');
+    expect(requestBody.temperature).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'temperature',
+      details:
+        'temperature is not supported for the gpt-4o-search-preview model and has been removed.',
     });
   });
 });

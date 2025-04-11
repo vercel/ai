@@ -248,17 +248,18 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should pass settings', async () => {
+  it('should pass provider options', async () => {
     prepareJsonResponse();
 
-    await provider('gemma2-9b-it', {
-      parallelToolCalls: false,
-      user: 'test-user-id',
-    }).doGenerate({
+    await provider('gemma2-9b-it').doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
-        groq: { reasoningFormat: 'hidden' },
+        groq: {
+          reasoningFormat: 'hidden',
+          user: 'test-user-id',
+          parallelToolCalls: false,
+        },
       },
     });
 

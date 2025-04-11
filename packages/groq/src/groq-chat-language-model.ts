@@ -21,7 +21,11 @@ import {
 import { z } from 'zod';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import { GroqChatModelId, GroqChatSettings } from './groq-chat-settings';
+import {
+  GroqChatModelId,
+  GroqChatSettings,
+  groqProviderOptions,
+} from './groq-chat-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
@@ -105,9 +109,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     const groqOptions = parseProviderOptions({
       provider: 'groq',
       providerOptions,
-      schema: z.object({
-        reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).nullish(),
-      }),
+      schema: groqProviderOptions,
     });
 
     const {
@@ -122,8 +124,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         model: this.modelId,
 
         // model specific settings:
-        user: this.settings.user,
-        parallel_tool_calls: this.settings.parallelToolCalls,
+        user: groqOptions?.user,
+        parallel_tool_calls: groqOptions?.parallelToolCalls,
 
         // standardized settings:
         max_tokens: maxTokens,
