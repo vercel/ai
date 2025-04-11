@@ -86,7 +86,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV2<string> {
     return {
       embeddings: response.embeddings.float,
       usage: { tokens: response.meta.billed_units.input_tokens },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
     };
   }
 }

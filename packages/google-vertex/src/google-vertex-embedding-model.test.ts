@@ -78,9 +78,9 @@ describe('GoogleVertexEmbeddingModel', () => {
       },
     });
 
-    const { rawResponse } = await model.doEmbed({ values: testValues });
+    const { response } = await model.doEmbed({ values: testValues });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '159',
       'content-type': 'application/json',

@@ -112,7 +112,7 @@ export class OpenAICompatibleEmbeddingModel
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
         : undefined,
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
     };
   }
 }
