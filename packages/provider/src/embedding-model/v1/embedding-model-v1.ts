@@ -1,7 +1,7 @@
 import { EmbeddingModelV1Embedding } from './embedding-model-v1-embedding';
 
 /**
-Specification for an embedding model that implements the embedding model 
+Specification for an embedding model that implements the embedding model
 interface version 1.
 
 VALUE is the type of the values that the model can embed.
@@ -19,7 +19,7 @@ on our side.
   readonly specificationVersion: 'v1';
 
   /**
-Name of the provider for logging purposes.
+Name asdof the provider for logging purposes.
    */
   readonly provider: string;
 
