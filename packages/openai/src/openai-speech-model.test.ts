@@ -15,7 +15,7 @@ describe('doGenerate', () => {
     format = 'mp3',
   }: {
     headers?: Record<string, string>;
-    format?: 'mp3' | 'audio/opus' | 'aac' | 'flac' | 'wav' | 'pcm';
+    format?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
   } = {}) {
     const audioBuffer = new Uint8Array(100); // Mock audio data
     server.urls['https://api.openai.com/v1/audio/speech'].response = {
@@ -77,7 +77,7 @@ describe('doGenerate', () => {
     await model.doGenerate({
       text: 'Hello from the AI SDK!',
       voice: 'nova',
-      outputMediaType: 'audio/opus',
+      outputFormat: 'opus',
       speed: 1.5,
     });
 
@@ -102,7 +102,7 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       text: 'Hello from the AI SDK!',
-      outputMediaType: 'audio/opus',
+      outputFormat: 'opus',
     });
 
     expect(result.audio).toStrictEqual(audio);

@@ -17,7 +17,7 @@ Generates speech audio using a speech model.
 @param model - The speech model to use.
 @param text - The text to convert to speech.
 @param voice - The voice to use for speech generation.
-@param outputMediaType - The output media type to use for speech generation.
+@param outputFormat - The output format to use for speech generation e.g. "mp3", "wav", "flac", etc.
 @param instructions - Instructions for the speech generation e.g. "Speak in a slow and steady tone".
 @param speed - The speed of the speech generation.
 @param providerOptions - Additional provider-specific options that are passed through to the provider
@@ -32,7 +32,7 @@ export async function generateSpeech({
   model,
   text,
   voice,
-  outputMediaType,
+  outputFormat,
   instructions,
   speed,
   providerOptions = {},
@@ -56,11 +56,9 @@ The voice to use for speech generation.
   voice?: string;
 
   /**
-   * The desired output format for the audio in IANA media type format.
-   * e.g. "audio/mpeg", "audio/wav", "audio/flac", etc.
-   * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+   * The desired output format for the audio e.g. "mp3", "wav", "flac", etc.
    */
-  outputMediaType?: string;
+  outputFormat?: 'mp3' | 'wav' | (string & {});
 
   /**
     Instructions for the speech generation e.g. "Speak in a slow and steady tone".
@@ -110,7 +108,7 @@ Only applicable for HTTP-based providers.
     model.doGenerate({
       text,
       voice,
-      outputMediaType,
+      outputFormat,
       instructions,
       speed,
       abortSignal,

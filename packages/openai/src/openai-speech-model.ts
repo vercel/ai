@@ -11,15 +11,6 @@ import { openaiFailedResponseHandler } from './openai-error';
 import { OpenAISpeechModelId } from './openai-speech-settings';
 import { OpenAISpeechAPITypes } from './openai-api-types';
 
-const audioFormatMap = {
-  'audio/mpeg': 'mp3',
-  'audio/opus': 'opus',
-  'audio/aac': 'aac',
-  'audio/flac': 'flac',
-  'audio/wav': 'wav',
-  'audio/pcm': 'pcm',
-};
-
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
 const OpenAIProviderOptionsSchema = z.object({
   instructions: z.string().nullish(),
@@ -51,7 +42,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
   private getArgs({
     text,
     voice = 'alloy',
-    outputMediaType = 'audio/mpeg',
+    outputFormat = 'mp3',
     speed,
     instructions,
     providerOptions,
@@ -70,20 +61,19 @@ export class OpenAISpeechModel implements SpeechModelV1 {
       model: this.modelId,
       input: text,
       voice,
-      response_format: audioFormatMap['audio/mpeg'],
+      response_format: 'mp3',
       speed,
       instructions,
     };
 
-    if (outputMediaType) {
-      if (outputMediaType in audioFormatMap) {
-        requestBody.response_format =
-          audioFormatMap[outputMediaType as keyof typeof audioFormatMap];
+    if (outputFormat) {
+      if (['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'].includes(outputFormat)) {
+        requestBody.response_format = outputFormat;
       } else {
         warnings.push({
           type: 'unsupported-setting',
-          setting: 'outputMediaType',
-          details: `Unsupported output media type: ${outputMediaType}. Using audio/mpeg instead.`,
+          setting: 'outputFormat',
+          details: `Unsupported output format: ${outputFormat}. Using mp3 instead.`,
         });
       }
     }
