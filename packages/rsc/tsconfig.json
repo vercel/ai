@@ -4,6 +4,7 @@
     "target": "ES2018",
     "stripInternal": true,
     "rootDir": "src",
+    "composite": true,
     "outDir": "dist"
   },
   "exclude": ["dist", "build", "node_modules", "*.config.ts", "tests"],
