@@ -17,6 +17,7 @@ import {
   generateId,
   isParsableJson,
   ParseResult,
+  parseProviderOptions,
   postJsonToApi,
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
@@ -26,8 +27,8 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleChatModelId,
-  OpenAICompatibleChatSettings,
-} from './openai-compatible-chat-settings';
+  openaiCompatibleProviderOptions,
+} from './openai-compatible-chat-options';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
@@ -62,19 +63,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   readonly supportsStructuredOutputs: boolean;
 
   readonly modelId: OpenAICompatibleChatModelId;
-  readonly settings: OpenAICompatibleChatSettings;
-
   private readonly config: OpenAICompatibleChatConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
 
   constructor(
     modelId: OpenAICompatibleChatModelId,
-    settings: OpenAICompatibleChatSettings,
     config: OpenAICompatibleChatConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
 
     // initialize error handling:
@@ -117,6 +114,20 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
 
+    // Parse provider options
+    const compatibleOptions = Object.assign(
+      parseProviderOptions({
+        provider: 'openai-compatible',
+        providerOptions,
+        schema: openaiCompatibleProviderOptions,
+      }) ?? {},
+      parseProviderOptions({
+        provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompatibleProviderOptions,
+      }) ?? {},
+    );
+
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
     }
@@ -149,7 +160,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         model: this.modelId,
 
         // model specific settings:
-        user: this.settings.user,
+        user: compatibleOptions.user,
 
         // standardized settings:
         max_tokens: maxOutputTokens,
