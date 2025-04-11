@@ -4,6 +4,9 @@
       "path": "packages/ai"
     },
     {
+      "path": "packages/rsc"
+    },
+    {
       "path": "packages/amazon-bedrock"
     },
     {
