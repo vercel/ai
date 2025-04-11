@@ -14,6 +14,7 @@ const server = createTestServer({
     response: {
       type: 'json-value',
       body: {
+        id: '9ea68fd3-f953-42c1-9742-976c447fb463',
         upload_url: 'https://storage.assemblyai.com/mock-upload-url',
       },
     },
@@ -272,9 +273,9 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(server.calls[1].requestHeaders).toMatchObject({
+    expect(server.calls[0].requestHeaders).toMatchObject({
       authorization: 'test-api-key',
-      'content-type': 'application/json',
+      'content-type': 'application/octet-stream',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
@@ -302,7 +303,7 @@ describe('doGenerate', () => {
     const testDate = new Date(0);
     const customModel = new AssemblyAITranscriptionModel('best', {
       provider: 'test-provider',
-      url: () => 'https://api.assemblyai.com/v2/transcript',
+      url: ({ path }) => `https://api.assemblyai.com${path}`,
       headers: () => ({}),
       _internal: {
         currentDate: () => testDate,
@@ -331,7 +332,7 @@ describe('doGenerate', () => {
     const testDate = new Date(0);
     const customModel = new AssemblyAITranscriptionModel('best', {
       provider: 'test-provider',
-      url: () => 'https://api.assemblyai.com/v2/transcript',
+      url: ({ path }) => `https://api.assemblyai.com${path}`,
       headers: () => ({}),
       _internal: {
         currentDate: () => testDate,
