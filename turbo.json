@@ -5,7 +5,6 @@
     "build": {
       "dependsOn": ["^build"],
       "env": [
-        "AI_GATEWAY_API_KEY",
         "ANTHROPIC_API_KEY",
         "ASSISTANT_ID",
         "AWS_REGION",
@@ -16,7 +15,6 @@
         "COHERE_API_KEY",
         "DEEPINFRA_API_KEY",
         "DEEPSEEK_API_KEY",
-        "DEPLOYMENT_ID",
         "ELEVENLABS_API_KEY",
         "FAL_KEY",
         "FAL_API_KEY",
@@ -30,9 +28,6 @@
         "GOOGLE_VERTEX_LOCATION",
         "GOOGLE_VERTEX_PROJECT",
         "GROQ_API_KEY",
-        "AI_MODEL",
-        "AI_SYSTEM",
-        "AI_VERBOSE",
         "LUMA_API_KEY",
         "MISTRAL_API_KEY",
         "NEXT_RUNTIME",
@@ -46,10 +41,6 @@
         "SENTRY_ORG",
         "SENTRY_PROJECT",
         "TOGETHER_AI_API_KEY",
-        "VERCEL_API_KEY",
-        "VERCEL_ENV",
-        "VERCEL_OIDC_TOKEN",
-        "VERCEL_REGION",
         "VERCEL_URL",
         "XAI_API_KEY"
       ],
@@ -69,9 +60,6 @@
       "dependsOn": ["^build", "build"]
     },
     "test": {
-      "dependsOn": ["^build", "build"]
-    },
-    "test:update": {
       "dependsOn": ["^build", "build"]
     },
     "publint": {

@@ -10,6 +10,7 @@
     "@ai-sdk/cohere": "1.2.7",
     "@ai-sdk/deepinfra": "0.2.10",
     "@ai-sdk/deepseek": "0.2.9",
+    "@ai-sdk/elevenlabs": "0.0.0",
     "@ai-sdk/fal": "0.1.7",
     "@ai-sdk/fireworks": "0.2.9",
     "@ai-sdk/google": "1.2.10",

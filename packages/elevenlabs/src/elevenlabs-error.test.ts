@@ -2,12 +2,12 @@ import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { elevenlabsErrorDataSchema } from './elevenlabs-error';
 
 describe('elevenlabsErrorDataSchema', () => {
-  it('should parse ElevenLabs resource exhausted error', async () => {
+  it('should parse ElevenLabs resource exhausted error', () => {
     const error = `
 {"error":{"message":"{\\n  \\"error\\": {\\n    \\"code\\": 429,\\n    \\"message\\": \\"Resource has been exhausted (e.g. check quota).\\",\\n    \\"status\\": \\"RESOURCE_EXHAUSTED\\"\\n  }\\n}\\n","code":429}}
 `;
 
-    const result = await safeParseJSON({
+    const result = safeParseJSON({
       text: error,
       schema: elevenlabsErrorDataSchema,
     });

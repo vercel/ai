@@ -1,13 +1,10 @@
-import {
-  TranscriptionModelV2,
-  ProviderV2,
-  NoSuchModelError,
-} from '@ai-sdk/provider';
+import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
+import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
 
-export interface ElevenLabsProvider extends ProviderV2 {
+export interface ElevenLabsProvider
+  extends Pick<ProviderV1, 'transcriptionModel'> {
   (
     modelId: 'scribe_v1',
     settings?: {},
@@ -18,7 +15,7 @@ export interface ElevenLabsProvider extends ProviderV2 {
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV1;
 }
 
 export interface ElevenLabsProviderSettings {
@@ -70,30 +67,6 @@ export function createElevenLabs(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
-
-  provider.languageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'languageModel',
-      message: 'ElevenLabs does not provide language models',
-    });
-  };
-
-  provider.textEmbeddingModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'ElevenLabs does not provide text embedding models',
-    });
-  };
-
-  provider.imageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'imageModel',
-      message: 'ElevenLabs does not provide image models',
-    });
-  };
 
   return provider as ElevenLabsProvider;
 }
