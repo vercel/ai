@@ -13,13 +13,10 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import {
-  CohereChatModelId,
-  CohereChatSettings,
-} from '../src/cohere-chat-settings';
-import { cohereFailedResponseHandler } from '../src/cohere-error';
-import { convertToCohereChatPrompt } from '../src/convert-to-cohere-chat-prompt';
-import { mapCohereFinishReason } from '../src/map-cohere-finish-reason';
+import { CohereChatModelId } from './cohere-chat-options';
+import { cohereFailedResponseHandler } from './cohere-error';
+import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
+import { mapCohereFinishReason } from './map-cohere-finish-reason';
 import { prepareTools } from './cohere-prepare-tools';
 
 type CohereChatConfig = {
@@ -34,17 +31,11 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: CohereChatModelId;
-  readonly settings: CohereChatSettings;
 
   private readonly config: CohereChatConfig;
 
-  constructor(
-    modelId: CohereChatModelId,
-    settings: CohereChatSettings,
-    config: CohereChatConfig,
-  ) {
+  constructor(modelId: CohereChatModelId, config: CohereChatConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
