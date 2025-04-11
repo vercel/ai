@@ -1,5 +1,5 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
-import { MockEmbeddingModelV1 } from '../test/mock-embedding-model-v1';
+import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { createProviderRegistry } from './provider-registry';
@@ -113,7 +113,7 @@ describe('languageModel', () => {
 
 describe('textEmbeddingModel', () => {
   it('should return embedding model from provider using textEmbeddingModel', () => {
-    const model = new MockEmbeddingModelV1<string>();
+    const model = new MockEmbeddingModelV2<string>();
 
     const modelRegistry = createProviderRegistry({
       provider: {
@@ -172,7 +172,7 @@ describe('textEmbeddingModel', () => {
   });
 
   it('should support custom separator', () => {
-    const model = new MockEmbeddingModelV1<string>();
+    const model = new MockEmbeddingModelV2<string>();
 
     const modelRegistry = createProviderRegistry(
       {

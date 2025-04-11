@@ -1,4 +1,4 @@
-import { EmbeddingModelV1Embedding } from '@ai-sdk/provider';
+import { EmbeddingModelV2Embedding } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
 
@@ -21,7 +21,7 @@ describe('doEmbed', () => {
     meta = { billed_units: { input_tokens: 8 } },
     headers,
   }: {
-    embeddings?: EmbeddingModelV1Embedding[];
+    embeddings?: EmbeddingModelV2Embedding[];
     meta?: { billed_units: { input_tokens: number } };
     headers?: Record<string, string>;
   } = {}) {

@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
@@ -52,7 +52,7 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
   embedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
     settings?: GoogleGenerativeAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.
@@ -60,12 +60,12 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
   textEmbedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
     settings?: GoogleGenerativeAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
     settings?: GoogleGenerativeAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 }
 
 export interface GoogleGenerativeAIProviderSettings {

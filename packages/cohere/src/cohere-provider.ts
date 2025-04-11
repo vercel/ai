@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
@@ -31,12 +31,12 @@ Creates a model for text generation.
   embedding(
     modelId: CohereEmbeddingModelId,
     settings?: CohereEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   textEmbeddingModel(
     modelId: CohereEmbeddingModelId,
     settings?: CohereEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 }
 
 export interface CohereProviderSettings {

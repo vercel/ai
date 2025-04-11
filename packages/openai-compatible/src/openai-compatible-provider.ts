@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   ImageModelV1,
   LanguageModelV2,
   ProviderV2,
@@ -43,7 +43,7 @@ export interface OpenAICompatibleProvider<
   textEmbeddingModel(
     modelId: EMBEDDING_MODEL_IDS,
     settings?: OpenAICompatibleEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   imageModel(
     modelId: IMAGE_MODEL_IDS,

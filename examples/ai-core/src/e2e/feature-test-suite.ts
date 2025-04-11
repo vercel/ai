@@ -1,6 +1,6 @@
 import type { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import type {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   ImageModelV1,
   LanguageModelV2,
 } from '@ai-sdk/provider';
@@ -57,9 +57,9 @@ export const createLanguageModelWithCapabilities = (
 });
 
 export const createEmbeddingModelWithCapabilities = (
-  model: EmbeddingModelV1<string>,
+  model: EmbeddingModelV2<string>,
   capabilities: ModelCapabilities = ['embedding'],
-): ModelWithCapabilities<EmbeddingModelV1<string>> => ({
+): ModelWithCapabilities<EmbeddingModelV2<string>> => ({
   model,
   capabilities,
 });
@@ -75,7 +75,7 @@ export const createImageModelWithCapabilities = (
 export interface ModelVariants {
   invalidModel?: LanguageModelV2;
   languageModels?: ModelWithCapabilities<LanguageModelV2>[];
-  embeddingModels?: ModelWithCapabilities<EmbeddingModelV1<string>>[];
+  embeddingModels?: ModelWithCapabilities<EmbeddingModelV2<string>>[];
   invalidImageModel?: ImageModelV1;
   imageModels?: ModelWithCapabilities<ImageModelV1>[];
 }

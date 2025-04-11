@@ -1,17 +1,17 @@
-import { EmbeddingModelV1 } from '@ai-sdk/provider';
+import { EmbeddingModelV2 } from '@ai-sdk/provider';
 import { Embedding } from '../types';
 import { EmbeddingModelUsage } from '../types/usage';
 import { notImplemented } from './not-implemented';
 
-export class MockEmbeddingModelV1<VALUE> implements EmbeddingModelV1<VALUE> {
-  readonly specificationVersion = 'v1';
+export class MockEmbeddingModelV2<VALUE> implements EmbeddingModelV2<VALUE> {
+  readonly specificationVersion = 'v2';
 
-  readonly provider: EmbeddingModelV1<VALUE>['provider'];
-  readonly modelId: EmbeddingModelV1<VALUE>['modelId'];
-  readonly maxEmbeddingsPerCall: EmbeddingModelV1<VALUE>['maxEmbeddingsPerCall'];
-  readonly supportsParallelCalls: EmbeddingModelV1<VALUE>['supportsParallelCalls'];
+  readonly provider: EmbeddingModelV2<VALUE>['provider'];
+  readonly modelId: EmbeddingModelV2<VALUE>['modelId'];
+  readonly maxEmbeddingsPerCall: EmbeddingModelV2<VALUE>['maxEmbeddingsPerCall'];
+  readonly supportsParallelCalls: EmbeddingModelV2<VALUE>['supportsParallelCalls'];
 
-  doEmbed: EmbeddingModelV1<VALUE>['doEmbed'];
+  doEmbed: EmbeddingModelV2<VALUE>['doEmbed'];
 
   constructor({
     provider = 'mock-provider',
@@ -20,13 +20,13 @@ export class MockEmbeddingModelV1<VALUE> implements EmbeddingModelV1<VALUE> {
     supportsParallelCalls = false,
     doEmbed = notImplemented,
   }: {
-    provider?: EmbeddingModelV1<VALUE>['provider'];
-    modelId?: EmbeddingModelV1<VALUE>['modelId'];
+    provider?: EmbeddingModelV2<VALUE>['provider'];
+    modelId?: EmbeddingModelV2<VALUE>['modelId'];
     maxEmbeddingsPerCall?:
-      | EmbeddingModelV1<VALUE>['maxEmbeddingsPerCall']
+      | EmbeddingModelV2<VALUE>['maxEmbeddingsPerCall']
       | null;
-    supportsParallelCalls?: EmbeddingModelV1<VALUE>['supportsParallelCalls'];
-    doEmbed?: EmbeddingModelV1<VALUE>['doEmbed'];
+    supportsParallelCalls?: EmbeddingModelV2<VALUE>['supportsParallelCalls'];
+    doEmbed?: EmbeddingModelV2<VALUE>['doEmbed'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
@@ -40,7 +40,7 @@ export function mockEmbed<VALUE>(
   expectedValues: Array<VALUE>,
   embeddings: Array<Embedding>,
   usage?: EmbeddingModelUsage,
-): EmbeddingModelV1<VALUE>['doEmbed'] {
+): EmbeddingModelV2<VALUE>['doEmbed'] {
   return async ({ values }) => {
     assert.deepStrictEqual(expectedValues, values);
     return { embeddings, usage };

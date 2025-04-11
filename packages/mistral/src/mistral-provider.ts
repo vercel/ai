@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
@@ -48,7 +48,7 @@ Creates a model for text generation.
   embedding(
     modelId: MistralEmbeddingModelId,
     settings?: MistralEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.
@@ -56,12 +56,12 @@ Creates a model for text generation.
   textEmbedding(
     modelId: MistralEmbeddingModelId,
     settings?: MistralEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   textEmbeddingModel: (
     modelId: MistralEmbeddingModelId,
     settings?: MistralEmbeddingSettings,
-  ) => EmbeddingModelV1<string>;
+  ) => EmbeddingModelV2<string>;
 }
 
 export interface MistralProviderSettings {

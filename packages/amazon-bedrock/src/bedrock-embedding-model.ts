@@ -1,4 +1,4 @@
-import { EmbeddingModelV1, EmbeddingModelV1Embedding } from '@ai-sdk/provider';
+import { EmbeddingModelV2, EmbeddingModelV2Embedding } from '@ai-sdk/provider';
 import {
   FetchFunction,
   Resolvable,
@@ -21,10 +21,10 @@ type BedrockEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>;
+type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>;
 
-export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
-  readonly specificationVersion = 'v1';
+export class BedrockEmbeddingModel implements EmbeddingModelV2<string> {
+  readonly specificationVersion = 'v2';
   readonly provider = 'amazon-bedrock';
   readonly maxEmbeddingsPerCall = undefined;
   readonly supportsParallelCalls = true;
@@ -45,7 +45,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
     headers,
     abortSignal,
   }: Parameters<
-    EmbeddingModelV1<string>['doEmbed']
+    EmbeddingModelV2<string>['doEmbed']
   >[0]): Promise<DoEmbedResponse> {
     const embedSingleText = async (inputText: string) => {
       // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html
@@ -80,7 +80,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
 
     const responses = await Promise.all(values.map(embedSingleText));
     return responses.reduce<{
-      embeddings: EmbeddingModelV1Embedding[];
+      embeddings: EmbeddingModelV2Embedding[];
       usage: { tokens: number };
     }>(
       (accumulated, response) => {
