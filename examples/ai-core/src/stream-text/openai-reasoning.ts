@@ -7,7 +7,7 @@ async function main() {
     model: openai('o3-mini'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     temperature: 0.5, // should get ignored (warning)
-    maxTokens: 1000, // mapped to max_completion_tokens
+    maxOutputTokens: 1000, // mapped to max_completion_tokens
   });
 
   for await (const textPart of result.textStream) {

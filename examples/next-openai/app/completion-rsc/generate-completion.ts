@@ -7,7 +7,7 @@ import { createStreamableValue } from '@ai-sdk/rsc';
 export async function generateCompletion(prompt: string) {
   const result = streamText({
     model: openai('gpt-4-turbo'),
-    maxTokens: 2000,
+    maxOutputTokens: 2000,
     prompt,
   });
 

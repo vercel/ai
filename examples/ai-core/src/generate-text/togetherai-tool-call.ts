@@ -7,7 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 async function main() {
   const result = await generateText({
     model: togetherai('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
       cityAttractions: tool({

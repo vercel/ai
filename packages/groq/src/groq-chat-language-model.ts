@@ -69,7 +69,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
   private getArgs({
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -128,7 +128,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         parallel_tool_calls: groqOptions?.parallelToolCalls,
 
         // standardized settings:
-        max_tokens: maxTokens,
+        max_tokens: maxOutputTokens,
         temperature,
         top_p: topP,
         frequency_penalty: frequencyPenalty,

@@ -7,7 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 async function main() {
   const result = await generateText({
     model: deepinfra('mistralai/Mixtral-8x7B-Instruct-v0.1'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
       cityAttractions: tool({

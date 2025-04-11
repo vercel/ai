@@ -295,7 +295,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         temperature: 0.5,
-        maxTokens: 100,
+        maxOutputTokens: 100,
         topP: 0.9,
         topK: 0.1,
         stopSequences: ['abc', 'def'],

@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function main() {
   const result = streamText({
     model: openai('gpt-3.5-turbo-instruct'),
-    maxTokens: 1024,
+    maxOutputTokens: 1024,
     temperature: 0.3,
     prompt: 'Invent a new holiday and describe its traditions.',
   });

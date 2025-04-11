@@ -8,7 +8,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 async function main() {
   const result = await generateText({
     model: bedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     messages: [
       {
         role: 'system',

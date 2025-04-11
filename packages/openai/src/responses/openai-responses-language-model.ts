@@ -40,7 +40,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   }
 
   private getArgs({
-    maxTokens,
+    maxOutputTokens,
     temperature,
     stopSequences,
     topP,
@@ -104,7 +104,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       input: messages,
       temperature,
       top_p: topP,
-      max_output_tokens: maxTokens,
+      max_output_tokens: maxOutputTokens,
 
       ...(responseFormat?.type === 'json' && {
         text: {

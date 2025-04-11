@@ -5,7 +5,7 @@ export interface BedrockConverseInput {
   messages: BedrockMessages;
   toolConfig?: BedrockToolConfiguration;
   inferenceConfig?: {
-    maxTokens?: number;
+    maxOutputTokens?: number;
     temperature?: number;
     topP?: number;
     stopSequences?: string[];

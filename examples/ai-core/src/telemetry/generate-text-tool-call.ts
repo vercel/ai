@@ -18,7 +18,7 @@ sdk.start();
 async function main() {
   const result = await generateText({
     model: openai('gpt-3.5-turbo'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
       cityAttractions: tool({

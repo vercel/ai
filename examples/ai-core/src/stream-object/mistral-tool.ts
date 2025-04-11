@@ -6,7 +6,7 @@ import { z } from 'zod';
 async function main() {
   const result = streamObject({
     model: mistral('mistral-large-latest'),
-    maxTokens: 2000,
+    maxOutputTokens: 2000,
     schema: z.object({
       characters: z.array(
         z.object({

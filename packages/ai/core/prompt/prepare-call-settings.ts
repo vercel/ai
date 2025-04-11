@@ -5,7 +5,7 @@ import { CallSettings } from './call-settings';
  * Validates call settings and sets default values.
  */
 export function prepareCallSettings({
-  maxTokens,
+  maxOutputTokens,
   temperature,
   topP,
   topK,
@@ -17,20 +17,20 @@ export function prepareCallSettings({
   CallSettings,
   'abortSignal' | 'headers' | 'maxRetries'
 > {
-  if (maxTokens != null) {
-    if (!Number.isInteger(maxTokens)) {
+  if (maxOutputTokens != null) {
+    if (!Number.isInteger(maxOutputTokens)) {
       throw new InvalidArgumentError({
-        parameter: 'maxTokens',
-        value: maxTokens,
-        message: 'maxTokens must be an integer',
+        parameter: 'maxOutputTokens',
+        value: maxOutputTokens,
+        message: 'maxOutputTokens must be an integer',
       });
     }
 
-    if (maxTokens < 1) {
+    if (maxOutputTokens < 1) {
       throw new InvalidArgumentError({
-        parameter: 'maxTokens',
-        value: maxTokens,
-        message: 'maxTokens must be >= 1',
+        parameter: 'maxOutputTokens',
+        value: maxOutputTokens,
+        message: 'maxOutputTokens must be >= 1',
       });
     }
   }
@@ -96,7 +96,7 @@ export function prepareCallSettings({
   }
 
   return {
-    maxTokens,
+    maxOutputTokens,
     // TODO v5 remove default 0 for temperature
     temperature: temperature ?? 0,
     topP,

@@ -89,7 +89,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
   private getArgs({
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -164,7 +164,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       parallel_tool_calls: openaiOptions.parallelToolCalls,
 
       // standardized settings:
-      max_tokens: maxTokens,
+      max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
       frequency_penalty: frequencyPenalty,
@@ -188,7 +188,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       seed,
 
       // openai specific settings:
-      // TODO remove in next major version; we auto-map maxTokens now
+      // TODO remove in next major version; we auto-map maxOutputTokens now
       max_completion_tokens: openaiOptions.maxCompletionTokens,
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,

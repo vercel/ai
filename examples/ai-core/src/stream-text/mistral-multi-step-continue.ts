@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function main() {
   const result = streamText({
     model: mistral('open-mistral-7b'),
-    maxTokens: 512, // artificial limit for demo purposes
+    maxOutputTokens: 512, // artificial limit for demo purposes
     maxSteps: 5,
     experimental_continueSteps: true,
     prompt:

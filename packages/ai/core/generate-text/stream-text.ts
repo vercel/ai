@@ -151,7 +151,7 @@ This function streams the output. If you do not want to stream the output, use `
 @param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
 @param messages - A list of messages. You can either use `prompt` or `messages` but not both.
 
-@param maxTokens - Maximum number of tokens to generate.
+@param maxOutputTokens - Maximum number of tokens to generate.
 @param temperature - Temperature setting.
 The value is passed through to the provider. The range depends on the provider and model.
 It is recommended to set either `temperature` or `topP`, but not both.
@@ -1004,7 +1004,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   'gen_ai.system': model.provider,
                   'gen_ai.request.model': model.modelId,
                   'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': settings.maxTokens,
+                  'gen_ai.request.max_tokens': settings.maxOutputTokens,
                   'gen_ai.request.presence_penalty': settings.presencePenalty,
                   'gen_ai.request.stop_sequences': settings.stopSequences,
                   'gen_ai.request.temperature': settings.temperature,

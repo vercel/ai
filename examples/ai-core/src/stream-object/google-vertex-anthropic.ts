@@ -6,7 +6,7 @@ import { z } from 'zod';
 async function main() {
   const result = streamObject({
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
-    maxTokens: 2000,
+    maxOutputTokens: 2000,
     schema: z.object({
       characters: z.array(
         z.object({

@@ -1166,14 +1166,14 @@ describe('doGenerate', () => {
     await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
-      maxTokens: 100,
+      maxOutputTokens: 100,
       temperature: 0.5,
       topP: 0.5,
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({
       inferenceConfig: {
-        maxTokens: 100,
+        maxOutputTokens: 100,
         temperature: 0.5,
         topP: 0.5,
       },

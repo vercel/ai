@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function main() {
   const { text, usage, steps } = await generateText({
     model: mistral('open-mistral-7b'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     maxSteps: 5,
     experimental_continueSteps: true,
     prompt:
