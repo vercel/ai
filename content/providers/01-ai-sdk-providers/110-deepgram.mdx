@@ -62,7 +62,7 @@ You can use the following optional settings to customize the Deepgram provider i
 
 ## Transcription Models
 
-You can create models that call the [Deepgram transcription API](https://www.deepgram.com/docs/api-reference/transcription)
+You can create models that call the [Deepgram transcription API](https://developers.deepgram.com/docs/pre-recorded-audio)
 using the `.transcription()` factory method.
 
 The first argument is the model id e.g. `nova-3`.
@@ -156,6 +156,7 @@ The following provider options are available:
 - **diarize** _boolean_
 
   Whether to identify different speakers in the transcription.
+  Defaults to `true`.
   Optional.
 
 - **utterances** _boolean_

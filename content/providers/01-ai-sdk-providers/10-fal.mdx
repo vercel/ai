@@ -136,13 +136,13 @@ For more details about Fal's capabilities and features, visit the [Fal AI docume
 
 ## Transcription Models
 
-You can create models that call the [Fal transcription API](https://fal.ai/docs/api-reference/transcription)
+You can create models that call the [Fal transcription API](https://docs.fal.ai/guides/convert-speech-to-text)
 using the `.transcription()` factory method.
 
-The first argument is the model id e.g. `whisper`.
+The first argument is the model id without the `fal-ai/` prefix e.g. `wizper`.
 
 ```ts
-const model = fal.transcription('whisper');
+const model = fal.transcription('wizper');
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `batchSize` option will increase the number of audio chunks processed in parallel.
@@ -152,7 +152,7 @@ import { experimental_transcribe as transcribe } from 'ai';
 import { fal } from '@ai-sdk/fal';
 
 const result = await transcribe({
-  model: fal.transcription('whisper'),
+  model: fal.transcription('wizper'),
   audio: new Uint8Array([1, 2, 3, 4]),
   providerOptions: { fal: { batchSize: 10 } },
 });
@@ -167,7 +167,7 @@ The following provider options are available:
 
 - **diarize** _boolean_
   Whether to diarize the audio file (identify different speakers).
-  Defaults to false.
+  Defaults to true.
   Optional.
 
 - **chunkLevel** _string_
@@ -194,4 +194,4 @@ The following provider options are available:
 | Model     | Transcription       | Duration            | Segments            | Language            |
 | --------- | ------------------- | ------------------- | ------------------- | ------------------- |
 | `whisper` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `wizper`  | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `wizper`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
