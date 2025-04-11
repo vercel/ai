@@ -17,6 +17,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
+  parseProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import {
@@ -26,8 +27,8 @@ import {
 } from './bedrock-api-types';
 import {
   BedrockChatModelId,
-  BedrockChatSettings,
-} from './bedrock-chat-settings';
+  bedrockProviderOptions,
+} from './bedrock-chat-options';
 import { BedrockErrorSchema } from './bedrock-error';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
@@ -49,7 +50,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
   constructor(
     readonly modelId: BedrockChatModelId,
-    private readonly settings: BedrockChatSettings,
     private readonly config: BedrockChatConfig,
   ) {}
 
@@ -71,6 +71,14 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     command: BedrockConverseInput;
     warnings: LanguageModelV2CallWarning[];
   } {
+    // Parse provider options
+    const bedrockOptions =
+      parseProviderOptions({
+        provider: 'bedrock',
+        providerOptions,
+        schema: bedrockProviderOptions,
+      }) ?? {};
+
     const warnings: LanguageModelV2CallWarning[] = [];
 
     if (frequencyPenalty != null) {
@@ -111,24 +119,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
     const { system, messages } = convertToBedrockChatMessages(prompt);
 
-    // Parse thinking options from provider metadata
-    const reasoningConfigOptions =
-      BedrockReasoningConfigOptionsSchema.safeParse(
-        providerOptions?.bedrock?.reasoning_config,
-      );
-
-    if (!reasoningConfigOptions.success) {
-      throw new InvalidArgumentError({
-        argument: 'providerOptions.bedrock.reasoning_config',
-        message: 'invalid reasoning configuration options',
-        cause: reasoningConfigOptions.error,
-      });
-    }
-
-    const isThinking = reasoningConfigOptions.data?.type === 'enabled';
-    const thinkingBudget =
-      reasoningConfigOptions.data?.budgetTokens ??
-      reasoningConfigOptions.data?.budget_tokens;
+    const isThinking = bedrockOptions.reasoningConfig?.type === 'enabled';
+    const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
 
     const inferenceConfig = {
       ...(maxTokens != null && { maxTokens }),
@@ -146,10 +138,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       }
       // Add them to additional model request fields
       // Add reasoning config to additionalModelRequestFields
-      this.settings.additionalModelRequestFields = {
-        ...this.settings.additionalModelRequestFields,
-        reasoning_config: {
-          type: reasoningConfigOptions.data?.type,
+      bedrockOptions.additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+        reasoningConfig: {
+          type: bedrockOptions.reasoningConfig?.type,
           budget_tokens: thinkingBudget,
         },
       };
@@ -176,13 +168,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     }
 
     const { toolConfig, toolWarnings } = prepareTools({ tools, toolChoice });
-
     return {
       command: {
         system,
         messages,
         additionalModelRequestFields:
-          this.settings.additionalModelRequestFields,
+          bedrockOptions.additionalModelRequestFields,
         ...(Object.keys(inferenceConfig).length > 0 && {
           inferenceConfig,
         }),
@@ -526,14 +517,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     return `${this.config.baseUrl()}/model/${encodedModelId}`;
   }
 }
-
-const BedrockReasoningConfigOptionsSchema = z
-  .object({
-    type: z.union([z.literal('enabled'), z.literal('disabled')]).nullish(),
-    budget_tokens: z.number().nullish(),
-    budgetTokens: z.number().nullish(),
-  })
-  .nullish();
 
 const BedrockStopReasonSchema = z.union([
   z.enum(BEDROCK_STOP_REASONS),
