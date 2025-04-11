@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   ImageModelV1,
   LanguageModelV2,
   ProviderV2,
@@ -89,7 +89,7 @@ export interface AmazonBedrockProvider extends ProviderV2 {
   embedding(
     modelId: BedrockEmbeddingModelId,
     settings?: BedrockEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   image(
     modelId: BedrockImageModelId,

@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV1Embedding,
+  EmbeddingModelV2Embedding,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
@@ -237,7 +237,7 @@ describe('embedding', () => {
     function prepareJsonResponse({
       embeddings = dummyEmbeddings,
     }: {
-      embeddings?: EmbeddingModelV1Embedding[];
+      embeddings?: EmbeddingModelV2Embedding[];
     } = {}) {
       server.urls[
         'https://test-resource.openai.azure.com/openai/deployments/my-embedding/embeddings'
