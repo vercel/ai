@@ -7,6 +7,10 @@ import {
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIPrompt,
 } from './google-generative-ai-prompt';
+import {
+  convertToBase64,
+  convertUint8ArrayToBase64,
+} from '@ai-sdk/provider-utils';
 
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV2Prompt,
@@ -54,7 +58,12 @@ export function convertToGoogleGenerativeAIMessages(
                         fileUri: part.data.toString(),
                       },
                     }
-                  : { inlineData: { mimeType: mediaType, data: part.data } },
+                  : {
+                      inlineData: {
+                        mimeType: mediaType,
+                        data: convertToBase64(part.data),
+                      },
+                    },
               );
 
               break;
@@ -98,7 +107,7 @@ export function convertToGoogleGenerativeAIMessages(
                   return {
                     inlineData: {
                       mimeType: part.mediaType,
-                      data: part.data,
+                      data: convertToBase64(part.data),
                     },
                   };
                 }
