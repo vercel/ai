@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = streamObject({
-    model: openai('gpt-4-turbo', { logprobs: 2 }),
+    model: openai('gpt-4o'),
     maxTokens: 2000,
     schema: z.object({
       characters: z.array(
@@ -18,6 +18,11 @@ async function main() {
         }),
       ),
     }),
+    providerOptions: {
+      openai: {
+        logprobs: 2,
+      },
+    },
     mode: 'json',
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
