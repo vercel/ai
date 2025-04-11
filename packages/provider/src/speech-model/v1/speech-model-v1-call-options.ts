@@ -15,8 +15,8 @@ export type SpeechModelV1CallOptions = {
   voice?: string;
 
   /**
-   * The desired output format for the audio.
-   *
+   * The desired output format for the audio in IANA media type format.
+   * e.g. "audio/mpeg", "audio/wav", "audio/flac", etc.
    * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
   outputMediaType?: string;

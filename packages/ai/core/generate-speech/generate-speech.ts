@@ -59,7 +59,9 @@ The voice to use for speech generation.
   voice?: string;
 
   /**
-The output media type to use for speech generation.
+   * The desired output format for the audio in IANA media type format.
+   * e.g. "audio/mpeg", "audio/wav", "audio/flac", etc.
+   * @see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
   outputMediaType?: string;
 

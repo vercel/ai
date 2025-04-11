@@ -11,6 +11,15 @@ import { openaiFailedResponseHandler } from './openai-error';
 import { OpenAISpeechModelId } from './openai-speech-settings';
 import { OpenAISpeechAPITypes } from './openai-api-types';
 
+const audioFormatMap = {
+  'audio/mpeg': 'mp3',
+  'audio/opus': 'opus',
+  'audio/aac': 'aac',
+  'audio/flac': 'flac',
+  'audio/wav': 'wav',
+  'audio/pcm': 'pcm',
+};
+
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
 const OpenAIProviderOptionsSchema = z.object({
   instructions: z.string().nullish(),
@@ -42,7 +51,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
   private getArgs({
     text,
     voice = 'alloy',
-    outputMediaType = 'mp3',
+    outputMediaType = 'audio/mpeg',
     speed,
     instructions,
     providerOptions,
@@ -56,30 +65,28 @@ export class OpenAISpeechModel implements SpeechModelV1 {
       schema: OpenAIProviderOptionsSchema,
     });
 
-    let responseFormat = outputMediaType;
-
-    if (
-      outputMediaType &&
-      !['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'].includes(outputMediaType)
-    ) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting: 'outputMediaType',
-        details: `Unsupported output media type: ${outputMediaType}. Using mp3 instead.`,
-      });
-
-      responseFormat = 'mp3';
-    }
-
     // Create request body
     const requestBody: Record<string, unknown> = {
       model: this.modelId,
       input: text,
       voice,
-      response_format: responseFormat,
+      response_format: audioFormatMap['audio/mpeg'],
       speed,
       instructions,
     };
+
+    if (outputMediaType) {
+      if (outputMediaType in audioFormatMap) {
+        requestBody.response_format =
+          audioFormatMap[outputMediaType as keyof typeof audioFormatMap];
+      } else {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'outputMediaType',
+          details: `Unsupported output media type: ${outputMediaType}. Using audio/mpeg instead.`,
+        });
+      }
+    }
 
     // Add provider-specific options
     if (openAIOptions) {
