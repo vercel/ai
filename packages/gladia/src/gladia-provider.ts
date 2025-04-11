@@ -47,7 +47,7 @@ export function createGladia(
   });
 
   const createTranscriptionModel = () =>
-    new GladiaTranscriptionModel({
+    new GladiaTranscriptionModel('', {
       provider: `gladia.transcription`,
       url: ({ path }) => `https://api.gladia.io${path}`,
       headers: getHeaders,

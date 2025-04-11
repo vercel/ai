@@ -9,7 +9,23 @@ const provider = createGladia({ apiKey: 'test-api-key' });
 const model = provider.transcription();
 
 const server = createTestServer({
-  'https://api.gladia.io/v2/upload': {},
+  'https://api.gladia.io/v2/upload': {
+    response: {
+      type: 'json-value',
+      body: {
+        audio_url: 'https://storage.gladia.io/mock-upload-url',
+        audio_metadata: {
+          id: 'test-id',
+          filename: 'test-file.mp3',
+          source: 'upload',
+          extension: 'mp3',
+          size: 1024,
+          audio_duration: 60,
+          number_of_channels: 2
+        },
+      },
+    },
+  },
   'https://api.gladia.io/v2/pre-recorded': {},
   'https://api.gladia.io/v2/transcription/test-id': {},
 });
@@ -20,6 +36,7 @@ describe('doGenerate', () => {
   }: {
     headers?: Record<string, string>;
   } = {}) {
+    // No need to set the upload response here as it's already set in the server creation
     server.urls['https://api.gladia.io/v2/pre-recorded'].response = {
       type: 'json-value',
       headers,
@@ -35,362 +52,63 @@ describe('doGenerate', () => {
         id: '45463597-20b7-4af7-b3b3-f5fb778203ab',
         request_id: 'G-45463597',
         version: 2,
-        status: 'queued',
+        status: 'done',
         created_at: '2023-12-28T09:04:17.210Z',
         completed_at: '2023-12-28T09:04:37.210Z',
         custom_metadata: {},
-        error_code: 500,
+        error_code: null,
         kind: 'pre-recorded',
         file: {
-          id: '<string>',
-          filename: '<string>',
-          source: '<string>',
-          audio_duration: 3600,
-          number_of_channels: 1,
+          id: 'test-id',
+          filename: 'test-file.mp3',
+          source: 'upload',
+          audio_duration: 60,
+          number_of_channels: 2,
         },
         request_params: {
-          context_prompt: '<string>',
-          custom_vocabulary: false,
-          custom_vocabulary_config: {
-            vocabulary: {
-              realtime_processing: {
-                custom_vocabulary: true,
-                custom_vocabulary_config: {
-                  vocabulary: [
-                    'Westeros',
-                    {
-                      value: 'Stark',
-                    },
-                    {
-                      value: "Night's Watch",
-                      pronunciations: ['Nightz Watch'],
-                      intensity: 0.4,
-                      language: 'en',
-                    },
-                  ],
-                  default_intensity: 0.6,
-                },
-              },
-            },
-            default_intensity: 0.5,
-          },
-          detect_language: true,
-          enable_code_switching: false,
-          code_switching_config: {
-            languages: [],
-          },
-          language: 'en',
-          callback_url: 'http://callback.example',
-          callback: false,
-          callback_config: {
-            url: 'http://callback.example',
-            method: 'POST',
-          },
-          subtitles: false,
-          subtitles_config: {
-            formats: ['srt'],
-            minimum_duration: 1,
-            maximum_duration: 15.5,
-            maximum_characters_per_row: 2,
-            maximum_rows_per_caption: 3,
-            style: 'default',
-          },
-          diarization: false,
-          diarization_config: {
-            number_of_speakers: 2,
-            min_speakers: 1,
-            max_speakers: 2,
-            enhanced: false,
-          },
-          translation: false,
-          translation_config: {
-            target_languages: ['en'],
-            model: 'base',
-            match_original_utterances: true,
-          },
-          summarization: false,
-          summarization_config: {
-            type: 'general',
-          },
-          moderation: false,
-          named_entity_recognition: false,
-          chapterization: false,
-          name_consistency: false,
-          custom_spelling: false,
-          custom_spelling_config: {
-            spelling_dictionary: {
-              Gettleman: ['gettleman'],
-              SQL: ['Sequel'],
-            },
-          },
-          structured_data_extraction: false,
-          structured_data_extraction_config: {
-            classes: ['Persons', 'Organizations'],
-          },
-          sentiment_analysis: false,
-          audio_to_llm: false,
-          audio_to_llm_config: {
-            prompts: ['Extract the key points from the transcription'],
-          },
-          sentences: false,
-          display_mode: false,
-          punctuation_enhanced: false,
-          audio_url: '<string>',
+          audio_url: 'https://storage.gladia.io/mock-upload-url',
         },
         result: {
           metadata: {
-            audio_duration: 3600,
-            number_of_distinct_channels: 1,
-            billing_time: 3600,
+            audio_duration: 60,
+            number_of_distinct_channels: 2,
+            billing_time: 60,
             transcription_time: 20,
           },
           transcription: {
-            full_transcript: '<string>',
+            full_transcript: 'Smoke from hundreds of wildfires.',
             languages: ['en'],
-            sentences: [
-              {
-                success: true,
-                is_empty: true,
-                exec_time: 123,
-                error: {
-                  status_code: 500,
-                  exception: '<string>',
-                  message: '<string>',
-                },
-                results: ['<string>'],
-              },
-            ],
-            subtitles: [
-              {
-                format: 'srt',
-                subtitles: '<string>',
-              },
-            ],
             utterances: [
               {
                 language: 'en',
-                start: 123,
-                end: 123,
-                confidence: 123,
+                start: 0,
+                end: 3,
+                confidence: 0.95,
                 channel: 1,
                 speaker: 1,
                 words: [
                   {
-                    word: '<string>',
-                    start: 123,
-                    end: 123,
-                    confidence: 123,
+                    word: 'Smoke',
+                    start: 0,
+                    end: 1,
+                    confidence: 0.95,
+                  },
+                  {
+                    word: 'from',
+                    start: 1,
+                    end: 2,
+                    confidence: 0.95,
+                  },
+                  {
+                    word: 'hundreds',
+                    start: 2,
+                    end: 3,
+                    confidence: 0.95,
                   },
                 ],
-                text: '<string>',
+                text: 'Smoke from hundreds of wildfires.',
               },
             ],
-          },
-          translation: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: [
-              {
-                error: {
-                  status_code: 500,
-                  exception: '<string>',
-                  message: '<string>',
-                },
-                full_transcript: '<string>',
-                languages: ['en'],
-                sentences: [
-                  {
-                    success: true,
-                    is_empty: true,
-                    exec_time: 123,
-                    error: {
-                      status_code: 500,
-                      exception: '<string>',
-                      message: '<string>',
-                    },
-                    results: ['<string>'],
-                  },
-                ],
-                subtitles: [
-                  {
-                    format: 'srt',
-                    subtitles: '<string>',
-                  },
-                ],
-                utterances: [
-                  {
-                    language: 'en',
-                    start: 123,
-                    end: 123,
-                    confidence: 123,
-                    channel: 1,
-                    speaker: 1,
-                    words: [
-                      {
-                        word: '<string>',
-                        start: 123,
-                        end: 123,
-                        confidence: 123,
-                      },
-                    ],
-                    text: '<string>',
-                  },
-                ],
-              },
-            ],
-          },
-          summarization: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: '<string>',
-          },
-          moderation: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: '<string>',
-          },
-          named_entity_recognition: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            entity: '<string>',
-          },
-          name_consistency: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: '<string>',
-          },
-          custom_spelling: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: '<string>',
-          },
-          speaker_reidentification: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: '<string>',
-          },
-          structured_data_extraction: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: '<string>',
-          },
-          sentiment_analysis: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: '<string>',
-          },
-          audio_to_llm: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: [
-              {
-                success: true,
-                is_empty: true,
-                exec_time: 123,
-                error: {
-                  status_code: 500,
-                  exception: '<string>',
-                  message: '<string>',
-                },
-                results: {
-                  prompt: '<string>',
-                  response: '<string>',
-                },
-              },
-            ],
-          },
-          sentences: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: ['<string>'],
-          },
-          display_mode: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: ['<string>'],
-          },
-          chapters: {
-            success: true,
-            is_empty: true,
-            exec_time: 123,
-            error: {
-              status_code: 500,
-              exception: '<string>',
-              message: '<string>',
-            },
-            results: {},
           },
         },
       },
@@ -407,7 +125,6 @@ describe('doGenerate', () => {
 
     expect(await server.calls[1].requestBody).toMatchObject({
       audio_url: 'https://storage.gladia.io/mock-upload-url',
-      speech_model: 'best',
     });
   });
 
@@ -457,9 +174,9 @@ describe('doGenerate', () => {
     });
 
     const testDate = new Date(0);
-    const customModel = new GladiaTranscriptionModel('best', {
+    const customModel = new GladiaTranscriptionModel('', {
       provider: 'test-provider',
-      url: () => 'https://api.gladia.io/v2/transcript',
+      url: ({ path }) => `https://api.gladia.io${path}`,
       headers: () => ({}),
       _internal: {
         currentDate: () => testDate,
@@ -473,7 +190,7 @@ describe('doGenerate', () => {
 
     expect(result.response).toMatchObject({
       timestamp: testDate,
-      modelId: 'best',
+      modelId: '',
       headers: {
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
@@ -486,9 +203,9 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const testDate = new Date(0);
-    const customModel = new GladiaTranscriptionModel('best', {
+    const customModel = new GladiaTranscriptionModel('', {
       provider: 'test-provider',
-      url: () => 'https://api.gladia.io/v2/transcript',
+      url: ({ path }) => `https://api.gladia.io${path}`,
       headers: () => ({}),
       _internal: {
         currentDate: () => testDate,
@@ -501,6 +218,6 @@ describe('doGenerate', () => {
     });
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
-    expect(result.response.modelId).toBe('best');
+    expect(result.response.modelId).toBe('');
   });
 });

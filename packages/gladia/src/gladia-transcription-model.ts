@@ -421,7 +421,7 @@ const gladiaTranscriptionResultResponseSchema = z.object({
   version: z.number(),
   status: z.enum(['queued', 'processing', 'done', 'error']),
   created_at: z.string(),
-  kind: z.literal('live'),
+  kind: z.literal('pre-recorded'),
   completed_at: z.string().nullable(),
   custom_metadata: z.record(z.any()).nullable(),
   error_code: z.number().nullable(),
@@ -434,8 +434,8 @@ const gladiaTranscriptionResultResponseSchema = z.object({
   }),
   request_params: z.object({
     encoding: z.enum(['wav/pcm', 'wav/alaw', 'wav/ulaw']).nullish(),
-    bit_depth: z.enum([8, 16, 24, 32]).nullish(),
-    sample_rate: z.enum([8000, 16000, 32000, 44100, 48000]).nullish(),
+    bit_depth: z.number().nullish(),
+    sample_rate: z.number().nullish(),
     channels: z.number().nullish(),
     model: z.enum(['solaria-1']).nullish(),
     endpointing: z.number().nullish(),
@@ -561,19 +561,21 @@ const gladiaTranscriptionResultResponseSchema = z.object({
           }),
         ),
         sentences: z
-          .object({
-            success: z.boolean(),
-            is_empty: z.boolean(),
-            exec_time: z.number(),
-            error: z
-              .object({
-                status_code: z.number(),
-                exception: z.string(),
-                message: z.string(),
-              })
-              .nullable(),
-            results: z.array(z.string()).nullable(),
-          })
+          .array(
+            z.object({
+              success: z.boolean(),
+              is_empty: z.boolean(),
+              exec_time: z.number(),
+              error: z
+                .object({
+                  status_code: z.number(),
+                  exception: z.string(),
+                  message: z.string(),
+                })
+                .nullable(),
+              results: z.array(z.string()).nullable(),
+            })
+          )
           .nullish(),
         subtitles: z
           .array(
@@ -608,39 +610,22 @@ const gladiaTranscriptionResultResponseSchema = z.object({
                   .nullable(),
                 full_transcript: z.string(),
                 languages: z.array(z.string()),
-                utterances: z.array(
-                  z.object({
-                    language: z.string(),
-                    start: z.number(),
-                    end: z.number(),
-                    confidence: z.number(),
-                    channel: z.number(),
-                    words: z.array(
-                      z.object({
-                        word: z.string(),
-                        start: z.number(),
-                        end: z.number(),
-                        confidence: z.number(),
-                      }),
-                    ),
-                    text: z.string(),
-                    speaker: z.number().nullish(),
-                  }),
-                ),
                 sentences: z
-                  .object({
-                    success: z.boolean(),
-                    is_empty: z.boolean(),
-                    exec_time: z.number(),
-                    error: z
-                      .object({
-                        status_code: z.number(),
-                        exception: z.string(),
-                        message: z.string(),
-                      })
-                      .nullable(),
-                    results: z.array(z.string()).nullable(),
-                  })
+                  .array(
+                    z.object({
+                      success: z.boolean(),
+                      is_empty: z.boolean(),
+                      exec_time: z.number(),
+                      error: z
+                        .object({
+                          status_code: z.number(),
+                          exception: z.string(),
+                          message: z.string(),
+                        })
+                        .nullable(),
+                      results: z.array(z.string()).nullable(),
+                    }),
+                  )
                   .nullish(),
                 subtitles: z
                   .array(
@@ -650,6 +635,25 @@ const gladiaTranscriptionResultResponseSchema = z.object({
                     }),
                   )
                   .nullish(),
+                utterances: z.array(
+                  z.object({
+                    language: z.string(),
+                    start: z.number(),
+                    end: z.number(),
+                    confidence: z.number(),
+                    channel: z.number(),
+                    speaker: z.number().nullish(),
+                    words: z.array(
+                      z.object({
+                        word: z.string(),
+                        start: z.number(),
+                        end: z.number(),
+                        confidence: z.number(),
+                      }),
+                    ),
+                    text: z.string(),
+                  }),
+                ),
               }),
             )
             .nullable(),
