@@ -81,7 +81,7 @@ importers:
         specifier: 0.2.9
         version: link:../../packages/deepseek
       '@ai-sdk/elevenlabs':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../../packages/elevenlabs
       '@ai-sdk/fal':
         specifier: 0.1.7
