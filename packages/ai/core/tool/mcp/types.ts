@@ -14,7 +14,7 @@ export type ToolSchemas =
   | undefined;
 
 export type McpToolSet<TOOL_SCHEMAS extends ToolSchemas = 'automatic'> =
-  TOOL_SCHEMAS extends Record<string, any>
+  TOOL_SCHEMAS extends Record<string, { parameters: ToolParameters<any> }>
     ? {
         [K in keyof TOOL_SCHEMAS]: MappedTool<TOOL_SCHEMAS[K], CallToolResult> &
           Required<
