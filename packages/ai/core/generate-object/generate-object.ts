@@ -81,6 +81,7 @@ The enum values that the model should use.
           */
           enum: Array<TYPE>;
           mode?: 'json';
+          output: 'enum';
         }
       : Output extends 'no-schema'
         ? {}

@@ -6,6 +6,7 @@ import { JSONValue } from '@ai-sdk/provider';
 describe('generateObject', () => {
   it('should support enum types', async () => {
     const result = await generateObject({
+      output: 'enum',
       enum: ['a', 'b', 'c'] as const,
       model: undefined!,
     });
