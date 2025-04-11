@@ -15,9 +15,9 @@ export type SpeechModelV1CallOptions = {
   voice?: string;
 
   /**
-   * The desired output format for the audio e.g. "mp3", "wav", "flac", etc.
+   * The desired output format for the audio e.g. "mp3", "wav", etc.
    */
-  outputFormat?: 'mp3' | 'wav' | (string & {});
+  outputFormat?: string;
 
   /**
    * Instructions for the speech generation e.g. "Speak in a slow and steady tone".

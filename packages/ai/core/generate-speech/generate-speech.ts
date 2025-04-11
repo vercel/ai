@@ -20,7 +20,7 @@ Generates speech audio using a speech model.
 @param model - The speech model to use.
 @param text - The text to convert to speech.
 @param voice - The voice to use for speech generation.
-@param outputFormat - The output format to use for speech generation e.g. "mp3", "wav", "flac", etc.
+@param outputFormat - The output format to use for speech generation e.g. "mp3", "wav", etc.
 @param instructions - Instructions for the speech generation e.g. "Speak in a slow and steady tone".
 @param speed - The speed of the speech generation.
 @param providerOptions - Additional provider-specific options that are passed through to the provider
@@ -59,7 +59,7 @@ The voice to use for speech generation.
   voice?: string;
 
   /**
-   * The desired output format for the audio e.g. "mp3", "wav", "flac", etc.
+   * The desired output format for the audio e.g. "mp3", "wav", etc.
    */
   outputFormat?: 'mp3' | 'wav' | (string & {});
 
