@@ -74,7 +74,7 @@ Token usage. We only have input tokens for embeddings.
     /**
 Optional raw response information for debugging purposes.
      */
-    rawResponse?: {
+    response?: {
       /**
 Response headers.
        */

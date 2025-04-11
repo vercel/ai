@@ -129,7 +129,7 @@ Only applicable for HTTP-based providers.
             return {
               embedding,
               usage,
-              rawResponse: modelResponse.rawResponse,
+              rawResponse: modelResponse.response,
             };
           },
         }),

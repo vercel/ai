@@ -90,7 +90,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV2<string> {
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
         : undefined,
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
     };
   }
 }
