@@ -1,4 +1,3 @@
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import {
   convertToLanguageModelMessage,
   convertToLanguageModelPrompt,
@@ -41,7 +40,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: 'AAECAw==',
+                data: new Uint8Array([0, 1, 2, 3]),
               },
             ],
           },
@@ -82,7 +81,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'image/png',
-                data: 'AAECAw==',
+                data: new Uint8Array([0, 1, 2, 3]),
               },
             ],
           },
@@ -161,7 +160,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
+                data: new Uint8Array([0, 1, 2, 3]),
               },
             ],
           },
@@ -232,7 +231,7 @@ describe('convertToLanguageModelPrompt', () => {
             content: [
               {
                 type: 'file',
-                data: 'SGVsbG8=', // base64 encoded "Hello"
+                data: new Uint8Array([72, 101, 108, 108, 111]),
                 mediaType: 'text/plain',
               },
             ],
@@ -275,7 +274,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
+                data: new Uint8Array([0, 1, 2, 3]),
               },
             ],
           },
@@ -317,7 +316,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
+                data: new Uint8Array([0, 1, 2, 3]),
               },
             ],
           },
@@ -360,7 +359,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
+                data: new Uint8Array([0, 1, 2, 3]),
               },
             ],
           },
@@ -438,7 +437,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
+                data: new Uint8Array([0, 1, 2, 3]),
               },
             ],
           },
@@ -518,7 +517,7 @@ describe('convertToLanguageModelPrompt', () => {
               {
                 type: 'file',
                 mediaType: 'application/pdf',
-                data: convertUint8ArrayToBase64(new Uint8Array([0, 1, 2, 3])),
+                data: new Uint8Array([0, 1, 2, 3]),
                 filename: 'important-document.pdf',
               },
             ],

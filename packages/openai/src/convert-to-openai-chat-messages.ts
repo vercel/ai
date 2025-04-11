@@ -4,6 +4,7 @@ import {
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { OpenAIChatPrompt } from './openai-chat-prompt';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToOpenAIChatMessages({
   prompt,
@@ -73,7 +74,7 @@ export function convertToOpenAIChatMessages({
                       url:
                         part.data instanceof URL
                           ? part.data.toString()
-                          : `data:${mediaType};base64,${part.data}`,
+                          : `data:${mediaType};base64,${convertToBase64(part.data)}`,
 
                       // OpenAI specific extension: image detail
                       detail: part.providerOptions?.openai?.imageDetail,
@@ -90,14 +91,20 @@ export function convertToOpenAIChatMessages({
                     case 'audio/wav': {
                       return {
                         type: 'input_audio',
-                        input_audio: { data: part.data, format: 'wav' },
+                        input_audio: {
+                          data: convertToBase64(part.data),
+                          format: 'wav',
+                        },
                       };
                     }
                     case 'audio/mp3':
                     case 'audio/mpeg': {
                       return {
                         type: 'input_audio',
-                        input_audio: { data: part.data, format: 'mp3' },
+                        input_audio: {
+                          data: convertToBase64(part.data),
+                          format: 'mp3',
+                        },
                       };
                     }
 

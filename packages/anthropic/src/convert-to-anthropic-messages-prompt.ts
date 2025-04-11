@@ -11,6 +11,7 @@ import {
   AnthropicMessagesPrompt,
   AnthropicUserMessage,
 } from './anthropic-api-types';
+import { convertToBase64 } from '@ai-sdk/provider-utils';
 
 export function convertToAnthropicMessagesPrompt({
   prompt,
@@ -115,7 +116,7 @@ export function convertToAnthropicMessagesPrompt({
                                   part.mediaType === 'image/*'
                                     ? 'image/jpeg'
                                     : part.mediaType,
-                                data: part.data,
+                                data: convertToBase64(part.data),
                               },
                         cache_control: cacheControl,
                       });
@@ -133,7 +134,7 @@ export function convertToAnthropicMessagesPrompt({
                             : {
                                 type: 'base64',
                                 media_type: 'application/pdf',
-                                data: part.data,
+                                data: convertToBase64(part.data),
                               },
                         cache_control: cacheControl,
                       });

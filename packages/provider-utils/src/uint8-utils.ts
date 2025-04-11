@@ -20,3 +20,7 @@ export function convertUint8ArrayToBase64(array: Uint8Array): string {
 
   return btoa(latin1string);
 }
+
+export function convertToBase64(value: string | Uint8Array): string {
+  return value instanceof Uint8Array ? convertUint8ArrayToBase64(value) : value;
+}

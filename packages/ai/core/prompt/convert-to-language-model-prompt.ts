@@ -4,7 +4,6 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
 } from '@ai-sdk/provider';
-import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import { download } from '../../util/download';
 import { CoreMessage } from '../prompt/message';
 import {
@@ -13,12 +12,10 @@ import {
 } from '../util/detect-media-type';
 import { FilePart, ImagePart, TextPart } from './content-part';
 import {
-  convertDataContentToBase64String,
-  convertDataContentToUint8Array,
+  convertToLanguageModelV2DataContent,
   DataContent,
 } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
-import { splitDataUrl } from './split-data-url';
 import { StandardizedPrompt } from './standardize-prompt';
 
 export async function convertToLanguageModelPrompt({
@@ -113,14 +110,14 @@ export function convertToLanguageModelMessage(
 
             switch (part.type) {
               case 'file': {
+                const { data, mediaType } = convertToLanguageModelV2DataContent(
+                  part.data,
+                );
                 return {
                   type: 'file',
-                  data:
-                    part.data instanceof URL
-                      ? part.data
-                      : convertDataContentToBase64String(part.data),
+                  data,
                   filename: part.filename,
-                  mediaType: part.mediaType ?? part.mimeType,
+                  mediaType: mediaType ?? part.mediaType ?? part.mimeType,
                   providerOptions,
                 };
               }
@@ -264,65 +261,34 @@ function convertPartToLanguageModelPart(
     };
   }
 
-  let mediaType: string | undefined = part.mediaType ?? part.mimeType;
-  let data: DataContent | URL;
-  let content: DataContent | URL | string;
-  let normalizedData: Uint8Array | URL;
-
+  let originalData: DataContent | URL;
   const type = part.type;
   switch (type) {
     case 'image':
-      data = part.image;
+      originalData = part.image;
       break;
     case 'file':
-      data = part.data;
+      originalData = part.data;
+
       break;
     default:
       throw new Error(`Unsupported part type: ${type}`);
   }
 
-  // Attempt to create a URL from the data. If it fails, we can assume the data
-  // is not a URL and likely some other sort of data.
-  try {
-    content = typeof data === 'string' ? new URL(data) : data;
-  } catch (error) {
-    content = data;
-  }
+  const { data: convertedData, mediaType: convertedMediaType } =
+    convertToLanguageModelV2DataContent(originalData);
 
-  // If we successfully created a URL, we can use that to normalize the data
-  // either by passing it through or converting normalizing the base64 content
-  // to a Uint8Array.
-  if (content instanceof URL) {
-    // If the content is a data URL, we want to convert that to a Uint8Array
-    if (content.protocol === 'data:') {
-      const { mediaType: dataUrlMediaType, base64Content } = splitDataUrl(
-        content.toString(),
-      );
+  let mediaType: string | undefined =
+    convertedMediaType ?? part.mediaType ?? part.mimeType;
+  let data: Uint8Array | string | URL = convertedData; // binary | base64 | url
 
-      if (dataUrlMediaType == null || base64Content == null) {
-        throw new Error(`Invalid data URL format in part ${type}`);
-      }
-
-      mediaType = dataUrlMediaType;
-      normalizedData = convertDataContentToUint8Array(base64Content);
-    } else {
-      /**
-       * If the content is a URL, we should first see if it was downloaded. And if not,
-       * we can let the model decide if it wants to support the URL. This also allows
-       * for non-HTTP URLs to be passed through (e.g. gs://).
-       */
-      const downloadedFile = downloadedAssets[content.toString()];
-      if (downloadedFile) {
-        normalizedData = downloadedFile.data;
-        mediaType ??= downloadedFile.mediaType;
-      } else {
-        normalizedData = content;
-      }
+  // If the content is a URL, we check if it was downloaded:
+  if (data instanceof URL) {
+    const downloadedFile = downloadedAssets[data.toString()];
+    if (downloadedFile) {
+      data = downloadedFile.data;
+      mediaType = downloadedFile.mediaType ?? mediaType;
     }
-  } else {
-    // Since we know now the content is not a URL, we can attempt to normalize
-    // the data assuming it is some sort of data.
-    normalizedData = convertDataContentToUint8Array(content);
   }
 
   // Now that we have the normalized data either as a URL or a Uint8Array,
@@ -332,29 +298,23 @@ function convertPartToLanguageModelPart(
       // When possible, try to detect the media type automatically
       // to deal with incorrect media type inputs.
       // When detection fails, use provided media type.
-
-      if (normalizedData instanceof Uint8Array) {
+      if (data instanceof Uint8Array || typeof data === 'string') {
         mediaType =
-          detectMediaType({
-            data: normalizedData,
-            signatures: imageMediaTypeSignatures,
-          }) ?? mediaType;
+          detectMediaType({ data, signatures: imageMediaTypeSignatures }) ??
+          mediaType;
       }
 
       return {
         type: 'file',
         mediaType: mediaType ?? 'image/*', // any image
         filename: undefined,
-        data:
-          normalizedData instanceof Uint8Array
-            ? convertUint8ArrayToBase64(normalizedData) // TODO prevent double conversion
-            : normalizedData,
+        data,
         providerOptions: part.providerOptions,
       };
     }
 
     case 'file': {
-      // We should have a mediaType at this point, if not, throw an error.
+      // We must have a mediaType for files, if not, throw an error.
       if (mediaType == null) {
         throw new Error(`Media type is missing for file part`);
       }
@@ -363,10 +323,7 @@ function convertPartToLanguageModelPart(
         type: 'file',
         mediaType,
         filename: part.filename,
-        data:
-          normalizedData instanceof Uint8Array
-            ? convertDataContentToBase64String(normalizedData)
-            : normalizedData,
+        data,
         providerOptions: part.providerOptions,
       };
     }
