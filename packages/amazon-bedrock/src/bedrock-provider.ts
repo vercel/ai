@@ -37,6 +37,7 @@ The AWS region to use for the Bedrock provider. Defaults to the value of the
 
   /**
 The AWS access key ID to use for the Bedrock provider. Defaults to the value of the
+`AWS_ACCESS_KEY_ID` environment variable.
    */
   accessKeyId?: string;
 
