@@ -4,22 +4,16 @@ import {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertBase64ToUint8Array,
   createJsonResponseHandler,
   parseProviderOptions,
+  postFormDataToApi,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { GladiaConfig } from './gladia-config';
 import { gladiaFailedResponseHandler } from './gladia-error';
-import {
-  AssemblyAITranscriptionModelId,
-  GladiaTranscriptionModelId,
-} from './gladia-transcription-settings';
-import {
-  GladiaTranscriptionAPITypes,
-  GladiaTranscriptionInitiateAPITypes,
-} from './gladia-api-types';
-import { uploadGladiaFile } from './gladia-storage';
+import { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
 
 // https://docs.gladia.io/api-reference/v2/pre-recorded/init
 const gladiaProviderOptionsSchema = z.object({
@@ -132,11 +126,16 @@ interface GladiaTranscriptionModelConfig extends GladiaConfig {
 export class GladiaTranscriptionModel implements TranscriptionModelV1 {
   readonly specificationVersion = 'v1';
 
-  constructor(private readonly config: GladiaTranscriptionModelConfig) {}
+  get provider(): string {
+    return this.config.provider;
+  }
+
+  constructor(
+    readonly modelId: '',
+    private readonly config: GladiaTranscriptionModelConfig,
+  ) {}
 
   private async getArgs({
-    audio,
-    mediaType,
     providerOptions,
   }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
     const warnings: TranscriptionModelV1CallWarning[] = [];
@@ -148,14 +147,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
       schema: gladiaProviderOptionsSchema,
     });
 
-    const body: GladiaTranscriptionInitiateAPITypes = {
-      audio_url: await uploadGladiaFile({
-        audio,
-        mediaType,
-        apiKey: this.config.headers()['Authorization']?.split(' ')[1] ?? '',
-        fetch: this.config.fetch,
-      }),
-    };
+    const body: Omit<GladiaTranscriptionInitiateAPITypes, 'audio_url'> = {};
 
     // Add provider-specific options
     if (gladiaOptions) {
@@ -288,6 +280,35 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
     options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    // Create form data with base fields
+    const formData = new FormData();
+    const blob =
+      options.audio instanceof Uint8Array
+        ? new Blob([options.audio])
+        : new Blob([convertBase64ToUint8Array(options.audio)]);
+
+    formData.append('model', this.modelId);
+    formData.append('file', new File([blob], 'audio', { type: options.mediaType }));
+
+    const { value: uploadResponse } = await postFormDataToApi({
+      url: this.config.url({
+        path: '/v2/upload',
+        modelId: '',
+      }),
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        ...combineHeaders(this.config.headers(), options.headers),
+      },
+      formData,
+      failedResponseHandler: gladiaFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        gladiaUploadResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
     const { body, warnings } = await this.getArgs(options);
 
     const { value: transcriptionInitResponse } = await postJsonToApi({
@@ -296,7 +317,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
         modelId: '',
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body,
+      body: {
+        ...body,
+        audio_url: uploadResponse.audio_url,
+      },
       failedResponseHandler: gladiaFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         gladiaTranscriptionInitializeResponseSchema,
@@ -372,6 +396,19 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
     };
   }
 }
+
+const gladiaUploadResponseSchema = z.object({
+  audio_url: z.string(),
+  audio_metadata: z.object({
+    id: z.string(),
+    filename: z.string(),
+    source: z.string(),
+    extension: z.string(),
+    size: z.number(),
+    audio_duration: z.number(),
+    number_of_channels: z.number(),
+  }),
+});
 
 const gladiaTranscriptionInitializeResponseSchema = z.object({
   id: z.string(),
