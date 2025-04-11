@@ -169,12 +169,19 @@ The first argument is the model id, e.g. `meta.llama3-70b-instruct-v1:0`.
 const model = bedrock('meta.llama3-70b-instruct-v1:0');
 ```
 
-Amazon Bedrock models also support some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-You can pass them as an options argument:
+Amazon Bedrock models also support some model specific provider options that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
+You can pass them in the `providerOptions` argument:
 
 ```ts
-const model = bedrock('anthropic.claude-3-sonnet-20240229-v1:0', {
-  additionalModelRequestFields: { top_k: 350 },
+const model = bedrock('anthropic.claude-3-sonnet-20240229-v1:0');
+
+await generateText({
+  model,
+  providerOptions: {
+    anthropic: {
+      additionalModelRequestFields: { top_k: 350 },
+    },
+  },
 });
 ```
 
@@ -357,7 +364,7 @@ console.log(
 
 Amazon Bedrock has reasoning support for the `claude-3-7-sonnet-20250219` model.
 
-You can enable it using the `reasoning_config` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
+You can enable it using the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
 
 ```ts
 import { bedrock } from '@ai-sdk/amazon-bedrock';

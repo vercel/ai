@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 // https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
 export type BedrockChatModelId =
   | 'amazon.titan-tg1-large'
@@ -33,11 +35,19 @@ export type BedrockChatModelId =
   | 'amazon.titan-text-lite-v1'
   | (string & {});
 
-export interface BedrockChatSettings {
+export const bedrockProviderOptions = z.object({
   /**
-Additional inference parameters that the model supports,
-beyond the base set of inference parameters that Converse
-supports in the inferenceConfig field
-*/
-  additionalModelRequestFields?: Record<string, any>;
-}
+   * Additional inference parameters that the model supports,
+   * beyond the base set of inference parameters that Converse
+   * supports in the inferenceConfig field
+   */
+  additionalModelRequestFields: z.record(z.any()).optional(),
+  reasoningConfig: z
+    .object({
+      type: z.union([z.literal('enabled'), z.literal('disabled')]).nullish(),
+      budgetTokens: z.number().nullish(),
+    })
+    .nullish(),
+});
+
+export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;
