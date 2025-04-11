@@ -93,7 +93,7 @@ describe('doGenerate', () => {
   it('should return audio data with correct content type', async () => {
     const audio = new Uint8Array(100); // Mock audio data
     prepareAudioResponse({
-      format: 'audio/opus',
+      format: 'opus',
       headers: {
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',
@@ -163,7 +163,7 @@ describe('doGenerate', () => {
   });
 
   it('should handle different audio formats', async () => {
-    const formats = ['mp3', 'audio/opus', 'aac', 'flac', 'wav', 'pcm'] as const;
+    const formats = ['mp3', 'opus', 'aac', 'flac', 'wav', 'pcm'] as const;
 
     for (const format of formats) {
       const audio = prepareAudioResponse({ format });
