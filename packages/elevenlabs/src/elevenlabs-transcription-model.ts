@@ -26,60 +26,6 @@ const elevenLabsProviderOptionsSchema = z.object({
     .nullish()
     .default('word'),
   diarize: z.boolean().nullish().default(false),
-  additionalFormats: z
-    .array(
-      z.union([
-        z.object({
-          format: z.literal('docx'),
-          include_speakers: z.boolean().nullish(),
-          include_timestamps: z.boolean().nullish(),
-          max_segment_chars: z.number().nullish(),
-          max_segment_duration_s: z.number().nullish(),
-          segment_on_silence_longer_than_s: z.number().nullish(),
-        }),
-        z.object({
-          format: z.literal('html'),
-          include_speakers: z.boolean().nullish(),
-          include_timestamps: z.boolean().nullish(),
-          max_segment_chars: z.number().nullish(),
-          max_segment_duration_s: z.number().nullish(),
-          segment_on_silence_longer_than_s: z.number().nullish(),
-        }),
-        z.object({
-          format: z.literal('pdf'),
-          include_speakers: z.boolean().nullish(),
-          include_timestamps: z.boolean().nullish(),
-          max_segment_chars: z.number().nullish(),
-          max_segment_duration_s: z.number().nullish(),
-          segment_on_silence_longer_than_s: z.number().nullish(),
-        }),
-        z.object({
-          format: z.literal('segmented_json'),
-          max_segment_chars: z.number().nullish(),
-          max_segment_duration_s: z.number().nullish(),
-          segment_on_silence_longer_than_s: z.number().nullish(),
-        }),
-        z.object({
-          format: z.literal('srt'),
-          include_speakers: z.boolean().nullish(),
-          include_timestamps: z.boolean().nullish(),
-          max_characters_per_line: z.number().nullish(),
-          max_segment_chars: z.number().nullish(),
-          max_segment_duration_s: z.number().nullish(),
-          segment_on_silence_longer_than_s: z.number().nullish(),
-        }),
-        z.object({
-          format: z.literal('txt'),
-          include_speakers: z.boolean().nullish(),
-          include_timestamps: z.boolean().nullish(),
-          max_characters_per_line: z.number().nullish(),
-          max_segment_chars: z.number().nullish(),
-          max_segment_duration_s: z.number().nullish(),
-          segment_on_silence_longer_than_s: z.number().nullish(),
-        }),
-      ]),
-    )
-    .nullish(),
   file_format: z.enum(['pcm_s16le_16', 'other']).nullish().default('other'),
 });
 
@@ -128,6 +74,7 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
 
     formData.append('model_id', this.modelId);
     formData.append('file', new File([blob], 'audio', { type: mediaType }));
+    formData.append('diarize', 'true');
 
     // Add provider-specific options
     if (elevenlabsOptions) {
@@ -137,30 +84,12 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV1 {
         num_speakers: elevenlabsOptions.numSpeakers ?? undefined,
         timestamps_granularity:
           elevenlabsOptions.timestampsGranularity ?? undefined,
-        diarize: elevenlabsOptions.diarize ?? undefined,
-        additional_formats: elevenlabsOptions.additionalFormats?.map(format => {
-          const result: any = { format: format.format };
-
-          if ('include_speakers' in format)
-            result.include_speakers = format.include_speakers ?? undefined;
-          if ('include_timestamps' in format)
-            result.include_timestamps = format.include_timestamps ?? undefined;
-          if ('max_segment_chars' in format)
-            result.max_segment_chars = format.max_segment_chars ?? undefined;
-          if ('max_segment_duration_s' in format)
-            result.max_segment_duration_s =
-              format.max_segment_duration_s ?? undefined;
-          if ('segment_on_silence_longer_than_s' in format)
-            result.segment_on_silence_longer_than_s =
-              format.segment_on_silence_longer_than_s ?? undefined;
-          if ('max_characters_per_line' in format)
-            result.max_characters_per_line =
-              format.max_characters_per_line ?? undefined;
-
-          return result;
-        }),
         file_format: elevenlabsOptions.file_format ?? undefined,
       };
+
+      if (typeof elevenlabsOptions.diarize === 'boolean') {
+        formData.append('diarize', String(elevenlabsOptions.diarize));
+      }
 
       for (const key in transcriptionModelOptions) {
         const value =
@@ -246,17 +175,6 @@ const elevenlabsTranscriptionResponseSchema = z.object({
             }),
           )
           .nullish(),
-      }),
-    )
-    .nullish(),
-  additional_formats: z
-    .array(
-      z.object({
-        requested_format: z.string(),
-        file_extension: z.string(),
-        content_type: z.string(),
-        is_base64_encoded: z.boolean(),
-        content: z.string(),
       }),
     )
     .nullish(),
