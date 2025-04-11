@@ -1,4 +1,5 @@
 import { EmbeddingModelV2Embedding } from './embedding-model-v2-embedding';
+import { EmbeddingModelV2ProviderOptions } from './embedding-model-v2-provider-options';
 
 /**
 Specification for an embedding model that implements the embedding model
@@ -54,6 +55,13 @@ List of values to embed.
 Abort signal for cancelling the operation.
      */
     abortSignal?: AbortSignal;
+
+    /**
+Additional provider-specific options. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+    */
+    providerOptions?: EmbeddingModelV2ProviderOptions;
 
     /**
   Additional HTTP headers to be sent with the request.
