@@ -5,7 +5,6 @@ import { z } from 'zod';
 import {
   CallWarning,
   FinishReason,
-  ProviderMetadata,
   ProviderOptions,
   LanguageModelUsage,
   ToolChoice,
@@ -13,6 +12,7 @@ import {
   CallSettings,
   InvalidToolArgumentsError,
   NoSuchToolError,
+  Schema,
 } from 'ai';
 import {
   calculateLanguageModelUsage,
@@ -36,12 +36,16 @@ type Renderer<T extends Array<any>> = (
   | Generator<Streamable, Streamable, void>
   | AsyncGenerator<Streamable, Streamable, void>;
 
-type RenderTool<PARAMETERS extends z.ZodTypeAny = any> = {
+type RenderTool<PARAMETERS extends z.Schema | Schema = any> = {
   description?: string;
   parameters: PARAMETERS;
   generate?: Renderer<
     [
-      z.infer<PARAMETERS>,
+      PARAMETERS extends z.Schema
+        ? z.infer<PARAMETERS>
+        : PARAMETERS extends Schema<infer T>
+          ? T
+          : never,
       {
         toolName: string;
         toolCallId: string;
@@ -83,7 +87,7 @@ const defaultTextRenderer: RenderText = ({ content }: { content: string }) =>
  * `streamUI` is a helper function to create a streamable UI from LLMs.
  */
 export async function streamUI<
-  TOOLS extends { [name: string]: z.ZodTypeAny } = {},
+  TOOLS extends { [name: string]: z.Schema | Schema } = {},
 >({
   model,
   tools,
@@ -262,7 +266,7 @@ functionality that can be fully encapsulated in the provider.
     model.doStream({
       ...prepareCallSettings(settings),
       ...prepareToolsAndToolChoice({
-        tools,
+        tools: tools as any,
         toolChoice,
         activeTools: undefined,
       }),

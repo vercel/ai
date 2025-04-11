@@ -75,7 +75,7 @@ export type ToolChoice<TOOLS extends Record<string, unknown>> =
   | 'auto'
   | 'none'
   | 'required'
-  | { type: 'tool'; toolName: keyof TOOLS };
+  | { type: 'tool'; toolName: Extract<keyof TOOLS, string> };
 
 /**
  * @deprecated Use `ToolChoice` instead.

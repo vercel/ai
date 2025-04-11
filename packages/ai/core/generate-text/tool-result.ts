@@ -1,13 +1,8 @@
-import { inferParameters } from '../tool/tool';
+import { Tool } from '../tool';
 import { ValueOf } from '../util/value-of';
 import { ToolSet } from './tool-set';
 
 export type { CoreToolResult, ToolResult } from '@ai-sdk/provider-utils';
-
-// limits the tools to those with an execute value
-type ToToolsWithExecute<TOOLS extends ToolSet> = {
-  [K in keyof TOOLS as TOOLS[K] extends { execute: any } ? K : never]: TOOLS[K];
-};
 
 // limits the tools to those that have execute !== undefined
 export type ToToolsWithDefinedExecute<TOOLS extends ToolSet> = {
@@ -22,13 +17,13 @@ type ToToolResultObject<TOOLS extends ToolSet> = ValueOf<{
     type: 'tool-result';
     toolCallId: string;
     toolName: NAME & string;
-    args: inferParameters<TOOLS[NAME]['parameters']>;
+    args: TOOLS[NAME] extends Tool<infer P> ? P : never;
     result: Awaited<ReturnType<Exclude<TOOLS[NAME]['execute'], undefined>>>;
   };
 }>;
 
 export type ToolResultUnion<TOOLS extends ToolSet> = ToToolResultObject<
-  ToToolsWithDefinedExecute<ToToolsWithExecute<TOOLS>>
+  ToToolsWithDefinedExecute<TOOLS>
 >;
 
 /**
