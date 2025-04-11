@@ -20,7 +20,8 @@ https://github.com/vercel/ai/blob/main/CONTRIBUTING.md
 
 - [ ] Tests for the changes have been added (for bug fixes / features)
 - [ ] Docs have been added / updated (for bug fixes / features)
-- [ ] You've followed the [PR contributing guidelines](https://github.com/vercel/ai/blob/main/CONTRIBUTING.md#submitting-pull-requests) for adding a _patch_ changeset to version packages and fixing prettier issues
+- [ ] If required, a _patch_ changeset for relevant packages has been added
+- [ ] You've run `pnpm prettier-fix` to fix any formatting issues
 
 ## Future Work
 
