@@ -107,7 +107,7 @@ const model = wrapLanguageModel({
   middleware: defaultSettingsMiddleware({
     settings: {
       temperature: 0.5,
-      maxTokens: 800,
+      maxOutputTokens: 800,
       providerOptions: { openai: { store: false } },
     },
   }),

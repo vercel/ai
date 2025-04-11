@@ -10,7 +10,7 @@ async function main() {
 
   const result = streamText({
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
     },

@@ -20,7 +20,7 @@ async function main() {
   );
   const result = streamText({
     model,
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
     },

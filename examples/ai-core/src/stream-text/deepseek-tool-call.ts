@@ -10,7 +10,7 @@ async function main() {
 
   const result = streamText({
     model: deepseek('deepseek-chat'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
     },

@@ -3,7 +3,7 @@ import { prepareCallSettings } from './prepare-call-settings';
 
 it('should pass through all provided values and set defaults correctly', () => {
   const input = {
-    maxTokens: 100,
+    maxOutputTokens: 100,
     temperature: 0.7,
     topP: 0.9,
     topK: 50,
@@ -15,7 +15,7 @@ it('should pass through all provided values and set defaults correctly', () => {
 
   const result = prepareCallSettings(input);
   expect(result).toEqual({
-    maxTokens: 100,
+    maxOutputTokens: 100,
     temperature: 0.7,
     topP: 0.9,
     topK: 50,

@@ -2,7 +2,7 @@ export type CallSettings = {
   /**
 Maximum number of tokens to generate.
    */
-  maxTokens?: number;
+  maxOutputTokens?: number;
 
   /**
 Temperature setting. This is a number between 0 (almost no randomness) and

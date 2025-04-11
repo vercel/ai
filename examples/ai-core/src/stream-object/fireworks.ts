@@ -6,7 +6,7 @@ import { z } from 'zod';
 async function main() {
   const result = streamObject({
     model: fireworks('accounts/fireworks/models/firefunction-v1'),
-    maxTokens: 2000,
+    maxOutputTokens: 2000,
     schema: z.object({
       characters: z.array(
         z.object({

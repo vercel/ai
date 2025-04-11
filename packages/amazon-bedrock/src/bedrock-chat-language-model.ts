@@ -55,7 +55,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
   private getArgs({
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -123,18 +123,18 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
 
     const inferenceConfig = {
-      ...(maxTokens != null && { maxTokens }),
+      ...(maxOutputTokens != null && { maxOutputTokens }),
       ...(temperature != null && { temperature }),
       ...(topP != null && { topP }),
       ...(stopSequences != null && { stopSequences }),
     };
 
-    // Adjust maxTokens if thinking is enabled
+    // Adjust maxOutputTokens if thinking is enabled
     if (isThinking && thinkingBudget != null) {
-      if (inferenceConfig.maxTokens != null) {
-        inferenceConfig.maxTokens += thinkingBudget;
+      if (inferenceConfig.maxOutputTokens != null) {
+        inferenceConfig.maxOutputTokens += thinkingBudget;
       } else {
-        inferenceConfig.maxTokens = thinkingBudget + 4096; // Default + thinking budget maxTokens = 4096, TODO update default in v5
+        inferenceConfig.maxOutputTokens = thinkingBudget + 4096; // Default + thinking budget maxOutputTokens = 4096, TODO update default in v5
       }
       // Add them to additional model request fields
       // Add reasoning config to additionalModelRequestFields

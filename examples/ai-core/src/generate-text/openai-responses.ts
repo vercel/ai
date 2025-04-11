@@ -6,7 +6,7 @@ async function main() {
   const result = await generateText({
     model: openai.responses('gpt-4o-mini'),
     prompt: 'Invent a new holiday and describe its traditions.',
-    maxTokens: 1000,
+    maxOutputTokens: 1000,
     providerOptions: {
       openai: {
         parallelToolCalls: false,

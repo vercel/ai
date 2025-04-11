@@ -6,7 +6,7 @@ import { z } from 'zod';
 async function main() {
   const result = await generateObject({
     model: openai('gpt-4-turbo'),
-    maxTokens: 2000,
+    maxOutputTokens: 2000,
     schema: z.object({
       characters: z.array(
         z.object({

@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   // Call the language model
   const result = streamText({
     model: openai('gpt-4o'),
-    maxTokens: 256, // artificial limit for demo purposes
+    maxOutputTokens: 256, // artificial limit for demo purposes
     maxSteps: 10,
     experimental_continueSteps: true,
     system: 'Stop when sufficient information was provided.',

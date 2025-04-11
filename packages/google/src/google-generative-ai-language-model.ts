@@ -70,7 +70,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
   private async getArgs({
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -110,7 +110,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       args: {
         generationConfig: {
           // standardized settings:
-          maxOutputTokens: maxTokens,
+          maxOutputTokens: maxOutputTokens,
           temperature,
           topK,
           topP,

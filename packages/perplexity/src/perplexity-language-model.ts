@@ -47,7 +47,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
 
   private getArgs({
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -88,7 +88,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
 
         // standardized settings:
         frequency_penalty: frequencyPenalty,
-        max_tokens: maxTokens,
+        max_tokens: maxOutputTokens,
         presence_penalty: presencePenalty,
         temperature,
         top_k: topK,

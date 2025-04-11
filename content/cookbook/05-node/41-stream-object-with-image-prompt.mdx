@@ -21,7 +21,7 @@ dotenv.config();
 async function main() {
   const { partialObjectStream } = streamObject({
     model: openai('gpt-4-turbo'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     schema: z.object({
       stamps: z.array(
         z.object({
@@ -71,7 +71,7 @@ dotenv.config();
 async function main() {
   const { partialObjectStream } = streamObject({
     model: openai('gpt-4-turbo'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     schema: z.object({
       stamps: z.array(
         z.object({
