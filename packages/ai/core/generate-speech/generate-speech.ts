@@ -9,7 +9,10 @@ import {
   audioMimeTypeSignatures,
   detectMimeType,
 } from '../util/detect-mimetype';
-import { DefaultGeneratedAudioFile, GeneratedAudioFile } from './generated-audio-file';
+import {
+  DefaultGeneratedAudioFile,
+  GeneratedAudioFile,
+} from './generated-audio-file';
 
 /**
 Generates speech audio using a speech model.
