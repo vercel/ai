@@ -2,7 +2,7 @@ import { JSONSchema7 } from '@ai-sdk/provider';
 import { jsonSchema } from '../../util';
 import { z, ZodType } from 'zod';
 import { MCPClientError } from '../../../errors';
-import { inferParameters, tool, Tool, ToolExecutionOptions } from '../tool';
+import { tool, Tool, ToolExecutionOptions } from '../tool';
 import {
   JSONRPCError,
   JSONRPCNotification,
@@ -309,7 +309,11 @@ class MCPClient {
 
         const parameters =
           schemas === 'automatic'
-            ? jsonSchema(inputSchema as JSONSchema7)
+            ? jsonSchema({
+                ...inputSchema,
+                properties: inputSchema.properties ?? {},
+                additionalProperties: false,
+              } as JSONSchema7)
             : schemas[name].parameters;
 
         const self = this;
@@ -317,7 +321,7 @@ class MCPClient {
           description,
           parameters,
           execute: async (
-            args: inferParameters<typeof parameters>,
+            args: any,
             options: ToolExecutionOptions,
           ): Promise<CallToolResult> => {
             options?.abortSignal?.throwIfAborted();

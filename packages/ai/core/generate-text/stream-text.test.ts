@@ -21,7 +21,7 @@ import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
-import { tool } from '../tool/tool';
+import { Tool, tool } from '../tool/tool';
 import { jsonSchema } from '../util';
 import { object, text } from './output';
 import { StepResult } from './step-result';
@@ -3415,59 +3415,60 @@ describe('streamText', () => {
 
   describe('options.transform', () => {
     describe('with base transformation', () => {
-      const upperCaseTransform =
-        <TOOLS extends ToolSet>() =>
-        (options: { tools: TOOLS }) =>
-          new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
-            transform(chunk, controller) {
-              if (chunk.type === 'text-delta') {
-                chunk.textDelta = chunk.textDelta.toUpperCase();
-              }
+      const upperCaseTransform = () =>
+        new TransformStream<
+          TextStreamPart<{ tool1: Tool<{ value: string }> }>,
+          TextStreamPart<{ tool1: Tool<{ value: string }> }>
+        >({
+          transform(chunk, controller) {
+            if (chunk.type === 'text-delta') {
+              chunk.textDelta = chunk.textDelta.toUpperCase();
+            }
 
-              if (chunk.type === 'tool-call-delta') {
-                chunk.argsTextDelta = chunk.argsTextDelta.toUpperCase();
-              }
+            if (chunk.type === 'tool-call-delta') {
+              chunk.argsTextDelta = chunk.argsTextDelta.toUpperCase();
+            }
 
-              // assuming test arg structure:
-              if (chunk.type === 'tool-call') {
-                chunk.args = {
-                  ...chunk.args,
-                  value: chunk.args.value.toUpperCase(),
+            // assuming test arg structure:
+            if (chunk.type === 'tool-call') {
+              chunk.args = {
+                ...chunk.args,
+                value: chunk.args.value.toUpperCase(),
+              };
+            }
+
+            if (chunk.type === 'tool-result') {
+              chunk.result = chunk.result.toUpperCase();
+              chunk.args = {
+                ...chunk.args,
+                value: chunk.args.value.toUpperCase(),
+              };
+            }
+
+            if (chunk.type === 'step-finish') {
+              if (chunk.request.body != null) {
+                chunk.request.body = (
+                  chunk.request.body as string
+                ).toUpperCase();
+              }
+            }
+
+            if (chunk.type === 'finish') {
+              if (chunk.providerMetadata?.testProvider != null) {
+                chunk.providerMetadata.testProvider = {
+                  testKey: 'TEST VALUE',
                 };
               }
+            }
 
-              if (chunk.type === 'tool-result') {
-                chunk.result = chunk.result.toUpperCase();
-                chunk.args = {
-                  ...chunk.args,
-                  value: chunk.args.value.toUpperCase(),
-                };
-              }
-
-              if (chunk.type === 'step-finish') {
-                if (chunk.request.body != null) {
-                  chunk.request.body = (
-                    chunk.request.body as string
-                  ).toUpperCase();
-                }
-              }
-
-              if (chunk.type === 'finish') {
-                if (chunk.providerMetadata?.testProvider != null) {
-                  chunk.providerMetadata.testProvider = {
-                    testKey: 'TEST VALUE',
-                  };
-                }
-              }
-
-              controller.enqueue(chunk);
-            },
-          });
+            controller.enqueue(chunk);
+          },
+        });
 
       it('should transform the stream', async () => {
         const result = streamText({
           model: createTestModel(),
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
 
@@ -3479,7 +3480,7 @@ describe('streamText', () => {
       it('result.text should be transformed', async () => {
         const result = streamText({
           model: createTestModel(),
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
 
@@ -3491,7 +3492,7 @@ describe('streamText', () => {
       it('result.response.messages should be transformed', async () => {
         const result = streamText({
           model: createTestModel(),
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
 
@@ -3611,7 +3612,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             },
           },
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
 
@@ -3653,7 +3654,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             },
           },
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
           prompt: 'test-input',
         });
 
@@ -3702,7 +3703,7 @@ describe('streamText', () => {
               execute: async () => 'result1',
             },
           },
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
           prompt: 'test-input',
           experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
@@ -3733,7 +3734,7 @@ describe('streamText', () => {
             request: { body: 'test body' },
           }),
           prompt: 'test-input',
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
         });
 
         result.consumeStream();
@@ -3769,7 +3770,7 @@ describe('streamText', () => {
             request: { body: 'test body' },
           }),
           prompt: 'test-input',
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
         });
 
         result.consumeStream();
@@ -3829,7 +3830,7 @@ describe('streamText', () => {
           onFinish: async event => {
             result = event as unknown as typeof result;
           },
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
           experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
@@ -3884,7 +3885,7 @@ describe('streamText', () => {
           onStepFinish: async event => {
             result = event as unknown as typeof result;
           },
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
           experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
@@ -3933,7 +3934,7 @@ describe('streamText', () => {
             }),
           },
           prompt: 'test-input',
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
           experimental_telemetry: { isEnabled: true, tracer },
           _internal: { now: mockValues(0, 100, 500) },
         });
@@ -4012,7 +4013,7 @@ describe('streamText', () => {
           onChunk(event) {
             result.push(event.chunk);
           },
-          experimental_transform: upperCaseTransform(),
+          experimental_transform: upperCaseTransform,
         });
 
         await resultObject.consumeStream();

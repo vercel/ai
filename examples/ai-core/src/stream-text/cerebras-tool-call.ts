@@ -10,7 +10,7 @@ async function main() {
 
   const result = streamText({
     model: cerebras('llama3.1-8b'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
     },

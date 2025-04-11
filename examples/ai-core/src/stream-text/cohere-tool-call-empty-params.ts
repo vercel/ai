@@ -16,7 +16,7 @@ async function main() {
 
   const result = streamText({
     model: cohere('command-r-plus'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       currentTime: tool({
         description: 'Get the current time',

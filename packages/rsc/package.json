@@ -1,14 +1,14 @@
 {
   "name": "@ai-sdk/rsc",
-  "version": "1.0.0-canary.4",
+  "version": "1.0.0-canary.5",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/rsc-client.mjs",
   "module": "./dist/rsc-client.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
+    "build": "tsup --tsconfig tsconfig.build.json",
+    "build:watch": "pnpm build --watch",
     "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
@@ -38,9 +38,9 @@
     "CHANGELOG.md"
   ],
   "dependencies": {
-    "ai": "5.0.0-canary.6",
-    "@ai-sdk/provider": "2.0.0-canary.4",
-    "@ai-sdk/provider-utils": "3.0.0-canary.5",
+    "ai": "5.0.0-canary.7",
+    "@ai-sdk/provider": "2.0.0-canary.5",
+    "@ai-sdk/provider-utils": "3.0.0-canary.6",
     "jsondiffpatch": "0.6.0"
   },
   "devDependencies": {

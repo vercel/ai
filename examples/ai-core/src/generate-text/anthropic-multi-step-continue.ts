@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function main() {
   const { text, usage, steps } = await generateText({
     model: anthropic('claude-3-5-sonnet-20241022'),
-    maxTokens: 512, // artificial limit for demo purposes
+    maxOutputTokens: 512, // artificial limit for demo purposes
     maxSteps: 5,
     experimental_continueSteps: true,
     prompt:

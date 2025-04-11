@@ -132,20 +132,27 @@ The OpenAI chat models support tool calls and some have multi-modal capabilities
 const model = openai.chat('gpt-3.5-turbo');
 ```
 
-OpenAI chat models support also some model specific settings that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
-You can pass them as an options argument:
+OpenAI chat models support also some model specific provider options that are not part of the [standard call settings](/docs/ai-sdk-core/settings).
+You can pass them in the `providerOptions` argument:
 
 ```ts
-const model = openai.chat('gpt-3.5-turbo', {
-  logitBias: {
-    // optional likelihood for specific tokens
-    '50256': -100,
+const model = openai.chat('gpt-3.5-turbo');
+
+await generateText({
+  model,
+  providerOptions: {
+    openai: {
+      logitBias: {
+        // optional likelihood for specific tokens
+        '50256': -100,
+      },
+      user: 'test-user', // optional unique user identifier
+    },
   },
-  user: 'test-user', // optional unique user identifier
 });
 ```
 
-The following optional settings are available for OpenAI chat models:
+The following optional provider options are available for OpenAI chat models:
 
 - **logitBias** _Record&lt;number, number&gt;_
 
@@ -177,6 +184,19 @@ The following optional settings are available for OpenAI chat models:
 
   Whether to enable parallel function calling during tool use. Defaults to `true`.
 
+- **user** _string_
+
+  A unique identifier representing your end-user, which can help OpenAI to
+  monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
+
+- **reasoningEffort** _'low' | 'medium' | 'high'_
+
+  Reasoning effort for reasoning models. Defaults to `medium`. If you use
+  `providerOptions` to set the `reasoningEffort` option, this
+  model setting will be ignored.
+
+And the following optional settings:
+
 - **structuredOutputs** _boolean_
 
   Whether to use [structured outputs](#structured-outputs).
@@ -184,23 +204,12 @@ The following optional settings are available for OpenAI chat models:
 
   When enabled, tool calls and object generation will be strict and follow the provided schema.
 
-- **user** _string_
-
-  A unique identifier representing your end-user, which can help OpenAI to
-  monitor and detect abuse. [Learn more](https://platform.openai.com/docs/guides/safety-best-practices/end-user-ids).
-
 - **downloadImages** _boolean_
 
   Automatically download images and pass the image as data to the model.
   OpenAI supports image URLs for public models, so this is only needed for
   private models or when the images are not publicly accessible.
   Defaults to `false`.
-
-- **reasoningEffort** _'low' | 'medium' | 'high'_
-
-  Reasoning effort for reasoning models. Defaults to `medium`. If you use
-  `providerOptions` to set the `reasoningEffort` option, this
-  model setting will be ignored.
 
 #### Reasoning
 
@@ -253,8 +262,8 @@ console.log('Usage:', {
 </Note>
 
 <Note>
-  `maxTokens` is automatically mapped to `max_completion_tokens` for reasoning
-  models.
+  `maxOutputTokens` is automatically mapped to `max_completion_tokens` for
+  reasoning models.
 </Note>
 
 #### Structured Outputs

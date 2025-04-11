@@ -16,7 +16,7 @@ sdk.start();
 async function main() {
   const result = await generateText({
     model: openai('gpt-4o'),
-    maxTokens: 50,
+    maxOutputTokens: 50,
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_telemetry: {
       isEnabled: true,

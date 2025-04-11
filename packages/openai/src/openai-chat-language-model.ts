@@ -18,12 +18,17 @@ import {
   generateId,
   isParsableJson,
   postJsonToApi,
+  parseProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
-import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-settings';
+import {
+  OpenAIChatModelId,
+  OpenAIChatSettings,
+  openaiProviderOptions,
+} from './openai-chat-options';
 import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
@@ -84,7 +89,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
   private getArgs({
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -98,6 +103,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     providerOptions,
   }: LanguageModelV2CallOptions) {
     const warnings: LanguageModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const openaiOptions =
+      parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiProviderOptions,
+      }) ?? {};
 
     if (topK != null) {
       warnings.push({
@@ -133,25 +146,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       model: this.modelId,
 
       // model specific settings:
-      logit_bias: this.settings.logitBias,
+      logit_bias: openaiOptions.logitBias,
       logprobs:
-        this.settings.logprobs === true ||
-        typeof this.settings.logprobs === 'number'
+        openaiOptions.logprobs === true ||
+        typeof openaiOptions.logprobs === 'number'
           ? true
           : undefined,
       top_logprobs:
-        typeof this.settings.logprobs === 'number'
-          ? this.settings.logprobs
-          : typeof this.settings.logprobs === 'boolean'
-            ? this.settings.logprobs
+        typeof openaiOptions.logprobs === 'number'
+          ? openaiOptions.logprobs
+          : typeof openaiOptions.logprobs === 'boolean'
+            ? openaiOptions.logprobs
               ? 0
               : undefined
             : undefined,
-      user: this.settings.user,
-      parallel_tool_calls: this.settings.parallelToolCalls,
+      user: openaiOptions.user,
+      parallel_tool_calls: openaiOptions.parallelToolCalls,
 
       // standardized settings:
-      max_tokens: maxTokens,
+      max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
       frequency_penalty: frequencyPenalty,
@@ -175,14 +188,12 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       seed,
 
       // openai specific settings:
-      // TODO remove in next major version; we auto-map maxTokens now
-      max_completion_tokens: providerOptions?.openai?.maxCompletionTokens,
-      store: providerOptions?.openai?.store,
-      metadata: providerOptions?.openai?.metadata,
-      prediction: providerOptions?.openai?.prediction,
-      reasoning_effort:
-        providerOptions?.openai?.reasoningEffort ??
-        this.settings.reasoningEffort,
+      // TODO remove in next major version; we auto-map maxOutputTokens now
+      max_completion_tokens: openaiOptions.maxCompletionTokens,
+      store: openaiOptions.store,
+      metadata: openaiOptions.metadata,
+      prediction: openaiOptions.prediction,
+      reasoning_effort: openaiOptions.reasoningEffort,
 
       // messages:
       messages,

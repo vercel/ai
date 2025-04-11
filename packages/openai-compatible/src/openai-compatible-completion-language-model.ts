@@ -79,7 +79,7 @@ export class OpenAICompatibleCompletionLanguageModel
   private getArgs({
     inputFormat,
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -131,7 +131,7 @@ export class OpenAICompatibleCompletionLanguageModel
         user: this.settings.user,
 
         // standardized settings:
-        max_tokens: maxTokens,
+        max_tokens: maxOutputTokens,
         temperature,
         top_p: topP,
         frequency_penalty: frequencyPenalty,

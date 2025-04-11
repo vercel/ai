@@ -57,7 +57,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
 
   private getArgs({
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -127,7 +127,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       safe_prompt: options.safePrompt,
 
       // standardized settings:
-      max_tokens: maxTokens,
+      max_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
       random_seed: seed,

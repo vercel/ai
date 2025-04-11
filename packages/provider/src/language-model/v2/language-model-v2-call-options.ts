@@ -27,8 +27,7 @@ the language model interface.
   /**
 Maximum number of tokens to generate.
    */
-  // TODO rename to maxOutputTokens
-  maxTokens?: number;
+  maxOutputTokens?: number;
 
   /**
 Temperature setting.

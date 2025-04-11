@@ -17,7 +17,7 @@ async function main() {
   );
   const result = await generateText({
     model,
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
       cityAttractions: tool({

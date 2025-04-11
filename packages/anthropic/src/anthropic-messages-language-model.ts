@@ -72,7 +72,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
   private async getArgs({
     prompt,
-    maxTokens = 4096, // 4096: max model output tokens TODO update default in v5
+    maxOutputTokens = 4096, // 4096: max model output tokens TODO update default in v5
     temperature,
     topP,
     topK,
@@ -137,7 +137,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       model: this.modelId,
 
       // standardized settings:
-      max_tokens: maxTokens,
+      max_tokens: maxOutputTokens,
       temperature,
       top_k: topK,
       top_p: topP,
@@ -188,7 +188,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
 
       // adjust max tokens to account for thinking:
-      baseArgs.max_tokens = maxTokens + thinkingBudget;
+      baseArgs.max_tokens = maxOutputTokens + thinkingBudget;
     }
 
     const {

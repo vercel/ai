@@ -7,7 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 async function main() {
   const result = await generateText({
     model: cerebras('llama3.1-8b'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
       cityAttractions: tool({

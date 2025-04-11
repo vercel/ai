@@ -5,7 +5,7 @@ import {
   LanguageModelV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { convertToBase64, createIdGenerator } from '@ai-sdk/provider-utils';
 import {
   BEDROCK_CACHE_POINT,
   BedrockAssistantMessage,
@@ -93,7 +93,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
                       bedrockContent.push({
                         image: {
                           format: bedrockImageFormat as BedrockImageFormat,
-                          source: { bytes: part.data },
+                          source: { bytes: convertToBase64(part.data) },
                         },
                       });
                     } else {
@@ -103,9 +103,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
                             '/',
                           )?.[1] as BedrockDocumentFormat,
                           name: generateFileId(),
-                          source: {
-                            bytes: part.data,
-                          },
+                          source: { bytes: convertToBase64(part.data) },
                         },
                       });
                     }

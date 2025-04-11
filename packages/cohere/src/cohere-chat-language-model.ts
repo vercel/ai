@@ -54,7 +54,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
   private getArgs({
     prompt,
-    maxTokens,
+    maxOutputTokens,
     temperature,
     topP,
     topK,
@@ -82,7 +82,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         // standardized settings:
         frequency_penalty: frequencyPenalty,
         presence_penalty: presencePenalty,
-        max_tokens: maxTokens,
+        max_tokens: maxOutputTokens,
         temperature,
         p: topP,
         k: topK,

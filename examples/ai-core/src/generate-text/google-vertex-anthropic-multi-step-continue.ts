@@ -5,7 +5,7 @@ import { generateText } from 'ai';
 async function main() {
   const { text, usage, steps } = await generateText({
     model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
-    maxTokens: 512, // artificial limit for demo purposes
+    maxOutputTokens: 512, // artificial limit for demo purposes
     maxSteps: 5,
     experimental_continueSteps: true,
     prompt:

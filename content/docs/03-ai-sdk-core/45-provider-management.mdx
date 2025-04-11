@@ -225,7 +225,7 @@ export const registry = createProviderRegistry(
           model: anthropic('claude-3-7-sonnet-20250219'),
           middleware: defaultSettingsMiddleware({
             settings: {
-              maxTokens: 100000, // example default setting
+              maxOutputTokens: 100000, // example default setting
               providerMetadata: {
                 anthropic: {
                   thinking: {

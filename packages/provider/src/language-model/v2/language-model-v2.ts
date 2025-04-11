@@ -1,5 +1,6 @@
 import { LanguageModelV2CallOptions } from './language-model-v2-call-options';
 import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
+import { LanguageModelV2File } from './language-model-v2-file';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
 import { LanguageModelV2FunctionToolCall } from './language-model-v2-function-tool-call';
 import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
@@ -119,23 +120,7 @@ An optional signature for verifying that the reasoning originated from the model
 Generated files as base64 encoded strings or binary data.
 The files should be returned without any unnecessary conversion.
      */
-    files?: Array<{
-      /**
-Generated file data as base64 encoded strings or binary data.
-The file data should be returned without any unnecessary conversion.
-If the API returns base64 encoded strings, the file data should be returned
-as base64 encoded strings. If the API returns binary data, the file data should
-be returned as binary data.
-       */
-      data: string | Uint8Array;
-
-      /**
-The IANA media type of the file.
-
-@see https://www.iana.org/assignments/media-types/media-types.xhtml
-       */
-      mediaType: string;
-    }>;
+    files?: Array<LanguageModelV2File>;
 
     /**
 Sources that have been used as input to generate the response.
@@ -268,28 +253,11 @@ export type LanguageModelV2StreamPart =
   | { type: 'redacted-reasoning'; data: string }
 
   // Sources:
+  // TODO lift up source
   | { type: 'source'; source: LanguageModelV2Source }
 
   // Files:
-  | {
-      type: 'file';
-
-      /**
-The IANA media type of the file.
-
-@see https://www.iana.org/assignments/media-types/media-types.xhtml
-       */
-      mediaType: string;
-
-      /**
-Generated file data as base64 encoded strings or binary data.
-The file data should be returned without any unnecessary conversion.
-If the API returns base64 encoded strings, the file data should be returned
-as base64 encoded strings. If the API returns binary data, the file data should
-be returned as binary data.
-       */
-      data: string | Uint8Array;
-    }
+  | ({ type: 'file' } & LanguageModelV2File)
 
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV2FunctionToolCall)

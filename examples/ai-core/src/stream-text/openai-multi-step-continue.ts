@@ -5,7 +5,7 @@ import 'dotenv/config';
 async function main() {
   const result = streamText({
     model: openai('gpt-4o'), // 4096 output tokens
-    maxTokens: 512, // artificial limit for demo purposes
+    maxOutputTokens: 512, // artificial limit for demo purposes
     maxSteps: 5,
     experimental_continueSteps: true,
     prompt:

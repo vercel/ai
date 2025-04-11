@@ -701,7 +701,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 'gen_ai.system': model.provider,
                 'gen_ai.request.model': model.modelId,
                 'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                'gen_ai.request.max_tokens': settings.maxTokens,
+                'gen_ai.request.max_tokens': settings.maxOutputTokens,
                 'gen_ai.request.presence_penalty': settings.presencePenalty,
                 'gen_ai.request.temperature': settings.temperature,
                 'gen_ai.request.top_k': settings.topK,

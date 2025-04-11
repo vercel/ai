@@ -57,36 +57,55 @@ This function does not stream the output. If you want to stream the output, use 
 @returns
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
-export async function generateObject<OBJECT>(
+export async function generateObject<
+  TYPE extends SCHEMA extends z.Schema
+    ? Output extends 'array'
+      ? Array<z.infer<SCHEMA>>
+      : z.infer<SCHEMA>
+    : SCHEMA extends Schema<infer T>
+      ? Output extends 'array'
+        ? Array<T>
+        : T
+      : never,
+  SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
+  Output extends 'object' | 'array' | 'enum' | 'no-schema' = TYPE extends string
+    ? 'enum'
+    : 'object',
+>(
   options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output?: 'object' | undefined;
-
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
+    Prompt &
+    (Output extends 'enum'
+      ? {
+          /**
+The enum values that the model should use.
+          */
+          enum: Array<TYPE>;
+          mode?: 'json';
+          output: 'enum';
+        }
+      : Output extends 'no-schema'
+        ? {}
+        : {
+            /**
 The schema of the object that the model should generate.
-     */
-      schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT>;
+            */
+            schema: SCHEMA;
 
-      /**
+            /**
 Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
-     */
-      schemaName?: string;
+            */
+            schemaName?: string;
 
-      /**
+            /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
-     */
-      schemaDescription?: string;
+            */
+            schemaDescription?: string;
 
-      /**
+            /**
 The mode to use for object generation.
 
 The schema is converted into a JSON schema and used in one of the following ways
@@ -98,89 +117,15 @@ The schema is converted into a JSON schema and used in one of the following ways
 Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
-     */
-      mode?: 'auto' | 'json' | 'tool';
-
-      /**
-A function that attempts to repair the raw output of the mode
-to enable JSON parsing.
-     */
-      experimental_repairText?: RepairTextFunction;
-
-      /**
-Optional telemetry configuration (experimental).
-       */
-
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-      };
-    },
-): Promise<GenerateObjectResult<OBJECT>>;
-/**
-Generate an array with structured, typed elements for a given prompt and element schema using a language model.
-
-This function does not stream the output. If you want to stream the output, use `streamObject` instead.
-
-@return
-A result object that contains the generated object, the finish reason, the token usage, and additional information.
- */
-export async function generateObject<ELEMENT>(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output: 'array';
+            */
+            mode?: 'auto' | 'json' | 'tool';
+          }) & {
+      output?: Output;
 
       /**
 The language model to use.
      */
       model: LanguageModel;
-
-      /**
-The element schema of the array that the model should generate.
- */
-      schema: z.Schema<ELEMENT, z.ZodTypeDef, any> | Schema<ELEMENT>;
-
-      /**
-Optional name of the array that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema name.
-     */
-      schemaName?: string;
-
-      /**
-Optional description of the array that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema description.
- */
-      schemaDescription?: string;
-
-      /**
-The mode to use for object generation.
-
-The schema is converted into a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-     */
-      mode?: 'auto' | 'json' | 'tool';
-
       /**
 A function that attempts to repair the raw output of the mode
 to enable JSON parsing.
@@ -189,7 +134,8 @@ to enable JSON parsing.
 
       /**
 Optional telemetry configuration (experimental).
-     */
+       */
+
       experimental_telemetry?: TelemetrySettings;
 
       /**
@@ -207,122 +153,8 @@ functionality that can be fully encapsulated in the provider.
         currentDate?: () => Date;
       };
     },
-): Promise<GenerateObjectResult<Array<ELEMENT>>>;
-/**
-Generate a value from an enum (limited list of string values) using a language model.
+): Promise<GenerateObjectResult<TYPE>>;
 
-This function does not stream the output.
-
-@return
-A result object that contains the generated value, the finish reason, the token usage, and additional information.
- */
-export async function generateObject<ENUM extends string>(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output: 'enum';
-
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
-The enum values that the model should use.
-     */
-      enum: Array<ENUM>;
-
-      /**
-The mode to use for object generation.
-
-The schema is converted into a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-     */
-      mode?: 'auto' | 'json' | 'tool';
-
-      /**
-A function that attempts to repair the raw output of the mode
-to enable JSON parsing.
-     */
-      experimental_repairText?: RepairTextFunction;
-
-      /**
-Optional telemetry configuration (experimental).
-     */
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-      };
-    },
-): Promise<GenerateObjectResult<ENUM>>;
-/**
-Generate JSON with any schema for a given prompt using a language model.
-
-This function does not stream the output. If you want to stream the output, use `streamObject` instead.
-
-@returns
-A result object that contains the generated object, the finish reason, the token usage, and additional information.
- */
-export async function generateObject(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output: 'no-schema';
-
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
-The mode to use for object generation. Must be "json" for no-schema output.
-     */
-      mode?: 'json';
-
-      /**
-A function that attempts to repair the raw output of the mode
-to enable JSON parsing.
-     */
-      experimental_repairText?: RepairTextFunction;
-
-      /**
-Optional telemetry configuration (experimental).
-       */
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-      };
-    },
-): Promise<GenerateObjectResult<JSONValue>>;
 export async function generateObject<SCHEMA, RESULT>({
   model,
   enum: enumValues, // rename bc enum is reserved by typescript
@@ -360,7 +192,7 @@ export async function generateObject<SCHEMA, RESULT>({
 
     model: LanguageModel;
     enum?: Array<SCHEMA>;
-    schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
+    schema?: z.Schema<SCHEMA> | Schema<SCHEMA>;
     schemaName?: string;
     schemaDescription?: string;
     mode?: 'auto' | 'json' | 'tool';
@@ -495,7 +327,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   'gen_ai.system': model.provider,
                   'gen_ai.request.model': model.modelId,
                   'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': settings.maxTokens,
+                  'gen_ai.request.max_tokens': settings.maxOutputTokens,
                   'gen_ai.request.presence_penalty': settings.presencePenalty,
                   'gen_ai.request.temperature': settings.temperature,
                   'gen_ai.request.top_k': settings.topK,
@@ -616,7 +448,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   'gen_ai.system': model.provider,
                   'gen_ai.request.model': model.modelId,
                   'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': settings.maxTokens,
+                  'gen_ai.request.max_tokens': settings.maxOutputTokens,
                   'gen_ai.request.presence_penalty': settings.presencePenalty,
                   'gen_ai.request.temperature': settings.temperature,
                   'gen_ai.request.top_k': settings.topK,

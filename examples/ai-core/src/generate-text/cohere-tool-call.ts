@@ -7,7 +7,7 @@ import { weatherTool } from '../tools/weather-tool';
 async function main() {
   const result = await generateText({
     model: cohere('command-r-plus'),
-    maxTokens: 512,
+    maxOutputTokens: 512,
     tools: {
       weather: weatherTool,
       cityAttractions: tool({

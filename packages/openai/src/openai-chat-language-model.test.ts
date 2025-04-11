@@ -357,12 +357,15 @@ describe('doGenerate', () => {
       logprobs: TEST_LOGPROBS,
     });
 
-    const response = await provider
-      .chat('gpt-3.5-turbo', { logprobs: 1 })
-      .doGenerate({
-        inputFormat: 'prompt',
-        prompt: TEST_PROMPT,
-      });
+    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
+      inputFormat: 'prompt',
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          logprobs: 1,
+        },
+      },
+    });
     expect(response.logprobs).toStrictEqual(
       mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
     );
@@ -433,17 +436,18 @@ describe('doGenerate', () => {
   it('should pass settings', async () => {
     prepareJsonResponse();
 
-    await provider
-      .chat('gpt-3.5-turbo', {
-        logitBias: { 50256: -100 },
-        logprobs: 2,
-        parallelToolCalls: false,
-        user: 'test-user-id',
-      })
-      .doGenerate({
-        inputFormat: 'prompt',
-        prompt: TEST_PROMPT,
-      });
+    await provider.chat('gpt-3.5-turbo').doGenerate({
+      inputFormat: 'prompt',
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          logitBias: { 50256: -100 },
+          logprobs: 2,
+          parallelToolCalls: false,
+          user: 'test-user-id',
+        },
+      },
+    });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'gpt-3.5-turbo',
@@ -479,37 +483,20 @@ describe('doGenerate', () => {
   it('should pass reasoningEffort setting from settings', async () => {
     prepareJsonResponse({ content: '' });
 
-    const model = provider.chat('o1-mini', { reasoningEffort: 'high' });
-
-    await model.doGenerate({
-      inputFormat: 'prompt',
-      prompt: TEST_PROMPT,
-    });
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'o1-mini',
-      messages: [{ role: 'user', content: 'Hello' }],
-      reasoning_effort: 'high',
-    });
-  });
-
-  it('should prioritize reasoningEffort from provider metadata over settings', async () => {
-    prepareJsonResponse({ content: '' });
-
-    const model = provider.chat('o1-mini', { reasoningEffort: 'high' });
+    const model = provider.chat('o1-mini');
 
     await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
-        openai: { reasoningEffort: 'low' },
+        openai: { reasoningEffort: 'high' },
       },
     });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'o1-mini',
       messages: [{ role: 'user', content: 'Hello' }],
-      reasoning_effort: 'low',
+      reasoning_effort: 'high',
     });
   });
 
@@ -1112,7 +1099,7 @@ describe('doGenerate', () => {
       ]);
     });
 
-    it('should convert maxTokens to max_completion_tokens', async () => {
+    it('should convert maxOutputTokens to max_completion_tokens', async () => {
       prepareJsonResponse();
 
       const model = provider.chat('o1-preview');
@@ -1120,7 +1107,7 @@ describe('doGenerate', () => {
       await model.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
-        maxTokens: 1000,
+        maxOutputTokens: 1000,
       });
 
       expect(await server.calls[0].requestBody).toStrictEqual({

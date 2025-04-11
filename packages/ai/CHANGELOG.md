@@ -1,5 +1,25 @@
 # ai
 
+## 5.0.0-canary.7
+
+### Major Changes
+
+- 6fba4c7: chore (ai): remove deprecated experimental_providerMetadata
+- 1766ede: chore: rename maxTokens to maxOutputTokens
+
+### Patch Changes
+
+- 0b78e17: chore(ai/generateObject): simplify function signature
+- 3e3b9df: fix (ai/mcp): better support for zero-argument MCP tools
+- f10304b: feat(tool-calling): don't require the user to have to pass parameters
+- Updated dependencies [411e483]
+- Updated dependencies [79457bd]
+- Updated dependencies [ad80501]
+- Updated dependencies [1766ede]
+- Updated dependencies [f10304b]
+  - @ai-sdk/provider@2.0.0-canary.5
+  - @ai-sdk/provider-utils@3.0.0-canary.6
+
 ## 5.0.0-canary.6
 
 ### Patch Changes

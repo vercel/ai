@@ -16,7 +16,7 @@ export default defineLazyEventHandler(async () => {
     // Ask OpenAI for a streaming chat completion given the prompt
     const response = streamText({
       model: openai('gpt-4o'),
-      maxTokens: 150,
+      maxOutputTokens: 150,
       messages: [
         ...initialMessages,
         {

@@ -69,16 +69,12 @@ beforeEach(() => {
   };
 });
 
-const model = new BedrockChatLanguageModel(
-  modelId,
-  {},
-  {
-    baseUrl: () => baseUrl,
-    headers: {},
-    fetch: fakeFetchWithAuth,
-    generateId: () => 'test-id',
-  },
-);
+const model = new BedrockChatLanguageModel(modelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
 
 let mockOptions: { success: boolean; errorValue?: any } = { success: true };
 
@@ -757,25 +753,21 @@ describe('doStream', () => {
       'shared-header': 'options-shared',
     };
 
-    const model = new BedrockChatLanguageModel(
-      modelId,
-      {},
-      {
-        baseUrl: () => baseUrl,
-        headers: {
-          'model-header': 'model-value',
-          'shared-header': 'model-shared',
-        },
-        fetch: injectFetchHeaders({
-          'options-header': 'options-value',
-          'model-header': 'model-value',
-          'shared-header': 'options-shared',
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
-        generateId: () => 'test-id',
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {
+        'model-header': 'model-value',
+        'shared-header': 'model-shared',
       },
-    );
+      fetch: injectFetchHeaders({
+        'options-header': 'options-value',
+        'model-header': 'model-value',
+        'shared-header': 'options-shared',
+        'signed-header': 'signed-value',
+        authorization: 'AWS4-HMAC-SHA256...',
+      }),
+      generateId: () => 'test-id',
+    });
 
     await model.doStream({
       inputFormat: 'prompt',
@@ -793,22 +785,18 @@ describe('doStream', () => {
 
   it('should work with partial headers', async () => {
     setupMockEventStreamHandler();
-    const model = new BedrockChatLanguageModel(
-      modelId,
-      {},
-      {
-        baseUrl: () => baseUrl,
-        headers: {
-          'model-header': 'model-value',
-        },
-        fetch: injectFetchHeaders({
-          'model-header': 'model-value',
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
-        generateId: () => 'test-id',
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {
+        'model-header': 'model-value',
       },
-    );
+      fetch: injectFetchHeaders({
+        'model-header': 'model-value',
+        'signed-header': 'signed-value',
+        authorization: 'AWS4-HMAC-SHA256...',
+      }),
+      generateId: () => 'test-id',
+    });
 
     await model.doStream({
       inputFormat: 'prompt',
@@ -1178,14 +1166,14 @@ describe('doGenerate', () => {
     await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
-      maxTokens: 100,
+      maxOutputTokens: 100,
       temperature: 0.5,
       topP: 0.5,
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({
       inferenceConfig: {
-        maxTokens: 100,
+        maxOutputTokens: 100,
         temperature: 0.5,
         topP: 0.5,
       },
@@ -1323,25 +1311,21 @@ describe('doGenerate', () => {
       'shared-header': 'options-shared',
     };
 
-    const model = new BedrockChatLanguageModel(
-      modelId,
-      {},
-      {
-        baseUrl: () => baseUrl,
-        headers: {
-          'model-header': 'model-value',
-          'shared-header': 'model-shared',
-        },
-        fetch: injectFetchHeaders({
-          'options-header': 'options-value',
-          'model-header': 'model-value',
-          'shared-header': 'options-shared',
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
-        generateId: () => 'test-id',
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {
+        'model-header': 'model-value',
+        'shared-header': 'model-shared',
       },
-    );
+      fetch: injectFetchHeaders({
+        'options-header': 'options-value',
+        'model-header': 'model-value',
+        'shared-header': 'options-shared',
+        'signed-header': 'signed-value',
+        authorization: 'AWS4-HMAC-SHA256...',
+      }),
+      generateId: () => 'test-id',
+    });
 
     await model.doGenerate({
       inputFormat: 'prompt',
@@ -1360,22 +1344,18 @@ describe('doGenerate', () => {
   it('should work with partial headers', async () => {
     prepareJsonResponse({});
 
-    const model = new BedrockChatLanguageModel(
-      modelId,
-      {},
-      {
-        baseUrl: () => baseUrl,
-        headers: {
-          'model-header': 'model-value',
-        },
-        fetch: injectFetchHeaders({
-          'model-header': 'model-value',
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
-        generateId: () => 'test-id',
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {
+        'model-header': 'model-value',
       },
-    );
+      fetch: injectFetchHeaders({
+        'model-header': 'model-value',
+        'signed-header': 'signed-value',
+        authorization: 'AWS4-HMAC-SHA256...',
+      }),
+      generateId: () => 'test-id',
+    });
 
     await model.doGenerate({
       inputFormat: 'prompt',
