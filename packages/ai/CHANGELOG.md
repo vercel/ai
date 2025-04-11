@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.5
+
+### Patch Changes
+
+- 452bf12: fix (ai/mcp): better support for zero-argument MCP tools
+
 ## 4.3.4
 
 ### Patch Changes
