@@ -62,7 +62,14 @@ function isSchema(value: unknown): value is Schema {
 }
 
 export function asSchema<OBJECT>(
-  schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT>,
+  schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT> | undefined,
 ): Schema<OBJECT> {
-  return isSchema(schema) ? schema : zodSchema(schema);
+  return schema == null
+    ? jsonSchema({
+        properties: {},
+        additionalProperties: false,
+      })
+    : isSchema(schema)
+      ? schema
+      : zodSchema(schema);
 }

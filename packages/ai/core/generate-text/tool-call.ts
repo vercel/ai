@@ -1,4 +1,4 @@
-import { inferParameters } from '../tool/tool';
+import { Tool } from '../tool';
 import { ValueOf } from '../util/value-of';
 import { ToolSet } from './tool-set';
 
@@ -10,7 +10,7 @@ export type ToolCallUnion<TOOLS extends ToolSet> = ValueOf<{
     type: 'tool-call';
     toolCallId: string;
     toolName: NAME & string;
-    args: inferParameters<TOOLS[NAME]['parameters']>;
+    args: TOOLS[NAME] extends Tool<infer PARAMETERS> ? PARAMETERS : never;
   };
 }>;
 

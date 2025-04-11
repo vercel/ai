@@ -5,6 +5,7 @@ import {
   DataStreamWriter,
   ToolExecutionOptions,
   ToolSet,
+  Tool,
 } from 'ai';
 import { z } from 'zod';
 
@@ -49,7 +50,7 @@ export async function processToolCalls<
   },
   executeFunctions: {
     [K in keyof Tools & keyof ExecutableTools]?: (
-      args: z.infer<ExecutableTools[K]['parameters']>,
+      args: ExecutableTools[K] extends Tool<infer P> ? P : never,
       context: ToolExecutionOptions,
     ) => Promise<any>;
   },
