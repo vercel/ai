@@ -31,7 +31,7 @@ describe('doGenerate', () => {
       headers,
       body: {
         id: '9ea68fd3-f953-42c1-9742-976c447fb463',
-        audio_url: 'https://assembly.ai/wildfires.mp3',
+        audio_url: 'https://assembly.ai/test.mp3',
         status: 'completed',
         webhook_auth: true,
         auto_highlights: true,
@@ -44,13 +44,13 @@ describe('doGenerate', () => {
         language_confidence_threshold: 0.7,
         language_confidence: 0.9959,
         speech_model: 'best',
-        text: 'Smoke from hundreds of wildfires.',
+        text: 'Hello, world!',
         words: [
           {
             confidence: 0.97465,
             start: 250,
             end: 650,
-            text: 'Smoke',
+            text: 'Hello,',
             channel: 'channel',
             speaker: 'speaker',
           },
@@ -58,15 +58,7 @@ describe('doGenerate', () => {
             confidence: 0.99999,
             start: 730,
             end: 1022,
-            text: 'from',
-            channel: 'channel',
-            speaker: 'speaker',
-          },
-          {
-            confidence: 0.99844,
-            start: 1076,
-            end: 1418,
-            text: 'hundreds',
+            text: 'world',
             channel: 'channel',
             speaker: 'speaker',
           },
@@ -76,27 +68,20 @@ describe('doGenerate', () => {
             confidence: 0.9359033333333334,
             start: 250,
             end: 26950,
-            text: 'Smoke from hundreds of wildfires.',
+            text: 'Hello, world!',
             words: [
               {
                 confidence: 0.97503,
                 start: 250,
                 end: 650,
-                text: 'Smoke',
+                text: 'Hello,',
                 speaker: 'A',
               },
               {
                 confidence: 0.99999,
                 start: 730,
                 end: 1022,
-                text: 'from',
-                speaker: 'A',
-              },
-              {
-                confidence: 0.99843,
-                start: 1076,
-                end: 1418,
-                text: 'hundreds',
+                text: 'world',
                 speaker: 'A',
               },
             ],
@@ -120,22 +105,11 @@ describe('doGenerate', () => {
             {
               count: 1,
               rank: 0.08,
-              text: 'air quality alerts',
+              text: 'Hello, world!',
               timestamps: [
                 {
-                  start: 3978,
-                  end: 5114,
-                },
-              ],
-            },
-            {
-              count: 1,
-              rank: 0.08,
-              text: 'wide ranging air quality consequences',
-              timestamps: [
-                {
-                  start: 235388,
-                  end: 238694,
+                  start: 250,
+                  end: 26950,
                 },
               ],
             },
@@ -143,7 +117,7 @@ describe('doGenerate', () => {
         },
         audio_start_from: 10,
         audio_end_at: 280,
-        word_boost: ['aws', 'azure', 'google cloud'],
+        word_boost: ['hello', 'world'],
         boost_param: 'high',
         filter_profanity: true,
         redact_pii_audio: true,
@@ -160,7 +134,7 @@ describe('doGenerate', () => {
           status: 'success',
           results: [
             {
-              text: 'Smoke from hundreds of wildfires.',
+              text: 'Hello, world!',
               labels: [
                 {
                   label: 'disasters',
@@ -198,7 +172,7 @@ describe('doGenerate', () => {
           status: 'success',
           results: [
             {
-              text: 'Smoke from hundreds of wildfires.',
+              text: 'Hello, world!',
               labels: [
                 {
                   relevance: 0.988274097442627,
@@ -223,25 +197,23 @@ describe('doGenerate', () => {
         auto_chapters: true,
         chapters: [
           {
-            gist: 'Smoggy air quality alerts across US',
-            headline: 'Smoke from hundreds of wildfires.',
-            summary: 'Smoke from hundreds of wildfires.',
+            gist: 'Hello, world!',
+            headline: 'Hello, world!',
+            summary: 'Hello, world!',
             start: 250,
             end: 28840,
           },
           {
-            gist: 'What is it about the conditions right now that have caused this round',
-            headline:
-              'High particulate matter in wildfire smoke can lead to serious health problems',
-            summary:
-              'Air pollution levels in Baltimore are considered unhealthy. Exposure to high levels can lead to a host of health problems. With climate change, we are seeing more wildfires. Will we be seeing more of these kinds of wide ranging air quality consequences?',
+            gist: 'Hello, world!',
+            headline: 'Hello, world!',
+            summary: 'Hello, world!',
             start: 29610,
             end: 280340,
           },
         ],
         summary_type: 'bullets',
         summary_model: 'informative',
-        summary: '- Smoke from hundreds of wildfires.',
+        summary: '- Hello, world!',
         topics: ['topics'],
         sentiment_analysis: true,
         entity_detection: true,
@@ -316,7 +288,7 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(result.text).toBe('Smoke from hundreds of wildfires.');
+    expect(result.text).toBe('Hello, world!');
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
