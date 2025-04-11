@@ -10,10 +10,7 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { MistralChatLanguageModel } from './mistral-chat-language-model';
-import {
-  MistralChatModelId,
-  MistralChatSettings,
-} from './mistral-chat-settings';
+import { MistralChatModelId } from './mistral-chat-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
 import {
   MistralEmbeddingModelId,
@@ -21,26 +18,17 @@ import {
 } from './mistral-embedding-settings';
 
 export interface MistralProvider extends ProviderV2 {
-  (
-    modelId: MistralChatModelId,
-    settings?: MistralChatSettings,
-  ): LanguageModelV2;
+  (modelId: MistralChatModelId): LanguageModelV2;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(
-    modelId: MistralChatModelId,
-    settings?: MistralChatSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: MistralChatModelId): LanguageModelV2;
 
   /**
 Creates a model for text generation.
 */
-  chat(
-    modelId: MistralChatModelId,
-    settings?: MistralChatSettings,
-  ): LanguageModelV2;
+  chat(modelId: MistralChatModelId): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.
@@ -107,11 +95,8 @@ export function createMistral(
     ...options.headers,
   });
 
-  const createChatModel = (
-    modelId: MistralChatModelId,
-    settings: MistralChatSettings = {},
-  ) =>
-    new MistralChatLanguageModel(modelId, settings, {
+  const createChatModel = (modelId: MistralChatModelId) =>
+    new MistralChatLanguageModel(modelId, {
       provider: 'mistral.chat',
       baseURL,
       headers: getHeaders,
@@ -129,17 +114,14 @@ export function createMistral(
       fetch: options.fetch,
     });
 
-  const provider = function (
-    modelId: MistralChatModelId,
-    settings?: MistralChatSettings,
-  ) {
+  const provider = function (modelId: MistralChatModelId) {
     if (new.target) {
       throw new Error(
         'The Mistral model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;
