@@ -289,7 +289,10 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
         : new Blob([convertBase64ToUint8Array(options.audio)]);
 
     formData.append('model', this.modelId);
-    formData.append('file', new File([blob], 'audio', { type: options.mediaType }));
+    formData.append(
+      'file',
+      new File([blob], 'audio', { type: options.mediaType }),
+    );
 
     const { value: uploadResponse } = await postFormDataToApi({
       url: this.config.url({

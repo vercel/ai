@@ -239,7 +239,9 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
     private readonly config: AssemblyAITranscriptionModelConfig,
   ) {}
 
-  private async getArgs({ providerOptions }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
+  private async getArgs({
+    providerOptions,
+  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options

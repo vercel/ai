@@ -224,7 +224,7 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { body, warnings } = await this.getArgs(options);
-    
+
     const { value: getUrlResponse } = await postJsonToApi({
       url: this.config.url({
         path: 'https://fal.run/storage/upload/initiate?storage_type=fal-cdn-v3',
