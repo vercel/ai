@@ -15,7 +15,6 @@ async function main() {
   console.log('Segments:', result.segments);
   console.log('Warnings:', result.warnings);
   console.log('Responses:', result.responses);
-  console.log('Provider Metadata:', result.providerMetadata);
 }
 
 main().catch(console.error);
