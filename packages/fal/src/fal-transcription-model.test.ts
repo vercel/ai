@@ -6,11 +6,37 @@ import path from 'node:path';
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createFal({ apiKey: 'test-api-key' });
-const model = provider.transcription('whisper');
+const model = provider.transcription('wizper');
 
 const server = createTestServer({
-  'https://queue.fal.run/fal-ai/whisper': {},
-  'https://fal.run/storage/upload/initiate*': {
+  'https://queue.fal.run/fal-ai/wizper': {
+    response: {
+      type: 'json-value',
+      body: {
+        text: 'Hello world!',
+        chunks: [
+          {
+            text: 'Hello',
+            timestamp: [0, 1],
+            speaker: 'speaker_1',
+          },
+          {
+            text: ' world!',
+            timestamp: [1, 3],
+            speaker: 'speaker_1',
+          }
+        ],
+        inferred_languages: ['en'],
+        diarization_segments: [
+          {
+            timestamp: [0, 3],
+            speaker: 'speaker_1',
+          },
+        ],
+      },
+    },
+  },
+  'https://fal.run/storage/upload/initiate?storage_type=fal-cdn-v3': {
     response: {
       type: 'json-value',
       body: {
@@ -32,7 +58,7 @@ describe('doGenerate', () => {
   }: {
     headers?: Record<string, string>;
   } = {}) {
-    server.urls['https://queue.fal.run/fal-ai/whisper'].response = {
+    server.urls['https://queue.fal.run/fal-ai/wizper'].response = {
       type: 'json-value',
       headers,
       body: {
@@ -74,7 +100,7 @@ describe('doGenerate', () => {
 
     expect(await server.calls[0].requestBody).toMatchObject({
       content_type: 'audio/wav',
-      file_name: expect.stringMatching(/.*\.wav$/),
+      file_name: expect.stringMatching(/ai-sdk-\d+$/),
     });
 
     expect(await server.calls[2].requestBody).toMatchObject({
@@ -95,7 +121,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider.transcription('whisper').doGenerate({
+    await provider.transcription('wizper').doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
       headers: {
@@ -131,9 +157,9 @@ describe('doGenerate', () => {
     });
 
     const testDate = new Date(0);
-    const customModel = new FalTranscriptionModel('whisper', {
+    const customModel = new FalTranscriptionModel('wizper', {
       provider: 'test-provider',
-      url: () => 'https://queue.fal.run/fal-ai/whisper',
+      url: ({ path }) => path,
       headers: () => ({}),
       _internal: {
         currentDate: () => testDate,
@@ -147,7 +173,7 @@ describe('doGenerate', () => {
 
     expect(result.response).toMatchObject({
       timestamp: testDate,
-      modelId: 'whisper',
+      modelId: 'wizper',
       headers: {
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
@@ -160,9 +186,9 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const testDate = new Date(0);
-    const customModel = new FalTranscriptionModel('whisper', {
+    const customModel = new FalTranscriptionModel('wizper', {
       provider: 'test-provider',
-      url: () => 'https://queue.fal.run/fal-ai/whisper',
+      url: ({ path }) => path,
       headers: () => ({}),
       _internal: {
         currentDate: () => testDate,
@@ -175,6 +201,6 @@ describe('doGenerate', () => {
     });
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
-    expect(result.response.modelId).toBe('whisper');
+    expect(result.response.modelId).toBe('wizper');
   });
 });
