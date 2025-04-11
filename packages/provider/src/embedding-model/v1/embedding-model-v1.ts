@@ -1,3 +1,4 @@
+import { EmbeddingModelV1CallOptions } from './embedding-model-v1-call-options';
 import { EmbeddingModelV1Embedding } from './embedding-model-v1-embedding';
 
 /**
@@ -44,23 +45,7 @@ Generates a list of embeddings for the given input text.
 Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
-  doEmbed(options: {
-    /**
-List of values to embed.
-     */
-    values: Array<VALUE>;
-
-    /**
-Abort signal for cancelling the operation.
-     */
-    abortSignal?: AbortSignal;
-
-    /**
-  Additional HTTP headers to be sent with the request.
-  Only applicable for HTTP-based providers.
-     */
-    headers?: Record<string, string | undefined>;
-  }): PromiseLike<{
+  doEmbed(options: EmbeddingModelV1CallOptions<VALUE>): PromiseLike<{
     /**
 Generated embeddings. They are in the same order as the input values.
      */

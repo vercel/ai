@@ -1,0 +1,37 @@
+---
+title: EmbeddingModelV1Middleware
+description: Middleware for enhancing embedding model behavior (API Reference)
+---
+
+# `EmbeddingModelV1Middleware`
+
+Embedding model middleware provides a way to enhance the behavior of embedding models
+by intercepting and modifying the calls to the embedding model. It can be used to add
+features like caching and logging in a embedding model agnostic way.
+
+See [Embedding Model Middleware](/docs/ai-sdk-core/embedding-middleware) for more information.
+
+## Import
+
+<Snippet
+  text={`import { EmbeddingModelV1Middleware } from "ai"`}
+  prompt={false}
+/>
+
+## API Signature
+
+<PropertiesTable
+  content={[
+    {
+      name: 'transformParams',
+      type: '({ params: EmbeddingModelV1CallOptions }) => Promise<EmbeddingModelV1CallOptions>',
+      description:
+        'Transforms the parameters before they are passed to the embedding model.',
+    },
+    {
+      name: 'wrapEmbed',
+      type: '({ doEmbed: DoEmbedFunction, params: EmbeddingModelV1CallOptions, model: EmbeddingModelV1 }) => Promise<DoEmbedResult>',
+      description: 'Wraps the embed operation of the embedding model.',
+    },
+  ]}
+/>

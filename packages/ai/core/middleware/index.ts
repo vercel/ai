@@ -9,3 +9,5 @@ export {
   experimental_wrapLanguageModel,
   wrapLanguageModel,
 } from './wrap-language-model';
+export type { EmbeddingModelV1Middleware } from './embedding-model-v1-middleware';
+export { wrapEmbeddingModel } from './wrap-embedding-model';

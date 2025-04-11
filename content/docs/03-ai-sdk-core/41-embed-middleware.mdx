@@ -1,0 +1,122 @@
+---
+title: Embedding Model Middleware
+description: Learn how to use middleware to enhance the behavior of embedding models
+---
+
+# Embedding Model Middleware
+
+Embedding model middleware is a way to enhance the behavior of embedding models
+by intercepting and modifying the calls to the embedding model.
+
+It can be used to add features like caching and logging
+in an embedding model agnostic way. Such middleware can be developed and
+distributed independently from the embedding models that they are applied to.
+
+## Using Embedding Model Middleware
+
+You can use embedding model middleware with the `wrapEmbeddingModel` function.
+It takes an embedding model and an embedding model middleware and returns a new
+embedding model that incorporates the middleware.
+
+```ts
+import { wrapEmbeddingModel } from 'ai';
+
+const wrappedEmbeddingModel = wrapEmbeddingModel({
+  model: yourModel,
+  middleware: yourEmbeddingModelMiddleware,
+});
+```
+
+The wrapped embedding model can be used just like any other embedding model, e.g. in `embed`:
+
+```ts highlight="2"
+const result = embed({
+  model: wrappedEmbeddingModel,
+  value: 'sunny day at the beach',
+});
+```
+
+## Multiple middlewares
+
+You can provide multiple middlewares to the `wrapEmbeddingModel` function.
+The middlewares will be applied in the order they are provided.
+
+```ts
+const wrappedEmbeddingModel = wrapEmbeddingModel({
+  model: yourModel,
+  middleware: [firstMiddleware, secondMiddleware],
+});
+
+// applied as: firstMiddleware(secondMiddleware(yourModel))
+```
+
+## Implementing Embedding Model Middleware
+
+<Note>
+  Implementing embedding model middleware is advanced functionality and requires
+  a solid understanding of the [embedding model
+  specification](https://github.com/vercel/ai/blob/main/packages/provider/src/embedding-model/v1/embedding-model-v1.ts).
+</Note>
+
+You can implement any of the following two functions to modify the behavior of the embedding model:
+
+1. `transformParams`: Transforms the parameters before they are passed to the embedding model.
+2. `wrapEmbed`: Wraps the `doEmbed` method of the [embedding model](https://github.com/vercel/ai/blob/main/packages/provider/src/embedding-model/v1/embedding-model-v1.ts).
+   You can modify the parameters, call the embedding model, and modify the result.
+
+Here are some examples of how to implement embedding model middleware:
+
+## Examples
+
+<Note>
+  These examples are not meant to be used in production. They are just to show
+  how you can use middleware to enhance the behavior of embedding models.
+</Note>
+
+### Logging
+
+This example shows how to log the parameters and generated text of an embedding model call.
+
+```ts
+import type { EmbeddingModelV1Middleware } from 'ai';
+
+export const yourLogMiddleware: EmbeddingModelV1Middleware = {
+  wrapEmbed: async ({ doEmbed, params }) => {
+    console.log('doEmbed called');
+    console.log(`params: ${JSON.stringify(params, null, 2)}`);
+
+    const result = await doEmbed();
+
+    console.log('doEmbed finished');
+    console.log(`embedding: ${result.embeddings}`);
+
+    return result;
+  },
+};
+```
+
+### Caching
+
+This example shows how to build a simple cache for the generated embeddings of an embedding model call.
+
+```ts
+import type { EmbeddingModelV1Middleware } from 'ai';
+
+const cache = new Map<string, any>();
+
+export const yourCacheMiddleware: EmbeddingModelV1Middleware = {
+  wrapEmbed: async ({ doEmbed, params }) => {
+    const cacheKey = JSON.stringify(params);
+
+    if (cache.has(cacheKey)) {
+      return cache.get(cacheKey);
+    }
+
+    const result = await doEmbed();
+
+    cache.set(cacheKey, result);
+
+    return result;
+  },
+};
+```
