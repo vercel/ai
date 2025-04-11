@@ -79,6 +79,8 @@ Optional raw response information for debugging purposes.
 Response headers.
        */
       headers?: Record<string, string>;
+
+      body: unknown;
     };
   }>;
 };

@@ -96,7 +96,7 @@ export class GoogleGenerativeAIEmbeddingModel
     return {
       embeddings: response.embeddings.map(item => item.values),
       usage: undefined,
-      rawResponse: { headers: responseHeaders },
+      rawResponse: { headers: responseHeaders, body: response },
     };
   }
 }
