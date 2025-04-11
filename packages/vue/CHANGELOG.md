@@ -1,5 +1,17 @@
 # @ai-sdk/vue
 
+## 2.0.0-canary.6
+
+### Patch Changes
+
+- Updated dependencies [0b78e17]
+- Updated dependencies [6fba4c7]
+- Updated dependencies [3e3b9df]
+- Updated dependencies [1766ede]
+- Updated dependencies [f10304b]
+  - ai@5.0.0-canary.7
+  - @ai-sdk/provider-utils@3.0.0-canary.6
+
 ## 2.0.0-canary.5
 
 ### Patch Changes
