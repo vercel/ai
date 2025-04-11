@@ -59,9 +59,13 @@ A result object that contains the generated object, the finish reason, the token
  */
 export async function generateObject<
   TYPE extends SCHEMA extends z.Schema
-    ? z.infer<SCHEMA>
+    ? Output extends 'array'
+      ? Array<z.infer<SCHEMA>>
+      : z.infer<SCHEMA>
     : SCHEMA extends Schema<infer T>
-      ? T
+      ? Output extends 'array'
+        ? Array<T>
+        : T
       : never,
   SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
   Output extends 'object' | 'array' | 'enum' | 'no-schema' = TYPE extends string
