@@ -1,5 +1,18 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.5
+
+### Major Changes
+
+- 411e483: chore (provider): refactor usage (language model v2)
+- ad80501: chore (provider): allow both binary and base64 file content (spec)
+- 1766ede: chore: rename maxTokens to maxOutputTokens
+
+### Patch Changes
+
+- 79457bd: chore (provider): extract LanguageModelV2File
+- f10304b: feat(tool-calling): don't require the user to have to pass parameters
+
 ## 2.0.0-canary.4
 
 ### Major Changes

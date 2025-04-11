@@ -1,5 +1,18 @@
 # @ai-sdk/google
 
+## 2.0.0-canary.7
+
+### Patch Changes
+
+- f10304b: feat(tool-calling): don't require the user to have to pass parameters
+- Updated dependencies [411e483]
+- Updated dependencies [79457bd]
+- Updated dependencies [ad80501]
+- Updated dependencies [1766ede]
+- Updated dependencies [f10304b]
+  - @ai-sdk/provider@2.0.0-canary.5
+  - @ai-sdk/provider-utils@3.0.0-canary.6
+
 ## 2.0.0-canary.6
 
 ### Patch Changes
