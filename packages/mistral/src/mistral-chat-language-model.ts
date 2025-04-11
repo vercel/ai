@@ -137,8 +137,8 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
         responseFormat?.type === 'json' ? { type: 'json_object' } : undefined,
 
       // mistral-specific provider options:
-      document_image_limit: providerOptions?.mistral?.documentImageLimit,
-      document_page_limit: providerOptions?.mistral?.documentPageLimit,
+      document_image_limit: options.documentImageLimit,
+      document_page_limit: options.documentPageLimit,
 
       // messages:
       messages: convertToMistralChatMessages(prompt),

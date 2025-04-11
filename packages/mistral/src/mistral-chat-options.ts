@@ -23,6 +23,9 @@ Whether to inject a safety prompt before all conversations.
 Defaults to `false`.
    */
   safePrompt: z.boolean().nullish(),
+
+  documentImageLimit: z.number().nullish(),
+  documentPageLimit: z.number().nullish(),
 });
 
 export type MistralProviderOptions = z.infer<typeof mistralProviderOptions>;
