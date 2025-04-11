@@ -4,6 +4,7 @@ import {
   TranscriptionModelV1,
   LanguageModelV1,
   ProviderV1,
+  SpeechModelV1,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -32,6 +33,8 @@ import { OpenAITranscriptionModelId } from './openai-transcription-settings';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
 import { openaiTools } from './openai-tools';
+import { OpenAISpeechModel } from './openai-speech-model';
+import { OpenAISpeechModelId } from './openai-speech-settings';
 
 export interface OpenAIProvider extends ProviderV1 {
   (
@@ -119,6 +122,11 @@ Creates a model for image generation.
 Creates a model for transcription.
    */
   transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV1;
+
+  /**
+Creates a model for speech generation.
+   */
+  speech(modelId: OpenAISpeechModelId): SpeechModelV1;
 
   /**
 OpenAI-specific tools.
@@ -250,6 +258,14 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: OpenAISpeechModelId) =>
+    new OpenAISpeechModel(modelId, {
+      provider: `${providerName}.speech`,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createLanguageModel = (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
     settings?: OpenAIChatSettings | OpenAICompletionSettings,
@@ -299,6 +315,9 @@ export function createOpenAI(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
 
   provider.tools = openaiTools;
 
