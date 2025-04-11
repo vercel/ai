@@ -48,11 +48,16 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
     EmbeddingModelV1<string>['doEmbed']
   >[0]): Promise<DoEmbedResponse> {
     const embedSingleText = async (inputText: string) => {
+      const isBinaryEmbedding = this.settings.embeddingType === 'binary';
+
       // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html
       const args = {
         inputText,
         dimensions: this.settings.dimensions,
         normalize: this.settings.normalize,
+        ...(isBinaryEmbedding && {
+          embeddingTypes: ['binary'],
+        }),
       };
       const url = this.getUrl(this.modelId);
       const { value: response } = await postJsonToApi({
@@ -66,14 +71,19 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
           errorToMessage: error => `${error.type}: ${error.message}`,
         }),
         successfulResponseHandler: createJsonResponseHandler(
-          BedrockEmbeddingResponseSchema,
+          z.union([
+            BedrockBinaryEmbeddingResponseSchema,
+            BedrockEmbeddingResponseSchema,
+          ]),
         ),
         fetch: this.config.fetch,
         abortSignal,
       });
 
       return {
-        embedding: response.embedding,
+        embedding: isBinaryEmbedding
+          ? (response as BedrockBinaryEmbeddingResponse).embeddingsByType.binary
+          : (response as BedrockEmbeddingResponse).embedding,
         inputTextTokenCount: response.inputTextTokenCount,
       };
     };
@@ -97,3 +107,16 @@ const BedrockEmbeddingResponseSchema = z.object({
   embedding: z.array(z.number()),
   inputTextTokenCount: z.number(),
 });
+
+type BedrockEmbeddingResponse = z.infer<typeof BedrockEmbeddingResponseSchema>;
+
+const BedrockBinaryEmbeddingResponseSchema = z.object({
+  embeddingsByType: z.object({
+    binary: z.array(z.number()),
+  }),
+  inputTextTokenCount: z.number(),
+});
+
+type BedrockBinaryEmbeddingResponse = z.infer<
+  typeof BedrockBinaryEmbeddingResponseSchema
+>;
