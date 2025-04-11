@@ -7,13 +7,13 @@ import {
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
+  postToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { AssemblyAIConfig } from './assemblyai-config';
 import { assemblyaiFailedResponseHandler } from './assemblyai-error';
 import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
-import { uploadAssemblyAIFile } from './assemblyai-storage';
 
 // https://www.assemblyai.com/docs/api-reference/transcripts/submit
 const assemblyaiProviderOptionsSchema = z.object({
@@ -239,11 +239,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
     private readonly config: AssemblyAITranscriptionModelConfig,
   ) {}
 
-  private async getArgs({
-    audio,
-    mediaType,
-    providerOptions,
-  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
+  private async getArgs({ providerOptions }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
@@ -253,14 +249,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
       schema: assemblyaiProviderOptionsSchema,
     });
 
-    const body: AssemblyAITranscriptionAPITypes = {
+    const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {
       speech_model: this.modelId,
-      audio_url: await uploadAssemblyAIFile({
-        audio,
-        mediaType,
-        apiKey: this.config.headers()['Authorization']?.split(' ')[1] ?? '',
-        fetch: this.config.fetch,
-      }),
     };
 
     // Add provider-specific options
@@ -320,6 +310,28 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
     options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    const { value: uploadResponse } = await postToApi({
+      url: this.config.url({
+        path: '/v2/upload',
+        modelId: '',
+      }),
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        ...combineHeaders(this.config.headers(), options.headers),
+      },
+      body: {
+        content: options.audio,
+        values: options.audio,
+      },
+      failedResponseHandler: assemblyaiFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        assemblyaiUploadResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
     const { body, warnings } = await this.getArgs(options);
 
     const {
@@ -332,7 +344,10 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body,
+      body: {
+        ...body,
+        audio_url: uploadResponse.upload_url,
+      },
       failedResponseHandler: assemblyaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         assemblyaiTranscriptionResponseSchema,
@@ -362,6 +377,11 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
     };
   }
 }
+
+const assemblyaiUploadResponseSchema = z.object({
+  id: z.string(),
+  upload_url: z.string(),
+});
 
 const assemblyaiTranscriptionResponseSchema = z.object({
   id: z.string(),
