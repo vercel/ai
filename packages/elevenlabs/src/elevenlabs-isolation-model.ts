@@ -63,7 +63,7 @@ export class ElevenLabsIsolationModel implements IsolationModelV1 {
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model_id', this.modelId);
-    formData.append('file', new File([blob], 'audio', { type: mediaType }));
+    formData.append('audio', new File([blob], 'audio', { type: mediaType }));
 
     // Add provider-specific options
     if (elevenlabsOptions) {
