@@ -672,7 +672,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'file') {
-          stepFiles.push(part);
+          stepFiles.push(part.file);
         }
 
         if (part.type === 'source') {
@@ -1253,7 +1253,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'file': {
-                      stepFiles.push(chunk);
+                      stepFiles.push(chunk.file);
                       controller.enqueue(chunk);
                       break;
                     }
@@ -1663,9 +1663,10 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'file': {
               controller.enqueue(
+                // TODO update protocol to v2 or replace with event stream
                 formatDataStreamPart('file', {
-                  mimeType: chunk.mediaType,
-                  data: chunk.base64,
+                  mimeType: chunk.file.mediaType,
+                  data: chunk.file.base64,
                 }),
               );
               break;

@@ -39,13 +39,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       type: 'redacted-reasoning';
       data: string;
     }
-  | ({
-      type: 'file';
-    } & GeneratedFile)
-  | {
-      type: 'source';
-      source: Source;
-    }
+  | { type: 'file'; file: GeneratedFile }
+  | { type: 'source'; source: Source }
   | ({
       type: 'tool-call';
     } & ToolCallUnion<TOOLS>)
@@ -166,12 +161,13 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         }
 
         case 'file': {
-          controller.enqueue(
-            new DefaultGeneratedFileWithType({
-              data: chunk.data,
-              mediaType: chunk.mediaType,
+          controller.enqueue({
+            type: 'file',
+            file: new DefaultGeneratedFileWithType({
+              data: chunk.file.data,
+              mediaType: chunk.file.mediaType,
             }),
-          );
+          });
           break;
         }
 
