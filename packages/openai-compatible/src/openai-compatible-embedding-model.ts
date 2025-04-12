@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   TooManyEmbeddingValuesForCallError,
 } from '@ai-sdk/provider';
 import {
@@ -38,9 +38,9 @@ Override the parallelism of embedding calls.
 };
 
 export class OpenAICompatibleEmbeddingModel
-  implements EmbeddingModelV1<string>
+  implements EmbeddingModelV2<string>
 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
   readonly modelId: OpenAICompatibleEmbeddingModelId;
 
   private readonly config: OpenAICompatibleEmbeddingConfig;
@@ -72,8 +72,8 @@ export class OpenAICompatibleEmbeddingModel
     values,
     headers,
     abortSignal,
-  }: Parameters<EmbeddingModelV1<string>['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV1<string>['doEmbed']>>
+  }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
+    Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({

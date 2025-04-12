@@ -10,7 +10,7 @@ import {
   OpenAIResponsesLanguageModel,
 } from '@ai-sdk/openai/internal';
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   LanguageModelV2,
   ProviderV2,
   ImageModelV1,
@@ -52,7 +52,7 @@ Creates an Azure OpenAI completion model for text generation.
   embedding(
     deploymentId: string,
     settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
@@ -74,7 +74,7 @@ Creates an Azure OpenAI completion model for text generation.
   textEmbedding(
     deploymentId: string,
     settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   /**
 Creates an Azure OpenAI model for text embeddings.
@@ -82,7 +82,7 @@ Creates an Azure OpenAI model for text embeddings.
   textEmbeddingModel(
     deploymentId: string,
     settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 }
 
 export interface AzureOpenAIProviderSettings {

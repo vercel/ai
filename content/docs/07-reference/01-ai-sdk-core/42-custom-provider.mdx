@@ -49,7 +49,7 @@ export const myOpenAI = customProvider({
     },
     {
       name: 'textEmbeddingModels',
-      type: 'Record<string, EmbeddingModelV1<string>>',
+      type: 'Record<string, EmbeddingModelV2<string>>',
       isOptional: true,
       description:
         'A record of text embedding models, where keys are model IDs and values are EmbeddingModel<string> instances.',

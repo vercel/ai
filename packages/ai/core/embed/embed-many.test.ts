@@ -1,8 +1,8 @@
 import assert from 'node:assert';
 import {
-  MockEmbeddingModelV1,
+  MockEmbeddingModelV2,
   mockEmbed,
-} from '../test/mock-embedding-model-v1';
+} from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { embedMany } from './embed-many';
 
@@ -21,7 +21,7 @@ const testValues = [
 describe('result.embedding', () => {
   it('should generate embeddings', async () => {
     const result = await embedMany({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -35,7 +35,7 @@ describe('result.embedding', () => {
     let callCount = 0;
 
     const result = await embedMany({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         maxEmbeddingsPerCall: 2,
         doEmbed: async ({ values }) => {
           switch (callCount++) {
@@ -60,7 +60,7 @@ describe('result.embedding', () => {
 describe('result.values', () => {
   it('should include values in the result', async () => {
     const result = await embedMany({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -76,7 +76,7 @@ describe('result.usage', () => {
     let callCount = 0;
 
     const result = await embedMany({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         maxEmbeddingsPerCall: 2,
         doEmbed: async () => {
           switch (callCount++) {
@@ -105,7 +105,7 @@ describe('result.usage', () => {
 describe('options.headers', () => {
   it('should set headers', async () => {
     const result = await embedMany({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         maxEmbeddingsPerCall: 5,
         doEmbed: async ({ headers }) => {
           assert.deepStrictEqual(headers, {
@@ -132,7 +132,7 @@ describe('telemetry', () => {
 
   it('should not record any telemetry data when not explicitly enabled', async () => {
     await embedMany({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         maxEmbeddingsPerCall: 5,
         doEmbed: mockEmbed(testValues, dummyEmbeddings),
       }),
@@ -146,7 +146,7 @@ describe('telemetry', () => {
     let callCount = 0;
 
     await embedMany({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         maxEmbeddingsPerCall: 2,
         doEmbed: async ({ values }) => {
           switch (callCount++) {
@@ -184,7 +184,7 @@ describe('telemetry', () => {
 
   it('should record telemetry data when enabled (single call path)', async () => {
     await embedMany({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         maxEmbeddingsPerCall: null,
         doEmbed: mockEmbed(testValues, dummyEmbeddings, { tokens: 10 }),
       }),
@@ -205,7 +205,7 @@ describe('telemetry', () => {
 
   it('should not record telemetry inputs / outputs when disabled', async () => {
     await embedMany({
-      model: new MockEmbeddingModelV1({
+      model: new MockEmbeddingModelV2({
         maxEmbeddingsPerCall: null,
         doEmbed: mockEmbed(testValues, dummyEmbeddings, { tokens: 10 }),
       }),

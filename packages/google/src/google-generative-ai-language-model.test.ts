@@ -1778,10 +1778,48 @@ describe('doStream', () => {
 
     const events = await convertReadableStreamToArray(stream);
 
-    expect(events.filter(event => event.type === 'error')).toEqual([]); // no errors
-    expect(events.filter(event => event.type === 'file')).toEqual([
-      { type: 'file', mediaType: 'text/plain', data: 'test' },
-    ]);
+    expect(events).toMatchInlineSnapshot(`
+      [
+        {
+          "file": {
+            "data": "test",
+            "mediaType": "text/plain",
+          },
+          "type": "file",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "google": {
+              "groundingMetadata": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 294,
+            "outputTokens": 233,
+          },
+        },
+      ]
+    `);
   });
 
   it('should set finishReason to tool-calls when chunk contains functionCall', async () => {
