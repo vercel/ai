@@ -6,7 +6,20 @@ export type LMNTSpeechAPITypes = {
   /** The model to use for synthesis. One of aurora (default) or blizzard. */
   model?: 'aurora' | 'blizzard';
   /** The desired language. Two letter ISO 639-1 code. Does not work with professional clones. Not all languages work with all models. Defaults to auto language detection. */
-  language?: 'auto' | 'en' | 'es' | 'pt' | 'fr' | 'de' | 'zh' | 'ko' | 'hi' | 'ja' | 'ru' | 'it' | 'tr';
+  language?:
+    | 'auto'
+    | 'en'
+    | 'es'
+    | 'pt'
+    | 'fr'
+    | 'de'
+    | 'zh'
+    | 'ko'
+    | 'hi'
+    | 'ja'
+    | 'ru'
+    | 'it'
+    | 'tr';
   /** The file format of the audio output */
   format?: 'aac' | 'mp3' | 'mulaw' | 'raw' | 'wav';
   /** The desired output sample rate in Hz */

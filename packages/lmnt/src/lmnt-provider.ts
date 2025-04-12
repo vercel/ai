@@ -38,9 +38,7 @@ or to provide a custom fetch implementation for e.g. testing.
 /**
 Create an LMNT provider instance.
  */
-export function createLMNT(
-  options: LMNTProviderSettings = {},
-): LMNTProvider {
+export function createLMNT(options: LMNTProviderSettings = {}): LMNTProvider {
   const getHeaders = () => ({
     'x-api-key': loadApiKey({
       apiKey: options.apiKey,

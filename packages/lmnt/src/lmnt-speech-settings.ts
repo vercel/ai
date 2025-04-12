@@ -1,4 +1,1 @@
-export type LMNTSpeechModelId =
-  | 'aurora'
-  | 'blizzard'
-  | (string & {});
+export type LMNTSpeechModelId = 'aurora' | 'blizzard' | (string & {});

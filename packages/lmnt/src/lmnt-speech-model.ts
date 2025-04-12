@@ -14,20 +14,38 @@ import { LMNTSpeechAPITypes } from './lmnt-api-types';
 // https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes
 const lmntSpeechCallOptionsSchema = z.object({
   model: z.enum(['aurora', 'blizzard']).optional().default('aurora'),
-  language: z.enum(['auto', 'en', 'es', 'pt', 'fr', 'de', 'zh', 'ko', 'hi', 'ja', 'ru', 'it', 'tr']).optional().default('auto'),
-  format: z.enum(['aac', 'mp3', 'mulaw', 'raw', 'wav']).optional().default('mp3'),
+  language: z
+    .enum([
+      'auto',
+      'en',
+      'es',
+      'pt',
+      'fr',
+      'de',
+      'zh',
+      'ko',
+      'hi',
+      'ja',
+      'ru',
+      'it',
+      'tr',
+    ])
+    .optional()
+    .default('auto'),
+  format: z
+    .enum(['aac', 'mp3', 'mulaw', 'raw', 'wav'])
+    .optional()
+    .default('mp3'),
   sampleRate: z.number().int().optional().default(24000),
   speed: z.number().min(0.25).max(2).optional().default(1),
   seed: z.number().int().optional(),
   conversational: z.boolean().optional().default(false),
   length: z.number().max(300).optional(),
   topP: z.number().min(0).max(1).optional().default(1),
-  temperature: z.number().min(0).optional().default(1)
+  temperature: z.number().min(0).optional().default(1),
 });
 
-export type LMNTSpeechCallOptions = z.infer<
-  typeof lmntSpeechCallOptionsSchema
->;
+export type LMNTSpeechCallOptions = z.infer<typeof lmntSpeechCallOptionsSchema>;
 
 interface LMNTSpeechModelConfig extends LMNTConfig {
   _internal?: {
@@ -89,7 +107,10 @@ export class LMNTSpeechModel implements SpeechModelV1 {
       const speechModelOptions: Omit<LMNTSpeechAPITypes, 'voice' | 'text'> = {};
 
       for (const key in speechModelOptions) {
-        const value = speechModelOptions[key as keyof Omit<LMNTSpeechAPITypes, 'voice' | 'text'>];
+        const value =
+          speechModelOptions[
+            key as keyof Omit<LMNTSpeechAPITypes, 'voice' | 'text'>
+          ];
         if (value !== undefined) {
           requestBody[key] = value;
         }
