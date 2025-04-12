@@ -1,0 +1,170 @@
+import { SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
+import {
+  combineHeaders,
+  createBinaryResponseHandler,
+  parseProviderOptions,
+  postJsonToApi,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod';
+import { HumeConfig } from './hume-config';
+import { humeFailedResponseHandler } from './hume-error';
+import { HumeSpeechModelId } from './hume-speech-settings';
+import { HumeSpeechAPITypes } from './hume-api-types';
+
+const humeSpeechCallOptionsUtterancesSchema = z.array(z.object({
+  text: z.string(),
+  description: z.string().optional(),
+  speed: z.number().optional(),
+  trailingSilence: z.number().optional(),
+  voice: z
+    .object({
+      id: z.string(),
+      provider: z.enum(['HUME_AI', 'CUSTOM_VOICE']).optional(),
+    })
+    .or(
+      z.object({
+        name: z.string(),
+        provider: z.enum(['HUME_AI', 'CUSTOM_VOICE']).optional(),
+      }),
+    )
+    .optional(),
+}));
+
+// https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
+const humeSpeechCallOptionsSchema = z.object({
+  utterances: humeSpeechCallOptionsUtterancesSchema.nullish(),
+  context: z
+    .object({
+      generationId: z.string(),
+    })
+    .or(
+      z.object({
+        utterances: humeSpeechCallOptionsUtterancesSchema,
+      }),
+    )
+    .nullish(),
+  format: z.object({
+    type: z.enum(['mp3', 'pcm', 'wav']),
+  }).nullish(),
+  numGenerations: z.number().nullish(),
+  splitUtterances: z.boolean().nullish(),
+});
+
+export type HumeSpeechCallOptions = z.infer<typeof humeSpeechCallOptionsSchema>;
+
+interface HumeSpeechModelConfig extends HumeConfig {
+  _internal?: {
+    currentDate?: () => Date;
+  };
+}
+
+export class HumeSpeechModel implements SpeechModelV1 {
+  readonly specificationVersion = 'v1';
+
+  get provider(): string {
+    return this.config.provider;
+  }
+
+  constructor(
+    readonly modelId: HumeSpeechModelId,
+    private readonly config: HumeSpeechModelConfig,
+  ) {}
+
+  private getArgs({
+    text,
+    voice = '6e138d63-e6a9-4360-b1b9-da0bb77e3a58',
+    outputFormat = 'mp3',
+    speed,
+    instructions,
+    providerOptions,
+  }: Parameters<SpeechModelV1['doGenerate']>[0]) {
+    const warnings: SpeechModelV1CallWarning[] = [];
+
+    // Parse provider options
+    const humeOptions = parseProviderOptions({
+      provider: 'hume',
+      providerOptions,
+      schema: humeSpeechCallOptionsSchema,
+    });
+
+    // Create request body
+    const requestBody: HumeSpeechAPITypes = {
+      utterances: [{ text, speed, description: instructions }],
+      format: { type: outputFormat },
+    };
+
+    if (outputFormat) {
+      if (['mp3', 'pcm', 'wav'].includes(outputFormat)) {
+        requestBody.format = { type: outputFormat };
+      } else {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'outputFormat',
+          details: `Unsupported output format: ${outputFormat}. Using mp3 instead.`,
+        });
+      }
+    }
+
+    // Add provider-specific options
+    if (humeOptions) {
+      const speechModelOptions: Omit<HumeSpeechAPITypes, 'utterances' | 'format'> = {
+        context: humeOptions.context,
+        num_generations: humeOptions.numGenerations,
+        split_utterances: humeOptions.splitUtterances,
+      };
+
+      for (const key in speechModelOptions) {
+        const value =
+          speechModelOptions[
+            key as keyof Omit<HumeSpeechAPITypes, 'utterances' | 'format'>
+          ];
+        if (value !== undefined) {
+          requestBody[key] = value;
+        }
+      }
+    }
+
+    return {
+      requestBody,
+      warnings,
+    };
+  }
+
+  async doGenerate(
+    options: Parameters<SpeechModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV1['doGenerate']>>> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { requestBody, warnings } = this.getArgs(options);
+
+    const {
+      value: audio,
+      responseHeaders,
+      rawValue: rawResponse,
+    } = await postJsonToApi({
+      url: this.config.url({
+        path: '/v1/ai/speech/bytes',
+        modelId: this.modelId,
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body: requestBody,
+      failedResponseHandler: humeFailedResponseHandler,
+      successfulResponseHandler: createBinaryResponseHandler(),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return {
+      audio,
+      warnings,
+      request: {
+        body: JSON.stringify(requestBody),
+      },
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+        body: rawResponse,
+      },
+    };
+  }
+}
