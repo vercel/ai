@@ -253,11 +253,10 @@ export type LanguageModelV2StreamPart =
   | { type: 'redacted-reasoning'; data: string }
 
   // Sources:
-  // TODO lift up source
   | { type: 'source'; source: LanguageModelV2Source }
 
   // Files:
-  | ({ type: 'file' } & LanguageModelV2File)
+  | { type: 'file'; file: LanguageModelV2File }
 
   // Complete tool calls:
   | ({ type: 'tool-call' } & LanguageModelV2FunctionToolCall)

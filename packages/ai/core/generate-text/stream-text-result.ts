@@ -317,9 +317,10 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'source';
       source: Source;
     }
-  | ({
+  | {
       type: 'file';
-    } & GeneratedFile)
+      file: GeneratedFile;
+    }
   | ({
       type: 'tool-call';
     } & ToolCallUnion<TOOLS>)

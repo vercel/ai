@@ -20,8 +20,8 @@ async function main() {
       }
 
       case 'file': {
-        if (part.mediaType.startsWith('image/')) {
-          await presentImages([part]);
+        if (part.file.mediaType.startsWith('image/')) {
+          await presentImages([part.file]);
         }
 
         break;

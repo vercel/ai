@@ -1856,19 +1856,31 @@ To see `streamText` in action, check out [these examples](#examples).
               description: 'The type to identify the object as file.',
             },
             {
-              name: 'base64',
-              type: 'string',
-              description: 'File as a base64 encoded string.',
-            },
-            {
-              name: 'uint8Array',
-              type: 'Uint8Array',
-              description: 'File as a Uint8Array.',
-            },
-            {
-              name: 'mediaType',
-              type: 'string',
-              description: 'The IANA media type of the file.',
+              name: 'file',
+              type: 'GeneratedFile',
+              description: 'The file.',
+              properties: [
+                {
+                  type: 'GeneratedFile',
+                  parameters: [
+                    {
+                      name: 'base64',
+                      type: 'string',
+                      description: 'File as a base64 encoded string.',
+                    },
+                    {
+                      name: 'uint8Array',
+                      type: 'Uint8Array',
+                      description: 'File as a Uint8Array.',
+                    },
+                    {
+                      name: 'mediaType',
+                      type: 'string',
+                      description: 'The IANA media type of the file.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },

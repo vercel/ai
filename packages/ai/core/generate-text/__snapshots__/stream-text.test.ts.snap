@@ -3359,21 +3359,27 @@ exports[`streamText > result.fullStream > should send files 1`] = `
     "type": "step-start",
     "warnings": [],
   },
-  DefaultGeneratedFileWithType {
-    "base64Data": "Hello World",
-    "mediaType": "text/plain",
+  {
+    "file": DefaultGeneratedFileWithType {
+      "base64Data": "Hello World",
+      "mediaType": "text/plain",
+      "type": "file",
+      "uint8ArrayData": undefined,
+    },
     "type": "file",
-    "uint8ArrayData": undefined,
   },
   {
     "textDelta": "Hello!",
     "type": "text-delta",
   },
-  DefaultGeneratedFileWithType {
-    "base64Data": "QkFVRw==",
-    "mediaType": "image/jpeg",
+  {
+    "file": DefaultGeneratedFileWithType {
+      "base64Data": "QkFVRw==",
+      "mediaType": "image/jpeg",
+      "type": "file",
+      "uint8ArrayData": undefined,
+    },
     "type": "file",
-    "uint8ArrayData": undefined,
   },
   {
     "finishReason": "stop",
