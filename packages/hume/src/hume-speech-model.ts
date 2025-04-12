@@ -90,12 +90,12 @@ export class HumeSpeechModel implements SpeechModelV1 {
     // Create request body
     const requestBody: HumeSpeechAPITypes = {
       utterances: [{ text, speed, description: instructions }],
-      format: { type: outputFormat },
+      format: { type: 'mp3' },
     };
 
     if (outputFormat) {
       if (['mp3', 'pcm', 'wav'].includes(outputFormat)) {
-        requestBody.format = { type: outputFormat };
+        requestBody.format = { type: outputFormat as 'mp3' | 'pcm' | 'wav' };
       } else {
         warnings.push({
           type: 'unsupported-setting',
@@ -108,10 +108,27 @@ export class HumeSpeechModel implements SpeechModelV1 {
     // Add provider-specific options
     if (humeOptions) {
       const speechModelOptions: Omit<HumeSpeechAPITypes, 'utterances' | 'format'> = {
-        context: humeOptions.context,
-        num_generations: humeOptions.numGenerations,
-        split_utterances: humeOptions.splitUtterances,
+        num_generations: humeOptions.numGenerations ?? undefined,
+        split_utterances: humeOptions.splitUtterances ?? undefined,
       };
+
+      if (humeOptions.context) {
+        if ('generationId' in humeOptions.context) {
+          speechModelOptions.context = {
+            generation_id: humeOptions.context.generationId,
+          };
+        } else {
+          speechModelOptions.context = {
+            utterances: humeOptions.context.utterances.map((utterance) => ({
+              text: utterance.text,
+              description: utterance.description,
+              speed: utterance.speed,
+              trailing_silence: utterance.trailingSilence,
+              voice: utterance.voice,
+            })),
+          };
+        }
+      }
 
       for (const key in speechModelOptions) {
         const value =
@@ -119,7 +136,7 @@ export class HumeSpeechModel implements SpeechModelV1 {
             key as keyof Omit<HumeSpeechAPITypes, 'utterances' | 'format'>
           ];
         if (value !== undefined) {
-          requestBody[key] = value;
+          (requestBody as Record<string, unknown>)[key] = value;
         }
       }
     }
@@ -142,7 +159,7 @@ export class HumeSpeechModel implements SpeechModelV1 {
       rawValue: rawResponse,
     } = await postJsonToApi({
       url: this.config.url({
-        path: '/v1/ai/speech/bytes',
+        path: '/v0/tts/file',
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),

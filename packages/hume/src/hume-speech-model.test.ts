@@ -1,12 +1,12 @@
 import { createTestServer } from '@ai-sdk/provider-utils/test';
-import { LMNTSpeechModel } from './lmnt-speech-model';
-import { createLMNT } from './lmnt-provider';
+import { HumeSpeechModel } from './hume-speech-model';
+import { createHume } from './hume-provider';
 
-const provider = createLMNT({ apiKey: 'test-api-key' });
-const model = provider.speech('aurora');
+const provider = createHume({ apiKey: 'test-api-key' });
+const model = provider.speech();
 
 const server = createTestServer({
-  'https://api.lmnt.com/v1/ai/speech/bytes': {},
+  'https://api.hume.ai/v0/tts/file': {},
 });
 
 describe('doGenerate', () => {
@@ -15,10 +15,10 @@ describe('doGenerate', () => {
     format = 'mp3',
   }: {
     headers?: Record<string, string>;
-    format?: 'aac' | 'mp3' | 'mulaw' | 'raw' | 'wav';
+    format?: 'mp3' | 'pcm' | 'wav';
   } = {}) {
     const audioBuffer = new Uint8Array(100); // Mock audio data
-    server.urls['https://api.lmnt.com/v1/ai/speech/bytes'].response = {
+    server.urls['https://api.hume.ai/v0/tts/file'].response = {
       type: 'binary',
       headers: {
         'content-type': `audio/${format}`,
@@ -37,7 +37,6 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({
-      model: 'aurora',
       text: 'Hello from the AI SDK!',
     });
   });
@@ -45,14 +44,14 @@ describe('doGenerate', () => {
   it('should pass headers', async () => {
     prepareAudioResponse();
 
-    const provider = createLMNT({
+    const provider = createHume({
       apiKey: 'test-api-key',
       headers: {
         'Custom-Provider-Header': 'provider-header-value',
       },
     });
 
-    await provider.speech('aurora').doGenerate({
+    await provider.speech().doGenerate({
       text: 'Hello from the AI SDK!',
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -80,7 +79,7 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBody).toMatchObject({
       model: 'aurora',
       text: 'Hello from the AI SDK!',
-      voice: 'nova',
+      voice: '6e138d63-e6a9-4360-b1b9-da0bb77e3a58',
       speed: 1.5,
       response_format: 'mp3',
     });
@@ -113,9 +112,9 @@ describe('doGenerate', () => {
     });
 
     const testDate = new Date(0);
-    const customModel = new LMNTSpeechModel('aurora', {
+    const customModel = new HumeSpeechModel('', {
       provider: 'test-provider',
-      url: () => 'https://api.lmnt.com/v1/ai/speech/bytes',
+      url: () => 'https://api.hume.ai/v0/tts/file',
       headers: () => ({}),
       _internal: {
         currentDate: () => testDate,
@@ -128,7 +127,6 @@ describe('doGenerate', () => {
 
     expect(result.response).toMatchObject({
       timestamp: testDate,
-      modelId: 'aurora',
       headers: {
         'content-type': 'audio/mp3',
         'x-request-id': 'test-request-id',
@@ -141,9 +139,9 @@ describe('doGenerate', () => {
     prepareAudioResponse();
 
     const testDate = new Date(0);
-    const customModel = new LMNTSpeechModel('aurora', {
+    const customModel = new HumeSpeechModel('', {
       provider: 'test-provider',
-      url: () => 'https://api.lmnt.com/v1/ai/speech/bytes',
+      url: () => 'https://api.hume.ai/v0/tts/file',
       headers: () => ({}),
       _internal: {
         currentDate: () => testDate,
@@ -155,11 +153,11 @@ describe('doGenerate', () => {
     });
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
-    expect(result.response.modelId).toBe('aurora');
+    expect(result.response.modelId).toBe('');
   });
 
   it('should handle different audio formats', async () => {
-    const formats = ['aac', 'mp3', 'mulaw', 'raw', 'wav'] as const;
+    const formats = ['mp3', 'pcm', 'wav'] as const;
 
     for (const format of formats) {
       const audio = prepareAudioResponse({ format });

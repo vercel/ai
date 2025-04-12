@@ -1,2 +1,2 @@
-export { createLMNT, lmnt } from './lmnt-provider';
-export type { LMNTProvider, LMNTProviderSettings } from './lmnt-provider';
+export { createHume, hume } from './hume-provider';
+export type { HumeProvider, HumeProviderSettings } from './hume-provider';

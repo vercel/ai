@@ -34,14 +34,14 @@ or to provide a custom fetch implementation for e.g. testing.
 }
 
 /**
-Create an LMNT provider instance.
+Create an Hume provider instance.
  */
 export function createHume(options: HumeProviderSettings = {}): HumeProvider {
   const getHeaders = () => ({
-    'x-api-key': loadApiKey({
+    'X-Hume-Api-Key': loadApiKey({
       apiKey: options.apiKey,
-      environmentVariableName: 'LMNT_API_KEY',
-      description: 'LMNT',
+      environmentVariableName: 'HUME_API_KEY',
+      description: 'Hume',
     }),
     ...options.headers,
   });
@@ -49,7 +49,7 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
   const createSpeechModel = () =>
     new HumeSpeechModel('', {
       provider: `hume.speech`,
-      url: ({ path }) => `https://api.hume.com${path}`,
+      url: ({ path }) => `https://api.hume.ai${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });
