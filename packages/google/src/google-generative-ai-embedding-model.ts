@@ -83,6 +83,7 @@ export class GoogleGenerativeAIEmbeddingModel
           model: `models/${this.modelId}`,
           content: { role: 'user', parts: [{ text: value }] },
           outputDimensionality: this.settings.outputDimensionality,
+          taskType: this.settings.taskType,
         })),
       },
       failedResponseHandler: googleFailedResponseHandler,
