@@ -79,18 +79,33 @@ Mistral chat models also support additional model settings that are not part of 
 You can pass them as an options argument:
 
 ```ts
-const model = mistral('mistral-large-latest', {
-  safePrompt: true, // optional safety prompt injection
+const model = mistral('mistral-large-latest');
+
+await generateText({
+  model,
+  providerOptions: {
+    mistral: {
+      safePrompt: true, // optional safety prompt injection
+    },
+  },
 });
 ```
 
-The following optional settings are available for Mistral models:
+The following optional provider options are available for Mistral models:
 
 - **safePrompt** _boolean_
 
   Whether to inject a safety prompt before all conversations.
 
   Defaults to `false`.
+
+- **documentImageLimit** _number_
+
+  Maximum number of images to process in a document.
+
+- **documentPageLimit** _number_
+
+  Maximum number of pages to process in a document.
 
 ### Document OCR
 
