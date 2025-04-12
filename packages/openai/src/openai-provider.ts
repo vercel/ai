@@ -1,5 +1,5 @@
 import {
-  EmbeddingModelV1,
+  EmbeddingModelV2,
   ImageModelV1,
   LanguageModelV2,
   ProviderV2,
@@ -79,7 +79,7 @@ Creates a model for text embeddings.
   embedding(
     modelId: OpenAIEmbeddingModelId,
     settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   /**
 Creates a model for text embeddings.
@@ -89,7 +89,7 @@ Creates a model for text embeddings.
   textEmbedding(
     modelId: OpenAIEmbeddingModelId,
     settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   /**
 Creates a model for text embeddings.
@@ -97,7 +97,7 @@ Creates a model for text embeddings.
   textEmbeddingModel(
     modelId: OpenAIEmbeddingModelId,
     settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV1<string>;
+  ): EmbeddingModelV2<string>;
 
   /**
 Creates a model for image generation.
