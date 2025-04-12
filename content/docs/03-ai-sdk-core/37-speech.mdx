@@ -22,21 +22,6 @@ const audio = await generateSpeech({
 });
 ```
 
-### Language Setting
-
-You can specify the language for speech generation (provider support varies):
-
-```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { lmnt } from '@ai-sdk/lmnt';
-
-const audio = await generateSpeech({
-  model: lmnt.speech('aurora'),
-  text: 'Hola, mundo!',
-  language: 'es', // Spanish
-});
-```
-
 To access the generated audio:
 
 ```ts
@@ -160,8 +145,5 @@ try {
 | [OpenAI](/providers/ai-sdk-providers/openai#speech-models) | `tts-1`           |
 | [OpenAI](/providers/ai-sdk-providers/openai#speech-models) | `tts-1-hd`        |
 | [OpenAI](/providers/ai-sdk-providers/openai#speech-models) | `gpt-4o-mini-tts` |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)     | `aurora`          |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)     | `blizzard`        |
-| [Hume](/providers/ai-sdk-providers/hume#speech-models)     | `default`         |
 
 Above are a small subset of the speech models supported by the AI SDK providers. For more, see the respective provider documentation.
