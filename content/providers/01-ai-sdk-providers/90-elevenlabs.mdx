@@ -129,3 +129,31 @@ The following provider options are available:
 | ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
 | `scribe_v1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `scribe_v1_experimental` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+
+## Isolation Models
+
+You can create models that call the [ElevenLabs isolation API](https://elevenlabs.io/voice-isolator)
+using the `.isolate()` factory method.
+
+```ts
+const model = elevenlabs.isolate();
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument.
+
+```ts highlight="6"
+import { experimental_isolateAudio as isolateAudio } from 'ai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+
+const result = await isolateAudio({
+  model: elevenlabs.isolate(),
+  audio: new Uint8Array([1, 2, 3, 4]),
+  providerOptions: { elevenlabs: {} },
+});
+```
+
+### Model Capabilities
+
+| Model                    | Isolate Speech       | Isolate Sound Effects |
+| ------------------------ | ------------------- | ------------------- |
+| `default`              | <Check size={18} /> | <Cross size={18} /> |
