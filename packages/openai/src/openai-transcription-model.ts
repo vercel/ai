@@ -19,7 +19,7 @@ import {
 } from './openai-transcription-settings';
 
 // https://platform.openai.com/docs/api-reference/audio/createTranscription
-const OpenAIProviderOptionsSchema = z.object({
+const openAIProviderOptionsSchema = z.object({
   include: z.array(z.string()).nullish(),
   language: z.string().nullish(),
   prompt: z.string().nullish(),
@@ -35,7 +35,7 @@ export type OpenAITranscriptionCallOptions = Omit<
   'providerOptions'
 > & {
   providerOptions?: {
-    openai?: z.infer<typeof OpenAIProviderOptionsSchema>;
+    openai?: z.infer<typeof openAIProviderOptionsSchema>;
   };
 };
 
@@ -129,7 +129,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     const openAIOptions = parseProviderOptions({
       provider: 'openai',
       providerOptions,
-      schema: OpenAIProviderOptionsSchema,
+      schema: openAIProviderOptionsSchema,
     });
 
     // Create form data with base fields
