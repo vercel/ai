@@ -21,7 +21,9 @@ describe('doGenerate', () => {
     format?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
   } = {}) {
     const audioBuffer = new Uint8Array(100); // Mock audio data
-    server.urls['https://api.elevenlabs.io/v1/speech-to-speech/test-voice'].response = {
+    server.urls[
+      'https://api.elevenlabs.io/v1/speech-to-speech/test-voice'
+    ].response = {
       type: 'binary',
       headers: {
         'content-type': `audio/${format}`,
