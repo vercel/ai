@@ -8,7 +8,6 @@ import {
 import { z } from 'zod';
 import { HumeConfig } from './hume-config';
 import { humeFailedResponseHandler } from './hume-error';
-import { HumeSpeechModelId } from './hume-speech-settings';
 import { HumeSpeechAPITypes } from './hume-api-types';
 
 const humeSpeechCallOptionsUtterancesSchema = z.array(z.object({
@@ -32,7 +31,6 @@ const humeSpeechCallOptionsUtterancesSchema = z.array(z.object({
 
 // https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
 const humeSpeechCallOptionsSchema = z.object({
-  utterances: humeSpeechCallOptionsUtterancesSchema.nullish(),
   context: z
     .object({
       generationId: z.string(),
@@ -43,9 +41,6 @@ const humeSpeechCallOptionsSchema = z.object({
       }),
     )
     .nullish(),
-  format: z.object({
-    type: z.enum(['mp3', 'pcm', 'wav']),
-  }).nullish(),
   numGenerations: z.number().nullish(),
   splitUtterances: z.boolean().nullish(),
 });
@@ -66,7 +61,7 @@ export class HumeSpeechModel implements SpeechModelV1 {
   }
 
   constructor(
-    readonly modelId: HumeSpeechModelId,
+    readonly modelId: '',
     private readonly config: HumeSpeechModelConfig,
   ) {}
 
@@ -89,7 +84,10 @@ export class HumeSpeechModel implements SpeechModelV1 {
 
     // Create request body
     const requestBody: HumeSpeechAPITypes = {
-      utterances: [{ text, speed, description: instructions }],
+      utterances: [{ text, speed, description: instructions, voice: {
+        id: voice,
+        provider: 'HUME_AI',
+      } }],
       format: { type: 'mp3' },
     };
 
