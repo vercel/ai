@@ -74,6 +74,9 @@ importers:
       '@ai-sdk/cohere':
         specifier: 1.2.8
         version: link:../../packages/cohere
+      '@ai-sdk/deepgram':
+        specifier: 0.0.0
+        version: link:../../packages/deepgram
       '@ai-sdk/deepinfra':
         specifier: 0.2.12
         version: link:../../packages/deepinfra
@@ -1404,6 +1407,31 @@ importers:
       tsup:
         specifier: ^8
         version: 8.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.6.3))(typescript@5.6.3)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+
+  packages/deepgram:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: 1.1.2
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: 2.2.6
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.3)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.7.0)
       typescript:
         specifier: 5.6.3
         version: 5.6.3
