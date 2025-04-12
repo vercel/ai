@@ -28,5 +28,8 @@ export type {
 export type { TranscriptionModelResponseMetadata } from './transcription-model-response-metadata';
 export type { SpeechModel, SpeechWarning } from './speech-model';
 export type { SpeechModelResponseMetadata } from './speech-model-response-metadata';
-export type { VoiceChangerModel, VoiceChangerWarning } from './voice-changer-model';
+export type {
+  VoiceChangerModel,
+  VoiceChangerWarning,
+} from './voice-changer-model';
 export type { VoiceChangerModelResponseMetadata } from './voice-changer-model-response-metadata';

@@ -3,6 +3,8 @@ import { ImageModelV1 } from '../../image-model/v1/image-model-v1';
 import { LanguageModelV1 } from '../../language-model/v1/language-model-v1';
 import { TranscriptionModelV1 } from '../../transcription-model/v1/transcription-model-v1';
 import { SpeechModelV1 } from '../../speech-model/v1/speech-model-v1';
+import { VoiceChangerModelV1 } from '../../voice-changer-model/v1/voice-changer-model-v1';
+
 /**
  * Provider for language, text embedding, and image generation models.
  */
@@ -60,4 +62,14 @@ The model id is then passed to the provider function to get the model.
 @returns {SpeechModel} The speech model associated with the id
 */
   readonly speechModel?: (modelId: string) => SpeechModelV1;
+
+  /**
+Returns the voice changer model with the given id.
+The model id is then passed to the provider function to get the model.
+
+@param {string} modelId - The id of the model to return.
+
+@returns {VoiceChangerModel} The voice changer model associated with the id
+*/
+  readonly voiceChangerModel?: (modelId: string) => VoiceChangerModelV1;
 }

@@ -10,7 +10,10 @@ import {
   detectMimeType,
 } from '../util/detect-mimetype';
 import { ChangeVoiceResult } from './change-voice-result';
-import { DefaultGeneratedAudioFile, GeneratedAudioFile } from '../generate-speech/generated-audio-file';
+import {
+  DefaultGeneratedAudioFile,
+  GeneratedAudioFile,
+} from '../generate-speech/generated-audio-file';
 
 /**
 Changes the voice of an audio file using a voice changer model.
@@ -112,10 +115,11 @@ Only applicable for HTTP-based providers.
   return new DefaultChangeVoiceResult({
     audio: new DefaultGeneratedAudioFile({
       data: result.audio,
-      mimeType: detectMimeType({
-        data: result.audio,
-        signatures: audioMimeTypeSignatures,
-      }) ?? 'audio/wav',
+      mimeType:
+        detectMimeType({
+          data: result.audio,
+          signatures: audioMimeTypeSignatures,
+        }) ?? 'audio/wav',
     }),
     warnings: result.warnings,
     responses: [result.response],
@@ -128,7 +132,6 @@ class DefaultChangeVoiceResult implements ChangeVoiceResult {
   readonly warnings: Array<VoiceChangerWarning>;
   readonly responses: Array<VoiceChangerModelResponseMetadata>;
   readonly providerMetadata: Record<string, Record<string, JSONValue>>;
-
 
   constructor(options: {
     audio: GeneratedAudioFile;

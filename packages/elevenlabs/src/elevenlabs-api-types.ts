@@ -99,7 +99,6 @@ export type ElevenLabsTranscriptionAPITypes = {
   file_format?: 'pcm_s16le_16' | 'other';
 };
 
-
 export type ElevenLabsVoiceChangerAPITypes = {
   /**
    * When set to false, zero retention mode will be used for the request.
@@ -115,7 +114,7 @@ export type ElevenLabsVoiceChangerAPITypes = {
    * PCM with 44.1kHz sample rate requires Pro tier or above.
    * @default 'mp3_44100_128'
    */
-  output_format?: 
+  output_format?:
     | 'mp3_22050_32'
     | 'mp3_44100_32'
     | 'mp3_44100_64'
