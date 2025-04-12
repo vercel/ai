@@ -41,7 +41,7 @@ describe('doGenerate', () => {
         {
           text: 'Hello from the AI SDK!',
           voice: {
-            id: '6e138d63-e6a9-4360-b1b9-da0bb77e3a58',
+            id: 'd8ab67c6-953d-4bd8-9370-8fa53a0f1453',
             provider: 'HUME_AI',
           },
         },
