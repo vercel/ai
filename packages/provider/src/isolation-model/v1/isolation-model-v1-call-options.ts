@@ -7,9 +7,17 @@ type IsolationModelV1ProviderOptions = Record<
 
 export type IsolationModelV1CallOptions = {
   /**
-   * Audio to isolate.
+Audio data to transcribe.
+Accepts a `Uint8Array` or `string`, where `string` is a base64 encoded audio file.
+     */
+  audio: Uint8Array | string;
+
+  /**
+The IANA media type of the audio data.
+
+@see https://www.iana.org/assignments/media-types/media-types.xhtml
    */
-  audio: string;
+  mediaType: string;
 
   /**
    * Additional provider-specific options that are passed through to the provider

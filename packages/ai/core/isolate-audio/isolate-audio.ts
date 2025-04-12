@@ -13,6 +13,7 @@ import {
 } from '../util/detect-mimetype';
 import { IsolationResult } from './isolate-audio-result';
 import { GeneratedAudioFile } from '../generate-speech';
+import { DefaultGeneratedAudioFile } from '../generate-speech/generated-audio-file';
 
 /**
 Isolates audio using an isolation model.
@@ -97,12 +98,19 @@ Only applicable for HTTP-based providers.
     }),
   );
 
-  if (!result.audio) {
+  if (!result.audio || result.audio.length === 0) {
     throw new NoSpeechGeneratedError({ responses: [result.response] });
   }
 
   return new DefaultIsolationResult({
-    audio: result.audio,
+    audio: new DefaultGeneratedAudioFile({
+      data: result.audio,
+      mimeType:
+        detectMimeType({
+          data: result.audio,
+          signatures: audioMimeTypeSignatures,
+        }) ?? 'audio/mp3',
+    }),
     warnings: result.warnings,
     responses: [result.response],
     providerMetadata: result.providerMetadata,

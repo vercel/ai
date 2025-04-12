@@ -2,15 +2,18 @@ import {
   JSONValue,
   IsolationModelV1,
   IsolationModelV1CallWarning,
-  TranscriptionModelV1,
 } from '@ai-sdk/provider';
 import { MockIsolationModelV1 } from '../test/mock-isolation-model-v1';
 import { isolateAudio } from './isolate-audio';
 import { GeneratedAudioFile } from '../generate-speech';
+import { DefaultGeneratedAudioFile } from '../generate-speech/generated-audio-file';
 
-const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
+const mockInputData = new Uint8Array([1, 2, 3, 4]);
 const testDate = new Date(2024, 0, 1);
-const sampleResult = new Uint8Array([1, 2, 3]); // Sample audio data
+const mockResult = new DefaultGeneratedAudioFile({
+  data: new Uint8Array([1, 2, 3]),
+  mimeType: 'audio/mp3',
+});
 
 const createMockResponse = (options: {
   audio: GeneratedAudioFile;
@@ -20,7 +23,7 @@ const createMockResponse = (options: {
   headers?: Record<string, string>;
   providerMetadata?: Record<string, Record<string, JSONValue>>;
 }) => ({
-  audio: options.audio,
+  audio: options.audio.uint8Array,
   warnings: options.warnings ?? [],
   response: {
     timestamp: options.timestamp ?? new Date(),
@@ -42,17 +45,17 @@ describe('isolateAudio', () => {
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
-            audio: sampleResult,
+            audio: mockResult,
           });
         },
       }),
-      audio: audioData,
+      audio: mockInputData,
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
     });
 
     expect(capturedArgs).toStrictEqual({
-      audio: audioData,
+      audio: mockInputData,
       mediaType: 'audio/wav',
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
@@ -65,7 +68,7 @@ describe('isolateAudio', () => {
       model: new MockIsolationModelV1({
         doGenerate: async () =>
           createMockResponse({
-            audio: sampleResult,
+            audio: mockResult,
             warnings: [
               {
                 type: 'other',
@@ -79,7 +82,7 @@ describe('isolateAudio', () => {
             },
           }),
       }),
-      audio: audioData,
+      audio: mockInputData,
     });
 
     expect(result.warnings).toStrictEqual([
@@ -95,14 +98,14 @@ describe('isolateAudio', () => {
       model: new MockIsolationModelV1({
         doGenerate: async () =>
           createMockResponse({
-            audio: sampleResult,
+            audio: mockResult,
           }),
       }),
-      audio: audioData,
+      audio: mockInputData,
     });
 
     expect(result).toEqual({
-      audio: sampleResult,
+      audio: mockResult,
       warnings: [],
       responses: [
         {
@@ -116,21 +119,24 @@ describe('isolateAudio', () => {
   });
 
   describe('error handling', () => {
-    it('should throw NoIsolatedAudioError when no isolated audio is returned', async () => {
+    it('should throw NoSpeechGeneratedError when no audio is returned', async () => {
       await expect(
         isolateAudio({
           model: new MockIsolationModelV1({
             doGenerate: async () =>
               createMockResponse({
-                audio: sampleResult,
+                audio: new DefaultGeneratedAudioFile({
+                  data: new Uint8Array(),
+                  mimeType: 'audio/mp3',
+                }),
                 timestamp: testDate,
               }),
           }),
-          audio: audioData,
+          audio: mockInputData,
         }),
       ).rejects.toMatchObject({
-        name: 'AI_NoIsolatedAudioError',
-        message: 'No isolated audio returned.',
+        name: 'AI_NoSpeechGeneratedError',
+        message: 'No speech audio generated.',
         responses: [
           {
             timestamp: testDate,
@@ -139,35 +145,38 @@ describe('isolateAudio', () => {
         ],
       });
     });
+  });
 
-    it('should include response headers in error when no isolated audio is returned', async () => {
-      await expect(
-        isolateAudio({
-          model: new MockIsolationModelV1({
-            doGenerate: async () =>
-              createMockResponse({
-                audio: sampleResult,
-                timestamp: testDate,
-                headers: {
-                  'custom-response-header': 'response-header-value',
-                },
+  it('should include response headers in error when no audio generated', async () => {
+    await expect(
+      isolateAudio({
+        model: new MockIsolationModelV1({
+          doGenerate: async () =>
+            createMockResponse({
+              audio: new DefaultGeneratedAudioFile({
+                data: new Uint8Array(),
+                mimeType: 'audio/mp3',
               }),
-          }),
-          audio: audioData,
+              timestamp: testDate,
+              headers: {
+                'custom-response-header': 'response-header-value',
+              },
+            }),
         }),
-      ).rejects.toMatchObject({
-        name: 'AI_NoTranscriptGeneratedError',
-        message: 'No transcript generated.',
-        responses: [
-          {
-            timestamp: testDate,
-            modelId: expect.any(String),
-            headers: {
-              'custom-response-header': 'response-header-value',
-            },
+        audio: mockInputData,
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_NoSpeechGeneratedError',
+      message: 'No speech audio generated.',
+      responses: [
+        {
+          timestamp: testDate,
+          modelId: expect.any(String),
+          headers: {
+            'custom-response-header': 'response-header-value',
           },
-        ],
-      });
+        },
+      ],
     });
   });
 
@@ -178,13 +187,16 @@ describe('isolateAudio', () => {
       model: new MockIsolationModelV1({
         doGenerate: async () =>
           createMockResponse({
-            audio: sampleResult,
+            audio: new DefaultGeneratedAudioFile({
+              data: mockInputData,
+              mimeType: 'audio/mp3',
+            }),
             timestamp: testDate,
             modelId: 'test-model',
             headers: testHeaders,
           }),
       }),
-      audio: audioData,
+      audio: mockInputData,
     });
 
     expect(result.responses).toStrictEqual([

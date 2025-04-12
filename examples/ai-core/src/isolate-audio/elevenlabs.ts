@@ -2,6 +2,7 @@ import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { experimental_isolateAudio as isolateAudio } from 'ai';
 import 'dotenv/config';
 import { saveAudioFile } from '../lib/save-audio';
+import { readFile } from 'fs/promises';
 
 async function main() {
   const result = await isolateAudio({
