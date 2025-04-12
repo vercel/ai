@@ -10,24 +10,26 @@ import { HumeConfig } from './hume-config';
 import { humeFailedResponseHandler } from './hume-error';
 import { HumeSpeechAPITypes } from './hume-api-types';
 
-const humeSpeechCallOptionsUtterancesSchema = z.array(z.object({
-  text: z.string(),
-  description: z.string().optional(),
-  speed: z.number().optional(),
-  trailingSilence: z.number().optional(),
-  voice: z
-    .object({
-      id: z.string(),
-      provider: z.enum(['HUME_AI', 'CUSTOM_VOICE']).optional(),
-    })
-    .or(
-      z.object({
-        name: z.string(),
+const humeSpeechCallOptionsUtterancesSchema = z.array(
+  z.object({
+    text: z.string(),
+    description: z.string().optional(),
+    speed: z.number().optional(),
+    trailingSilence: z.number().optional(),
+    voice: z
+      .object({
+        id: z.string(),
         provider: z.enum(['HUME_AI', 'CUSTOM_VOICE']).optional(),
-      }),
-    )
-    .optional(),
-}));
+      })
+      .or(
+        z.object({
+          name: z.string(),
+          provider: z.enum(['HUME_AI', 'CUSTOM_VOICE']).optional(),
+        }),
+      )
+      .optional(),
+  }),
+);
 
 // https://dev.hume.ai/reference/text-to-speech-tts/synthesize-file
 const humeSpeechCallOptionsSchema = z.object({
@@ -84,10 +86,17 @@ export class HumeSpeechModel implements SpeechModelV1 {
 
     // Create request body
     const requestBody: HumeSpeechAPITypes = {
-      utterances: [{ text, speed, description: instructions, voice: {
-        id: voice,
-        provider: 'HUME_AI',
-      } }],
+      utterances: [
+        {
+          text,
+          speed,
+          description: instructions,
+          voice: {
+            id: voice,
+            provider: 'HUME_AI',
+          },
+        },
+      ],
       format: { type: 'mp3' },
     };
 
@@ -105,7 +114,10 @@ export class HumeSpeechModel implements SpeechModelV1 {
 
     // Add provider-specific options
     if (humeOptions) {
-      const speechModelOptions: Omit<HumeSpeechAPITypes, 'utterances' | 'format'> = {
+      const speechModelOptions: Omit<
+        HumeSpeechAPITypes,
+        'utterances' | 'format'
+      > = {
         num_generations: humeOptions.numGenerations ?? undefined,
         split_utterances: humeOptions.splitUtterances ?? undefined,
       };
@@ -117,7 +129,7 @@ export class HumeSpeechModel implements SpeechModelV1 {
           };
         } else {
           speechModelOptions.context = {
-            utterances: humeOptions.context.utterances.map((utterance) => ({
+            utterances: humeOptions.context.utterances.map(utterance => ({
               text: utterance.text,
               description: utterance.description,
               speed: utterance.speed,

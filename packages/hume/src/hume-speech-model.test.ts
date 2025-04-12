@@ -37,7 +37,18 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({
-      text: 'Hello from the AI SDK!',
+      utterances: [
+        {
+          text: 'Hello from the AI SDK!',
+          voice: {
+            id: '6e138d63-e6a9-4360-b1b9-da0bb77e3a58',
+            provider: 'HUME_AI',
+          },
+        },
+      ],
+      format: {
+        type: 'mp3',
+      },
     });
   });
 
@@ -59,7 +70,7 @@ describe('doGenerate', () => {
     });
 
     expect(server.calls[0].requestHeaders).toMatchObject({
-      'x-api-key': 'test-api-key',
+      'x-hume-api-key': 'test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
@@ -71,17 +82,25 @@ describe('doGenerate', () => {
 
     await model.doGenerate({
       text: 'Hello from the AI SDK!',
-      voice: 'nova',
+      voice: 'test-voice',
       outputFormat: 'mp3',
       speed: 1.5,
     });
 
     expect(await server.calls[0].requestBody).toMatchObject({
-      model: 'aurora',
-      text: 'Hello from the AI SDK!',
-      voice: '6e138d63-e6a9-4360-b1b9-da0bb77e3a58',
-      speed: 1.5,
-      response_format: 'mp3',
+      utterances: [
+        {
+          text: 'Hello from the AI SDK!',
+          voice: {
+            id: 'test-voice',
+            provider: 'HUME_AI',
+          },
+          speed: 1.5,
+        },
+      ],
+      format: {
+        type: 'mp3',
+      },
     });
   });
 

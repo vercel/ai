@@ -3,9 +3,7 @@ import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { HumeSpeechModel } from './hume-speech-model';
 
 export interface HumeProvider extends Pick<ProviderV1, 'speechModel'> {
-  (
-    settings?: {},
-  ): {
+  (settings?: {}): {
     speech: HumeSpeechModel;
   };
 
