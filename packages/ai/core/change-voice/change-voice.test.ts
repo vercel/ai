@@ -1,51 +1,33 @@
 import {
   JSONValue,
-  TranscriptionModelV1,
-  TranscriptionModelV1CallWarning,
+  VoiceChangerModelV1,
+  VoiceChangerModelV1CallWarning,
 } from '@ai-sdk/provider';
-import { MockTranscriptionModelV1 } from '../test/mock-transcription-model-v1';
+import { MockVoiceChangerModelV1 } from '../test/mock-voice-changer-model-v1';
 import { changeVoice } from './change-voice';
+import { DefaultGeneratedAudioFile } from '../generate-speech/generated-audio-file';
 
 const audioData = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
 
-const sampleTranscript = {
-  text: 'This is a sample transcript.',
-  segments: [
-    {
-      startSecond: 0,
-      endSecond: 2.5,
-      text: 'This is a',
-    },
-    {
-      startSecond: 2.5,
-      endSecond: 4.0,
-      text: 'sample transcript.',
-    },
-  ],
-  language: 'en',
-  durationInSeconds: 4.0,
+const sampleVoiceChange = {
+  audio: new Uint8Array([5, 6, 7, 8]), // Changed audio data
 };
 
+const mockFile = new DefaultGeneratedAudioFile({
+  data: new Uint8Array([5, 6, 7, 8]),
+  mimeType: 'audio/wav',
+});
+
 const createMockResponse = (options: {
-  text: string;
-  segments: Array<{
-    text: string;
-    startSecond: number;
-    endSecond: number;
-  }>;
-  language?: string;
-  durationInSeconds?: number;
-  warnings?: TranscriptionModelV1CallWarning[];
+  audio: Uint8Array;
+  warnings?: VoiceChangerModelV1CallWarning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
   providerMetadata?: Record<string, Record<string, JSONValue>>;
 }) => ({
-  text: options.text,
-  segments: options.segments,
-  language: options.language,
-  durationInSeconds: options.durationInSeconds,
+  audio: options.audio,
   warnings: options.warnings ?? [],
   response: {
     timestamp: options.timestamp ?? new Date(),
@@ -55,29 +37,31 @@ const createMockResponse = (options: {
   providerMetadata: options.providerMetadata ?? {},
 });
 
-describe('transcribe', () => {
+describe('changeVoice', () => {
   it('should send args to doGenerate', async () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<TranscriptionModelV1['doGenerate']>[0];
+    let capturedArgs!: Parameters<VoiceChangerModelV1['doGenerate']>[0];
 
-    await transcribe({
-      model: new MockTranscriptionModelV1({
+    await changeVoice({
+      model: new MockVoiceChangerModelV1({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
-            ...sampleTranscript,
+            ...sampleVoiceChange,
           });
         },
       }),
       audio: audioData,
+      voice: 'test-voice-id',
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
     });
 
     expect(capturedArgs).toStrictEqual({
       audio: audioData,
+      voice: 'test-voice-id',
       mediaType: 'audio/wav',
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
@@ -86,11 +70,11 @@ describe('transcribe', () => {
   });
 
   it('should return warnings', async () => {
-    const result = await transcribe({
-      model: new MockTranscriptionModelV1({
+    const result = await changeVoice({
+      model: new MockVoiceChangerModelV1({
         doGenerate: async () =>
           createMockResponse({
-            ...sampleTranscript,
+            ...sampleVoiceChange,
             warnings: [
               {
                 type: 'other',
@@ -105,6 +89,7 @@ describe('transcribe', () => {
           }),
       }),
       audio: audioData,
+      voice: 'test-voice-id',
     });
 
     expect(result.warnings).toStrictEqual([
@@ -115,19 +100,20 @@ describe('transcribe', () => {
     ]);
   });
 
-  it('should return the transcript', async () => {
-    const result = await transcribe({
-      model: new MockTranscriptionModelV1({
+  it('should return the changed audio', async () => {
+    const result = await changeVoice({
+      model: new MockVoiceChangerModelV1({
         doGenerate: async () =>
           createMockResponse({
-            ...sampleTranscript,
+            ...sampleVoiceChange,
           }),
       }),
       audio: audioData,
+      voice: 'test-voice-id',
     });
 
     expect(result).toEqual({
-      ...sampleTranscript,
+      audio: mockFile,
       warnings: [],
       responses: [
         {
@@ -141,24 +127,22 @@ describe('transcribe', () => {
   });
 
   describe('error handling', () => {
-    it('should throw NoTranscriptGeneratedError when no transcript is returned', async () => {
+    it('should throw NoSpeechGeneratedError when no audio is returned', async () => {
       await expect(
-        transcribe({
-          model: new MockTranscriptionModelV1({
+        changeVoice({
+          model: new MockVoiceChangerModelV1({
             doGenerate: async () =>
               createMockResponse({
-                text: '',
-                segments: [],
-                language: 'en',
-                durationInSeconds: 0,
+                audio: new Uint8Array(),
                 timestamp: testDate,
               }),
           }),
           audio: audioData,
+          voice: 'test-voice-id',
         }),
       ).rejects.toMatchObject({
-        name: 'AI_NoTranscriptGeneratedError',
-        message: 'No transcript generated.',
+        name: 'AI_NoSpeechGeneratedError',
+        message: 'No speech audio generated.',
         responses: [
           {
             timestamp: testDate,
@@ -168,16 +152,13 @@ describe('transcribe', () => {
       });
     });
 
-    it('should include response headers in error when no transcript generated', async () => {
+    it('should include response headers in error when no audio generated', async () => {
       await expect(
-        transcribe({
-          model: new MockTranscriptionModelV1({
+        changeVoice({
+          model: new MockVoiceChangerModelV1({
             doGenerate: async () =>
               createMockResponse({
-                text: '',
-                segments: [],
-                language: 'en',
-                durationInSeconds: 0,
+                audio: new Uint8Array(),
                 timestamp: testDate,
                 headers: {
                   'custom-response-header': 'response-header-value',
@@ -185,10 +166,11 @@ describe('transcribe', () => {
               }),
           }),
           audio: audioData,
+          voice: 'test-voice-id',
         }),
       ).rejects.toMatchObject({
-        name: 'AI_NoTranscriptGeneratedError',
-        message: 'No transcript generated.',
+        name: 'AI_NoSpeechGeneratedError',
+        message: 'No speech audio generated.',
         responses: [
           {
             timestamp: testDate,
@@ -205,17 +187,18 @@ describe('transcribe', () => {
   it('should return response metadata', async () => {
     const testHeaders = { 'x-test': 'value' };
 
-    const result = await transcribe({
-      model: new MockTranscriptionModelV1({
+    const result = await changeVoice({
+      model: new MockVoiceChangerModelV1({
         doGenerate: async () =>
           createMockResponse({
-            ...sampleTranscript,
+            ...sampleVoiceChange,
             timestamp: testDate,
             modelId: 'test-model',
             headers: testHeaders,
           }),
       }),
       audio: audioData,
+      voice: 'test-voice-id',
     });
 
     expect(result.responses).toStrictEqual([

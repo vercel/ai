@@ -14,6 +14,10 @@ import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
 } from '../generate-speech/generated-audio-file';
+import {
+  VoiceChangerModelResponseMetadata,
+  VoiceChangerWarning,
+} from '../types';
 
 /**
 Changes the voice of an audio file using a voice changer model.

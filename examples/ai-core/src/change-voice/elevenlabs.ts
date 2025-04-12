@@ -6,7 +6,7 @@ import { saveAudioFile } from '../lib/save-audio';
 
 async function main() {
   const result = await changeVoice({
-    model: elevenlabs.changer('eleven_multilingual_v2'),
+    model: elevenlabs.voiceChanger('eleven_multilingual_v2'),
     audio: await readFile('data/galileo.mp3'),
     voice: '21m00Tcm4TlvDq8ikWAM',
   });

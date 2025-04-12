@@ -38,6 +38,7 @@ describe('doGenerate', () => {
     await model.doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
+      voice: 'test-voice',
     });
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
@@ -55,9 +56,10 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider.transcription('scribe_v1').doGenerate({
+    await provider.voiceChanger('eleven_multilingual_v2').doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
+      voice: 'test-voice',
       headers: {
         'Custom-Request-Header': 'request-header-value',
       },
@@ -73,15 +75,23 @@ describe('doGenerate', () => {
     });
   });
 
-  it('should extract the transcription text', async () => {
-    prepareAudioResponse();
+  it('should return audio data with correct content type', async () => {
+    const audio = new Uint8Array(100); // Mock audio data
+    prepareAudioResponse({
+      format: 'opus',
+      headers: {
+        'x-request-id': 'test-request-id',
+        'x-ratelimit-remaining': '123',
+      },
+    });
 
     const result = await model.doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
+      voice: 'test-voice',
     });
 
-    expect(result.text).toBe('Hello world!');
+    expect(result.audio).toStrictEqual(audio);
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
@@ -93,25 +103,29 @@ describe('doGenerate', () => {
     });
 
     const testDate = new Date(0);
-    const customModel = new ElevenLabsVoiceChangerModel('eleven_multilingual_v2', {
-      provider: 'test-provider',
-      url: () => 'https://api.elevenlabs.io/v1/speech-to-speech',
-      headers: () => ({}),
-      _internal: {
-        currentDate: () => testDate,
+    const customModel = new ElevenLabsVoiceChangerModel(
+      'eleven_multilingual_v2',
+      {
+        provider: 'test-provider',
+        url: () => 'https://api.elevenlabs.io/v1/speech-to-speech',
+        headers: () => ({}),
+        _internal: {
+          currentDate: () => testDate,
+        },
       },
-    });
+    );
 
     const result = await customModel.doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
+      voice: 'test-voice',
     });
 
     expect(result.response).toMatchObject({
       timestamp: testDate,
       modelId: 'eleven_multilingual_v2',
       headers: {
-        'content-type': 'application/json',
+        'content-type': 'audio/mp3',
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',
       },
@@ -122,22 +136,25 @@ describe('doGenerate', () => {
     prepareAudioResponse();
 
     const testDate = new Date(0);
-    const customModel = new ElevenLabsVoiceChangerModel('eleven_multilingual_v2', {
-      provider: 'test-provider',
-      url: () => 'https://api.elevenlabs.io/v1/speech-to-speech',
-      headers: () => ({}),
-      _internal: {
-        currentDate: () => testDate,
+    const customModel = new ElevenLabsVoiceChangerModel(
+      'eleven_multilingual_v2',
+      {
+        provider: 'test-provider',
+        url: () => 'https://api.elevenlabs.io/v1/speech-to-speech',
+        headers: () => ({}),
+        _internal: {
+          currentDate: () => testDate,
+        },
       },
-    });
+    );
 
     const result = await customModel.doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
+      voice: 'test-voice',
     });
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
     expect(result.response.modelId).toBe('eleven_multilingual_v2');
   });
-
 });

@@ -16,7 +16,7 @@ import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { readFile } from 'fs/promises';
 
 const audio = await changeVoice({
-  model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+  model: elevenlabs.voiceChanger('eleven_multilingual_sts_v2'),
   audio: await readFile('audio.mp3'),
   voice: '21m00Tcm4TlvDq8ikWAM',
 });
@@ -40,7 +40,7 @@ import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { readFile } from 'fs/promises';
 
 const audio = await changeVoice({
-  model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+  model: elevenlabs.voiceChanger('eleven_multilingual_sts_v2'),
   audio: await readFile('audio.mp3'),
   voice: '21m00Tcm4TlvDq8ikWAM',
   providerOptions: {
@@ -63,7 +63,7 @@ import { experimental_changeVoice as changeVoice } from 'ai';
 import { readFile } from 'fs/promises';
 
 const audio = await changeVoice({
-  model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+  model: elevenlabs.voiceChanger('eleven_multilingual_sts_v2'),
   audio: await readFile('audio.mp3'),
   voice: '21m00Tcm4TlvDq8ikWAM',
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
@@ -81,7 +81,7 @@ import { experimental_changeVoice as changeVoice } from 'ai';
 import { readFile } from 'fs/promises';
 
 const audio = await changeVoice({
-  model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+  model: elevenlabs.voiceChanger('eleven_multilingual_sts_v2'),
   audio: await readFile('audio.mp3'),
   voice: '21m00Tcm4TlvDq8ikWAM',
   headers: { 'X-Custom-Header': 'custom-value' },
@@ -98,7 +98,7 @@ import { experimental_changeVoice as changeVoice } from 'ai';
 import { readFile } from 'fs/promises';
 
 const audio = await changeVoice({
-  model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+  model: elevenlabs.voiceChanger('eleven_multilingual_sts_v2'),
   audio: await readFile('audio.mp3'),
   voice: '21m00Tcm4TlvDq8ikWAM',
 });
@@ -130,7 +130,7 @@ import { readFile } from 'fs/promises';
 
 try {
   await changeVoice({
-    model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+    model: elevenlabs.voiceChanger('eleven_multilingual_sts_v2'),
     audio: await readFile('audio.mp3'),
     voice: '21m00Tcm4TlvDq8ikWAM',
   });

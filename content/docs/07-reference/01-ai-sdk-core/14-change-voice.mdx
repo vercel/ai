@@ -15,7 +15,7 @@ import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { readFile } from 'fs/promises';
 
 const { audio } = await changeVoice({
-  model: elevenlabs.changer('eleven_multilingual_v2'),
+  model: elevenlabs.voiceChanger('eleven_multilingual_v2'),
   audio: await readFile('audio.mp3'),
   voice: '21m00Tcm4TlvDq8ikWAM',
 });

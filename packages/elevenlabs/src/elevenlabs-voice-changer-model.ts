@@ -18,7 +18,28 @@ import { ElevenLabsVoiceChangerAPITypes } from './elevenlabs-api-types';
 // https://elevenlabs.io/docs/api-reference/speech-to-speech/convert
 const elevenLabsProviderOptionsSchema = z.object({
   enableLogging: z.boolean().nullish().default(true),
-  outputFormat: z.enum(['mp3_22050_32', 'mp3_44100_32', 'mp3_44100_64', 'mp3_44100_96', 'mp3_44100_128', 'mp3_44100_192', 'pcm_8000', 'pcm_16000', 'pcm_22050', 'pcm_24000', 'pcm_44100', 'ulaw_8000', 'alaw_8000', 'opus_48000_32', 'opus_48000_64', 'opus_48000_96', 'opus_48000_128']).nullish().default('mp3_44100_128'),
+  outputFormat: z
+    .enum([
+      'mp3_22050_32',
+      'mp3_44100_32',
+      'mp3_44100_64',
+      'mp3_44100_96',
+      'mp3_44100_128',
+      'mp3_44100_192',
+      'pcm_8000',
+      'pcm_16000',
+      'pcm_22050',
+      'pcm_24000',
+      'pcm_44100',
+      'ulaw_8000',
+      'alaw_8000',
+      'opus_48000_32',
+      'opus_48000_64',
+      'opus_48000_96',
+      'opus_48000_128',
+    ])
+    .nullish()
+    .default('mp3_44100_128'),
 });
 
 export type ElevenLabsVoiceChangerCallOptions = z.infer<
@@ -73,14 +94,11 @@ export class ElevenLabsVoiceChangerModel implements VoiceChangerModelV1 {
       const voiceChangerModelOptions: ElevenLabsVoiceChangerAPITypes = {
         enable_logging: elevenlabsOptions.enableLogging ?? undefined,
         output_format: elevenlabsOptions.outputFormat ?? undefined,
-
       };
 
       for (const key in voiceChangerModelOptions) {
         const value =
-          voiceChangerModelOptions[
-            key as keyof ElevenLabsVoiceChangerAPITypes
-          ];
+          voiceChangerModelOptions[key as keyof ElevenLabsVoiceChangerAPITypes];
         if (value !== undefined) {
           formData.append(key, String(value));
         }

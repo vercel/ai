@@ -1,4 +1,8 @@
-import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
+import {
+  TranscriptionModelV1,
+  ProviderV1,
+  VoiceChangerModelV1,
+} from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
@@ -6,7 +10,7 @@ import { ElevenLabsVoiceChangerModel } from './elevenlabs-voice-changer-model';
 import { ElevenLabsVoiceChangerModelId } from './elevenlabs-voice-changer-settings';
 
 export interface ElevenLabsProvider
-  extends Pick<ProviderV1, 'transcriptionModel'> {
+  extends Pick<ProviderV1, 'transcriptionModel' | 'voiceChangerModel'> {
   (
     modelId: 'scribe_v1',
     settings?: {},
@@ -19,6 +23,11 @@ export interface ElevenLabsProvider
 Creates a model for transcription.
    */
   transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV1;
+
+  /**
+Creates a model for voice changer.
+   */
+  voiceChanger(modelId: ElevenLabsVoiceChangerModelId): VoiceChangerModelV1;
 }
 
 export interface ElevenLabsProviderSettings {
@@ -79,7 +88,7 @@ export function createElevenLabs(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
-  
+
   provider.voiceChanger = createVoiceChangerModel;
   provider.voiceChangerModel = createVoiceChangerModel;
 
