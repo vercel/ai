@@ -5,3 +5,4 @@ export {
   experimental_wrapLanguageModel,
   wrapLanguageModel,
 } from './wrap-language-model';
+export { wrapEmbeddingModel } from './wrap-embedding-model';
