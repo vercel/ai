@@ -1,0 +1,723 @@
+import {
+  TranscriptionModelV1,
+  TranscriptionModelV1CallWarning,
+} from '@ai-sdk/provider';
+import {
+  combineHeaders,
+  convertBase64ToUint8Array,
+  createJsonResponseHandler,
+  getFromApi,
+  parseProviderOptions,
+  postFormDataToApi,
+  postJsonToApi,
+} from '@ai-sdk/provider-utils';
+import { z } from 'zod';
+import { GladiaConfig } from './gladia-config';
+import { gladiaFailedResponseHandler } from './gladia-error';
+import { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
+
+// https://docs.gladia.io/api-reference/v2/pre-recorded/init
+const gladiaProviderOptionsSchema = z.object({
+  contextPrompt: z.string().nullish(),
+  customVocabulary: z.union([z.boolean(), z.array(z.any())]).nullish(),
+  customVocabularyConfig: z
+    .object({
+      vocabulary: z.array(
+        z.union([
+          z.string(),
+          z.object({
+            value: z.string(),
+            intensity: z.number().nullish(),
+            pronunciations: z.array(z.string()).nullish(),
+            language: z.string().nullish(),
+          }),
+        ]),
+      ),
+      defaultIntensity: z.number().nullish(),
+    })
+    .nullish(),
+  detectLanguage: z.boolean().nullish(),
+  enableCodeSwitching: z.boolean().nullish(),
+  codeSwitchingConfig: z
+    .object({
+      languages: z.array(z.string()).nullish(),
+    })
+    .nullish(),
+  language: z.string().nullish(),
+  callback: z.boolean().nullish(),
+  callbackConfig: z
+    .object({
+      url: z.string(),
+      method: z.enum(['POST', 'PUT']).nullish(),
+    })
+    .nullish(),
+  subtitles: z.boolean().nullish(),
+  subtitlesConfig: z
+    .object({
+      formats: z.array(z.enum(['srt', 'vtt'])).nullish(),
+      minimumDuration: z.number().nullish(),
+      maximumDuration: z.number().nullish(),
+      maximumCharactersPerRow: z.number().nullish(),
+      maximumRowsPerCaption: z.number().nullish(),
+      style: z.enum(['default', 'compliance']).nullish(),
+    })
+    .nullish(),
+  diarization: z.boolean().nullish(),
+  diarizationConfig: z
+    .object({
+      numberOfSpeakers: z.number().nullish(),
+      minSpeakers: z.number().nullish(),
+      maxSpeakers: z.number().nullish(),
+      enhanced: z.boolean().nullish(),
+    })
+    .nullish(),
+  translation: z.boolean().nullish(),
+  translationConfig: z
+    .object({
+      targetLanguages: z.array(z.string()),
+      model: z.enum(['base', 'enhanced']).nullish(),
+      matchOriginalUtterances: z.boolean().nullish(),
+    })
+    .nullish(),
+  summarization: z.boolean().nullish(),
+  summarizationConfig: z
+    .object({
+      type: z.enum(['general', 'bullet_points', 'concise']).nullish(),
+    })
+    .nullish(),
+  moderation: z.boolean().nullish(),
+  namedEntityRecognition: z.boolean().nullish(),
+  chapterization: z.boolean().nullish(),
+  nameConsistency: z.boolean().nullish(),
+  customSpelling: z.boolean().nullish(),
+  customSpellingConfig: z
+    .object({
+      spellingDictionary: z.record(z.array(z.string())),
+    })
+    .nullish(),
+  structuredDataExtraction: z.boolean().nullish(),
+  structuredDataExtractionConfig: z
+    .object({
+      classes: z.array(z.string()),
+    })
+    .nullish(),
+  sentimentAnalysis: z.boolean().nullish(),
+  audioToLlm: z.boolean().nullish(),
+  audioToLlmConfig: z
+    .object({
+      prompts: z.array(z.string()),
+    })
+    .nullish(),
+  customMetadata: z.record(z.any()).nullish(),
+  sentences: z.boolean().nullish(),
+  displayMode: z.boolean().nullish(),
+  punctuationEnhanced: z.boolean().nullish(),
+});
+
+export type GladiaTranscriptionCallOptions = z.infer<
+  typeof gladiaProviderOptionsSchema
+>;
+
+interface GladiaTranscriptionModelConfig extends GladiaConfig {
+  _internal?: {
+    currentDate?: () => Date;
+  };
+}
+
+export class GladiaTranscriptionModel implements TranscriptionModelV1 {
+  readonly specificationVersion = 'v1';
+
+  get provider(): string {
+    return this.config.provider;
+  }
+
+  constructor(
+    readonly modelId: '',
+    private readonly config: GladiaTranscriptionModelConfig,
+  ) {}
+
+  private async getArgs({
+    providerOptions,
+  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV1CallWarning[] = [];
+
+    // Parse provider options
+    const gladiaOptions = parseProviderOptions({
+      provider: 'gladia',
+      providerOptions,
+      schema: gladiaProviderOptionsSchema,
+    });
+
+    const body: Omit<GladiaTranscriptionInitiateAPITypes, 'audio_url'> = {};
+
+    // Add provider-specific options
+    if (gladiaOptions) {
+      body.context_prompt = gladiaOptions.contextPrompt ?? undefined;
+      body.custom_vocabulary = gladiaOptions.customVocabulary ?? undefined;
+      body.detect_language = gladiaOptions.detectLanguage ?? undefined;
+      body.enable_code_switching =
+        gladiaOptions.enableCodeSwitching ?? undefined;
+      body.language = gladiaOptions.language ?? undefined;
+      body.callback = gladiaOptions.callback ?? undefined;
+      body.subtitles = gladiaOptions.subtitles ?? undefined;
+      body.diarization = gladiaOptions.diarization ?? undefined;
+      body.translation = gladiaOptions.translation ?? undefined;
+      body.summarization = gladiaOptions.summarization ?? undefined;
+      body.moderation = gladiaOptions.moderation ?? undefined;
+      body.named_entity_recognition =
+        gladiaOptions.namedEntityRecognition ?? undefined;
+      body.chapterization = gladiaOptions.chapterization ?? undefined;
+      body.name_consistency = gladiaOptions.nameConsistency ?? undefined;
+      body.custom_spelling = gladiaOptions.customSpelling ?? undefined;
+      body.structured_data_extraction =
+        gladiaOptions.structuredDataExtraction ?? undefined;
+      body.structured_data_extraction_config =
+        gladiaOptions.structuredDataExtractionConfig ?? undefined;
+      body.sentiment_analysis = gladiaOptions.sentimentAnalysis ?? undefined;
+      body.audio_to_llm = gladiaOptions.audioToLlm ?? undefined;
+      body.audio_to_llm_config = gladiaOptions.audioToLlmConfig ?? undefined;
+      body.custom_metadata = gladiaOptions.customMetadata ?? undefined;
+      body.sentences = gladiaOptions.sentences ?? undefined;
+      body.display_mode = gladiaOptions.displayMode ?? undefined;
+      body.punctuation_enhanced =
+        gladiaOptions.punctuationEnhanced ?? undefined;
+
+      if (gladiaOptions.customVocabularyConfig) {
+        body.custom_vocabulary_config = {
+          vocabulary: gladiaOptions.customVocabularyConfig.vocabulary.map(
+            item => {
+              if (typeof item === 'string') return item;
+              return {
+                value: item.value,
+                intensity: item.intensity ?? undefined,
+                pronunciations: item.pronunciations ?? undefined,
+                language: item.language ?? undefined,
+              };
+            },
+          ),
+          default_intensity:
+            gladiaOptions.customVocabularyConfig.defaultIntensity ?? undefined,
+        };
+      }
+
+      // Handle code switching config
+      if (gladiaOptions.codeSwitchingConfig) {
+        body.code_switching_config = {
+          languages: gladiaOptions.codeSwitchingConfig.languages ?? undefined,
+        };
+      }
+
+      // Handle callback config
+      if (gladiaOptions.callbackConfig) {
+        body.callback_config = {
+          url: gladiaOptions.callbackConfig.url,
+          method: gladiaOptions.callbackConfig.method ?? undefined,
+        };
+      }
+
+      // Handle subtitles config
+      if (gladiaOptions.subtitlesConfig) {
+        body.subtitles_config = {
+          formats: gladiaOptions.subtitlesConfig.formats ?? undefined,
+          minimum_duration:
+            gladiaOptions.subtitlesConfig.minimumDuration ?? undefined,
+          maximum_duration:
+            gladiaOptions.subtitlesConfig.maximumDuration ?? undefined,
+          maximum_characters_per_row:
+            gladiaOptions.subtitlesConfig.maximumCharactersPerRow ?? undefined,
+          maximum_rows_per_caption:
+            gladiaOptions.subtitlesConfig.maximumRowsPerCaption ?? undefined,
+          style: gladiaOptions.subtitlesConfig.style ?? undefined,
+        };
+      }
+
+      // Handle diarization config
+      if (gladiaOptions.diarizationConfig) {
+        body.diarization_config = {
+          number_of_speakers:
+            gladiaOptions.diarizationConfig.numberOfSpeakers ?? undefined,
+          min_speakers:
+            gladiaOptions.diarizationConfig.minSpeakers ?? undefined,
+          max_speakers:
+            gladiaOptions.diarizationConfig.maxSpeakers ?? undefined,
+          enhanced: gladiaOptions.diarizationConfig.enhanced ?? undefined,
+        };
+      }
+
+      // Handle translation config
+      if (gladiaOptions.translationConfig) {
+        body.translation_config = {
+          target_languages: gladiaOptions.translationConfig.targetLanguages,
+          model: gladiaOptions.translationConfig.model ?? undefined,
+          match_original_utterances:
+            gladiaOptions.translationConfig.matchOriginalUtterances ??
+            undefined,
+        };
+      }
+
+      // Handle summarization config
+      if (gladiaOptions.summarizationConfig) {
+        body.summarization_config = {
+          type: gladiaOptions.summarizationConfig.type ?? undefined,
+        };
+      }
+
+      // Handle custom spelling config
+      if (gladiaOptions.customSpellingConfig) {
+        body.custom_spelling_config = {
+          spelling_dictionary:
+            gladiaOptions.customSpellingConfig.spellingDictionary,
+        };
+      }
+    }
+
+    return {
+      body,
+      warnings,
+    };
+  }
+
+  async doGenerate(
+    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+
+    // Create form data with base fields
+    const formData = new FormData();
+    const blob =
+      options.audio instanceof Uint8Array
+        ? new Blob([options.audio])
+        : new Blob([convertBase64ToUint8Array(options.audio)]);
+
+    formData.append('model', this.modelId);
+    formData.append(
+      'audio',
+      new File([blob], 'audio', { type: options.mediaType }),
+    );
+
+    const { value: uploadResponse } = await postFormDataToApi({
+      url: this.config.url({
+        path: '/v2/upload',
+        modelId: '',
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      formData,
+      failedResponseHandler: gladiaFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        gladiaUploadResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    const { body, warnings } = await this.getArgs(options);
+
+    const { value: transcriptionInitResponse } = await postJsonToApi({
+      url: this.config.url({
+        path: '/v2/pre-recorded',
+        modelId: '',
+      }),
+      headers: combineHeaders(this.config.headers(), options.headers),
+      body: {
+        ...body,
+        audio_url: uploadResponse.audio_url,
+      },
+      failedResponseHandler: gladiaFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        gladiaTranscriptionInitializeResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    // Poll the result URL until the transcription is done or an error occurs
+    const resultUrl = transcriptionInitResponse.result_url;
+    let transcriptionResult;
+    let transcriptionResultHeaders;
+
+    while (true) {
+      const response = await getFromApi({
+        url: resultUrl,
+        headers: combineHeaders(this.config.headers(), options.headers),
+        failedResponseHandler: gladiaFailedResponseHandler,
+        successfulResponseHandler: createJsonResponseHandler(
+          gladiaTranscriptionResultResponseSchema,
+        ),
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
+      });
+
+      transcriptionResult = response.value;
+      transcriptionResultHeaders = response.responseHeaders;
+
+      if (
+        transcriptionResult.status === 'done' ||
+        transcriptionResult.status === 'error'
+      ) {
+        break;
+      }
+
+      // Wait for 1 second before polling again
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Handle error status
+    if (transcriptionResult.status === 'error') {
+      throw new Error(
+        `Transcription failed with error code: ${transcriptionResult.error_code}`,
+      );
+    }
+
+    if (!transcriptionResult.result) {
+      throw new Error('Transcription result is empty');
+    }
+
+    // Process the successful result
+    return {
+      text: transcriptionResult.result.transcription.full_transcript,
+      durationInSeconds: transcriptionResult.result.metadata.audio_duration,
+      language: transcriptionResult.result.transcription.languages.at(0),
+      segments: transcriptionResult.result.transcription.utterances.map(
+        utterance => ({
+          text: utterance.text,
+          startSecond: utterance.start,
+          endSecond: utterance.end,
+        }),
+      ),
+      response: {
+        timestamp: currentDate,
+        modelId: '',
+        headers: transcriptionResultHeaders,
+      },
+      providerMetadata: {
+        gladia: transcriptionResult.result,
+      },
+      warnings,
+    };
+  }
+}
+
+const gladiaUploadResponseSchema = z.object({
+  audio_url: z.string(),
+  audio_metadata: z.object({
+    id: z.string(),
+    filename: z.string(),
+    extension: z.string(),
+    size: z.number(),
+    audio_duration: z.number(),
+    number_of_channels: z.number(),
+  }),
+});
+
+const gladiaTranscriptionInitializeResponseSchema = z.object({
+  id: z.string(),
+  result_url: z.string(),
+});
+
+const gladiaTranscriptionResultResponseSchema = z.object({
+  id: z.string(),
+  request_id: z.string(),
+  version: z.number(),
+  status: z.enum(['queued', 'processing', 'done', 'error']),
+  created_at: z.string(),
+  kind: z.literal('pre-recorded'),
+  completed_at: z.string().nullable(),
+  custom_metadata: z.record(z.any()).nullable(),
+  error_code: z.number().nullable(),
+  file: z.object({
+    id: z.string(),
+    filename: z.string().nullable(),
+    source: z.string().nullable(),
+    audio_duration: z.number().nullable(),
+    number_of_channels: z.number().nullable(),
+  }),
+  request_params: z.object({
+    encoding: z.enum(['wav/pcm', 'wav/alaw', 'wav/ulaw']).nullish(),
+    bit_depth: z.number().nullish(),
+    sample_rate: z.number().nullish(),
+    channels: z.number().nullish(),
+    model: z.enum(['solaria-1']).nullish(),
+    endpointing: z.number().nullish(),
+    maximum_duration_without_endpointing: z.number().nullish(),
+    language_config: z
+      .object({
+        languages: z.array(z.string()).nullish(),
+        code_switching: z.boolean().nullish(),
+      })
+      .nullish(),
+    pre_processing: z
+      .object({
+        audio_enhancer: z.boolean().nullish(),
+        speech_threshold: z.number().nullish(),
+      })
+      .nullish(),
+    realtime_processing: z
+      .object({
+        words_accurate_timestamps: z.boolean().nullish(),
+        custom_vocabulary: z.boolean().nullish(),
+        custom_vocabulary_config: z
+          .object({
+            vocabulary: z.array(
+              z.union([
+                z.string(),
+                z.object({
+                  value: z.string(),
+                  intensity: z.number().nullish(),
+                  pronunciations: z.array(z.string()).nullish(),
+                  language: z.string().nullish(),
+                }),
+              ]),
+            ),
+            default_intensity: z.number().nullish(),
+          })
+          .nullish(),
+        custom_spelling: z.boolean().nullish(),
+        custom_spelling_config: z
+          .object({
+            spelling_dictionary: z.record(z.array(z.string())),
+          })
+          .nullish(),
+        translation: z.boolean().nullish(),
+        translation_config: z
+          .object({
+            target_languages: z.array(z.string()),
+            model: z.enum(['base', 'enhanced']).nullish(),
+            match_original_utterances: z.boolean().nullish(),
+          })
+          .nullish(),
+        named_entity_recognition: z.boolean().nullish(),
+        sentiment_analysis: z.boolean().nullish(),
+      })
+      .nullish(),
+    post_processing: z
+      .object({
+        summarization: z.boolean().nullish(),
+        summarization_config: z
+          .object({
+            type: z.enum(['general', 'bullet_points', 'concise']).nullish(),
+          })
+          .nullish(),
+        chapterization: z.boolean().nullish(),
+      })
+      .nullish(),
+    messages_config: z
+      .object({
+        receive_partial_transcripts: z.boolean().nullish(),
+        receive_final_transcripts: z.boolean().nullish(),
+        receive_speech_events: z.boolean().nullish(),
+        receive_pre_processing_events: z.boolean().nullish(),
+        receive_realtime_processing_events: z.boolean().nullish(),
+        receive_post_processing_events: z.boolean().nullish(),
+        receive_acknowledgments: z.boolean().nullish(),
+        receive_errors: z.boolean().nullish(),
+        receive_lifecycle_events: z.boolean().nullish(),
+      })
+      .nullish(),
+    callback: z.boolean().nullish(),
+    callback_config: z
+      .object({
+        url: z.string().nullish(),
+        receive_partial_transcripts: z.boolean().nullish(),
+        receive_final_transcripts: z.boolean().nullish(),
+        receive_speech_events: z.boolean().nullish(),
+        receive_pre_processing_events: z.boolean().nullish(),
+        receive_realtime_processing_events: z.boolean().nullish(),
+        receive_post_processing_events: z.boolean().nullish(),
+        receive_acknowledgments: z.boolean().nullish(),
+        receive_errors: z.boolean().nullish(),
+        receive_lifecycle_events: z.boolean().nullish(),
+      })
+      .nullish(),
+  }),
+  result: z
+    .object({
+      metadata: z.object({
+        audio_duration: z.number(),
+        number_of_distinct_channels: z.number(),
+        billing_time: z.number(),
+        transcription_time: z.number(),
+      }),
+      transcription: z.object({
+        full_transcript: z.string(),
+        languages: z.array(z.string()),
+        utterances: z.array(
+          z.object({
+            language: z.string(),
+            start: z.number(),
+            end: z.number(),
+            confidence: z.number(),
+            channel: z.number(),
+            words: z.array(
+              z.object({
+                word: z.string(),
+                start: z.number(),
+                end: z.number(),
+                confidence: z.number(),
+              }),
+            ),
+            text: z.string(),
+            speaker: z.number().nullish(),
+          }),
+        ),
+        sentences: z
+          .array(
+            z.object({
+              success: z.boolean(),
+              is_empty: z.boolean(),
+              exec_time: z.number(),
+              error: z
+                .object({
+                  status_code: z.number(),
+                  exception: z.string(),
+                  message: z.string(),
+                })
+                .nullable(),
+              results: z.array(z.string()).nullable(),
+            }),
+          )
+          .nullish(),
+        subtitles: z
+          .array(
+            z.object({
+              format: z.enum(['srt', 'vtt']),
+              subtitles: z.string(),
+            }),
+          )
+          .nullish(),
+      }),
+      translation: z
+        .object({
+          success: z.boolean(),
+          is_empty: z.boolean(),
+          exec_time: z.number(),
+          error: z
+            .object({
+              status_code: z.number(),
+              exception: z.string(),
+              message: z.string(),
+            })
+            .nullable(),
+          results: z
+            .array(
+              z.object({
+                error: z
+                  .object({
+                    status_code: z.number(),
+                    exception: z.string(),
+                    message: z.string(),
+                  })
+                  .nullable(),
+                full_transcript: z.string(),
+                languages: z.array(z.string()),
+                sentences: z
+                  .array(
+                    z.object({
+                      success: z.boolean(),
+                      is_empty: z.boolean(),
+                      exec_time: z.number(),
+                      error: z
+                        .object({
+                          status_code: z.number(),
+                          exception: z.string(),
+                          message: z.string(),
+                        })
+                        .nullable(),
+                      results: z.array(z.string()).nullable(),
+                    }),
+                  )
+                  .nullish(),
+                subtitles: z
+                  .array(
+                    z.object({
+                      format: z.enum(['srt', 'vtt']),
+                      subtitles: z.string(),
+                    }),
+                  )
+                  .nullish(),
+                utterances: z.array(
+                  z.object({
+                    language: z.string(),
+                    start: z.number(),
+                    end: z.number(),
+                    confidence: z.number(),
+                    channel: z.number(),
+                    speaker: z.number().nullish(),
+                    words: z.array(
+                      z.object({
+                        word: z.string(),
+                        start: z.number(),
+                        end: z.number(),
+                        confidence: z.number(),
+                      }),
+                    ),
+                    text: z.string(),
+                  }),
+                ),
+              }),
+            )
+            .nullable(),
+        })
+        .nullish(),
+      summarization: z
+        .object({
+          success: z.boolean(),
+          is_empty: z.boolean(),
+          exec_time: z.number(),
+          error: z
+            .object({
+              status_code: z.number(),
+              exception: z.string(),
+              message: z.string(),
+            })
+            .nullable(),
+          results: z.string().nullable(),
+        })
+        .nullish(),
+      moderation: z
+        .object({
+          success: z.boolean(),
+          is_empty: z.boolean(),
+          exec_time: z.number(),
+          error: z
+            .object({
+              status_code: z.number(),
+              exception: z.string(),
+              message: z.string(),
+            })
+            .nullable(),
+          results: z.string().nullable(),
+        })
+        .nullish(),
+      named_entity_recognition: z
+        .object({
+          success: z.boolean(),
+          is_empty: z.boolean(),
+          exec_time: z.number(),
+          error: z
+            .object({
+              status_code: z.number(),
+              exception: z.string(),
+              message: z.string(),
+            })
+            .nullable(),
+          entity: z.string(),
+        })
+        .nullish(),
+      chapters: z
+        .object({
+          success: z.boolean(),
+          is_empty: z.boolean(),
+          exec_time: z.number(),
+          error: z
+            .object({
+              status_code: z.number(),
+              exception: z.string(),
+              message: z.string(),
+            })
+            .nullable(),
+          results: z.record(z.any()),
+        })
+        .nullish(),
+    })
+    .nullish(),
+});

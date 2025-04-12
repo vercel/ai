@@ -14,6 +14,7 @@
     "@ai-sdk/elevenlabs": "0.0.2",
     "@ai-sdk/fal": "0.1.8",
     "@ai-sdk/fireworks": "0.2.11",
+    "@ai-sdk/gladia": "0.0.0",
     "@ai-sdk/google": "1.2.11",
     "@ai-sdk/google-vertex": "2.2.15",
     "@ai-sdk/groq": "1.2.8",

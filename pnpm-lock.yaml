@@ -92,6 +92,9 @@ importers:
       '@ai-sdk/fireworks':
         specifier: 0.2.11
         version: link:../../packages/fireworks
+      '@ai-sdk/gladia':
+        specifier: 0.0.0
+        version: link:../../packages/gladia
       '@ai-sdk/google':
         specifier: 1.2.11
         version: link:../../packages/google
@@ -1555,6 +1558,31 @@ importers:
         version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: 2.2.7
+        version: link:../provider-utils
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.3)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+
+  packages/gladia:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: 1.1.2
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: 2.2.6
         version: link:../provider-utils
     devDependencies:
       '@types/node':
