@@ -60,7 +60,7 @@ describe('doGenerate', () => {
     });
 
     expect(server.calls[0].requestHeaders).toMatchObject({
-      authorization: 'Bearer test-api-key',
+      'x-api-key': 'test-api-key',
       'content-type': 'application/json',
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
@@ -73,7 +73,7 @@ describe('doGenerate', () => {
     await model.doGenerate({
       text: 'Hello from the AI SDK!',
       voice: 'nova',
-      outputFormat: 'opus',
+      outputFormat: 'mp3',
       speed: 1.5,
     });
 
@@ -82,7 +82,7 @@ describe('doGenerate', () => {
       input: 'Hello from the AI SDK!',
       voice: 'nova',
       speed: 1.5,
-      response_format: 'opus',
+      response_format: 'mp3',
     });
   });
 
