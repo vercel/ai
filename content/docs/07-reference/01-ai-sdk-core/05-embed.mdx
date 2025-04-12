@@ -144,13 +144,13 @@ const { embedding } = await embed({
       ],
     },
     {
-      name: 'rawResponse',
-      type: 'RawResponse',
+      name: 'response',
+      type: 'Response',
       isOptional: true,
-      description: 'Optional raw response data.',
+      description: 'Optional response data.',
       properties: [
         {
-          type: 'RawResponse',
+          type: 'Response',
           parameters: [
             {
               name: 'headers',
