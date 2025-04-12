@@ -432,10 +432,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallType: 'function',
-                    toolCallId: contentBlock.toolCallId,
-                    toolName: contentBlock.toolName,
-                    args: contentBlock.jsonText,
+                    toolCall: {
+                      toolCallType: 'function',
+                      toolCallId: contentBlock.toolCallId,
+                      toolName: contentBlock.toolName,
+                      args: contentBlock.jsonText,
+                    },
                   });
 
                   delete toolCallContentBlocks[value.index];

@@ -487,10 +487,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               if (contentBlock != null) {
                 controller.enqueue({
                   type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: contentBlock.toolCallId,
-                  toolName: contentBlock.toolName,
-                  args: contentBlock.jsonText,
+                  toolCall: {
+                    toolCallType: 'function',
+                    toolCallId: contentBlock.toolCallId,
+                    toolName: contentBlock.toolName,
+                    args: contentBlock.jsonText,
+                  },
                 });
 
                 delete toolCallContentBlocks[index];
