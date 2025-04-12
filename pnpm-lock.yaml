@@ -98,6 +98,9 @@ importers:
       '@ai-sdk/groq':
         specifier: 1.2.7
         version: link:../../packages/groq
+      '@ai-sdk/hume':
+        specifier: 0.0.0
+        version: link:../../packages/hume
       '@ai-sdk/luma':
         specifier: 0.1.6
         version: link:../../packages/luma
