@@ -98,3 +98,39 @@ export type ElevenLabsTranscriptionAPITypes = {
    */
   file_format?: 'pcm_s16le_16' | 'other';
 };
+
+
+export type ElevenLabsVoiceChangerAPITypes = {
+  /**
+   * When set to false, zero retention mode will be used for the request.
+   * This will mean history features are unavailable for this request, including request stitching.
+   * Zero retention mode may only be used by enterprise customers.
+   * @default true
+   */
+  enable_logging?: boolean;
+
+  /**
+   * Output format of the generated audio. Formatted as codec_sample_rate_bitrate.
+   * MP3 with 192kbps bitrate requires Creator tier or above.
+   * PCM with 44.1kHz sample rate requires Pro tier or above.
+   * @default 'mp3_44100_128'
+   */
+  output_format?: 
+    | 'mp3_22050_32'
+    | 'mp3_44100_32'
+    | 'mp3_44100_64'
+    | 'mp3_44100_96'
+    | 'mp3_44100_128'
+    | 'mp3_44100_192'
+    | 'pcm_8000'
+    | 'pcm_16000'
+    | 'pcm_22050'
+    | 'pcm_24000'
+    | 'pcm_44100'
+    | 'ulaw_8000'
+    | 'alaw_8000'
+    | 'opus_48000_32'
+    | 'opus_48000_64'
+    | 'opus_48000_96'
+    | 'opus_48000_128';
+};
