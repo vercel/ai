@@ -310,8 +310,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 for (const part of inlineDataParts) {
                   controller.enqueue({
                     type: 'file',
-                    mediaType: part.inlineData.mimeType,
-                    data: part.inlineData.data,
+                    file: {
+                      mediaType: part.inlineData.mimeType,
+                      data: part.inlineData.data,
+                    },
                   });
                 }
               }
