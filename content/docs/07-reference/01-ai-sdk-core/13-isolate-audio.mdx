@@ -15,7 +15,7 @@ import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { readFile } from 'fs/promises';
 
 const { audio } = await isolateAudio({
-  model: elevenlabs.isolate(),
+  model: elevenlabs.isolation(),
   audio: await readFile('path/to/audio.mp3'),
 });
 

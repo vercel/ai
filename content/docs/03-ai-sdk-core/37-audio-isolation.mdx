@@ -16,7 +16,7 @@ import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { readFile } from 'fs/promises';
 
 const audio = await isolateAudio({
-  model: elevenlabs.isolate(),
+  model: elevenlabs.isolation(),
   audio: await readFile('path/to/audio.mp3'),
 });
 ```
@@ -39,7 +39,7 @@ import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { readFile } from 'fs/promises';
 
 const audio = await isolateAudio({
-  model: elevenlabs.isolate(),
+  model: elevenlabs.isolation(),
   audio: await readFile('path/to/audio.mp3'),
   providerOptions: {
     elevenlabs: {
@@ -61,7 +61,7 @@ import { experimental_isolateAudio as isolateAudio } from 'ai';
 import { readFile } from 'fs/promises';
 
 const audio = await isolateAudio({
-  model: elevenlabs.isolate(),
+  model: elevenlabs.isolation(),
   audio: await readFile('path/to/audio.mp3'),
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
 });
@@ -78,7 +78,7 @@ import { experimental_isolateAudio as isolateAudio } from 'ai';
 import { readFile } from 'fs/promises';
 
 const audio = await isolateAudio({
-  model: elevenlabs.isolate(),
+  model: elevenlabs.isolation(),
   audio: await readFile('path/to/audio.mp3'),
   headers: { 'X-Custom-Header': 'custom-value' },
 });
@@ -94,7 +94,7 @@ import { experimental_isolateAudio as isolateAudio } from 'ai';
 import { readFile } from 'fs/promises';
 
 const audio = await isolateAudio({
-  model: elevenlabs.isolate(),
+  model: elevenlabs.isolation(),
   audio: await readFile('path/to/audio.mp3'),
 });
 
@@ -125,7 +125,7 @@ import { readFile } from 'fs/promises';
 
 try {
   await isolateAudio({
-    model: elevenlabs.isolate(),
+    model: elevenlabs.isolation(),
     audio: await readFile('path/to/audio.mp3'),
   });
 } catch (error) {

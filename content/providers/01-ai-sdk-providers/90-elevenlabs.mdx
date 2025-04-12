@@ -133,10 +133,10 @@ The following provider options are available:
 ## Isolation Models
 
 You can create models that call the [ElevenLabs isolation API](https://elevenlabs.io/voice-isolator)
-using the `.isolate()` factory method.
+using the `.isolation()` factory method.
 
 ```ts
-const model = elevenlabs.isolate();
+const model = elevenlabs.isolation();
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument.
@@ -146,7 +146,7 @@ import { experimental_isolateAudio as isolateAudio } from 'ai';
 import { elevenlabs } from '@ai-sdk/elevenlabs';
 
 const result = await isolateAudio({
-  model: elevenlabs.isolate(),
+  model: elevenlabs.isolation(),
   audio: new Uint8Array([1, 2, 3, 4]),
   providerOptions: { elevenlabs: {} },
 });

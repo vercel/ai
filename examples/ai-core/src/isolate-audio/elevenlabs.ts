@@ -6,7 +6,7 @@ import { readFile } from 'fs/promises';
 
 async function main() {
   const result = await isolateAudio({
-    model: elevenlabs.isolate(),
+    model: elevenlabs.isolation(),
     audio: await readFile('data/galileo.mp3'),
   });
 
