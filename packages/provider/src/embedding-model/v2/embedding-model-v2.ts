@@ -72,9 +72,9 @@ Token usage. We only have input tokens for embeddings.
     usage?: { tokens: number };
 
     /**
-Optional raw response information for debugging purposes.
+Optional response information for debugging purposes.
      */
-    rawResponse?: {
+    response?: {
       /**
 Response headers.
        */

@@ -56,9 +56,9 @@ describe('doEmbed', () => {
       },
     });
 
-    const { rawResponse } = await model.doEmbed({ values: testValues });
+    const { response } = await model.doEmbed({ values: testValues });
 
-    expect(rawResponse?.headers).toStrictEqual({
+    expect(response?.headers).toStrictEqual({
       // default headers:
       'content-length': '236',
       'content-type': 'application/json',
