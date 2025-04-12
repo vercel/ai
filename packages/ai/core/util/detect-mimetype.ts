@@ -1,3 +1,5 @@
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+
 export const imageMimeTypeSignatures = [
   {
     mimeType: 'image/gif' as const,
@@ -83,6 +85,31 @@ export const audioMimeTypeSignatures = [
   },
 ] as const;
 
+const getID3v2TagSize = (header: Uint8Array) => {
+  const size =
+    ((header[6] & 0x7f) << 21) |
+    ((header[7] & 0x7f) << 14) |
+    ((header[8] & 0x7f) << 7) |
+    (header[9] & 0x7f);
+
+  return size + 10; // add header size
+};
+
+const stripID3 = (arrayBuffer: Uint8Array) => {
+  const bytes = new Uint8Array(arrayBuffer);
+
+  if (
+    bytes[0] === 0x49 && // 'I'
+    bytes[1] === 0x44 && // 'D'
+    bytes[2] === 0x33 // '3'
+  ) {
+    const id3Size = getID3v2TagSize(bytes);
+    return bytes.slice(id3Size); // The raw MP3 starts here
+  }
+
+  return bytes; // No ID3 tag, return as-is
+};
+
 export function detectMimeType({
   data,
   signatures,
@@ -90,6 +117,26 @@ export function detectMimeType({
   data: Uint8Array | string;
   signatures: typeof audioMimeTypeSignatures | typeof imageMimeTypeSignatures;
 }): (typeof signatures)[number]['mimeType'] | undefined {
+  // Handle MP3 files with ID3 tags
+  if (typeof data !== 'string' && data.length > 10) {
+    // Check for ID3v2 header
+    if (data[0] === 0x49 && data[1] === 0x44 && data[2] === 0x33) {
+      const strippedData = stripID3(data);
+
+      for (const signature of signatures) {
+        if (
+          strippedData.length >= signature.bytesPrefix.length &&
+          signature.bytesPrefix.every(
+            (byte, index) => strippedData[index] === byte,
+          )
+        ) {
+          return signature.mimeType;
+        }
+      }
+    }
+  }
+
+  // Regular signature check
   for (const signature of signatures) {
     if (
       typeof data === 'string'
