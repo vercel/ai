@@ -1,0 +1,158 @@
+---
+title: Changing Voice
+description: Learn how to change the voice in an audio file with the AI SDK.
+---
+
+# Changing Voice
+
+<Note type="warning">Changing voice is an experimental feature.</Note>
+
+The AI SDK provides the [`changeVoice`](/docs/reference/ai-sdk-core/change-voice)
+function to change the voice in an audio file.
+
+```ts
+import { experimental_changeVoice as changeVoice } from 'ai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { readFile } from 'fs/promises';
+
+const audio = await changeVoice({
+  model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+  audio: await readFile('audio.mp3'),
+  voice: '21m00Tcm4TlvDq8ikWAM',
+});
+```
+
+To access the new audio with the changed voice:
+
+```ts
+const audio = audio.audioData; // audio data e.g. Uint8Array
+```
+
+## Settings
+
+### Provider-Specific settings
+
+You can set model-specific settings with the `providerOptions` parameter. For example, setting `enable_logging` to `false` for the ElevenLabs changer model will enable zero retention mode for the request.
+
+```ts highlight="9-13"
+import { experimental_changeVoice as changeVoice } from 'ai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { readFile } from 'fs/promises';
+
+const audio = await changeVoice({
+  model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+  audio: await readFile('audio.mp3'),
+  voice: '21m00Tcm4TlvDq8ikWAM',
+  providerOptions: {
+    elevenlabs: {
+      enable_logging: false,
+    },
+  },
+});
+```
+
+### Abort Signals and Timeouts
+
+`changeVoice` accepts an optional `abortSignal` parameter of
+type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
+that you can use to abort the voice change process or set a timeout.
+
+```ts highlight="9"
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { experimental_changeVoice as changeVoice } from 'ai';
+import { readFile } from 'fs/promises';
+
+const audio = await changeVoice({
+  model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+  audio: await readFile('audio.mp3'),
+  voice: '21m00Tcm4TlvDq8ikWAM',
+  abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
+});
+```
+
+### Custom Headers
+
+`changeVoice` accepts an optional `headers` parameter of type `Record<string, string>`
+that you can use to add custom headers to the voice change request.
+
+```ts highlight="9"
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { experimental_changeVoice as changeVoice } from 'ai';
+import { readFile } from 'fs/promises';
+
+const audio = await changeVoice({
+  model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+  audio: await readFile('audio.mp3'),
+  voice: '21m00Tcm4TlvDq8ikWAM',
+  headers: { 'X-Custom-Header': 'custom-value' },
+});
+```
+
+### Warnings
+
+Warnings (e.g. unsupported parameters) are available on the `warnings` property.
+
+```ts
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { experimental_changeVoice as changeVoice } from 'ai';
+import { readFile } from 'fs/promises';
+
+const audio = await changeVoice({
+  model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+  audio: await readFile('audio.mp3'),
+  voice: '21m00Tcm4TlvDq8ikWAM',
+});
+
+const warnings = audio.warnings;
+```
+
+### Error Handling
+
+When `changeVoice` cannot generate a valid audio, it throws a [`AI_NoAudioGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-audio-generated-error).
+
+This error can arise for any the following reasons:
+
+- The model failed to generate a response
+- The model generated a response that could not be parsed
+
+The error preserves the following information to help you log the issue:
+
+- `responses`: Metadata about the speech model responses, including timestamp, model, and headers.
+- `cause`: The cause of the error. You can use this for more detailed error handling.
+
+```ts
+import {
+  experimental_changeVoice as changeVoice,
+  AI_NoAudioGeneratedError,
+} from 'ai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { readFile } from 'fs/promises';
+
+try {
+  await changeVoice({
+    model: elevenlabs.changer('eleven_multilingual_sts_v2'),
+    audio: await readFile('audio.mp3'),
+    voice: '21m00Tcm4TlvDq8ikWAM',
+  });
+} catch (error) {
+  if (AI_NoAudioGeneratedError.isInstance(error)) {
+    console.log('AI_NoAudioGeneratedError');
+    console.log('Cause:', error.cause);
+    console.log('Responses:', error.responses);
+  }
+}
+```
+
+## Voice Changer Models
+
+| Provider                                                                  | Model                        |
+| ------------------------------------------------------------------------- | ---------------------------- |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#voice-changer-models) | `eleven_multilingual_v2`     |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#voice-changer-models) | `eleven_flash_v2_5`          |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#voice-changer-models) | `eleven_flash_v2`            |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#voice-changer-models) | `eleven_turbo_v2`            |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#voice-changer-models) | `eleven_turbo_v2_5`          |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#voice-changer-models) | `eleven_multilingual_sts_v2` |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#voice-changer-models) | `eleven_english_sts_v2`      |
+
+Above are a small subset of the voice changer models supported by the AI SDK providers. For more, see the respective provider documentation.
