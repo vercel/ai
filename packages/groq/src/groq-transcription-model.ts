@@ -15,7 +15,7 @@ import { groqFailedResponseHandler } from './groq-error';
 import { GroqTranscriptionModelId } from './groq-transcription-settings';
 import { GroqTranscriptionAPITypes } from './groq-api-types';
 
-// https://elevenlabs.io/docs/api-reference/speech-to-text/convert
+// https://console.groq.com/docs/speech-to-text
 const groqProviderOptionsSchema = z.object({
   language: z.string().nullish(),
   prompt: z.string().nullish(),
