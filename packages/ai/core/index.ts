@@ -32,6 +32,7 @@ export type {
 } from '@ai-sdk/ui-utils';
 
 // directory exports:
+export * from './change-voice';
 export * from './data-stream';
 export * from './embed';
 export * from './generate-image';
