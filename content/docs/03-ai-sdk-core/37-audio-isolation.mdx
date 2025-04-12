@@ -103,7 +103,7 @@ const warnings = audio.warnings;
 
 ### Error Handling
 
-When `isolateAudio` cannot isolate audio, it throws a [`AI_NoAudioIsolatedError`](/docs/reference/ai-sdk-errors/ai-no-audio-isolated-error).
+When `isolateAudio` cannot isolate audio, it throws a [`AI_NoSpeechIsolatedError`](/docs/reference/ai-sdk-errors/ai-no-audio-isolated-error).
 
 This error can arise for any the following reasons:
 
@@ -118,7 +118,7 @@ The error preserves the following information to help you log the issue:
 ```ts
 import {
   experimental_isolateAudio as isolateAudio,
-  AI_NoAudioIsolatedError,
+  AI_NoSpeechIsolatedError,
 } from 'ai';
 import { elevenlabs } from '@ai-sdk/elevenlabs';
 import { readFile } from 'fs/promises';
@@ -129,8 +129,8 @@ try {
     audio: await readFile('path/to/audio.mp3'),
   });
 } catch (error) {
-  if (AI_NoAudioIsolatedError.isInstance(error)) {
-    console.log('AI_NoAudioIsolatedError');
+  if (AI_NoSpeechIsolatedError.isInstance(error)) {
+    console.log('AI_NoSpeechIsolatedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
   }

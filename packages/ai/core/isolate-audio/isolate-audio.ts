@@ -1,5 +1,5 @@
 import { JSONValue, IsolationModelV1 } from '@ai-sdk/provider';
-import { NoIsolatedAudioError } from '../../errors/no-isolated-audio-error';
+import { NoSpeechGeneratedError } from '../../errors/no-speech-generated-error';
 import { download } from '../../util/download';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';
@@ -98,7 +98,7 @@ Only applicable for HTTP-based providers.
   );
 
   if (!result.audio) {
-    throw new NoIsolatedAudioError({ responses: [result.response] });
+    throw new NoSpeechGeneratedError({ responses: [result.response] });
   }
 
   return new DefaultIsolationResult({
