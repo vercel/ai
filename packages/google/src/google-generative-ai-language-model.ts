@@ -335,10 +335,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallType: 'function',
-                    toolCallId: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    args: toolCall.args,
+                    toolCall: {
+                      toolCallType: 'function',
+                      toolCallId: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                      args: toolCall.args,
+                    },
                   });
 
                   hasToolCalls = true;

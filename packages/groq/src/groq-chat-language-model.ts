@@ -373,10 +373,12 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                     if (isParsableJson(toolCall.function.arguments)) {
                       controller.enqueue({
                         type: 'tool-call',
-                        toolCallType: 'function',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        args: toolCall.function.arguments,
+                        toolCall: {
+                          toolCallType: 'function',
+                          toolCallId: toolCall.id ?? generateId(),
+                          toolName: toolCall.function.name,
+                          args: toolCall.function.arguments,
+                        },
                       });
                       toolCall.hasFinished = true;
                     }
@@ -414,10 +416,12 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                 ) {
                   controller.enqueue({
                     type: 'tool-call',
-                    toolCallType: 'function',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    args: toolCall.function.arguments,
+                    toolCall: {
+                      toolCallType: 'function',
+                      toolCallId: toolCall.id ?? generateId(),
+                      toolName: toolCall.function.name,
+                      args: toolCall.function.arguments,
+                    },
                   });
                   toolCall.hasFinished = true;
                 }

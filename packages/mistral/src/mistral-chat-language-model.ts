@@ -335,10 +335,12 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                 });
                 controller.enqueue({
                   type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  args: toolCall.function.arguments,
+                  toolCall: {
+                    toolCallType: 'function',
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.function.name,
+                    args: toolCall.function.arguments,
+                  },
                 });
               }
             }

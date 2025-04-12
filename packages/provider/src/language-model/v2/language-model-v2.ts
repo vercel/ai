@@ -248,6 +248,7 @@ export type LanguageModelV2StreamPart =
   | { type: 'text-delta'; textDelta: string }
 
   // Reasoning text deltas:
+  // TODO refactor to use the new reasoning type
   | { type: 'reasoning'; textDelta: string }
   | { type: 'reasoning-signature'; signature: string }
   | { type: 'redacted-reasoning'; data: string }
@@ -259,7 +260,7 @@ export type LanguageModelV2StreamPart =
   | { type: 'file'; file: LanguageModelV2File }
 
   // Complete tool calls:
-  | ({ type: 'tool-call' } & LanguageModelV2FunctionToolCall)
+  | { type: 'tool-call'; toolCall: LanguageModelV2FunctionToolCall }
 
   // Tool call deltas are only needed for object generation modes.
   // The tool call deltas must be partial JSON strings.

@@ -259,14 +259,16 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                 // Post the full tool call now that we have all of the arguments.
                 controller.enqueue({
                   type: 'tool-call',
-                  toolCallId: pendingToolCallDelta.toolCallId,
-                  toolName: pendingToolCallDelta.toolName,
-                  toolCallType: 'function',
-                  args: JSON.stringify(
-                    JSON.parse(
-                      pendingToolCallDelta.argsTextDelta?.trim() || '{}',
+                  toolCall: {
+                    toolCallId: pendingToolCallDelta.toolCallId,
+                    toolName: pendingToolCallDelta.toolName,
+                    toolCallType: 'function',
+                    args: JSON.stringify(
+                      JSON.parse(
+                        pendingToolCallDelta.argsTextDelta?.trim() || '{}',
+                      ),
                     ),
-                  ),
+                  },
                 });
 
                 // Clear the pending tool call. We rely on the API always

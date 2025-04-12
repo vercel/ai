@@ -406,10 +406,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               hasToolCalls = true;
               controller.enqueue({
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: value.item.call_id,
-                toolName: value.item.name,
-                args: value.item.arguments,
+                toolCall: {
+                  toolCallType: 'function',
+                  toolCallId: value.item.call_id,
+                  toolName: value.item.name,
+                  args: value.item.arguments,
+                },
               });
             } else if (isResponseFinishedChunk(value)) {
               finishReason = mapOpenAIResponseFinishReason({
