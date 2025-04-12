@@ -113,7 +113,7 @@ export class ElevenLabsIsolationModel implements IsolationModelV1 {
       audio,
       warnings,
       request: {
-        body: JSON.stringify(requestBody),
+        body: formData,
       },
       response: {
         timestamp: currentDate,

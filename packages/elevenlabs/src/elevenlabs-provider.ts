@@ -2,6 +2,8 @@ import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
+import { ElevenLabsIsolationModel } from './elevenlabs-isolation-model';
+import { IsolationModelV1 } from '@ai-sdk/provider';
 
 export interface ElevenLabsProvider
   extends Pick<ProviderV1, 'transcriptionModel'> {
@@ -10,12 +12,18 @@ export interface ElevenLabsProvider
     settings?: {},
   ): {
     transcription: ElevenLabsTranscriptionModel;
+    isolation: ElevenLabsIsolationModel;
   };
 
   /**
 Creates a model for transcription.
    */
   transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV1;
+
+  /**
+Creates a model for isolation.
+   */
+  isolation(): IsolationModelV1;
 }
 
 export interface ElevenLabsProviderSettings {
@@ -59,14 +67,25 @@ export function createElevenLabs(
       fetch: options.fetch,
     });
 
+  const createIsolationModel = () =>
+    new ElevenLabsIsolationModel('', {
+      provider: `elevenlabs.isolation`,
+      url: ({ path }) => `https://api.elevenlabs.io${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
   const provider = function (modelId: ElevenLabsTranscriptionModelId) {
     return {
       transcription: createTranscriptionModel(modelId),
+      isolation: createIsolationModel(),
     };
   };
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
+
+  provider.isolation = createIsolationModel;
+  provider.isolationModel = createIsolationModel;
 
   return provider as ElevenLabsProvider;
 }
