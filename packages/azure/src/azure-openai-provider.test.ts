@@ -30,6 +30,8 @@ const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/deployments/dalle-deployment/images/generations':
     {},
   'https://test-resource.openai.azure.com/openai/responses': {},
+  'https://test-resource.openai.azure.com/openai/deployments/test-deployment/audio/speech':
+    {},
 });
 
 describe('chat', () => {
@@ -564,6 +566,49 @@ describe('responses', () => {
       expect(server.calls[0].requestUrl).toStrictEqual(
         'https://test-resource.openai.azure.com/openai/responses?api-version=2025-03-01-preview',
       );
+    });
+  });
+});
+
+describe('speech', () => {
+  describe('doGenerate', () => {
+    function prepareAudioResponse({
+      headers,
+      format = 'mp3',
+    }: {
+      headers?: Record<string, string>;
+      format?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
+    } = {}) {
+      const audioBuffer = new Uint8Array(100); // Mock audio data
+      server.urls[
+        'https://test-resource.openai.azure.com/openai/deployments/test-deployment/audio/speech'
+      ].response = {
+        type: 'binary',
+        headers: {
+          'content-type': `audio/${format}`,
+          ...headers,
+        },
+        body: Buffer.from(audioBuffer),
+      };
+      return audioBuffer;
+    }
+
+    it('should return audio data with correct content type', async () => {
+      const audio = new Uint8Array(100); // Mock audio data
+      prepareAudioResponse({
+        format: 'opus',
+        headers: {
+          'x-request-id': 'test-request-id',
+          'x-ratelimit-remaining': '123',
+        },
+      });
+
+      const result = await provider.speech('test-deployment').doGenerate({
+        text: 'Hello from the AI SDK!',
+        outputFormat: 'wav',
+      });
+
+      expect(result.audio).toStrictEqual(audio);
     });
   });
 });
