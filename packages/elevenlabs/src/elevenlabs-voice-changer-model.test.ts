@@ -6,7 +6,7 @@ import path from 'node:path';
 
 const audioData = await readFile(path.join(__dirname, 'transcript-test.mp3'));
 const provider = createElevenLabs({ apiKey: 'test-api-key' });
-const model = provider.voiceChanger('eleven_multilingual_v2');
+const model = provider.voiceChanger('eleven_multilingual_sts_v2');
 
 const server = createTestServer({
   'https://api.elevenlabs.io/v1/speech-to-speech': {},
@@ -42,7 +42,7 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
-      model_id: 'eleven_multilingual_v2',
+      model_id: 'eleven_multilingual_sts_v2',
     });
   });
 
@@ -56,7 +56,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider.voiceChanger('eleven_multilingual_v2').doGenerate({
+    await provider.voiceChanger('eleven_multilingual_sts_v2').doGenerate({
       audio: audioData,
       mediaType: 'audio/wav',
       voice: 'test-voice',
@@ -104,7 +104,7 @@ describe('doGenerate', () => {
 
     const testDate = new Date(0);
     const customModel = new ElevenLabsVoiceChangerModel(
-      'eleven_multilingual_v2',
+      'eleven_multilingual_sts_v2',
       {
         provider: 'test-provider',
         url: () => 'https://api.elevenlabs.io/v1/speech-to-speech',
@@ -123,7 +123,7 @@ describe('doGenerate', () => {
 
     expect(result.response).toMatchObject({
       timestamp: testDate,
-      modelId: 'eleven_multilingual_v2',
+      modelId: 'eleven_multilingual_sts_v2',
       headers: {
         'content-type': 'audio/mp3',
         'x-request-id': 'test-request-id',
@@ -137,7 +137,7 @@ describe('doGenerate', () => {
 
     const testDate = new Date(0);
     const customModel = new ElevenLabsVoiceChangerModel(
-      'eleven_multilingual_v2',
+      'eleven_multilingual_sts_v2',
       {
         provider: 'test-provider',
         url: () => 'https://api.elevenlabs.io/v1/speech-to-speech',
@@ -155,6 +155,6 @@ describe('doGenerate', () => {
     });
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
-    expect(result.response.modelId).toBe('eleven_multilingual_v2');
+    expect(result.response.modelId).toBe('eleven_multilingual_sts_v2');
   });
 });

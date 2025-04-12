@@ -86,8 +86,7 @@ export class ElevenLabsVoiceChangerModel implements VoiceChangerModelV1 {
         : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model_id', this.modelId);
-    formData.append('file', new File([blob], 'audio', { type: mediaType }));
-    formData.append('diarize', 'true');
+    formData.append('audio', new File([blob], 'audio', { type: mediaType }));
 
     // Add provider-specific options
     if (elevenlabsOptions) {
@@ -123,7 +122,7 @@ export class ElevenLabsVoiceChangerModel implements VoiceChangerModelV1 {
       rawValue: rawResponse,
     } = await postFormDataToApi({
       url: this.config.url({
-        path: '/v1/speech-to-speech',
+        path: `/v1/speech-to-speech/${options.voice}`,
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),

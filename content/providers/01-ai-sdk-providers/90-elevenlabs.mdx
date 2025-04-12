@@ -136,7 +136,7 @@ You can create models that call the [ElevenLabs voice changer API](https://eleve
 using the `.changer()` factory method.
 
 ```ts
-const model = elevenlabs.voiceChanger('eleven_multilingual_v2');
+const model = elevenlabs.voiceChanger('eleven_multilingual_sts_v2');
 ```
 
 You can also pass additional provider-specific options using the `providerOptions` argument.
@@ -146,7 +146,7 @@ import { experimental_changeVoice as changeVoice } from 'ai';
 import { elevenlabs } from '@ai-sdk/elevenlabs';
 
 const result = await changeVoice({
-  model: elevenlabs.voiceChanger('eleven_multilingual_v2'),
+  model: elevenlabs.voiceChanger('eleven_multilingual_sts_v2'),
   audio: new Uint8Array([1, 2, 3, 4]),
   voice: '21m00Tcm4TlvDq8ikWAM',
   providerOptions: { elevenlabs: {} },
@@ -157,10 +157,5 @@ const result = await changeVoice({
 
 | Model                        | Change Voice        |
 | ---------------------------- | ------------------- |
-| `eleven_multilingual_v2`     | <Check size={18} /> |
-| `eleven_flash_v2_5`          | <Check size={18} /> |
-| `eleven_flash_v2`            | <Check size={18} /> |
-| `eleven_turbo_v2`            | <Check size={18} /> |
-| `eleven_turbo_v2_5`          | <Check size={18} /> |
 | `eleven_multilingual_sts_v2` | <Check size={18} /> |
 | `eleven_english_sts_v2`      | <Check size={18} /> |
