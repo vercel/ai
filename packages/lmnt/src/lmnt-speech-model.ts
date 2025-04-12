@@ -84,7 +84,7 @@ export class LMNTSpeechModel implements SpeechModelV1 {
     // Create request body
     const requestBody: Record<string, unknown> = {
       model: this.modelId,
-      input: text,
+      text,
       voice,
       response_format: 'mp3',
       speed,
