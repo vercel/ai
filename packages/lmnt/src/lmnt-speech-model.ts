@@ -104,15 +104,15 @@ export class LMNTSpeechModel implements SpeechModelV1 {
 
     // Add provider-specific options
     if (lmntOptions) {
-      const speechModelOptions: Omit<LMNTSpeechAPITypes, 'voice' | 'text'> = {};
-
-      for (const key in speechModelOptions) {
-        const value =
-          speechModelOptions[
-            key as keyof Omit<LMNTSpeechAPITypes, 'voice' | 'text'>
-          ];
-        if (value !== undefined) {
-          requestBody[key] = value;
+      if (lmntOptions) {
+        for (const key in lmntOptions) {
+          const value =
+            lmntOptions[
+              key as keyof Omit<LMNTSpeechAPITypes, 'voice' | 'text'>
+            ];
+          if (value !== undefined) {
+            requestBody[key] = value;
+          }
         }
       }
     }
