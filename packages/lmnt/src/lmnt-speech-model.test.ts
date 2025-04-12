@@ -39,6 +39,7 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBody).toMatchObject({
       model: 'aurora',
       text: 'Hello from the AI SDK!',
+    });
   });
 
   it('should pass headers', async () => {
@@ -78,7 +79,7 @@ describe('doGenerate', () => {
 
     expect(await server.calls[0].requestBody).toMatchObject({
       model: 'aurora',
-      input: 'Hello from the AI SDK!',
+      text: 'Hello from the AI SDK!',
       voice: 'nova',
       speed: 1.5,
       response_format: 'mp3',

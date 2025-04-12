@@ -104,15 +104,32 @@ export class LMNTSpeechModel implements SpeechModelV1 {
 
     // Add provider-specific options
     if (lmntOptions) {
-      if (lmntOptions) {
-        for (const key in lmntOptions) {
-          const value =
-            lmntOptions[
-              key as keyof Omit<LMNTSpeechAPITypes, 'voice' | 'text'>
-            ];
-          if (value !== undefined) {
-            requestBody[key] = value;
-          }
+      const speechModelOptions: Omit<LMNTSpeechAPITypes, 'voice' | 'text'> = {
+        conversational: lmntOptions.conversational ?? undefined,
+        length: lmntOptions.length ?? undefined,
+        seed: lmntOptions.seed ?? undefined,
+        speed: lmntOptions.speed ?? undefined,
+        temperature: lmntOptions.temperature ?? undefined,
+        top_p: lmntOptions.topP ?? undefined,
+      };
+
+      if (
+        typeof lmntOptions.sampleRate === 'number' &&
+        [8000, 16000, 24000].includes(lmntOptions.sampleRate)
+      ) {
+        speechModelOptions.sample_rate = lmntOptions.sampleRate as
+          | 8000
+          | 16000
+          | 24000;
+      }
+
+      for (const key in speechModelOptions) {
+        const value =
+          speechModelOptions[
+            key as keyof Omit<LMNTSpeechAPITypes, 'voice' | 'text'>
+          ];
+        if (value !== undefined) {
+          requestBody[key] = value;
         }
       }
     }
