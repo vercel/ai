@@ -1,0 +1,146 @@
+---
+title: Audio Isolation
+description: Learn how to isolate audio from an audio file with the AI SDK.
+---
+
+# Audio Isolation
+
+<Note type="warning">Audio Isolation is an experimental feature.</Note>
+
+The AI SDK provides the [`isolateAudio`](/docs/reference/ai-sdk-core/isolate-audio)
+function to isolate audio from an audio file.
+
+```ts
+import { experimental_isolateAudio as isolateAudio } from 'ai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { readFile } from 'fs/promises';
+
+const audio = await isolateAudio({
+  model: elevenlabs.isolate(),
+  audio: await readFile('path/to/audio.mp3'),
+});
+```
+
+To access the isolated audio:
+
+```ts
+const audio = audio.audioData; // audio data e.g. Uint8Array
+```
+
+## Settings
+
+### Provider-Specific settings
+
+You can set model-specific settings with the `providerOptions` parameter.
+
+```ts highlight="8-12"
+import { experimental_isolateAudio as isolateAudio } from 'ai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { readFile } from 'fs/promises';
+
+const audio = await isolateAudio({
+  model: elevenlabs.isolate(),
+  audio: await readFile('path/to/audio.mp3'),
+  providerOptions: {
+    elevenlabs: {
+      // ...
+    },
+  },
+});
+```
+
+### Abort Signals and Timeouts
+
+`isolateAudio` accepts an optional `abortSignal` parameter of
+type [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal)
+that you can use to abort the audio isolation process or set a timeout.
+
+```ts highlight="8"
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { experimental_isolateAudio as isolateAudio } from 'ai';
+import { readFile } from 'fs/promises';
+
+const audio = await isolateAudio({
+  model: elevenlabs.isolate(),
+  audio: await readFile('path/to/audio.mp3'),
+  abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
+});
+```
+
+### Custom Headers
+
+`isolateAudio` accepts an optional `headers` parameter of type `Record<string, string>`
+that you can use to add custom headers to the audio isolation request.
+
+```ts highlight="8"
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { experimental_isolateAudio as isolateAudio } from 'ai';
+import { readFile } from 'fs/promises';
+
+const audio = await isolateAudio({
+  model: elevenlabs.isolate(),
+  audio: await readFile('path/to/audio.mp3'),
+  headers: { 'X-Custom-Header': 'custom-value' },
+});
+```
+
+### Warnings
+
+Warnings (e.g. unsupported parameters) are available on the `warnings` property.
+
+```ts
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { experimental_isolateAudio as isolateAudio } from 'ai';
+import { readFile } from 'fs/promises';
+
+const audio = await isolateAudio({
+  model: elevenlabs.isolate(),
+  audio: await readFile('path/to/audio.mp3'),
+});
+
+const warnings = audio.warnings;
+```
+
+### Error Handling
+
+When `isolateAudio` cannot isolate audio, it throws a [`AI_NoAudioIsolatedError`](/docs/reference/ai-sdk-errors/ai-no-audio-isolated-error).
+
+This error can arise for any the following reasons:
+
+- The model failed to generate a response
+- The model generated a response that could not be parsed
+
+The error preserves the following information to help you log the issue:
+
+- `responses`: Metadata about the isolation model responses, including timestamp, model, and headers.
+- `cause`: The cause of the error. You can use this for more detailed error handling.
+
+```ts
+import {
+  experimental_isolateAudio as isolateAudio,
+  AI_NoAudioIsolatedError,
+} from 'ai';
+import { elevenlabs } from '@ai-sdk/elevenlabs';
+import { readFile } from 'fs/promises';
+
+try {
+  await isolateAudio({
+    model: elevenlabs.isolate(),
+    audio: await readFile('path/to/audio.mp3'),
+  });
+} catch (error) {
+  if (AI_NoAudioIsolatedError.isInstance(error)) {
+    console.log('AI_NoAudioIsolatedError');
+    console.log('Cause:', error.cause);
+    console.log('Responses:', error.responses);
+  }
+}
+```
+
+## Isolation Models
+
+| Provider                                                   | Model             |
+| ---------------------------------------------------------- | ----------------- |
+| [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#isolation-models) | `default`           |
+
+Above are a small subset of the isolation models supported by the AI SDK providers. For more, see the respective provider documentation.
