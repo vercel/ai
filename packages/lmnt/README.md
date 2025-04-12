@@ -1,7 +1,7 @@
 # AI SDK - LMNT Provider
 
 The **[LMNT provider](https://sdk.vercel.ai/providers/ai-sdk-providers/lmnt)** for the [AI SDK](https://sdk.vercel.ai/docs)
-contains language model support for the LMNT chat and completion APIs and embedding model support for the LMNT embeddings API.
+contains language model support for the LMNT API.
 
 ## Setup
 
