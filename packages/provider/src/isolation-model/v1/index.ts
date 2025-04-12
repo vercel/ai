@@ -1,3 +1,3 @@
-export type { SpeechModelV1 } from './speech-model-v1';
-export type { SpeechModelV1CallOptions } from './isolation-model-v1-call-options';
-export type { SpeechModelV1CallWarning } from './isolation-model-v1-call-warning';
+export type { IsolationModelV1 } from './isolation-model-v1';
+export type { IsolationModelV1CallOptions } from './isolation-model-v1-call-options';
+export type { IsolationModelV1CallWarning } from './isolation-model-v1-call-warning';
