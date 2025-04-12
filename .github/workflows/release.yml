@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - v5
     paths:
       - '.changeset/**'
       - '.github/workflows/release.yml'
@@ -39,7 +40,6 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          # This expects you to have a script called release which does a build for your packages and calls changeset publish
           version: pnpm ci:version
           publish: pnpm ci:release
         env:
