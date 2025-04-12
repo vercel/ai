@@ -1,6 +1,9 @@
 import { JSONValue } from '../../json-value/json-value';
 
-type IsolationModelV1ProviderOptions = Record<string, Record<string, JSONValue>>;
+type IsolationModelV1ProviderOptions = Record<
+  string,
+  Record<string, JSONValue>
+>;
 
 export type IsolationModelV1CallOptions = {
   /**

@@ -98,3 +98,7 @@ export type ElevenLabsTranscriptionAPITypes = {
    */
   file_format?: 'pcm_s16le_16' | 'other';
 };
+
+export type ElevenLabsIsolationAPITypes = {
+  file_format?: 'pcm_s16le_16' | 'other';
+};
