@@ -9,7 +9,6 @@ export interface GoogleGenerativeAIEmbeddingSettings {
    */
   outputDimensionality?: number;
 
-    
   /**
    * Optional. Specifies the task type for generating embeddings.
    * Supported task types:
