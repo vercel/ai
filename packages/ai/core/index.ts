@@ -38,6 +38,7 @@ export * from './generate-image';
 export * from './generate-object';
 export * from './generate-text';
 export * from './generate-speech';
+export * from './isolate-audio';
 export * from './transcribe';
 export * from './middleware';
 export * from './prompt';
