@@ -9,7 +9,7 @@ const provider = createElevenLabs({ apiKey: 'test-api-key' });
 const model = provider.voiceChanger('eleven_multilingual_sts_v2');
 
 const server = createTestServer({
-  'https://api.elevenlabs.io/v1/speech-to-speech': {},
+  'https://api.elevenlabs.io/v1/speech-to-speech/test-voice': {},
 });
 
 describe('doGenerate', () => {
@@ -21,7 +21,7 @@ describe('doGenerate', () => {
     format?: 'mp3' | 'opus' | 'aac' | 'flac' | 'wav' | 'pcm';
   } = {}) {
     const audioBuffer = new Uint8Array(100); // Mock audio data
-    server.urls['https://api.elevenlabs.io/v1/speech-to-speech'].response = {
+    server.urls['https://api.elevenlabs.io/v1/speech-to-speech/test-voice'].response = {
       type: 'binary',
       headers: {
         'content-type': `audio/${format}`,
@@ -107,7 +107,7 @@ describe('doGenerate', () => {
       'eleven_multilingual_sts_v2',
       {
         provider: 'test-provider',
-        url: () => 'https://api.elevenlabs.io/v1/speech-to-speech',
+        url: () => 'https://api.elevenlabs.io/v1/speech-to-speech/test-voice',
         headers: () => ({}),
         _internal: {
           currentDate: () => testDate,
@@ -140,7 +140,7 @@ describe('doGenerate', () => {
       'eleven_multilingual_sts_v2',
       {
         provider: 'test-provider',
-        url: () => 'https://api.elevenlabs.io/v1/speech-to-speech',
+        url: () => 'https://api.elevenlabs.io/v1/speech-to-speech/test-voice',
         headers: () => ({}),
         _internal: {
           currentDate: () => testDate,
