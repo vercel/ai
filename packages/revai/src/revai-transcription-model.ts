@@ -477,18 +477,12 @@ const revaiTranscriptionJobResponseSchema = z.object({
 const revaiTranscriptionResponseSchema = z.object({
   monologues: z.array(
     z.object({
-      speaker: z.number(),
       elements: z.array(
         z.object({
-          type: z.union([
-            z.literal('text'),
-            z.literal('punct'),
-            z.literal('unknown'),
-          ]),
+          type: z.string(),
           value: z.string(),
           ts: z.number().optional(),
           end_ts: z.number().optional(),
-          confidence: z.number().optional(),
         }),
       ),
     }),
