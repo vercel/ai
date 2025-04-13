@@ -408,7 +408,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
       endSecond: number;
     }[] = [];
 
-    for (const monologue of transcriptionResult.monologues) {
+    for (const monologue of transcriptionResult.monologues ?? []) {
       // Process each monologue to extract segments with timing information
       let currentSegmentText = '';
       let segmentStartSecond = 0;
@@ -464,11 +464,12 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     }
 
     return {
-      text: transcriptionResult.monologues
-        .map(monologue =>
-          monologue?.elements?.map(element => element.value).join(''),
-        )
-        .join(' '),
+      text:
+        transcriptionResult.monologues
+          ?.map(monologue =>
+            monologue?.elements?.map(element => element.value).join(''),
+          )
+          .join(' ') ?? '',
       segments,
       language: submissionResponse.language ?? undefined,
       durationInSeconds,
@@ -490,17 +491,20 @@ const revaiTranscriptionJobResponseSchema = z.object({
 });
 
 const revaiTranscriptionResponseSchema = z.object({
-  monologues: z.array(
-    z.object({
-      elements: z.array(
-        z.object({
-          type: z.string().nullish(),
-          value: z.string().nullish(),
-          ts: z.number().nullish(),
-            end_ts: z.number().nullish(),
-          }),
-        )
-        .nullish(),
-    })
+  monologues: z
+    .array(
+      z.object({
+        elements: z
+          .array(
+            z.object({
+              type: z.string().nullish(),
+              value: z.string().nullish(),
+              ts: z.number().nullish(),
+              end_ts: z.number().nullish(),
+            }),
+          )
+          .nullish(),
+      }),
+    )
     .nullish(),
 });
