@@ -83,6 +83,10 @@ const result = await transcribe({
 });
 ```
 
+<Note>
+  Gladia does not have various models, so you can omit the standard `model` id parameter.
+</Note>
+
 The following provider options are available:
 
 - **contextPrompt** _string_
@@ -100,7 +104,7 @@ The following provider options are available:
   Configuration for custom vocabulary.
   Optional.
 
-  - **vocabulary** _Array&lt;string | { value: string, intensity?: number, pronunciations?: string[], language?: string }&gt;_
+  - **vocabulary** _Array&lt;string | \{ value: string, intensity?: number, pronunciations?: string[], language?: string \}&gt;_
   - **defaultIntensity** _number_
 
 - **detectLanguage** _boolean_
