@@ -3,7 +3,7 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2FinishReason,
   LanguageModelV2LogProbs,
-  LanguageModelV2ProviderMetadata,
+  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
@@ -1113,5 +1113,5 @@ export type ObjectStreamInputPart =
       finishReason: LanguageModelV2FinishReason;
       logprobs?: LanguageModelV2LogProbs;
       usage: LanguageModelV2Usage;
-      providerMetadata?: LanguageModelV2ProviderMetadata;
+      providerMetadata?: SharedV2ProviderMetadata;
     };

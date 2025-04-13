@@ -21,7 +21,7 @@ import { JSONValue } from '../../json-value/json-value';
  * }
  * ```
  */
-export type LanguageModelV2ProviderMetadata = Record<
+export type SharedV2ProviderMetadata = Record<
   string,
   Record<string, JSONValue>
 >;

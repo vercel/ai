@@ -2,7 +2,7 @@ import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
-  LanguageModelV2ProviderMetadata,
+  SharedV2ProviderMetadata,
   LanguageModelV2Source,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
@@ -258,8 +258,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
     };
-    let providerMetadata: LanguageModelV2ProviderMetadata | undefined =
-      undefined;
+    let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;

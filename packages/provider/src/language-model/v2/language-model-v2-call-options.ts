@@ -1,8 +1,8 @@
 import { JSONSchema7 } from 'json-schema';
+import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
 import { LanguageModelV2FunctionTool } from './language-model-v2-function-tool';
 import { LanguageModelV2Prompt } from './language-model-v2-prompt';
 import { LanguageModelV2ProviderDefinedTool } from './language-model-v2-provider-defined-tool';
-import { LanguageModelV2ProviderOptions } from './language-model-v2-provider-options';
 import { LanguageModelV2ToolChoice } from './language-model-v2-tool-choice';
 
 export type LanguageModelV2CallOptions = {
@@ -130,5 +130,5 @@ Only applicable for HTTP-based providers.
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: LanguageModelV2ProviderOptions;
+  providerOptions?: SharedV2ProviderOptions;
 };

@@ -2,7 +2,7 @@ import {
   JSONObject,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
-  LanguageModelV2ProviderMetadata,
+  SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import { convertToBase64, createIdGenerator } from '@ai-sdk/provider-utils';
@@ -20,7 +20,7 @@ import {
 const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
 function getCachePoint(
-  providerMetadata: LanguageModelV2ProviderMetadata | undefined,
+  providerMetadata: SharedV2ProviderMetadata | undefined,
 ): BedrockCachePoint | undefined {
   return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
 }

@@ -5,7 +5,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2LogProbs,
-  LanguageModelV2ProviderMetadata,
+  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
@@ -324,7 +324,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
     const promptTokenDetails = response.usage?.prompt_tokens_details;
-    const providerMetadata: LanguageModelV2ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
     if (completionTokenDetails?.reasoning_tokens != null) {
       providerMetadata.openai.reasoningTokens =
         completionTokenDetails?.reasoning_tokens;
@@ -418,7 +418,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     let logprobs: LanguageModelV2LogProbs;
     let isFirstChunk = true;
 
-    const providerMetadata: LanguageModelV2ProviderMetadata = { openai: {} };
+    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
 
     return {
       stream: response.pipeThrough(

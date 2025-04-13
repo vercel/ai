@@ -3,7 +3,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2FunctionToolCall,
-  LanguageModelV2ProviderMetadata,
+  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   UnsupportedFunctionalityError,
@@ -359,8 +359,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
     > = {};
 
-    let providerMetadata: LanguageModelV2ProviderMetadata | undefined =
-      undefined;
+    let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
 
     let blockType:
       | 'text'
