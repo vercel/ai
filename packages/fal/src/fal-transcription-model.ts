@@ -24,130 +24,27 @@ const falProviderOptionsSchema = z.object({
    *
    * If translate is selected as the task, the audio will be translated to English, regardless of the language selected.
    */
-  language: z
-    .enum([
-      'af',
-      'am',
-      'ar',
-      'as',
-      'az',
-      'ba',
-      'be',
-      'bg',
-      'bn',
-      'bo',
-      'br',
-      'bs',
-      'ca',
-      'cs',
-      'cy',
-      'da',
-      'de',
-      'el',
-      'en',
-      'es',
-      'et',
-      'eu',
-      'fa',
-      'fi',
-      'fo',
-      'fr',
-      'gl',
-      'gu',
-      'ha',
-      'haw',
-      'he',
-      'hi',
-      'hr',
-      'ht',
-      'hu',
-      'hy',
-      'id',
-      'is',
-      'it',
-      'ja',
-      'jw',
-      'ka',
-      'kk',
-      'km',
-      'kn',
-      'ko',
-      'la',
-      'lb',
-      'ln',
-      'lo',
-      'lt',
-      'lv',
-      'mg',
-      'mi',
-      'mk',
-      'ml',
-      'mn',
-      'mr',
-      'ms',
-      'mt',
-      'my',
-      'ne',
-      'nl',
-      'nn',
-      'no',
-      'oc',
-      'pa',
-      'pl',
-      'ps',
-      'pt',
-      'ro',
-      'ru',
-      'sa',
-      'sd',
-      'si',
-      'sk',
-      'sl',
-      'sn',
-      'so',
-      'sq',
-      'sr',
-      'su',
-      'sv',
-      'sw',
-      'ta',
-      'te',
-      'tg',
-      'th',
-      'tk',
-      'tl',
-      'tr',
-      'tt',
-      'uk',
-      'ur',
-      'uz',
-      'vi',
-      'yi',
-      'yo',
-      'yue',
-      'zh',
-    ])
-    .nullish(),
+  language: z.union([z.enum(['en']), z.string()]).nullish().default('en'),
 
   /**
    * Whether to diarize the audio file. Defaults to true.
    */
-  diarize: z.boolean().nullish(),
+  diarize: z.boolean().nullish().default(true),
 
   /**
    * Level of the chunks to return. Either segment or word. Default value: "segment"
    */
-  chunkLevel: z.enum(['segment', 'word']).nullish(),
+  chunkLevel: z.enum(['segment', 'word']).nullish().default('segment'),
 
   /**
    * Version of the model to use. All of the models are the Whisper large variant. Default value: "3"
    */
-  version: z.enum(['3']).nullish(),
+  version: z.enum(['3']).nullish().default('3'),
 
   /**
    * Default value: 64
    */
-  batchSize: z.number().nullish(),
+  batchSize: z.number().nullish().default(64),
 
   /**
    * Number of speakers in the audio file. Defaults to null. If not provided, the number of speakers will be automatically detected.
@@ -198,7 +95,7 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
 
     // Add provider-specific options
     if (falOptions) {
-      body.language = falOptions.language;
+      body.language = falOptions.language as never;
       body.version = falOptions.version ?? undefined;
       body.batch_size = falOptions.batchSize ?? undefined;
       body.num_speakers = falOptions.numSpeakers ?? undefined;
