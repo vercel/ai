@@ -244,14 +244,7 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
 }
 
 const falJobResponseSchema = z.object({
-  status: z.enum(['IN_QUEUE', 'PROCESSING', 'COMPLETED']).nullish(),
   request_id: z.string().nullish(),
-  response_url: z.string().nullish(),
-  status_url: z.string().nullish(),
-  cancel_url: z.string().nullish(),
-  logs: z.any().nullish(),
-  metrics: z.record(z.any()).nullish(),
-  queue_position: z.number().nullish(),
 });
 
 const falTranscriptionResponseSchema = z.object({
@@ -261,17 +254,8 @@ const falTranscriptionResponseSchema = z.object({
       z.object({
         text: z.string(),
         timestamp: z.array(z.number()).nullish(),
-        speaker: z.string().nullish(),
       }),
     )
     .nullish(),
   inferred_languages: z.array(z.string()).nullish(),
-  diarization_segments: z
-    .array(
-      z.object({
-        timestamp: z.array(z.number()),
-        speaker: z.string(),
-      }),
-    )
-    .nullish(),
 });
