@@ -83,6 +83,77 @@ export const audioMimeTypeSignatures = [
   },
 ] as const;
 
+const getID3v2TagSize = (header: Uint8Array) => {
+  const size =
+    ((header[6] & 0x7f) << 21) |
+    ((header[7] & 0x7f) << 14) |
+    ((header[8] & 0x7f) << 7) |
+    (header[9] & 0x7f);
+
+  return size + 10; // add header size
+};
+
+const stripID3 = (arrayBuffer: Uint8Array) => {
+  const bytes = new Uint8Array(arrayBuffer);
+
+  if (
+    bytes[0] === 0x49 && // 'I'
+    bytes[1] === 0x44 && // 'D'
+    bytes[2] === 0x33 // '3'
+  ) {
+    const id3Size = getID3v2TagSize(bytes);
+    return bytes.slice(id3Size); // The raw MP3 starts here
+  }
+
+  return bytes; // No ID3 tag, return as-is
+};
+
+// Base64 ID3v2 header starts with "SUQz" (ID3)
+const isBase64ID3v2 = (base64Data: string): boolean => {
+  return base64Data.startsWith('SUQz');
+};
+
+// Convert base64 to bytes for ID3 processing
+const base64ToBytes = (base64: string): Uint8Array => {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+};
+
+// Strip ID3 tags from data if present
+function stripID3TagsIfPresent(
+  data: Uint8Array | string
+): Uint8Array | string {
+  // Handle binary data
+  if (typeof data !== 'string' && data.length > 10) {
+    // Check for ID3v2 header in binary data
+    if (data[0] === 0x49 && data[1] === 0x44 && data[2] === 0x33) {
+      return stripID3(data);
+    }
+  } 
+  
+  // Handle base64 encoded data
+  else if (typeof data === 'string' && isBase64ID3v2(data)) {
+    try {
+      const bytes = base64ToBytes(data);
+      const strippedBytes = stripID3(bytes);
+      
+      // Convert back to base64
+      const binaryString = String.fromCharCode(...strippedBytes);
+      return btoa(binaryString);
+    } catch (e) {
+      // If base64 conversion fails, return original data
+      return data;
+    }
+  }
+
+  // Return original data if no ID3 tags or processing failed
+  return data;
+}
+
 export function detectMimeType({
   data,
   signatures,
@@ -90,12 +161,14 @@ export function detectMimeType({
   data: Uint8Array | string;
   signatures: typeof audioMimeTypeSignatures | typeof imageMimeTypeSignatures;
 }): (typeof signatures)[number]['mimeType'] | undefined {
+  const processedData = stripID3TagsIfPresent(data);
+
   for (const signature of signatures) {
     if (
-      typeof data === 'string'
-        ? data.startsWith(signature.base64Prefix)
-        : data.length >= signature.bytesPrefix.length &&
-          signature.bytesPrefix.every((byte, index) => data[index] === byte)
+      typeof processedData === 'string'
+        ? processedData.startsWith(signature.base64Prefix)
+        : processedData.length >= signature.bytesPrefix.length &&
+          signature.bytesPrefix.every((byte, index) => processedData[index] === byte)
     ) {
       return signature.mimeType;
     }
