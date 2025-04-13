@@ -399,7 +399,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
       let segmentStartSecond = 0;
       let hasStartedSegment = false;
 
-      for (const element of monologue.elements) {
+      for (const element of monologue?.elements ?? []) {
         // Add the element value to the current segment text
         currentSegmentText += element.value;
 
@@ -411,13 +411,13 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
           }
 
           // If this is the first text element in a segment, mark the start time
-          if (!hasStartedSegment && element.ts !== undefined) {
+          if (!hasStartedSegment && typeof element.ts === 'number') {
             segmentStartSecond = element.ts;
             hasStartedSegment = true;
           }
 
           // If we have an end timestamp, we can complete a segment
-          if (element.end_ts !== undefined && hasStartedSegment) {
+          if (typeof element.end_ts === 'number' && hasStartedSegment) {
             // Only add non-empty segments
             if (currentSegmentText.trim()) {
               segments.push({
@@ -451,11 +451,11 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     return {
       text: transcriptionResult.monologues
         .map(monologue =>
-          monologue.elements.map(element => element.value).join(''),
+          monologue?.elements?.map(element => element.value).join(''),
         )
         .join(' '),
       segments,
-      language: submissionResponse.language,
+      language: submissionResponse.language ?? undefined,
       durationInSeconds,
       warnings,
       response: {
@@ -469,9 +469,9 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
 }
 
 const revaiTranscriptionJobResponseSchema = z.object({
-  id: z.string(),
-  status: z.string(),
-  language: z.string(),
+  id: z.string().nullish(),
+  status: z.string().nullish(),
+  language: z.string().nullish(),
 });
 
 const revaiTranscriptionResponseSchema = z.object({
@@ -479,12 +479,13 @@ const revaiTranscriptionResponseSchema = z.object({
     z.object({
       elements: z.array(
         z.object({
-          type: z.string(),
-          value: z.string(),
-          ts: z.number().optional(),
-          end_ts: z.number().optional(),
-        }),
-      ),
-    }),
-  ),
+          type: z.string().nullish(),
+          value: z.string().nullish(),
+          ts: z.number().nullish(),
+            end_ts: z.number().nullish(),
+          }),
+        )
+        .nullish(),
+    })
+    .nullish(),
 });
