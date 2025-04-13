@@ -79,7 +79,7 @@ const result = await generateSpeech({
   model: hume.speech(),
   text: 'Hello, world!',
   voice: 'd8ab67c6-953d-4bd8-9370-8fa53a0f1453',
-  providerOptions: { hume: { num_generations: 3 } },
+  providerOptions: { hume: {} },
 });
 ```
 
@@ -91,14 +91,6 @@ The following provider options are available:
 
   - `{ generationId: string }` - A generation ID to use for context.
   - `{ utterances: HumeUtterance[] }` - An array of utterance objects for context.
-
-- **numGenerations** _number_
-
-  The number of generations to create.
-
-- **splitUtterances** _boolean_
-
-  Whether to split the utterances into separate audio files.
 
 ### Model Capabilities
 

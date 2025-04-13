@@ -26,6 +26,4 @@ export type HumeSpeechAPITypes = {
   format: {
     type: 'mp3' | 'pcm' | 'wav';
   };
-  num_generations?: number;
-  split_utterances?: boolean;
 };

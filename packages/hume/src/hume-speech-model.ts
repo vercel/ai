@@ -43,8 +43,6 @@ const humeSpeechCallOptionsSchema = z.object({
       }),
     )
     .nullish(),
-  numGenerations: z.number().nullish(),
-  splitUtterances: z.boolean().nullish(),
 });
 
 export type HumeSpeechCallOptions = z.infer<typeof humeSpeechCallOptionsSchema>;
@@ -117,10 +115,7 @@ export class HumeSpeechModel implements SpeechModelV1 {
       const speechModelOptions: Omit<
         HumeSpeechAPITypes,
         'utterances' | 'format'
-      > = {
-        num_generations: humeOptions.numGenerations ?? undefined,
-        split_utterances: humeOptions.splitUtterances ?? undefined,
-      };
+      > = {};
 
       if (humeOptions.context) {
         if ('generationId' in humeOptions.context) {
