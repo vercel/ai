@@ -153,9 +153,9 @@ functionality that can be fully encapsulated in the provider.
        */
       warnings?: CallWarning[];
       /**
-       * Optional raw response data.
+       * Optional response data.
        */
-      rawResponse?: {
+      response?: {
         /**
          * Response headers.
          */
@@ -201,7 +201,7 @@ functionality that can be fully encapsulated in the provider.
     finishReason: FinishReason;
     usage: LanguageModelUsage;
     warnings?: CallWarning[];
-    rawResponse?: {
+    response?: {
       headers?: Record<string, string>;
     };
   } | null = null;
@@ -364,7 +364,7 @@ functionality that can be fully encapsulated in the provider.
               finishReason: value.finishReason,
               usage: calculateLanguageModelUsage(value.usage),
               warnings: result.warnings,
-              rawResponse: result.response,
+              response: result.response,
             };
             break;
           }

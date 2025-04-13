@@ -96,7 +96,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
           0,
         ),
       },
-      rawResponse: { headers: responseHeaders },
+      response: { headers: responseHeaders },
     };
   }
 }

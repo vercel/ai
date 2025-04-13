@@ -448,12 +448,12 @@ To see `streamUI` in action, check out [these examples](#examples).
                 'Warnings from the model provider (e.g. unsupported settings).',
             },
             {
-              name: 'rawResponse',
-              type: 'RawResponse',
-              description: 'Optional raw response data.',
+              name: 'response',
+              type: 'Response',
+              description: 'Optional response data.',
               properties: [
                 {
-                  type: 'RawResponse',
+                  type: 'Response',
                   parameters: [
                     {
                       name: 'headers',
@@ -482,13 +482,13 @@ To see `streamUI` in action, check out [these examples](#examples).
       description: 'The user interface based on the stream output.',
     },
     {
-      name: 'rawResponse',
-      type: 'RawResponse',
+      name: 'response',
+      type: 'Response',
       isOptional: true,
-      description: 'Optional raw response data.',
+      description: 'Optional response data.',
       properties: [
         {
-          type: 'RawResponse',
+          type: 'Response',
           parameters: [
             {
               name: 'headers',
