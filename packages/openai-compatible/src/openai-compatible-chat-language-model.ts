@@ -5,7 +5,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2ObjectGenerationMode,
-  LanguageModelV2ProviderMetadata,
+  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import {
@@ -217,7 +217,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     const choice = responseBody.choices[0];
 
     // provider metadata:
-    const providerMetadata: LanguageModelV2ProviderMetadata = {
+    const providerMetadata: SharedV2ProviderMetadata = {
       [this.providerOptionsName]: {},
       ...this.config.metadataExtractor?.extractMetadata?.({
         parsedBody: rawResponse,
@@ -539,7 +539,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
           },
 
           flush(controller) {
-            const providerMetadata: LanguageModelV2ProviderMetadata = {
+            const providerMetadata: SharedV2ProviderMetadata = {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
             };

@@ -2,7 +2,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Message,
   LanguageModelV2Prompt,
-  LanguageModelV2ProviderMetadata,
+  SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -32,7 +32,7 @@ export function convertToAnthropicMessagesPrompt({
   const messages: AnthropicMessagesPrompt['messages'] = [];
 
   function getCacheControl(
-    providerMetadata: LanguageModelV2ProviderMetadata | undefined,
+    providerMetadata: SharedV2ProviderMetadata | undefined,
   ): AnthropicCacheControl | undefined {
     const anthropic = providerMetadata?.anthropic;
 

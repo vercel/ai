@@ -1,4 +1,4 @@
-import { LanguageModelV2ProviderMetadata } from '@ai-sdk/provider';
+import { SharedV2ProviderMetadata } from '@ai-sdk/provider';
 
 /**
 Extracts provider-specific metadata from API responses.
@@ -18,7 +18,7 @@ export type MetadataExtractor = {
     parsedBody,
   }: {
     parsedBody: unknown;
-  }) => LanguageModelV2ProviderMetadata | undefined;
+  }) => SharedV2ProviderMetadata | undefined;
 
   /**
    * Creates an extractor for handling streaming responses. The returned object provides
@@ -43,6 +43,6 @@ export type MetadataExtractor = {
      * @returns Provider-specific metadata or undefined if no metadata is available.
      *          The metadata should be under a key indicating the provider id.
      */
-    buildMetadata(): LanguageModelV2ProviderMetadata | undefined;
+    buildMetadata(): SharedV2ProviderMetadata | undefined;
   };
 };
