@@ -6,6 +6,7 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  delay,
   getFromApi,
   parseProviderOptions,
   postFormDataToApi,
@@ -540,8 +541,16 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
     const resultUrl = transcriptionInitResponse.result_url;
     let transcriptionResult;
     let transcriptionResultHeaders;
-
+    const timeoutMs = 60 * 1000; // 60 seconds timeout
+    const startTime = Date.now();
+    const pollingInterval = 1000;
+    
     while (true) {
+      // Check if we've exceeded the timeout
+      if (Date.now() - startTime > timeoutMs) {
+        throw new Error('Transcription timed out after 60 seconds');
+      }
+
       const response = await getFromApi({
         url: resultUrl,
         headers: combineHeaders(this.config.headers(), options.headers),
@@ -563,8 +572,8 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
         break;
       }
 
-      // Wait for 1 second before polling again
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for the configured polling interval before checking again
+      await delay(pollingInterval);
     }
 
     // Handle error status
