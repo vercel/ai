@@ -124,23 +124,21 @@ const base64ToBytes = (base64: string): Uint8Array => {
 };
 
 // Strip ID3 tags from data if present
-function stripID3TagsIfPresent(
-  data: Uint8Array | string
-): Uint8Array | string {
+function stripID3TagsIfPresent(data: Uint8Array | string): Uint8Array | string {
   // Handle binary data
   if (typeof data !== 'string' && data.length > 10) {
     // Check for ID3v2 header in binary data
     if (data[0] === 0x49 && data[1] === 0x44 && data[2] === 0x33) {
       return stripID3(data);
     }
-  } 
-  
+  }
+
   // Handle base64 encoded data
   else if (typeof data === 'string' && isBase64ID3v2(data)) {
     try {
       const bytes = base64ToBytes(data);
       const strippedBytes = stripID3(bytes);
-      
+
       // Convert back to base64
       const binaryString = String.fromCharCode(...strippedBytes);
       return btoa(binaryString);
@@ -168,7 +166,9 @@ export function detectMimeType({
       typeof processedData === 'string'
         ? processedData.startsWith(signature.base64Prefix)
         : processedData.length >= signature.bytesPrefix.length &&
-          signature.bytesPrefix.every((byte, index) => processedData[index] === byte)
+          signature.bytesPrefix.every(
+            (byte, index) => processedData[index] === byte,
+          )
     ) {
       return signature.mimeType;
     }
