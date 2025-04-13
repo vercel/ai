@@ -1,4 +1,4 @@
-import { LanguageModelV2Prompt } from 'ai';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 
 export function getLastUserMessageText({
   prompt,
