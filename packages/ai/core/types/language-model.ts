@@ -6,27 +6,6 @@ import {
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
 
-// Re-export LanguageModelV2 types for the middleware:
-// TODO remove in v5
-export type {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2FilePart,
-  LanguageModelV2FinishReason,
-  LanguageModelV2FunctionToolCall,
-  LanguageModelV2Message,
-  LanguageModelV2ObjectGenerationMode,
-  LanguageModelV2Prompt,
-  LanguageModelV2ProviderDefinedTool,
-  SharedV2ProviderMetadata,
-  LanguageModelV2StreamPart,
-  LanguageModelV2TextPart,
-  LanguageModelV2ToolCallPart,
-  LanguageModelV2ToolChoice,
-  LanguageModelV2ToolResultPart,
-} from '@ai-sdk/provider';
-
 /**
 Language model that is used by the AI SDK Core functions.
 */

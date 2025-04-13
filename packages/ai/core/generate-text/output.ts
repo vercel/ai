@@ -1,13 +1,10 @@
+import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
-import { asSchema, DeepPartial, parsePartialJson, Schema } from '../../core';
 import { z } from 'zod';
+import { asSchema, DeepPartial, parsePartialJson, Schema } from '../../core';
 import { NoObjectGeneratedError } from '../../errors';
 import { injectJsonInstruction } from '../generate-object/inject-json-instruction';
-import {
-  FinishReason,
-  LanguageModel,
-  LanguageModelV2CallOptions,
-} from '../types/language-model';
+import { FinishReason, LanguageModel } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 

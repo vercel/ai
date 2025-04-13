@@ -1,12 +1,9 @@
+import { vertex as vertexNode } from '@ai-sdk/google-vertex';
+import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
+import { ImageModelV1, LanguageModelV2 } from '@ai-sdk/provider';
+import { APICallError, experimental_generateImage as generateImage } from 'ai';
 import 'dotenv/config';
 import { describe, expect, it, vi } from 'vitest';
-import { vertex as vertexEdge } from '@ai-sdk/google-vertex/edge';
-import { vertex as vertexNode } from '@ai-sdk/google-vertex';
-import {
-  APICallError,
-  LanguageModelV2,
-  experimental_generateImage as generateImage,
-} from 'ai';
 import {
   createEmbeddingModelWithCapabilities,
   createFeatureTestSuite,
@@ -15,7 +12,6 @@ import {
   defaultChatModelCapabilities,
   ModelWithCapabilities,
 } from './feature-test-suite';
-import { ImageModelV1 } from '@ai-sdk/provider';
 
 const RUNTIME_VARIANTS = {
   edge: {
