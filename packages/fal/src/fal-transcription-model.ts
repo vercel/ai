@@ -1,4 +1,5 @@
 import {
+  AISDKError,
   TranscriptionModelV1,
   TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
@@ -215,7 +216,11 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
 
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
-        throw new Error('Transcription request timed out after 60 seconds');
+        throw new AISDKError({
+          message: 'Transcription request timed out after 60 seconds',
+          name: 'TranscriptionRequestTimedOut',
+          cause: response,
+        });
       }
 
       // Wait before polling again
