@@ -637,7 +637,11 @@ describe('doStream', () => {
       .filter(
         chunk => chunk.type === 'tool-call-delta' || chunk.type === 'tool-call',
       )
-      .map(chunk => chunk.toolCallId);
+      .map(chunk =>
+        chunk.type === 'tool-call'
+          ? chunk.toolCall.toolCallId
+          : chunk.toolCallDelta.toolCallId,
+      );
 
     expect(new Set(toolCallIds)).toStrictEqual(new Set(['test-id-1']));
   });

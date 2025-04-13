@@ -361,10 +361,12 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                     if (toolCall.function.arguments.length > 0) {
                       controller.enqueue({
                         type: 'tool-call-delta',
-                        toolCallType: 'function',
-                        toolCallId: toolCall.id,
-                        toolName: toolCall.function.name,
-                        argsTextDelta: toolCall.function.arguments,
+                        toolCallDelta: {
+                          toolCallType: 'function',
+                          toolCallId: toolCall.id,
+                          toolName: toolCall.function.name,
+                          argsTextDelta: toolCall.function.arguments,
+                        },
                       });
                     }
 
@@ -402,10 +404,12 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
                 // send delta
                 controller.enqueue({
                   type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  argsTextDelta: toolCallDelta.function.arguments ?? '',
+                  toolCallDelta: {
+                    toolCallType: 'function',
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.function.name,
+                    argsTextDelta: toolCallDelta.function.arguments ?? '',
+                  },
                 });
 
                 // check if tool call is complete

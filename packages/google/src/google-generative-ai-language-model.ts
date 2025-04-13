@@ -326,10 +326,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 for (const toolCall of toolCallDeltas) {
                   controller.enqueue({
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    argsTextDelta: toolCall.args,
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: toolCall.toolCallId,
+                      toolName: toolCall.toolName,
+                      argsTextDelta: toolCall.args,
+                    },
                   });
 
                   controller.enqueue({

@@ -2,7 +2,7 @@ import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
-  LanguageModelV2FunctionToolCall,
+  LanguageModelV2ToolCall,
   SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
@@ -266,7 +266,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     }
 
     // extract tool calls
-    let toolCalls: LanguageModelV2FunctionToolCall[] | undefined = undefined;
+    let toolCalls: LanguageModelV2ToolCall[] | undefined = undefined;
     if (response.content.some(content => content.type === 'tool_use')) {
       toolCalls = [];
       for (const content of response.content) {
@@ -485,10 +485,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                     controller.enqueue({
                       type: 'tool-call-delta',
-                      toolCallType: 'function',
-                      toolCallId: contentBlock.toolCallId,
-                      toolName: contentBlock.toolName,
-                      argsTextDelta: value.delta.partial_json,
+                      toolCallDelta: {
+                        toolCallType: 'function',
+                        toolCallId: contentBlock.toolCallId,
+                        toolName: contentBlock.toolName,
+                        argsTextDelta: value.delta.partial_json,
+                      },
                     });
 
                     contentBlock.jsonText += value.delta.partial_json;

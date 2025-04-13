@@ -367,10 +367,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
                 controller.enqueue({
                   type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: value.item.call_id,
-                  toolName: value.item.name,
-                  argsTextDelta: value.item.arguments,
+                  toolCallDelta: {
+                    toolCallType: 'function',
+                    toolCallId: value.item.call_id,
+                    toolName: value.item.name,
+                    argsTextDelta: value.item.arguments,
+                  },
                 });
               }
             } else if (isResponseFunctionCallArgumentsDeltaChunk(value)) {
@@ -379,10 +381,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               if (toolCall != null) {
                 controller.enqueue({
                   type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.toolCallId,
-                  toolName: toolCall.toolName,
-                  argsTextDelta: value.delta,
+                  toolCallDelta: {
+                    toolCallType: 'function',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    argsTextDelta: value.delta,
+                  },
                 });
               }
             } else if (isResponseCreatedChunk(value)) {

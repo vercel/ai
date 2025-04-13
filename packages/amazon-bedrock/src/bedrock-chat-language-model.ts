@@ -468,10 +468,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
               controller.enqueue({
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: contentBlock.toolCallId,
-                toolName: contentBlock.toolName,
-                argsTextDelta: delta,
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: contentBlock.toolCallId,
+                  toolName: contentBlock.toolName,
+                  argsTextDelta: delta,
+                },
               });
 
               contentBlock.jsonText += delta;

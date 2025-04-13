@@ -229,10 +229,12 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                 // though we likely don't have full arguments yet.
                 controller.enqueue({
                   type: 'tool-call-delta',
-                  toolCallId: pendingToolCallDelta.toolCallId,
-                  toolName: pendingToolCallDelta.toolName,
-                  toolCallType: 'function',
-                  argsTextDelta: pendingToolCallDelta.argsTextDelta,
+                  toolCallDelta: {
+                    toolCallType: 'function',
+                    toolCallId: pendingToolCallDelta.toolCallId,
+                    toolName: pendingToolCallDelta.toolName,
+                    argsTextDelta: pendingToolCallDelta.argsTextDelta,
+                  },
                 });
                 return;
               }
@@ -246,11 +248,13 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
                 // may have more arguments still coming.
                 controller.enqueue({
                   type: 'tool-call-delta',
-                  toolCallId: pendingToolCallDelta.toolCallId,
-                  toolName: pendingToolCallDelta.toolName,
-                  toolCallType: 'function',
-                  argsTextDelta:
-                    value.delta.message.tool_calls.function.arguments,
+                  toolCallDelta: {
+                    toolCallType: 'function',
+                    toolCallId: pendingToolCallDelta.toolCallId,
+                    toolName: pendingToolCallDelta.toolName,
+                    argsTextDelta:
+                      value.delta.message.tool_calls.function.arguments,
+                  },
                 });
                 return;
               }

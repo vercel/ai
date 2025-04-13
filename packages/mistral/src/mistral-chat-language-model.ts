@@ -331,10 +331,12 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
                 // mistral tool calls come in one piece:
                 controller.enqueue({
                   type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: toolCall.id,
-                  toolName: toolCall.function.name,
-                  argsTextDelta: toolCall.function.arguments,
+                  toolCallDelta: {
+                    toolCallType: 'function',
+                    toolCallId: toolCall.id,
+                    toolName: toolCall.function.name,
+                    argsTextDelta: toolCall.function.arguments,
+                  },
                 });
                 controller.enqueue({
                   type: 'tool-call',
