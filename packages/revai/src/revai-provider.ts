@@ -53,7 +53,7 @@ export function createRevai(
   const createTranscriptionModel = (modelId: RevaiTranscriptionModelId) =>
     new RevaiTranscriptionModel(modelId, {
       provider: `revai.transcription`,
-      url: ({ path }) => `https://api.revai.com${path}`,
+      url: ({ path }) => `https://api.rev.ai${path}`,
       headers: getHeaders,
       fetch: options.fetch,
     });

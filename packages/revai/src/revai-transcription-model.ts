@@ -225,7 +225,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
       fetch: this.config.fetch,
     });
 
-    if (submissionResponse.status !== 'transcribed') {
+    if (submissionResponse.status === 'failed') {
       throw new Error('Transcription job failed');
     }
 
@@ -233,15 +233,12 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     const timeoutMs = 60 * 1000; // 60 seconds timeout
     const startTime = Date.now();
     let jobResponse = submissionResponse;
-
+    
     while (jobResponse.status !== 'transcribed') {
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
         throw new Error('Transcription job polling timed out after 60 seconds');
       }
-
-      // Wait before polling again
-      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Poll for job status
       const pollingResult = await getFromApi({
@@ -262,6 +259,11 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
 
       if (jobResponse.status === 'failed') {
         throw new Error('Transcription job failed during polling');
+      }
+
+      // Wait before polling again (only if we need to continue polling)
+      if (jobResponse.status !== 'transcribed') {
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
 

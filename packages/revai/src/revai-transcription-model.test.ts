@@ -10,9 +10,9 @@ const model = provider.transcription('machine');
 
 const server = createTestServer({
   'https://api.rev.ai/speechtotext/v1/jobs': {},
-  'https://api.rev.ai/speechtotext/v1/jobs/{id}': {},
-  'https://api.rev.ai/speechtotext/v1/jobs/{id}/transcript': {},
-  'https://api.rev.ai/speechtotext/v1/jobs/{id}/transcript/summary': {},
+  'https://api.rev.ai/speechtotext/v1/jobs/test-id': {},
+  'https://api.rev.ai/speechtotext/v1/jobs/test-id/transcript': {},
+  'https://api.rev.ai/speechtotext/v1/jobs/test-id/transcript/summary': {},
 });
 
 describe('doGenerate', () => {
@@ -25,18 +25,18 @@ describe('doGenerate', () => {
       type: 'json-value',
       headers,
       body: {
-        id: 'Umx5c6F7pH7r',
+        id: 'test-id',
         status: 'in_progress',
         language: 'en',
         created_on: '2018-05-05T23:23:22.29Z',
         transcriber: 'machine',
       },
     };
-    server.urls['https://api.rev.ai/speechtotext/v1/jobs/{id}'].response = {
+    server.urls['https://api.rev.ai/speechtotext/v1/jobs/test-id'].response = {
       type: 'json-value',
       headers,
       body: {
-        id: 'Umx5c6F7pH7r',
+        id: 'test-id',
         status: 'transcribed',
         language: 'en',
         created_on: '2018-05-05T23:23:22.29Z',
@@ -44,7 +44,7 @@ describe('doGenerate', () => {
       },
     };
     server.urls[
-      'https://api.rev.ai/speechtotext/v1/jobs/{id}/transcript'
+      'https://api.rev.ai/speechtotext/v1/jobs/test-id/transcript'
     ].response = {
       type: 'json-value',
       headers,
@@ -160,7 +160,7 @@ describe('doGenerate', () => {
       },
     };
     server.urls[
-      'https://api.rev.ai/speechtotext/v1/jobs/{id}/transcript/summary'
+      'https://api.rev.ai/speechtotext/v1/jobs/test-id/transcript/summary'
     ].response = {
       type: 'json-value',
       headers,
@@ -177,7 +177,8 @@ describe('doGenerate', () => {
     });
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
-      model_id: 'machine',
+      media: expect.any(File),
+      config: '{"transcriber":"machine"}',
     });
   });
 
@@ -217,7 +218,7 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(result.text).toBe('Hello world!');
+    expect(result.text).toBe('Hello, world!');
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
@@ -231,7 +232,7 @@ describe('doGenerate', () => {
     const testDate = new Date(0);
     const customModel = new RevaiTranscriptionModel('machine', {
       provider: 'test-provider',
-      url: () => 'https://api.rev.ai/speechtotext/v1/jobs',
+      url: ({ path }) => `https://api.rev.ai${path}`,
       headers: () => ({}),
       _internal: {
         currentDate: () => testDate,
@@ -260,7 +261,7 @@ describe('doGenerate', () => {
     const testDate = new Date(0);
     const customModel = new RevaiTranscriptionModel('machine', {
       provider: 'test-provider',
-      url: () => 'https://api.rev.ai/speechtotext/v1/jobs',
+      url: ({ path }) => `https://api.rev.ai${path}`,
       headers: () => ({}),
       _internal: {
         currentDate: () => testDate,
