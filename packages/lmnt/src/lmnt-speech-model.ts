@@ -19,7 +19,7 @@ const lmntSpeechCallOptionsSchema = z.object({
    */
   model: z
     .union([z.enum(['aurora', 'blizzard']), z.string()])
-    .optional()
+    .nullish()
     .default('aurora'),
 
   /**
@@ -28,7 +28,7 @@ const lmntSpeechCallOptionsSchema = z.object({
    */
   language: z
     .union([z.enum(['auto', 'en']), z.string()])
-    .optional()
+    .nullish()
     .default('auto'),
 
   /**
@@ -37,48 +37,48 @@ const lmntSpeechCallOptionsSchema = z.object({
    */
   format: z
     .enum(['aac', 'mp3', 'mulaw', 'raw', 'wav'])
-    .optional()
+    .nullish()
     .default('mp3'),
 
   /**
    * The sample rate of the output audio in Hz.
    * @default 24000
    */
-  sampleRate: z.number().int().optional().default(24000),
+  sampleRate: z.number().int().nullish().default(24000),
 
   /**
    * The speed of the speech. Range: 0.25 to 2.
    * @default 1
    */
-  speed: z.number().min(0.25).max(2).optional().default(1),
+  speed: z.number().min(0.25).max(2).nullish().default(1),
 
   /**
    * A seed value for deterministic generation.
    */
-  seed: z.number().int().optional(),
+  seed: z.number().int().nullish(),
 
   /**
    * Whether to use a conversational style.
    * @default false
    */
-  conversational: z.boolean().optional().default(false),
+  conversational: z.boolean().nullish().default(false),
 
   /**
    * Maximum length of the output in seconds (up to 300).
    */
-  length: z.number().max(300).optional(),
+  length: z.number().max(300).nullish(),
 
   /**
    * Top-p sampling parameter. Range: 0 to 1.
    * @default 1
    */
-  topP: z.number().min(0).max(1).optional().default(1),
+  topP: z.number().min(0).max(1).nullish().default(1),
 
   /**
    * Temperature for sampling. Higher values increase randomness.
    * @default 1
    */
-  temperature: z.number().min(0).optional().default(1),
+  temperature: z.number().min(0).nullish().default(1),
 });
 
 export type LMNTSpeechCallOptions = z.infer<typeof lmntSpeechCallOptionsSchema>;
