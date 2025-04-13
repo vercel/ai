@@ -612,7 +612,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
         headers: transcriptionResultHeaders,
       },
       providerMetadata: {
-        gladia: transcriptionResult.result,
+        gladia: transcriptionResult,
       },
       warnings,
     };
