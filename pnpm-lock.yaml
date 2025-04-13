@@ -1698,9 +1698,6 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
-      zod:
-        specifier: 3.23.8
-        version: 3.23.8
 
   packages/provider-utils:
     dependencies:
