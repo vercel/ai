@@ -1,5 +1,5 @@
+import { SharedV2ProviderOptions } from '../../shared/v2/shared-v2-provider-options';
 import { LanguageModelV2DataContent } from './language-model-v2-data-content';
-import { LanguageModelV2ProviderOptions } from './language-model-v2-provider-options';
 
 /**
 A prompt is a list of messages.
@@ -45,7 +45,7 @@ export type LanguageModelV2Message =
      * to the provider from the AI SDK and enable provider-specific
      * functionality that can be fully encapsulated in the provider.
      */
-    providerOptions?: LanguageModelV2ProviderOptions;
+    providerOptions?: SharedV2ProviderOptions;
   };
 
 /**
@@ -64,7 +64,7 @@ The text content.
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: LanguageModelV2ProviderOptions;
+  providerOptions?: SharedV2ProviderOptions;
 }
 
 /**
@@ -88,7 +88,7 @@ An optional signature for verifying that the reasoning originated from the model
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: LanguageModelV2ProviderOptions;
+  providerOptions?: SharedV2ProviderOptions;
 }
 
 /**
@@ -107,7 +107,7 @@ Redacted reasoning data.
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: LanguageModelV2ProviderOptions;
+  providerOptions?: SharedV2ProviderOptions;
 }
 
 /**
@@ -140,7 +140,7 @@ Can support wildcards, e.g. `image/*` (in which case the provider needs to take 
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: LanguageModelV2ProviderOptions;
+  providerOptions?: SharedV2ProviderOptions;
 }
 
 /**
@@ -169,7 +169,7 @@ Arguments of the tool call. This is a JSON-serializable object that matches the 
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: LanguageModelV2ProviderOptions;
+  providerOptions?: SharedV2ProviderOptions;
 }
 
 /**
@@ -233,5 +233,5 @@ IANA media type of the image.
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: LanguageModelV2ProviderOptions;
+  providerOptions?: SharedV2ProviderOptions;
 }

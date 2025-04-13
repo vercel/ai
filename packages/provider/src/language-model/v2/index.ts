@@ -9,8 +9,6 @@ export * from './language-model-v2-function-tool-call';
 export * from './language-model-v2-logprobs';
 export * from './language-model-v2-prompt';
 export * from './language-model-v2-provider-defined-tool';
-export * from './language-model-v2-provider-metadata';
-export * from './language-model-v2-provider-options';
 export * from './language-model-v2-source';
 export * from './language-model-v2-tool-choice';
 export * from './language-model-v2-usage';

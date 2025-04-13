@@ -1,7 +1,7 @@
 import {
   LanguageModelV2CallOptions,
   LanguageModelV2Middleware,
-  LanguageModelV2ProviderOptions,
+  SharedV2ProviderOptions,
 } from '@ai-sdk/provider';
 import { mergeObjects } from '../util/merge-objects';
 
@@ -13,7 +13,7 @@ export function defaultSettingsMiddleware({
 }: {
   settings: Partial<
     LanguageModelV2CallOptions & {
-      providerOptions?: LanguageModelV2ProviderOptions;
+      providerOptions?: SharedV2ProviderOptions;
     }
   >;
 }): LanguageModelV2Middleware {

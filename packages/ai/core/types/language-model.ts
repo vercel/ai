@@ -19,7 +19,7 @@ export type {
   LanguageModelV2ObjectGenerationMode,
   LanguageModelV2Prompt,
   LanguageModelV2ProviderDefinedTool,
-  LanguageModelV2ProviderMetadata,
+  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2TextPart,
   LanguageModelV2ToolCallPart,

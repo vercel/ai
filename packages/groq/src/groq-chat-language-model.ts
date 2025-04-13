@@ -3,7 +3,7 @@ import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
-  LanguageModelV2ProviderMetadata,
+  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
@@ -250,7 +250,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     };
     let isFirstChunk = true;
 
-    let providerMetadata: LanguageModelV2ProviderMetadata | undefined;
+    let providerMetadata: SharedV2ProviderMetadata | undefined;
     return {
       stream: response.pipeThrough(
         new TransformStream<
