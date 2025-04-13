@@ -1,5 +1,3 @@
-import 'dotenv/config';
-import { describe, it, expect } from 'vitest';
 import {
   createVertexAnthropic as createVertexAnthropicNode,
   vertexAnthropic,
@@ -9,8 +7,11 @@ import {
   createVertexAnthropic as createVertexAnthropicEdge,
   vertexAnthropic as vertexAnthropicEdge,
 } from '@ai-sdk/google-vertex/anthropic/edge';
-import { generateText, APICallError, LanguageModelV2 } from 'ai';
+import { LanguageModelV2 } from '@ai-sdk/provider';
+import { APICallError, generateText } from 'ai';
+import 'dotenv/config';
 import fs from 'fs';
+import { describe, expect, it } from 'vitest';
 import {
   createFeatureTestSuite,
   createLanguageModelWithCapabilities,

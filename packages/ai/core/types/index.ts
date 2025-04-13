@@ -9,10 +9,6 @@ export type {
   CoreToolChoice,
   FinishReason,
   LanguageModel,
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2Prompt,
-  LanguageModelV2StreamPart,
   LogProbs,
   ToolChoice,
 } from './language-model';
