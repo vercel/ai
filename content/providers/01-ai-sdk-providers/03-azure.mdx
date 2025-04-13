@@ -530,10 +530,11 @@ You can also pass additional provider-specific options using the `providerOption
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
 import { azure } from '@ai-sdk/azure';
+import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: azure.transcription('whisper-1'),
-  audio: new Uint8Array([1, 2, 3, 4]),
+  audio: await readFile('audio.mp3'),
   providerOptions: { azure: { language: 'en' } },
 });
 ```
