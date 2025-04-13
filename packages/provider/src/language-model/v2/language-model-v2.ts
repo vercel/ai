@@ -3,9 +3,10 @@ import { LanguageModelV2CallOptions } from './language-model-v2-call-options';
 import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
 import { LanguageModelV2File } from './language-model-v2-file';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
-import { LanguageModelV2FunctionToolCall } from './language-model-v2-function-tool-call';
 import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
 import { LanguageModelV2Source } from './language-model-v2-source';
+import { LanguageModelV2ToolCall } from './language-model-v2-tool-call';
+import { LanguageModelV2ToolCallDelta } from './language-model-v2-tool-call-delta';
 import { LanguageModelV2Usage } from './language-model-v2-usage';
 
 /**
@@ -131,7 +132,7 @@ Sources that have been used as input to generate the response.
 Tool calls that the model has generated.
 Can be undefined if the model did not generate any tool calls.
      */
-    toolCalls?: Array<LanguageModelV2FunctionToolCall>;
+    toolCalls?: Array<LanguageModelV2ToolCall>;
 
     /**
 Logprobs for the completion.
@@ -259,18 +260,9 @@ export type LanguageModelV2StreamPart =
   // Files:
   | { type: 'file'; file: LanguageModelV2File }
 
-  // Complete tool calls:
-  | { type: 'tool-call'; toolCall: LanguageModelV2FunctionToolCall }
-
-  // Tool call deltas are only needed for object generation modes.
-  // The tool call deltas must be partial JSON strings.
-  | {
-      type: 'tool-call-delta';
-      toolCallType: 'function';
-      toolCallId: string;
-      toolName: string;
-      argsTextDelta: string;
-    }
+  // Tool calls:
+  | { type: 'tool-call'; toolCall: LanguageModelV2ToolCall }
+  | { type: 'tool-call-delta'; toolCallDelta: LanguageModelV2ToolCallDelta }
 
   // metadata for the response.
   // separate stream part so it can be sent once it is available.
