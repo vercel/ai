@@ -14,31 +14,20 @@ import { LMNTSpeechAPITypes } from './lmnt-api-types';
 // https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes
 const lmntSpeechCallOptionsSchema = z.object({
   /**
-   * The model to use for speech synthesis.
+   * The model to use for speech synthesis e.g. 'aurora' or 'blizzard'.
    * @default 'aurora'
    */
-  model: z.enum(['aurora', 'blizzard']).optional().default('aurora'),
+  model: z
+    .union([z.enum(['aurora', 'blizzard']), z.string()])
+    .optional()
+    .default('aurora'),
 
   /**
    * The language of the input text.
    * @default 'auto'
    */
   language: z
-    .enum([
-      'auto',
-      'en',
-      'es',
-      'pt',
-      'fr',
-      'de',
-      'zh',
-      'ko',
-      'hi',
-      'ja',
-      'ru',
-      'it',
-      'tr',
-    ])
+    .union([z.enum(['auto', 'en']), z.string()])
     .optional()
     .default('auto'),
 
