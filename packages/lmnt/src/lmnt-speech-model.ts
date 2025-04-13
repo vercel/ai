@@ -13,12 +13,12 @@ import { LMNTSpeechAPITypes } from './lmnt-api-types';
 
 // https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes
 const lmntSpeechCallOptionsSchema = z.object({
-  /** 
+  /**
    * The model to use for speech synthesis.
    * @default 'aurora'
    */
   model: z.enum(['aurora', 'blizzard']).optional().default('aurora'),
-  
+
   /**
    * The language of the input text.
    * @default 'auto'
@@ -41,7 +41,7 @@ const lmntSpeechCallOptionsSchema = z.object({
     ])
     .optional()
     .default('auto'),
-  
+
   /**
    * The audio format of the output.
    * @default 'mp3'
@@ -50,41 +50,41 @@ const lmntSpeechCallOptionsSchema = z.object({
     .enum(['aac', 'mp3', 'mulaw', 'raw', 'wav'])
     .optional()
     .default('mp3'),
-  
+
   /**
    * The sample rate of the output audio in Hz.
    * @default 24000
    */
   sampleRate: z.number().int().optional().default(24000),
-  
+
   /**
    * The speed of the speech. Range: 0.25 to 2.
    * @default 1
    */
   speed: z.number().min(0.25).max(2).optional().default(1),
-  
+
   /**
    * A seed value for deterministic generation.
    */
   seed: z.number().int().optional(),
-  
+
   /**
    * Whether to use a conversational style.
    * @default false
    */
   conversational: z.boolean().optional().default(false),
-  
+
   /**
    * Maximum length of the output in seconds (up to 300).
    */
   length: z.number().max(300).optional(),
-  
+
   /**
    * Top-p sampling parameter. Range: 0 to 1.
    * @default 1
    */
   topP: z.number().min(0).max(1).optional().default(1),
-  
+
   /**
    * Temperature for sampling. Higher values increase randomness.
    * @default 1
