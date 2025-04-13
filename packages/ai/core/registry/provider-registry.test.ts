@@ -97,6 +97,27 @@ describe('languageModel', () => {
 
     expect(modelRegistry.languageModel('provider|model')).toEqual(model);
   });
+
+  it('should support custom separator with multiple characters', () => {
+    const model = new MockLanguageModelV1();
+
+    const modelRegistry = createProviderRegistry(
+      {
+        provider: {
+          languageModel: id => {
+            expect(id).toEqual('model');
+            return model;
+          },
+          textEmbeddingModel: () => {
+            return null as any;
+          },
+        },
+      },
+      { separator: ' > ' },
+    );
+
+    expect(modelRegistry.languageModel('provider > model')).toEqual(model);
+  });
 });
 
 describe('textEmbeddingModel', () => {
