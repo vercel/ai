@@ -8,6 +8,7 @@ import {
   convertUint8ArrayToBase64,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  delay,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -224,7 +225,7 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
       }
 
       // Wait before polling again
-      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      await delay(pollIntervalMs);
     }
 
     return {
