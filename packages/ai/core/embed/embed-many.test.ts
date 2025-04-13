@@ -123,6 +123,28 @@ describe('options.headers', () => {
   });
 });
 
+describe('options.providerOptions', () => {
+  it('should pass provider options to model', async () => {
+    const result = await embedMany({
+      model: new MockEmbeddingModelV2({
+        doEmbed: async ({ providerOptions }) => {
+          expect(providerOptions).toStrictEqual({
+            aProvider: { someKey: 'someValue' },
+          });
+
+          return { embeddings: [[1, 2, 3]] };
+        },
+      }),
+      values: ['test-input'],
+      providerOptions: {
+        aProvider: { someKey: 'someValue' },
+      },
+    });
+
+    expect(result.embeddings).toStrictEqual([[1, 2, 3]]);
+  });
+});
+
 describe('telemetry', () => {
   let tracer: MockTracer;
 

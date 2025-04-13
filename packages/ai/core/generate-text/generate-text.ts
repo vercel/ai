@@ -17,8 +17,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice } from '../types';
-import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
+import { LanguageModel, ToolChoice, ProviderOptions } from '../types';
 import {
   addLanguageModelUsage,
   calculateLanguageModelUsage,
