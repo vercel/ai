@@ -23,6 +23,7 @@
     "@ai-sdk/perplexity": "1.1.6",
     "@ai-sdk/provider": "1.1.2",
     "@ai-sdk/replicate": "0.2.6",
+    "@ai-sdk/revai": "0.0.0",
     "@ai-sdk/togetherai": "0.2.9",
     "@ai-sdk/xai": "1.2.11",
     "@ai-sdk/valibot": "0.1.17",
