@@ -1,4 +1,4 @@
-import { LanguageModelV2ProviderMetadata } from './language-model-v2-provider-metadata';
+import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
 
 /**
  * A source that has been used as input to generate the response.
@@ -27,5 +27,5 @@ export type LanguageModelV2Source = {
   /**
    * Additional provider metadata for the source.
    */
-  providerMetadata?: LanguageModelV2ProviderMetadata;
+  providerMetadata?: SharedV2ProviderMetadata;
 };

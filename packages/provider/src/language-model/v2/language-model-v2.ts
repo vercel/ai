@@ -1,10 +1,10 @@
+import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
 import { LanguageModelV2CallOptions } from './language-model-v2-call-options';
 import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
 import { LanguageModelV2File } from './language-model-v2-file';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
 import { LanguageModelV2FunctionToolCall } from './language-model-v2-function-tool-call';
 import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
-import { LanguageModelV2ProviderMetadata } from './language-model-v2-provider-metadata';
 import { LanguageModelV2Source } from './language-model-v2-source';
 import { LanguageModelV2Usage } from './language-model-v2-usage';
 
@@ -157,7 +157,7 @@ Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
      */
-    providerMetadata?: LanguageModelV2ProviderMetadata;
+    providerMetadata?: SharedV2ProviderMetadata;
 
     /**
 Optional request information for telemetry and debugging purposes.
@@ -285,7 +285,7 @@ export type LanguageModelV2StreamPart =
   | {
       type: 'finish';
       finishReason: LanguageModelV2FinishReason;
-      providerMetadata?: LanguageModelV2ProviderMetadata;
+      providerMetadata?: SharedV2ProviderMetadata;
       usage: LanguageModelV2Usage;
 
       // @deprecated - will be changed into a provider-specific extension in v2

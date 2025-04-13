@@ -1,5 +1,3 @@
-import { LanguageModelV2ProviderMetadata } from './language-model-v2-provider-metadata';
-
 /**
  * Usage information for a language model call.
  */
