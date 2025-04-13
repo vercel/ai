@@ -1,4 +1,5 @@
 import {
+  AISDKError,
   TranscriptionModelV1,
   TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
@@ -548,7 +549,11 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
     while (true) {
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
-        throw new Error('Transcription timed out after 60 seconds');
+        throw new AISDKError({
+          message: 'Transcription job polling timed out',
+          name: 'TranscriptionJobPollingTimedOut',
+          cause: transcriptionResult,
+        });
       }
 
       const response = await getFromApi({
@@ -565,26 +570,28 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
       transcriptionResult = response.value;
       transcriptionResultHeaders = response.responseHeaders;
 
-      if (
-        transcriptionResult.status === 'done' ||
-        transcriptionResult.status === 'error'
-      ) {
+      if (transcriptionResult.status === 'done') {
         break;
+      }
+
+      if (transcriptionResult.status === 'error') {
+        throw new AISDKError({
+          message: 'Transcription job failed',
+          name: 'TranscriptionJobFailed',
+          cause: transcriptionResult,
+        });
       }
 
       // Wait for the configured polling interval before checking again
       await delay(pollingInterval);
     }
 
-    // Handle error status
-    if (transcriptionResult.status === 'error') {
-      throw new Error(
-        `Transcription failed with error code: ${transcriptionResult.error_code}`,
-      );
-    }
-
     if (!transcriptionResult.result) {
-      throw new Error('Transcription result is empty');
+      throw new AISDKError({
+        message: 'Transcription result is empty',
+        name: 'TranscriptionResultEmpty',
+        cause: transcriptionResult,
+      });
     }
 
     // Process the successful result
