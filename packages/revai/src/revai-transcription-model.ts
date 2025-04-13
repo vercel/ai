@@ -233,7 +233,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     const timeoutMs = 60 * 1000; // 60 seconds timeout
     const startTime = Date.now();
     let jobResponse = submissionResponse;
-    
+
     while (jobResponse.status !== 'transcribed') {
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
