@@ -1,4 +1,5 @@
 import {
+  AISDKError,
   TranscriptionModelV1,
   TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
@@ -328,7 +329,11 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     });
 
     if (submissionResponse.status === 'failed') {
-      throw new Error('Transcription job failed');
+      throw new AISDKError({
+        message: 'Failed to submit transcription job to Rev.ai',
+        name: 'TranscriptionJobSubmissionFailed',
+        cause: submissionResponse,
+      });
     }
 
     const jobId = submissionResponse.id;
@@ -340,7 +345,11 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     while (jobResponse.status !== 'transcribed') {
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
-        throw new Error('Transcription job polling timed out after 60 seconds');
+        throw new AISDKError({
+          message: 'Transcription job polling timed out',
+          name: 'TranscriptionJobPollingTimedOut',
+          cause: submissionResponse,
+        });
       }
 
       // Poll for job status
@@ -361,7 +370,11 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
       jobResponse = pollingResult.value;
 
       if (jobResponse.status === 'failed') {
-        throw new Error('Transcription job failed during polling');
+        throw new AISDKError({
+          message: 'Transcription job failed',
+          name: 'TranscriptionJobFailed',
+          cause: jobResponse,
+        });
       }
 
       // Wait before polling again (only if we need to continue polling)
