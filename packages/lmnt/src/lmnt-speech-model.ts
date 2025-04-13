@@ -44,7 +44,10 @@ const lmntSpeechCallOptionsSchema = z.object({
    * The sample rate of the output audio in Hz.
    * @default 24000
    */
-  sampleRate: z.number().int().nullish().default(24000),
+  sampleRate: z
+    .union([z.literal(8000), z.literal(16000), z.literal(24000)])
+    .nullish()
+    .default(24000),
 
   /**
    * The speed of the speech. Range: 0.25 to 2.
@@ -147,17 +150,8 @@ export class LMNTSpeechModel implements SpeechModelV1 {
         speed: lmntOptions.speed ?? undefined,
         temperature: lmntOptions.temperature ?? undefined,
         top_p: lmntOptions.topP ?? undefined,
+        sample_rate: lmntOptions.sampleRate ?? undefined,
       };
-
-      if (
-        typeof lmntOptions.sampleRate === 'number' &&
-        [8000, 16000, 24000].includes(lmntOptions.sampleRate)
-      ) {
-        speechModelOptions.sample_rate = lmntOptions.sampleRate as
-          | 8000
-          | 16000
-          | 24000;
-      }
 
       for (const key in speechModelOptions) {
         const value =
