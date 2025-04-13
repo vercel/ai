@@ -198,7 +198,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'tool-call': {
           try {
             const toolCall = await parseToolCall({
-              toolCall: chunk,
+              toolCall: chunk.toolCall,
               tools,
               repairToolCall,
               system,

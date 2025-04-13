@@ -648,7 +648,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               transform(chunk, controller) {
                 switch (chunk.type) {
                   case 'tool-call-delta':
-                    controller.enqueue(chunk.argsTextDelta);
+                    controller.enqueue(chunk.toolCallDelta.argsTextDelta);
                     break;
                   case 'response-metadata':
                   case 'finish':

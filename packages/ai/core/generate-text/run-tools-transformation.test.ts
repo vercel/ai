@@ -51,10 +51,12 @@ it('should handle immediate tool execution', async () => {
     convertArrayToReadableStream([
       {
         type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: 'call-1',
-        toolName: 'syncTool',
-        args: `{ "value": "test" }`,
+        toolCall: {
+          toolCallType: 'function',
+          toolCallId: 'call-1',
+          toolName: 'syncTool',
+          args: `{ "value": "test" }`,
+        },
       },
       {
         type: 'finish',
@@ -111,10 +113,12 @@ it('should hold off on sending finish until the delayed tool result is received'
     convertArrayToReadableStream([
       {
         type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: 'call-1',
-        toolName: 'delayedTool',
-        args: `{ "value": "test" }`,
+        toolCall: {
+          toolCallType: 'function',
+          toolCallId: 'call-1',
+          toolName: 'delayedTool',
+          args: `{ "value": "test" }`,
+        },
       },
       {
         type: 'finish',
@@ -174,10 +178,12 @@ it('should try to repair tool call when the tool name is not found', async () =>
     convertArrayToReadableStream([
       {
         type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: 'call-1',
-        toolName: 'unknownTool',
-        args: `{ "value": "test" }`,
+        toolCall: {
+          toolCallType: 'function',
+          toolCallId: 'call-1',
+          toolName: 'unknownTool',
+          args: `{ "value": "test" }`,
+        },
       },
       {
         type: 'finish',
