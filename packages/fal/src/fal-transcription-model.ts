@@ -26,7 +26,10 @@ const falProviderOptionsSchema = z.object({
    *
    * If translate is selected as the task, the audio will be translated to English, regardless of the language selected.
    */
-  language: z.union([z.enum(['en']), z.string()]).nullish().default('en'),
+  language: z
+    .union([z.enum(['en']), z.string()])
+    .nullish()
+    .default('en'),
 
   /**
    * Whether to diarize the audio file. Defaults to true.
