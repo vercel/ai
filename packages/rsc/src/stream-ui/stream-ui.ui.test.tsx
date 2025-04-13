@@ -77,10 +77,12 @@ const mockToolModel = new MockLanguageModelV2({
       stream: convertArrayToReadableStream([
         {
           type: 'tool-call',
-          toolCallType: 'function',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: `{ "value": "value" }`,
+          toolCall: {
+            toolCallType: 'function',
+            toolCallId: 'call-1',
+            toolName: 'tool1',
+            args: `{ "value": "value" }`,
+          },
         },
         {
           type: 'finish',

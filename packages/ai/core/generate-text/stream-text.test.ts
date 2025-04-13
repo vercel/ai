@@ -410,10 +410,12 @@ describe('streamText', () => {
                 },
                 {
                   type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'call-1',
-                  toolName: 'tool1',
-                  args: `{ "value": "value" }`,
+                  toolCall: {
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    args: `{ "value": "value" }`,
+                  },
                 },
                 {
                   type: 'finish',
@@ -479,59 +481,75 @@ describe('streamText', () => {
                 },
                 {
                   type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '{"',
+                  toolCallDelta: {
+                    toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                    toolCallType: 'function',
+                    toolName: 'test-tool',
+                    argsTextDelta: '{"',
+                  },
                 },
                 {
                   type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'value',
+                  toolCallDelta: {
+                    toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                    toolCallType: 'function',
+                    toolName: 'test-tool',
+                    argsTextDelta: 'value',
+                  },
                 },
                 {
                   type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '":"',
+                  toolCallDelta: {
+                    toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                    toolCallType: 'function',
+                    toolName: 'test-tool',
+                    argsTextDelta: '":"',
+                  },
                 },
                 {
                   type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'Spark',
+                  toolCallDelta: {
+                    toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                    toolCallType: 'function',
+                    toolName: 'test-tool',
+                    argsTextDelta: 'Spark',
+                  },
                 },
                 {
                   type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: 'le',
+                  toolCallDelta: {
+                    toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                    toolCallType: 'function',
+                    toolName: 'test-tool',
+                    argsTextDelta: 'le',
+                  },
                 },
                 {
                   type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: ' Day',
+                  toolCallDelta: {
+                    toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                    toolCallType: 'function',
+                    toolName: 'test-tool',
+                    argsTextDelta: ' Day',
+                  },
                 },
                 {
                   type: 'tool-call-delta',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  argsTextDelta: '"}',
+                  toolCallDelta: {
+                    toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                    toolCallType: 'function',
+                    toolName: 'test-tool',
+                    argsTextDelta: '"}',
+                  },
                 },
                 {
                   type: 'tool-call',
-                  toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-                  toolCallType: 'function',
-                  toolName: 'test-tool',
-                  args: '{"value":"Sparkle Day"}',
+                  toolCall: {
+                    toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                    toolCallType: 'function',
+                    toolName: 'test-tool',
+                    args: '{"value":"Sparkle Day"}',
+                  },
                 },
                 {
                   type: 'finish',
@@ -572,58 +590,75 @@ describe('streamText', () => {
             {
               type: 'tool-call-delta',
               toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: '{"',
+              toolCallDelta: {
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: '{"',
+              },
             },
             {
               type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: 'value',
+              toolCallDelta: {
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: 'value',
+              },
             },
             {
               type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: '":"',
+              toolCallDelta: {
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: '":"',
+              },
             },
             {
               type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: 'Spark',
+              toolCallDelta: {
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: 'Spark',
+              },
             },
             {
               type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: 'le',
+              toolCallDelta: {
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: 'le',
+              },
             },
             {
               type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: ' Day',
+              toolCallDelta: {
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: ' Day',
+              },
             },
             {
               type: 'tool-call-delta',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              argsTextDelta: '"}',
+              toolCallDelta: {
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                argsTextDelta: '"}',
+              },
             },
             {
               type: 'tool-call',
-              toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-              toolCallType: 'function',
-              toolName: 'test-tool',
-              args: '{"value":"Sparkle Day"}',
+              toolCall: {
+                toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
+                toolCallType: 'function',
+                toolName: 'test-tool',
+                args: '{"value":"Sparkle Day"}',
+              },
             },
             {
               type: 'finish',
@@ -660,10 +695,12 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -706,10 +743,12 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -1103,24 +1142,30 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: '{ "value":',
+              toolCallDelta: {
+                toolCallId: 'call-1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: '{ "value":',
+              },
             },
             {
               type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: ' "value" }',
+              toolCallDelta: {
+                toolCallId: 'call-1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: ' "value" }',
+              },
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -1152,24 +1197,30 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: '{ "value":',
+              toolCallDelta: {
+                toolCallId: 'call-1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: '{ "value":',
+              },
             },
             {
               type: 'tool-call-delta',
-              toolCallId: 'call-1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: ' "value" }',
+              toolCallDelta: {
+                toolCallId: 'call-1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: ' "value" }',
+              },
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -1913,10 +1964,12 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -1954,10 +2007,12 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -2016,10 +2071,12 @@ describe('streamText', () => {
             { type: 'text-delta', textDelta: 'Hello' },
             {
               type: 'tool-call-delta',
-              toolCallId: '1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: '{"value": "',
+              toolCallDelta: {
+                toolCallId: '1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: '{"value": "',
+              },
             },
             {
               type: 'reasoning',
@@ -2027,17 +2084,21 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call-delta',
-              toolCallId: '1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: 'test',
+              toolCallDelta: {
+                toolCallId: '1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: 'test',
+              },
             },
             {
               type: 'tool-call-delta',
-              toolCallId: '1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              argsTextDelta: '"}',
+              toolCallDelta: {
+                toolCallId: '1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                argsTextDelta: '"}',
+              },
             },
             {
               type: 'source',
@@ -2051,10 +2112,12 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallId: '1',
-              toolCallType: 'function',
-              toolName: 'tool1',
-              args: `{ "value": "test" }`,
+              toolCall: {
+                toolCallId: '1',
+                toolCallType: 'function',
+                toolName: 'tool1',
+                args: `{ "value": "test" }`,
+              },
             },
             { type: 'text-delta', textDelta: ' World' },
             {
@@ -2126,10 +2189,12 @@ describe('streamText', () => {
             { type: 'text-delta', textDelta: ', ' },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             { type: 'text-delta', textDelta: `world!` },
             {
@@ -2250,10 +2315,12 @@ describe('streamText', () => {
             { type: 'text-delta', textDelta: 'world!' },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -2341,10 +2408,12 @@ describe('streamText', () => {
                       },
                       {
                         type: 'tool-call',
-                        toolCallType: 'function',
-                        toolCallId: 'call-1',
-                        toolName: 'tool1',
-                        args: `{ "value": "value" }`,
+                        toolCall: {
+                          toolCallType: 'function',
+                          toolCallId: 'call-1',
+                          toolName: 'tool1',
+                          args: `{ "value": "value" }`,
+                        },
                       },
                       {
                         type: 'finish',
@@ -2930,10 +2999,12 @@ describe('streamText', () => {
           stream: convertArrayToReadableStream([
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -3031,10 +3102,12 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -3072,10 +3145,12 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -3145,10 +3220,12 @@ describe('streamText', () => {
                 },
                 {
                   type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'call-1',
-                  toolName: 'tool1',
-                  args: `{ "value": "value" }`,
+                  toolCall: {
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    args: `{ "value": "value" }`,
+                  },
                 },
                 {
                   type: 'finish',
@@ -3325,10 +3402,12 @@ describe('streamText', () => {
             },
             {
               type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: `{ "value": "value" }`,
+              toolCall: {
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                args: `{ "value": "value" }`,
+              },
             },
             {
               type: 'finish',
@@ -3598,10 +3677,12 @@ describe('streamText', () => {
               { type: 'text-delta', textDelta: 'world!' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                toolCall: {
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  args: `{ "value": "value" }`,
+                },
               },
               {
                 type: 'finish',
@@ -3640,10 +3721,12 @@ describe('streamText', () => {
               { type: 'text-delta', textDelta: 'world!' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                toolCall: {
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  args: `{ "value": "value" }`,
+                },
               },
               {
                 type: 'finish',
@@ -3689,10 +3772,12 @@ describe('streamText', () => {
               { type: 'text-delta', textDelta: 'world!' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                toolCall: {
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  args: `{ "value": "value" }`,
+                },
               },
               {
                 type: 'finish',
@@ -3806,10 +3891,12 @@ describe('streamText', () => {
               { type: 'text-delta', textDelta: ', ' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                toolCall: {
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  args: `{ "value": "value" }`,
+                },
               },
               { type: 'text-delta', textDelta: `world!` },
               {
@@ -3861,10 +3948,12 @@ describe('streamText', () => {
               { type: 'text-delta', textDelta: ', ' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                toolCall: {
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  args: `{ "value": "value" }`,
+                },
               },
               { type: 'text-delta', textDelta: `world!` },
               {
@@ -3914,10 +4003,12 @@ describe('streamText', () => {
               { type: 'text-delta', textDelta: ', ' },
               {
                 type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'call-1',
-                toolName: 'tool1',
-                args: `{ "value": "value" }`,
+                toolCall: {
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  args: `{ "value": "value" }`,
+                },
               },
               { type: 'text-delta', textDelta: `world!` },
               {
@@ -3972,31 +4063,39 @@ describe('streamText', () => {
               { type: 'reasoning', textDelta: 'Feeling clever' },
               {
                 type: 'tool-call-delta',
-                toolCallId: '1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: '{"value": "',
+                toolCallDelta: {
+                  toolCallId: '1',
+                  toolCallType: 'function',
+                  toolName: 'tool1',
+                  argsTextDelta: '{"value": "',
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallId: '1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: 'test',
+                toolCallDelta: {
+                  toolCallId: '1',
+                  toolCallType: 'function',
+                  toolName: 'tool1',
+                  argsTextDelta: 'test',
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallId: '1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                argsTextDelta: '"}',
+                toolCallDelta: {
+                  toolCallId: '1',
+                  toolCallType: 'function',
+                  toolName: 'tool1',
+                  argsTextDelta: '"}',
+                },
               },
               {
                 type: 'tool-call',
-                toolCallId: '1',
-                toolCallType: 'function',
-                toolName: 'tool1',
-                args: `{ "value": "test" }`,
+                toolCall: {
+                  toolCallId: '1',
+                  toolCallType: 'function',
+                  toolName: 'tool1',
+                  args: `{ "value": "test" }`,
+                },
               },
               { type: 'text-delta', textDelta: ' World' },
               {

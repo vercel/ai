@@ -61,15 +61,17 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
             for (const toolCall of result.toolCalls) {
               controller.enqueue({
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                argsTextDelta: toolCall.args,
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: toolCall.toolCallId,
+                  toolName: toolCall.toolName,
+                  argsTextDelta: toolCall.args,
+                },
               });
 
               controller.enqueue({
                 type: 'tool-call',
-                ...toolCall,
+                toolCall,
               });
             }
           }

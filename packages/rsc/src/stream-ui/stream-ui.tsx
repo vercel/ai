@@ -311,7 +311,7 @@ functionality that can be fully encapsulated in the provider.
           }
 
           case 'tool-call': {
-            const toolName = value.toolName as keyof TOOLS & string;
+            const toolName = value.toolCall.toolName as keyof TOOLS & string;
 
             if (!tools) {
               throw new NoSuchToolError({ toolName });
@@ -327,14 +327,14 @@ functionality that can be fully encapsulated in the provider.
 
             hasToolCall = true;
             const parseResult = safeParseJSON({
-              text: value.args,
+              text: value.toolCall.args,
               schema: tool.parameters,
             });
 
             if (parseResult.success === false) {
               throw new InvalidToolArgumentsError({
                 toolName,
-                toolArgs: value.args,
+                toolArgs: value.toolCall.args,
                 cause: parseResult.error,
               });
             }
@@ -345,7 +345,7 @@ functionality that can be fully encapsulated in the provider.
                 parseResult.value,
                 {
                   toolName,
-                  toolCallId: value.toolCallId,
+                  toolCallId: value.toolCall.toolCallId,
                 },
               ],
               streamableUI: ui,

@@ -235,45 +235,57 @@ describe('streamObject', () => {
                 stream: convertArrayToReadableStream([
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: '{ ',
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: '{ ',
+                    },
                   },
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: '"content": ',
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: '"content": ',
+                    },
                   },
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `"Hello, `,
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: `"Hello, `,
+                    },
                   },
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `world`,
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: `world`,
+                    },
                   },
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `!"`,
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: `!"`,
+                    },
                   },
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: ' }',
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: ' }',
+                    },
                   },
                   {
                     type: 'finish',
@@ -332,45 +344,57 @@ describe('streamObject', () => {
                 stream: convertArrayToReadableStream([
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: '{ ',
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: '{ ',
+                    },
                   },
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: '"content": ',
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: '"content": ',
+                    },
                   },
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `"Hello, `,
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: `"Hello, `,
+                    },
                   },
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `world`,
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: `world`,
+                    },
                   },
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `!"`,
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: `!"`,
+                    },
                   },
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: ' }',
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: ' }',
+                    },
                   },
                   {
                     type: 'finish',
@@ -721,10 +745,12 @@ describe('streamObject', () => {
                 },
                 {
                   type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  argsTextDelta: '{"content": "Hello, world!"}',
+                  toolCallDelta: {
+                    toolCallType: 'function',
+                    toolCallId: 'tool-call-1',
+                    toolName: 'json',
+                    argsTextDelta: '{"content": "Hello, world!"}',
+                  },
                 },
                 {
                   type: 'finish',
@@ -805,10 +831,12 @@ describe('streamObject', () => {
                 },
                 {
                   type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  argsTextDelta: '{"content": "Hello, world!"}',
+                  toolCallDelta: {
+                    toolCallType: 'function',
+                    toolCallId: 'tool-call-1',
+                    toolName: 'json',
+                    argsTextDelta: '{"content": "Hello, world!"}',
+                  },
                 },
                 {
                   type: 'finish',
@@ -1067,10 +1095,12 @@ describe('streamObject', () => {
                 stream: convertArrayToReadableStream([
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `{ "content": "headers test" }`,
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: `{ "content": "headers test" }`,
+                    },
                   },
                   {
                     type: 'finish',
@@ -1142,10 +1172,12 @@ describe('streamObject', () => {
                 stream: convertArrayToReadableStream([
                   {
                     type: 'tool-call-delta',
-                    toolCallType: 'function',
-                    toolCallId: 'tool-call-1',
-                    toolName: 'json',
-                    argsTextDelta: `{ "content": "provider metadata test" }`,
+                    toolCallDelta: {
+                      toolCallType: 'function',
+                      toolCallId: 'tool-call-1',
+                      toolName: 'json',
+                      argsTextDelta: `{ "content": "provider metadata test" }`,
+                    },
                   },
                   {
                     type: 'finish',
@@ -1249,10 +1281,12 @@ describe('streamObject', () => {
               stream: convertArrayToReadableStream([
                 {
                   type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  argsTextDelta: '{ "content": 123 }',
+                  toolCallDelta: {
+                    toolCallType: 'function',
+                    toolCallId: 'tool-call-1',
+                    toolName: 'json',
+                    argsTextDelta: '{ "content": 123 }',
+                  },
                 },
                 {
                   type: 'response-metadata',
@@ -1341,10 +1375,12 @@ describe('streamObject', () => {
               stream: convertArrayToReadableStream([
                 {
                   type: 'tool-call-delta',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  argsTextDelta: '{ broken json',
+                  toolCallDelta: {
+                    toolCallType: 'function',
+                    toolCallId: 'tool-call-1',
+                    toolName: 'json',
+                    argsTextDelta: '{ broken json',
+                  },
                 },
                 {
                   type: 'response-metadata',
@@ -1959,45 +1995,57 @@ describe('streamObject', () => {
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: '{ ',
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: '{ ',
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: '"content": ',
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: '"content": ',
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `"Hello, `,
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: `"Hello, `,
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `world`,
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: `world`,
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `!"`,
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: `!"`,
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: ' }',
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: ' }',
+                },
               },
               {
                 type: 'finish',
@@ -2095,45 +2143,57 @@ describe('streamObject', () => {
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: '{ ',
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: '{ ',
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: '"content": ',
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: '"content": ',
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `"Hello, `,
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: `"Hello, `,
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `world`,
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: `world`,
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: `!"`,
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: `!"`,
+                },
               },
               {
                 type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                argsTextDelta: ' }',
+                toolCallDelta: {
+                  toolCallType: 'function',
+                  toolCallId: 'tool-call-1',
+                  toolName: 'json',
+                  argsTextDelta: ' }',
+                },
               },
               {
                 type: 'finish',

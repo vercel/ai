@@ -174,21 +174,21 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         // forward with less information:
         case 'tool-call-delta': {
           if (toolCallStreaming) {
-            if (!activeToolCalls[chunk.toolCallId]) {
+            if (!activeToolCalls[chunk.toolCallDelta.toolCallId]) {
               controller.enqueue({
                 type: 'tool-call-streaming-start',
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
+                toolCallId: chunk.toolCallDelta.toolCallId,
+                toolName: chunk.toolCallDelta.toolName,
               });
 
-              activeToolCalls[chunk.toolCallId] = true;
+              activeToolCalls[chunk.toolCallDelta.toolCallId] = true;
             }
 
             controller.enqueue({
               type: 'tool-call-delta',
-              toolCallId: chunk.toolCallId,
-              toolName: chunk.toolName,
-              argsTextDelta: chunk.argsTextDelta,
+              toolCallId: chunk.toolCallDelta.toolCallId,
+              toolName: chunk.toolCallDelta.toolName,
+              argsTextDelta: chunk.toolCallDelta.argsTextDelta,
             });
           }
           break;
