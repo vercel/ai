@@ -111,7 +111,7 @@ describe('languageModel', () => {
   });
 
   it('should support custom separator with multiple characters', () => {
-    const model = new MockLanguageModelV1();
+    const model = new MockLanguageModelV2();
 
     const modelRegistry = createProviderRegistry(
       {
@@ -121,6 +121,9 @@ describe('languageModel', () => {
             return model;
           },
           textEmbeddingModel: () => {
+            return null as any;
+          },
+          imageModel: () => {
             return null as any;
           },
         },
