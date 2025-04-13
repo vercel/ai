@@ -6,6 +6,7 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   createJsonResponseHandler,
+  delay,
   getFromApi,
   parseProviderOptions,
   postFormDataToApi,
@@ -333,6 +334,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     const jobId = submissionResponse.id;
     const timeoutMs = 60 * 1000; // 60 seconds timeout
     const startTime = Date.now();
+    const pollingInterval = 1000;
     let jobResponse = submissionResponse;
 
     while (jobResponse.status !== 'transcribed') {
@@ -364,7 +366,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
 
       // Wait before polling again (only if we need to continue polling)
       if (jobResponse.status !== 'transcribed') {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await delay(pollingInterval);
       }
     }
 
