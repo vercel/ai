@@ -76,10 +76,11 @@ You can also pass additional provider-specific options using the `providerOption
 ```ts highlight="6"
 import { experimental_transcribe as transcribe } from 'ai';
 import { deepgram } from '@ai-sdk/deepgram';
+import { readFile } from 'fs/promises';
 
 const result = await transcribe({
   model: deepgram.transcription('nova-3'),
-  audio: new Uint8Array([1, 2, 3, 4]),
+  audio: await readFile('audio.mp3'),
   providerOptions: { deepgram: { summarize: true } },
 });
 ```
@@ -176,10 +177,10 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                   | Transcription       | Duration            | Segments            | Language            |
-| ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `nova-3` (+ variants)   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `nova-2` (+ variants)   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `nova` (+ variants)     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `enhanced` (+ variants) | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `base` (+ variants)     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| Model                                                                                              | Transcription       | Duration            | Segments            | Language            |
+| -------------------------------------------------------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `nova-3` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova-3))     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `nova-2` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova-2))     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `nova` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#nova))         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `enhanced` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#enhanced)) | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| `base` (+ [variants](https://developers.deepgram.com/docs/models-languages-overview#base))         | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
