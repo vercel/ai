@@ -184,20 +184,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV1 {
 const deepgramTranscriptionResponseSchema = z.object({
   metadata: z
     .object({
-      transaction_key: z.string(),
-      request_id: z.string(),
-      sha256: z.string(),
-      created: z.string(),
       duration: z.number(),
-      channels: z.number(),
-      models: z.array(z.string()),
-      model_info: z.record(
-        z.object({
-          name: z.string(),
-          version: z.string(),
-          arch: z.string(),
-        }),
-      ),
     })
     .nullish(),
   results: z
@@ -207,35 +194,13 @@ const deepgramTranscriptionResponseSchema = z.object({
           alternatives: z.array(
             z.object({
               transcript: z.string(),
-              confidence: z.number(),
               words: z.array(
                 z.object({
                   word: z.string(),
                   start: z.number(),
                   end: z.number(),
-                  confidence: z.number(),
-                  punctuated_word: z.string().nullish(),
                 }),
               ),
-              paragraphs: z
-                .object({
-                  transcript: z.string(),
-                  paragraphs: z.array(
-                    z.object({
-                      sentences: z.array(
-                        z.object({
-                          text: z.string(),
-                          start: z.number(),
-                          end: z.number(),
-                        }),
-                      ),
-                      num_words: z.number(),
-                      start: z.number(),
-                      end: z.number(),
-                    }),
-                  ),
-                })
-                .nullish(),
             }),
           ),
         }),
