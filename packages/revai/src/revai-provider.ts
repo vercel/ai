@@ -42,7 +42,7 @@ export function createRevai(
   options: RevaiProviderSettings = {},
 ): RevaiProvider {
   const getHeaders = () => ({
-    'authorization': `Bearer ${loadApiKey({
+    authorization: `Bearer ${loadApiKey({
       apiKey: options.apiKey,
       environmentVariableName: 'REVAI_API_KEY',
       description: 'Rev.ai',

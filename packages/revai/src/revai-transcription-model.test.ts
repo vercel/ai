@@ -193,7 +193,7 @@ describe('doGenerate', () => {
     });
 
     expect(server.calls[0].requestHeaders).toMatchObject({
-      'authorization': 'Bearer test-api-key',
+      authorization: 'Bearer test-api-key',
       'content-type': expect.stringMatching(
         /^multipart\/form-data; boundary=----formdata-undici-\d+$/,
       ),

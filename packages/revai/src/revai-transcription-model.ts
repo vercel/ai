@@ -297,20 +297,20 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
       for (const element of monologue.elements) {
         // Add the element value to the current segment text
         currentSegmentText += element.value;
-        
+
         // For text elements, track timing information
         if (element.type === 'text') {
           // Update the overall duration if this is the latest timestamp
           if (element.end_ts && element.end_ts > durationInSeconds) {
             durationInSeconds = element.end_ts;
           }
-          
+
           // If this is the first text element in a segment, mark the start time
           if (!hasStartedSegment && element.ts !== undefined) {
             segmentStartSecond = element.ts;
             hasStartedSegment = true;
           }
-          
+
           // If we have an end timestamp, we can complete a segment
           if (element.end_ts !== undefined && hasStartedSegment) {
             // Only add non-empty segments
@@ -318,24 +318,27 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
               segments.push({
                 text: currentSegmentText.trim(),
                 startSecond: segmentStartSecond,
-                endSecond: element.end_ts
+                endSecond: element.end_ts,
               });
             }
-            
+
             // Reset for the next segment
             currentSegmentText = '';
             hasStartedSegment = false;
           }
         }
       }
-      
+
       // Handle any remaining segment text that wasn't added
       if (hasStartedSegment && currentSegmentText.trim()) {
-        const endSecond = durationInSeconds > segmentStartSecond ? durationInSeconds : segmentStartSecond + 1;
+        const endSecond =
+          durationInSeconds > segmentStartSecond
+            ? durationInSeconds
+            : segmentStartSecond + 1;
         segments.push({
           text: currentSegmentText.trim(),
           startSecond: segmentStartSecond,
-          endSecond: endSecond
+          endSecond: endSecond,
         });
       }
     }
