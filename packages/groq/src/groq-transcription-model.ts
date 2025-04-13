@@ -1,6 +1,6 @@
 import {
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV1,
+  TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -9,10 +9,10 @@ import {
   parseProviderOptions,
   postFormDataToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
-import { GroqTranscriptionModelId } from './groq-transcription-options';
+import { GroqTranscriptionModelId } from './groq-transcription-settings';
 import { GroqTranscriptionAPITypes } from './groq-api-types';
 
 // https://console.groq.com/docs/speech-to-text
@@ -34,8 +34,8 @@ interface GroqTranscriptionModelConfig extends GroqConfig {
   };
 }
 
-export class GroqTranscriptionModel implements TranscriptionModelV2 {
-  readonly specificationVersion = 'v2';
+export class GroqTranscriptionModel implements TranscriptionModelV1 {
+  readonly specificationVersion = 'v1';
 
   get provider(): string {
     return this.config.provider;
@@ -46,15 +46,15 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
     private readonly config: GroqTranscriptionModelConfig,
   ) {}
 
-  private async getArgs({
+  private getArgs({
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV2CallWarning[] = [];
+  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const groqOptions = await parseProviderOptions({
+    const groqOptions = parseProviderOptions({
       provider: 'groq',
       providerOptions,
       schema: groqProviderOptionsSchema,
@@ -102,10 +102,10 @@ export class GroqTranscriptionModel implements TranscriptionModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { formData, warnings } = await this.getArgs(options);
+    const { formData, warnings } = this.getArgs(options);
 
     const {
       value: response,
