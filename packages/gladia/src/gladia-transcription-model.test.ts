@@ -173,7 +173,7 @@ describe('doGenerate', () => {
     });
 
     const testDate = new Date(0);
-    const customModel = new GladiaTranscriptionModel('', {
+    const customModel = new GladiaTranscriptionModel('default', {
       provider: 'test-provider',
       url: ({ path }) => `https://api.gladia.io${path}`,
       headers: () => ({}),
@@ -189,7 +189,7 @@ describe('doGenerate', () => {
 
     expect(result.response).toMatchObject({
       timestamp: testDate,
-      modelId: '',
+      modelId: 'default',
       headers: {
         'content-type': 'application/json',
         'x-request-id': 'test-request-id',
@@ -202,7 +202,7 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     const testDate = new Date(0);
-    const customModel = new GladiaTranscriptionModel('', {
+    const customModel = new GladiaTranscriptionModel('default', {
       provider: 'test-provider',
       url: ({ path }) => `https://api.gladia.io${path}`,
       headers: () => ({}),
@@ -217,6 +217,6 @@ describe('doGenerate', () => {
     });
 
     expect(result.response.timestamp.getTime()).toEqual(testDate.getTime());
-    expect(result.response.modelId).toBe('');
+    expect(result.response.modelId).toBe('default');
   });
 });

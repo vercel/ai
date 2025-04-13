@@ -340,7 +340,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
   }
 
   constructor(
-    readonly modelId: '',
+    readonly modelId: 'default',
     private readonly config: GladiaTranscriptionModelConfig,
   ) {}
 
@@ -506,7 +506,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
     const { value: uploadResponse } = await postFormDataToApi({
       url: this.config.url({
         path: '/v2/upload',
-        modelId: '',
+        modelId: 'default',
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       formData,
@@ -523,7 +523,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
     const { value: transcriptionInitResponse } = await postJsonToApi({
       url: this.config.url({
         path: '/v2/pre-recorded',
-        modelId: '',
+        modelId: 'default',
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
       body: {
@@ -545,7 +545,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
     const timeoutMs = 60 * 1000; // 60 seconds timeout
     const startTime = Date.now();
     const pollingInterval = 1000;
-    
+
     while (true) {
       // Check if we've exceeded the timeout
       if (Date.now() - startTime > timeoutMs) {
@@ -608,7 +608,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
       ),
       response: {
         timestamp: currentDate,
-        modelId: '',
+        modelId: 'default',
         headers: transcriptionResultHeaders,
       },
       providerMetadata: {
