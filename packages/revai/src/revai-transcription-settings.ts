@@ -1,5 +1,1 @@
-export type RevaiTranscriptionModelId =
-  | 'machine'
-  | 'low_cost'
-  | 'fusion'
-  | (string & {});
+export type RevaiTranscriptionModelId = 'machine' | 'low_cost' | 'fusion';

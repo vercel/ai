@@ -17,25 +17,37 @@ import { RevaiTranscriptionModelId } from './revai-transcription-settings';
 import { RevaiTranscriptionAPITypes } from './revai-api-types';
 
 // https://docs.rev.ai/api/asynchronous/reference/#operation/SubmitTranscriptionJob
-const revaiProviderOptionsSchema = z.object({  
+const revaiProviderOptionsSchema = z.object({
   metadata: z.string().nullish(),
-  notification_config: z.object({
-    url: z.string(),
-    auth_headers: z.object({
-      Authorization: z.string()
-    }).nullish()
-  }).nullish(),
+  notification_config: z
+    .object({
+      url: z.string(),
+      auth_headers: z
+        .object({
+          Authorization: z.string(),
+        })
+        .nullish(),
+    })
+    .nullish(),
   delete_after_seconds: z.number().nullish(),
   verbatim: z.boolean().optional(),
   rush: z.boolean().nullish().default(false),
   test_mode: z.boolean().nullish().default(false),
-  segments_to_transcribe: z.array(z.object({
-    start: z.number(),
-    end: z.number()
-  })).nullish(),
-  speaker_names: z.array(z.object({
-    display_name: z.string()
-  })).nullish(),
+  segments_to_transcribe: z
+    .array(
+      z.object({
+        start: z.number(),
+        end: z.number(),
+      }),
+    )
+    .nullish(),
+  speaker_names: z
+    .array(
+      z.object({
+        display_name: z.string(),
+      }),
+    )
+    .nullish(),
   skip_diarization: z.boolean().nullish().default(false),
   skip_postprocessing: z.boolean().nullish().default(false),
   skip_punctuation: z.boolean().nullish().default(false),
@@ -44,27 +56,50 @@ const revaiProviderOptionsSchema = z.object({
   filter_profanity: z.boolean().nullish().default(false),
   speaker_channels_count: z.number().nullish(),
   speakers_count: z.number().nullish(),
-  diarization_type: z.enum(["standard", "premium"]).nullish().default("standard"),
+  diarization_type: z
+    .enum(['standard', 'premium'])
+    .nullish()
+    .default('standard'),
   custom_vocabulary_id: z.string().nullish(),
   custom_vocabularies: z.array(z.object({})).optional(),
   strict_custom_vocabulary: z.boolean().optional(),
-  summarization_config: z.object({
-    model: z.enum(["standard", "premium"]).nullish().default("standard"),
-    type: z.enum(["paragraph", "bullets"]).nullish().default("paragraph"),
-    prompt: z.string().nullish()
-  }).nullish(),
-  translation_config: z.object({
-    target_languages: z.array(z.object({
-      language: z.enum([
-        "en", "en-us", "en-gb", "ar", "pt", "pt-br", "pt-pt", 
-        "fr", "fr-ca", "es", "es-es", "es-la", "it", "ja", 
-        "ko", "de", "ru"
-      ])
-    })),
-    model: z.enum(["standard", "premium"]).nullish().default("standard")
-  }).nullish(),
-  language: z.string().nullish().default("en"),
-  forced_alignment: z.boolean().nullish().default(false)
+  summarization_config: z
+    .object({
+      model: z.enum(['standard', 'premium']).nullish().default('standard'),
+      type: z.enum(['paragraph', 'bullets']).nullish().default('paragraph'),
+      prompt: z.string().nullish(),
+    })
+    .nullish(),
+  translation_config: z
+    .object({
+      target_languages: z.array(
+        z.object({
+          language: z.enum([
+            'en',
+            'en-us',
+            'en-gb',
+            'ar',
+            'pt',
+            'pt-br',
+            'pt-pt',
+            'fr',
+            'fr-ca',
+            'es',
+            'es-es',
+            'es-la',
+            'it',
+            'ja',
+            'ko',
+            'de',
+            'ru',
+          ]),
+        }),
+      ),
+      model: z.enum(['standard', 'premium']).nullish().default('standard'),
+    })
+    .nullish(),
+  language: z.string().nullish().default('en'),
+  forced_alignment: z.boolean().nullish().default(false),
 });
 
 export type RevaiTranscriptionCallOptions = z.infer<
@@ -124,7 +159,8 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
         verbatim: revaiOptions.verbatim ?? undefined,
         rush: revaiOptions.rush ?? undefined,
         test_mode: revaiOptions.test_mode ?? undefined,
-        segments_to_transcribe: revaiOptions.segments_to_transcribe ?? undefined,
+        segments_to_transcribe:
+          revaiOptions.segments_to_transcribe ?? undefined,
         speaker_names: revaiOptions.speaker_names ?? undefined,
         skip_diarization: revaiOptions.skip_diarization ?? undefined,
         skip_postprocessing: revaiOptions.skip_postprocessing ?? undefined,
@@ -132,12 +168,14 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
         remove_disfluencies: revaiOptions.remove_disfluencies ?? undefined,
         remove_atmospherics: revaiOptions.remove_atmospherics ?? undefined,
         filter_profanity: revaiOptions.filter_profanity ?? undefined,
-        speaker_channels_count: revaiOptions.speaker_channels_count ?? undefined,
+        speaker_channels_count:
+          revaiOptions.speaker_channels_count ?? undefined,
         speakers_count: revaiOptions.speakers_count ?? undefined,
         diarization_type: revaiOptions.diarization_type ?? undefined,
         custom_vocabulary_id: revaiOptions.custom_vocabulary_id ?? undefined,
         custom_vocabularies: revaiOptions.custom_vocabularies ?? undefined,
-        strict_custom_vocabulary: revaiOptions.strict_custom_vocabulary ?? undefined,
+        strict_custom_vocabulary:
+          revaiOptions.strict_custom_vocabulary ?? undefined,
         summarization_config: revaiOptions.summarization_config ?? undefined,
         translation_config: revaiOptions.translation_config ?? undefined,
         language: revaiOptions.language ?? undefined,
@@ -145,10 +183,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
       };
 
       for (const key in formDataConfig) {
-        const value =
-          formDataConfig[
-            key as keyof RevaiTranscriptionAPITypes
-          ];
+        const value = formDataConfig[key as keyof RevaiTranscriptionAPITypes];
         if (value !== undefined) {
           (transcriptionModelOptions as Record<string, unknown>)[
             key as keyof RevaiTranscriptionAPITypes
@@ -204,10 +239,10 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
       if (Date.now() - startTime > timeoutMs) {
         throw new Error('Transcription job polling timed out after 60 seconds');
       }
-      
+
       // Wait before polling again
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Poll for job status
       const pollingResult = await getFromApi({
         url: this.config.url({
@@ -222,14 +257,14 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
         abortSignal: options.abortSignal,
         fetch: this.config.fetch,
       });
-      
+
       jobResponse = pollingResult.value;
-      
+
       if (jobResponse.status === 'failed') {
         throw new Error('Transcription job failed during polling');
       }
     }
-    
+
     // Fetch the completed transcription
     const transcriptionResult = await getFromApi({
       url: this.config.url({
@@ -258,7 +293,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
       abortSignal: options.abortSignal,
       fetch: this.config.fetch,
     });
-    
+
     if (!transcriptionSummaryResult.rawValue) {
       throw new Error('Transcription summary not found');
     }
@@ -294,7 +329,7 @@ const revaiTranscriptionJobResponseSchema = z.object({
   status: z.string(),
   language: z.string(),
   created_on: z.string(),
-  transcriber: z.string()
+  transcriber: z.string(),
 });
 
 const revaiTranscriptionResponseSchema = z.object({
@@ -303,15 +338,19 @@ const revaiTranscriptionResponseSchema = z.object({
       speaker: z.number(),
       elements: z.array(
         z.object({
-          type: z.union([z.literal('text'), z.literal('punct'), z.literal('unknown')]),
+          type: z.union([
+            z.literal('text'),
+            z.literal('punct'),
+            z.literal('unknown'),
+          ]),
           value: z.string(),
           ts: z.number().optional(),
           end_ts: z.number().optional(),
-          confidence: z.number().optional()
-        })
-      )
-    })
-  )
+          confidence: z.number().optional(),
+        }),
+      ),
+    }),
+  ),
 });
 
 const revaiTranscriptionSummaryResponseSchema = z.string();

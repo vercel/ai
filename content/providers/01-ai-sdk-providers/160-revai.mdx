@@ -93,7 +93,7 @@ The following provider options are available:
 - **notification_config** _object_
 
   Optional configuration for a callback url to invoke when processing is complete.
-  
+
   - **url** _string_ - Callback url to invoke when processing is complete.
   - **auth_headers** _object_ - Optional authorization headers, if needed to invoke the callback.
 
@@ -160,7 +160,7 @@ The following provider options are available:
 - **summarization_config** _object_
 
   Specify summarization options.
-  
+
   - **model** _string_ - Model type for summarization. Possible values: "standard" (default), "premium".
   - **type** _string_ - Summarization formatting type. Possible values: "paragraph" (default), "bullets".
   - **prompt** _string_ - Custom prompt for flexible summaries (mutually exclusive with type).
@@ -168,7 +168,7 @@ The following provider options are available:
 - **translation_config** _object_
 
   Specify translation options.
-  
+
   - **target_languages** _Array_ - Array of target languages for translation.
   - **model** _string_ - Model type for translation. Possible values: "standard" (default), "premium".
 
@@ -180,21 +180,22 @@ The following provider options are available:
 
   When enabled, provides improved accuracy for per-word timestamps for a transcript.
   Default is `false`.
-  
+
   Currently supported languages:
+
   - English (en, en-us, en-gb)
   - French (fr)
   - Italian (it)
   - German (de)
   - Spanish (es)
-  
+
   Note: This option is not available in low-cost environment.
 
 ### Model Capabilities
 
-| Model                    | Transcription       | Duration            | Segments            | Language            |
-| ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `machine`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `human`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `low_cost`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `fusion`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| Model      | Transcription       | Duration            | Segments            | Language            |
+| ---------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `machine`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `human`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `low_cost` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `fusion`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
