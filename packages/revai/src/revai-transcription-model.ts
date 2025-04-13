@@ -206,11 +206,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = this.getArgs(options);
 
-    const {
-      value: submissionResponse,
-      responseHeaders,
-      rawValue: rawResponse,
-    } = await postFormDataToApi({
+    const { value: submissionResponse } = await postFormDataToApi({
       url: this.config.url({
         path: '/speechtotext/v1/jobs',
         modelId: this.modelId,
@@ -267,8 +263,11 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
       }
     }
 
-    // Fetch the completed transcription
-    const transcriptionResult = await getFromApi({
+    const {
+      value: transcriptionResult,
+      responseHeaders,
+      rawValue: rawResponse,
+    } = await getFromApi({
       url: this.config.url({
         path: `/speechtotext/v1/jobs/${jobId}/transcript`,
         modelId: this.modelId,
@@ -282,39 +281,74 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
       fetch: this.config.fetch,
     });
 
-    const transcriptionSummaryResult = await getFromApi({
-      url: this.config.url({
-        path: `/speechtotext/v1/jobs/${jobId}/transcript/summary`,
-        modelId: this.modelId,
-      }),
-      headers: combineHeaders(this.config.headers(), options.headers),
-      failedResponseHandler: revaiFailedResponseHandler,
-      successfulResponseHandler: createJsonResponseHandler(
-        revaiTranscriptionSummaryResponseSchema,
-      ),
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+    let durationInSeconds = 0;
+    const segments: {
+      text: string;
+      startSecond: number;
+      endSecond: number;
+    }[] = [];
 
-    if (!transcriptionSummaryResult.rawValue) {
-      throw new Error('Transcription summary not found');
+    for (const monologue of transcriptionResult.monologues) {
+      // Process each monologue to extract segments with timing information
+      let currentSegmentText = '';
+      let segmentStartSecond = 0;
+      let hasStartedSegment = false;
+
+      for (const element of monologue.elements) {
+        // Add the element value to the current segment text
+        currentSegmentText += element.value;
+        
+        // For text elements, track timing information
+        if (element.type === 'text') {
+          // Update the overall duration if this is the latest timestamp
+          if (element.end_ts && element.end_ts > durationInSeconds) {
+            durationInSeconds = element.end_ts;
+          }
+          
+          // If this is the first text element in a segment, mark the start time
+          if (!hasStartedSegment && element.ts !== undefined) {
+            segmentStartSecond = element.ts;
+            hasStartedSegment = true;
+          }
+          
+          // If we have an end timestamp, we can complete a segment
+          if (element.end_ts !== undefined && hasStartedSegment) {
+            // Only add non-empty segments
+            if (currentSegmentText.trim()) {
+              segments.push({
+                text: currentSegmentText.trim(),
+                startSecond: segmentStartSecond,
+                endSecond: element.end_ts
+              });
+            }
+            
+            // Reset for the next segment
+            currentSegmentText = '';
+            hasStartedSegment = false;
+          }
+        }
+      }
+      
+      // Handle any remaining segment text that wasn't added
+      if (hasStartedSegment && currentSegmentText.trim()) {
+        const endSecond = durationInSeconds > segmentStartSecond ? durationInSeconds : segmentStartSecond + 1;
+        segments.push({
+          text: currentSegmentText.trim(),
+          startSecond: segmentStartSecond,
+          endSecond: endSecond
+        });
+      }
     }
 
     return {
-      text: transcriptionSummaryResult.value,
-      segments: transcriptionResult.value.monologues
+      text: transcriptionResult.monologues
         .map(monologue =>
-          monologue.elements.map(element => ({
-            text: element.value,
-            startSecond: element.ts ?? 0,
-            endSecond: element.end_ts ?? 0,
-          })),
+          monologue.elements.map(element => element.value).join(''),
         )
-        .flat(),
+        .join(' '),
+      segments,
       language: submissionResponse.language,
-      durationInSeconds:
-        transcriptionResult.value.monologues.at(-1)?.elements.at(-1)?.end_ts ??
-        undefined,
+      durationInSeconds,
       warnings,
       response: {
         timestamp: currentDate,
@@ -330,8 +364,6 @@ const revaiTranscriptionJobResponseSchema = z.object({
   id: z.string(),
   status: z.string(),
   language: z.string(),
-  created_on: z.string(),
-  transcriber: z.string(),
 });
 
 const revaiTranscriptionResponseSchema = z.object({
@@ -354,5 +386,3 @@ const revaiTranscriptionResponseSchema = z.object({
     }),
   ),
 });
-
-const revaiTranscriptionSummaryResponseSchema = z.string();

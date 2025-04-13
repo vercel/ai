@@ -12,7 +12,6 @@ const server = createTestServer({
   'https://api.rev.ai/speechtotext/v1/jobs': {},
   'https://api.rev.ai/speechtotext/v1/jobs/test-id': {},
   'https://api.rev.ai/speechtotext/v1/jobs/test-id/transcript': {},
-  'https://api.rev.ai/speechtotext/v1/jobs/test-id/transcript/summary': {},
 });
 
 describe('doGenerate', () => {
@@ -159,13 +158,6 @@ describe('doGenerate', () => {
         ],
       },
     };
-    server.urls[
-      'https://api.rev.ai/speechtotext/v1/jobs/test-id/transcript/summary'
-    ].response = {
-      type: 'json-value',
-      headers,
-      body: 'Hello, world!',
-    };
   }
 
   it('should pass the model', async () => {
@@ -201,7 +193,7 @@ describe('doGenerate', () => {
     });
 
     expect(server.calls[0].requestHeaders).toMatchObject({
-      'xi-api-key': 'test-api-key',
+      'authorization': 'Bearer test-api-key',
       'content-type': expect.stringMatching(
         /^multipart\/form-data; boundary=----formdata-undici-\d+$/,
       ),
@@ -218,7 +210,9 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(result.text).toBe('Hello, world!');
+    expect(result.text).toBe(
+      'Hello World. monologues are a block of <inaudible> text.',
+    );
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {
