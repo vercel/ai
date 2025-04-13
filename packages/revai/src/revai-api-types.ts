@@ -206,7 +206,7 @@ export type RevaiTranscriptionAPITypes = {
      */
     type?: 'paragraph' | 'bullets' | null;
     /**
-     * Custom prompt. Provides the most flexible way to create summaries, but may lead to unprediclable results.
+     * Custom prompt. Provides the most flexible way to create summaries, but may lead to unpredictable results.
      * Summary is produced in Markdown format.
      * prompt and type parameters are mutuially exclusive.
      */
