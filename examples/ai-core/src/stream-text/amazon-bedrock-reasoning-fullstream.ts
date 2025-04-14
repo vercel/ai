@@ -37,12 +37,12 @@ async function main() {
         break;
       }
 
-      case 'text-delta': {
+      case 'text': {
         if (!enteredText) {
           enteredText = true;
           console.log('\nTEXT:\n');
         }
-        process.stdout.write(part.textDelta);
+        process.stdout.write(part.text);
         break;
       }
 
