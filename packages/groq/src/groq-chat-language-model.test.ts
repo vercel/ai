@@ -117,7 +117,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Hello, World!",
+        "type": "text",
+      }
+    `);
   });
 
   it('should extract reasoning', async () => {
@@ -495,22 +500,36 @@ describe('doStream', () => {
     });
 
     // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'gemma2-9b-it',
-        timestamp: new Date('2023-12-15T16:17:00.000Z'),
-      },
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'World!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 18, outputTokens: 439 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "gemma2-9b-it",
+          "timestamp": 2023-12-15T16:17:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "text": ", ",
+          "type": "text",
+        },
+        {
+          "text": "World!",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 18,
+            "outputTokens": 439,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream reasoning deltas', async () => {
@@ -559,8 +578,8 @@ describe('doStream', () => {
           "type": "reasoning",
         },
         {
-          "textDelta": "Hello",
-          "type": "text-delta",
+          "text": "Hello",
+          "type": "text",
         },
         {
           "finishReason": "stop",
