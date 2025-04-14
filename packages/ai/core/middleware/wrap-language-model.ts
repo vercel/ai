@@ -95,9 +95,3 @@ const doWrap = ({
     },
   };
 };
-
-/**
- * @deprecated Use `wrapLanguageModel` instead.
- */
-// TODO remove in v5
-export const experimental_wrapLanguageModel = wrapLanguageModel;
