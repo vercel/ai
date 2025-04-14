@@ -23,9 +23,7 @@ async function main() {
       }
 
       case 'source': {
-        process.stdout.write(
-          `\n\n Source: ${chunk.source.title} (${chunk.source.url})`,
-        );
+        process.stdout.write(`\n\n Source: ${chunk.title} (${chunk.url})`);
         break;
       }
 
