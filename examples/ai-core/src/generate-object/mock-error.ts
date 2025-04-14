@@ -16,7 +16,7 @@ async function main() {
           },
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 20 },
-          text: `{"content":"Hello broken json`,
+          text: { type: 'text', text: `{"content":"Hello broken json` },
         }),
       }),
       schema: z.object({ content: z.string() }),

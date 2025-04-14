@@ -54,12 +54,12 @@ const mockTextModel = new MockLanguageModelV2({
   doStream: async () => {
     return {
       stream: convertArrayToReadableStream([
-        { type: 'text-delta', textDelta: '{ ' },
-        { type: 'text-delta', textDelta: '"content": ' },
-        { type: 'text-delta', textDelta: `"Hello, ` },
-        { type: 'text-delta', textDelta: `world` },
-        { type: 'text-delta', textDelta: `!"` },
-        { type: 'text-delta', textDelta: ' }' },
+        { type: 'text', text: '{ ' },
+        { type: 'text', text: '"content": ' },
+        { type: 'text', text: `"Hello, ` },
+        { type: 'text', text: `world` },
+        { type: 'text', text: `!"` },
+        { type: 'text', text: ' }' },
         {
           type: 'finish',
           finishReason: 'stop',
@@ -241,8 +241,8 @@ describe('options.headers', () => {
           return {
             stream: convertArrayToReadableStream([
               {
-                type: 'text-delta',
-                textDelta: '{ "content": "headers test" }',
+                type: 'text',
+                text: '{ "content": "headers test" }',
               },
               {
                 type: 'finish',
@@ -274,8 +274,8 @@ describe('options.providerMetadata', () => {
           return {
             stream: convertArrayToReadableStream([
               {
-                type: 'text-delta',
-                textDelta: '{ "content": "provider metadata test" }',
+                type: 'text',
+                text: '{ "content": "provider metadata test" }',
               },
               {
                 type: 'finish',
@@ -313,9 +313,9 @@ describe('model.supportsUrl binding', () => {
           },
           doStream: async () => ({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
-              { type: 'text-delta', textDelta: 'world!' },
+              { type: 'text', text: 'Hello' },
+              { type: 'text', text: ', ' },
+              { type: 'text', text: 'world!' },
               {
                 type: 'finish',
                 finishReason: 'stop',

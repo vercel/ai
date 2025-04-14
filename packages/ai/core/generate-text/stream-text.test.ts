@@ -47,9 +47,9 @@ function createTestModel({
       modelId: 'mock-model-id',
       timestamp: new Date(0),
     },
-    { type: 'text-delta', textDelta: 'Hello' },
-    { type: 'text-delta', textDelta: ', ' },
-    { type: 'text-delta', textDelta: `world!` },
+    { type: 'text', text: 'Hello' },
+    { type: 'text', text: ', ' },
+    { type: 'text', text: `world!` },
     {
       type: 'finish',
       finishReason: 'stop',
@@ -82,7 +82,7 @@ const modelWithSources = new MockLanguageModelV2({
         title: 'Example',
         providerMetadata: { provider: { custom: 'value' } },
       },
-      { type: 'text-delta', textDelta: 'Hello!' },
+      { type: 'text', text: 'Hello!' },
       {
         type: 'source',
         sourceType: 'url',
@@ -109,7 +109,7 @@ const modelWithFiles = new MockLanguageModelV2({
         data: 'Hello World',
         mediaType: 'text/plain',
       },
-      { type: 'text-delta', textDelta: 'Hello!' },
+      { type: 'text', text: 'Hello!' },
       {
         type: 'file',
         data: 'QkFVRw==',
@@ -169,8 +169,8 @@ const modelWithReasoning = new MockLanguageModelV2({
         reasoningType: 'signature',
         signature: '1234567890',
       },
-      { type: 'text-delta', textDelta: 'Hi' },
-      { type: 'text-delta', textDelta: ' there!' },
+      { type: 'text', text: 'Hi' },
+      { type: 'text', text: ' there!' },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -197,9 +197,9 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'Hello' },
-                { type: 'text-delta', textDelta: ', ' },
-                { type: 'text-delta', textDelta: `world!` },
+                { type: 'text', text: 'Hello' },
+                { type: 'text', text: ', ' },
+                { type: 'text', text: `world!` },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -222,13 +222,13 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: '' },
-            { type: 'text-delta', textDelta: 'Hello' },
-            { type: 'text-delta', textDelta: '' },
-            { type: 'text-delta', textDelta: ', ' },
-            { type: 'text-delta', textDelta: '' },
-            { type: 'text-delta', textDelta: 'world!' },
-            { type: 'text-delta', textDelta: '' },
+            { type: 'text', text: '' },
+            { type: 'text', text: 'Hello' },
+            { type: 'text', text: '' },
+            { type: 'text', text: ', ' },
+            { type: 'text', text: '' },
+            { type: 'text', text: 'world!' },
+            { type: 'text', text: '' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -293,9 +293,9 @@ describe('streamText', () => {
                   modelId: 'response-model-id',
                   timestamp: new Date(5000),
                 },
-                { type: 'text-delta', textDelta: 'Hello' },
-                { type: 'text-delta', textDelta: ', ' },
-                { type: 'text-delta', textDelta: `world!` },
+                { type: 'text', text: 'Hello' },
+                { type: 'text', text: ', ' },
+                { type: 'text', text: `world!` },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -362,9 +362,9 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'Hello' },
-                { type: 'text-delta', textDelta: ', ' },
-                { type: 'text-delta', textDelta: `world!` },
+                { type: 'text', text: 'Hello' },
+                { type: 'text', text: ', ' },
+                { type: 'text', text: `world!` },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -764,13 +764,13 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text-delta', textDelta: '' },
-            { type: 'text-delta', textDelta: 'Hello' },
-            { type: 'text-delta', textDelta: '' },
-            { type: 'text-delta', textDelta: ', ' },
-            { type: 'text-delta', textDelta: '' },
-            { type: 'text-delta', textDelta: 'world!' },
-            { type: 'text-delta', textDelta: '' },
+            { type: 'text', text: '' },
+            { type: 'text', text: 'Hello' },
+            { type: 'text', text: '' },
+            { type: 'text', text: ', ' },
+            { type: 'text', text: '' },
+            { type: 'text', text: 'world!' },
+            { type: 'text', text: '' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -938,7 +938,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello, World!' },
+            { type: 'text', text: 'Hello, World!' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -963,7 +963,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello, World!' },
+            { type: 'text', text: 'Hello, World!' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1055,9 +1055,9 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello' },
-            { type: 'text-delta', textDelta: ', ' },
-            { type: 'text-delta', textDelta: 'world!' },
+            { type: 'text', text: 'Hello' },
+            { type: 'text', text: ', ' },
+            { type: 'text', text: 'world!' },
           ]),
         }),
         prompt: 'test-input',
@@ -1257,7 +1257,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello, World!' },
+            { type: 'text', text: 'Hello, World!' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1281,7 +1281,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello, World!' },
+            { type: 'text', text: 'Hello, World!' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1453,7 +1453,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello, World!' },
+            { type: 'text', text: 'Hello, World!' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1537,7 +1537,7 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text-delta', textDelta: 'Hello' });
+              controller.enqueue({ type: 'text', text: 'Hello' });
               queueMicrotask(() => {
                 controller.error(
                   Object.assign(new Error('Stream aborted'), {
@@ -1559,7 +1559,7 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text-delta', textDelta: 'Hello' });
+              controller.enqueue({ type: 'text', text: 'Hello' });
               queueMicrotask(() => {
                 controller.error(
                   Object.assign(new Error('Response aborted'), {
@@ -1581,7 +1581,7 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text-delta', textDelta: 'Hello' });
+              controller.enqueue({ type: 'text', text: 'Hello' });
               queueMicrotask(() => {
                 controller.error(Object.assign(new Error('Some error')));
               });
@@ -1600,7 +1600,7 @@ describe('streamText', () => {
         model: createTestModel({
           stream: new ReadableStream({
             start(controller) {
-              controller.enqueue({ type: 'text-delta', textDelta: 'Hello' });
+              controller.enqueue({ type: 'text', text: 'Hello' });
               queueMicrotask(() => {
                 controller.error(Object.assign(new Error('Some error')));
               });
@@ -1628,9 +1628,9 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text-delta', textDelta: 'Hello' },
-            { type: 'text-delta', textDelta: ', ' },
-            { type: 'text-delta', textDelta: 'world!' },
+            { type: 'text', text: 'Hello' },
+            { type: 'text', text: ', ' },
+            { type: 'text', text: 'world!' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1675,7 +1675,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text', text: 'Hello' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1702,7 +1702,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text', text: 'Hello' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1725,7 +1725,7 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text', text: 'Hello' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1772,7 +1772,7 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text', text: 'Hello' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -1804,7 +1804,7 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text', text: 'Hello' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2013,7 +2013,7 @@ describe('streamText', () => {
         TextStreamPart<any>,
         {
           type:
-            | 'text-delta'
+            | 'text'
             | 'reasoning'
             | 'source'
             | 'tool-call'
@@ -2030,7 +2030,7 @@ describe('streamText', () => {
       const resultObject = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello' },
+            { type: 'text', text: 'Hello' },
             {
               type: 'tool-call-delta',
               toolCallId: '1',
@@ -2072,7 +2072,7 @@ describe('streamText', () => {
               toolName: 'tool1',
               args: `{ "value": "test" }`,
             },
-            { type: 'text-delta', textDelta: ' World' },
+            { type: 'text', text: ' World' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2138,8 +2138,8 @@ describe('streamText', () => {
               modelId: 'mock-model-id',
               timestamp: new Date(0),
             },
-            { type: 'text-delta', textDelta: 'Hello' },
-            { type: 'text-delta', textDelta: ', ' },
+            { type: 'text', text: 'Hello' },
+            { type: 'text', text: ', ' },
             {
               type: 'tool-call',
               toolCallType: 'function',
@@ -2147,7 +2147,7 @@ describe('streamText', () => {
               toolName: 'tool1',
               args: `{ "value": "value" }`,
             },
-            { type: 'text-delta', textDelta: `world!` },
+            { type: 'text', text: `world!` },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2240,8 +2240,8 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello, ' },
-            { type: 'text-delta', textDelta: 'world!' },
+            { type: 'text', text: 'Hello, ' },
+            { type: 'text', text: 'world!' },
             {
               type: 'finish',
               finishReason: 'stop',
@@ -2262,8 +2262,8 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel({
           stream: convertArrayToReadableStream([
-            { type: 'text-delta', textDelta: 'Hello, ' },
-            { type: 'text-delta', textDelta: 'world!' },
+            { type: 'text', text: 'Hello, ' },
+            { type: 'text', text: 'world!' },
             {
               type: 'tool-call',
               toolCallType: 'function',
@@ -2441,8 +2441,8 @@ describe('streamText', () => {
                         modelId: 'mock-model-id',
                         timestamp: new Date(1000),
                       },
-                      { type: 'text-delta', textDelta: 'Hello, ' },
-                      { type: 'text-delta', textDelta: `world!` },
+                      { type: 'text', text: 'Hello, ' },
+                      { type: 'text', text: `world!` },
                       {
                         type: 'finish',
                         finishReason: 'stop',
@@ -2568,12 +2568,12 @@ describe('streamText', () => {
                         timestamp: new Date(0),
                       },
                       // trailing text is to be discarded, trailing whitespace is to be kept:
-                      { type: 'text-delta', textDelta: 'pa' },
-                      { type: 'text-delta', textDelta: 'rt ' },
-                      { type: 'text-delta', textDelta: '1 \n' },
-                      { type: 'text-delta', textDelta: ' to-be' },
-                      { type: 'text-delta', textDelta: '-discar' },
-                      { type: 'text-delta', textDelta: 'ded' },
+                      { type: 'text', text: 'pa' },
+                      { type: 'text', text: 'rt ' },
+                      { type: 'text', text: '1 \n' },
+                      { type: 'text', text: ' to-be' },
+                      { type: 'text', text: '-discar' },
+                      { type: 'text', text: 'ded' },
                       {
                         type: 'finish',
                         finishReason: 'length',
@@ -2612,7 +2612,7 @@ describe('streamText', () => {
                         timestamp: new Date(1000),
                       },
                       // case where there is no leading nor trailing whitespace:
-                      { type: 'text-delta', textDelta: 'no-' },
+                      { type: 'text', text: 'no-' },
                       {
                         type: 'source',
                         sourceType: 'url' as const,
@@ -2621,7 +2621,7 @@ describe('streamText', () => {
                         title: 'Example',
                         providerMetadata: { provider: { custom: 'value' } },
                       },
-                      { type: 'text-delta', textDelta: 'whitespace' },
+                      { type: 'text', text: 'whitespace' },
                       {
                         type: 'finish',
                         finishReason: 'length',
@@ -2673,7 +2673,7 @@ describe('streamText', () => {
                         providerMetadata: { provider: { custom: 'value2' } },
                       },
                       // set up trailing whitespace for next step:
-                      { type: 'text-delta', textDelta: 'immediatefollow  ' },
+                      { type: 'text', text: 'immediatefollow  ' },
                       {
                         type: 'source',
                         sourceType: 'url' as const,
@@ -2732,14 +2732,14 @@ describe('streamText', () => {
                       },
                       // leading whitespace is to be discarded when there is whitespace from previous step
                       // (for models such as Anthropic that trim trailing whitespace in their inputs):
-                      { type: 'text-delta', textDelta: ' ' }, // split into 2 chunks for test coverage
-                      { type: 'text-delta', textDelta: '  final' },
-                      { type: 'text-delta', textDelta: ' va' },
-                      { type: 'text-delta', textDelta: 'lue keep all w' },
-                      { type: 'text-delta', textDelta: 'hitespace' },
-                      { type: 'text-delta', textDelta: '\n ' },
-                      { type: 'text-delta', textDelta: 'en' },
-                      { type: 'text-delta', textDelta: 'd' },
+                      { type: 'text', text: ' ' }, // split into 2 chunks for test coverage
+                      { type: 'text', text: '  final' },
+                      { type: 'text', text: ' va' },
+                      { type: 'text', text: 'lue keep all w' },
+                      { type: 'text', text: 'hitespace' },
+                      { type: 'text', text: '\n ' },
+                      { type: 'text', text: 'en' },
+                      { type: 'text', text: 'd' },
                       {
                         type: 'finish',
                         finishReason: 'stop',
@@ -2872,9 +2872,9 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'Hello' },
-                { type: 'text-delta', textDelta: ', ' },
-                { type: 'text-delta', textDelta: `world!` },
+                { type: 'text', text: 'Hello' },
+                { type: 'text', text: ', ' },
+                { type: 'text', text: `world!` },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -2907,7 +2907,7 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'provider metadata test' },
+                { type: 'text', text: 'provider metadata test' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -3245,7 +3245,7 @@ describe('streamText', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'Hello' },
+                { type: 'text', text: 'Hello' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -3296,9 +3296,9 @@ describe('streamText', () => {
             },
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: 'Hello' },
-                { type: 'text-delta', textDelta: ', ' },
-                { type: 'text-delta', textDelta: 'world!' },
+                { type: 'text', text: 'Hello' },
+                { type: 'text', text: ', ' },
+                { type: 'text', text: 'world!' },
               ]),
             }),
           });
@@ -3436,8 +3436,8 @@ describe('streamText', () => {
           TextStreamPart<{ tool1: Tool<{ value: string }> }>
         >({
           transform(chunk, controller) {
-            if (chunk.type === 'text-delta') {
-              chunk.textDelta = chunk.textDelta.toUpperCase();
+            if (chunk.type === 'text') {
+              chunk.text = chunk.text.toUpperCase();
             }
 
             if (chunk.type === 'tool-call-delta') {
@@ -3537,7 +3537,7 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text', text: 'Hello' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -3575,7 +3575,7 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text', text: 'Hello' },
               {
                 type: 'finish',
                 finishReason: 'length',
@@ -3605,8 +3605,8 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello, ' },
-              { type: 'text-delta', textDelta: 'world!' },
+              { type: 'text', text: 'Hello, ' },
+              { type: 'text', text: 'world!' },
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -3647,8 +3647,8 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello, ' },
-              { type: 'text-delta', textDelta: 'world!' },
+              { type: 'text', text: 'Hello, ' },
+              { type: 'text', text: 'world!' },
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -3696,8 +3696,8 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: 'Hello, ' },
-              { type: 'text-delta', textDelta: 'world!' },
+              { type: 'text', text: 'Hello, ' },
+              { type: 'text', text: 'world!' },
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -3738,7 +3738,7 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text', text: 'Hello' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -3769,7 +3769,7 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text', text: 'Hello' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -3813,8 +3813,8 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text', text: 'Hello' },
+              { type: 'text', text: ', ' },
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -3822,7 +3822,7 @@ describe('streamText', () => {
                 toolName: 'tool1',
                 args: `{ "value": "value" }`,
               },
-              { type: 'text-delta', textDelta: `world!` },
+              { type: 'text', text: `world!` },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -3868,8 +3868,8 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text', text: 'Hello' },
+              { type: 'text', text: ', ' },
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -3877,7 +3877,7 @@ describe('streamText', () => {
                 toolName: 'tool1',
                 args: `{ "value": "value" }`,
               },
-              { type: 'text-delta', textDelta: `world!` },
+              { type: 'text', text: `world!` },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -3921,8 +3921,8 @@ describe('streamText', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'text-delta', textDelta: ', ' },
+              { type: 'text', text: 'Hello' },
+              { type: 'text', text: ', ' },
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -3930,7 +3930,7 @@ describe('streamText', () => {
                 toolName: 'tool1',
                 args: `{ "value": "value" }`,
               },
-              { type: 'text-delta', textDelta: `world!` },
+              { type: 'text', text: `world!` },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -3965,7 +3965,7 @@ describe('streamText', () => {
             TextStreamPart<any>,
             {
               type:
-                | 'text-delta'
+                | 'text'
                 | 'reasoning'
                 | 'source'
                 | 'tool-call'
@@ -3979,7 +3979,7 @@ describe('streamText', () => {
         const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello' },
+              { type: 'text', text: 'Hello' },
               {
                 type: 'reasoning',
                 reasoningType: 'text',
@@ -4013,7 +4013,7 @@ describe('streamText', () => {
                 toolName: 'tool1',
                 args: `{ "value": "test" }`,
               },
-              { type: 'text-delta', textDelta: ' World' },
+              { type: 'text', text: ' World' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4040,8 +4040,8 @@ describe('streamText', () => {
         expect(result).toMatchInlineSnapshot(`
           [
             {
-              "textDelta": "HELLO",
-              "type": "text-delta",
+              "text": "HELLO",
+              "type": "text",
             },
             {
               "reasoningType": "text",
@@ -4089,8 +4089,8 @@ describe('streamText', () => {
               "type": "tool-result",
             },
             {
-              "textDelta": " WORLD",
-              "type": "text-delta",
+              "text": " WORLD",
+              "type": "text",
             },
           ]
         `);
@@ -4103,14 +4103,14 @@ describe('streamText', () => {
         (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
-              if (chunk.type !== 'text-delta') {
+              if (chunk.type !== 'text') {
                 controller.enqueue(chunk);
                 return;
               }
 
               controller.enqueue({
                 ...chunk,
-                textDelta: `${chunk.textDelta.toUpperCase()},`,
+                text: `${chunk.text.toUpperCase()},`,
               });
             },
           });
@@ -4120,14 +4120,14 @@ describe('streamText', () => {
         (options: { tools: TOOLS }) =>
           new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
             transform(chunk, controller) {
-              if (chunk.type !== 'text-delta') {
+              if (chunk.type !== 'text') {
                 controller.enqueue(chunk);
                 return;
               }
 
               controller.enqueue({
                 ...chunk,
-                textDelta: chunk.textDelta.replaceAll(',', ''),
+                text: chunk.text.replaceAll(',', ''),
               });
             },
           });
@@ -4158,12 +4158,12 @@ describe('streamText', () => {
             // stream buffering and scanning to correctly emit prior text
             // and to detect all STOP occurrences.
             transform(chunk, controller) {
-              if (chunk.type !== 'text-delta') {
+              if (chunk.type !== 'text') {
                 controller.enqueue(chunk);
                 return;
               }
 
-              if (chunk.textDelta.includes('STOP')) {
+              if (chunk.text.includes('STOP')) {
                 stopStream();
 
                 controller.enqueue({
@@ -4215,9 +4215,9 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello, ' },
-              { type: 'text-delta', textDelta: 'STOP' },
-              { type: 'text-delta', textDelta: ' World' },
+              { type: 'text', text: 'Hello, ' },
+              { type: 'text', text: 'STOP' },
+              { type: 'text', text: ' World' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4240,7 +4240,7 @@ describe('streamText', () => {
             request: {},
             warnings: [],
           },
-          { type: 'text-delta', textDelta: 'Hello, ' },
+          { type: 'text', text: 'Hello, ' },
           {
             type: 'step-finish',
             providerMetadata: undefined,
@@ -4288,9 +4288,9 @@ describe('streamText', () => {
         const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello, ' },
-              { type: 'text-delta', textDelta: 'STOP' },
-              { type: 'text-delta', textDelta: ' World' },
+              { type: 'text', text: 'Hello, ' },
+              { type: 'text', text: 'STOP' },
+              { type: 'text', text: ' World' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4320,12 +4320,12 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"value": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"value": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world` },
+              { type: 'text', text: `!"` },
+              { type: 'text', text: ' }' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4349,9 +4349,9 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: 'Hello, ' },
-              { type: 'text-delta', textDelta: ',' },
-              { type: 'text-delta', textDelta: ' world!' },
+              { type: 'text', text: 'Hello, ' },
+              { type: 'text', text: ',' },
+              { type: 'text', text: ' world!' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4382,12 +4382,12 @@ describe('streamText', () => {
               callOptions = args;
               return {
                 stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"value": ' },
-                  { type: 'text-delta', textDelta: `"Hello, ` },
-                  { type: 'text-delta', textDelta: `world` },
-                  { type: 'text-delta', textDelta: `!"` },
-                  { type: 'text-delta', textDelta: ' }' },
+                  { type: 'text', text: '{ ' },
+                  { type: 'text', text: '"value": ' },
+                  { type: 'text', text: `"Hello, ` },
+                  { type: 'text', text: `world` },
+                  { type: 'text', text: `!"` },
+                  { type: 'text', text: ' }' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
@@ -4430,12 +4430,12 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"value": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"value": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world` },
+              { type: 'text', text: `!"` },
+              { type: 'text', text: ' }' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4465,12 +4465,12 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"value": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"value": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world` },
+              { type: 'text', text: `!"` },
+              { type: 'text', text: ' }' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4500,10 +4500,10 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"value": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world!" }` },
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"value": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world!" }` },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4528,11 +4528,11 @@ describe('streamText', () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"value": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world!" ` },
-              { type: 'text-delta', textDelta: '}' },
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"value": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world!" ` },
+              { type: 'text', text: '}' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -4559,11 +4559,11 @@ describe('streamText', () => {
         const resultObject = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"value": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world!" ` },
-              { type: 'text-delta', textDelta: '}' },
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"value": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world!" ` },
+              { type: 'text', text: '}' },
               {
                 type: 'finish',
                 finishReason: 'stop',

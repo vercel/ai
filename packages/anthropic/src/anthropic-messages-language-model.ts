@@ -306,7 +306,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     }
 
     return {
-      text,
+      text: text != null ? { type: 'text', text } : undefined,
       reasoning: reasoning.length > 0 ? reasoning : undefined,
       toolCalls,
       finishReason: mapAnthropicStopReason(response.stop_reason),
@@ -457,8 +457,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 switch (deltaType) {
                   case 'text_delta': {
                     controller.enqueue({
-                      type: 'text-delta',
-                      textDelta: value.delta.text,
+                      type: 'text',
+                      text: value.delta.text,
                     });
 
                     return;

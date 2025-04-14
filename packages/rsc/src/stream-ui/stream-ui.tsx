@@ -295,11 +295,11 @@ functionality that can be fully encapsulated in the provider.
         if (done) break;
 
         switch (value.type) {
-          case 'text-delta': {
-            content += value.textDelta;
+          case 'text': {
+            content += value.text;
             render({
               renderer: textRender,
-              args: [{ content, done: false, delta: value.textDelta }],
+              args: [{ content, done: false, delta: value.text }],
               streamableUI: ui,
             });
             break;

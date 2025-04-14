@@ -26,8 +26,8 @@ async function main() {
     process.stdout.write('\nAssistant: ');
     for await (const delta of result.fullStream) {
       switch (delta.type) {
-        case 'text-delta': {
-          process.stdout.write(delta.textDelta);
+        case 'text': {
+          process.stdout.write(delta.text);
           break;
         }
 

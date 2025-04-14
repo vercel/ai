@@ -29,8 +29,8 @@ export const yourLogMiddleware: LanguageModelV2Middleware = {
       LanguageModelV2StreamPart
     >({
       transform(chunk, controller) {
-        if (chunk.type === 'text-delta') {
-          generatedText += chunk.textDelta;
+        if (chunk.type === 'text') {
+          generatedText += chunk.text;
         }
 
         controller.enqueue(chunk);

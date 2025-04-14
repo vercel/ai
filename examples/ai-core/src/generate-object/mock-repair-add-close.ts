@@ -9,7 +9,7 @@ async function main() {
       doGenerate: async () => ({
         usage: { inputTokens: 10, outputTokens: 20 },
         finishReason: 'tool-calls',
-        text: `{ "content": "provider metadata test"`,
+        text: { type: 'text', text: `{ "content": "provider metadata test"` },
       }),
     }),
     schema: z.object({ content: z.string() }),

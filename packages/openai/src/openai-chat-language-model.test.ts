@@ -230,7 +230,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Hello, World!",
+        "type": "text",
+      }
+    `);
   });
 
   it('should extract usage', async () => {
@@ -1401,26 +1406,135 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
-        modelId: 'gpt-3.5-turbo-0613',
-        timestamp: new Date('2023-12-15T16:17:00.000Z'),
-      },
-      { type: 'text-delta', textDelta: '' },
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'World!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        logprobs: mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
-        usage: { inputTokens: 17, outputTokens: 227 },
-        providerMetadata: { openai: {} },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+          "modelId": "gpt-3.5-turbo-0613",
+          "timestamp": 2023-12-15T16:17:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "text": "",
+          "type": "text",
+        },
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "text": ", ",
+          "type": "text",
+        },
+        {
+          "text": "World!",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "logprobs": [
+            {
+              "logprob": -0.0009994634,
+              "token": "Hello",
+              "topLogprobs": [
+                {
+                  "logprob": -0.0009994634,
+                  "token": "Hello",
+                },
+              ],
+            },
+            {
+              "logprob": -0.13410144,
+              "token": "!",
+              "topLogprobs": [
+                {
+                  "logprob": -0.13410144,
+                  "token": "!",
+                },
+              ],
+            },
+            {
+              "logprob": -0.0009250381,
+              "token": " How",
+              "topLogprobs": [
+                {
+                  "logprob": -0.0009250381,
+                  "token": " How",
+                },
+              ],
+            },
+            {
+              "logprob": -0.047709424,
+              "token": " can",
+              "topLogprobs": [
+                {
+                  "logprob": -0.047709424,
+                  "token": " can",
+                },
+              ],
+            },
+            {
+              "logprob": -0.000009014684,
+              "token": " I",
+              "topLogprobs": [
+                {
+                  "logprob": -0.000009014684,
+                  "token": " I",
+                },
+              ],
+            },
+            {
+              "logprob": -0.009125131,
+              "token": " assist",
+              "topLogprobs": [
+                {
+                  "logprob": -0.009125131,
+                  "token": " assist",
+                },
+              ],
+            },
+            {
+              "logprob": -0.0000066306106,
+              "token": " you",
+              "topLogprobs": [
+                {
+                  "logprob": -0.0000066306106,
+                  "token": " you",
+                },
+              ],
+            },
+            {
+              "logprob": -0.00011093382,
+              "token": " today",
+              "topLogprobs": [
+                {
+                  "logprob": -0.00011093382,
+                  "token": " today",
+                },
+              ],
+            },
+            {
+              "logprob": -0.00004596782,
+              "token": "?",
+              "topLogprobs": [
+                {
+                  "logprob": -0.00004596782,
+                  "token": "?",
+                },
+              ],
+            },
+          ],
+          "providerMetadata": {
+            "openai": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 17,
+            "outputTokens": 227,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool deltas', async () => {
@@ -1747,67 +1861,74 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chat-2267f7e2910a4254bac0650ba74cfc1c',
-        modelId: 'meta/llama-3.1-8b-instruct:fp8',
-        timestamp: new Date('2024-12-02T17:57:21.000Z'),
-      },
-      {
-        type: 'text-delta',
-        textDelta: '',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: '{"query": "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: 'latest',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' news',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' on',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' ai"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        args: '{"query": "latest news on ai"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        logprobs: undefined,
-        usage: { inputTokens: 226, outputTokens: 20 },
-        providerMetadata: { openai: {} },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "chat-2267f7e2910a4254bac0650ba74cfc1c",
+          "modelId": "meta/llama-3.1-8b-instruct:fp8",
+          "timestamp": 2024-12-02T17:57:21.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "text": "",
+          "type": "text",
+        },
+        {
+          "argsTextDelta": "{"query": "",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "latest",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " news",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " on",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " ai"}",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"query": "latest news on ai"}",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "logprobs": undefined,
+          "providerMetadata": {
+            "openai": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 226,
+            "outputTokens": 20,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool call that is sent in one chunk', async () => {
@@ -2189,23 +2310,36 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
-          modelId: 'o1-preview',
-          timestamp: expect.any(Date),
-        },
-        { type: 'text-delta', textDelta: '' },
-        { type: 'text-delta', textDelta: 'Hello, World!' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { inputTokens: 17, outputTokens: 227 },
-          logprobs: undefined,
-          providerMetadata: { openai: {} },
-        },
-      ]);
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+            "modelId": "o1-preview",
+            "timestamp": 2023-12-15T16:17:00.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "text": "",
+            "type": "text",
+          },
+          {
+            "text": "Hello, World!",
+            "type": "text",
+          },
+          {
+            "finishReason": "stop",
+            "logprobs": undefined,
+            "providerMetadata": {
+              "openai": {},
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 17,
+              "outputTokens": 227,
+            },
+          },
+        ]
+      `);
     });
 
     it('should send reasoning tokens', async () => {
@@ -2229,27 +2363,38 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP',
-          modelId: 'o1-preview',
-          timestamp: expect.any(Date),
-        },
-        { type: 'text-delta', textDelta: '' },
-        { type: 'text-delta', textDelta: 'Hello, World!' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { inputTokens: 15, outputTokens: 20 },
-          logprobs: undefined,
-          providerMetadata: {
-            openai: {
-              reasoningTokens: 10,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP",
+            "modelId": "o1-preview",
+            "timestamp": 2023-12-15T16:17:00.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "text": "",
+            "type": "text",
+          },
+          {
+            "text": "Hello, World!",
+            "type": "text",
+          },
+          {
+            "finishReason": "stop",
+            "logprobs": undefined,
+            "providerMetadata": {
+              "openai": {
+                "reasoningTokens": 10,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 15,
+              "outputTokens": 20,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
   });
 });

@@ -7,9 +7,9 @@ async function main() {
     model: new MockLanguageModelV2({
       doStream: async () => ({
         stream: convertArrayToReadableStream([
-          { type: 'text-delta', textDelta: 'Hello' },
-          { type: 'text-delta', textDelta: ', ' },
-          { type: 'text-delta', textDelta: `world!` },
+          { type: 'text', text: 'Hello' },
+          { type: 'text', text: ', ' },
+          { type: 'text', text: `world!` },
           {
             type: 'finish',
             finishReason: 'stop',

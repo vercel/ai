@@ -265,7 +265,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }));
 
     return {
-      text: outputTextElements.map(content => content.text).join('\n'),
+      text: {
+        type: 'text',
+        text: outputTextElements.map(content => content.text).join('\n'),
+      },
       sources: outputTextElements.flatMap(content =>
         content.annotations.map(annotation => ({
           type: 'source',
@@ -397,8 +400,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               });
             } else if (isTextDeltaChunk(value)) {
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: value.delta,
+                type: 'text',
+                text: value.delta,
               });
             } else if (
               isResponseOutputItemDoneChunk(value) &&

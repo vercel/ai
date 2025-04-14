@@ -600,8 +600,8 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
             transformer = {
               transform: (chunk, controller) => {
                 switch (chunk.type) {
-                  case 'text-delta':
-                    controller.enqueue(chunk.textDelta);
+                  case 'text':
+                    controller.enqueue(chunk.text);
                     break;
                   case 'response-metadata':
                   case 'finish':

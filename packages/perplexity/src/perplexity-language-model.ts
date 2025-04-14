@@ -141,7 +141,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     const text = choice.message.content;
 
     return {
-      text,
+      text: { type: 'text', text },
       toolCalls: [],
       finishReason: mapPerplexityFinishReason(choice.finish_reason),
       usage: {
@@ -298,8 +298,8 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
 
             if (textContent != null) {
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: textContent,
+                type: 'text',
+                text: textContent,
               });
             }
           },

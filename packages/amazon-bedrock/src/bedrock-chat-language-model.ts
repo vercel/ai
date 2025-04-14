@@ -255,11 +255,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       }
     }
 
+    const text = response.output?.message?.content
+      ?.map(part => part.text ?? '')
+      .join('');
+
     return {
-      text:
-        response.output?.message?.content
-          ?.map(part => part.text ?? '')
-          .join('') ?? undefined,
+      text: text != null ? { type: 'text', text } : undefined,
       toolCalls: response.output?.message?.content
         ?.filter(part => !!part.toolUse)
         ?.map(part => ({
@@ -412,8 +413,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               value.contentBlockDelta.delta.text
             ) {
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: value.contentBlockDelta.delta.text,
+                type: 'text',
+                text: value.contentBlockDelta.delta.text,
               });
             }
 

@@ -25,9 +25,9 @@ async function main() {
 
   for await (const delta of result.fullStream) {
     switch (delta.type) {
-      case 'text-delta': {
-        fullResponse += delta.textDelta;
-        process.stdout.write(delta.textDelta);
+      case 'text': {
+        fullResponse += delta.text;
+        process.stdout.write(delta.text);
         break;
       }
 

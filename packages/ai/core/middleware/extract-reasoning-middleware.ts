@@ -30,16 +30,18 @@ export function extractReasoningMiddleware({
       const { text: rawText, ...rest } = await doGenerate();
 
       if (rawText == null) {
-        return { text: rawText, ...rest };
+        return { text: undefined, ...rest };
       }
 
-      const text = startWithReasoning ? openingTag + rawText : rawText;
+      const text = startWithReasoning
+        ? openingTag + rawText.text
+        : rawText.text;
 
       const regexp = new RegExp(`${openingTag}(.*?)${closingTag}`, 'gs');
       const matches = Array.from(text.matchAll(regexp));
 
       if (!matches.length) {
-        return { text, ...rest };
+        return { text: { type: 'text', text }, ...rest };
       }
 
       const reasoningText = matches.map(match => match[1]).join(separator);
@@ -61,7 +63,7 @@ export function extractReasoningMiddleware({
 
       return {
         ...rest,
-        text: textWithoutReasoning,
+        text: { type: 'text', text: textWithoutReasoning },
         reasoning:
           reasoningText.length > 0
             ? [
@@ -91,12 +93,12 @@ export function extractReasoningMiddleware({
             LanguageModelV2StreamPart
           >({
             transform: (chunk, controller) => {
-              if (chunk.type !== 'text-delta') {
+              if (chunk.type !== 'text') {
                 controller.enqueue(chunk);
                 return;
               }
 
-              buffer += chunk.textDelta;
+              buffer += chunk.text;
 
               function publish(text: string) {
                 if (text.length > 0) {
@@ -114,8 +116,8 @@ export function extractReasoningMiddleware({
                           text: prefix + text,
                         }
                       : {
-                          type: 'text-delta',
-                          textDelta: prefix + text,
+                          type: 'text',
+                          text: prefix + text,
                         },
                   );
                   afterSwitch = false;

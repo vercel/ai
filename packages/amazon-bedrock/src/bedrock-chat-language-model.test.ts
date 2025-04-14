@@ -169,16 +169,30 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'World!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 4, outputTokens: 34 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "text": ", ",
+          "type": "text",
+        },
+        {
+          "text": "World!",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 4,
+            "outputTokens": 34,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool deltas', async () => {
@@ -673,19 +687,52 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 4, outputTokens: 34 },
-        providerMetadata: {
-          bedrock: {
-            trace: mockTrace,
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "bedrock": {
+              "trace": {
+                "guardrail": {
+                  "inputAssessment": {
+                    "1abcd2ef34gh": {
+                      "contentPolicy": {
+                        "filters": [
+                          {
+                            "action": "BLOCKED",
+                            "confidence": "LOW",
+                            "type": "INSULTS",
+                          },
+                        ],
+                      },
+                      "wordPolicy": {
+                        "managedWordLists": [
+                          {
+                            "action": "BLOCKED",
+                            "match": "<rude word>",
+                            "type": "PROFANITY",
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 4,
+            "outputTokens": 34,
           },
         },
-      },
-    ]);
+      ]
+    `);
   });
 
   it('should include response headers in rawResponse', async () => {
@@ -876,22 +923,30 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 4, outputTokens: 34 },
-        providerMetadata: {
-          bedrock: {
-            usage: {
-              cacheReadInputTokens: 2,
-              cacheWriteInputTokens: 3,
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "bedrock": {
+              "usage": {
+                "cacheReadInputTokens": 2,
+                "cacheWriteInputTokens": 3,
+              },
             },
           },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 4,
+            "outputTokens": 34,
+          },
         },
-      },
-    ]);
+      ]
+    `);
   });
 
   it('should handle system messages with cache points', async () => {
@@ -998,8 +1053,8 @@ describe('doStream', () => {
           "type": "reasoning",
         },
         {
-          "textDelta": "Based on my reasoning, the answer is 42.",
-          "type": "text-delta",
+          "text": "Based on my reasoning, the answer is 42.",
+          "type": "text",
         },
         {
           "finishReason": "stop",
@@ -1053,8 +1108,8 @@ describe('doStream', () => {
           "type": "reasoning",
         },
         {
-          "textDelta": "Here is my answer.",
-          "type": "text-delta",
+          "text": "Here is my answer.",
+          "type": "text",
         },
         {
           "finishReason": "stop",
@@ -1134,7 +1189,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Hello, World!",
+        "type": "text",
+      }
+    `);
   });
 
   it('should extract usage', async () => {
@@ -1493,7 +1553,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('The answer is 42.');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "The answer is 42.",
+        "type": "text",
+      }
+    `);
     expect(reasoning).toMatchInlineSnapshot(`
       [
         {
@@ -1531,7 +1596,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('The answer is 42.');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "The answer is 42.",
+        "type": "text",
+      }
+    `);
     expect(reasoning).toMatchInlineSnapshot(`
       [
         {
@@ -1562,7 +1632,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('The answer is 42.');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "The answer is 42.",
+        "type": "text",
+      }
+    `);
     expect(reasoning).toMatchInlineSnapshot(`
       [
         {
@@ -1601,7 +1676,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('The answer is 42.');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "The answer is 42.",
+        "type": "text",
+      }
+    `);
     expect(reasoning).toMatchInlineSnapshot(`
       [
         {

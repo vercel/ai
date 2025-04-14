@@ -8,7 +8,7 @@ async function main() {
     model: new MockLanguageModelV2({
       defaultObjectGenerationMode: 'json',
       doGenerate: async () => ({
-        text: `{"content":"Hello, world!"}`,
+        text: { type: 'text', text: `{"content":"Hello, world!"}` },
         finishReason: 'stop',
         usage: { inputTokens: 10, outputTokens: 20 },
       }),

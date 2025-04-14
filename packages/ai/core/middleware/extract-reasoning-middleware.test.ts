@@ -14,7 +14,10 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request</think>Here is the response',
+            text: {
+              type: 'text',
+              text: '<think>analyzing the request</think>Here is the response',
+            },
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -37,7 +40,10 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request\n</think>',
+            text: {
+              type: 'text',
+              text: '<think>analyzing the request\n</think>',
+            },
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -60,7 +66,10 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+            text: {
+              type: 'text',
+              text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+            },
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -85,7 +94,10 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: 'analyzing the request</think>Here is the response',
+            text: {
+              type: 'text',
+              text: 'analyzing the request</think>Here is the response',
+            },
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -125,7 +137,10 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request</think>Here is the response',
+            text: {
+              type: 'text',
+              text: '<think>analyzing the request</think>Here is the response',
+            },
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
             reasoning: undefined,
@@ -158,12 +173,12 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: '<thi' },
-              { type: 'text-delta', textDelta: 'nk>ana' },
-              { type: 'text-delta', textDelta: 'lyzing the request' },
-              { type: 'text-delta', textDelta: '</thi' },
-              { type: 'text-delta', textDelta: 'nk>Here' },
-              { type: 'text-delta', textDelta: ' is the response' },
+              { type: 'text', text: '<think>' },
+              { type: 'text', text: 'ana' },
+              { type: 'text', text: 'lyzing the request' },
+              { type: 'text', text: '</think>' },
+              { type: 'text', text: 'Here' },
+              { type: 'text', text: ' is the response' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -204,12 +219,12 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning",
             },
             {
-              "textDelta": "Here",
-              "type": "text-delta",
+              "text": "Here",
+              "type": "text",
             },
             {
-              "textDelta": " is the response",
-              "type": "text-delta",
+              "text": " is the response",
+              "type": "text",
             },
             {
               "finishReason": "stop",
@@ -265,9 +280,8 @@ describe('extractReasoningMiddleware', () => {
                 timestamp: new Date(0),
               },
               {
-                type: 'text-delta',
-                textDelta:
-                  '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
               },
               {
                 type: 'finish',
@@ -304,8 +318,8 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning",
             },
             {
-              "textDelta": "Here is the response",
-              "type": "text-delta",
+              "text": "Here is the response",
+              "type": "text",
             },
             {
               "reasoningType": "text",
@@ -314,9 +328,9 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning",
             },
             {
-              "textDelta": "
+              "text": "
           more",
-              "type": "text-delta",
+              "type": "text",
             },
             {
               "finishReason": "stop",
@@ -371,10 +385,10 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: '<think>' },
-              { type: 'text-delta', textDelta: 'ana' },
-              { type: 'text-delta', textDelta: 'lyzing the request\n' },
-              { type: 'text-delta', textDelta: '</think>' },
+              { type: 'text', text: '<think>' },
+              { type: 'text', text: 'ana' },
+              { type: 'text', text: 'lyzing the request\n' },
+              { type: 'text', text: '</think>' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -468,10 +482,10 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: 'ana' },
-              { type: 'text-delta', textDelta: 'lyzing the request\n' },
-              { type: 'text-delta', textDelta: '</think>' },
-              { type: 'text-delta', textDelta: 'this is the response' },
+              { type: 'text', text: 'ana' },
+              { type: 'text', text: 'lyzing the request\n' },
+              { type: 'text', text: '</think>' },
+              { type: 'text', text: 'this is the response' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -525,8 +539,8 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning",
             },
             {
-              "textDelta": "this is the response",
-              "type": "text-delta",
+              "text": "this is the response",
+              "type": "text",
             },
             {
               "finishReason": "stop",
@@ -571,70 +585,70 @@ describe('extractReasoningMiddleware', () => {
 
       expect(await convertAsyncIterableToArray(resultFalse.fullStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": "msg-0",
-            "request": {},
-            "type": "step-start",
-            "warnings": [],
-          },
-          {
-            "textDelta": "ana",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": "lyzing the request
-        ",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": "</think>",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": "this is the response",
-            "type": "text-delta",
-          },
-          {
-            "finishReason": "stop",
-            "isContinued": false,
-            "logprobs": undefined,
-            "messageId": "msg-0",
-            "providerMetadata": undefined,
-            "request": {},
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+          [
+            {
+              "messageId": "msg-0",
+              "request": {},
+              "type": "step-start",
+              "warnings": [],
             },
-            "type": "step-finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "text": "ana",
+              "type": "text",
             },
-            "warnings": undefined,
-          },
-          {
-            "finishReason": "stop",
-            "logprobs": undefined,
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+            {
+              "text": "lyzing the request
+          ",
+              "type": "text",
             },
-            "type": "finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "text": "</think>",
+              "type": "text",
             },
-          },
-        ]
-      `);
+            {
+              "text": "this is the response",
+              "type": "text",
+            },
+            {
+              "finishReason": "stop",
+              "isContinued": false,
+              "logprobs": undefined,
+              "messageId": "msg-0",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "step-finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+              "warnings": undefined,
+            },
+            {
+              "finishReason": "stop",
+              "logprobs": undefined,
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+            },
+          ]
+        `);
     });
   });
 });

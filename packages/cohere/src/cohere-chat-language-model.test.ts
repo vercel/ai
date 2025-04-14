@@ -72,7 +72,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Hello, World!",
+        "type": "text",
+      }
+    `);
   });
 
   it('should extract tool calls', async () => {
@@ -119,7 +124,12 @@ describe('doGenerate', () => {
         },
       ]
     `);
-    expect(text).toStrictEqual('Hello, World!');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Hello, World!",
+        "type": "text",
+      }
+    `);
     expect(finishReason).toStrictEqual('stop');
   });
 
@@ -489,18 +499,34 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'response-metadata', id: '586ac33f-9c64-452c-8f8d-e5890e73b6fb' },
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'World!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 34, outputTokens: 12 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
+          "type": "response-metadata",
+        },
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "text": ", ",
+          "type": "text",
+        },
+        {
+          "text": "World!",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 34,
+            "outputTokens": 12,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool deltas', async () => {

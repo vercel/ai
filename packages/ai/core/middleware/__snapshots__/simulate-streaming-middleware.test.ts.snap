@@ -68,8 +68,8 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
     "warnings": [],
   },
   {
-    "textDelta": "This is a test response",
-    "type": "text-delta",
+    "text": "This is a test response",
+    "type": "text",
   },
   {
     "finishReason": "stop",
@@ -139,8 +139,8 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "type": "reasoning",
   },
   {
-    "textDelta": "This is a test response",
-    "type": "text-delta",
+    "text": "This is a test response",
+    "type": "text",
   },
   {
     "finishReason": "stop",
@@ -207,8 +207,8 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "type": "reasoning",
   },
   {
-    "textDelta": "This is a test response",
-    "type": "text-delta",
+    "text": "This is a test response",
+    "type": "text",
   },
   {
     "finishReason": "stop",
@@ -265,8 +265,8 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "type": "reasoning",
   },
   {
-    "textDelta": "This is a test response",
-    "type": "text-delta",
+    "text": "This is a test response",
+    "type": "text",
   },
   {
     "finishReason": "stop",
@@ -318,8 +318,8 @@ exports[`simulateStreamingMiddleware > should simulate streaming with text respo
     "warnings": [],
   },
   {
-    "textDelta": "This is a test response",
-    "type": "text-delta",
+    "text": "This is a test response",
+    "type": "text",
   },
   {
     "finishReason": "stop",
@@ -371,8 +371,8 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
     "warnings": [],
   },
   {
-    "textDelta": "This is a test response",
-    "type": "text-delta",
+    "text": "This is a test response",
+    "type": "text",
   },
   {
     "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'calculator'. No tools are available.],

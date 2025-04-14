@@ -44,9 +44,9 @@ describe('smoothStream', () => {
   describe('word chunking', () => {
     it('should combine partial words', async () => {
       const stream = convertArrayToReadableStream([
-        { textDelta: 'Hello', type: 'text-delta' },
-        { textDelta: ', ', type: 'text-delta' },
-        { textDelta: 'world!', type: 'text-delta' },
+        { text: 'Hello', type: 'text' },
+        { text: ', ', type: 'text' },
+        { text: 'world!', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]).pipeThrough(
@@ -61,12 +61,12 @@ describe('smoothStream', () => {
       expect(events).toEqual([
         'delay 10',
         {
-          textDelta: 'Hello, ',
-          type: 'text-delta',
+          text: 'Hello, ',
+          type: 'text',
         },
         {
-          textDelta: 'world!',
-          type: 'text-delta',
+          text: 'world!',
+          type: 'text',
         },
         {
           type: 'step-finish',
@@ -80,8 +80,8 @@ describe('smoothStream', () => {
     it('should split larger text chunks', async () => {
       const stream = convertArrayToReadableStream([
         {
-          textDelta: 'Hello, World! This is an example text.',
-          type: 'text-delta',
+          text: 'Hello, World! This is an example text.',
+          type: 'text',
         },
         { type: 'step-finish' },
         { type: 'finish' },
@@ -97,37 +97,37 @@ describe('smoothStream', () => {
       expect(events).toEqual([
         'delay 10',
         {
-          textDelta: 'Hello, ',
-          type: 'text-delta',
+          text: 'Hello, ',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'World! ',
-          type: 'text-delta',
+          text: 'World! ',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'This ',
-          type: 'text-delta',
+          text: 'This ',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'is ',
-          type: 'text-delta',
+          text: 'is ',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'an ',
-          type: 'text-delta',
+          text: 'an ',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'example ',
-          type: 'text-delta',
+          text: 'example ',
+          type: 'text',
         },
         {
-          textDelta: 'text.',
-          type: 'text-delta',
+          text: 'text.',
+          type: 'text',
         },
         {
           type: 'step-finish',
@@ -140,11 +140,11 @@ describe('smoothStream', () => {
 
     it('should keep longer whitespace sequences together', async () => {
       const stream = convertArrayToReadableStream([
-        { textDelta: 'First line', type: 'text-delta' },
-        { textDelta: ' \n\n', type: 'text-delta' },
-        { textDelta: '  ', type: 'text-delta' },
-        { textDelta: '  Multiple spaces', type: 'text-delta' },
-        { textDelta: '\n    Indented', type: 'text-delta' },
+        { text: 'First line', type: 'text' },
+        { text: ' \n\n', type: 'text' },
+        { text: '  ', type: 'text' },
+        { text: '  Multiple spaces', type: 'text' },
+        { text: '\n    Indented', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]).pipeThrough(
@@ -159,29 +159,29 @@ describe('smoothStream', () => {
       expect(events).toEqual([
         'delay 10',
         {
-          textDelta: 'First ',
-          type: 'text-delta',
+          text: 'First ',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'line \n\n',
-          type: 'text-delta',
+          text: 'line \n\n',
+          type: 'text',
         },
         'delay 10',
         {
           // note: leading whitespace is included here
           // because it is part of the new chunk:
-          textDelta: '    Multiple ',
-          type: 'text-delta',
+          text: '    Multiple ',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'spaces\n    ',
-          type: 'text-delta',
+          text: 'spaces\n    ',
+          type: 'text',
         },
         {
-          textDelta: 'Indented',
-          type: 'text-delta',
+          text: 'Indented',
+          type: 'text',
         },
         {
           type: 'step-finish',
@@ -194,9 +194,9 @@ describe('smoothStream', () => {
 
     it('should send remaining text buffer before tool call starts', async () => {
       const stream = convertArrayToReadableStream([
-        { type: 'text-delta', textDelta: 'I will check the' },
-        { type: 'text-delta', textDelta: ' weather in Lon' },
-        { type: 'text-delta', textDelta: 'don.' },
+        { type: 'text', text: 'I will check the' },
+        { type: 'text', text: ' weather in Lon' },
+        { type: 'text', text: 'don.' },
         { type: 'tool-call', name: 'weather', args: { city: 'London' } },
         { type: 'step-finish' },
         { type: 'finish' },
@@ -213,37 +213,37 @@ describe('smoothStream', () => {
         [
           "delay 10",
           {
-            "textDelta": "I ",
-            "type": "text-delta",
+            "text": "I ",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "will ",
-            "type": "text-delta",
+            "text": "will ",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "check ",
-            "type": "text-delta",
+            "text": "check ",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "the ",
-            "type": "text-delta",
+            "text": "the ",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "weather ",
-            "type": "text-delta",
+            "text": "weather ",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "in ",
-            "type": "text-delta",
+            "text": "in ",
+            "type": "text",
           },
           {
-            "textDelta": "London.",
-            "type": "text-delta",
+            "text": "London.",
+            "type": "text",
           },
           {
             "args": {
@@ -264,9 +264,9 @@ describe('smoothStream', () => {
 
     it('should send remaining text buffer before tool call starts and tool call streaming is enabled', async () => {
       const stream = convertArrayToReadableStream([
-        { type: 'text-delta', textDelta: 'I will check the' },
-        { type: 'text-delta', textDelta: ' weather in Lon' },
-        { type: 'text-delta', textDelta: 'don.' },
+        { type: 'text', text: 'I will check the' },
+        { type: 'text', text: ' weather in Lon' },
+        { type: 'text', text: 'don.' },
         {
           type: 'tool-call-streaming-start',
           name: 'weather',
@@ -289,37 +289,37 @@ describe('smoothStream', () => {
         [
           "delay 10",
           {
-            "textDelta": "I ",
-            "type": "text-delta",
+            "text": "I ",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "will ",
-            "type": "text-delta",
+            "text": "will ",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "check ",
-            "type": "text-delta",
+            "text": "check ",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "the ",
-            "type": "text-delta",
+            "text": "the ",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "weather ",
-            "type": "text-delta",
+            "text": "weather ",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "in ",
-            "type": "text-delta",
+            "text": "in ",
+            "type": "text",
           },
           {
-            "textDelta": "London.",
-            "type": "text-delta",
+            "text": "London.",
+            "type": "text",
           },
           {
             "args": {
@@ -354,10 +354,10 @@ describe('smoothStream', () => {
 
     it(`doesn't return chunks with just spaces`, async () => {
       const stream = convertArrayToReadableStream([
-        { type: 'text-delta', textDelta: ' ' },
-        { type: 'text-delta', textDelta: ' ' },
-        { type: 'text-delta', textDelta: ' ' },
-        { type: 'text-delta', textDelta: 'foo' },
+        { type: 'text', text: ' ' },
+        { type: 'text', text: ' ' },
+        { type: 'text', text: ' ' },
+        { type: 'text', text: 'foo' },
 
         { type: 'step-finish' },
         { type: 'finish' },
@@ -373,8 +373,8 @@ describe('smoothStream', () => {
       expect(events).toMatchInlineSnapshot(`
         [
           {
-            "textDelta": "   foo",
-            "type": "text-delta",
+            "text": "   foo",
+            "type": "text",
           },
           {
             "type": "step-finish",
@@ -391,11 +391,11 @@ describe('smoothStream', () => {
     it('should split text by lines when using line chunking mode', async () => {
       const stream = convertArrayToReadableStream([
         {
-          textDelta: 'First line\nSecond line\nThird line with more text\n',
-          type: 'text-delta',
+          text: 'First line\nSecond line\nThird line with more text\n',
+          type: 'text',
         },
-        { textDelta: 'Partial line', type: 'text-delta' },
-        { textDelta: ' continues\nFinal line\n', type: 'text-delta' },
+        { text: 'Partial line', type: 'text' },
+        { text: ' continues\nFinal line\n', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]).pipeThrough(
@@ -411,28 +411,28 @@ describe('smoothStream', () => {
       expect(events).toEqual([
         'delay 10',
         {
-          textDelta: 'First line\n',
-          type: 'text-delta',
+          text: 'First line\n',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'Second line\n',
-          type: 'text-delta',
+          text: 'Second line\n',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'Third line with more text\n',
-          type: 'text-delta',
+          text: 'Third line with more text\n',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'Partial line continues\n',
-          type: 'text-delta',
+          text: 'Partial line continues\n',
+          type: 'text',
         },
         'delay 10',
         {
-          textDelta: 'Final line\n',
-          type: 'text-delta',
+          text: 'Final line\n',
+          type: 'text',
         },
         {
           type: 'step-finish',
@@ -445,9 +445,9 @@ describe('smoothStream', () => {
 
     it('should handle text without line endings in line chunking mode', async () => {
       const stream = convertArrayToReadableStream([
-        { textDelta: 'Text without', type: 'text-delta' },
-        { textDelta: ' any line', type: 'text-delta' },
-        { textDelta: ' breaks', type: 'text-delta' },
+        { text: 'Text without', type: 'text' },
+        { text: ' any line', type: 'text' },
+        { text: ' breaks', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]).pipeThrough(
@@ -461,8 +461,8 @@ describe('smoothStream', () => {
 
       expect(events).toEqual([
         {
-          textDelta: 'Text without any line breaks',
-          type: 'text-delta',
+          text: 'Text without any line breaks',
+          type: 'text',
         },
         {
           type: 'step-finish',
@@ -477,7 +477,7 @@ describe('smoothStream', () => {
   describe('custom chunking', () => {
     it(`should return correct result for regexes that don't match from the exact start onwards`, async () => {
       const stream = convertArrayToReadableStream([
-        { textDelta: 'Hello_, world!', type: 'text-delta' },
+        { text: 'Hello_, world!', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]).pipeThrough(
@@ -494,12 +494,12 @@ describe('smoothStream', () => {
         [
           "delay 10",
           {
-            "textDelta": "Hello_",
-            "type": "text-delta",
+            "text": "Hello_",
+            "type": "text",
           },
           {
-            "textDelta": ", world!",
-            "type": "text-delta",
+            "text": ", world!",
+            "type": "text",
           },
           {
             "type": "step-finish",
@@ -513,7 +513,7 @@ describe('smoothStream', () => {
 
     it('should support custom chunking regexps (character-level)', async () => {
       const stream = convertArrayToReadableStream([
-        { textDelta: 'Hello, world!', type: 'text-delta' },
+        { text: 'Hello, world!', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]).pipeThrough(
@@ -528,31 +528,31 @@ describe('smoothStream', () => {
 
       expect(events).toEqual([
         'delay 10',
-        { textDelta: 'H', type: 'text-delta' },
+        { text: 'H', type: 'text' },
         'delay 10',
-        { textDelta: 'e', type: 'text-delta' },
+        { text: 'e', type: 'text' },
         'delay 10',
-        { textDelta: 'l', type: 'text-delta' },
+        { text: 'l', type: 'text' },
         'delay 10',
-        { textDelta: 'l', type: 'text-delta' },
+        { text: 'l', type: 'text' },
         'delay 10',
-        { textDelta: 'o', type: 'text-delta' },
+        { text: 'o', type: 'text' },
         'delay 10',
-        { textDelta: ',', type: 'text-delta' },
+        { text: ',', type: 'text' },
         'delay 10',
-        { textDelta: ' ', type: 'text-delta' },
+        { text: ' ', type: 'text' },
         'delay 10',
-        { textDelta: 'w', type: 'text-delta' },
+        { text: 'w', type: 'text' },
         'delay 10',
-        { textDelta: 'o', type: 'text-delta' },
+        { text: 'o', type: 'text' },
         'delay 10',
-        { textDelta: 'r', type: 'text-delta' },
+        { text: 'r', type: 'text' },
         'delay 10',
-        { textDelta: 'l', type: 'text-delta' },
+        { text: 'l', type: 'text' },
         'delay 10',
-        { textDelta: 'd', type: 'text-delta' },
+        { text: 'd', type: 'text' },
         'delay 10',
-        { textDelta: '!', type: 'text-delta' },
+        { text: '!', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]);
@@ -562,8 +562,8 @@ describe('smoothStream', () => {
   describe('custom callback chunking', () => {
     it('should support custom chunking callback', async () => {
       const stream = convertArrayToReadableStream([
-        { textDelta: 'He_llo, ', type: 'text-delta' },
-        { textDelta: 'w_orld!', type: 'text-delta' },
+        { text: 'He_llo, ', type: 'text' },
+        { text: 'w_orld!', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]).pipeThrough(
@@ -579,17 +579,17 @@ describe('smoothStream', () => {
         [
           "delay 10",
           {
-            "textDelta": "He_",
-            "type": "text-delta",
+            "text": "He_",
+            "type": "text",
           },
           "delay 10",
           {
-            "textDelta": "llo, w_",
-            "type": "text-delta",
+            "text": "llo, w_",
+            "type": "text",
           },
           {
-            "textDelta": "orld!",
-            "type": "text-delta",
+            "text": "orld!",
+            "type": "text",
           },
           {
             "type": "step-finish",
@@ -604,7 +604,7 @@ describe('smoothStream', () => {
     describe('throws errors if the chunking function invalid matches', async () => {
       it('throws empty match error', async () => {
         const stream = convertArrayToReadableStream([
-          { textDelta: 'Hello, world!', type: 'text-delta' },
+          { text: 'Hello, world!', type: 'text' },
           { type: 'step-finish' },
           { type: 'finish' },
         ]).pipeThrough(
@@ -622,7 +622,7 @@ describe('smoothStream', () => {
 
       it('throws match prefix error', async () => {
         const stream = convertArrayToReadableStream([
-          { textDelta: 'Hello, world!', type: 'text-delta' },
+          { text: 'Hello, world!', type: 'text' },
           { type: 'step-finish' },
           { type: 'finish' },
         ]).pipeThrough(
@@ -643,7 +643,7 @@ describe('smoothStream', () => {
   describe('delay', () => {
     it('should default to 10ms', async () => {
       const stream = convertArrayToReadableStream([
-        { textDelta: 'Hello, world!', type: 'text-delta' },
+        { text: 'Hello, world!', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]).pipeThrough(
@@ -654,28 +654,30 @@ describe('smoothStream', () => {
 
       await consumeStream(stream);
 
-      expect(events).toEqual([
-        'delay 10',
-        {
-          textDelta: 'Hello, ',
-          type: 'text-delta',
-        },
-        {
-          textDelta: 'world!',
-          type: 'text-delta',
-        },
-        {
-          type: 'step-finish',
-        },
-        {
-          type: 'finish',
-        },
-      ]);
+      expect(events).toMatchInlineSnapshot(`
+        [
+          "delay 10",
+          {
+            "text": "Hello, ",
+            "type": "text",
+          },
+          {
+            "text": "world!",
+            "type": "text",
+          },
+          {
+            "type": "step-finish",
+          },
+          {
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should support different number of milliseconds delay', async () => {
       const stream = convertArrayToReadableStream([
-        { textDelta: 'Hello, world!', type: 'text-delta' },
+        { text: 'Hello, world!', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]).pipeThrough(
@@ -687,28 +689,30 @@ describe('smoothStream', () => {
 
       await consumeStream(stream);
 
-      expect(events).toEqual([
-        'delay 20',
-        {
-          textDelta: 'Hello, ',
-          type: 'text-delta',
-        },
-        {
-          textDelta: 'world!',
-          type: 'text-delta',
-        },
-        {
-          type: 'step-finish',
-        },
-        {
-          type: 'finish',
-        },
-      ]);
+      expect(events).toMatchInlineSnapshot(`
+        [
+          "delay 20",
+          {
+            "text": "Hello, ",
+            "type": "text",
+          },
+          {
+            "text": "world!",
+            "type": "text",
+          },
+          {
+            "type": "step-finish",
+          },
+          {
+            "type": "finish",
+          },
+        ]
+      `);
     });
 
     it('should support null delay', async () => {
       const stream = convertArrayToReadableStream([
-        { textDelta: 'Hello, world!', type: 'text-delta' },
+        { text: 'Hello, world!', type: 'text' },
         { type: 'step-finish' },
         { type: 'finish' },
       ]).pipeThrough(
@@ -720,23 +724,25 @@ describe('smoothStream', () => {
 
       await consumeStream(stream);
 
-      expect(events).toEqual([
-        'delay null',
-        {
-          textDelta: 'Hello, ',
-          type: 'text-delta',
-        },
-        {
-          textDelta: 'world!',
-          type: 'text-delta',
-        },
-        {
-          type: 'step-finish',
-        },
-        {
-          type: 'finish',
-        },
-      ]);
+      expect(events).toMatchInlineSnapshot(`
+        [
+          "delay null",
+          {
+            "text": "Hello, ",
+            "type": "text",
+          },
+          {
+            "text": "world!",
+            "type": "text",
+          },
+          {
+            "type": "step-finish",
+          },
+          {
+            "type": "finish",
+          },
+        ]
+      `);
     });
   });
 });

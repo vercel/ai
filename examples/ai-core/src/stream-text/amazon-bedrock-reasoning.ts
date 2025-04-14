@@ -24,8 +24,8 @@ async function main() {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
     } else if (part.type === 'reasoning' && part.reasoningType === 'redacted') {
       process.stdout.write('\x1b[31m' + '<redacted>' + '\x1b[0m');
-    } else if (part.type === 'text-delta') {
-      process.stdout.write(part.textDelta);
+    } else if (part.type === 'text') {
+      process.stdout.write(part.text);
     }
   }
 

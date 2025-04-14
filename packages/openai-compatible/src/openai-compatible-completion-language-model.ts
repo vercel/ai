@@ -176,7 +176,7 @@ export class OpenAICompatibleCompletionLanguageModel
     const choice = response.choices[0];
 
     return {
-      text: choice.text,
+      text: { type: 'text', text: choice.text },
       usage: {
         inputTokens: response.usage?.prompt_tokens ?? undefined,
         outputTokens: response.usage?.completion_tokens ?? undefined,
@@ -271,8 +271,8 @@ export class OpenAICompatibleCompletionLanguageModel
 
             if (choice?.text != null) {
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: choice.text,
+                type: 'text',
+                text: choice.text,
               });
             }
           },

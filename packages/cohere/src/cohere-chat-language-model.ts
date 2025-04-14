@@ -127,10 +127,10 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const text = response.message.content?.[0]?.text ?? '';
+    const text = response.message.content?.[0]?.text;
 
     return {
-      text,
+      text: text != null ? { type: 'text', text } : undefined,
       toolCalls: response.message.tool_calls
         ? response.message.tool_calls.map(toolCall => ({
             type: 'tool-call' as const,
@@ -211,8 +211,8 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
             switch (type) {
               case 'content-delta': {
                 controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: value.delta.message.content.text,
+                  type: 'text',
+                  text: value.delta.message.content.text,
                 });
                 return;
               }

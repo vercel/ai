@@ -375,7 +375,7 @@ export async function generateObject<SCHEMA, RESULT>({
                     telemetry,
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
-                      'ai.response.object': { output: () => result.text },
+                      'ai.response.object': { output: () => result.text?.text },
                       'ai.response.id': responseData.id,
                       'ai.response.model': responseData.modelId,
                       'ai.response.timestamp':
@@ -400,7 +400,7 @@ export async function generateObject<SCHEMA, RESULT>({
             }),
           );
 
-          result = generateResult.objectText;
+          result = generateResult.objectText?.text;
           finishReason = generateResult.finishReason;
           usage = generateResult.usage;
           warnings = generateResult.warnings;

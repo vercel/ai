@@ -299,10 +299,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             if (content != null) {
               const deltaText = getTextFromParts(content.parts);
               if (deltaText != null) {
-                controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: deltaText,
-                });
+                controller.enqueue(deltaText);
               }
 
               const inlineDataParts = getInlineDataParts(content.parts);
@@ -419,7 +416,10 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
 
   return textParts == null || textParts.length === 0
     ? undefined
-    : textParts.map(part => part.text).join('');
+    : {
+        type: 'text' as const,
+        text: textParts.map(part => part.text).join(''),
+      };
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {

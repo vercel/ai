@@ -121,7 +121,12 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
         });
 
-        expect(result.text).toStrictEqual('answer text');
+        expect(result.text).toMatchInlineSnapshot(`
+          {
+            "text": "answer text",
+            "type": "text",
+          }
+        `);
       });
 
       it('should extract usage', async () => {
@@ -954,7 +959,38 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
         });
 
-        expect(result.text).toStrictEqual(outputText);
+        expect(result.text).toMatchInlineSnapshot(`
+          {
+            "text": "Last week in San Francisco, several notable events and developments took place:
+
+          **Bruce Lee Statue in Chinatown**
+
+          The Chinese Historical Society of America Museum announced plans to install a Bruce Lee statue in Chinatown. This initiative, supported by the Rose Pak Community Fund, the Bruce Lee Foundation, and Stand With Asians, aims to honor Lee's contributions to film and martial arts. Artist Arnie Kim has been commissioned for the project, with a fundraising goal of $150,000. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com))
+
+          **Office Leasing Revival**
+
+          The Bay Area experienced a resurgence in office leasing, securing 11 of the largest U.S. office leases in 2024. This trend, driven by the tech industry's growth and advancements in generative AI, suggests a potential boost to downtown recovery through increased foot traffic. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com))
+
+          **Spring Blooms in the Bay Area**
+
+          With the arrival of spring, several locations in the Bay Area are showcasing vibrant blooms. Notable spots include the Conservatory of Flowers, Japanese Tea Garden, Queen Wilhelmina Tulip Garden, and the San Francisco Botanical Garden, each offering unique floral displays. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com))
+
+          **Oceanfront Great Highway Park**
+
+          San Francisco's long-awaited Oceanfront Great Highway park is set to open on April 12. This 43-acre, car-free park will span a two-mile stretch of the Great Highway from Lincoln Way to Sloat Boulevard, marking the largest pedestrianization project in California's history. The park follows voter approval of Proposition K, which permanently bans cars on part of the highway. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com))
+
+          **Warmer Spring Seasons**
+
+          An analysis by Climate Central revealed that San Francisco, along with most U.S. cities, is experiencing increasingly warmer spring seasons. Over a 55-year period from 1970 to 2024, the national average temperature during March through May rose by 2.4°F. This warming trend poses various risks, including early snowmelt and increased wildfire threats. ([axios.com](https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com))
+
+
+          # Key San Francisco Developments Last Week:
+          - [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)
+          - [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)
+          - [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)",
+            "type": "text",
+          }
+        `);
       });
 
       it('should return sources', async () => {
@@ -1029,28 +1065,39 @@ describe('OpenAIResponsesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          id: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-          modelId: 'gpt-4o-2024-07-18',
-          timestamp: new Date('2025-03-06T13:50:19.000Z'),
-          type: 'response-metadata',
-        },
-        { type: 'text-delta', textDelta: 'Hello,' },
-        { type: 'text-delta', textDelta: ' World!' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { inputTokens: 543, outputTokens: 478 },
-          providerMetadata: {
-            openai: {
-              responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-              cachedPromptTokens: 234,
-              reasoningTokens: 123,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "gpt-4o-2024-07-18",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "text": "Hello,",
+            "type": "text",
+          },
+          {
+            "text": " World!",
+            "type": "text",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "cachedPromptTokens": 234,
+                "reasoningTokens": 123,
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 543,
+              "outputTokens": 478,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should send finish reason for incomplete response', async () => {
@@ -1074,27 +1121,35 @@ describe('OpenAIResponsesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          id: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-          modelId: 'gpt-4o-2024-07-18',
-          timestamp: new Date('2025-03-06T13:50:19.000Z'),
-          type: 'response-metadata',
-        },
-        { type: 'text-delta', textDelta: 'Hello,' },
-        {
-          type: 'finish',
-          finishReason: 'length',
-          usage: { inputTokens: 0, outputTokens: 0 },
-          providerMetadata: {
-            openai: {
-              responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-              cachedPromptTokens: 0,
-              reasoningTokens: 0,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "gpt-4o-2024-07-18",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "text": "Hello,",
+            "type": "text",
+          },
+          {
+            "finishReason": "length",
+            "providerMetadata": {
+              "openai": {
+                "cachedPromptTokens": 0,
+                "reasoningTokens": 0,
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 0,
+              "outputTokens": 0,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should send streaming tool calls', async () => {
@@ -1258,12 +1313,12 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "textDelta": "Last week",
-            "type": "text-delta",
+            "text": "Last week",
+            "type": "text",
           },
           {
-            "textDelta": " in San Francisco",
-            "type": "text-delta",
+            "text": " in San Francisco",
+            "type": "text",
           },
           {
             "id": "id-0",
@@ -1273,12 +1328,12 @@ describe('OpenAIResponsesLanguageModel', () => {
             "url": "https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com",
           },
           {
-            "textDelta": " a themed party",
-            "type": "text-delta",
+            "text": " a themed party",
+            "type": "text",
           },
           {
-            "textDelta": "([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))",
-            "type": "text-delta",
+            "text": "([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))",
+            "type": "text",
           },
           {
             "id": "id-1",
@@ -1288,8 +1343,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             "url": "https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com",
           },
           {
-            "textDelta": ".",
-            "type": "text-delta",
+            "text": ".",
+            "type": "text",
           },
           {
             "finishReason": "stop",

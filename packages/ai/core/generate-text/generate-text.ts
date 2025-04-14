@@ -369,7 +369,7 @@ A function that attempts to repair a tool call that failed to parse.
                   attributes: {
                     'ai.response.finishReason': result.finishReason,
                     'ai.response.text': {
-                      output: () => result.text,
+                      output: () => result.text?.text,
                     },
                     'ai.response.toolCalls': {
                       output: () =>
@@ -459,7 +459,7 @@ A function that attempts to repair a tool call that failed to parse.
         }
 
         // text:
-        const originalText = currentModelResponse.text ?? '';
+        const originalText = currentModelResponse.text?.text ?? '';
         const stepTextLeadingWhitespaceTrimmed =
           stepType === 'continue' && // only for continue steps
           text.trimEnd() !== text // only trim when there is preceding whitespace
@@ -551,7 +551,7 @@ A function that attempts to repair a tool call that failed to parse.
           attributes: {
             'ai.response.finishReason': currentModelResponse.finishReason,
             'ai.response.text': {
-              output: () => currentModelResponse.text,
+              output: () => currentModelResponse.text?.text,
             },
             'ai.response.toolCalls': {
               output: () =>

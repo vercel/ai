@@ -123,7 +123,12 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(text).toStrictEqual('Hello, World!');
+      expect(text).toMatchInlineSnapshot(`
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        }
+      `);
     });
 
     it('should extract reasoning response', async () => {
@@ -157,7 +162,12 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]
       `);
-      expect(text).toStrictEqual('Hello, World!');
+      expect(text).toMatchInlineSnapshot(`
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        }
+      `);
     });
 
     it('should return undefined reasoning when no thinking is present', async () => {
@@ -218,7 +228,14 @@ describe('AnthropicMessagesLanguageModel', () => {
           },
         ]
       `);
-      expect(text).toStrictEqual('Some text\n\n');
+      expect(text).toMatchInlineSnapshot(`
+        {
+          "text": "Some text
+
+        ",
+          "type": "text",
+        }
+      `);
       expect(finishReason).toStrictEqual('tool-calls');
     });
 
@@ -514,27 +531,41 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
-          modelId: 'claude-3-haiku-20240307',
-          type: 'response-metadata',
-        },
-        { textDelta: 'Hello', type: 'text-delta' },
-        { textDelta: ', ', type: 'text-delta' },
-        { textDelta: 'World!', type: 'text-delta' },
-        {
-          finishReason: 'stop',
-          providerMetadata: {
-            anthropic: {
-              cacheCreationInputTokens: null,
-              cacheReadInputTokens: null,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "text": "Hello",
+            "type": "text",
+          },
+          {
+            "text": ", ",
+            "type": "text",
+          },
+          {
+            "text": "World!",
+            "type": "text",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": null,
+                "cacheReadInputTokens": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 17,
+              "outputTokens": 227,
             },
           },
-          type: 'finish',
-          usage: { inputTokens: 17, outputTokens: 227 },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should stream reasoning deltas', async () => {
@@ -583,8 +614,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "reasoning",
           },
           {
-            "textDelta": "Hello, World!",
-            "type": "text-delta",
+            "text": "Hello, World!",
+            "type": "text",
           },
           {
             "finishReason": "stop",
@@ -637,8 +668,8 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "reasoning",
           },
           {
-            "textDelta": "Hello, World!",
-            "type": "text-delta",
+            "text": "Hello, World!",
+            "type": "text",
           },
           {
             "finishReason": "stop",
@@ -677,25 +708,33 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
-          modelId: 'claude-3-haiku-20240307',
-        },
-        { type: 'text-delta', textDelta: 'Hello, World!' },
-        {
-          finishReason: 'stop',
-          providerMetadata: {
-            anthropic: {
-              cacheCreationInputTokens: null,
-              cacheReadInputTokens: null,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "text": "Hello, World!",
+            "type": "text",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": null,
+                "cacheReadInputTokens": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 17,
+              "outputTokens": 227,
             },
           },
-          type: 'finish',
-          usage: { inputTokens: 17, outputTokens: 227 },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should stream tool deltas', async () => {
@@ -739,81 +778,86 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'msg_01GouTqNCGXzrj5LQ5jEkw67',
-          modelId: 'claude-3-haiku-20240307',
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'Okay',
-        },
-        {
-          type: 'text-delta',
-          textDelta: '!',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: '',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: '{"value',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: '":',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: '"Spark',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: 'le',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: ' Day"}',
-        },
-        {
-          type: 'tool-call',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          args: '{"value":"Sparkle Day"}',
-        },
-        {
-          finishReason: 'tool-calls',
-          providerMetadata: {
-            anthropic: {
-              cacheCreationInputTokens: null,
-              cacheReadInputTokens: null,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "text": "Okay",
+            "type": "text",
+          },
+          {
+            "text": "!",
+            "type": "text",
+          },
+          {
+            "argsTextDelta": "",
+            "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": "{"value",
+            "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": "":",
+            "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": ""Spark",
+            "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": "le",
+            "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": " Day"}",
+            "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+            "type": "tool-call-delta",
+          },
+          {
+            "args": "{"value":"Sparkle Day"}",
+            "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": null,
+                "cacheReadInputTokens": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 441,
+              "outputTokens": 65,
             },
           },
-          type: 'finish',
-          usage: { inputTokens: 441, outputTokens: 65 },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should forward error chunks', async () => {
@@ -963,26 +1007,33 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      // note: space moved to last chunk bc of trimming
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
-          modelId: 'claude-3-haiku-20240307',
-        },
-        { type: 'text-delta', textDelta: 'Hello' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { inputTokens: 17, outputTokens: 227 },
-          providerMetadata: {
-            anthropic: {
-              cacheCreationInputTokens: 10,
-              cacheReadInputTokens: 5,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "text": "Hello",
+            "type": "text",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": 10,
+                "cacheReadInputTokens": 5,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 17,
+              "outputTokens": 227,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should send request body', async () => {

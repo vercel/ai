@@ -297,10 +297,7 @@ If an error occurs, it is passed to the optional `onError` callback.
 }
 
 export type TextStreamPart<TOOLS extends ToolSet> =
-  | {
-      type: 'text-delta';
-      textDelta: string;
-    }
+  | { type: 'text'; text: string }
   | { type: 'reasoning'; reasoningType: 'text'; text: string }
   | { type: 'reasoning'; reasoningType: 'signature'; signature: string }
   | { type: 'reasoning'; reasoningType: 'redacted'; data: string }
