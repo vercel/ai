@@ -99,7 +99,7 @@ importers:
         specifier: 1.2.8
         version: link:../../packages/groq
       '@ai-sdk/hume':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../../packages/hume
       '@ai-sdk/luma':
         specifier: 0.1.7
@@ -123,7 +123,7 @@ importers:
         specifier: 0.2.7
         version: link:../../packages/replicate
       '@ai-sdk/revai':
-        specifier: 0.0.0
+        specifier: 0.0.1
         version: link:../../packages/revai
       '@ai-sdk/togetherai':
         specifier: 0.2.10
