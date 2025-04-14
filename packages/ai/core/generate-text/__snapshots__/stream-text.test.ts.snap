@@ -24,16 +24,16 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       "warnings": [],
     },
     {
-      "textDelta": "Hello",
-      "type": "text-delta",
+      "text": "Hello",
+      "type": "text",
     },
     {
-      "textDelta": ", ",
-      "type": "text-delta",
+      "text": ", ",
+      "type": "text",
     },
     {
-      "textDelta": "world!",
-      "type": "text-delta",
+      "text": "world!",
+      "type": "text",
     },
     {
       "finishReason": "stop",
@@ -553,12 +553,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "warnings": [],
   },
   {
-    "textDelta": "Hello, ",
-    "type": "text-delta",
+    "text": "Hello, ",
+    "type": "text",
   },
   {
-    "textDelta": "world!",
-    "type": "text-delta",
+    "text": "world!",
+    "type": "text",
   },
   {
     "finishReason": "stop",
@@ -1465,17 +1465,17 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": [],
   },
   {
-    "textDelta": "part ",
-    "type": "text-delta",
+    "text": "part ",
+    "type": "text",
   },
   {
-    "textDelta": "1 
+    "text": "1 
 ",
-    "type": "text-delta",
+    "type": "text",
   },
   {
-    "textDelta": " ",
-    "type": "text-delta",
+    "text": " ",
+    "type": "text",
   },
   {
     "finishReason": "length",
@@ -1517,8 +1517,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "url": "https://example.com",
   },
   {
-    "textDelta": "no-whitespace",
-    "type": "text-delta",
+    "text": "no-whitespace",
+    "type": "text",
   },
   {
     "finishReason": "length",
@@ -1560,8 +1560,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "url": "https://example.com/2",
   },
   {
-    "textDelta": "immediatefollow  ",
-    "type": "text-delta",
+    "text": "immediatefollow  ",
+    "type": "text",
   },
   {
     "id": "789",
@@ -1605,21 +1605,21 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": [],
   },
   {
-    "textDelta": "final ",
-    "type": "text-delta",
+    "text": "final ",
+    "type": "text",
   },
   {
-    "textDelta": "value keep all ",
-    "type": "text-delta",
+    "text": "value keep all ",
+    "type": "text",
   },
   {
-    "textDelta": "whitespace
+    "text": "whitespace
  ",
-    "type": "text-delta",
+    "type": "text",
   },
   {
-    "textDelta": "end",
-    "type": "text-delta",
+    "text": "end",
+    "type": "text",
   },
   {
     "finishReason": "stop",
@@ -2118,8 +2118,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 exports[`streamText > options.onChunk > should return events in order 1`] = `
 [
   {
-    "textDelta": "Hello",
-    "type": "text-delta",
+    "text": "Hello",
+    "type": "text",
   },
   {
     "toolCallId": "1",
@@ -2179,8 +2179,8 @@ exports[`streamText > options.onChunk > should return events in order 1`] = `
     "type": "tool-result",
   },
   {
-    "textDelta": " World",
-    "type": "text-delta",
+    "text": " World",
+    "type": "text",
   },
 ]
 `;
@@ -3186,16 +3186,16 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     "warnings": [],
   },
   {
-    "textDelta": "Hello",
-    "type": "text-delta",
+    "text": "Hello",
+    "type": "text",
   },
   {
-    "textDelta": ", ",
-    "type": "text-delta",
+    "text": ", ",
+    "type": "text",
   },
   {
-    "textDelta": "world!",
-    "type": "text-delta",
+    "text": "world!",
+    "type": "text",
   },
   {
     "finishReason": "stop",
@@ -3379,8 +3379,8 @@ exports[`streamText > result.fullStream > should send files 1`] = `
     "type": "file",
   },
   {
-    "textDelta": "Hello!",
-    "type": "text-delta",
+    "text": "Hello!",
+    "type": "text",
   },
   {
     "file": DefaultGeneratedFileWithType {
@@ -3476,12 +3476,12 @@ exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
     "type": "reasoning",
   },
   {
-    "textDelta": "Hi",
-    "type": "text-delta",
+    "text": "Hi",
+    "type": "text",
   },
   {
-    "textDelta": " there!",
-    "type": "text-delta",
+    "text": " there!",
+    "type": "text",
   },
   {
     "finishReason": "stop",
@@ -3545,8 +3545,8 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
     "url": "https://example.com",
   },
   {
-    "textDelta": "Hello!",
-    "type": "text-delta",
+    "text": "Hello!",
+    "type": "text",
   },
   {
     "id": "456",
@@ -3610,16 +3610,16 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     "warnings": [],
   },
   {
-    "textDelta": "Hello",
-    "type": "text-delta",
+    "text": "Hello",
+    "type": "text",
   },
   {
-    "textDelta": ", ",
-    "type": "text-delta",
+    "text": ", ",
+    "type": "text",
   },
   {
-    "textDelta": "world!",
-    "type": "text-delta",
+    "text": "world!",
+    "type": "text",
   },
   {
     "finishReason": "stop",
@@ -3898,16 +3898,16 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     "warnings": [],
   },
   {
-    "textDelta": "Hello",
-    "type": "text-delta",
+    "text": "Hello",
+    "type": "text",
   },
   {
-    "textDelta": ", ",
-    "type": "text-delta",
+    "text": ", ",
+    "type": "text",
   },
   {
-    "textDelta": "world!",
-    "type": "text-delta",
+    "text": "world!",
+    "type": "text",
   },
   {
     "finishReason": "stop",

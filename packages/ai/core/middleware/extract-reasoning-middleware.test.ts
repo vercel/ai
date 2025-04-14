@@ -219,12 +219,12 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning",
             },
             {
-              "textDelta": "Here",
-              "type": "text-delta",
+              "text": "Here",
+              "type": "text",
             },
             {
-              "textDelta": " is the response",
-              "type": "text-delta",
+              "text": " is the response",
+              "type": "text",
             },
             {
               "finishReason": "stop",
@@ -318,8 +318,8 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning",
             },
             {
-              "textDelta": "Here is the response",
-              "type": "text-delta",
+              "text": "Here is the response",
+              "type": "text",
             },
             {
               "reasoningType": "text",
@@ -328,9 +328,9 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning",
             },
             {
-              "textDelta": "
+              "text": "
           more",
-              "type": "text-delta",
+              "type": "text",
             },
             {
               "finishReason": "stop",
@@ -539,8 +539,8 @@ describe('extractReasoningMiddleware', () => {
               "type": "reasoning",
             },
             {
-              "textDelta": "this is the response",
-              "type": "text-delta",
+              "text": "this is the response",
+              "type": "text",
             },
             {
               "finishReason": "stop",
@@ -585,70 +585,70 @@ describe('extractReasoningMiddleware', () => {
 
       expect(await convertAsyncIterableToArray(resultFalse.fullStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": "msg-0",
-            "request": {},
-            "type": "step-start",
-            "warnings": [],
-          },
-          {
-            "textDelta": "ana",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": "lyzing the request
-        ",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": "</think>",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": "this is the response",
-            "type": "text-delta",
-          },
-          {
-            "finishReason": "stop",
-            "isContinued": false,
-            "logprobs": undefined,
-            "messageId": "msg-0",
-            "providerMetadata": undefined,
-            "request": {},
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+          [
+            {
+              "messageId": "msg-0",
+              "request": {},
+              "type": "step-start",
+              "warnings": [],
             },
-            "type": "step-finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "text": "ana",
+              "type": "text",
             },
-            "warnings": undefined,
-          },
-          {
-            "finishReason": "stop",
-            "logprobs": undefined,
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+            {
+              "text": "lyzing the request
+          ",
+              "type": "text",
             },
-            "type": "finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "text": "</think>",
+              "type": "text",
             },
-          },
-        ]
-      `);
+            {
+              "text": "this is the response",
+              "type": "text",
+            },
+            {
+              "finishReason": "stop",
+              "isContinued": false,
+              "logprobs": undefined,
+              "messageId": "msg-0",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "step-finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+              "warnings": undefined,
+            },
+            {
+              "finishReason": "stop",
+              "logprobs": undefined,
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+            },
+          ]
+        `);
     });
   });
 });

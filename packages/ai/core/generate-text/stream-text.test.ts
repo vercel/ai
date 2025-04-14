@@ -4089,8 +4089,8 @@ describe('streamText', () => {
               "type": "tool-result",
             },
             {
-              "textDelta": " WORLD",
-              "type": "text-delta",
+              "text": " WORLD",
+              "type": "text",
             },
           ]
         `);
