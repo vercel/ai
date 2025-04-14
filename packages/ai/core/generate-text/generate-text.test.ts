@@ -1,6 +1,5 @@
 import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import { jsonSchema } from '../util';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
@@ -8,6 +7,7 @@ import { ToolExecutionError } from '../../errors';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
+import { jsonSchema } from '../util';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
@@ -22,14 +22,16 @@ const modelWithSources = new MockLanguageModelV2({
     ...dummyResponseValues,
     sources: [
       {
-        sourceType: 'url' as const,
+        type: 'source',
+        sourceType: 'url',
         id: '123',
         url: 'https://example.com',
         title: 'Example',
         providerMetadata: { provider: { custom: 'value' } },
       },
       {
-        sourceType: 'url' as const,
+        type: 'source',
+        sourceType: 'url',
         id: '456',
         url: 'https://example.com/2',
         title: 'Example 2',
@@ -44,10 +46,12 @@ const modelWithFiles = new MockLanguageModelV2({
     ...dummyResponseValues,
     files: [
       {
+        type: 'file',
         data: new Uint8Array([1, 2, 3]),
         mediaType: 'image/png',
       },
       {
+        type: 'file',
         data: 'QkFVRw==',
         mediaType: 'image/jpeg',
       },
@@ -226,6 +230,7 @@ describe('result.toolCalls', () => {
             ...dummyResponseValues,
             toolCalls: [
               {
+                type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
@@ -298,6 +303,7 @@ describe('result.toolResults', () => {
             ...dummyResponseValues,
             toolCalls: [
               {
+                type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
@@ -386,6 +392,7 @@ describe('result.response.messages', () => {
           text: 'Hello, world!',
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
@@ -523,6 +530,7 @@ describe('options.maxSteps', () => {
                   ...dummyResponseValues,
                   toolCalls: [
                     {
+                      type: 'tool-call',
                       toolCallType: 'function',
                       toolCallId: 'call-1',
                       toolName: 'tool1',
@@ -739,7 +747,8 @@ describe('options.maxSteps', () => {
                   },
                   sources: [
                     {
-                      sourceType: 'url' as const,
+                      type: 'source',
+                      sourceType: 'url',
                       id: '123',
                       url: 'https://example.com',
                       title: 'Example',
@@ -748,6 +757,7 @@ describe('options.maxSteps', () => {
                   ],
                   files: [
                     {
+                      type: 'file',
                       data: new Uint8Array([1, 2, 3]),
                       mediaType: 'image/png',
                       filename: 'test.png',
@@ -788,14 +798,16 @@ describe('options.maxSteps', () => {
                   finishReason: 'length',
                   sources: [
                     {
-                      sourceType: 'url' as const,
+                      type: 'source',
+                      sourceType: 'url',
                       id: '456',
                       url: 'https://example.com/2',
                       title: 'Example 2',
                       providerMetadata: { provider: { custom: 'value2' } },
                     },
                     {
-                      sourceType: 'url' as const,
+                      type: 'source',
+                      sourceType: 'url',
                       id: '789',
                       url: 'https://example.com/3',
                       title: 'Example 3',
@@ -848,6 +860,7 @@ describe('options.maxSteps', () => {
                   finishReason: 'stop',
                   files: [
                     {
+                      type: 'file',
                       data: 'QkFVRw==',
                       mediaType: 'image/jpeg',
                       filename: 'test.jpeg',
@@ -991,6 +1004,7 @@ describe('options.abortSignal', () => {
           ...dummyResponseValues,
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
@@ -1092,6 +1106,7 @@ describe('telemetry', () => {
           ...dummyResponseValues,
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
@@ -1127,6 +1142,7 @@ describe('telemetry', () => {
           ...dummyResponseValues,
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
@@ -1202,6 +1218,7 @@ describe('tools with custom schema', () => {
             ...dummyResponseValues,
             toolCalls: [
               {
+                type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
@@ -1572,6 +1589,7 @@ describe('tool execution errors', () => {
             ...dummyResponseValues,
             toolCalls: [
               {
+                type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',

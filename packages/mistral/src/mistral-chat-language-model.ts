@@ -204,6 +204,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     return {
       text,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
+        type: 'tool-call',
         toolCallType: 'function',
         toolCallId: toolCall.id,
         toolName: toolCall.function.name,

@@ -384,14 +384,17 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(result.toolCalls).toStrictEqual([
-      {
-        args: '{"value":"Spark"}',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-      },
-    ]);
+    expect(result.toolCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "args": "{"value":"Spark"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 
   it('should pass response format information', async () => {

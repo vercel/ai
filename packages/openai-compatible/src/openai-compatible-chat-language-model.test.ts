@@ -501,6 +501,7 @@ describe('doGenerate', () => {
         toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
         toolCallType: 'function',
         toolName: 'test-tool',
+        type: 'tool-call',
       },
     ]);
   });

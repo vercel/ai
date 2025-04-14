@@ -1,5 +1,4 @@
 import { LanguageModelV2StreamPart } from '@ai-sdk/provider';
-import { generateId } from '../util';
 import { Tracer } from '@opentelemetry/api';
 import { ToolExecutionError } from '../../errors';
 import { CoreMessage } from '../prompt/message';
@@ -15,6 +14,7 @@ import {
 } from '../types';
 import { Source } from '../types/language-model';
 import { calculateLanguageModelUsage } from '../types/usage';
+import { generateId } from '../util';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallUnion } from './tool-call';
@@ -40,10 +40,8 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       data: string;
     }
   | { type: 'file'; file: GeneratedFile }
-  | { type: 'source'; source: Source }
-  | ({
-      type: 'tool-call';
-    } & ToolCallUnion<TOOLS>)
+  | ({ type: 'source' } & Source)
+  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
   | {
       type: 'tool-call-streaming-start';
       toolCallId: string;
@@ -164,8 +162,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           controller.enqueue({
             type: 'file',
             file: new DefaultGeneratedFileWithType({
-              data: chunk.file.data,
-              mediaType: chunk.file.mediaType,
+              data: chunk.data,
+              mediaType: chunk.mediaType,
             }),
           });
           break;

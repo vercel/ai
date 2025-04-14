@@ -198,6 +198,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     return {
       text: getTextFromParts(parts),
       files: getInlineDataParts(parts)?.map(part => ({
+        type: 'file',
         data: part.inlineData.data,
         mediaType: part.inlineData.mimeType,
       })),
@@ -309,10 +310,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 for (const part of inlineDataParts) {
                   controller.enqueue({
                     type: 'file',
-                    file: {
-                      mediaType: part.inlineData.mimeType,
-                      data: part.inlineData.data,
-                    },
+                    mediaType: part.inlineData.mimeType,
+                    data: part.inlineData.data,
                   });
                 }
               }
@@ -358,7 +357,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 }) ?? [];
 
               for (const source of sources) {
-                controller.enqueue({ type: 'source', source });
+                controller.enqueue(source);
               }
 
               providerMetadata = {
@@ -405,6 +404,7 @@ function getToolCallsFromParts({
   return functionCallParts == null || functionCallParts.length === 0
     ? undefined
     : functionCallParts.map(part => ({
+        type: 'tool-call' as const,
         toolCallType: 'function' as const,
         toolCallId: generateId(),
         toolName: part.functionCall.name,
@@ -448,6 +448,7 @@ function extractSources({
       } => chunk.web != null,
     )
     .map(chunk => ({
+      type: 'source',
       sourceType: 'url',
       id: generateId(),
       url: chunk.web.uri,

@@ -2,10 +2,10 @@ import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
-  LanguageModelV2FunctionToolCall,
-  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
+  LanguageModelV2ToolCall,
   LanguageModelV2Usage,
+  SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -266,12 +266,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     }
 
     // extract tool calls
-    let toolCalls: LanguageModelV2FunctionToolCall[] | undefined = undefined;
+    let toolCalls: LanguageModelV2ToolCall[] | undefined = undefined;
     if (response.content.some(content => content.type === 'tool_use')) {
       toolCalls = [];
       for (const content of response.content) {
         if (content.type === 'tool_use') {
           toolCalls.push({
+            type: 'tool-call' as const,
             toolCallType: 'function',
             toolCallId: content.id,
             toolName: content.name,

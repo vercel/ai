@@ -12,6 +12,7 @@ async function main() {
         finishReason: 'tool-calls',
         toolCalls: [
           {
+            type: 'tool-call',
             toolCallType: 'function',
             toolCallId: 'call-1',
             toolName: 'cityAttractions',
@@ -72,6 +73,7 @@ async function main() {
 
       return newToolCall != null
         ? {
+            type: 'tool-call' as const,
             toolCallType: 'function' as const,
             toolCallId: toolCall.toolCallId,
             toolName: toolCall.toolName,

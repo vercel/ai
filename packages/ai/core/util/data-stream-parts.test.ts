@@ -319,6 +319,7 @@ describe('reasoning stream part', () => {
 describe('source stream part', () => {
   it('should format a source stream part', () => {
     const source = {
+      type: 'source',
       sourceType: 'url',
       id: 'source_1',
       url: 'https://example.com',

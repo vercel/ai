@@ -257,6 +257,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const toolCalls = response.output
       .filter(output => output.type === 'function_call')
       .map(output => ({
+        type: 'tool-call' as const,
         toolCallType: 'function' as const,
         toolCallId: output.call_id,
         toolName: output.name,
@@ -267,6 +268,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       text: outputTextElements.map(content => content.text).join('\n'),
       sources: outputTextElements.flatMap(content =>
         content.annotations.map(annotation => ({
+          type: 'source',
           sourceType: 'url',
           id: this.config.generateId?.() ?? generateId(),
           url: annotation.url,
@@ -427,12 +429,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             } else if (isResponseAnnotationAddedChunk(value)) {
               controller.enqueue({
                 type: 'source',
-                source: {
-                  sourceType: 'url',
-                  id: self.config.generateId?.() ?? generateId(),
-                  url: value.annotation.url,
-                  title: value.annotation.title,
-                },
+                sourceType: 'url',
+                id: self.config.generateId?.() ?? generateId(),
+                url: value.annotation.url,
+                title: value.annotation.title,
               });
             }
           },

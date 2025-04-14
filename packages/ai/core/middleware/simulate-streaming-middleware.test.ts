@@ -129,12 +129,14 @@ describe('simulateStreamingMiddleware', () => {
           text: 'This is a test response',
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallId: 'tool-1',
               toolName: 'calculator',
               args: '{"expression": "2+2"}',
               toolCallType: 'function',
             },
             {
+              type: 'tool-call',
               toolCallId: 'tool-2',
               toolName: 'weather',
               args: '{"location": "New York"}',

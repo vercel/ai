@@ -371,7 +371,15 @@ A function that attempts to repair a tool call that failed to parse.
                       output: () => result.text,
                     },
                     'ai.response.toolCalls': {
-                      output: () => JSON.stringify(result.toolCalls),
+                      output: () =>
+                        JSON.stringify(
+                          result.toolCalls?.map(toolCall => ({
+                            toolCallType: toolCall.toolCallType,
+                            toolCallId: toolCall.toolCallId,
+                            toolName: toolCall.toolName,
+                            args: toolCall.args,
+                          })),
+                        ),
                     },
                     'ai.response.id': responseData.id,
                     'ai.response.model': responseData.modelId,
@@ -545,7 +553,15 @@ A function that attempts to repair a tool call that failed to parse.
               output: () => currentModelResponse.text,
             },
             'ai.response.toolCalls': {
-              output: () => JSON.stringify(currentModelResponse.toolCalls),
+              output: () =>
+                JSON.stringify(
+                  currentModelResponse.toolCalls?.map(toolCall => ({
+                    toolCallType: toolCall.toolCallType,
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    args: toolCall.args,
+                  })),
+                ),
             },
 
             // TODO rename telemetry attributes to inputTokens and outputTokens

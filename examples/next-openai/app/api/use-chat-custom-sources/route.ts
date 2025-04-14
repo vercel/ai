@@ -8,6 +8,7 @@ export async function POST(req: Request) {
     execute: dataStream => {
       // write a custom url source to the stream:
       dataStream.writeSource({
+        type: 'source',
         sourceType: 'url',
         id: 'source-1',
         url: 'https://example.com',

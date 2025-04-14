@@ -156,6 +156,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       },
       warnings,
       sources: response.citations?.map(url => ({
+        type: 'source',
         sourceType: 'url',
         id: this.config.generateId(),
         url,
@@ -255,11 +256,9 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
               value.citations?.forEach(url => {
                 controller.enqueue({
                   type: 'source',
-                  source: {
-                    sourceType: 'url',
-                    id: self.config.generateId(),
-                    url,
-                  },
+                  sourceType: 'url',
+                  id: self.config.generateId(),
+                  url,
                 });
               });
 

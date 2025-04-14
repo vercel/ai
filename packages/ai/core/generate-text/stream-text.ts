@@ -676,8 +676,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'source') {
-          recordedSources.push(part.source);
-          recordedStepSources.push(part.source);
+          recordedSources.push(part);
+          recordedStepSources.push(part);
         }
 
         if (part.type === 'tool-call') {
@@ -1674,9 +1674,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'source': {
               if (sendSources) {
-                controller.enqueue(
-                  formatDataStreamPart('source', chunk.source),
-                );
+                controller.enqueue(formatDataStreamPart('source', chunk));
               }
               break;
             }

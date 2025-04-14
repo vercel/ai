@@ -215,6 +215,7 @@ describe('createDataStream', () => {
 
   it('should send source data and close the stream', async () => {
     const source: Source = {
+      type: 'source',
       sourceType: 'url',
       id: 'source-1',
       url: 'https://example.com',
@@ -234,6 +235,7 @@ describe('createDataStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
       formatDataStreamPart('source', {
+        type: 'source',
         sourceType: 'url',
         id: 'source-1',
         url: 'https://example.com',

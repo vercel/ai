@@ -265,6 +265,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       toolCalls: response.output?.message?.content
         ?.filter(part => !!part.toolUse)
         ?.map(part => ({
+          type: 'tool-call' as const,
           toolCallType: 'function',
           toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
           toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
