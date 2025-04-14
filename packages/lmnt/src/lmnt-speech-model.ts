@@ -1,14 +1,14 @@
-import { SpeechModelV2, SpeechModelV2CallWarning } from '@ai-sdk/provider';
+import { SpeechModelV1, SpeechModelV1CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { LMNTConfig } from './lmnt-config';
 import { lmntFailedResponseHandler } from './lmnt-error';
-import { LMNTSpeechModelId } from './lmnt-speech-options';
+import { LMNTSpeechModelId } from './lmnt-speech-settings';
 import { LMNTSpeechAPITypes } from './lmnt-api-types';
 
 // https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes
@@ -21,6 +21,15 @@ const lmntSpeechCallOptionsSchema = z.object({
     .union([z.enum(['aurora', 'blizzard']), z.string()])
     .nullish()
     .default('aurora'),
+
+  /**
+   * The language of the input text.
+   * @default 'auto'
+   */
+  language: z
+    .union([z.enum(['auto', 'en']), z.string()])
+    .nullish()
+    .default('auto'),
 
   /**
    * The audio format of the output.
@@ -83,8 +92,8 @@ interface LMNTSpeechModelConfig extends LMNTConfig {
   };
 }
 
-export class LMNTSpeechModel implements SpeechModelV2 {
-  readonly specificationVersion = 'v2';
+export class LMNTSpeechModel implements SpeechModelV1 {
+  readonly specificationVersion = 'v1';
 
   get provider(): string {
     return this.config.provider;
@@ -95,18 +104,17 @@ export class LMNTSpeechModel implements SpeechModelV2 {
     private readonly config: LMNTSpeechModelConfig,
   ) {}
 
-  private async getArgs({
+  private getArgs({
     text,
     voice = 'ava',
     outputFormat = 'mp3',
     speed,
-    language,
     providerOptions,
-  }: Parameters<SpeechModelV2['doGenerate']>[0]) {
-    const warnings: SpeechModelV2CallWarning[] = [];
+  }: Parameters<SpeechModelV1['doGenerate']>[0]) {
+    const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
-    const lmntOptions = await parseProviderOptions({
+    const lmntOptions = parseProviderOptions({
       provider: 'lmnt',
       providerOptions,
       schema: lmntSpeechCallOptionsSchema,
@@ -156,10 +164,6 @@ export class LMNTSpeechModel implements SpeechModelV2 {
       }
     }
 
-    if (language) {
-      requestBody.language = language;
-    }
-
     return {
       requestBody,
       warnings,
@@ -167,10 +171,10 @@ export class LMNTSpeechModel implements SpeechModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV2['doGenerate']>>> {
+    options: Parameters<SpeechModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<SpeechModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestBody, warnings } = await this.getArgs(options);
+    const { requestBody, warnings } = this.getArgs(options);
 
     const {
       value: audio,
