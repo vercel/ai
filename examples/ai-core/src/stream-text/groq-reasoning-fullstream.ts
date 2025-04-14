@@ -14,12 +14,12 @@ async function main() {
   let enteredReasoning = false;
   let enteredText = false;
   for await (const part of result.fullStream) {
-    if (part.type === 'reasoning') {
+    if (part.type === 'reasoning' && part.reasoningType === 'text') {
       if (!enteredReasoning) {
         enteredReasoning = true;
         console.log('\nREASONING:\n');
       }
-      process.stdout.write(part.textDelta);
+      process.stdout.write(part.text);
     } else if (part.type === 'text-delta') {
       if (!enteredText) {
         enteredText = true;
