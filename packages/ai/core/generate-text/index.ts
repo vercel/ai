@@ -29,7 +29,6 @@ export type {
 export type { ToolCallRepairFunction } from './tool-call-repair';
 export type {
   CoreToolResult,
-  CoreToolResultUnion,
   ToolResult,
   ToolResultUnion,
 } from './tool-result';
