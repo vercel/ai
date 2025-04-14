@@ -1114,96 +1114,123 @@ describe('OpenAIResponsesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          id: 'resp_67cb13a755c08190acbe3839a49632fc',
-          modelId: 'gpt-4o-2024-07-18',
-          timestamp: new Date('2025-03-07T15:41:27.000Z'),
-          type: 'response-metadata',
-        },
-        {
-          argsTextDelta: '',
-          toolCallId: 'call_6KxSghkb4MVnunFH2TxPErLP',
-          toolCallType: 'function',
-          toolName: 'currentLocation',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '{}',
-          toolCallId: 'call_6KxSghkb4MVnunFH2TxPErLP',
-          toolCallType: 'function',
-          toolName: 'currentLocation',
-          type: 'tool-call-delta',
-        },
-        {
-          args: '{}',
-          toolCallId: 'call_pgjcAI4ZegMkP6bsAV7sfrJA',
-          toolCallType: 'function',
-          toolName: 'currentLocation',
-          type: 'tool-call',
-        },
-        {
-          argsTextDelta: '',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '{',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '"location',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '":',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '"Rome',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '"}',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          args: '{"location":"Rome"}',
-          toolCallId: 'call_X2PAkDJInno9VVnNkDrfhboW',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call',
-        },
-        {
-          finishReason: 'tool-calls',
-          type: 'finish',
-          usage: { inputTokens: 0, outputTokens: 0 },
-          providerMetadata: {
-            openai: {
-              responseId: 'resp_67cb13a755c08190acbe3839a49632fc',
-              cachedPromptTokens: 0,
-              reasoningTokens: 0,
+      expect(
+        await convertReadableStreamToArray(stream),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "resp_67cb13a755c08190acbe3839a49632fc",
+            "modelId": "gpt-4o-2024-07-18",
+            "timestamp": 2025-03-07T15:41:27.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": "",
+              "toolCallId": "call_6KxSghkb4MVnunFH2TxPErLP",
+              "toolCallType": "function",
+              "toolName": "currentLocation",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": "{}",
+              "toolCallId": "call_6KxSghkb4MVnunFH2TxPErLP",
+              "toolCallType": "function",
+              "toolName": "currentLocation",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCall": {
+              "args": "{}",
+              "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
+              "toolCallType": "function",
+              "toolName": "currentLocation",
+            },
+            "type": "tool-call",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": "",
+              "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+              "toolCallType": "function",
+              "toolName": "weather",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": "{",
+              "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+              "toolCallType": "function",
+              "toolName": "weather",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": ""location",
+              "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+              "toolCallType": "function",
+              "toolName": "weather",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": "":",
+              "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+              "toolCallType": "function",
+              "toolName": "weather",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": ""Rome",
+              "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+              "toolCallType": "function",
+              "toolName": "weather",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": ""}",
+              "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+              "toolCallType": "function",
+              "toolName": "weather",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCall": {
+              "args": "{"location":"Rome"}",
+              "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
+              "toolCallType": "function",
+              "toolName": "weather",
+            },
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "openai": {
+                "cachedPromptTokens": 0,
+                "reasoningTokens": 0,
+                "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 0,
+              "outputTokens": 0,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should stream sources', async () => {
