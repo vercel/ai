@@ -14,7 +14,10 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request</think>Here is the response',
+            text: {
+              type: 'text',
+              text: '<think>analyzing the request</think>Here is the response',
+            },
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -37,7 +40,10 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request\n</think>',
+            text: {
+              type: 'text',
+              text: '<think>analyzing the request\n</think>',
+            },
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -60,7 +66,10 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+            text: {
+              type: 'text',
+              text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+            },
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -85,7 +94,10 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: 'analyzing the request</think>Here is the response',
+            text: {
+              type: 'text',
+              text: 'analyzing the request</think>Here is the response',
+            },
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -125,7 +137,10 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: '<think>analyzing the request</think>Here is the response',
+            text: {
+              type: 'text',
+              text: '<think>analyzing the request</think>Here is the response',
+            },
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
             reasoning: undefined,
@@ -158,12 +173,12 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: '<thi' },
-              { type: 'text-delta', textDelta: 'nk>ana' },
-              { type: 'text-delta', textDelta: 'lyzing the request' },
-              { type: 'text-delta', textDelta: '</thi' },
-              { type: 'text-delta', textDelta: 'nk>Here' },
-              { type: 'text-delta', textDelta: ' is the response' },
+              { type: 'text', text: '<think>' },
+              { type: 'text', text: 'ana' },
+              { type: 'text', text: 'lyzing the request' },
+              { type: 'text', text: '</think>' },
+              { type: 'text', text: 'Here' },
+              { type: 'text', text: ' is the response' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -265,9 +280,8 @@ describe('extractReasoningMiddleware', () => {
                 timestamp: new Date(0),
               },
               {
-                type: 'text-delta',
-                textDelta:
-                  '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
               },
               {
                 type: 'finish',
@@ -371,10 +385,10 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: '<think>' },
-              { type: 'text-delta', textDelta: 'ana' },
-              { type: 'text-delta', textDelta: 'lyzing the request\n' },
-              { type: 'text-delta', textDelta: '</think>' },
+              { type: 'text', text: '<think>' },
+              { type: 'text', text: 'ana' },
+              { type: 'text', text: 'lyzing the request\n' },
+              { type: 'text', text: '</think>' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -468,10 +482,10 @@ describe('extractReasoningMiddleware', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: 'ana' },
-              { type: 'text-delta', textDelta: 'lyzing the request\n' },
-              { type: 'text-delta', textDelta: '</think>' },
-              { type: 'text-delta', textDelta: 'this is the response' },
+              { type: 'text', text: 'ana' },
+              { type: 'text', text: 'lyzing the request\n' },
+              { type: 'text', text: '</think>' },
+              { type: 'text', text: 'this is the response' },
               {
                 type: 'finish',
                 finishReason: 'stop',

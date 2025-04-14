@@ -23,10 +23,7 @@ import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
-  | {
-      type: 'text-delta';
-      textDelta: string;
-    }
+  | { type: 'text'; text: string }
   | { type: 'reasoning'; reasoningType: 'text'; text: string }
   | { type: 'reasoning'; reasoningType: 'signature'; signature: string }
   | { type: 'reasoning'; reasoningType: 'redacted'; data: string }
@@ -138,7 +135,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
       switch (chunkType) {
         // forward:
-        case 'text-delta':
+        case 'text':
         case 'reasoning':
         case 'source':
         case 'response-metadata':

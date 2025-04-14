@@ -21,7 +21,7 @@ describe('simulateStreamingMiddleware', () => {
     const mockModel = new MockLanguageModelV2({
       async doGenerate() {
         return {
-          text: 'This is a test response',
+          text: { type: 'text', text: 'This is a test response' },
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
         };
@@ -45,7 +45,7 @@ describe('simulateStreamingMiddleware', () => {
     const mockModel = new MockLanguageModelV2({
       async doGenerate() {
         return {
-          text: 'This is a test response',
+          text: { type: 'text', text: 'This is a test response' },
           reasoning: [
             {
               type: 'reasoning',
@@ -76,7 +76,7 @@ describe('simulateStreamingMiddleware', () => {
     const mockModel = new MockLanguageModelV2({
       async doGenerate() {
         return {
-          text: 'This is a test response',
+          text: { type: 'text', text: 'This is a test response' },
           reasoning: [
             {
               type: 'reasoning',
@@ -117,7 +117,7 @@ describe('simulateStreamingMiddleware', () => {
     const mockModel = new MockLanguageModelV2({
       async doGenerate() {
         return {
-          text: 'This is a test response',
+          text: { type: 'text', text: 'This is a test response' },
           reasoning: [
             {
               type: 'reasoning',
@@ -153,7 +153,7 @@ describe('simulateStreamingMiddleware', () => {
     const mockModel = new MockLanguageModelV2({
       async doGenerate() {
         return {
-          text: 'This is a test response',
+          text: { type: 'text', text: 'This is a test response' },
           toolCalls: [
             {
               type: 'tool-call',
@@ -193,7 +193,7 @@ describe('simulateStreamingMiddleware', () => {
     const mockModel = new MockLanguageModelV2({
       async doGenerate() {
         return {
-          text: 'This is a test response',
+          text: { type: 'text', text: 'This is a test response' },
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
           providerMetadata: { custom: { key: 'value' } },
@@ -218,7 +218,7 @@ describe('simulateStreamingMiddleware', () => {
     const mockModel = new MockLanguageModelV2({
       async doGenerate() {
         return {
-          text: '',
+          text: { type: 'text', text: '' },
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 0 },
         };
@@ -242,7 +242,7 @@ describe('simulateStreamingMiddleware', () => {
     const mockModel = new MockLanguageModelV2({
       async doGenerate() {
         return {
-          text: 'This is a test response',
+          text: { type: 'text', text: 'This is a test response' },
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
           warnings: [

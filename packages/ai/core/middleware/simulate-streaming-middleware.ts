@@ -23,10 +23,7 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
           }
 
           if (result.text) {
-            controller.enqueue({
-              type: 'text-delta',
-              textDelta: result.text,
-            });
+            controller.enqueue(result.text);
           }
 
           if (result.toolCalls) {

@@ -414,7 +414,7 @@ function createOutputTransformStream<
     partialOutput?: PARTIAL_OUTPUT;
   }) {
     controller.enqueue({
-      part: { type: 'text-delta', textDelta: textChunk },
+      part: { type: 'text', text: textChunk },
       partialOutput,
     });
     textChunk = '';
@@ -430,13 +430,13 @@ function createOutputTransformStream<
         publishTextChunk({ controller });
       }
 
-      if (chunk.type !== 'text-delta') {
+      if (chunk.type !== 'text') {
         controller.enqueue({ part: chunk, partialOutput: undefined });
         return;
       }
 
-      text += chunk.textDelta;
-      textChunk += chunk.textDelta;
+      text += chunk.text;
+      textChunk += chunk.text;
 
       // only publish if partial json can be parsed:
       const result = output.parsePartial({ text });
@@ -625,7 +625,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         const { part } = chunk;
 
         if (
-          part.type === 'text-delta' ||
+          part.type === 'text' ||
           part.type === 'reasoning' ||
           part.type === 'source' ||
           part.type === 'tool-call' ||
@@ -640,10 +640,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           await onError?.({ error: part.error });
         }
 
-        if (part.type === 'text-delta') {
-          recordedStepText += part.textDelta;
-          recordedContinuationText += part.textDelta;
-          recordedFullText += part.textDelta;
+        if (part.type === 'text') {
+          recordedStepText += part.text;
+          recordedContinuationText += part.text;
+          recordedFullText += part.text;
         }
 
         if (part.type === 'reasoning') {
@@ -1079,14 +1079,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             chunk,
           }: {
             controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>;
-            chunk: TextStreamPart<TOOLS> & { type: 'text-delta' };
+            chunk: TextStreamPart<TOOLS> & { type: 'text' };
           }) {
             controller.enqueue(chunk);
 
-            stepText += chunk.textDelta;
-            fullStepText += chunk.textDelta;
+            stepText += chunk.text;
+            fullStepText += chunk.text;
             chunkTextPublished = true;
-            hasWhitespaceSuffix = chunk.textDelta.trimEnd() !== chunk.textDelta;
+            hasWhitespaceSuffix = chunk.text.trimEnd() !== chunk.text;
           }
 
           self.addStream(
@@ -1120,23 +1120,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   }
 
                   // Filter out empty text deltas
-                  if (
-                    chunk.type === 'text-delta' &&
-                    chunk.textDelta.length === 0
-                  ) {
+                  if (chunk.type === 'text' && chunk.text.length === 0) {
                     return;
                   }
 
                   const chunkType = chunk.type;
                   switch (chunkType) {
-                    case 'text-delta': {
+                    case 'text': {
                       if (continueSteps) {
                         // when a new step starts, leading whitespace is to be discarded
                         // when there is already preceding whitespace in the chunk buffer
                         const trimmedChunkText =
                           inWhitespacePrefix && hasLeadingWhitespace
-                            ? chunk.textDelta.trimStart()
-                            : chunk.textDelta;
+                            ? chunk.text.trimStart()
+                            : chunk.text;
 
                         if (trimmedChunkText.length === 0) {
                           break;
@@ -1154,8 +1151,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           await publishTextChunk({
                             controller,
                             chunk: {
-                              type: 'text-delta',
-                              textDelta: split.prefix + split.whitespace,
+                              type: 'text',
+                              text: split.prefix + split.whitespace,
                             },
                           });
                         }
@@ -1307,10 +1304,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   ) {
                     await publishTextChunk({
                       controller,
-                      chunk: {
-                        type: 'text-delta',
-                        textDelta: chunkBuffer,
-                      },
+                      chunk: { type: 'text', text: chunkBuffer },
                     });
                     chunkBuffer = '';
                   }
@@ -1541,8 +1535,8 @@ However, the LLM results are expected to be small enough to not cause issues.
       this.teeStream().pipeThrough(
         new TransformStream<EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>, string>({
           transform({ part }, controller) {
-            if (part.type === 'text-delta') {
-              controller.enqueue(part.textDelta);
+            if (part.type === 'text') {
+              controller.enqueue(part.text);
             }
           },
         }),
@@ -1615,8 +1609,8 @@ However, the LLM results are expected to be small enough to not cause issues.
         transform: async (chunk, controller) => {
           const chunkType = chunk.type;
           switch (chunkType) {
-            case 'text-delta': {
-              controller.enqueue(formatDataStreamPart('text', chunk.textDelta));
+            case 'text': {
+              controller.enqueue(formatDataStreamPart('text', chunk.text));
               break;
             }
 
