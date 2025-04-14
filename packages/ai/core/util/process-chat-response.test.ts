@@ -667,6 +667,7 @@ describe('scenario: server provides sources', () => {
     const stream = createDataProtocolStream([
       formatDataStreamPart('text', 'The weather in London is sunny.'),
       formatDataStreamPart('source', {
+        type: 'source',
         sourceType: 'url',
         id: 'source-id',
         url: 'https://example.com',

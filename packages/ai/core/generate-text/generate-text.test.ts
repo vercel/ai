@@ -22,14 +22,16 @@ const modelWithSources = new MockLanguageModelV2({
     ...dummyResponseValues,
     sources: [
       {
-        sourceType: 'url' as const,
+        type: 'source',
+        sourceType: 'url',
         id: '123',
         url: 'https://example.com',
         title: 'Example',
         providerMetadata: { provider: { custom: 'value' } },
       },
       {
-        sourceType: 'url' as const,
+        type: 'source',
+        sourceType: 'url',
         id: '456',
         url: 'https://example.com/2',
         title: 'Example 2',
@@ -745,7 +747,8 @@ describe('options.maxSteps', () => {
                   },
                   sources: [
                     {
-                      sourceType: 'url' as const,
+                      type: 'source',
+                      sourceType: 'url',
                       id: '123',
                       url: 'https://example.com',
                       title: 'Example',
@@ -795,14 +798,16 @@ describe('options.maxSteps', () => {
                   finishReason: 'length',
                   sources: [
                     {
-                      sourceType: 'url' as const,
+                      type: 'source',
+                      sourceType: 'url',
                       id: '456',
                       url: 'https://example.com/2',
                       title: 'Example 2',
                       providerMetadata: { provider: { custom: 'value2' } },
                     },
                     {
-                      sourceType: 'url' as const,
+                      type: 'source',
+                      sourceType: 'url',
                       id: '789',
                       url: 'https://example.com/3',
                       title: 'Example 3',

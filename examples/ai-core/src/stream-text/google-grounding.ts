@@ -13,11 +13,11 @@ async function main() {
       process.stdout.write(part.textDelta);
     }
 
-    if (part.type === 'source' && part.source.sourceType === 'url') {
+    if (part.type === 'source' && part.sourceType === 'url') {
       console.log('\x1b[36m%s\x1b[0m', 'Source');
-      console.log('ID:', part.source.id);
-      console.log('Title:', part.source.title);
-      console.log('URL:', part.source.url);
+      console.log('ID:', part.id);
+      console.log('Title:', part.title);
+      console.log('URL:', part.url);
       console.log();
     }
   }

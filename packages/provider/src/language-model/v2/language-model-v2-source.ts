@@ -4,6 +4,8 @@ import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-met
  * A source that has been used as input to generate the response.
  */
 export type LanguageModelV2Source = {
+  type: 'source';
+
   /**
    * A URL source. This is return by web search RAG models.
    */
