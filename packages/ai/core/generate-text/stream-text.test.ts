@@ -3511,15 +3511,13 @@ describe('streamText', () => {
             }
 
             if (chunk.type === 'tool-call-delta') {
-              chunk.toolCallDelta.argsTextDelta =
-                chunk.toolCallDelta.argsTextDelta.toUpperCase();
+              chunk.argsTextDelta = chunk.argsTextDelta.toUpperCase();
             }
 
-            // assuming test arg structure:
             if (chunk.type === 'tool-call') {
-              chunk.toolCall.args = {
-                ...chunk.toolCall.args,
-                value: chunk.toolCall.args.value.toUpperCase(),
+              chunk.args = {
+                ...chunk.args,
+                value: chunk.args.value.toUpperCase(),
               };
             }
 

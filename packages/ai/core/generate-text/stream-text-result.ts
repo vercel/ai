@@ -315,7 +315,7 @@ export type TextStreamPart<TOOLS extends ToolSet> =
     }
   | { type: 'source'; source: Source }
   | { type: 'file'; file: GeneratedFile }
-  | { type: 'tool-call'; toolCall: ToolCallUnion<TOOLS> }
+  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
   | {
       type: 'tool-call-streaming-start';
       toolCallId: string;
@@ -323,11 +323,9 @@ export type TextStreamPart<TOOLS extends ToolSet> =
     }
   | {
       type: 'tool-call-delta';
-      toolCallDelta: {
-        toolCallId: string;
-        toolName: string;
-        argsTextDelta: string;
-      };
+      toolCallId: string;
+      toolName: string;
+      argsTextDelta: string;
     }
   | ({
       type: 'tool-result';
