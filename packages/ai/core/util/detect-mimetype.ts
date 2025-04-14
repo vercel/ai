@@ -1,3 +1,5 @@
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+
 export const imageMimeTypeSignatures = [
   {
     mimeType: 'image/gif' as const,
@@ -83,73 +85,29 @@ export const audioMimeTypeSignatures = [
   },
 ] as const;
 
-const getID3v2TagSize = (header: Uint8Array) => {
-  const size =
-    ((header[6] & 0x7f) << 21) |
-    ((header[7] & 0x7f) << 14) |
-    ((header[8] & 0x7f) << 7) |
-    (header[9] & 0x7f);
+const stripID3 = (data: Uint8Array | string) => {
+  const bytes =
+    typeof data === 'string' ? convertBase64ToUint8Array(data) : data;
+  const id3Size =
+    ((bytes[6] & 0x7f) << 21) |
+    ((bytes[7] & 0x7f) << 14) |
+    ((bytes[8] & 0x7f) << 7) |
+    (bytes[9] & 0x7f);
 
-  return size + 10; // add header size
+  // The raw MP3 starts here
+  return bytes.slice(id3Size + 10);
 };
 
-const stripID3 = (arrayBuffer: Uint8Array) => {
-  const bytes = new Uint8Array(arrayBuffer);
-
-  if (
-    bytes[0] === 0x49 && // 'I'
-    bytes[1] === 0x44 && // 'D'
-    bytes[2] === 0x33 // '3'
-  ) {
-    const id3Size = getID3v2TagSize(bytes);
-    return bytes.slice(id3Size); // The raw MP3 starts here
-  }
-
-  return bytes; // No ID3 tag, return as-is
-};
-
-// Base64 ID3v2 header starts with "SUQz" (ID3)
-const isBase64ID3v2 = (base64Data: string): boolean => {
-  return base64Data.startsWith('SUQz');
-};
-
-// Convert base64 to bytes for ID3 processing
-const base64ToBytes = (base64: string): Uint8Array => {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-};
-
-// Strip ID3 tags from data if present
 function stripID3TagsIfPresent(data: Uint8Array | string): Uint8Array | string {
-  // Handle binary data
-  if (typeof data !== 'string' && data.length > 10) {
-    // Check for ID3v2 header in binary data
-    if (data[0] === 0x49 && data[1] === 0x44 && data[2] === 0x33) {
-      return stripID3(data);
-    }
-  }
+  const hasId3 =
+    (typeof data === 'string' && data.startsWith('SUQz')) ||
+    (typeof data !== 'string' &&
+      data.length > 10 &&
+      data[0] === 0x49 && // 'I'
+      data[1] === 0x44 && // 'D'
+      data[2] === 0x33); // '3'
 
-  // Handle base64 encoded data
-  else if (typeof data === 'string' && isBase64ID3v2(data)) {
-    try {
-      const bytes = base64ToBytes(data);
-      const strippedBytes = stripID3(bytes);
-
-      // Convert back to base64
-      const binaryString = String.fromCharCode(...strippedBytes);
-      return btoa(binaryString);
-    } catch (e) {
-      // If base64 conversion fails, return original data
-      return data;
-    }
-  }
-
-  // Return original data if no ID3 tags or processing failed
-  return data;
+  return hasId3 ? stripID3(data) : data;
 }
 
 export function detectMimeType({
