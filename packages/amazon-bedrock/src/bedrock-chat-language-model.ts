@@ -7,6 +7,7 @@ import {
   SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
+  LanguageModelV2Reasoning,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -227,35 +228,32 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           }
         : undefined;
 
-    const reasoning = response.output.message.content
-      .filter(content => content.reasoningContent)
-      .map(content => {
-        if (
-          content.reasoningContent &&
-          'reasoningText' in content.reasoningContent
-        ) {
-          return {
-            type: 'text' as const,
+    const reasoning: Array<LanguageModelV2Reasoning> = [];
+
+    for (const content of response.output.message.content) {
+      if (content.reasoningContent) {
+        if ('reasoningText' in content.reasoningContent) {
+          reasoning.push({
+            type: 'reasoning',
+            reasoningType: 'text',
             text: content.reasoningContent.reasoningText.text,
-            ...(content.reasoningContent.reasoningText.signature && {
+          });
+          if (content.reasoningContent.reasoningText.signature) {
+            reasoning.push({
+              type: 'reasoning',
+              reasoningType: 'signature',
               signature: content.reasoningContent.reasoningText.signature,
-            }),
-          };
-        } else if (
-          content.reasoningContent &&
-          'redactedReasoning' in content.reasoningContent
-        ) {
-          return {
-            type: 'redacted' as const,
+            });
+          }
+        } else if ('redactedReasoning' in content.reasoningContent) {
+          reasoning.push({
+            type: 'reasoning',
+            reasoningType: 'redacted',
             data: content.reasoningContent.redactedReasoning.data ?? '',
-          };
-        } else {
-          // Return undefined for unexpected structures
-          return undefined;
+          });
         }
-      })
-      // Filter out any undefined values
-      .filter((item): item is NonNullable<typeof item> => item !== undefined);
+      }
+    }
 
     return {
       text:
@@ -429,19 +427,22 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               if ('text' in reasoningContent && reasoningContent.text) {
                 controller.enqueue({
                   type: 'reasoning',
-                  textDelta: reasoningContent.text,
+                  reasoningType: 'text',
+                  text: reasoningContent.text,
                 });
               } else if (
                 'signature' in reasoningContent &&
                 reasoningContent.signature
               ) {
                 controller.enqueue({
-                  type: 'reasoning-signature',
+                  type: 'reasoning',
+                  reasoningType: 'signature',
                   signature: reasoningContent.signature,
                 });
               } else if ('data' in reasoningContent && reasoningContent.data) {
                 controller.enqueue({
-                  type: 'redacted-reasoning',
+                  type: 'reasoning',
+                  reasoningType: 'redacted',
                   data: reasoningContent.data,
                 });
               }
