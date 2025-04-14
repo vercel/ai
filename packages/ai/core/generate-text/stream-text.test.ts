@@ -134,16 +134,41 @@ const modelWithReasoning = new MockLanguageModelV2({
         modelId: 'mock-model-id',
         timestamp: new Date(0),
       },
-      { type: 'reasoning', textDelta: 'I will open the conversation' },
-      { type: 'reasoning', textDelta: ' with witty banter. ' },
-      { type: 'reasoning-signature', signature: '1234567890' },
-      { type: 'redacted-reasoning', data: 'redacted-reasoning-data' },
-      { type: 'reasoning', textDelta: 'Once the user has relaxed,' },
       {
         type: 'reasoning',
-        textDelta: ' I will pry for valuable information.',
+        reasoningType: 'text',
+        text: 'I will open the conversation',
       },
-      { type: 'reasoning-signature', signature: '1234567890' },
+      {
+        type: 'reasoning',
+        reasoningType: 'text',
+        text: ' with witty banter. ',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'signature',
+        signature: '1234567890',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'redacted',
+        data: 'redacted-reasoning-data',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'text',
+        text: 'Once the user has relaxed,',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'text',
+        text: ' I will pry for valuable information.',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'signature',
+        signature: '1234567890',
+      },
       { type: 'text-delta', textDelta: 'Hi' },
       { type: 'text-delta', textDelta: ' there!' },
       {
@@ -2015,7 +2040,8 @@ describe('streamText', () => {
             },
             {
               type: 'reasoning',
-              textDelta: 'Feeling clever',
+              reasoningType: 'text',
+              text: 'Feeling clever',
             },
             {
               type: 'tool-call-delta',
@@ -2327,7 +2353,8 @@ describe('streamText', () => {
                       },
                       {
                         type: 'reasoning',
-                        textDelta: 'thinking',
+                        reasoningType: 'text',
+                        text: 'thinking',
                       },
                       {
                         type: 'tool-call',
@@ -3953,7 +3980,11 @@ describe('streamText', () => {
           model: createTestModel({
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'reasoning', textDelta: 'Feeling clever' },
+              {
+                type: 'reasoning',
+                reasoningType: 'text',
+                text: 'Feeling clever',
+              },
               {
                 type: 'tool-call-delta',
                 toolCallId: '1',
@@ -4006,50 +4037,63 @@ describe('streamText', () => {
 
         await resultObject.consumeStream();
 
-        expect(result).toStrictEqual([
-          { type: 'text-delta', textDelta: 'HELLO' },
-          {
-            type: 'reasoning',
-            textDelta: 'Feeling clever',
-          },
-          {
-            type: 'tool-call-streaming-start',
-            toolCallId: '1',
-            toolName: 'tool1',
-          },
-          {
-            type: 'tool-call-delta',
-            argsTextDelta: '{"VALUE": "',
-            toolCallId: '1',
-            toolName: 'tool1',
-          },
-          {
-            type: 'tool-call-delta',
-            argsTextDelta: 'TEST',
-            toolCallId: '1',
-            toolName: 'tool1',
-          },
-          {
-            type: 'tool-call-delta',
-            argsTextDelta: '"}',
-            toolCallId: '1',
-            toolName: 'tool1',
-          },
-          {
-            type: 'tool-call',
-            toolCallId: '1',
-            toolName: 'tool1',
-            args: { value: 'TEST' },
-          },
-          {
-            type: 'tool-result',
-            toolCallId: '1',
-            toolName: 'tool1',
-            args: { value: 'TEST' },
-            result: 'TEST-RESULT',
-          },
-          { type: 'text-delta', textDelta: ' WORLD' },
-        ]);
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "textDelta": "HELLO",
+              "type": "text-delta",
+            },
+            {
+              "reasoningType": "text",
+              "text": "Feeling clever",
+              "type": "reasoning",
+            },
+            {
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-call-streaming-start",
+            },
+            {
+              "argsTextDelta": "{"VALUE": "",
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-call-delta",
+            },
+            {
+              "argsTextDelta": "TEST",
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-call-delta",
+            },
+            {
+              "argsTextDelta": ""}",
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-call-delta",
+            },
+            {
+              "args": {
+                "value": "TEST",
+              },
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "args": {
+                "value": "TEST",
+              },
+              "result": "TEST-RESULT",
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+            {
+              "textDelta": " WORLD",
+              "type": "text-delta",
+            },
+          ]
+        `);
       });
     });
 

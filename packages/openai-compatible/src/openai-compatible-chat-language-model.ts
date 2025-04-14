@@ -245,7 +245,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
     return {
       text: choice.message.content ?? undefined,
-      reasoning: choice.message.reasoning_content ?? undefined,
+      reasoning: choice.message.reasoning_content
+        ? [
+            {
+              type: 'reasoning',
+              reasoningType: 'text',
+              text: choice.message.reasoning_content,
+            },
+          ]
+        : undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         type: 'tool-call',
         toolCallType: 'function',
@@ -418,7 +426,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             if (delta.reasoning_content != null) {
               controller.enqueue({
                 type: 'reasoning',
-                textDelta: delta.reasoning_content,
+                reasoningType: 'text',
+                text: delta.reasoning_content,
               });
             }
 

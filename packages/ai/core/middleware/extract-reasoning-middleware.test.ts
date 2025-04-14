@@ -186,69 +186,71 @@ describe('extractReasoningMiddleware', () => {
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": "msg-0",
-            "request": {},
-            "type": "step-start",
-            "warnings": [],
-          },
-          {
-            "textDelta": "ana",
-            "type": "reasoning",
-          },
-          {
-            "textDelta": "lyzing the request",
-            "type": "reasoning",
-          },
-          {
-            "textDelta": "Here",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": " is the response",
-            "type": "text-delta",
-          },
-          {
-            "finishReason": "stop",
-            "isContinued": false,
-            "logprobs": undefined,
-            "messageId": "msg-0",
-            "providerMetadata": undefined,
-            "request": {},
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+          [
+            {
+              "messageId": "msg-0",
+              "request": {},
+              "type": "step-start",
+              "warnings": [],
             },
-            "type": "step-finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "reasoningType": "text",
+              "text": "ana",
+              "type": "reasoning",
             },
-            "warnings": undefined,
-          },
-          {
-            "finishReason": "stop",
-            "logprobs": undefined,
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+            {
+              "reasoningType": "text",
+              "text": "lyzing the request",
+              "type": "reasoning",
             },
-            "type": "finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "textDelta": "Here",
+              "type": "text-delta",
             },
-          },
-        ]
-      `);
+            {
+              "textDelta": " is the response",
+              "type": "text-delta",
+            },
+            {
+              "finishReason": "stop",
+              "isContinued": false,
+              "logprobs": undefined,
+              "messageId": "msg-0",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "step-finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+              "warnings": undefined,
+            },
+            {
+              "finishReason": "stop",
+              "logprobs": undefined,
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+            },
+          ]
+        `);
     });
 
     it('should extract reasoning from single chunk with multiple <think> tags', async () => {
@@ -289,71 +291,73 @@ describe('extractReasoningMiddleware', () => {
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": "msg-0",
-            "request": {},
-            "type": "step-start",
-            "warnings": [],
-          },
-          {
-            "textDelta": "analyzing the request",
-            "type": "reasoning",
-          },
-          {
-            "textDelta": "Here is the response",
-            "type": "text-delta",
-          },
-          {
-            "textDelta": "
-        thinking about the response",
-            "type": "reasoning",
-          },
-          {
-            "textDelta": "
-        more",
-            "type": "text-delta",
-          },
-          {
-            "finishReason": "stop",
-            "isContinued": false,
-            "logprobs": undefined,
-            "messageId": "msg-0",
-            "providerMetadata": undefined,
-            "request": {},
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+          [
+            {
+              "messageId": "msg-0",
+              "request": {},
+              "type": "step-start",
+              "warnings": [],
             },
-            "type": "step-finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "reasoningType": "text",
+              "text": "analyzing the request",
+              "type": "reasoning",
             },
-            "warnings": undefined,
-          },
-          {
-            "finishReason": "stop",
-            "logprobs": undefined,
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+            {
+              "textDelta": "Here is the response",
+              "type": "text-delta",
             },
-            "type": "finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "reasoningType": "text",
+              "text": "
+          thinking about the response",
+              "type": "reasoning",
             },
-          },
-        ]
-      `);
+            {
+              "textDelta": "
+          more",
+              "type": "text-delta",
+            },
+            {
+              "finishReason": "stop",
+              "isContinued": false,
+              "logprobs": undefined,
+              "messageId": "msg-0",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "step-finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+              "warnings": undefined,
+            },
+            {
+              "finishReason": "stop",
+              "logprobs": undefined,
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+            },
+          ]
+        `);
     });
 
     it('should extract reasoning from <think> when there is no text', async () => {
@@ -393,62 +397,64 @@ describe('extractReasoningMiddleware', () => {
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": "msg-0",
-            "request": {},
-            "type": "step-start",
-            "warnings": [],
-          },
-          {
-            "textDelta": "ana",
-            "type": "reasoning",
-          },
-          {
-            "textDelta": "lyzing the request
-        ",
-            "type": "reasoning",
-          },
-          {
-            "finishReason": "stop",
-            "isContinued": false,
-            "logprobs": undefined,
-            "messageId": "msg-0",
-            "providerMetadata": undefined,
-            "request": {},
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+          [
+            {
+              "messageId": "msg-0",
+              "request": {},
+              "type": "step-start",
+              "warnings": [],
             },
-            "type": "step-finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "reasoningType": "text",
+              "text": "ana",
+              "type": "reasoning",
             },
-            "warnings": undefined,
-          },
-          {
-            "finishReason": "stop",
-            "logprobs": undefined,
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+            {
+              "reasoningType": "text",
+              "text": "lyzing the request
+          ",
+              "type": "reasoning",
             },
-            "type": "finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "finishReason": "stop",
+              "isContinued": false,
+              "logprobs": undefined,
+              "messageId": "msg-0",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "step-finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+              "warnings": undefined,
             },
-          },
-        ]
-      `);
+            {
+              "finishReason": "stop",
+              "logprobs": undefined,
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+            },
+          ]
+        `);
     });
 
     it('should prepend <think> tag IFF startWithReasoning is true', async () => {
@@ -500,66 +506,68 @@ describe('extractReasoningMiddleware', () => {
 
       expect(await convertAsyncIterableToArray(resultTrue.fullStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": "msg-0",
-            "request": {},
-            "type": "step-start",
-            "warnings": [],
-          },
-          {
-            "textDelta": "ana",
-            "type": "reasoning",
-          },
-          {
-            "textDelta": "lyzing the request
-        ",
-            "type": "reasoning",
-          },
-          {
-            "textDelta": "this is the response",
-            "type": "text-delta",
-          },
-          {
-            "finishReason": "stop",
-            "isContinued": false,
-            "logprobs": undefined,
-            "messageId": "msg-0",
-            "providerMetadata": undefined,
-            "request": {},
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+          [
+            {
+              "messageId": "msg-0",
+              "request": {},
+              "type": "step-start",
+              "warnings": [],
             },
-            "type": "step-finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "reasoningType": "text",
+              "text": "ana",
+              "type": "reasoning",
             },
-            "warnings": undefined,
-          },
-          {
-            "finishReason": "stop",
-            "logprobs": undefined,
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+            {
+              "reasoningType": "text",
+              "text": "lyzing the request
+          ",
+              "type": "reasoning",
             },
-            "type": "finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "textDelta": "this is the response",
+              "type": "text-delta",
             },
-          },
-        ]
-      `);
+            {
+              "finishReason": "stop",
+              "isContinued": false,
+              "logprobs": undefined,
+              "messageId": "msg-0",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "step-finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+              "warnings": undefined,
+            },
+            {
+              "finishReason": "stop",
+              "logprobs": undefined,
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+            },
+          ]
+        `);
 
       expect(await convertAsyncIterableToArray(resultFalse.fullStream))
         .toMatchInlineSnapshot(`

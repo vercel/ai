@@ -647,28 +647,26 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'reasoning') {
-          if (activeReasoningText == null) {
-            activeReasoningText = { type: 'text', text: part.textDelta };
-            stepReasoning.push(activeReasoningText);
-          } else {
-            activeReasoningText.text += part.textDelta;
+          if (part.reasoningType === 'text') {
+            if (activeReasoningText == null) {
+              activeReasoningText = { type: 'text', text: part.text };
+              stepReasoning.push(activeReasoningText);
+            } else {
+              activeReasoningText.text += part.text;
+            }
+          } else if (part.reasoningType === 'signature') {
+            if (activeReasoningText == null) {
+              throw new AISDKError({
+                name: 'InvalidStreamPart',
+                message: 'reasoning-signature without reasoning',
+              });
+            }
+
+            activeReasoningText.signature = part.signature;
+            activeReasoningText = undefined; // signature concludes reasoning part
+          } else if (part.reasoningType === 'redacted') {
+            stepReasoning.push({ type: 'redacted', data: part.data });
           }
-        }
-
-        if (part.type === 'reasoning-signature') {
-          if (activeReasoningText == null) {
-            throw new AISDKError({
-              name: 'InvalidStreamPart',
-              message: 'reasoning-signature without reasoning',
-            });
-          }
-
-          activeReasoningText.signature = part.signature;
-          activeReasoningText = undefined; // signature concludes reasoning part
-        }
-
-        if (part.type === 'redacted-reasoning') {
-          stepReasoning.push({ type: 'redacted', data: part.data });
         }
 
         if (part.type === 'file') {
@@ -1170,40 +1168,32 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'reasoning': {
                       controller.enqueue(chunk);
 
-                      if (activeReasoningText == null) {
-                        activeReasoningText = {
-                          type: 'text',
-                          text: chunk.textDelta,
-                        };
-                        stepReasoning.push(activeReasoningText);
-                      } else {
-                        activeReasoningText.text += chunk.textDelta;
-                      }
+                      if (chunk.reasoningType === 'text') {
+                        if (activeReasoningText == null) {
+                          activeReasoningText = {
+                            type: 'text',
+                            text: chunk.text,
+                          };
+                          stepReasoning.push(activeReasoningText);
+                        } else {
+                          activeReasoningText.text += chunk.text;
+                        }
+                      } else if (chunk.reasoningType === 'signature') {
+                        if (activeReasoningText == null) {
+                          throw new InvalidStreamPartError({
+                            chunk,
+                            message: 'reasoning-signature without reasoning',
+                          });
+                        }
 
-                      break;
-                    }
-
-                    case 'reasoning-signature': {
-                      controller.enqueue(chunk);
-
-                      if (activeReasoningText == null) {
-                        throw new InvalidStreamPartError({
-                          chunk,
-                          message: 'reasoning-signature without reasoning',
+                        activeReasoningText.signature = chunk.signature;
+                        activeReasoningText = undefined; // signature concludes reasoning part
+                      } else if (chunk.reasoningType === 'redacted') {
+                        stepReasoning.push({
+                          type: 'redacted',
+                          data: chunk.data,
                         });
                       }
-
-                      activeReasoningText.signature = chunk.signature;
-                      activeReasoningText = undefined; // signature concludes reasoning part
-                      break;
-                    }
-
-                    case 'redacted-reasoning': {
-                      controller.enqueue(chunk);
-                      stepReasoning.push({
-                        type: 'redacted',
-                        data: chunk.data,
-                      });
 
                       break;
                     }
@@ -1632,31 +1622,23 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'reasoning': {
               if (sendReasoning) {
-                controller.enqueue(
-                  formatDataStreamPart('reasoning', chunk.textDelta),
-                );
-              }
-              break;
-            }
-
-            case 'redacted-reasoning': {
-              if (sendReasoning) {
-                controller.enqueue(
-                  formatDataStreamPart('redacted_reasoning', {
-                    data: chunk.data,
-                  }),
-                );
-              }
-              break;
-            }
-
-            case 'reasoning-signature': {
-              if (sendReasoning) {
-                controller.enqueue(
-                  formatDataStreamPart('reasoning_signature', {
-                    signature: chunk.signature,
-                  }),
-                );
+                if (chunk.reasoningType === 'text') {
+                  controller.enqueue(
+                    formatDataStreamPart('reasoning', chunk.text),
+                  );
+                } else if (chunk.reasoningType === 'signature') {
+                  controller.enqueue(
+                    formatDataStreamPart('reasoning_signature', {
+                      signature: chunk.signature,
+                    }),
+                  );
+                } else if (chunk.reasoningType === 'redacted') {
+                  controller.enqueue(
+                    formatDataStreamPart('redacted_reasoning', {
+                      data: chunk.data,
+                    }),
+                  );
+                }
               }
               break;
             }

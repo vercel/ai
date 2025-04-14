@@ -8,6 +8,7 @@ export * from './language-model-v2-function-tool';
 export * from './language-model-v2-logprobs';
 export * from './language-model-v2-prompt';
 export * from './language-model-v2-provider-defined-tool';
+export * from './language-model-v2-reasoning';
 export * from './language-model-v2-source';
 export * from './language-model-v2-tool-call';
 export * from './language-model-v2-tool-call-delta';

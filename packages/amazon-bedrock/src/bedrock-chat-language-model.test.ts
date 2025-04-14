@@ -980,20 +980,37 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'reasoning', textDelta: 'I am thinking' },
-      { type: 'reasoning', textDelta: ' about this problem...' },
-      { type: 'reasoning-signature', signature: 'abc123signature' },
-      {
-        type: 'text-delta',
-        textDelta: 'Based on my reasoning, the answer is 42.',
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "reasoningType": "text",
+          "text": "I am thinking",
+          "type": "reasoning",
+        },
+        {
+          "reasoningType": "text",
+          "text": " about this problem...",
+          "type": "reasoning",
+        },
+        {
+          "reasoningType": "signature",
+          "signature": "abc123signature",
+          "type": "reasoning",
+        },
+        {
+          "textDelta": "Based on my reasoning, the answer is 42.",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream redacted reasoning', async () => {
@@ -1028,15 +1045,27 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'redacted-reasoning', data: 'redacted-reasoning-data' },
-      { type: 'text-delta', textDelta: 'Here is my answer.' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "redacted-reasoning-data",
+          "reasoningType": "redacted",
+          "type": "reasoning",
+        },
+        {
+          "textDelta": "Here is my answer.",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 });
 
@@ -1465,13 +1494,20 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('The answer is 42.');
-    expect(reasoning).toStrictEqual([
-      {
-        type: 'text',
-        text: reasoningText,
-        signature: signature,
-      },
-    ]);
+    expect(reasoning).toMatchInlineSnapshot(`
+      [
+        {
+          "reasoningType": "text",
+          "text": "I need to think about this problem carefully...",
+          "type": "reasoning",
+        },
+        {
+          "reasoningType": "signature",
+          "signature": "abc123signature",
+          "type": "reasoning",
+        },
+      ]
+    `);
   });
 
   it('should extract reasoning text without signature', async () => {
@@ -1496,12 +1532,15 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('The answer is 42.');
-    expect(reasoning).toStrictEqual([
-      {
-        type: 'text',
-        text: reasoningText,
-      },
-    ]);
+    expect(reasoning).toMatchInlineSnapshot(`
+      [
+        {
+          "reasoningType": "text",
+          "text": "I need to think about this problem carefully...",
+          "type": "reasoning",
+        },
+      ]
+    `);
   });
 
   it('should extract redacted reasoning', async () => {
@@ -1524,12 +1563,15 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('The answer is 42.');
-    expect(reasoning).toStrictEqual([
-      {
-        type: 'redacted',
-        data: 'redacted-reasoning-data',
-      },
-    ]);
+    expect(reasoning).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "redacted-reasoning-data",
+          "reasoningType": "redacted",
+          "type": "reasoning",
+        },
+      ]
+    `);
   });
 
   it('should handle multiple reasoning blocks', async () => {
@@ -1560,16 +1602,24 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('The answer is 42.');
-    expect(reasoning).toStrictEqual([
-      {
-        type: 'text',
-        text: 'First reasoning block',
-        signature: 'sig1',
-      },
-      {
-        type: 'redacted',
-        data: 'redacted-data',
-      },
-    ]);
+    expect(reasoning).toMatchInlineSnapshot(`
+      [
+        {
+          "reasoningType": "text",
+          "text": "First reasoning block",
+          "type": "reasoning",
+        },
+        {
+          "reasoningType": "signature",
+          "signature": "sig1",
+          "type": "reasoning",
+        },
+        {
+          "data": "redacted-data",
+          "reasoningType": "redacted",
+          "type": "reasoning",
+        },
+      ]
+    `);
   });
 });
