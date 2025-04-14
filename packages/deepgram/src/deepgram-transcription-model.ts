@@ -1,6 +1,6 @@
 import {
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV1,
+  TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -9,10 +9,10 @@ import {
   parseProviderOptions,
   postToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
-import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
+import { DeepgramTranscriptionModelId } from './deepgram-transcription-settings';
 import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
 
 // https://developers.deepgram.com/docs/pre-recorded-audio#results
@@ -63,8 +63,8 @@ interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
   };
 }
 
-export class DeepgramTranscriptionModel implements TranscriptionModelV2 {
-  readonly specificationVersion = 'v2';
+export class DeepgramTranscriptionModel implements TranscriptionModelV1 {
+  readonly specificationVersion = 'v1';
 
   get provider(): string {
     return this.config.provider;
@@ -75,13 +75,13 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV2 {
     private readonly config: DeepgramTranscriptionModelConfig,
   ) {}
 
-  private async getArgs({
+  private getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV2CallWarning[] = [];
+  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const deepgramOptions = await parseProviderOptions({
+    const deepgramOptions = parseProviderOptions({
       provider: 'deepgram',
       providerOptions,
       schema: deepgramProviderOptionsSchema,
@@ -126,10 +126,10 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { queryParams, warnings } = await this.getArgs(options);
+    const { queryParams, warnings } = this.getArgs(options);
 
     const {
       value: response,
