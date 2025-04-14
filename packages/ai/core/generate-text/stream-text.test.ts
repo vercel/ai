@@ -134,16 +134,36 @@ const modelWithReasoning = new MockLanguageModelV2({
         modelId: 'mock-model-id',
         timestamp: new Date(0),
       },
-      { type: 'reasoning', textDelta: 'I will open the conversation' },
-      { type: 'reasoning', textDelta: ' with witty banter. ' },
-      { type: 'reasoning-signature', signature: '1234567890' },
-      { type: 'redacted-reasoning', data: 'redacted-reasoning-data' },
-      { type: 'reasoning', textDelta: 'Once the user has relaxed,' },
       {
         type: 'reasoning',
-        textDelta: ' I will pry for valuable information.',
+        reasoningType: 'text',
+        text: 'I will open the conversation with witty banter. ',
       },
-      { type: 'reasoning-signature', signature: '1234567890' },
+      {
+        type: 'reasoning',
+        reasoningType: 'signature',
+        signature: '1234567890',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'redacted',
+        data: 'redacted-reasoning-data',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'text',
+        text: 'Once the user has relaxed,',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'text',
+        text: ' I will pry for valuable information.',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'signature',
+        signature: '1234567890',
+      },
       { type: 'text-delta', textDelta: 'Hi' },
       { type: 'text-delta', textDelta: ' there!' },
       {
@@ -2015,7 +2035,8 @@ describe('streamText', () => {
             },
             {
               type: 'reasoning',
-              textDelta: 'Feeling clever',
+              reasoningType: 'text',
+              text: 'Feeling clever',
             },
             {
               type: 'tool-call-delta',
@@ -2327,7 +2348,8 @@ describe('streamText', () => {
                       },
                       {
                         type: 'reasoning',
-                        textDelta: 'thinking',
+                        reasoningType: 'text',
+                        text: 'thinking',
                       },
                       {
                         type: 'tool-call',
@@ -3953,7 +3975,11 @@ describe('streamText', () => {
           model: createTestModel({
             stream: convertArrayToReadableStream([
               { type: 'text-delta', textDelta: 'Hello' },
-              { type: 'reasoning', textDelta: 'Feeling clever' },
+              {
+                type: 'reasoning',
+                reasoningType: 'text',
+                text: 'Feeling clever',
+              },
               {
                 type: 'tool-call-delta',
                 toolCallId: '1',
