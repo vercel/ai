@@ -1249,9 +1249,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(
-        await convertReadableStreamToArray(stream),
-      ).toMatchInlineSnapshot(`
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "id": "resp_67cf3390786881908b27489d7e8cfb6b",
