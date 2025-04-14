@@ -23,7 +23,6 @@ export type {
 } from './stream-text-result';
 export type {
   CoreToolCall,
-  CoreToolCallUnion,
   ToolCall,
   ToolCallUnion,
 } from './tool-call';
