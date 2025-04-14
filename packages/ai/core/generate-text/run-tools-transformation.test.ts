@@ -85,27 +85,41 @@ it('should handle immediate tool execution', async () => {
 
   const result = await convertReadableStreamToArray(transformedStream);
 
-  expect(result).toEqual([
-    {
-      type: 'tool-call',
-      toolCallId: 'call-1',
-      toolName: 'syncTool',
-      args: { value: 'test' },
-    },
-    {
-      type: 'tool-result',
-      toolCallId: 'call-1',
-      toolName: 'syncTool',
-      args: { value: 'test' },
-      result: 'test-sync-result',
-    },
-    {
-      type: 'finish',
-      finishReason: 'stop',
-      logprobs: undefined,
-      usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-    },
-  ]);
+  expect(result).toMatchInlineSnapshot(`
+    [
+      {
+        "toolCall": {
+          "args": {
+            "value": "test",
+          },
+          "toolCallId": "call-1",
+          "toolName": "syncTool",
+          "type": "tool-call",
+        },
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "test",
+        },
+        "result": "test-sync-result",
+        "toolCallId": "call-1",
+        "toolName": "syncTool",
+        "type": "tool-result",
+      },
+      {
+        "finishReason": "stop",
+        "logprobs": undefined,
+        "providerMetadata": undefined,
+        "type": "finish",
+        "usage": {
+          "completionTokens": 10,
+          "promptTokens": 3,
+          "totalTokens": 13,
+        },
+      },
+    ]
+  `);
 });
 
 it('should hold off on sending finish until the delayed tool result is received', async () => {
@@ -150,27 +164,41 @@ it('should hold off on sending finish until the delayed tool result is received'
 
   const result = await convertReadableStreamToArray(transformedStream);
 
-  expect(result).toEqual([
-    {
-      type: 'tool-call',
-      toolCallId: 'call-1',
-      toolName: 'delayedTool',
-      args: { value: 'test' },
-    },
-    {
-      type: 'tool-result',
-      toolCallId: 'call-1',
-      toolName: 'delayedTool',
-      args: { value: 'test' },
-      result: 'test-delayed-result',
-    },
-    {
-      type: 'finish',
-      finishReason: 'stop',
-      logprobs: undefined,
-      usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-    },
-  ]);
+  expect(result).toMatchInlineSnapshot(`
+    [
+      {
+        "toolCall": {
+          "args": {
+            "value": "test",
+          },
+          "toolCallId": "call-1",
+          "toolName": "delayedTool",
+          "type": "tool-call",
+        },
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "test",
+        },
+        "result": "test-delayed-result",
+        "toolCallId": "call-1",
+        "toolName": "delayedTool",
+        "type": "tool-result",
+      },
+      {
+        "finishReason": "stop",
+        "logprobs": undefined,
+        "providerMetadata": undefined,
+        "type": "finish",
+        "usage": {
+          "completionTokens": 10,
+          "promptTokens": 3,
+          "totalTokens": 13,
+        },
+      },
+    ]
+  `);
 });
 
 it('should try to repair tool call when the tool name is not found', async () => {
@@ -207,10 +235,9 @@ it('should try to repair tool call when the tool name is not found', async () =>
         execute: async ({ value }) => `${value}-result`,
       },
     },
-    repairToolCall: async ({ toolCall, tools, parameterSchema, error }) => {
+    repairToolCall: async ({ toolCall, error }) => {
       expect(NoSuchToolError.isInstance(error)).toBe(true);
       expect(toolCall).toStrictEqual({
-        type: 'tool-call',
         toolCallType: 'function',
         toolCallId: 'call-1',
         toolName: 'unknownTool',
@@ -223,12 +250,15 @@ it('should try to repair tool call when the tool name is not found', async () =>
 
   const result = await convertReadableStreamToArray(transformedStream);
 
-  expect(result).toEqual([
+  expect(result).toStrictEqual([
     {
       type: 'tool-call',
-      toolCallId: 'call-1',
-      toolName: 'correctTool',
-      args: { value: 'test' },
+      toolCall: {
+        toolCallId: 'call-1',
+        toolCallType: 'function',
+        toolName: 'correctTool',
+        args: { value: 'test' },
+      },
     },
     {
       type: 'tool-result',
@@ -241,6 +271,7 @@ it('should try to repair tool call when the tool name is not found', async () =>
       type: 'finish',
       finishReason: 'stop',
       logprobs: undefined,
+      providerMetadata: undefined,
       usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
     },
   ]);

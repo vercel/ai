@@ -41,9 +41,7 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
     }
   | { type: 'file'; file: GeneratedFile }
   | { type: 'source'; source: Source }
-  | ({
-      type: 'tool-call';
-    } & ToolCallUnion<TOOLS>)
+  | { type: 'tool-call'; toolCall: ToolCallUnion<TOOLS> }
   | {
       type: 'tool-call-streaming-start';
       toolCallId: string;
@@ -51,9 +49,11 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
     }
   | {
       type: 'tool-call-delta';
-      toolCallId: string;
-      toolName: string;
-      argsTextDelta: string;
+      toolCallDelta: {
+        toolCallId: string;
+        toolName: string;
+        argsTextDelta: string;
+      };
     }
   | ({
       type: 'tool-result';
@@ -186,9 +186,11 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             controller.enqueue({
               type: 'tool-call-delta',
-              toolCallId: chunk.toolCallDelta.toolCallId,
-              toolName: chunk.toolCallDelta.toolName,
-              argsTextDelta: chunk.toolCallDelta.argsTextDelta,
+              toolCallDelta: {
+                toolCallId: chunk.toolCallDelta.toolCallId,
+                toolName: chunk.toolCallDelta.toolName,
+                argsTextDelta: chunk.toolCallDelta.argsTextDelta,
+              },
             });
           }
           break;
@@ -205,7 +207,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
               messages,
             });
 
-            controller.enqueue(toolCall);
+            controller.enqueue({ type: 'tool-call', toolCall });
 
             const tool = tools![toolCall.toolName];
 

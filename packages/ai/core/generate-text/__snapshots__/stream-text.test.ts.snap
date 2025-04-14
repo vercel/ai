@@ -506,11 +506,14 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "type": "reasoning",
   },
   {
-    "args": {
-      "value": "value",
+    "toolCall": {
+      "args": {
+        "value": "value",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
     },
-    "toolCallId": "call-1",
-    "toolName": "tool1",
     "type": "tool-call",
   },
   {
@@ -2120,9 +2123,11 @@ exports[`streamText > options.onChunk > should return events in order 1`] = `
     "type": "tool-call-streaming-start",
   },
   {
-    "argsTextDelta": "{"value": "",
-    "toolCallId": "1",
-    "toolName": "tool1",
+    "toolCallDelta": {
+      "argsTextDelta": "{"value": "",
+      "toolCallId": "1",
+      "toolName": "tool1",
+    },
     "type": "tool-call-delta",
   },
   {
@@ -2130,15 +2135,19 @@ exports[`streamText > options.onChunk > should return events in order 1`] = `
     "type": "reasoning",
   },
   {
-    "argsTextDelta": "test",
-    "toolCallId": "1",
-    "toolName": "tool1",
+    "toolCallDelta": {
+      "argsTextDelta": "test",
+      "toolCallId": "1",
+      "toolName": "tool1",
+    },
     "type": "tool-call-delta",
   },
   {
-    "argsTextDelta": ""}",
-    "toolCallId": "1",
-    "toolName": "tool1",
+    "toolCallDelta": {
+      "argsTextDelta": ""}",
+      "toolCallId": "1",
+      "toolName": "tool1",
+    },
     "type": "tool-call-delta",
   },
   {
@@ -2156,11 +2165,14 @@ exports[`streamText > options.onChunk > should return events in order 1`] = `
     "type": "source",
   },
   {
-    "args": {
-      "value": "test",
+    "toolCall": {
+      "args": {
+        "value": "test",
+      },
+      "toolCallId": "1",
+      "toolName": "tool1",
+      "type": "tool-call",
     },
-    "toolCallId": "1",
-    "toolName": "tool1",
     "type": "tool-call",
   },
   {
@@ -3237,11 +3249,14 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     "warnings": [],
   },
   {
-    "args": {
-      "value": "Sparkle Day",
+    "toolCall": {
+      "args": {
+        "value": "Sparkle Day",
+      },
+      "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+      "toolName": "test-tool",
+      "type": "tool-call",
     },
-    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-    "toolName": "test-tool",
     "type": "tool-call",
   },
   {
@@ -3294,11 +3309,14 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     "warnings": [],
   },
   {
-    "args": {
-      "value": "value",
+    "toolCall": {
+      "args": {
+        "value": "value",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
     },
-    "toolCallId": "call-1",
-    "toolName": "tool1",
     "type": "tool-call",
   },
   {
@@ -3663,53 +3681,70 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     "type": "tool-call-streaming-start",
   },
   {
-    "argsTextDelta": "{"",
-    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-    "toolName": "test-tool",
-    "type": "tool-call-delta",
-  },
-  {
-    "argsTextDelta": "value",
-    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-    "toolName": "test-tool",
-    "type": "tool-call-delta",
-  },
-  {
-    "argsTextDelta": "":"",
-    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-    "toolName": "test-tool",
-    "type": "tool-call-delta",
-  },
-  {
-    "argsTextDelta": "Spark",
-    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-    "toolName": "test-tool",
-    "type": "tool-call-delta",
-  },
-  {
-    "argsTextDelta": "le",
-    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-    "toolName": "test-tool",
-    "type": "tool-call-delta",
-  },
-  {
-    "argsTextDelta": " Day",
-    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-    "toolName": "test-tool",
-    "type": "tool-call-delta",
-  },
-  {
-    "argsTextDelta": ""}",
-    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-    "toolName": "test-tool",
-    "type": "tool-call-delta",
-  },
-  {
-    "args": {
-      "value": "Sparkle Day",
+    "toolCallDelta": {
+      "argsTextDelta": "{"",
+      "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+      "toolName": "test-tool",
     },
-    "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
-    "toolName": "test-tool",
+    "type": "tool-call-delta",
+  },
+  {
+    "toolCallDelta": {
+      "argsTextDelta": "value",
+      "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+      "toolName": "test-tool",
+    },
+    "type": "tool-call-delta",
+  },
+  {
+    "toolCallDelta": {
+      "argsTextDelta": "":"",
+      "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+      "toolName": "test-tool",
+    },
+    "type": "tool-call-delta",
+  },
+  {
+    "toolCallDelta": {
+      "argsTextDelta": "Spark",
+      "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+      "toolName": "test-tool",
+    },
+    "type": "tool-call-delta",
+  },
+  {
+    "toolCallDelta": {
+      "argsTextDelta": "le",
+      "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+      "toolName": "test-tool",
+    },
+    "type": "tool-call-delta",
+  },
+  {
+    "toolCallDelta": {
+      "argsTextDelta": " Day",
+      "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+      "toolName": "test-tool",
+    },
+    "type": "tool-call-delta",
+  },
+  {
+    "toolCallDelta": {
+      "argsTextDelta": ""}",
+      "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+      "toolName": "test-tool",
+    },
+    "type": "tool-call-delta",
+  },
+  {
+    "toolCall": {
+      "args": {
+        "value": "Sparkle Day",
+      },
+      "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+      "toolName": "test-tool",
+      "type": "tool-call",
+    },
     "type": "tool-call",
   },
   {
@@ -3762,11 +3797,14 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     "warnings": [],
   },
   {
-    "args": {
-      "value": "value",
+    "toolCall": {
+      "args": {
+        "value": "value",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
     },
-    "toolCallId": "call-1",
-    "toolName": "tool1",
     "type": "tool-call",
   },
   {
@@ -3819,11 +3857,14 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     "warnings": [],
   },
   {
-    "args": {
-      "value": "value",
+    "toolCall": {
+      "args": {
+        "value": "value",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
     },
-    "toolCallId": "call-1",
-    "toolName": "tool1",
     "type": "tool-call",
   },
   {
@@ -5051,11 +5092,14 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     "warnings": [],
   },
   {
-    "args": {
-      "value": "value",
+    "toolCall": {
+      "args": {
+        "value": "value",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
     },
-    "toolCallId": "call-1",
-    "toolName": "tool1",
     "type": "tool-call",
   },
   {

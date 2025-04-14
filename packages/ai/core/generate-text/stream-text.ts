@@ -681,7 +681,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'tool-call') {
-          recordedToolCalls.push(part);
+          recordedToolCalls.push(part.toolCall);
         }
 
         if (part.type === 'tool-result') {
@@ -1211,7 +1211,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'tool-call': {
                       controller.enqueue(chunk);
                       // store tool calls for onFinish callback and toolCalls promise:
-                      stepToolCalls.push(chunk);
+                      stepToolCalls.push(chunk.toolCall);
                       break;
                     }
 
@@ -1694,8 +1694,8 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'tool-call-delta': {
               controller.enqueue(
                 formatDataStreamPart('tool_call_delta', {
-                  toolCallId: chunk.toolCallId,
-                  argsTextDelta: chunk.argsTextDelta,
+                  toolCallId: chunk.toolCallDelta.toolCallId,
+                  argsTextDelta: chunk.toolCallDelta.argsTextDelta,
                 }),
               );
               break;
@@ -1704,9 +1704,9 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'tool-call': {
               controller.enqueue(
                 formatDataStreamPart('tool_call', {
-                  toolCallId: chunk.toolCallId,
-                  toolName: chunk.toolName,
-                  args: chunk.args,
+                  toolCallId: chunk.toolCall.toolCallId,
+                  toolName: chunk.toolCall.toolName,
+                  args: chunk.toolCall.args,
                 }),
               );
               break;
