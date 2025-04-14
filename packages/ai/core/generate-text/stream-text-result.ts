@@ -313,17 +313,9 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'redacted-reasoning';
       data: string;
     }
-  | {
-      type: 'source';
-      source: Source;
-    }
-  | {
-      type: 'file';
-      file: GeneratedFile;
-    }
-  | ({
-      type: 'tool-call';
-    } & ToolCallUnion<TOOLS>)
+  | ({ type: 'source' } & Source)
+  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
+  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
   | {
       type: 'tool-call-streaming-start';
       toolCallId: string;

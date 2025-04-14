@@ -76,24 +76,20 @@ const modelWithSources = new MockLanguageModelV2({
     stream: convertArrayToReadableStream([
       {
         type: 'source',
-        source: {
-          sourceType: 'url' as const,
-          id: '123',
-          url: 'https://example.com',
-          title: 'Example',
-          providerMetadata: { provider: { custom: 'value' } },
-        },
+        sourceType: 'url',
+        id: '123',
+        url: 'https://example.com',
+        title: 'Example',
+        providerMetadata: { provider: { custom: 'value' } },
       },
       { type: 'text-delta', textDelta: 'Hello!' },
       {
         type: 'source',
-        source: {
-          sourceType: 'url' as const,
-          id: '456',
-          url: 'https://example.com/2',
-          title: 'Example 2',
-          providerMetadata: { provider: { custom: 'value2' } },
-        },
+        sourceType: 'url',
+        id: '456',
+        url: 'https://example.com/2',
+        title: 'Example 2',
+        providerMetadata: { provider: { custom: 'value2' } },
       },
       {
         type: 'finish',
@@ -2037,13 +2033,11 @@ describe('streamText', () => {
             },
             {
               type: 'source',
-              source: {
-                sourceType: 'url' as const,
-                id: '123',
-                url: 'https://example.com',
-                title: 'Example',
-                providerMetadata: { provider: { custom: 'value' } },
-              },
+              sourceType: 'url',
+              id: '123',
+              url: 'https://example.com',
+              title: 'Example',
+              providerMetadata: { provider: { custom: 'value' } },
             },
             {
               type: 'tool-call',
@@ -2594,13 +2588,11 @@ describe('streamText', () => {
                       { type: 'text-delta', textDelta: 'no-' },
                       {
                         type: 'source',
-                        source: {
-                          sourceType: 'url' as const,
-                          id: '123',
-                          url: 'https://example.com',
-                          title: 'Example',
-                          providerMetadata: { provider: { custom: 'value' } },
-                        },
+                        sourceType: 'url' as const,
+                        id: '123',
+                        url: 'https://example.com',
+                        title: 'Example',
+                        providerMetadata: { provider: { custom: 'value' } },
                       },
                       { type: 'text-delta', textDelta: 'whitespace' },
                       {
@@ -2647,25 +2639,21 @@ describe('streamText', () => {
                       },
                       {
                         type: 'source',
-                        source: {
-                          sourceType: 'url' as const,
-                          id: '456',
-                          url: 'https://example.com/2',
-                          title: 'Example 2',
-                          providerMetadata: { provider: { custom: 'value2' } },
-                        },
+                        sourceType: 'url' as const,
+                        id: '456',
+                        url: 'https://example.com/2',
+                        title: 'Example 2',
+                        providerMetadata: { provider: { custom: 'value2' } },
                       },
                       // set up trailing whitespace for next step:
                       { type: 'text-delta', textDelta: 'immediatefollow  ' },
                       {
                         type: 'source',
-                        source: {
-                          sourceType: 'url' as const,
-                          id: '789',
-                          url: 'https://example.com/3',
-                          title: 'Example 3',
-                          providerMetadata: { provider: { custom: 'value3' } },
-                        },
+                        sourceType: 'url' as const,
+                        id: '789',
+                        url: 'https://example.com/3',
+                        title: 'Example 3',
+                        providerMetadata: { provider: { custom: 'value3' } },
                       },
                       {
                         type: 'finish',

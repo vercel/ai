@@ -357,7 +357,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 }) ?? [];
 
               for (const source of sources) {
-                controller.enqueue({ type: 'source', source });
+                controller.enqueue(source);
               }
 
               providerMetadata = {
@@ -448,6 +448,7 @@ function extractSources({
       } => chunk.web != null,
     )
     .map(chunk => ({
+      type: 'source',
       sourceType: 'url',
       id: generateId(),
       url: chunk.web.uri,
