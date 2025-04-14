@@ -8,6 +8,7 @@ import { ToolCallRepairError } from '../../errors/tool-call-repair-error';
 it('should successfully parse a valid tool call', async () => {
   const result = await parseToolCall({
     toolCall: {
+      type: 'tool-call',
       toolCallType: 'function',
       toolName: 'testTool',
       toolCallId: '123',
@@ -37,6 +38,7 @@ it('should successfully parse a valid tool call', async () => {
 it('should successfully process empty calls for tools that have no parameters', async () => {
   const result = await parseToolCall({
     toolCall: {
+      type: 'tool-call',
       toolCallType: 'function',
       toolName: 'testTool',
       toolCallId: '123',
@@ -64,6 +66,7 @@ it('should throw NoSuchToolError when tools is null', async () => {
   await expect(
     parseToolCall({
       toolCall: {
+        type: 'tool-call',
         toolCallType: 'function',
         toolName: 'testTool',
         toolCallId: '123',
@@ -81,6 +84,7 @@ it('should throw NoSuchToolError when tool is not found', async () => {
   await expect(
     parseToolCall({
       toolCall: {
+        type: 'tool-call',
         toolCallType: 'function',
         toolName: 'nonExistentTool',
         toolCallId: '123',
@@ -105,6 +109,7 @@ it('should throw InvalidToolArgumentsError when args are invalid', async () => {
   await expect(
     parseToolCall({
       toolCall: {
+        type: 'tool-call',
         toolCallType: 'function',
         toolName: 'testTool',
         toolCallId: '123',
@@ -136,6 +141,7 @@ describe('tool call repair', () => {
 
     const result = await parseToolCall({
       toolCall: {
+        type: 'tool-call',
         toolCallType: 'function',
         toolName: 'testTool',
         toolCallId: '123',
@@ -183,6 +189,7 @@ describe('tool call repair', () => {
     await expect(
       parseToolCall({
         toolCall: {
+          type: 'tool-call',
           toolCallType: 'function',
           toolName: 'testTool',
           toolCallId: '123',
@@ -210,6 +217,7 @@ describe('tool call repair', () => {
 
     const resultPromise = parseToolCall({
       toolCall: {
+        type: 'tool-call',
         toolCallType: 'function',
         toolName: 'testTool',
         toolCallId: '123',

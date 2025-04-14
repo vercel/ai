@@ -1,10 +1,10 @@
-import { LanguageModelV2FunctionToolCall } from '@ai-sdk/provider';
+import { LanguageModelV2ToolCall } from '@ai-sdk/provider';
 import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
-import { Schema, asSchema } from '../util';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { ToolCallRepairError } from '../../errors/tool-call-repair-error';
 import { CoreMessage } from '../prompt';
+import { asSchema } from '../util';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolSet } from './tool-set';
@@ -16,7 +16,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   system,
   messages,
 }: {
-  toolCall: LanguageModelV2FunctionToolCall;
+  toolCall: LanguageModelV2ToolCall;
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   system: string | undefined;
@@ -39,7 +39,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
       throw error;
     }
 
-    let repairedToolCall: LanguageModelV2FunctionToolCall | null = null;
+    let repairedToolCall: LanguageModelV2ToolCall | null = null;
 
     try {
       repairedToolCall = await repairToolCall({
@@ -73,7 +73,7 @@ async function doParseToolCall<TOOLS extends ToolSet>({
   toolCall,
   tools,
 }: {
-  toolCall: LanguageModelV2FunctionToolCall;
+  toolCall: LanguageModelV2ToolCall;
   tools: TOOLS;
 }): Promise<ToolCallUnion<TOOLS>> {
   const toolName = toolCall.toolName as keyof TOOLS & string;

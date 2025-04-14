@@ -226,6 +226,7 @@ describe('result.toolCalls', () => {
             ...dummyResponseValues,
             toolCalls: [
               {
+                type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
@@ -298,6 +299,7 @@ describe('result.toolResults', () => {
             ...dummyResponseValues,
             toolCalls: [
               {
+                type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
@@ -386,6 +388,7 @@ describe('result.response.messages', () => {
           text: 'Hello, world!',
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
@@ -523,6 +526,7 @@ describe('options.maxSteps', () => {
                   ...dummyResponseValues,
                   toolCalls: [
                     {
+                      type: 'tool-call',
                       toolCallType: 'function',
                       toolCallId: 'call-1',
                       toolName: 'tool1',
@@ -991,6 +995,7 @@ describe('options.abortSignal', () => {
           ...dummyResponseValues,
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
@@ -1092,6 +1097,7 @@ describe('telemetry', () => {
           ...dummyResponseValues,
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
@@ -1127,6 +1133,7 @@ describe('telemetry', () => {
           ...dummyResponseValues,
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
@@ -1202,6 +1209,7 @@ describe('tools with custom schema', () => {
             ...dummyResponseValues,
             toolCalls: [
               {
+                type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
@@ -1572,6 +1580,7 @@ describe('tool execution errors', () => {
             ...dummyResponseValues,
             toolCalls: [
               {
+                type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'call-1',
                 toolName: 'tool1',
