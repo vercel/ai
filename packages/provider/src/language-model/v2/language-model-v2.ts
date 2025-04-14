@@ -257,7 +257,7 @@ export type LanguageModelV2StreamPart =
   | { type: 'source'; source: LanguageModelV2Source }
 
   // Files:
-  | { type: 'file'; file: LanguageModelV2File }
+  | LanguageModelV2File
 
   // Tool calls:
   | LanguageModelV2ToolCall
