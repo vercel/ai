@@ -130,7 +130,15 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(reasoning).toStrictEqual('This is a test reasoning');
+    expect(reasoning).toMatchInlineSnapshot(`
+      [
+        {
+          "reasoningType": "text",
+          "text": "This is a test reasoning",
+          "type": "reasoning",
+        },
+      ]
+    `);
   });
 
   it('should extract usage', async () => {
@@ -532,23 +540,38 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'gemma2-9b-it',
-        timestamp: new Date('2023-12-15T16:17:00.000Z'),
-      },
-      { type: 'reasoning', textDelta: 'I think,' },
-      { type: 'reasoning', textDelta: 'therefore I am.' },
-      { type: 'text-delta', textDelta: 'Hello' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 18, outputTokens: 439 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "gemma2-9b-it",
+          "timestamp": 2023-12-15T16:17:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "reasoningType": "text",
+          "text": "I think,",
+          "type": "reasoning",
+        },
+        {
+          "reasoningType": "text",
+          "text": "therefore I am.",
+          "type": "reasoning",
+        },
+        {
+          "textDelta": "Hello",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 18,
+            "outputTokens": 439,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool deltas', async () => {

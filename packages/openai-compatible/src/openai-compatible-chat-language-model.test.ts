@@ -182,9 +182,15 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Hello, World!');
-    expect(reasoning).toStrictEqual(
-      'This is the reasoning behind the response',
-    );
+    expect(reasoning).toMatchInlineSnapshot(`
+      [
+        {
+          "reasoningType": "text",
+          "text": "This is the reasoning behind the response",
+          "type": "reasoning",
+        },
+      ]
+    `);
   });
 
   it('should extract usage', async () => {
@@ -961,38 +967,45 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'grok-beta',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'reasoning',
-        textDelta: 'Let me think',
-      },
-      {
-        type: 'reasoning',
-        textDelta: ' about this',
-      },
-      {
-        type: 'text-delta',
-        textDelta: "Here's",
-      },
-      {
-        type: 'text-delta',
-        textDelta: ' my response',
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 18, outputTokens: 439 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
         },
-      },
-    ]);
+        {
+          "reasoningType": "text",
+          "text": "Let me think",
+          "type": "reasoning",
+        },
+        {
+          "reasoningType": "text",
+          "text": " about this",
+          "type": "reasoning",
+        },
+        {
+          "textDelta": "Here's",
+          "type": "text-delta",
+        },
+        {
+          "textDelta": " my response",
+          "type": "text-delta",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 18,
+            "outputTokens": 439,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool deltas', async () => {

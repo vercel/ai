@@ -27,18 +27,9 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       type: 'text-delta';
       textDelta: string;
     }
-  | {
-      type: 'reasoning';
-      textDelta: string;
-    }
-  | {
-      type: 'reasoning-signature';
-      signature: string;
-    }
-  | {
-      type: 'redacted-reasoning';
-      data: string;
-    }
+  | { type: 'reasoning'; reasoningType: 'text'; text: string }
+  | { type: 'reasoning'; reasoningType: 'signature'; signature: string }
+  | { type: 'reasoning'; reasoningType: 'redacted'; data: string }
   | { type: 'file'; file: GeneratedFile }
   | ({ type: 'source' } & Source)
   | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
@@ -149,8 +140,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         // forward:
         case 'text-delta':
         case 'reasoning':
-        case 'reasoning-signature':
-        case 'redacted-reasoning':
         case 'source':
         case 'response-metadata':
         case 'error': {

@@ -35,6 +35,7 @@ import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
+import { LanguageModelV2Reasoning } from '@ai-sdk/provider';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -778,13 +779,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 }
 
 function asReasoningDetails(
-  reasoning:
-    | string
-    | Array<
-        | { type: 'text'; text: string; signature?: string }
-        | { type: 'redacted'; data: string }
-      >
-    | undefined,
+  reasoning: Array<LanguageModelV2Reasoning> | undefined,
 ): Array<
   | { type: 'text'; text: string; signature?: string }
   | { type: 'redacted'; data: string }
@@ -793,11 +788,37 @@ function asReasoningDetails(
     return [];
   }
 
-  if (typeof reasoning === 'string') {
-    return [{ type: 'text', text: reasoning }];
+  const result: Array<
+    | { type: 'text'; text: string; signature?: string }
+    | { type: 'redacted'; data: string }
+  > = [];
+
+  let activeReasoningText:
+    | { type: 'text'; text: string; signature?: string }
+    | undefined;
+
+  for (const part of reasoning) {
+    if (part.reasoningType === 'text') {
+      if (activeReasoningText == null) {
+        activeReasoningText = { type: 'text', text: part.text };
+        result.push(activeReasoningText);
+      } else {
+        activeReasoningText.text += part.text;
+      }
+    } else if (part.reasoningType === 'signature') {
+      if (activeReasoningText == null) {
+        activeReasoningText = { type: 'text', text: '' };
+        result.push(activeReasoningText);
+      }
+
+      activeReasoningText.signature = part.signature;
+      activeReasoningText = undefined; // signature concludes reasoning part
+    } else if (part.reasoningType === 'redacted') {
+      result.push({ type: 'redacted', data: part.data });
+    }
   }
 
-  return reasoning;
+  return result;
 }
 
 function asFiles(

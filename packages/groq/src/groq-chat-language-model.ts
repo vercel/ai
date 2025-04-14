@@ -187,7 +187,15 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
     return {
       text: choice.message.content ?? undefined,
-      reasoning: choice.message.reasoning ?? undefined,
+      reasoning: choice.message.reasoning
+        ? [
+            {
+              type: 'reasoning',
+              reasoningType: 'text',
+              text: choice.message.reasoning,
+            },
+          ]
+        : undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         type: 'tool-call',
         toolCallType: 'function',
@@ -305,7 +313,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
             if (delta.reasoning != null && delta.reasoning.length > 0) {
               controller.enqueue({
                 type: 'reasoning',
-                textDelta: delta.reasoning,
+                reasoningType: 'text',
+                text: delta.reasoning,
               });
             }
 
