@@ -60,7 +60,7 @@ describe('doEmbed', () => {
       // custom header
       'test-header': 'test-value',
     });
-    expect(response?.body).toMatchSnapshot();
+    expect(response).toMatchSnapshot();
   });
 
   it('should extract usage', async () => {

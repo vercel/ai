@@ -26,12 +26,16 @@ describe('result.response', () => {
   it('should include response in the result', async () => {
     const result = await embed({
       model: new MockEmbeddingModelV2({
-        doEmbed: mockEmbed([testValue], [dummyEmbedding]),
+        doEmbed: mockEmbed([testValue], [dummyEmbedding], undefined, {
+          body: { foo: 'bar' },
+          headers: { foo: 'bar' },
+        }),
       }),
       value: testValue,
     });
 
-    expect(result.response).toMatchSnapshot();
+    expect(result.response?.body).toMatchInlineSnapshot();
+    expect(result.response?.headers).toMatchInlineSnapshot();
   });
 });
 

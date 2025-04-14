@@ -61,7 +61,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       // custom header
       'test-header': 'test-value',
     });
-    expect(response?.body).toMatchSnapshot();
+    expect(response).toMatchSnapshot();
   });
 
   it('should pass the model and the values', async () => {
