@@ -301,18 +301,9 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'text-delta';
       textDelta: string;
     }
-  | {
-      type: 'reasoning';
-      textDelta: string;
-    }
-  | {
-      type: 'reasoning-signature';
-      signature: string;
-    }
-  | {
-      type: 'redacted-reasoning';
-      data: string;
-    }
+  | { type: 'reasoning'; reasoningType: 'text'; text: string }
+  | { type: 'reasoning'; reasoningType: 'signature'; signature: string }
+  | { type: 'reasoning'; reasoningType: 'redacted'; data: string }
   | ({ type: 'source' } & Source)
   | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
   | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
