@@ -1,6 +1,6 @@
 # AI SDK - Hume Provider
 
-The **[Hume provider](https://ai-sdk.dev/providers/ai-sdk-providers/hume)** for the [AI SDK](https://ai-sdk.dev/docs)
+The **[Hume provider](https://sdk.vercel.ai/providers/ai-sdk-providers/hume)** for the [AI SDK](https://sdk.vercel.ai/docs)
 contains support for the Hume API.
 
 ## Setup
@@ -13,7 +13,7 @@ npm i @ai-sdk/hume
 
 ## Provider Instance
 
-You can import the default provider instance `hume` from `@ai-sdk/hume`:
+You can import the default provider instance `lmnt` from `@ai-sdk/lmnt`:
 
 ```ts
 import { hume } from '@ai-sdk/hume';
@@ -33,4 +33,4 @@ const result = await generateSpeech({
 
 ## Documentation
 
-Please check out the **[Hume provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/hume)** for more information.
+Please check out the **[Hume provider documentation](https://sdk.vercel.ai/providers/ai-sdk-providers/hume)** for more information.
