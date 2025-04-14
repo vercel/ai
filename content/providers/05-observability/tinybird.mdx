@@ -84,22 +84,6 @@ The LLM Performance Tracker [template dashboard](https://github.com/tinybirdco/l
 - Cost monitoring
 - Error rate visualization
 
-### Custom Metrics
-
-You can extend the default metrics with custom properties:
-
-```typescript
-const model = wrapOpenai(openai('chatgpt-4o-latest'), {
-  host: process.env.TINYBIRD_HOST!,
-  token: process.env.TINYBIRD_TOKEN!,
-  metadata: {
-    feature: 'translation',
-    environment: 'production',
-    version: '1.0.0',
-  },
-});
-```
-
 ## Resources
 
 - [Tinybird Documentation](https://www.tinybird.co/docs)
