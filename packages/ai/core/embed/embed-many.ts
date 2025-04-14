@@ -5,7 +5,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { Embedding, EmbeddingModel } from '../types';
+import { Embedding, EmbeddingModel, ProviderOptions } from '../types';
 import { splitArray } from '../util/split-array';
 import { EmbedManyResult } from './embed-many-result';
 
@@ -31,6 +31,7 @@ export async function embedMany<VALUE>({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  providerOptions,
   experimental_telemetry: telemetry,
 }: {
   /**
@@ -65,6 +66,13 @@ Only applicable for HTTP-based providers.
    * Optional telemetry configuration (experimental).
    */
   experimental_telemetry?: TelemetrySettings;
+
+  /**
+  Additional provider-specific options. They are passed through
+  to the provider from the AI SDK and enable provider-specific
+  functionality that can be fully encapsulated in the provider.
+  */
+  providerOptions?: ProviderOptions;
 }): Promise<EmbedManyResult<VALUE>> {
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
@@ -121,6 +129,7 @@ Only applicable for HTTP-based providers.
                 values,
                 abortSignal,
                 headers,
+                providerOptions,
               });
 
               const embeddings = modelResponse.embeddings;
@@ -192,6 +201,7 @@ Only applicable for HTTP-based providers.
                 values: chunk,
                 abortSignal,
                 headers,
+                providerOptions,
               });
 
               const embeddings = modelResponse.embeddings;
