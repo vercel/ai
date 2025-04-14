@@ -1,4 +1,6 @@
-export type LanguageModelV2FunctionToolCall = {
+export type LanguageModelV2ToolCall = {
+  type: 'tool-call';
+
   toolCallType: 'function';
   toolCallId: string;
   toolName: string;
