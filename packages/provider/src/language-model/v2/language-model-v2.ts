@@ -4,6 +4,7 @@ import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
 import { LanguageModelV2File } from './language-model-v2-file';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
 import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
+import { LanguageModelV2Reasoning } from './language-model-v2-reasoning';
 import { LanguageModelV2Source } from './language-model-v2-source';
 import { LanguageModelV2ToolCall } from './language-model-v2-tool-call';
 import { LanguageModelV2ToolCallDelta } from './language-model-v2-tool-call-delta';
@@ -98,24 +99,7 @@ Can be undefined if the model did not generate any text.
 Reasoning that the model has generated.
 Can be undefined if the model does not support reasoning.
      */
-    // TODO v2: remove string option
-    reasoning?:
-      | string
-      | Array<
-          | {
-              type: 'text';
-              text: string;
-
-              /**
-An optional signature for verifying that the reasoning originated from the model.
-   */
-              signature?: string;
-            }
-          | {
-              type: 'redacted';
-              data: string;
-            }
-        >;
+    reasoning?: Array<LanguageModelV2Reasoning>;
 
     /**
 Generated files as base64 encoded strings or binary data.
@@ -248,10 +232,8 @@ export type LanguageModelV2StreamPart =
   // Basic text deltas:
   | { type: 'text-delta'; textDelta: string }
 
-  // Reasoning text deltas:
-  | { type: 'reasoning'; textDelta: string }
-  | { type: 'reasoning-signature'; signature: string }
-  | { type: 'redacted-reasoning'; data: string }
+  // Reasoning:
+  | LanguageModelV2Reasoning
 
   // Sources:
   | LanguageModelV2Source
