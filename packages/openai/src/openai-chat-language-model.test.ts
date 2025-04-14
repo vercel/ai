@@ -1,4 +1,4 @@
-import { LanguageModelV2, LanguageModelV2Prompt } from '@ai-sdk/provider';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
