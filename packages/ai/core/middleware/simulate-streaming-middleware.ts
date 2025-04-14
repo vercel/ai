@@ -17,36 +17,8 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
           controller.enqueue({ type: 'response-metadata', ...result.response });
 
           if (result.reasoning) {
-            if (typeof result.reasoning === 'string') {
-              controller.enqueue({
-                type: 'reasoning',
-                textDelta: result.reasoning,
-              });
-            } else {
-              for (const reasoning of result.reasoning) {
-                switch (reasoning.type) {
-                  case 'text': {
-                    controller.enqueue({
-                      type: 'reasoning',
-                      textDelta: reasoning.text,
-                    });
-                    if (reasoning.signature != null) {
-                      controller.enqueue({
-                        type: 'reasoning-signature',
-                        signature: reasoning.signature,
-                      });
-                    }
-                    break;
-                  }
-                  case 'redacted': {
-                    controller.enqueue({
-                      type: 'redacted-reasoning',
-                      data: reasoning.data,
-                    });
-                    break;
-                  }
-                }
-              }
+            for (const reasoningPart of result.reasoning) {
+              controller.enqueue(reasoningPart);
             }
           }
 

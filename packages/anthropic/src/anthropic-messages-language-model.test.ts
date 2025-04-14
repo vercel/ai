@@ -560,9 +560,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(
-        await convertReadableStreamToArray(stream),
-      ).toMatchInlineSnapshot(`
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
@@ -626,9 +624,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(
-        await convertReadableStreamToArray(stream),
-      ).toMatchInlineSnapshot(`
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
