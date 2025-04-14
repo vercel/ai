@@ -1,5 +1,16 @@
 # @ai-sdk/xai
 
+## 1.2.12
+
+### Patch Changes
+
+- ebeeb32: fix(providers/xai): edit supported models for structured output
+- 9cebe48: chore (providers/xai): update grok-3 model aliases
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/openai-compatible@0.2.10
+  - @ai-sdk/provider-utils@2.2.7
+
 ## 1.2.11
 
 ### Patch Changes
