@@ -1,5 +1,17 @@
 # ai
 
+## 4.3.6
+
+### Patch Changes
+
+- beef951: feat: add speech with experimental_generateSpeech
+- bd41167: fix(ai/core): properly handle custom separator in provider registry
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/provider-utils@2.2.7
+  - @ai-sdk/ui-utils@1.2.8
+  - @ai-sdk/react@1.2.9
+
 ## 4.3.5
 
 ### Patch Changes

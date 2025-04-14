@@ -1,5 +1,15 @@
 # @ai-sdk/azure
 
+## 1.3.12
+
+### Patch Changes
+
+- 3c26c55: feat(providers/azure): add transcribe
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/openai@1.3.11
+  - @ai-sdk/provider-utils@2.2.7
+
 ## 1.3.11
 
 ### Patch Changes

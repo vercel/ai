@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 1.2.9
+
+### Patch Changes
+
+- @ai-sdk/provider-utils@2.2.7
+- @ai-sdk/ui-utils@1.2.8
+
 ## 1.2.8
 
 ### Patch Changes
