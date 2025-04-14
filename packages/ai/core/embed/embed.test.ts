@@ -22,6 +22,31 @@ describe('result.embedding', () => {
   });
 });
 
+describe('result.response', () => {
+  it('should include response in the result', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV2({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding], undefined, {
+          body: { foo: 'bar' },
+          headers: { foo: 'bar' },
+        }),
+      }),
+      value: testValue,
+    });
+
+    expect(result.response?.body).toMatchInlineSnapshot(`
+      {
+        "foo": "bar",
+      }
+    `);
+    expect(result.response?.headers).toMatchInlineSnapshot(`
+      {
+        "foo": "bar",
+      }
+    `);
+  });
+});
+
 describe('result.value', () => {
   it('should include value in the result', async () => {
     const result = await embed({

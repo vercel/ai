@@ -29,5 +29,10 @@ export interface EmbedResult<VALUE> {
   Response headers.
        */
     headers?: Record<string, string>;
+
+    /**
+    The response body.
+    */
+    body?: unknown;
   };
 }
