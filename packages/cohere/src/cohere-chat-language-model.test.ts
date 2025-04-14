@@ -539,98 +539,132 @@ describe('doStream', () => {
 
     const responseArray = await convertReadableStreamToArray(stream);
 
-    expect(responseArray).toStrictEqual([
-      { type: 'response-metadata', id: '29f14a5a-11de-4cae-9800-25e4747408ea' },
-      {
-        type: 'tool-call-delta',
-        toolCallType: 'function',
-        toolCallId: 'test-id-1',
-        toolName: 'test-tool',
-        argsTextDelta: '',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{\n    "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'ticker',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '_',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'symbol',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: ' "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'AAPL',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '\n',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"ticker_symbol":"AAPL"}',
-      },
-      {
-        finishReason: 'stop',
-        type: 'finish',
-        usage: { inputTokens: 893, outputTokens: 62 },
-      },
-    ]);
+    expect(responseArray).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "29f14a5a-11de-4cae-9800-25e4747408ea",
+          "type": "response-metadata",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "{
+          "",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "ticker",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "_",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "symbol",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "":",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": " "",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "AAPL",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": """,
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "
+      ",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "}",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCall": {
+            "args": "{"ticker_symbol":"AAPL"}",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 893,
+            "outputTokens": 62,
+          },
+        },
+      ]
+    `);
 
     // Check if the tool call ID is the same in the tool call delta and the tool call
     const toolCallIds = responseArray
@@ -808,27 +842,39 @@ describe('doStream', () => {
       ],
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'response-metadata', id: 'test-id' },
-      {
-        type: 'tool-call-delta',
-        toolCallType: 'function',
-        toolCallId: 'test-id-1',
-        toolName: 'test-tool',
-        argsTextDelta: '',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 10, outputTokens: 5 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "test-id",
+          "type": "response-metadata",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCall": {
+            "args": "{}",
+            "toolCallId": "test-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 5,
+          },
+        },
+      ]
+    `);
   });
 });
