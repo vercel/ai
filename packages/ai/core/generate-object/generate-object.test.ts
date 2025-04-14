@@ -50,7 +50,7 @@ describe('output = "object"', () => {
 
             return {
               ...dummyResponseValues,
-              text: `{ "content": "Hello, world!" }`,
+              text: { type: 'text', text: '{ "content": "Hello, world!" }' },
             };
           },
         }),
@@ -90,7 +90,7 @@ describe('output = "object"', () => {
 
             return {
               ...dummyResponseValues,
-              text: `{ "content": "Hello, world!" }`,
+              text: { type: 'text', text: '{ "content": "Hello, world!" }' },
             };
           },
         }),
@@ -130,7 +130,7 @@ describe('output = "object"', () => {
 
             return {
               ...dummyResponseValues,
-              text: `{ "content": "Hello, world!" }`,
+              text: { type: 'text', text: '{ "content": "Hello, world!" }' },
             };
           },
         }),
@@ -253,7 +253,7 @@ describe('output = "object"', () => {
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: `{ "content": "Hello, world!" }`,
+            text: { type: 'text', text: '{ "content": "Hello, world!" }' },
             request: {
               body: 'test body',
             },
@@ -305,7 +305,7 @@ describe('output = "object"', () => {
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: `{ "content": "Hello, world!" }`,
+            text: { type: 'text', text: '{ "content": "Hello, world!" }' },
             response: {
               id: 'test-id-from-model',
               timestamp: new Date(10000),
@@ -409,7 +409,7 @@ describe('output = "object"', () => {
 
             return {
               ...dummyResponseValues,
-              text: `{ "content": "Hello, world!" }`,
+              text: { type: 'text', text: '{ "content": "Hello, world!" }' },
             };
           },
         }),
@@ -456,7 +456,7 @@ describe('output = "object"', () => {
 
             return {
               ...dummyResponseValues,
-              text: `{ "content": "Hello, world!" }`,
+              text: { type: 'text', text: '{ "content": "Hello, world!" }' },
             };
           },
         }),
@@ -507,7 +507,7 @@ describe('output = "object"', () => {
 
             return {
               ...dummyResponseValues,
-              text: `{ "content": "Hello, world!" }`,
+              text: { type: 'text', text: '{ "content": "Hello, world!" }' },
             };
           },
         }),
@@ -531,7 +531,7 @@ describe('output = "object"', () => {
         model: new MockLanguageModelV2({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
-            text: `{ "content": "Hello, world!" }`,
+            text: { type: 'text', text: '{ "content": "Hello, world!" }' },
           }),
         }),
         schema: z.object({ content: z.string() }),
@@ -562,7 +562,7 @@ describe('output = "object"', () => {
         model: new MockLanguageModelV2({
           doGenerate: async ({}) => ({
             ...dummyResponseValues,
-            text: `{ "content": "Hello, world!" }`,
+            text: { type: 'text', text: '{ "content": "Hello, world!" }' },
             providerMetadata: {
               anthropic: {
                 cacheCreationInputTokens: 10,
@@ -596,7 +596,7 @@ describe('output = "object"', () => {
 
             return {
               ...dummyResponseValues,
-              text: `{ "content": "headers test" }`,
+              text: { type: 'text', text: '{ "content": "headers test" }' },
             };
           },
         }),
@@ -648,7 +648,10 @@ describe('output = "object"', () => {
           doGenerate: async ({}) => {
             return {
               ...dummyResponseValues,
-              text: `{ "content": "provider metadata test" `,
+              text: {
+                type: 'text',
+                text: '{ "content": "provider metadata test" ',
+              },
             };
           },
         }),
@@ -673,7 +676,10 @@ describe('output = "object"', () => {
           doGenerate: async ({}) => {
             return {
               ...dummyResponseValues,
-              text: `{ "content-a": "provider metadata test" }`,
+              text: {
+                type: 'text',
+                text: '{ "content-a": "provider metadata test" }',
+              },
             };
           },
         }),
@@ -700,7 +706,10 @@ describe('output = "object"', () => {
           doGenerate: async ({}) => {
             return {
               ...dummyResponseValues,
-              text: `{ "content-a": "provider metadata test" }`,
+              text: {
+                type: 'text',
+                text: '{ "content-a": "provider metadata test" }',
+              },
             };
           },
         }),
@@ -733,7 +742,10 @@ describe('output = "object"', () => {
 
             return {
               ...dummyResponseValues,
-              text: `{ "content": "provider metadata test" }`,
+              text: {
+                type: 'text',
+                text: '{ "content": "provider metadata test" }',
+              },
             };
           },
         }),
@@ -843,7 +855,7 @@ describe('output = "object"', () => {
           model: new MockLanguageModelV2({
             doGenerate: async ({}) => ({
               ...dummyResponseValues,
-              text: `{ "content": 123 }`,
+              text: { type: 'text', text: '{ "content": 123 }' },
             }),
           }),
           schema: z.object({ content: z.string() }),
@@ -895,7 +907,7 @@ describe('output = "object"', () => {
           model: new MockLanguageModelV2({
             doGenerate: async ({}) => ({
               ...dummyResponseValues,
-              text: '{ broken json',
+              text: { type: 'text', text: '{ broken json' },
             }),
           }),
           schema: z.object({ content: z.string() }),
@@ -917,7 +929,7 @@ describe('output = "object"', () => {
           model: new MockLanguageModelV2({
             doGenerate: async ({}) => ({
               ...dummyResponseValues,
-              text: '{ broken json',
+              text: { type: 'text', text: '{ broken json' },
             }),
           }),
           schema: z.object({ content: z.string() }),
@@ -1026,13 +1038,16 @@ describe('output = "array"', () => {
 
           return {
             ...dummyResponseValues,
-            text: JSON.stringify({
-              elements: [
-                { content: 'element 1' },
-                { content: 'element 2' },
-                { content: 'element 3' },
-              ],
-            }),
+            text: {
+              type: 'text',
+              text: JSON.stringify({
+                elements: [
+                  { content: 'element 1' },
+                  { content: 'element 2' },
+                  { content: 'element 3' },
+                ],
+              }),
+            },
           };
         },
       }),
@@ -1087,7 +1102,7 @@ describe('output = "enum"', () => {
 
           return {
             ...dummyResponseValues,
-            text: JSON.stringify({ result: 'sunny' }),
+            text: { type: 'text', text: JSON.stringify({ result: 'sunny' }) },
           };
         },
       }),
@@ -1124,7 +1139,7 @@ describe('output = "no-schema"', () => {
 
           return {
             ...dummyResponseValues,
-            text: `{ "content": "Hello, world!" }`,
+            text: { type: 'text', text: '{ "content": "Hello, world!" }' },
           };
         },
       }),
@@ -1148,7 +1163,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
-          text: `{ "content": "Hello, world!" }`,
+          text: { type: 'text', text: '{ "content": "Hello, world!" }' },
         }),
       }),
       schema: z.object({ content: z.string() }),
@@ -1164,7 +1179,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
-          text: `{ "content": "Hello, world!" }`,
+          text: { type: 'text', text: '{ "content": "Hello, world!" }' },
           response: {
             id: 'test-id-from-model',
             timestamp: new Date(10000),
@@ -1254,7 +1269,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
-          text: `{ "content": "Hello, world!" }`,
+          text: { type: 'text', text: '{ "content": "Hello, world!" }' },
           response: {
             id: 'test-id-from-model',
             timestamp: new Date(10000),
@@ -1369,7 +1384,7 @@ describe('options.messages', () => {
 
           return {
             ...dummyResponseValues,
-            text: `{ "content": "Hello, world!" }`,
+            text: { type: 'text', text: '{ "content": "Hello, world!" }' },
           };
         },
       }),
@@ -1413,7 +1428,7 @@ describe('options.messages', () => {
           },
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: `{ "content": "Hello, world!" }`,
+            text: { type: 'text', text: '{ "content": "Hello, world!" }' },
           }),
         });
       }
