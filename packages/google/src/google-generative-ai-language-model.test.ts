@@ -248,7 +248,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Hello, World!",
+        "type": "text",
+      }
+    `);
   });
 
   it('should extract usage', async () => {
@@ -1131,7 +1136,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Here is an image:And another image:');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Here is an image:And another image:",
+        "type": "text",
+      }
+    `);
     expect(files).toMatchInlineSnapshot(`
       [
         {
@@ -1265,7 +1275,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Here is content:');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Here is content:",
+        "type": "text",
+      }
+    `);
     expect(files).toMatchInlineSnapshot(`
       [
         {
@@ -1433,39 +1448,53 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'world!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        providerMetadata: {
-          google: {
-            groundingMetadata: null,
-            safetyRatings: [
-              {
-                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                probability: 'NEGLIGIBLE',
-              },
-              {
-                category: 'HARM_CATEGORY_HATE_SPEECH',
-                probability: 'NEGLIGIBLE',
-              },
-              {
-                category: 'HARM_CATEGORY_HARASSMENT',
-                probability: 'NEGLIGIBLE',
-              },
-              {
-                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                probability: 'NEGLIGIBLE',
-              },
-            ],
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "text": ", ",
+          "type": "text",
+        },
+        {
+          "text": "world!",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "google": {
+              "groundingMetadata": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 294,
+            "outputTokens": 233,
           },
         },
-        usage: { inputTokens: 294, outputTokens: 233 },
-      },
-    ]);
+      ]
+    `);
   });
 
   it('should expose the raw response headers', async () => {
@@ -1577,37 +1606,45 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'text-delta', textDelta: 'test' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        providerMetadata: {
-          google: {
-            groundingMetadata: null,
-            safetyRatings: [
-              {
-                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                probability: 'NEGLIGIBLE',
-              },
-              {
-                category: 'HARM_CATEGORY_HATE_SPEECH',
-                probability: 'NEGLIGIBLE',
-              },
-              {
-                category: 'HARM_CATEGORY_HARASSMENT',
-                probability: 'NEGLIGIBLE',
-              },
-              {
-                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                probability: 'NEGLIGIBLE',
-              },
-            ],
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "test",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "google": {
+              "groundingMetadata": null,
+              "safetyRatings": [
+                {
+                  "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HATE_SPEECH",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_HARASSMENT",
+                  "probability": "NEGLIGIBLE",
+                },
+                {
+                  "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                  "probability": "NEGLIGIBLE",
+                },
+              ],
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 294,
+            "outputTokens": 233,
           },
         },
-        usage: { inputTokens: 294, outputTokens: 233 },
-      },
-    ]);
+      ]
+    `);
   });
 
   it('should expose safety ratings in provider metadata on finish', async () => {
