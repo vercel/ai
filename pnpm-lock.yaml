@@ -1580,10 +1580,10 @@ importers:
     dependencies:
       '@ai-sdk/provider':
         specifier: 1.1.2
-        version: link:../provider
+        version: 1.1.2
       '@ai-sdk/provider-utils':
         specifier: 2.2.6
-        version: link:../provider-utils
+        version: 2.2.6(zod@3.23.8)
     devDependencies:
       '@types/node':
         specifier: 20.17.24
