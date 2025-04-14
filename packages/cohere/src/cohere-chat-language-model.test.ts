@@ -108,14 +108,17 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(toolCalls).toStrictEqual([
-      {
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"example value"}',
-      },
-    ]);
+    expect(toolCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "args": "{"value":"example value"}",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+      ]
+    `);
     expect(text).toStrictEqual('Hello, World!');
     expect(finishReason).toStrictEqual('stop');
   });
@@ -422,14 +425,17 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(toolCalls).toStrictEqual([
-      {
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'currentTime',
-        args: '{}',
-      },
-    ]);
+    expect(toolCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "args": "{}",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "currentTime",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 });
 

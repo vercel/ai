@@ -345,14 +345,17 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(toolCalls).toStrictEqual([
-      {
-        toolCallId: 'test-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"example value"}',
-      },
-    ]);
+    expect(toolCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "args": "{"value":"example value"}",
+          "toolCallId": "test-id",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+      ]
+    `);
     expect(text).toStrictEqual(undefined);
     expect(finishReason).toStrictEqual('tool-calls');
   });

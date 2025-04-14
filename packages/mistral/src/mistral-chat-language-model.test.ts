@@ -130,7 +130,17 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(toolCalls).toMatchInlineSnapshot();
+    expect(toolCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "args": "{"location": "paris"}",
+          "toolCallId": "gSIMJiOkT",
+          "toolCallType": "function",
+          "toolName": "weatherTool",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 
   it('should extract usage', async () => {
