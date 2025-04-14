@@ -254,7 +254,7 @@ export type LanguageModelV2StreamPart =
   | { type: 'redacted-reasoning'; data: string }
 
   // Sources:
-  | { type: 'source'; source: LanguageModelV2Source }
+  | LanguageModelV2Source
 
   // Files:
   | LanguageModelV2File
