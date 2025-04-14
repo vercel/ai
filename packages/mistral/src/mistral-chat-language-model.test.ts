@@ -130,14 +130,17 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(toolCalls).toStrictEqual([
-      {
-        toolCallId: 'gSIMJiOkT',
-        toolCallType: 'function',
-        toolName: 'weatherTool',
-        args: '{"location": "paris"}',
-      },
-    ]);
+    expect(toolCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "args": "{"location": "paris"}",
+          "toolCallId": "gSIMJiOkT",
+          "toolCallType": "function",
+          "toolName": "weatherTool",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 
   it('should extract usage', async () => {

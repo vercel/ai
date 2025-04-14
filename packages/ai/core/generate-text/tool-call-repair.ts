@@ -1,4 +1,4 @@
-import { JSONSchema7, LanguageModelV2FunctionToolCall } from '@ai-sdk/provider';
+import { JSONSchema7, LanguageModelV2ToolCall } from '@ai-sdk/provider';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { CoreMessage } from '../prompt';
@@ -20,8 +20,8 @@ import { ToolSet } from './tool-set';
 export type ToolCallRepairFunction<TOOLS extends ToolSet> = (options: {
   system: string | undefined;
   messages: CoreMessage[];
-  toolCall: LanguageModelV2FunctionToolCall;
+  toolCall: LanguageModelV2ToolCall;
   tools: TOOLS;
   parameterSchema: (options: { toolName: string }) => JSONSchema7;
   error: NoSuchToolError | InvalidToolArgumentsError;
-}) => Promise<LanguageModelV2FunctionToolCall | null>;
+}) => Promise<LanguageModelV2ToolCall | null>;

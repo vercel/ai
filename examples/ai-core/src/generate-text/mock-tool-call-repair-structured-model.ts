@@ -12,6 +12,7 @@ async function main() {
         finishReason: 'tool-calls',
         toolCalls: [
           {
+            type: 'tool-call',
             toolCallType: 'function',
             toolCallId: 'call-1',
             toolName: 'cityAttractions',

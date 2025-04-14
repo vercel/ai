@@ -200,14 +200,17 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(toolCalls).toStrictEqual([
-        {
-          toolCallId: 'toolu_1',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          args: '{"value":"example value"}',
-        },
-      ]);
+      expect(toolCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "args": "{"value":"example value"}",
+            "toolCallId": "toolu_1",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+            "type": "tool-call",
+          },
+        ]
+      `);
       expect(text).toStrictEqual('Some text\n\n');
       expect(finishReason).toStrictEqual('tool-calls');
     });

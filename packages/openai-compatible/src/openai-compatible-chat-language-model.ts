@@ -247,6 +247,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       text: choice.message.content ?? undefined,
       reasoning: choice.message.reasoning_content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
+        type: 'tool-call',
         toolCallType: 'function',
         toolCallId: toolCall.id ?? generateId(),
         toolName: toolCall.function.name,

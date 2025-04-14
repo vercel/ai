@@ -176,6 +176,7 @@ describe('output = "object"', () => {
               ...dummyResponseValues,
               toolCalls: [
                 {
+                  type: 'tool-call',
                   toolCallType: 'function',
                   toolCallId: 'tool-call-1',
                   toolName: 'json',
@@ -225,6 +226,7 @@ describe('output = "object"', () => {
               ...dummyResponseValues,
               toolCalls: [
                 {
+                  type: 'tool-call',
                   toolCallType: 'function',
                   toolCallId: 'tool-call-1',
                   toolName: 'json',
@@ -274,6 +276,7 @@ describe('output = "object"', () => {
             ...dummyResponseValues,
             toolCalls: [
               {
+                type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'tool-call-1',
                 toolName: 'json',
@@ -337,6 +340,7 @@ describe('output = "object"', () => {
             ...dummyResponseValues,
             toolCalls: [
               {
+                type: 'tool-call',
                 toolCallType: 'function',
                 toolCallId: 'tool-call-1',
                 toolName: 'json',
@@ -617,6 +621,7 @@ describe('output = "object"', () => {
               ...dummyResponseValues,
               toolCalls: [
                 {
+                  type: 'tool-call',
                   toolCallType: 'function',
                   toolCallId: 'tool-call-1',
                   toolName: 'json',
@@ -757,6 +762,7 @@ describe('output = "object"', () => {
               ...dummyResponseValues,
               toolCalls: [
                 {
+                  type: 'tool-call',
                   toolCallType: 'function',
                   toolCallId: 'tool-call-1',
                   toolName: 'json',
@@ -809,6 +815,7 @@ describe('output = "object"', () => {
               ...dummyResponseValues,
               toolCalls: [
                 {
+                  type: 'tool-call',
                   toolCallType: 'function',
                   toolCallId: 'tool-call-1',
                   toolName: 'json',
@@ -860,6 +867,7 @@ describe('output = "object"', () => {
               ...dummyResponseValues,
               toolCalls: [
                 {
+                  type: 'tool-call',
                   toolCallType: 'function',
                   toolCallId: 'tool-call-1',
                   toolName: 'json',
@@ -1199,6 +1207,7 @@ describe('telemetry', () => {
           ...dummyResponseValues,
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'tool-call-1',
               toolName: 'json',
@@ -1274,6 +1283,7 @@ describe('telemetry', () => {
           ...dummyResponseValues,
           toolCalls: [
             {
+              type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'tool-call-1',
               toolName: 'json',

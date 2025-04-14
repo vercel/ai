@@ -795,20 +795,24 @@ describe('OpenAIResponsesLanguageModel', () => {
           tools: TEST_TOOLS,
         });
 
-        expect(result.toolCalls).toStrictEqual([
-          {
-            toolCallType: 'function',
-            toolCallId: 'call_0NdsJqOS8N3J9l2p0p4WpYU9',
-            toolName: 'weather',
-            args: JSON.stringify({ location: 'San Francisco' }),
-          },
-          {
-            toolCallType: 'function',
-            toolCallId: 'call_gexo0HtjUfmAIW4gjNOgyrcr',
-            toolName: 'cityAttractions',
-            args: JSON.stringify({ city: 'San Francisco' }),
-          },
-        ]);
+        expect(result.toolCalls).toMatchInlineSnapshot(`
+          [
+            {
+              "args": "{"location":"San Francisco"}",
+              "toolCallId": "call_0NdsJqOS8N3J9l2p0p4WpYU9",
+              "toolCallType": "function",
+              "toolName": "weather",
+              "type": "tool-call",
+            },
+            {
+              "args": "{"city":"San Francisco"}",
+              "toolCallId": "call_gexo0HtjUfmAIW4gjNOgyrcr",
+              "toolCallType": "function",
+              "toolName": "cityAttractions",
+              "type": "tool-call",
+            },
+          ]
+        `);
       });
 
       it('should have tool-calls finish reason', async () => {

@@ -67,10 +67,7 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
                 argsTextDelta: toolCall.args,
               });
 
-              controller.enqueue({
-                type: 'tool-call',
-                ...toolCall,
-              });
+              controller.enqueue(toolCall);
             }
           }
 
