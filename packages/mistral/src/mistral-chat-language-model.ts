@@ -202,7 +202,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     }
 
     return {
-      text,
+      text: text != null ? { type: 'text', text } : undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         type: 'tool-call',
         toolCallType: 'function',
@@ -318,10 +318,8 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
 
             if (textContent != null) {
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: trimLeadingSpace
-                  ? textContent.trimStart()
-                  : textContent,
+                type: 'text',
+                text: trimLeadingSpace ? textContent.trimStart() : textContent,
               });
 
               trimLeadingSpace = false;

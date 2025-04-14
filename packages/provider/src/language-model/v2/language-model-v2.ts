@@ -6,6 +6,7 @@ import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
 import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
 import { LanguageModelV2Reasoning } from './language-model-v2-reasoning';
 import { LanguageModelV2Source } from './language-model-v2-source';
+import { LanguageModelV2Text } from './language-model-v2-text';
 import { LanguageModelV2ToolCall } from './language-model-v2-tool-call';
 import { LanguageModelV2ToolCallDelta } from './language-model-v2-tool-call-delta';
 import { LanguageModelV2Usage } from './language-model-v2-usage';
@@ -93,7 +94,7 @@ by the user.
 Text that the model has generated.
 Can be undefined if the model did not generate any text.
      */
-    text?: string;
+    text?: LanguageModelV2Text;
 
     /**
 Reasoning that the model has generated.
@@ -229,8 +230,8 @@ Warnings for the call, e.g. unsupported settings.
 };
 
 export type LanguageModelV2StreamPart =
-  // Basic text deltas:
-  | { type: 'text-delta'; textDelta: string }
+  // Text:
+  | LanguageModelV2Text
 
   // Reasoning:
   | LanguageModelV2Reasoning

@@ -397,8 +397,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               });
             } else if (isTextDeltaChunk(value)) {
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: value.delta,
+                type: 'text',
+                text: value.delta,
               });
             } else if (
               isResponseOutputItemDoneChunk(value) &&

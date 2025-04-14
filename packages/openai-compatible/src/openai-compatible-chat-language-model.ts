@@ -244,7 +244,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     }
 
     return {
-      text: choice.message.content ?? undefined,
+      text:
+        choice.message.content != null
+          ? { type: 'text', text: choice.message.content }
+          : undefined,
       reasoning: choice.message.reasoning_content
         ? [
             {
@@ -433,8 +436,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
             if (delta.content != null) {
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: delta.content,
+                type: 'text',
+                text: delta.content,
               });
             }
 

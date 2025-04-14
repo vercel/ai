@@ -186,7 +186,10 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     const choice = response.choices[0];
 
     return {
-      text: choice.message.content ?? undefined,
+      text:
+        choice.message.content != null
+          ? { type: 'text', text: choice.message.content }
+          : undefined,
       reasoning: choice.message.reasoning
         ? [
             {
@@ -320,8 +323,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
             if (delta.content != null && delta.content.length > 0) {
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: delta.content,
+                type: 'text',
+                text: delta.content,
               });
             }
 
