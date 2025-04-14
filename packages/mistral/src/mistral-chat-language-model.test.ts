@@ -490,34 +490,46 @@ describe('doStream', () => {
         prompt: TEST_PROMPT,
       });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'ad6f7ce6543c4d0890280ae184fe4dd8',
-        timestamp: new Date(1711365023 * 1000),
-        modelId: 'mistral-large-latest',
-      },
-      { type: 'text-delta', textDelta: '' },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'yfBEybNYi',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'yfBEybNYi',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: 183, outputTokens: 133 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "ad6f7ce6543c4d0890280ae184fe4dd8",
+          "modelId": "mistral-large-latest",
+          "timestamp": 2024-03-25T11:10:23.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "textDelta": "",
+          "type": "text-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "{"value":"Sparkle Day"}",
+            "toolCallId": "yfBEybNYi",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCall": {
+            "args": "{"value":"Sparkle Day"}",
+            "toolCallId": "yfBEybNYi",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 183,
+            "outputTokens": 133,
+          },
+        },
+      ]
+    `);
   });
 
   it('should expose the raw response headers', async () => {
