@@ -55,10 +55,3 @@ export type ToolChoice<TOOLS extends Record<string, unknown>> =
   | 'none'
   | 'required'
   | { type: 'tool'; toolName: Extract<keyof TOOLS, string> };
-
-/**
- * @deprecated Use `ToolChoice` instead.
- */
-// TODO remove in v5
-export type CoreToolChoice<TOOLS extends Record<string, unknown>> =
-  ToolChoice<TOOLS>;
