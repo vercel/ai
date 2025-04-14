@@ -5,9 +5,13 @@ export const yourGuardrailMiddleware: LanguageModelV2Middleware = {
     const { text, ...rest } = await doGenerate();
 
     // filtering approach, e.g. for PII or other sensitive information:
-    const cleanedText = text?.replace(/badword/g, '<REDACTED>');
+    const cleanedText = text?.text?.replace(/badword/g, '<REDACTED>');
 
-    return { text: cleanedText, ...rest };
+    return {
+      text:
+        cleanedText != null ? { type: 'text', text: cleanedText } : undefined,
+      ...rest,
+    };
   },
 
   // here you would implement the guardrail logic for streaming
