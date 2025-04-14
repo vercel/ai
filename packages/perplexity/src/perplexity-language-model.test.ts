@@ -155,18 +155,22 @@ describe('PerplexityLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.sources).toEqual([
-        {
-          sourceType: 'url',
-          id: 'id-0',
-          url: 'http://example.com/123',
-        },
-        {
-          sourceType: 'url',
-          id: 'id-1',
-          url: 'https://example.com/456',
-        },
-      ]);
+      expect(result.sources).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "type": "source",
+            "url": "http://example.com/123",
+          },
+          {
+            "id": "id-1",
+            "sourceType": "url",
+            "type": "source",
+            "url": "https://example.com/456",
+          },
+        ]
+      `);
     });
 
     it('should extract images', async () => {
@@ -398,56 +402,57 @@ describe('PerplexityLanguageModel', () => {
 
       const result = await convertReadableStreamToArray(stream);
 
-      expect(result).toEqual([
-        {
-          type: 'response-metadata',
-          id: 'stream-id',
-          timestamp: new Date(1680003600 * 1000),
-          modelId,
-        },
-        {
-          type: 'source',
-          source: {
-            sourceType: 'url',
-            id: 'id-0',
-            url: 'http://example.com/123',
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "stream-id",
+            "modelId": "perplexity-001",
+            "timestamp": 2023-03-28T11:40:00.000Z,
+            "type": "response-metadata",
           },
-        },
-        {
-          type: 'source',
-          source: {
-            sourceType: 'url',
-            id: 'id-1',
-            url: 'https://example.com/456',
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "type": "source",
+            "url": "http://example.com/123",
           },
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'Hello',
-        },
-        {
-          type: 'text-delta',
-          textDelta: ', ',
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'World!',
-        },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { inputTokens: 10, outputTokens: 20 },
-          providerMetadata: {
-            perplexity: {
-              images: null,
-              usage: {
-                citationTokens: null,
-                numSearchQueries: null,
+          {
+            "id": "id-1",
+            "sourceType": "url",
+            "type": "source",
+            "url": "https://example.com/456",
+          },
+          {
+            "textDelta": "Hello",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": ", ",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "World!",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "perplexity": {
+                "images": null,
+                "usage": {
+                  "citationTokens": null,
+                  "numSearchQueries": null,
+                },
               },
             },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 10,
+              "outputTokens": 20,
+            },
           },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should send the correct streaming request body', async () => {

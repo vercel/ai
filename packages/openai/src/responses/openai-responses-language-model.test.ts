@@ -963,38 +963,45 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
         });
 
-        expect(result.sources).toStrictEqual([
-          {
-            sourceType: 'url',
-            id: 'id-0',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com',
-            title: 'Bruce Lee statue to be installed in SF Chinatown',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-1',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com',
-            title: 'The Bay Area is set to make an office leasing comeback',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-2',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com',
-            title: 'Where to see spring blooms in the Bay Area',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-3',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com',
-            title: 'Oceanfront Great Highway park set to open in April',
-          },
-          {
-            sourceType: 'url',
-            id: 'id-4',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com',
-            title: "San Francisco's spring seasons are getting warmer",
-          },
-        ]);
+        expect(result.sources).toMatchInlineSnapshot(`
+          [
+            {
+              "id": "id-0",
+              "sourceType": "url",
+              "title": "Bruce Lee statue to be installed in SF Chinatown",
+              "type": "source",
+              "url": "https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com",
+            },
+            {
+              "id": "id-1",
+              "sourceType": "url",
+              "title": "The Bay Area is set to make an office leasing comeback",
+              "type": "source",
+              "url": "https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com",
+            },
+            {
+              "id": "id-2",
+              "sourceType": "url",
+              "title": "Where to see spring blooms in the Bay Area",
+              "type": "source",
+              "url": "https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com",
+            },
+            {
+              "id": "id-3",
+              "sourceType": "url",
+              "title": "Oceanfront Great Highway park set to open in April",
+              "type": "source",
+              "url": "https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com",
+            },
+            {
+              "id": "id-4",
+              "sourceType": "url",
+              "title": "San Francisco's spring seasons are getting warmer",
+              "type": "source",
+              "url": "https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com",
+            },
+          ]
+        `);
       });
     });
   });
@@ -1242,54 +1249,67 @@ describe('OpenAIResponsesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          id: 'resp_67cf3390786881908b27489d7e8cfb6b',
-          modelId: 'gpt-4o-mini-2024-07-18',
-          timestamp: new Date('2025-03-10T18:46:40.000Z'),
-          type: 'response-metadata',
-        },
-        { type: 'text-delta', textDelta: 'Last week' },
-        { type: 'text-delta', textDelta: ' in San Francisco' },
-        {
-          type: 'source',
-          source: {
-            id: 'id-0',
-            sourceType: 'url',
-            title:
-              'San Francisco Events in March 2025: Festivals, Theater & Easter',
-            url: 'https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com',
+      expect(
+        await convertReadableStreamToArray(stream),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "resp_67cf3390786881908b27489d7e8cfb6b",
+            "modelId": "gpt-4o-mini-2024-07-18",
+            "timestamp": 2025-03-10T18:46:40.000Z,
+            "type": "response-metadata",
           },
-        },
-        { type: 'text-delta', textDelta: ' a themed party' },
-        {
-          type: 'text-delta',
-          textDelta:
-            '([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))',
-        },
-        {
-          type: 'source',
-          source: {
-            id: 'id-1',
-            sourceType: 'url',
-            title: 'SF weekend events: Giants FanFest, crab crawl and more',
-            url: 'https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com',
+          {
+            "textDelta": "Last week",
+            "type": "text-delta",
           },
-        },
-        { type: 'text-delta', textDelta: '.' },
-        {
-          type: 'finish',
-          finishReason: 'stop',
-          usage: { inputTokens: 327, outputTokens: 834 },
-          providerMetadata: {
-            openai: {
-              responseId: 'resp_67cf3390786881908b27489d7e8cfb6b',
-              cachedPromptTokens: 0,
-              reasoningTokens: 0,
+          {
+            "textDelta": " in San Francisco",
+            "type": "text-delta",
+          },
+          {
+            "id": "id-0",
+            "sourceType": "url",
+            "title": "San Francisco Events in March 2025: Festivals, Theater & Easter",
+            "type": "source",
+            "url": "https://www.sftourismtips.com/san-francisco-events-in-march.html?utm_source=chatgpt.com",
+          },
+          {
+            "textDelta": " a themed party",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "([axios.com](https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com))",
+            "type": "text-delta",
+          },
+          {
+            "id": "id-1",
+            "sourceType": "url",
+            "title": "SF weekend events: Giants FanFest, crab crawl and more",
+            "type": "source",
+            "url": "https://www.axios.com/local/san-francisco/2025/03/06/sf-events-march-what-to-do-giants-fanfest?utm_source=chatgpt.com",
+          },
+          {
+            "textDelta": ".",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "cachedPromptTokens": 0,
+                "reasoningTokens": 0,
+                "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 327,
+              "outputTokens": 834,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
   });
 });
