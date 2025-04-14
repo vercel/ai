@@ -697,81 +697,102 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'msg_01GouTqNCGXzrj5LQ5jEkw67',
-          modelId: 'claude-3-haiku-20240307',
-        },
-        {
-          type: 'text-delta',
-          textDelta: 'Okay',
-        },
-        {
-          type: 'text-delta',
-          textDelta: '!',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: '',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: '{"value',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: '":',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: '"Spark',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: 'le',
-        },
-        {
-          type: 'tool-call-delta',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          argsTextDelta: ' Day"}',
-        },
-        {
-          type: 'tool-call',
-          toolCallId: 'toolu_01DBsB4vvYLnBDzZ5rBSxSLs',
-          toolCallType: 'function',
-          toolName: 'test-tool',
-          args: '{"value":"Sparkle Day"}',
-        },
-        {
-          finishReason: 'tool-calls',
-          providerMetadata: {
-            anthropic: {
-              cacheCreationInputTokens: null,
-              cacheReadInputTokens: null,
+      expect(
+        await convertReadableStreamToArray(stream),
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "textDelta": "Okay",
+            "type": "text-delta",
+          },
+          {
+            "textDelta": "!",
+            "type": "text-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": "",
+              "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+              "toolCallType": "function",
+              "toolName": "test-tool",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": "{"value",
+              "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+              "toolCallType": "function",
+              "toolName": "test-tool",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": "":",
+              "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+              "toolCallType": "function",
+              "toolName": "test-tool",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": ""Spark",
+              "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+              "toolCallType": "function",
+              "toolName": "test-tool",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": "le",
+              "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+              "toolCallType": "function",
+              "toolName": "test-tool",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCallDelta": {
+              "argsTextDelta": " Day"}",
+              "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+              "toolCallType": "function",
+              "toolName": "test-tool",
+            },
+            "type": "tool-call-delta",
+          },
+          {
+            "toolCall": {
+              "args": "{"value":"Sparkle Day"}",
+              "toolCallId": "toolu_01DBsB4vvYLnBDzZ5rBSxSLs",
+              "toolCallType": "function",
+              "toolName": "test-tool",
+            },
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": null,
+                "cacheReadInputTokens": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 441,
+              "outputTokens": 65,
             },
           },
-          type: 'finish',
-          usage: { inputTokens: 441, outputTokens: 65 },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should forward error chunks', async () => {
