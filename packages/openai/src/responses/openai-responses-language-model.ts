@@ -257,6 +257,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const toolCalls = response.output
       .filter(output => output.type === 'function_call')
       .map(output => ({
+        type: 'tool-call' as const,
         toolCallType: 'function' as const,
         toolCallId: output.call_id,
         toolName: output.name,

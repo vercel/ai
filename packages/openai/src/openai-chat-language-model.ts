@@ -345,6 +345,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     return {
       text: choice.message.content ?? undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
+        type: 'tool-call' as const,
         toolCallType: 'function',
         toolCallId: toolCall.id ?? generateId(),
         toolName: toolCall.function.name,

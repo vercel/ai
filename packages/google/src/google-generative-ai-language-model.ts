@@ -405,6 +405,7 @@ function getToolCallsFromParts({
   return functionCallParts == null || functionCallParts.length === 0
     ? undefined
     : functionCallParts.map(part => ({
+        type: 'tool-call' as const,
         toolCallType: 'function' as const,
         toolCallId: generateId(),
         toolName: part.functionCall.name,

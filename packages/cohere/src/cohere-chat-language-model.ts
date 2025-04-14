@@ -133,6 +133,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       text,
       toolCalls: response.message.tool_calls
         ? response.message.tool_calls.map(toolCall => ({
+            type: 'tool-call' as const,
             toolCallId: toolCall.id,
             toolName: toolCall.function.name,
             // Cohere sometimes returns `null` for tool call arguments for tools
