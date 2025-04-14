@@ -85,6 +85,11 @@ describe('simulateStreamingMiddleware', () => {
             },
             {
               type: 'reasoning',
+              reasoningType: 'text',
+              text: 'Second reasoning step',
+            },
+            {
+              type: 'reasoning',
               reasoningType: 'signature',
               signature: 'abc',
             },

@@ -64,12 +64,18 @@ const modelWithReasoning = new MockLanguageModelV2({
     ...dummyResponseValues,
     reasoning: [
       {
-        type: 'text',
+        type: 'reasoning',
+        reasoningType: 'text',
         text: 'I will open the conversation with witty banter.',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'signature',
         signature: 'signature',
       },
       {
-        type: 'redacted',
+        type: 'reasoning',
+        reasoningType: 'redacted',
         data: 'redacted-reasoning-data',
       },
     ],

@@ -502,7 +502,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     "warnings": [],
   },
   {
-    "textDelta": "thinking",
+    "reasoningType": "text",
+    "text": "thinking",
     "type": "reasoning",
   },
   {
@@ -2132,7 +2133,8 @@ exports[`streamText > options.onChunk > should return events in order 1`] = `
     "type": "tool-call-delta",
   },
   {
-    "textDelta": "Feeling clever",
+    "reasoningType": "text",
+    "text": "Feeling clever",
     "type": "reasoning",
   },
   {
@@ -3439,32 +3441,39 @@ exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
     "warnings": [],
   },
   {
-    "textDelta": "I will open the conversation",
+    "reasoningType": "text",
+    "text": "I will open the conversation",
     "type": "reasoning",
   },
   {
-    "textDelta": " with witty banter. ",
+    "reasoningType": "text",
+    "text": " with witty banter. ",
     "type": "reasoning",
   },
   {
+    "reasoningType": "signature",
     "signature": "1234567890",
-    "type": "reasoning-signature",
+    "type": "reasoning",
   },
   {
     "data": "redacted-reasoning-data",
-    "type": "redacted-reasoning",
-  },
-  {
-    "textDelta": "Once the user has relaxed,",
+    "reasoningType": "redacted",
     "type": "reasoning",
   },
   {
-    "textDelta": " I will pry for valuable information.",
+    "reasoningType": "text",
+    "text": "Once the user has relaxed,",
     "type": "reasoning",
   },
   {
+    "reasoningType": "text",
+    "text": " I will pry for valuable information.",
+    "type": "reasoning",
+  },
+  {
+    "reasoningType": "signature",
     "signature": "1234567890",
-    "type": "reasoning-signature",
+    "type": "reasoning",
   },
   {
     "textDelta": "Hi",

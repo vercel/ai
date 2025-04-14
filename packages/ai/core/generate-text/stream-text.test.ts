@@ -137,7 +137,12 @@ const modelWithReasoning = new MockLanguageModelV2({
       {
         type: 'reasoning',
         reasoningType: 'text',
-        text: 'I will open the conversation with witty banter. ',
+        text: 'I will open the conversation',
+      },
+      {
+        type: 'reasoning',
+        reasoningType: 'text',
+        text: ' with witty banter. ',
       },
       {
         type: 'reasoning',
@@ -4032,50 +4037,63 @@ describe('streamText', () => {
 
         await resultObject.consumeStream();
 
-        expect(result).toStrictEqual([
-          { type: 'text-delta', textDelta: 'HELLO' },
-          {
-            type: 'reasoning',
-            textDelta: 'Feeling clever',
-          },
-          {
-            type: 'tool-call-streaming-start',
-            toolCallId: '1',
-            toolName: 'tool1',
-          },
-          {
-            type: 'tool-call-delta',
-            argsTextDelta: '{"VALUE": "',
-            toolCallId: '1',
-            toolName: 'tool1',
-          },
-          {
-            type: 'tool-call-delta',
-            argsTextDelta: 'TEST',
-            toolCallId: '1',
-            toolName: 'tool1',
-          },
-          {
-            type: 'tool-call-delta',
-            argsTextDelta: '"}',
-            toolCallId: '1',
-            toolName: 'tool1',
-          },
-          {
-            type: 'tool-call',
-            toolCallId: '1',
-            toolName: 'tool1',
-            args: { value: 'TEST' },
-          },
-          {
-            type: 'tool-result',
-            toolCallId: '1',
-            toolName: 'tool1',
-            args: { value: 'TEST' },
-            result: 'TEST-RESULT',
-          },
-          { type: 'text-delta', textDelta: ' WORLD' },
-        ]);
+        expect(result).toMatchInlineSnapshot(`
+          [
+            {
+              "textDelta": "HELLO",
+              "type": "text-delta",
+            },
+            {
+              "reasoningType": "text",
+              "text": "Feeling clever",
+              "type": "reasoning",
+            },
+            {
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-call-streaming-start",
+            },
+            {
+              "argsTextDelta": "{"VALUE": "",
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-call-delta",
+            },
+            {
+              "argsTextDelta": "TEST",
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-call-delta",
+            },
+            {
+              "argsTextDelta": ""}",
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-call-delta",
+            },
+            {
+              "args": {
+                "value": "TEST",
+              },
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "args": {
+                "value": "TEST",
+              },
+              "result": "TEST-RESULT",
+              "toolCallId": "1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+            {
+              "textDelta": " WORLD",
+              "type": "text-delta",
+            },
+          ]
+        `);
       });
     });
 
