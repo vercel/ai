@@ -2013,7 +2013,7 @@ describe('streamText', () => {
         TextStreamPart<any>,
         {
           type:
-            | 'text-delta'
+            | 'text'
             | 'reasoning'
             | 'source'
             | 'tool-call'
@@ -3965,7 +3965,7 @@ describe('streamText', () => {
             TextStreamPart<any>,
             {
               type:
-                | 'text-delta'
+                | 'text'
                 | 'reasoning'
                 | 'source'
                 | 'tool-call'
@@ -4040,8 +4040,8 @@ describe('streamText', () => {
         expect(result).toMatchInlineSnapshot(`
           [
             {
-              "textDelta": "HELLO",
-              "type": "text-delta",
+              "text": "HELLO",
+              "type": "text",
             },
             {
               "reasoningType": "text",

@@ -459,7 +459,7 @@ A function that attempts to repair a tool call that failed to parse.
         }
 
         // text:
-        const originalText = currentModelResponse.text ?? '';
+        const originalText = currentModelResponse.text?.text ?? '';
         const stepTextLeadingWhitespaceTrimmed =
           stepType === 'continue' && // only for continue steps
           text.trimEnd() !== text // only trim when there is preceding whitespace

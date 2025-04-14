@@ -12,7 +12,7 @@ import { runToolsTransformation } from './run-tools-transformation';
 it('should forward text deltas correctly', async () => {
   const inputStream: ReadableStream<LanguageModelV2StreamPart> =
     convertArrayToReadableStream([
-      { type: 'text-delta', textDelta: 'text' },
+      { type: 'text', text: 'text' },
       {
         type: 'finish',
         finishReason: 'stop',
@@ -36,7 +36,7 @@ it('should forward text deltas correctly', async () => {
   const result = await convertReadableStreamToArray(transformedStream);
 
   expect(result).toEqual([
-    { type: 'text-delta', textDelta: 'text' },
+    { type: 'text', text: 'text' },
     {
       type: 'finish',
       finishReason: 'stop',
