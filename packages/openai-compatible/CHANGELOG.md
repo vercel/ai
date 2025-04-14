@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.2.11
+
+### Patch Changes
+
+- b5c9cd4: fix (provider/openai-compatible): change tool_call type schema to nullish
+
 ## 0.2.10
 
 ### Patch Changes
