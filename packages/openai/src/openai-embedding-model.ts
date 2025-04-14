@@ -60,7 +60,11 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
       });
     }
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url: this.config.url({
         path: '/embeddings',
         modelId: this.modelId,
@@ -86,7 +90,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
         : undefined,
-      response: { headers: responseHeaders },
+      response: { headers: responseHeaders, body: rawValue },
     };
   }
 }

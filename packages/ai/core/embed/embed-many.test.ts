@@ -123,6 +123,35 @@ describe('options.headers', () => {
   });
 });
 
+describe('options.providerOptions', () => {
+  it('should pass provider options to model', async () => {
+    const model = new MockEmbeddingModelV2({
+      doEmbed: async ({ providerOptions }) => {
+        return { embeddings: [[1, 2, 3]] };
+      },
+    });
+
+    vi.spyOn(model, 'doEmbed');
+
+    await embedMany({
+      model,
+      values: ['test-input'],
+      providerOptions: {
+        aProvider: { someKey: 'someValue' },
+      },
+    });
+
+    expect(model.doEmbed).toHaveBeenCalledWith({
+      abortSignal: undefined,
+      headers: undefined,
+      providerOptions: {
+        aProvider: { someKey: 'someValue' },
+      },
+      values: ['test-input'],
+    });
+  });
+});
+
 describe('telemetry', () => {
   let tracer: MockTracer;
 

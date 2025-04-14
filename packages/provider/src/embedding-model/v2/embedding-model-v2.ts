@@ -1,3 +1,4 @@
+import { SharedV2ProviderOptions } from '../../shared';
 import { EmbeddingModelV2Embedding } from './embedding-model-v2-embedding';
 
 /**
@@ -56,6 +57,13 @@ Abort signal for cancelling the operation.
     abortSignal?: AbortSignal;
 
     /**
+Additional provider-specific options. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+    */
+    providerOptions?: SharedV2ProviderOptions;
+
+    /**
   Additional HTTP headers to be sent with the request.
   Only applicable for HTTP-based providers.
      */
@@ -79,6 +87,11 @@ Optional response information for debugging purposes.
 Response headers.
        */
       headers?: Record<string, string>;
+
+      /**
+      The response body.
+      */
+      body?: unknown;
     };
   }>;
 };

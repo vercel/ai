@@ -5,7 +5,7 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { EmbeddingModel } from '../types';
+import { EmbeddingModel, ProviderOptions } from '../types';
 import { EmbedResult } from './embed-result';
 
 /**
@@ -23,6 +23,7 @@ Embed a value using an embedding model. The type of the value is defined by the 
 export async function embed<VALUE>({
   model,
   value,
+  providerOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -55,6 +56,13 @@ Additional headers to include in the request.
 Only applicable for HTTP-based providers.
  */
   headers?: Record<string, string>;
+
+  /**
+  Additional provider-specific options. They are passed through
+  to the provider from the AI SDK and enable provider-specific
+  functionality that can be fully encapsulated in the provider.
+  */
+  providerOptions?: ProviderOptions;
 
   /**
    * Optional telemetry configuration (experimental).
@@ -106,6 +114,7 @@ Only applicable for HTTP-based providers.
               values: [value],
               abortSignal,
               headers,
+              providerOptions,
             });
 
             const embedding = modelResponse.embeddings[0];

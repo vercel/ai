@@ -1,0 +1,39 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GoogleVertexEmbeddingModel > should expose the raw response 1`] = `
+{
+  "body": {
+    "predictions": [
+      {
+        "embeddings": {
+          "statistics": {
+            "token_count": 1,
+          },
+          "values": [
+            0.1,
+            0.2,
+            0.3,
+          ],
+        },
+      },
+      {
+        "embeddings": {
+          "statistics": {
+            "token_count": 1,
+          },
+          "values": [
+            0.4,
+            0.5,
+            0.6,
+          ],
+        },
+      },
+    ],
+  },
+  "headers": {
+    "content-length": "159",
+    "content-type": "application/json",
+    "test-header": "test-value",
+  },
+}
+`;

@@ -22,6 +22,31 @@ describe('result.embedding', () => {
   });
 });
 
+describe('result.response', () => {
+  it('should include response in the result', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV2({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding], undefined, {
+          body: { foo: 'bar' },
+          headers: { foo: 'bar' },
+        }),
+      }),
+      value: testValue,
+    });
+
+    expect(result.response?.body).toMatchInlineSnapshot(`
+      {
+        "foo": "bar",
+      }
+    `);
+    expect(result.response?.headers).toMatchInlineSnapshot(`
+      {
+        "foo": "bar",
+      }
+    `);
+  });
+});
+
 describe('result.value', () => {
   it('should include value in the result', async () => {
     const result = await embed({
@@ -65,6 +90,28 @@ describe('options.headers', () => {
     });
 
     assert.deepStrictEqual(result.embedding, dummyEmbedding);
+  });
+});
+
+describe('options.providerOptions', () => {
+  it('should pass provider options to model', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV2({
+        doEmbed: async ({ providerOptions }) => {
+          expect(providerOptions).toStrictEqual({
+            aProvider: { someKey: 'someValue' },
+          });
+
+          return { embeddings: [[1, 2, 3]] };
+        },
+      }),
+      value: 'test-input',
+      providerOptions: {
+        aProvider: { someKey: 'someValue' },
+      },
+    });
+
+    expect(result.embedding).toStrictEqual([1, 2, 3]);
   });
 });
 

@@ -62,7 +62,11 @@ export class CohereEmbeddingModel implements EmbeddingModelV2<string> {
       });
     }
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/embed`,
       headers: combineHeaders(this.config.headers(), headers),
       body: {
@@ -86,7 +90,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV2<string> {
     return {
       embeddings: response.embeddings.float,
       usage: { tokens: response.meta.billed_units.input_tokens },
-      response: { headers: responseHeaders },
+      response: { headers: responseHeaders, body: rawValue },
     };
   }
 }
