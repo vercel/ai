@@ -1,0 +1,59 @@
+---
+title: wrapEmbeddingModel
+description: Function for wrapping an embedding model with middleware (API Reference)
+---
+
+# `wrapEmbeddingModel()`
+
+The `wrapEmbeddingModel` function provides a way to enhance the behavior of embedding models
+by wrapping them with middleware.
+See [Embedding Model Middleware](/docs/ai-sdk-core/middleware) for more information on middleware.
+
+```ts
+import { wrapEmbeddingModel } from 'ai';
+
+const wrappedEmbeddingModel = wrapEmbeddingModel({
+  model: yourModel,
+  middleware: yourEmbeddingModelMiddleware,
+});
+```
+
+## Import
+
+<Snippet text={`import { wrapEmbeddingModel } from "ai"`} prompt={false} />
+
+## API Signature
+
+### Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'model',
+      type: 'EmbeddingModelV2',
+      description: 'The original EmbeddingModelV2 instance to be wrapped.',
+    },
+    {
+      name: 'middleware',
+      type: 'EmbeddingModelV2Middleware | EmbeddingModelV2Middleware[]',
+      description:
+        'The middleware to be applied to the embedding model. When multiple middlewares are provided, the first middleware will transform the input first, and the last middleware will be wrapped directly around the model.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description:
+        "Optional custom model ID to override the original model's ID.",
+    },
+    {
+      name: 'providerId',
+      type: 'string',
+      description:
+        "Optional custom provider ID to override the original model's provider.",
+    },
+  ]}
+/>
+
+### Returns
+
+A new `EmbeddingModelV2` instance with middleware applied.
