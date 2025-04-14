@@ -253,14 +253,17 @@ describe('result.toolCalls', () => {
       assertType<string>(result.toolCalls[0].args.value);
     }
 
-    expect(result.toolCalls).toStrictEqual([
-      {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'tool1',
-        args: { value: 'value' },
-      },
-    ]);
+    expect(result.toolCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+        },
+      ]
+    `);
   });
 });
 
@@ -1243,14 +1246,17 @@ describe('tools with custom schema', () => {
       assertType<string>(result.toolCalls[0].args.value);
     }
 
-    assert.deepStrictEqual(result.toolCalls, [
-      {
-        type: 'tool-call',
-        toolCallId: 'call-1',
-        toolName: 'tool1',
-        args: { value: 'value' },
-      },
-    ]);
+    expect(result.toolCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+        },
+      ]
+    `);
   });
 });
 

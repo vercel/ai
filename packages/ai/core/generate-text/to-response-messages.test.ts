@@ -44,7 +44,6 @@ describe('toResponseMessages', () => {
       },
       toolCalls: [
         {
-          type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
           args: {},
@@ -86,7 +85,6 @@ describe('toResponseMessages', () => {
       },
       toolCalls: [
         {
-          type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
           args: {},
@@ -200,7 +198,6 @@ describe('toResponseMessages', () => {
       },
       toolCalls: [
         {
-          type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
           args: {},
@@ -367,7 +364,6 @@ describe('toResponseMessages', () => {
       },
       toolCalls: [
         {
-          type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
           args: {},

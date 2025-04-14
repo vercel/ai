@@ -45,7 +45,10 @@ export function toResponseMessages<TOOLS extends ToolSet>({
         mediaType: file.mediaType,
       })),
       { type: 'text' as const, text },
-      ...toolCalls,
+      ...toolCalls.map(toolCall => ({
+        type: 'tool-call' as const,
+        ...toolCall,
+      })),
     ],
     id: messageId,
   });

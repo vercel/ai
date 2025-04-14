@@ -1989,14 +1989,17 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect(await result.toolCalls).toStrictEqual([
-        {
-          type: 'tool-call',
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-          args: { value: 'value' },
-        },
-      ]);
+      expect(await result.toolCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "args": {
+              "value": "value",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+          },
+        ]
+      `);
     });
   });
 
@@ -3431,68 +3434,67 @@ describe('streamText', () => {
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
-        [
-          {
-            "messageId": "msg-0",
-            "request": {},
-            "type": "step-start",
-            "warnings": [],
-          },
-          {
-            "toolCall": {
-              "args": {
-                "value": "value",
+          [
+            {
+              "messageId": "msg-0",
+              "request": {},
+              "type": "step-start",
+              "warnings": [],
+            },
+            {
+              "toolCall": {
+                "args": {
+                  "value": "value",
+                },
+                "toolCallId": "call-1",
+                "toolName": "tool1",
               },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
               "type": "tool-call",
             },
-            "type": "tool-call",
-          },
-          {
-            "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
-            "type": "error",
-          },
-          {
-            "finishReason": "stop",
-            "isContinued": false,
-            "logprobs": undefined,
-            "messageId": "msg-0",
-            "providerMetadata": undefined,
-            "request": {},
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+            {
+              "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
+              "type": "error",
             },
-            "type": "step-finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
+            {
+              "finishReason": "stop",
+              "isContinued": false,
+              "logprobs": undefined,
+              "messageId": "msg-0",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "step-finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+              "warnings": undefined,
             },
-            "warnings": undefined,
-          },
-          {
-            "finishReason": "stop",
-            "logprobs": undefined,
-            "providerMetadata": undefined,
-            "response": {
-              "headers": undefined,
-              "id": "id-0",
-              "modelId": "mock-model-id",
-              "timestamp": 1970-01-01T00:00:00.000Z,
+            {
+              "finishReason": "stop",
+              "logprobs": undefined,
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
             },
-            "type": "finish",
-            "usage": {
-              "completionTokens": 10,
-              "promptTokens": 3,
-              "totalTokens": 13,
-            },
-          },
-        ]
-      `);
+          ]
+        `);
     });
   });
 
@@ -3706,7 +3708,6 @@ describe('streamText', () => {
 
         expect(await result.toolCalls).toStrictEqual([
           {
-            type: 'tool-call',
             toolCallId: 'call-1',
             toolName: 'tool1',
             args: { value: 'VALUE' },
@@ -4168,7 +4169,6 @@ describe('streamText', () => {
                 },
                 "toolCallId": "1",
                 "toolName": "tool1",
-                "type": "tool-call",
               },
               "type": "tool-call",
             },

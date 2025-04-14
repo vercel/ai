@@ -27,7 +27,6 @@ it('should successfully parse a valid tool call', async () => {
   });
 
   expect(result).toEqual({
-    type: 'tool-call',
     toolCallId: '123',
     toolName: 'testTool',
     args: { param1: 'test', param2: 42 },
@@ -53,7 +52,6 @@ it('should successfully process empty calls for tools that have no parameters', 
   });
 
   expect(result).toEqual({
-    type: 'tool-call',
     toolCallId: '123',
     toolName: 'testTool',
     args: {},
@@ -170,7 +168,6 @@ describe('tool call repair', () => {
 
     // Verify the repaired result was used
     expect(result).toEqual({
-      type: 'tool-call',
       toolCallId: '123',
       toolName: 'testTool',
       args: { param1: 'test', param2: 42 },

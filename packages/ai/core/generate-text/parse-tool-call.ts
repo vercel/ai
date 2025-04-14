@@ -105,9 +105,8 @@ async function doParseToolCall<TOOLS extends ToolSet>({
   }
 
   return {
-    type: 'tool-call',
     toolCallId: toolCall.toolCallId,
     toolName,
     args: parseResult?.value,
-  };
+  } satisfies ToolCallUnion<TOOLS>;
 }

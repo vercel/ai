@@ -94,7 +94,6 @@ it('should handle immediate tool execution', async () => {
           },
           "toolCallId": "call-1",
           "toolName": "syncTool",
-          "type": "tool-call",
         },
         "type": "tool-call",
       },
@@ -173,7 +172,6 @@ it('should hold off on sending finish until the delayed tool result is received'
           },
           "toolCallId": "call-1",
           "toolName": "delayedTool",
-          "type": "tool-call",
         },
         "type": "tool-call",
       },
@@ -253,7 +251,6 @@ it('should try to repair tool call when the tool name is not found', async () =>
       type: 'tool-call',
       toolCall: {
         toolCallId: 'call-1',
-        toolCallType: 'function',
         toolName: 'correctTool',
         args: { value: 'test' },
       },
