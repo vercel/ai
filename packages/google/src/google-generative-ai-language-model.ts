@@ -198,6 +198,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     return {
       text: getTextFromParts(parts),
       files: getInlineDataParts(parts)?.map(part => ({
+        type: 'file',
         data: part.inlineData.data,
         mediaType: part.inlineData.mimeType,
       })),
@@ -309,10 +310,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 for (const part of inlineDataParts) {
                   controller.enqueue({
                     type: 'file',
-                    file: {
-                      mediaType: part.inlineData.mimeType,
-                      data: part.inlineData.data,
-                    },
+                    mediaType: part.inlineData.mimeType,
+                    data: part.inlineData.data,
                   });
                 }
               }

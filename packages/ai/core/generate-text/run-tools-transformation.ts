@@ -164,8 +164,8 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           controller.enqueue({
             type: 'file',
             file: new DefaultGeneratedFileWithType({
-              data: chunk.file.data,
-              mediaType: chunk.file.mediaType,
+              data: chunk.data,
+              mediaType: chunk.mediaType,
             }),
           });
           break;

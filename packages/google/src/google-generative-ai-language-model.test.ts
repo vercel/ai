@@ -1129,16 +1129,20 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Here is an image:And another image:');
-    expect(files).toStrictEqual([
-      {
-        data: 'base64encodedimagedata',
-        mediaType: 'image/jpeg',
-      },
-      {
-        data: 'anotherbase64encodedimagedata',
-        mediaType: 'image/png',
-      },
-    ]);
+    expect(files).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "base64encodedimagedata",
+          "mediaType": "image/jpeg",
+          "type": "file",
+        },
+        {
+          "data": "anotherbase64encodedimagedata",
+          "mediaType": "image/png",
+          "type": "file",
+        },
+      ]
+    `);
   });
 
   it('should handle responses with only images and no text', async () => {
@@ -1184,16 +1188,20 @@ describe('doGenerate', () => {
     });
 
     expect(text).toBeUndefined();
-    expect(files).toStrictEqual([
-      {
-        data: 'imagedata1',
-        mediaType: 'image/jpeg',
-      },
-      {
-        data: 'imagedata2',
-        mediaType: 'image/png',
-      },
-    ]);
+    expect(files).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "imagedata1",
+          "mediaType": "image/jpeg",
+          "type": "file",
+        },
+        {
+          "data": "imagedata2",
+          "mediaType": "image/png",
+          "type": "file",
+        },
+      ]
+    `);
   });
 
   it('should pass responseModalities in provider options', async () => {
@@ -1255,16 +1263,20 @@ describe('doGenerate', () => {
     });
 
     expect(text).toStrictEqual('Here is content:');
-    expect(files).toStrictEqual([
-      {
-        data: 'validimagedata',
-        mediaType: 'image/jpeg',
-      },
-      {
-        data: 'pdfdata',
-        mediaType: 'application/pdf',
-      },
-    ]);
+    expect(files).toMatchInlineSnapshot(`
+      [
+        {
+          "data": "validimagedata",
+          "mediaType": "image/jpeg",
+          "type": "file",
+        },
+        {
+          "data": "pdfdata",
+          "mediaType": "application/pdf",
+          "type": "file",
+        },
+      ]
+    `);
   });
 });
 
@@ -1784,10 +1796,8 @@ describe('doStream', () => {
     expect(events).toMatchInlineSnapshot(`
       [
         {
-          "file": {
-            "data": "test",
-            "mediaType": "text/plain",
-          },
+          "data": "test",
+          "mediaType": "text/plain",
           "type": "file",
         },
         {

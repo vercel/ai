@@ -110,18 +110,14 @@ const modelWithFiles = new MockLanguageModelV2({
     stream: convertArrayToReadableStream([
       {
         type: 'file',
-        file: {
-          data: 'Hello World',
-          mediaType: 'text/plain',
-        },
+        data: 'Hello World',
+        mediaType: 'text/plain',
       },
       { type: 'text-delta', textDelta: 'Hello!' },
       {
         type: 'file',
-        file: {
-          data: 'QkFVRw==',
-          mediaType: 'image/jpeg',
-        },
+        data: 'QkFVRw==',
+        mediaType: 'image/jpeg',
       },
       {
         type: 'finish',

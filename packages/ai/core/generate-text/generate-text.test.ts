@@ -1,6 +1,5 @@
 import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import { jsonSchema } from '../util';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
@@ -8,6 +7,7 @@ import { ToolExecutionError } from '../../errors';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
+import { jsonSchema } from '../util';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
@@ -44,10 +44,12 @@ const modelWithFiles = new MockLanguageModelV2({
     ...dummyResponseValues,
     files: [
       {
+        type: 'file',
         data: new Uint8Array([1, 2, 3]),
         mediaType: 'image/png',
       },
       {
+        type: 'file',
         data: 'QkFVRw==',
         mediaType: 'image/jpeg',
       },
@@ -752,6 +754,7 @@ describe('options.maxSteps', () => {
                   ],
                   files: [
                     {
+                      type: 'file',
                       data: new Uint8Array([1, 2, 3]),
                       mediaType: 'image/png',
                       filename: 'test.png',
@@ -852,6 +855,7 @@ describe('options.maxSteps', () => {
                   finishReason: 'stop',
                   files: [
                     {
+                      type: 'file',
                       data: 'QkFVRw==',
                       mediaType: 'image/jpeg',
                       filename: 'test.jpeg',
