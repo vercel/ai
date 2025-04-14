@@ -456,6 +456,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
         },
         "sourceType": "url",
         "title": "Example",
+        "type": "source",
         "url": "https://example.com",
       },
     ],
@@ -517,6 +518,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
         },
         "sourceType": "url",
         "title": "Example 2",
+        "type": "source",
         "url": "https://example.com/2",
       },
       {
@@ -528,6 +530,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
         },
         "sourceType": "url",
         "title": "Example 3",
+        "type": "source",
         "url": "https://example.com/3",
       },
     ],
@@ -627,6 +630,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     },
     "sourceType": "url",
     "title": "Example",
+    "type": "source",
     "url": "https://example.com",
   },
   {
@@ -638,6 +642,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     },
     "sourceType": "url",
     "title": "Example 2",
+    "type": "source",
     "url": "https://example.com/2",
   },
   {
@@ -649,6 +654,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     },
     "sourceType": "url",
     "title": "Example 3",
+    "type": "source",
     "url": "https://example.com/3",
   },
 ]
@@ -753,6 +759,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
         },
         "sourceType": "url",
         "title": "Example",
+        "type": "source",
         "url": "https://example.com",
       },
     ],
@@ -814,6 +821,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
         },
         "sourceType": "url",
         "title": "Example 2",
+        "type": "source",
         "url": "https://example.com/2",
       },
       {
@@ -825,6 +833,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
         },
         "sourceType": "url",
         "title": "Example 3",
+        "type": "source",
         "url": "https://example.com/3",
       },
     ],
@@ -1055,6 +1064,7 @@ exports[`result.sources > should contain sources 1`] = `
     },
     "sourceType": "url",
     "title": "Example",
+    "type": "source",
     "url": "https://example.com",
   },
   {
@@ -1066,6 +1076,7 @@ exports[`result.sources > should contain sources 1`] = `
     },
     "sourceType": "url",
     "title": "Example 2",
+    "type": "source",
     "url": "https://example.com/2",
   },
 ]
@@ -1245,6 +1256,7 @@ exports[`result.steps > should contain sources 1`] = `
         },
         "sourceType": "url",
         "title": "Example",
+        "type": "source",
         "url": "https://example.com",
       },
       {
@@ -1256,6 +1268,7 @@ exports[`result.steps > should contain sources 1`] = `
         },
         "sourceType": "url",
         "title": "Example 2",
+        "type": "source",
         "url": "https://example.com/2",
       },
     ],

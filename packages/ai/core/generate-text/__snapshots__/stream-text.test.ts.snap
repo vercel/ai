@@ -1063,6 +1063,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           },
           "sourceType": "url",
           "title": "Example",
+          "type": "source",
           "url": "https://example.com",
         },
       ],
@@ -1117,6 +1118,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           },
           "sourceType": "url",
           "title": "Example 2",
+          "type": "source",
           "url": "https://example.com/2",
         },
         {
@@ -1128,6 +1130,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
           },
           "sourceType": "url",
           "title": "Example 3",
+          "type": "source",
           "url": "https://example.com/3",
         },
       ],
@@ -1282,6 +1285,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         },
         "sourceType": "url",
         "title": "Example",
+        "type": "source",
         "url": "https://example.com",
       },
     ],
@@ -1336,6 +1340,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         },
         "sourceType": "url",
         "title": "Example 2",
+        "type": "source",
         "url": "https://example.com/2",
       },
       {
@@ -1347,6 +1352,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         },
         "sourceType": "url",
         "title": "Example 3",
+        "type": "source",
         "url": "https://example.com/3",
       },
     ],
@@ -1419,6 +1425,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     "sourceType": "url",
     "title": "Example",
+    "type": "source",
     "url": "https://example.com",
   },
   {
@@ -1430,6 +1437,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     "sourceType": "url",
     "title": "Example 2",
+    "type": "source",
     "url": "https://example.com/2",
   },
   {
@@ -1441,6 +1449,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     "sourceType": "url",
     "title": "Example 3",
+    "type": "source",
     "url": "https://example.com/3",
   },
 ]
@@ -1495,18 +1504,16 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": [],
   },
   {
-    "source": {
-      "id": "123",
-      "providerMetadata": {
-        "provider": {
-          "custom": "value",
-        },
+    "id": "123",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value",
       },
-      "sourceType": "url",
-      "title": "Example",
-      "url": "https://example.com",
     },
+    "sourceType": "url",
+    "title": "Example",
     "type": "source",
+    "url": "https://example.com",
   },
   {
     "textDelta": "no-whitespace",
@@ -1540,36 +1547,32 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": [],
   },
   {
-    "source": {
-      "id": "456",
-      "providerMetadata": {
-        "provider": {
-          "custom": "value2",
-        },
+    "id": "456",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value2",
       },
-      "sourceType": "url",
-      "title": "Example 2",
-      "url": "https://example.com/2",
     },
+    "sourceType": "url",
+    "title": "Example 2",
     "type": "source",
+    "url": "https://example.com/2",
   },
   {
     "textDelta": "immediatefollow  ",
     "type": "text-delta",
   },
   {
-    "source": {
-      "id": "789",
-      "providerMetadata": {
-        "provider": {
-          "custom": "value3",
-        },
+    "id": "789",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value3",
       },
-      "sourceType": "url",
-      "title": "Example 3",
-      "url": "https://example.com/3",
     },
+    "sourceType": "url",
+    "title": "Example 3",
     "type": "source",
+    "url": "https://example.com/3",
   },
   {
     "finishReason": "length",
@@ -1982,6 +1985,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         },
         "sourceType": "url",
         "title": "Example",
+        "type": "source",
         "url": "https://example.com",
       },
     ],
@@ -2036,6 +2040,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         },
         "sourceType": "url",
         "title": "Example 2",
+        "type": "source",
         "url": "https://example.com/2",
       },
       {
@@ -2047,6 +2052,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
         },
         "sourceType": "url",
         "title": "Example 3",
+        "type": "source",
         "url": "https://example.com/3",
       },
     ],
@@ -2142,18 +2148,16 @@ exports[`streamText > options.onChunk > should return events in order 1`] = `
     "type": "tool-call-delta",
   },
   {
-    "source": {
-      "id": "123",
-      "providerMetadata": {
-        "provider": {
-          "custom": "value",
-        },
+    "id": "123",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value",
       },
-      "sourceType": "url",
-      "title": "Example",
-      "url": "https://example.com",
     },
+    "sourceType": "url",
+    "title": "Example",
     "type": "source",
+    "url": "https://example.com",
   },
   {
     "args": {
@@ -2514,6 +2518,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
       },
       "sourceType": "url",
       "title": "Example",
+      "type": "source",
       "url": "https://example.com",
     },
     {
@@ -2525,6 +2530,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
       },
       "sourceType": "url",
       "title": "Example 2",
+      "type": "source",
       "url": "https://example.com/2",
     },
   ],
@@ -2566,6 +2572,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
           },
           "sourceType": "url",
           "title": "Example",
+          "type": "source",
           "url": "https://example.com",
         },
         {
@@ -2577,6 +2584,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
           },
           "sourceType": "url",
           "title": "Example 2",
+          "type": "source",
           "url": "https://example.com/2",
         },
       ],
@@ -3516,36 +3524,32 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
     "warnings": [],
   },
   {
-    "source": {
-      "id": "123",
-      "providerMetadata": {
-        "provider": {
-          "custom": "value",
-        },
+    "id": "123",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value",
       },
-      "sourceType": "url",
-      "title": "Example",
-      "url": "https://example.com",
     },
+    "sourceType": "url",
+    "title": "Example",
     "type": "source",
+    "url": "https://example.com",
   },
   {
     "textDelta": "Hello!",
     "type": "text-delta",
   },
   {
-    "source": {
-      "id": "456",
-      "providerMetadata": {
-        "provider": {
-          "custom": "value2",
-        },
+    "id": "456",
+    "providerMetadata": {
+      "provider": {
+        "custom": "value2",
       },
-      "sourceType": "url",
-      "title": "Example 2",
-      "url": "https://example.com/2",
     },
+    "sourceType": "url",
+    "title": "Example 2",
     "type": "source",
+    "url": "https://example.com/2",
   },
   {
     "finishReason": "stop",
@@ -4120,11 +4124,11 @@ exports[`streamText > result.pipeDataStreamToResponse > should write source cont
 [
   "f:{"messageId":"msg-0"}
 ",
-  "h:{"sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+  "h:{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
 ",
   "0:"Hello!"
 ",
-  "h:{"sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+  "h:{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
 ",
   "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",
@@ -4267,6 +4271,7 @@ exports[`streamText > result.sources > should contain sources 1`] = `
     },
     "sourceType": "url",
     "title": "Example",
+    "type": "source",
     "url": "https://example.com",
   },
   {
@@ -4278,6 +4283,7 @@ exports[`streamText > result.sources > should contain sources 1`] = `
     },
     "sourceType": "url",
     "title": "Example 2",
+    "type": "source",
     "url": "https://example.com/2",
   },
 ]
@@ -4462,6 +4468,7 @@ exports[`streamText > result.steps > should add the sources from the model respo
         },
         "sourceType": "url",
         "title": "Example",
+        "type": "source",
         "url": "https://example.com",
       },
       {
@@ -4473,6 +4480,7 @@ exports[`streamText > result.steps > should add the sources from the model respo
         },
         "sourceType": "url",
         "title": "Example 2",
+        "type": "source",
         "url": "https://example.com/2",
       },
     ],
@@ -4600,11 +4608,11 @@ exports[`streamText > result.toDataStream > should send source content when send
 [
   "f:{"messageId":"msg-0"}
 ",
-  "h:{"sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+  "h:{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
 ",
   "0:"Hello!"
 ",
-  "h:{"sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+  "h:{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
 ",
   "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
 ",

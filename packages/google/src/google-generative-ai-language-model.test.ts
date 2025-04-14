@@ -736,14 +736,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(sources).toEqual([
-      {
-        id: 'test-id',
-        sourceType: 'url',
-        title: 'Source Title',
-        url: 'https://source.example.com',
-      },
-    ]);
+    expect(sources).toMatchInlineSnapshot();
   });
 
   describe('async headers handling', () => {
@@ -1759,17 +1752,7 @@ describe('doStream', () => {
     const events = await convertReadableStreamToArray(stream);
     const sourceEvents = events.filter(event => event.type === 'source');
 
-    expect(sourceEvents).toEqual([
-      {
-        type: 'source',
-        source: {
-          id: 'test-id',
-          sourceType: 'url',
-          title: 'Source Title',
-          url: 'https://source.example.com',
-        },
-      },
-    ]);
+    expect(sourceEvents).toMatchInlineSnapshot();
   });
 
   it('should stream files', async () => {
