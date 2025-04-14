@@ -167,7 +167,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Hello, World!",
+        "type": "text",
+      }
+    `);
   });
 
   it('should extract reasoning content', async () => {
@@ -181,7 +186,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Hello, World!",
+        "type": "text",
+      }
+    `);
     expect(reasoning).toMatchInlineSnapshot(`
       [
         {
@@ -921,26 +931,43 @@ describe('doStream', () => {
     });
 
     // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'grok-beta',
-        timestamp: new Date('2023-12-15T16:17:00.000Z'),
-      },
-      { type: 'text-delta', textDelta: '' },
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'World!' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 18, outputTokens: 439 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2023-12-15T16:17:00.000Z,
+          "type": "response-metadata",
         },
-      },
-    ]);
+        {
+          "text": "",
+          "type": "text",
+        },
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "text": ", ",
+          "type": "text",
+        },
+        {
+          "text": "World!",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 18,
+            "outputTokens": 439,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream reasoning content before text deltas', async () => {
@@ -986,12 +1013,12 @@ describe('doStream', () => {
           "type": "reasoning",
         },
         {
-          "textDelta": "Here's",
-          "type": "text-delta",
+          "text": "Here's",
+          "type": "text",
         },
         {
-          "textDelta": " my response",
-          "type": "text-delta",
+          "text": " my response",
+          "type": "text",
         },
         {
           "finishReason": "stop",
@@ -1334,68 +1361,73 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chat-2267f7e2910a4254bac0650ba74cfc1c',
-        modelId: 'meta/llama-3.1-8b-instruct:fp8',
-        timestamp: new Date('2024-12-02T17:57:21.000Z'),
-      },
-      {
-        type: 'text-delta',
-        textDelta: '',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: '{"query": "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: 'latest',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' news',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' on',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' ai"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        args: '{"query": "latest news on ai"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: 226, outputTokens: 20 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "chat-2267f7e2910a4254bac0650ba74cfc1c",
+          "modelId": "meta/llama-3.1-8b-instruct:fp8",
+          "timestamp": 2024-12-02T17:57:21.000Z,
+          "type": "response-metadata",
         },
-      },
-    ]);
+        {
+          "text": "",
+          "type": "text",
+        },
+        {
+          "argsTextDelta": "{"query": "",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "latest",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " news",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " on",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " ai"}",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"query": "latest news on ai"}",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 226,
+            "outputTokens": 20,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool call that is sent in one chunk', async () => {

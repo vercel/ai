@@ -122,7 +122,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toStrictEqual('Hello, World!');
+    expect(text).toMatchInlineSnapshot(`
+      {
+        "text": "Hello, World!",
+        "type": "text",
+      }
+    `);
   });
 
   it('should extract usage', async () => {
@@ -403,23 +408,40 @@ describe('doStream', () => {
     });
 
     // note: space moved to last chunk bc of trimming
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        id: 'cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT',
-        modelId: 'gpt-3.5-turbo-instruct',
-        timestamp: new Date('2024-03-25T10:44:00.000Z'),
-        type: 'response-metadata',
-      },
-      { type: 'text-delta', textDelta: 'Hello' },
-      { type: 'text-delta', textDelta: ', ' },
-      { type: 'text-delta', textDelta: 'World!' },
-      { type: 'text-delta', textDelta: '' },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 10, outputTokens: 362 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT",
+          "modelId": "gpt-3.5-turbo-instruct",
+          "timestamp": 2024-03-25T10:44:00.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "text": "Hello",
+          "type": "text",
+        },
+        {
+          "text": ", ",
+          "type": "text",
+        },
+        {
+          "text": "World!",
+          "type": "text",
+        },
+        {
+          "text": "",
+          "type": "text",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 362,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle error stream parts', async () => {
