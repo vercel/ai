@@ -236,34 +236,45 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"value":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'tool-use-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "{"value":",
+            "toolCallId": "tool-use-id",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": ""Sparkle Day"}",
+            "toolCallId": "tool-use-id",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCall": {
+            "args": "{"value":"Sparkle Day"}",
+            "toolCallId": "tool-use-id",
+            "toolCallType": "function",
+            "toolName": "test-tool",
+          },
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream parallel tool calls', async () => {
@@ -355,55 +366,72 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool-1',
-        argsTextDelta: '{"value1":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-2',
-        argsTextDelta: '{"value2":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-2',
-        argsTextDelta: '"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool-1',
-        argsTextDelta: '"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'tool-use-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool-1',
-        args: '{"value1":"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'tool-use-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-2',
-        args: '{"value2":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "{"value1":",
+            "toolCallId": "tool-use-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool-1",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": "{"value2":",
+            "toolCallId": "tool-use-id-2",
+            "toolCallType": "function",
+            "toolName": "test-tool-2",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": ""Sparkle Day"}",
+            "toolCallId": "tool-use-id-2",
+            "toolCallType": "function",
+            "toolName": "test-tool-2",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCallDelta": {
+            "argsTextDelta": ""Sparkle Day"}",
+            "toolCallId": "tool-use-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool-1",
+          },
+          "type": "tool-call-delta",
+        },
+        {
+          "toolCall": {
+            "args": "{"value1":"Sparkle Day"}",
+            "toolCallId": "tool-use-id-1",
+            "toolCallType": "function",
+            "toolName": "test-tool-1",
+          },
+          "type": "tool-call",
+        },
+        {
+          "toolCall": {
+            "args": "{"value2":"Sparkle Day"}",
+            "toolCallId": "tool-use-id-2",
+            "toolCallType": "function",
+            "toolName": "test-tool-2",
+          },
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle error stream parts', async () => {
