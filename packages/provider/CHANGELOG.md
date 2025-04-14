@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 1.1.3
+
+### Patch Changes
+
+- beef951: feat: add speech with experimental_generateSpeech
+
 ## 1.1.2
 
 ### Patch Changes
