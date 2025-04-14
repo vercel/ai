@@ -25,11 +25,13 @@ async function main() {
   for await (const part of result.fullStream) {
     switch (part.type) {
       case 'reasoning': {
-        if (!enteredReasoning) {
-          enteredReasoning = true;
-          console.log('\nREASONING:\n');
+        if (part.reasoningType === 'text') {
+          if (!enteredReasoning) {
+            enteredReasoning = true;
+            console.log('\nREASONING:\n');
+          }
+          process.stdout.write(part.text);
         }
-        process.stdout.write(part.textDelta);
         break;
       }
 

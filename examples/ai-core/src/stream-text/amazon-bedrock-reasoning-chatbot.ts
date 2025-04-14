@@ -60,9 +60,12 @@ async function main() {
 
     process.stdout.write('\nAssistant: ');
     for await (const part of result.fullStream) {
-      if (part.type === 'reasoning') {
-        process.stdout.write('\x1b[34m' + part.textDelta + '\x1b[0m');
-      } else if (part.type === 'redacted-reasoning') {
+      if (part.type === 'reasoning' && part.reasoningType === 'text') {
+        process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
+      } else if (
+        part.type === 'reasoning' &&
+        part.reasoningType === 'redacted'
+      ) {
         process.stdout.write('\x1b[31m' + '<redacted>' + '\x1b[0m');
       } else if (part.type === 'text-delta') {
         process.stdout.write(part.textDelta);

@@ -2,6 +2,7 @@ import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
+  LanguageModelV2Reasoning,
   LanguageModelV2StreamPart,
   LanguageModelV2ToolCall,
   LanguageModelV2Usage,
@@ -282,23 +283,27 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       }
     }
 
-    const reasoning = response.content
-      .filter(
-        content =>
-          content.type === 'redacted_thinking' || content.type === 'thinking',
-      )
-      .map(content =>
-        content.type === 'thinking'
-          ? {
-              type: 'text' as const,
-              text: content.thinking,
-              signature: content.signature,
-            }
-          : {
-              type: 'redacted' as const,
-              data: content.data,
-            },
-      );
+    const reasoning: Array<LanguageModelV2Reasoning> = [];
+    for (const content of response.content) {
+      if (content.type === 'redacted_thinking') {
+        reasoning.push({
+          type: 'reasoning',
+          reasoningType: 'redacted',
+          data: content.data,
+        });
+      } else if (content.type === 'thinking') {
+        reasoning.push({
+          type: 'reasoning',
+          reasoningType: 'text',
+          text: content.thinking,
+        });
+        reasoning.push({
+          type: 'reasoning',
+          reasoningType: 'signature',
+          signature: content.signature,
+        });
+      }
+    }
 
     return {
       text,
@@ -401,7 +406,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
                   case 'redacted_thinking': {
                     controller.enqueue({
-                      type: 'redacted-reasoning',
+                      type: 'reasoning',
+                      reasoningType: 'redacted',
                       data: value.content_block.data,
                     });
                     return;
@@ -461,7 +467,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'thinking_delta': {
                     controller.enqueue({
                       type: 'reasoning',
-                      textDelta: value.delta.thinking,
+                      reasoningType: 'text',
+                      text: value.delta.thinking,
                     });
 
                     return;
@@ -471,7 +478,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     // signature are only supported on thinking blocks:
                     if (blockType === 'thinking') {
                       controller.enqueue({
-                        type: 'reasoning-signature',
+                        type: 'reasoning',
+                        reasoningType: 'signature',
                         signature: value.delta.signature,
                       });
                     }

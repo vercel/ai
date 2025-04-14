@@ -42,7 +42,7 @@ export function extractReasoningMiddleware({
         return { text, ...rest };
       }
 
-      const reasoning = matches.map(match => match[1]).join(separator);
+      const reasoningText = matches.map(match => match[1]).join(separator);
 
       let textWithoutReasoning = text;
       for (let i = matches.length - 1; i >= 0; i--) {
@@ -59,7 +59,20 @@ export function extractReasoningMiddleware({
           afterMatch;
       }
 
-      return { ...rest, text: textWithoutReasoning, reasoning };
+      return {
+        ...rest,
+        text: textWithoutReasoning,
+        reasoning:
+          reasoningText.length > 0
+            ? [
+                {
+                  type: 'reasoning',
+                  reasoningType: 'text',
+                  text: reasoningText,
+                },
+              ]
+            : undefined,
+      };
     },
 
     wrapStream: async ({ doStream }) => {
@@ -93,10 +106,18 @@ export function extractReasoningMiddleware({
                       ? separator
                       : '';
 
-                  controller.enqueue({
-                    type: isReasoning ? 'reasoning' : 'text-delta',
-                    textDelta: prefix + text,
-                  });
+                  controller.enqueue(
+                    isReasoning
+                      ? {
+                          type: 'reasoning',
+                          reasoningType: 'text',
+                          text: prefix + text,
+                        }
+                      : {
+                          type: 'text-delta',
+                          textDelta: prefix + text,
+                        },
+                  );
                   afterSwitch = false;
 
                   if (isReasoning) {

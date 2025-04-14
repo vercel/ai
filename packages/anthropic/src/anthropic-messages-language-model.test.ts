@@ -143,13 +143,20 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(reasoning).toStrictEqual([
-        {
-          type: 'text',
-          text: 'I am thinking...',
-          signature: '1234567890',
-        },
-      ]);
+      expect(reasoning).toMatchInlineSnapshot(`
+        [
+          {
+            "reasoningType": "text",
+            "text": "I am thinking...",
+            "type": "reasoning",
+          },
+          {
+            "reasoningType": "signature",
+            "signature": "1234567890",
+            "type": "reasoning",
+          },
+        ]
+      `);
       expect(text).toStrictEqual('Hello, World!');
     });
 
@@ -553,28 +560,48 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
-          modelId: 'claude-3-haiku-20240307',
-        },
-        { type: 'reasoning', textDelta: 'I am' },
-        { type: 'reasoning', textDelta: 'thinking...' },
-        { type: 'reasoning-signature', signature: '1234567890' },
-        { type: 'text-delta', textDelta: 'Hello, World!' },
-        {
-          finishReason: 'stop',
-          providerMetadata: {
-            anthropic: {
-              cacheCreationInputTokens: null,
-              cacheReadInputTokens: null,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "reasoningType": "text",
+            "text": "I am",
+            "type": "reasoning",
+          },
+          {
+            "reasoningType": "text",
+            "text": "thinking...",
+            "type": "reasoning",
+          },
+          {
+            "reasoningType": "signature",
+            "signature": "1234567890",
+            "type": "reasoning",
+          },
+          {
+            "textDelta": "Hello, World!",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": null,
+                "cacheReadInputTokens": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 17,
+              "outputTokens": 227,
             },
           },
-          type: 'finish',
-          usage: { inputTokens: 17, outputTokens: 227 },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should stream redacted reasoning', async () => {
@@ -597,26 +624,38 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
-          modelId: 'claude-3-haiku-20240307',
-        },
-        { type: 'redacted-reasoning', data: 'redacted-thinking-data' },
-        { type: 'text-delta', textDelta: 'Hello, World!' },
-        {
-          finishReason: 'stop',
-          providerMetadata: {
-            anthropic: {
-              cacheCreationInputTokens: null,
-              cacheReadInputTokens: null,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "data": "redacted-thinking-data",
+            "reasoningType": "redacted",
+            "type": "reasoning",
+          },
+          {
+            "textDelta": "Hello, World!",
+            "type": "text-delta",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "anthropic": {
+                "cacheCreationInputTokens": null,
+                "cacheReadInputTokens": null,
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 17,
+              "outputTokens": 227,
             },
           },
-          type: 'finish',
-          usage: { inputTokens: 17, outputTokens: 227 },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should ignore signatures on text deltas', async () => {

@@ -129,12 +129,14 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "warnings": [],
   },
   {
-    "textDelta": "First reasoning step",
+    "reasoningType": "text",
+    "text": "First reasoning step",
     "type": "reasoning",
   },
   {
     "data": "data",
-    "type": "redacted-reasoning",
+    "reasoningType": "redacted",
+    "type": "reasoning",
   },
   {
     "textDelta": "This is a test response",
@@ -190,16 +192,19 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "warnings": [],
   },
   {
-    "textDelta": "First reasoning step",
+    "reasoningType": "text",
+    "text": "First reasoning step",
     "type": "reasoning",
   },
   {
-    "textDelta": "Second reasoning step",
+    "reasoningType": "text",
+    "text": "Second reasoning step",
     "type": "reasoning",
   },
   {
+    "reasoningType": "signature",
     "signature": "abc",
-    "type": "reasoning-signature",
+    "type": "reasoning",
   },
   {
     "textDelta": "This is a test response",
@@ -255,7 +260,8 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "warnings": [],
   },
   {
-    "textDelta": "This is the reasoning process",
+    "reasoningType": "text",
+    "text": "This is the reasoning process",
     "type": "reasoning",
   },
   {

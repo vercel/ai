@@ -46,7 +46,13 @@ describe('simulateStreamingMiddleware', () => {
       async doGenerate() {
         return {
           text: 'This is a test response',
-          reasoning: 'This is the reasoning process',
+          reasoning: [
+            {
+              type: 'reasoning',
+              reasoningType: 'text',
+              text: 'This is the reasoning process',
+            },
+          ],
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
         };
@@ -72,8 +78,21 @@ describe('simulateStreamingMiddleware', () => {
         return {
           text: 'This is a test response',
           reasoning: [
-            { type: 'text', text: 'First reasoning step' },
-            { type: 'text', text: 'Second reasoning step', signature: 'abc' },
+            {
+              type: 'reasoning',
+              reasoningType: 'text',
+              text: 'First reasoning step',
+            },
+            {
+              type: 'reasoning',
+              reasoningType: 'text',
+              text: 'Second reasoning step',
+            },
+            {
+              type: 'reasoning',
+              reasoningType: 'signature',
+              signature: 'abc',
+            },
           ],
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
@@ -100,8 +119,16 @@ describe('simulateStreamingMiddleware', () => {
         return {
           text: 'This is a test response',
           reasoning: [
-            { type: 'text', text: 'First reasoning step' },
-            { type: 'redacted', data: 'data' },
+            {
+              type: 'reasoning',
+              reasoningType: 'text',
+              text: 'First reasoning step',
+            },
+            {
+              type: 'reasoning',
+              reasoningType: 'redacted',
+              data: 'data',
+            },
           ],
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
