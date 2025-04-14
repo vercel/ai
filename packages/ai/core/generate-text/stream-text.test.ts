@@ -3429,9 +3429,8 @@ describe('streamText', () => {
         experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toMatchInlineSnapshot(`
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
         [
           {
             "messageId": "msg-0",

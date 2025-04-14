@@ -248,9 +248,7 @@ it('should try to repair tool call when the tool name is not found', async () =>
     },
   });
 
-  const result = await convertReadableStreamToArray(transformedStream);
-
-  expect(result).toStrictEqual([
+  expect(await convertReadableStreamToArray(transformedStream)).toStrictEqual([
     {
       type: 'tool-call',
       toolCall: {
