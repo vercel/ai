@@ -34,8 +34,16 @@ describe('result.response', () => {
       value: testValue,
     });
 
-    expect(result.response?.body).toMatchInlineSnapshot();
-    expect(result.response?.headers).toMatchInlineSnapshot();
+    expect(result.response?.body).toMatchInlineSnapshot(`
+      {
+        "foo": "bar",
+      }
+    `);
+    expect(result.response?.headers).toMatchInlineSnapshot(`
+      {
+        "foo": "bar",
+      }
+    `);
   });
 });
 
