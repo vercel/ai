@@ -1,0 +1,114 @@
+---
+title: Tinybird
+description: Monitor your AI-based apps using Tinybird's real-time analytics platform
+---
+
+# Tinybird Observability
+
+[Tinybird](https://tinybird.co) is a real-time analytics platform that enables you to ingest, transform, and serve data at scale. It provides a SQL-based interface for building data pipelines and REST APIs for accessing analytics, making it well-suited for monitoring LLM applications.
+
+## Setup
+
+First, [install Tinybird](https://www.tinybird.co/docs) and initialize a project. You can use our [LLM Performance Tracker template](https://github.com/tinybirdco/llm-performance-tracker/) as a starting point, which provides a pre-built dashboard for monitoring LLM costs, requests, tokens, and duration across different models and environments.
+
+Then, install the `@tinybird/ai` package, which includes an AI SDK compatible wrapper:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @tinybirdco/ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @tinybirdco/ai" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @tinybirdco/ai" dark />
+  </Tab>
+</Tabs>
+
+Next, set up your environment variables:
+
+```bash filename=".env"
+TINYBIRD_HOST=your_tinybird_api_host
+TINYBIRD_TOKEN=your_tinybird_token
+```
+
+## Basic Integration
+
+The AI SDK supports integration with Tinybird through a simple wrapper approach. Here's how to use it in your Next.js application in a Route Handler (App Router):
+
+```typescript
+import { createOpenAI } from '@ai-sdk/openai';
+import { wrapOpenai } from '@tinybirdco/ai/ai-sdk';
+import { streamText } from 'ai';
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const openai = createOpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
+  const model = wrapOpenai(openai('chatgpt-4o-latest'), {
+    host: process.env.TINYBIRD_HOST!,
+    token: process.env.TINYBIRD_TOKEN!,
+  });
+
+  const result = streamText({
+    model: model,
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+## Features
+
+### Real-time Analytics
+
+Tinybird provides real-time analytics for your LLM applications:
+
+- Track request/response times
+- Monitor token usage and costs
+- Analyze error rates and patterns
+
+### Performance Tracking template
+
+The LLM Performance Tracker [template dashboard](https://github.com/tinybirdco/llm-performance-tracker/) includes:
+
+- Response time analysis
+- Token usage tracking
+- Cost monitoring
+- Error rate visualization
+
+### Custom Metrics
+
+You can extend the default metrics with custom properties:
+
+```typescript
+const model = wrapOpenai(openai('chatgpt-4o-latest'), {
+  host: process.env.TINYBIRD_HOST!,
+  token: process.env.TINYBIRD_TOKEN!,
+  metadata: {
+    feature: 'translation',
+    environment: 'production',
+    version: '1.0.0',
+  },
+});
+```
+
+## Resources
+
+- [Tinybird Documentation](https://www.tinybird.co/docs)
+- [LLM Performance Dashboard Template](https://github.com/tinybirdco/llm-performance-tracker)
+- [GitHub Repository](https://github.com/tinybirdco/ai)
+- [Tinybird Community](https://community.tinybird.co/)
+
+## Support
+
+If you have questions or need help:
+
+- [Tinybird Community](https://community.tinybird.co/)
