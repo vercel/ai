@@ -20,10 +20,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
         {
           "content": [
             {
-              "text": "",
-              "type": "text",
-            },
-            {
               "args": {
                 "value": "value",
               },
@@ -101,10 +97,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
       "messages": [
         {
           "content": [
-            {
-              "text": "",
-              "type": "text",
-            },
             {
               "args": {
                 "value": "value",
@@ -163,10 +155,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
   {
     "content": [
       {
-        "text": "",
-        "type": "text",
-      },
-      {
         "args": {
           "value": "value",
         },
@@ -222,10 +210,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
       "messages": [
         {
           "content": [
-            {
-              "text": "",
-              "type": "text",
-            },
             {
               "args": {
                 "value": "value",
@@ -304,10 +288,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
       "messages": [
         {
           "content": [
-            {
-              "text": "",
-              "type": "text",
-            },
             {
               "args": {
                 "value": "value",
@@ -1193,7 +1173,7 @@ exports[`result.steps > should contain files 1`] = `
               "type": "file",
             },
             {
-              "text": "",
+              "text": "Hello, world!",
               "type": "text",
             },
           ],
@@ -1206,7 +1186,7 @@ exports[`result.steps > should contain files 1`] = `
     },
     "sources": [],
     "stepType": "initial",
-    "text": "",
+    "text": "Hello, world!",
     "toolCalls": [],
     "toolResults": [],
     "usage": {
@@ -1239,7 +1219,7 @@ exports[`result.steps > should contain sources 1`] = `
         {
           "content": [
             {
-              "text": "",
+              "text": "Hello, world!",
               "type": "text",
             },
           ],
@@ -1275,7 +1255,7 @@ exports[`result.steps > should contain sources 1`] = `
       },
     ],
     "stepType": "initial",
-    "text": "",
+    "text": "Hello, world!",
     "toolCalls": [],
     "toolResults": [],
     "usage": {

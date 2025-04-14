@@ -107,10 +107,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
             "type": "reasoning",
           },
           {
-            "text": "",
-            "type": "text",
-          },
-          {
             "args": {
               "value": "value",
             },
@@ -176,10 +172,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               {
                 "text": "thinking",
                 "type": "reasoning",
-              },
-              {
-                "text": "",
-                "type": "text",
               },
               {
                 "args": {
@@ -261,10 +253,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               {
                 "text": "thinking",
                 "type": "reasoning",
-              },
-              {
-                "text": "",
-                "type": "text",
               },
               {
                 "args": {
@@ -359,10 +347,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
               "type": "reasoning",
             },
             {
-              "text": "",
-              "type": "text",
-            },
-            {
               "args": {
                 "value": "value",
               },
@@ -442,10 +426,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
             {
               "text": "thinking",
               "type": "reasoning",
-            },
-            {
-              "text": "",
-              "type": "text",
             },
             {
               "args": {
@@ -752,10 +732,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         "type": "reasoning",
       },
       {
-        "text": "",
-        "type": "text",
-      },
-      {
         "args": {
           "value": "value",
         },
@@ -820,10 +796,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
             {
               "text": "thinking",
               "type": "reasoning",
-            },
-            {
-              "text": "",
-              "type": "text",
             },
             {
               "args": {
@@ -905,10 +877,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
             {
               "text": "thinking",
               "type": "reasoning",
-            },
-            {
-              "text": "",
-              "type": "text",
             },
             {
               "args": {
