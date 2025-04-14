@@ -369,7 +369,7 @@ A function that attempts to repair a tool call that failed to parse.
                   attributes: {
                     'ai.response.finishReason': result.finishReason,
                     'ai.response.text': {
-                      output: () => result.text,
+                      output: () => result.text?.text,
                     },
                     'ai.response.toolCalls': {
                       output: () =>
@@ -551,7 +551,7 @@ A function that attempts to repair a tool call that failed to parse.
           attributes: {
             'ai.response.finishReason': currentModelResponse.finishReason,
             'ai.response.text': {
-              output: () => currentModelResponse.text,
+              output: () => currentModelResponse.text?.text,
             },
             'ai.response.toolCalls': {
               output: () =>

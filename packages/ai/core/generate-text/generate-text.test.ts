@@ -79,7 +79,7 @@ const modelWithReasoning = new MockLanguageModelV2({
         data: 'redacted-reasoning-data',
       },
     ],
-    text: 'Hello, world!',
+    text: { type: 'text', text: 'Hello, world!' },
   }),
 });
 
@@ -98,7 +98,7 @@ describe('result.text', () => {
 
           return {
             ...dummyResponseValues,
-            text: `Hello, world!`,
+            text: { type: 'text', text: 'Hello, world!' },
           };
         },
       }),
@@ -380,7 +380,7 @@ describe('result.response.messages', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
-          text: 'Hello, world!',
+          text: { type: 'text', text: 'Hello, world!' },
         }),
       }),
       prompt: 'test-input',
@@ -395,7 +395,7 @@ describe('result.response.messages', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
-          text: 'Hello, world!',
+          text: { type: 'text', text: 'Hello, world!' },
           toolCalls: [
             {
               type: 'tool-call',
@@ -451,7 +451,7 @@ describe('result.request', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          text: `Hello, world!`,
+          text: { type: 'text', text: 'Hello, world!' },
           request: {
             body: 'test body',
           },
@@ -472,7 +472,7 @@ describe('result.response', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          text: `Hello, world!`,
+          text: { type: 'text', text: 'Hello, world!' },
           response: {
             id: 'test-id-from-model',
             timestamp: new Date(10000),
@@ -614,7 +614,7 @@ describe('options.maxSteps', () => {
                 ]);
                 return {
                   ...dummyResponseValues,
-                  text: 'Hello, world!',
+                  text: { type: 'text', text: 'Hello, world!' },
                   response: {
                     id: 'test-id-2-from-model',
                     timestamp: new Date(10000),
@@ -707,7 +707,7 @@ describe('options.maxSteps', () => {
                 return {
                   ...dummyResponseValues,
                   // trailing text is to be discarded, trailing whitespace is to be kept:
-                  text: 'part 1 \n to-be-discarded',
+                  text: { type: 'text', text: 'part 1 \n to-be-discarded' },
                   finishReason: 'length', // trigger continue
                   usage: { inputTokens: 10, outputTokens: 20 },
                   response: {
@@ -740,7 +740,7 @@ describe('options.maxSteps', () => {
                 return {
                   ...dummyResponseValues,
                   // case where there is no leading nor trailing whitespace:
-                  text: 'no-whitespace',
+                  text: { type: 'text', text: 'no-whitespace' },
                   finishReason: 'length',
                   response: {
                     id: 'test-id-2-from-model',
@@ -800,7 +800,7 @@ describe('options.maxSteps', () => {
                 return {
                   ...dummyResponseValues,
                   // set up trailing whitespace for next step:
-                  text: 'immediatefollow  ',
+                  text: { type: 'text', text: 'immediatefollow  ' },
                   finishReason: 'length',
                   sources: [
                     {
@@ -862,7 +862,10 @@ describe('options.maxSteps', () => {
                   ...dummyResponseValues,
                   // leading whitespace is to be discarded when there is whitespace from previous step
                   // (for models such as Anthropic that trim trailing whitespace in their inputs):
-                  text: '  final value keep all whitespace\n end',
+                  text: {
+                    type: 'text',
+                    text: '  final value keep all whitespace\n end',
+                  },
                   finishReason: 'stop',
                   files: [
                     {
@@ -965,7 +968,7 @@ describe('options.headers', () => {
 
           return {
             ...dummyResponseValues,
-            text: 'Hello, world!',
+            text: { type: 'text', text: 'Hello, world!' },
           };
         },
       }),
@@ -986,7 +989,10 @@ describe('options.providerOptions', () => {
             aProvider: { someKey: 'someValue' },
           });
 
-          return { ...dummyResponseValues, text: 'provider metadata test' };
+          return {
+            ...dummyResponseValues,
+            text: { type: 'text', text: 'provider metadata test' },
+          };
         },
       }),
       prompt: 'test-input',
@@ -1057,7 +1063,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          text: `Hello, world!`,
+          text: { type: 'text', text: 'Hello, world!' },
         }),
       }),
       prompt: 'prompt',
@@ -1072,7 +1078,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          text: `Hello, world!`,
+          text: { type: 'text', text: 'Hello, world!' },
           response: {
             id: 'test-id-from-model',
             timestamp: new Date(10000),
@@ -1327,7 +1333,7 @@ describe('options.messages', () => {
 
           return {
             ...dummyResponseValues,
-            text: `Hello, world!`,
+            text: { type: 'text', text: 'Hello, world!' },
           };
         },
       }),
@@ -1369,7 +1375,7 @@ describe('options.messages', () => {
           },
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: 'Hello, world!',
+            text: { type: 'text', text: 'Hello, world!' },
           }),
         });
       }
@@ -1399,7 +1405,7 @@ describe('options.output', () => {
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: `Hello, world!`,
+            text: { type: 'text', text: `Hello, world!` },
           }),
         }),
         prompt: 'prompt',
@@ -1417,7 +1423,7 @@ describe('options.output', () => {
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: `Hello, world!`,
+            text: { type: 'text', text: `Hello, world!` },
           }),
         }),
         prompt: 'prompt',
@@ -1436,7 +1442,7 @@ describe('options.output', () => {
             callOptions = args;
             return {
               ...dummyResponseValues,
-              text: `Hello, world!`,
+              text: { type: 'text', text: `Hello, world!` },
             };
           },
         }),
@@ -1467,7 +1473,7 @@ describe('options.output', () => {
             supportsStructuredOutputs: false,
             doGenerate: async () => ({
               ...dummyResponseValues,
-              text: `{ "value": "test-value" }`,
+              text: { type: 'text', text: `{ "value": "test-value" }` },
             }),
           }),
           prompt: 'prompt',
@@ -1489,7 +1495,7 @@ describe('options.output', () => {
               callOptions = args;
               return {
                 ...dummyResponseValues,
-                text: `{ "value": "test-value" }`,
+                text: { type: 'text', text: `{ "value": "test-value" }` },
               };
             },
           }),
@@ -1528,7 +1534,7 @@ describe('options.output', () => {
             supportsStructuredOutputs: true,
             doGenerate: async () => ({
               ...dummyResponseValues,
-              text: `{ "value": "test-value" }`,
+              text: { type: 'text', text: `{ "value": "test-value" }` },
             }),
           }),
           prompt: 'prompt',
@@ -1550,7 +1556,7 @@ describe('options.output', () => {
               callOptions = args;
               return {
                 ...dummyResponseValues,
-                text: `{ "value": "test-value" }`,
+                text: { type: 'text', text: `{ "value": "test-value" }` },
               };
             },
           }),

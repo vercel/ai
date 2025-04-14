@@ -114,7 +114,7 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
     TextStreamPart<TOOLS>,
     {
       type:
-        | 'text-delta'
+        | 'text'
         | 'reasoning'
         | 'source'
         | 'tool-call'

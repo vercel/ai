@@ -54,12 +54,12 @@ describe('streamObject', () => {
 
               return {
                 stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"content": ' },
-                  { type: 'text-delta', textDelta: `"Hello, ` },
-                  { type: 'text-delta', textDelta: `world` },
-                  { type: 'text-delta', textDelta: `!"` },
-                  { type: 'text-delta', textDelta: ' }' },
+                  { type: 'text', text: '{ ' },
+                  { type: 'text', text: '"content": ' },
+                  { type: 'text', text: `"Hello, ` },
+                  { type: 'text', text: `world` },
+                  { type: 'text', text: `!"` },
+                  { type: 'text', text: ' }' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
@@ -112,12 +112,12 @@ describe('streamObject', () => {
               ]);
               return {
                 stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"content": ' },
-                  { type: 'text-delta', textDelta: `"Hello, ` },
-                  { type: 'text-delta', textDelta: `world` },
-                  { type: 'text-delta', textDelta: `!"` },
-                  { type: 'text-delta', textDelta: ' }' },
+                  { type: 'text', text: '{ ' },
+                  { type: 'text', text: '"content": ' },
+                  { type: 'text', text: `"Hello, ` },
+                  { type: 'text', text: `world` },
+                  { type: 'text', text: `!"` },
+                  { type: 'text', text: ' }' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
@@ -171,12 +171,12 @@ describe('streamObject', () => {
 
               return {
                 stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"content": ' },
-                  { type: 'text-delta', textDelta: `"Hello, ` },
-                  { type: 'text-delta', textDelta: `world` },
-                  { type: 'text-delta', textDelta: `!"` },
-                  { type: 'text-delta', textDelta: ' }' },
+                  { type: 'text', text: '{ ' },
+                  { type: 'text', text: '"content": ' },
+                  { type: 'text', text: `"Hello, ` },
+                  { type: 'text', text: `world` },
+                  { type: 'text', text: `!"` },
+                  { type: 'text', text: ' }' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
@@ -452,12 +452,12 @@ describe('streamObject', () => {
                   modelId: 'mock-model-id',
                   timestamp: new Date(0),
                 },
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"content": ' },
+                { type: 'text', text: `"Hello, ` },
+                { type: 'text', text: `world` },
+                { type: 'text', text: `!"` },
+                { type: 'text', text: ' }' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -484,12 +484,12 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"content": ' },
+                { type: 'text', text: `"Hello, ` },
+                { type: 'text', text: `world` },
+                { type: 'text', text: `!"` },
+                { type: 'text', text: ' }' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -516,12 +516,12 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"content": ' },
+                { type: 'text', text: `"Hello, ` },
+                { type: 'text', text: `world` },
+                { type: 'text', text: `!"` },
+                { type: 'text', text: ' }' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -560,12 +560,12 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"content": ' },
+                { type: 'text', text: `"Hello, ` },
+                { type: 'text', text: `world` },
+                { type: 'text', text: `!"` },
+                { type: 'text', text: ' }' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -604,8 +604,8 @@ describe('streamObject', () => {
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
-                  type: 'text-delta',
-                  textDelta: '{ "content": "Hello, world!" }',
+                  type: 'text',
+                  text: '{ "content": "Hello, world!" }',
                 },
                 {
                   type: 'finish',
@@ -638,8 +638,8 @@ describe('streamObject', () => {
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
-                  type: 'text-delta',
-                  textDelta: '{ "content": "Hello, world!" }',
+                  type: 'text',
+                  text: '{ "content": "Hello, world!" }',
                 },
                 {
                   type: 'finish',
@@ -679,8 +679,8 @@ describe('streamObject', () => {
                   timestamp: new Date(0),
                 },
                 {
-                  type: 'text-delta',
-                  textDelta: '{"content": "Hello, world!"}',
+                  type: 'text',
+                  text: '{"content": "Hello, world!"}',
                 },
                 {
                   type: 'finish',
@@ -766,8 +766,8 @@ describe('streamObject', () => {
                   timestamp: new Date(0),
                 },
                 {
-                  type: 'text-delta',
-                  textDelta: '{"content": "Hello, world!"}',
+                  type: 'text',
+                  text: '{"content": "Hello, world!"}',
                 },
                 {
                   type: 'finish',
@@ -840,12 +840,12 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"content": ' },
+                { type: 'text', text: `"Hello, ` },
+                { type: 'text', text: `world` },
+                { type: 'text', text: `!"` },
+                { type: 'text', text: ' }' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -872,12 +872,12 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"invalid": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"invalid": ' },
+                { type: 'text', text: `"Hello, ` },
+                { type: 'text', text: `world` },
+                { type: 'text', text: `!"` },
+                { type: 'text', text: ' }' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -902,12 +902,12 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"invalid": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"invalid": ' },
+                { type: 'text', text: `"Hello, ` },
+                { type: 'text', text: `world` },
+                { type: 'text', text: `!"` },
+                { type: 'text', text: ' }' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -945,8 +945,8 @@ describe('streamObject', () => {
                   timestamp: new Date(0),
                 },
                 {
-                  type: 'text-delta',
-                  textDelta: '{ "content": "Hello, world!" }',
+                  type: 'text',
+                  text: '{ "content": "Hello, world!" }',
                 },
                 {
                   type: 'finish',
@@ -988,12 +988,12 @@ describe('streamObject', () => {
                   modelId: 'mock-model-id',
                   timestamp: new Date(0),
                 },
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"invalid": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"invalid": ' },
+                { type: 'text', text: `"Hello, ` },
+                { type: 'text', text: `world` },
+                { type: 'text', text: `!"` },
+                { type: 'text', text: ' }' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -1032,8 +1032,8 @@ describe('streamObject', () => {
               return {
                 stream: convertArrayToReadableStream([
                   {
-                    type: 'text-delta',
-                    textDelta: `{ "content": "headers test" }`,
+                    type: 'text',
+                    text: `{ "content": "headers test" }`,
                   },
                   {
                     type: 'finish',
@@ -1105,8 +1105,8 @@ describe('streamObject', () => {
               return {
                 stream: convertArrayToReadableStream([
                   {
-                    type: 'text-delta',
-                    textDelta: `{ "content": "provider metadata test" }`,
+                    type: 'text',
+                    text: `{ "content": "provider metadata test" }`,
                   },
                   {
                     type: 'finish',
@@ -1204,12 +1204,12 @@ describe('streamObject', () => {
 
               return {
                 stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"content": ' },
-                  { type: 'text-delta', textDelta: `"Hello, ` },
-                  { type: 'text-delta', textDelta: `world` },
-                  { type: 'text-delta', textDelta: `!"` },
-                  { type: 'text-delta', textDelta: ' }' },
+                  { type: 'text', text: '{ ' },
+                  { type: 'text', text: '"content": ' },
+                  { type: 'text', text: `"Hello, ` },
+                  { type: 'text', text: `world` },
+                  { type: 'text', text: `!"` },
+                  { type: 'text', text: ' }' },
                   {
                     type: 'finish',
                     finishReason: 'stop',
@@ -1296,7 +1296,7 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ "content": 123 }' },
+                { type: 'text', text: '{ "content": 123 }' },
                 {
                   type: 'response-metadata',
                   id: 'id-1',
@@ -1388,7 +1388,7 @@ describe('streamObject', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ broken json' },
+                { type: 'text', text: '{ broken json' },
                 {
                   type: 'response-metadata',
                   id: 'id-1',
@@ -1569,25 +1569,25 @@ describe('streamObject', () => {
 
               return {
                 stream: convertArrayToReadableStream([
-                  { type: 'text-delta', textDelta: '{"elements":[' },
+                  { type: 'text', text: '{"elements":[' },
                   // first element:
-                  { type: 'text-delta', textDelta: '{' },
-                  { type: 'text-delta', textDelta: '"content":' },
-                  { type: 'text-delta', textDelta: `"element 1"` },
-                  { type: 'text-delta', textDelta: '},' },
+                  { type: 'text', text: '{' },
+                  { type: 'text', text: '"content":' },
+                  { type: 'text', text: `"element 1"` },
+                  { type: 'text', text: '},' },
                   // second element:
-                  { type: 'text-delta', textDelta: '{ ' },
-                  { type: 'text-delta', textDelta: '"content": ' },
-                  { type: 'text-delta', textDelta: `"element 2"` },
-                  { type: 'text-delta', textDelta: '},' },
+                  { type: 'text', text: '{ ' },
+                  { type: 'text', text: '"content": ' },
+                  { type: 'text', text: `"element 2"` },
+                  { type: 'text', text: '},' },
                   // third element:
-                  { type: 'text-delta', textDelta: '{' },
-                  { type: 'text-delta', textDelta: '"content":' },
-                  { type: 'text-delta', textDelta: `"element 3"` },
-                  { type: 'text-delta', textDelta: '}' },
+                  { type: 'text', text: '{' },
+                  { type: 'text', text: '"content":' },
+                  { type: 'text', text: `"element 3"` },
+                  { type: 'text', text: '}' },
                   // end of array
-                  { type: 'text-delta', textDelta: ']' },
-                  { type: 'text-delta', textDelta: '}' },
+                  { type: 'text', text: ']' },
+                  { type: 'text', text: '}' },
                   // finish
                   {
                     type: 'finish',
@@ -1724,9 +1724,8 @@ describe('streamObject', () => {
               return {
                 stream: convertArrayToReadableStream([
                   {
-                    type: 'text-delta',
-                    textDelta:
-                      '{"elements":[{"content":"element 1"},{"content":"element 2"}]}',
+                    type: 'text',
+                    text: '{"elements":[{"content":"element 1"},{"content":"element 2"}]}',
                   },
                   // finish
                   {
@@ -1814,12 +1813,12 @@ describe('streamObject', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"content": ' },
+                { type: 'text', text: `"Hello, ` },
+                { type: 'text', text: `world` },
+                { type: 'text', text: `!"` },
+                { type: 'text', text: ' }' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -1863,12 +1862,12 @@ describe('streamObject', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"content": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"content": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world` },
+              { type: 'text', text: `!"` },
+              { type: 'text', text: ' }' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -1900,12 +1899,12 @@ describe('streamObject', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"content": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"content": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world` },
+              { type: 'text', text: `!"` },
+              { type: 'text', text: ' }' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -2050,12 +2049,12 @@ describe('streamObject', () => {
                 modelId: 'mock-model-id',
                 timestamp: new Date(0),
               },
-              { type: 'text-delta', textDelta: '{ ' },
-              { type: 'text-delta', textDelta: '"content": ' },
-              { type: 'text-delta', textDelta: `"Hello, ` },
-              { type: 'text-delta', textDelta: `world` },
-              { type: 'text-delta', textDelta: `!"` },
-              { type: 'text-delta', textDelta: ' }' },
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"content": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world` },
+              { type: 'text', text: `!"` },
+              { type: 'text', text: ' }' },
               {
                 type: 'finish',
                 finishReason: 'stop',
@@ -2219,12 +2218,12 @@ describe('streamObject', () => {
 
             return {
               stream: convertArrayToReadableStream([
-                { type: 'text-delta', textDelta: '{ ' },
-                { type: 'text-delta', textDelta: '"content": ' },
-                { type: 'text-delta', textDelta: `"Hello, ` },
-                { type: 'text-delta', textDelta: `world` },
-                { type: 'text-delta', textDelta: `!"` },
-                { type: 'text-delta', textDelta: ' }' },
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"content": ' },
+                { type: 'text', text: `"Hello, ` },
+                { type: 'text', text: `world` },
+                { type: 'text', text: `!"` },
+                { type: 'text', text: ' }' },
                 {
                   type: 'finish',
                   finishReason: 'stop',
@@ -2282,8 +2281,8 @@ describe('streamObject', () => {
             doStream: async () => ({
               stream: convertArrayToReadableStream([
                 {
-                  type: 'text-delta',
-                  textDelta: '{ "content": "Hello, world!" }',
+                  type: 'text',
+                  text: '{ "content": "Hello, world!" }',
                 },
                 {
                   type: 'finish',
