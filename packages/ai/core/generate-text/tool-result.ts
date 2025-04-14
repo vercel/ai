@@ -7,8 +7,8 @@ export type { CoreToolResult, ToolResult } from '@ai-sdk/provider-utils';
 // limits the tools to those that have execute !== undefined
 export type ToToolsWithDefinedExecute<TOOLS extends ToolSet> = {
   [K in keyof TOOLS as TOOLS[K]['execute'] extends undefined
-  ? never
-  : K]: TOOLS[K];
+    ? never
+    : K]: TOOLS[K];
 };
 
 // transforms the tools into a tool result union

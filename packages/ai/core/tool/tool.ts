@@ -27,8 +27,8 @@ export interface ToolExecutionOptions {
 type NeverOptional<N, T> = 0 extends 1 & N
   ? Partial<T>
   : [N] extends [never]
-  ? Partial<Record<keyof T, undefined>>
-  : T;
+    ? Partial<Record<keyof T, undefined>>
+    : T;
 
 /**
 A tool contains the description and the schema of the input that the tool expects.
@@ -80,27 +80,27 @@ If not provided, the tool will not be executed automatically.
   > &
   (
     | {
-      /**
+        /**
 Function tool.
      */
-      type?: undefined | 'function';
-    }
+        type?: undefined | 'function';
+      }
     | {
-      /**
+        /**
 Provider-defined tool.
      */
-      type: 'provider-defined';
+        type: 'provider-defined';
 
-      /**
+        /**
 The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
      */
-      id: `${string}.${string}`;
+        id: `${string}.${string}`;
 
-      /**
+        /**
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
      */
-      args: Record<string, unknown>;
-    }
+        args: Record<string, unknown>;
+      }
   );
 
 /**
@@ -120,7 +120,7 @@ export function tool(tool: any): any {
 
 export type MappedTool<T extends Tool | JSONObject, RESULT extends any> =
   T extends Tool<infer P>
-  ? Tool<P, RESULT>
-  : T extends JSONObject
-  ? Tool<T, RESULT>
-  : never;
+    ? Tool<P, RESULT>
+    : T extends JSONObject
+      ? Tool<T, RESULT>
+      : never;
