@@ -343,7 +343,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     }
 
     return {
-      text: choice.message.content ?? undefined,
+      text:
+        choice.message.content != null
+          ? { type: 'text', text: choice.message.content }
+          : undefined,
       toolCalls: choice.message.tool_calls?.map(toolCall => ({
         type: 'tool-call' as const,
         toolCallType: 'function',
@@ -500,8 +503,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
             if (delta.content != null) {
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: delta.content,
+                type: 'text',
+                text: delta.content,
               });
             }
 

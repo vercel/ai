@@ -413,8 +413,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               value.contentBlockDelta.delta.text
             ) {
               controller.enqueue({
-                type: 'text-delta',
-                textDelta: value.contentBlockDelta.delta.text,
+                type: 'text',
+                text: value.contentBlockDelta.delta.text,
               });
             }
 

@@ -265,7 +265,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }));
 
     return {
-      text: outputTextElements.map(content => content.text).join('\n'),
+      text: {
+        type: 'text',
+        text: outputTextElements.map(content => content.text).join('\n'),
+      },
       sources: outputTextElements.flatMap(content =>
         content.annotations.map(annotation => ({
           type: 'source',
