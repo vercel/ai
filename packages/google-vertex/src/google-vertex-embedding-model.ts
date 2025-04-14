@@ -68,7 +68,11 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
     );
 
     const url = `${this.config.baseURL}/models/${this.modelId}:predict`;
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url,
       headers: mergedHeaders,
       body: {
@@ -96,7 +100,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
           0,
         ),
       },
-      response: { headers: responseHeaders },
+      response: { headers: responseHeaders, body: rawValue },
     };
   }
 }

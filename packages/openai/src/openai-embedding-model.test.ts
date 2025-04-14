@@ -49,7 +49,7 @@ describe('doEmbed', () => {
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 
-  it('should expose the raw response headers', async () => {
+  it('should expose the raw response', async () => {
     prepareJsonResponse({
       headers: {
         'test-header': 'test-value',
@@ -66,6 +66,7 @@ describe('doEmbed', () => {
       // custom header
       'test-header': 'test-value',
     });
+    expect(response?.body).toMatchSnapshot();
   });
 
   it('should extract usage', async () => {

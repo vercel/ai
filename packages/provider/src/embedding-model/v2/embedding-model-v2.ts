@@ -79,6 +79,11 @@ Optional response information for debugging purposes.
 Response headers.
        */
       headers?: Record<string, string>;
+
+      /**
+      The response body.
+      */
+      body?: unknown;
     };
   }>;
 };

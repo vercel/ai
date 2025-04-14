@@ -75,7 +75,11 @@ export class GoogleGenerativeAIEmbeddingModel
       headers,
     );
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/models/${this.modelId}:batchEmbedContents`,
       headers: mergedHeaders,
       body: {
@@ -96,7 +100,7 @@ export class GoogleGenerativeAIEmbeddingModel
     return {
       embeddings: response.embeddings.map(item => item.values),
       usage: undefined,
-      response: { headers: responseHeaders },
+      response: { headers: responseHeaders, body: rawValue },
     };
   }
 }

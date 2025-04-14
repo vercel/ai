@@ -60,7 +60,7 @@ describe('doEmbed', () => {
     expect(usage).toStrictEqual({ tokens: 20 });
   });
 
-  it('should expose the raw response headers', async () => {
+  it('should expose the raw response', async () => {
     prepareJsonResponse({
       headers: { 'test-header': 'test-value' },
     });
@@ -75,6 +75,7 @@ describe('doEmbed', () => {
       // custom header
       'test-header': 'test-value',
     });
+    expect(response?.body).toMatchSnapshot();
   });
 
   it('should pass the model and the values', async () => {

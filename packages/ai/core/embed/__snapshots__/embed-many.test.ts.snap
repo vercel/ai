@@ -1,5 +1,14 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`result.responses > should include responses in the result 1`] = `
+[
+  {
+    "body": {},
+    "headers": {},
+  },
+]
+`;
+
 exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
 [
   {

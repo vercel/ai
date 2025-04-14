@@ -22,6 +22,19 @@ describe('result.embedding', () => {
   });
 });
 
+describe('result.response', () => {
+  it('should include response in the result', async () => {
+    const result = await embed({
+      model: new MockEmbeddingModelV2({
+        doEmbed: mockEmbed([testValue], [dummyEmbedding]),
+      }),
+      value: testValue,
+    });
+
+    expect(result.response).toMatchSnapshot();
+  });
+});
+
 describe('result.value', () => {
   it('should include value in the result', async () => {
     const result = await embed({

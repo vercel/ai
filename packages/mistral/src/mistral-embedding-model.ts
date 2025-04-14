@@ -69,7 +69,11 @@ export class MistralEmbeddingModel implements EmbeddingModelV2<string> {
       });
     }
 
-    const { responseHeaders, value: response } = await postJsonToApi({
+    const {
+      responseHeaders,
+      value: response,
+      rawValue,
+    } = await postJsonToApi({
       url: `${this.config.baseURL}/embeddings`,
       headers: combineHeaders(this.config.headers(), headers),
       body: {
@@ -90,7 +94,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV2<string> {
       usage: response.usage
         ? { tokens: response.usage.prompt_tokens }
         : undefined,
-      response: { headers: responseHeaders },
+      response: { headers: responseHeaders, body: rawValue },
     };
   }
 }
