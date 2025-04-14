@@ -7,11 +7,11 @@ async function main() {
       doStream: async () => ({
         stream: simulateReadableStream({
           chunks: [
-            { type: 'text-delta', textDelta: 'こんにちは' },
-            { type: 'text-delta', textDelta: 'こんにちは' },
-            { type: 'text-delta', textDelta: 'こんにちは' },
-            { type: 'text-delta', textDelta: 'こんにちは' },
-            { type: 'text-delta', textDelta: 'こんにちは' },
+            { type: 'text', text: 'こんにちは' },
+            { type: 'text', text: 'こんにちは' },
+            { type: 'text', text: 'こんにちは' },
+            { type: 'text', text: 'こんにちは' },
+            { type: 'text', text: 'こんにちは' },
             {
               type: 'finish',
               finishReason: 'stop',
