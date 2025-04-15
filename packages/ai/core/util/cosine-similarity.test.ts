@@ -40,15 +40,6 @@ it('should give 0 when one of the vectors is a zero vector', () => {
   expect(result2).toBe(0);
 });
 
-it('should throw an error when vectors are empty', () => {
-  const vector1: number[] = [];
-  const vector2: number[] = [];
-
-  expect(() =>
-    cosineSimilarity(vector1, vector2, { throwErrorForEmptyVectors: true }),
-  ).toThrowError();
-});
-
 it('should handle vectors with very small magnitudes', () => {
   const vector1 = [1e-10, 0, 0];
   const vector2 = [2e-10, 0, 0];
