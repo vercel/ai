@@ -21,8 +21,8 @@ const context = {
 describe('Output.object', () => {
   const output = object({ schema: z.object({ content: z.string() }) });
 
-  it('should parse the output of the model', () => {
-    const result = output.parseOutput(
+  it('should parse the output of the model', async () => {
+    const result = await output.parseOutput(
       { text: `{ "content": "test" }` },
       context,
     );
@@ -32,7 +32,7 @@ describe('Output.object', () => {
 
   it('should throw NoObjectGeneratedError when parsing fails', async () => {
     try {
-      output.parseOutput({ text: '{ broken json' }, context);
+      await output.parseOutput({ text: '{ broken json' }, context);
       fail('must throw error');
     } catch (error) {
       verifyNoObjectGeneratedError(error, {
@@ -46,7 +46,7 @@ describe('Output.object', () => {
 
   it('should throw NoObjectGeneratedError when schema validation fails', async () => {
     try {
-      output.parseOutput({ text: `{ "content": 123 }` }, context);
+      await output.parseOutput({ text: `{ "content": 123 }` }, context);
       fail('must throw error');
     } catch (error) {
       verifyNoObjectGeneratedError(error, {

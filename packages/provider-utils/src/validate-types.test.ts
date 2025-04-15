@@ -20,16 +20,16 @@ describe('validateTypes', () => {
     ['Zod schema', zodSchema],
     ['Custom validator', customValidator],
   ])('using %s', (_, schema) => {
-    it('should return validated object for valid input', () => {
+    it('should return validated object for valid input', async () => {
       const input = { name: 'John', age: 30 };
-      expect(validateTypes({ value: input, schema })).toEqual(input);
+      expect(await validateTypes({ value: input, schema })).toEqual(input);
     });
 
-    it('should throw TypeValidationError for invalid input', () => {
+    it('should throw TypeValidationError for invalid input', async () => {
       const input = { name: 'John', age: '30' };
 
       try {
-        validateTypes({ value: input, schema });
+        await validateTypes({ value: input, schema });
         expect.fail('Expected TypeValidationError to be thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(TypeValidationError);

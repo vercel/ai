@@ -573,11 +573,7 @@ A function that attempts to repair a tool call that failed to parse.
         }),
       );
 
-      if (output == null) {
-        throw new NoOutputSpecifiedError();
-      }
-
-      const resolvedOutput = await output.parseOutput(
+      const resolvedOutput = await output?.parseOutput(
         { text },
         {
           response: currentModelResponse.response,
@@ -768,6 +764,10 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 
   get experimental_output() {
+    if (this.resolvedOutput == null) {
+      throw new NoOutputSpecifiedError();
+    }
+
     return this.resolvedOutput;
   }
 }

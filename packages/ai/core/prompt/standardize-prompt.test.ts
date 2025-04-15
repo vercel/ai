@@ -2,9 +2,9 @@ import { InvalidPromptError } from '@ai-sdk/provider';
 import { standardizePrompt } from './standardize-prompt';
 
 describe('message prompt', () => {
-  it('should throw InvalidPromptError when system message has parts', () => {
-    expect(() => {
-      standardizePrompt({
+  it('should throw InvalidPromptError when system message has parts', async () => {
+    await expect(async () => {
+      await standardizePrompt({
         prompt: {
           messages: [
             {
@@ -15,17 +15,17 @@ describe('message prompt', () => {
         },
         tools: undefined,
       });
-    }).toThrow(InvalidPromptError);
+    }).rejects.toThrow(InvalidPromptError);
   });
 
-  it('should throw InvalidPromptError when messages array is empty', () => {
-    expect(() => {
-      standardizePrompt({
+  it('should throw InvalidPromptError when messages array is empty', async () => {
+    await expect(async () => {
+      await standardizePrompt({
         prompt: {
           messages: [],
         },
         tools: undefined,
       });
-    }).toThrow(InvalidPromptError);
+    }).rejects.toThrow(InvalidPromptError);
   });
 });
