@@ -28,7 +28,7 @@ export function defaultSettingsMiddleware({
           params.providerOptions,
         ),
 
-        temperature: params.temperature || settings.temperature,
+        temperature: params.temperature ?? settings.temperature,
       };
     },
   };
