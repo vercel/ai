@@ -893,15 +893,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       settings: { ...settings, maxRetries },
     });
 
-    const initialPrompt = await standardizePrompt({
-      prompt: {
-        system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
-        prompt,
-        messages,
-      },
-      tools,
-    });
-
     const self = this;
 
     recordSpan({
@@ -940,6 +931,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           hasLeadingWhitespace: boolean;
           messageId: string;
         }) {
+          const initialPrompt = await standardizePrompt({
+            prompt: {
+              system:
+                output?.injectIntoSystemPrompt({ system, model }) ?? system,
+              prompt,
+              messages,
+            },
+            tools,
+          });
+
           // after the 1st step, we need to switch to messages format:
           const promptFormat =
             responseMessages.length === 0 ? initialPrompt.type : 'messages';
