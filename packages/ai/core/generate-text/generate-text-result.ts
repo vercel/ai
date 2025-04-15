@@ -28,8 +28,7 @@ The generated text.
   /**
 The full reasoning that the model has generated.
    */
-  // TODO v5: rename to `reasoning`
-  readonly reasoningDetails: Array<ReasoningDetail>;
+  readonly reasoning: Array<ReasoningDetail>;
 
   /**
 The reasoning text that the model has generated. Can be undefined if the model
