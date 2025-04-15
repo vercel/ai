@@ -424,7 +424,7 @@ function createOutputTransformStream<
     TextStreamPart<TOOLS>,
     EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
   >({
-    transform(chunk, controller) {
+    async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
       if (chunk.type === 'step-finish') {
         publishTextChunk({ controller });
@@ -439,7 +439,7 @@ function createOutputTransformStream<
       textChunk += chunk.text;
 
       // only publish if partial json can be parsed:
-      const result = output.parsePartial({ text });
+      const result = await output.parsePartial({ text });
       if (result != null) {
         // only send new json if it has changed:
         const currentJson = JSON.stringify(result.partial);
@@ -893,7 +893,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       settings: { ...settings, maxRetries },
     });
 
-    const initialPrompt = standardizePrompt({
+    const initialPrompt = await standardizePrompt({
       prompt: {
         system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
         prompt,

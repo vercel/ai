@@ -124,7 +124,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         warnings,
       });
 
-    const anthropicOptions = parseProviderOptions({
+    const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
       providerOptions,
       schema: anthropicProviderOptionsSchema,

@@ -57,15 +57,15 @@ describe('safeValidateTypes', () => {
     ['Zod schema', zodSchema],
     ['Custom validator', customValidator],
   ])('using %s', (_, schema) => {
-    it('should return validated object for valid input', () => {
+    it('should return validated object for valid input', async () => {
       const input = { name: 'John', age: 30 };
-      const result = safeValidateTypes({ value: input, schema });
+      const result = await safeValidateTypes({ value: input, schema });
       expect(result).toEqual({ success: true, value: input });
     });
 
-    it('should return error object for invalid input', () => {
+    it('should return error object for invalid input', async () => {
       const input = { name: 'John', age: '30' };
-      const result = safeValidateTypes({ value: input, schema });
+      const result = await safeValidateTypes({ value: input, schema });
 
       expect(result).toEqual({
         success: false,

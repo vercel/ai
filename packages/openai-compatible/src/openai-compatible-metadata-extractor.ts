@@ -18,7 +18,7 @@ export type MetadataExtractor = {
     parsedBody,
   }: {
     parsedBody: unknown;
-  }) => SharedV2ProviderMetadata | undefined;
+  }) => Promise<SharedV2ProviderMetadata | undefined>;
 
   /**
    * Creates an extractor for handling streaming responses. The returned object provides

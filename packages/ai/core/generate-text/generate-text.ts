@@ -227,7 +227,7 @@ A function that attempts to repair a tool call that failed to parse.
     settings: { ...settings, maxRetries },
   });
 
-  const initialPrompt = standardizePrompt({
+  const initialPrompt = await standardizePrompt({
     prompt: {
       system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
       prompt,
@@ -579,12 +579,12 @@ A function that attempts to repair a tool call that failed to parse.
         reasoning: asReasoningText(currentReasoningDetails),
         reasoningDetails: currentReasoningDetails,
         sources,
-        outputResolver: () => {
+        outputResolver: async () => {
           if (output == null) {
             throw new NoOutputSpecifiedError();
           }
 
-          return output.parseOutput(
+          return await output.parseOutput(
             { text },
             {
               response: currentModelResponse.response,

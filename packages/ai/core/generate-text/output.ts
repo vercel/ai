@@ -19,7 +19,9 @@ export interface Output<OUTPUT, PARTIAL> {
     model: LanguageModel;
   }) => LanguageModelV2CallOptions['responseFormat'];
 
-  parsePartial(options: { text: string }): { partial: PARTIAL } | undefined;
+  parsePartial(options: {
+    text: string;
+  }): Promise<{ partial: PARTIAL } | undefined>;
 
   parseOutput(
     options: { text: string },
@@ -28,7 +30,7 @@ export interface Output<OUTPUT, PARTIAL> {
       usage: LanguageModelUsage;
       finishReason: FinishReason;
     },
-  ): OUTPUT;
+  ): Promise<OUTPUT>;
 }
 
 export const text = (): Output<string, string> => ({
@@ -40,11 +42,11 @@ export const text = (): Output<string, string> => ({
     return system;
   },
 
-  parsePartial({ text }: { text: string }) {
+  async parsePartial({ text }: { text: string }) {
     return { partial: text };
   },
 
-  parseOutput({ text }: { text: string }) {
+  async parseOutput({ text }: { text: string }) {
     return text;
   },
 });
@@ -75,8 +77,8 @@ export const object = <OUTPUT>({
           });
     },
 
-    parsePartial({ text }: { text: string }) {
-      const result = parsePartialJson(text);
+    async parsePartial({ text }: { text: string }) {
+      const result = await parsePartialJson(text);
 
       switch (result.state) {
         case 'failed-parse':
@@ -97,7 +99,7 @@ export const object = <OUTPUT>({
       }
     },
 
-    parseOutput(
+    async parseOutput(
       { text }: { text: string },
       context: {
         response: LanguageModelResponseMetadata;
@@ -105,7 +107,7 @@ export const object = <OUTPUT>({
         finishReason: FinishReason;
       },
     ) {
-      const parseResult = safeParseJSON({ text });
+      const parseResult = await safeParseJSON({ text });
 
       if (!parseResult.success) {
         throw new NoObjectGeneratedError({
@@ -118,7 +120,7 @@ export const object = <OUTPUT>({
         });
       }
 
-      const validationResult = safeValidateTypes({
+      const validationResult = await safeValidateTypes({
         value: parseResult.value,
         schema,
       });
