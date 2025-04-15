@@ -2,7 +2,7 @@ import { Tool } from '../tool';
 import { ValueOf } from '../util/value-of';
 import { ToolSet } from './tool-set';
 
-export type { CoreToolResult, ToolResult } from '@ai-sdk/provider-utils';
+export type { ToolResult } from '@ai-sdk/provider-utils';
 
 // limits the tools to those that have execute !== undefined
 export type ToToolsWithDefinedExecute<TOOLS extends ToolSet> = {
