@@ -1,13 +1,9 @@
 import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
 import { LanguageModelV2CallOptions } from './language-model-v2-call-options';
 import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
-import { LanguageModelV2File } from './language-model-v2-file';
+import { LanguageModelV2Content } from './language-model-v2-content';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
 import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
-import { LanguageModelV2Reasoning } from './language-model-v2-reasoning';
-import { LanguageModelV2Source } from './language-model-v2-source';
-import { LanguageModelV2Text } from './language-model-v2-text';
-import { LanguageModelV2ToolCall } from './language-model-v2-tool-call';
 import { LanguageModelV2ToolCallDelta } from './language-model-v2-tool-call-delta';
 import { LanguageModelV2Usage } from './language-model-v2-usage';
 
@@ -91,13 +87,7 @@ by the user.
     /**
 Ordered content that the model has generated.
      */
-    content: Array<
-      | LanguageModelV2Text
-      | LanguageModelV2Reasoning
-      | LanguageModelV2File
-      | LanguageModelV2Source
-      | LanguageModelV2ToolCall
-    >;
+    content: Array<LanguageModelV2Content>;
 
     /**
 Logprobs for the completion.
@@ -210,20 +200,10 @@ Warnings for the call, e.g. unsupported settings.
 };
 
 export type LanguageModelV2StreamPart =
-  // Text:
-  | LanguageModelV2Text
+  // Content (similar to doGenerate):
+  | LanguageModelV2Content
 
-  // Reasoning:
-  | LanguageModelV2Reasoning
-
-  // Sources:
-  | LanguageModelV2Source
-
-  // Files:
-  | LanguageModelV2File
-
-  // Tool calls:
-  | LanguageModelV2ToolCall
+  // Tool calls delta:
   | LanguageModelV2ToolCallDelta
 
   // metadata for the response.
