@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [f4f3945]
+  - ai@4.3.7
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [beef951]
 - Updated dependencies [bd41167]
   - ai@4.3.6
