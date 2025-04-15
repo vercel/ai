@@ -88,36 +88,16 @@ Naming: "do" prefix to prevent accidental direct usage of the method
 by the user.
    */
   doGenerate(options: LanguageModelV2CallOptions): PromiseLike<{
-    // TODO v2: switch to a composite content array with text, tool calls, reasoning, files
-
     /**
-Text that the model has generated.
-Can be undefined if the model did not generate any text.
+Ordered content that the model has generated.
      */
-    text?: LanguageModelV2Text;
-
-    /**
-Reasoning that the model has generated.
-Can be undefined if the model does not support reasoning.
-     */
-    reasoning?: Array<LanguageModelV2Reasoning>;
-
-    /**
-Generated files as base64 encoded strings or binary data.
-The files should be returned without any unnecessary conversion.
-     */
-    files?: Array<LanguageModelV2File>;
-
-    /**
-Sources that have been used as input to generate the response.
- */
-    sources?: LanguageModelV2Source[];
-
-    /**
-Tool calls that the model has generated.
-Can be undefined if the model did not generate any tool calls.
-     */
-    toolCalls?: Array<LanguageModelV2ToolCall>;
+    content: Array<
+      | LanguageModelV2Text
+      | LanguageModelV2Reasoning
+      | LanguageModelV2File
+      | LanguageModelV2Source
+      | LanguageModelV2ToolCall
+    >;
 
     /**
 Logprobs for the completion.
