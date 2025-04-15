@@ -2,7 +2,9 @@ import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
+  LanguageModelV2Source,
   LanguageModelV2StreamPart,
+  LanguageModelV2Text,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
@@ -138,11 +140,26 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     });
 
     const choice = response.choices[0];
+    const content: Array<LanguageModelV2Text | LanguageModelV2Source> = [];
+
     const text = choice.message.content;
+    if (text.length > 0) {
+      content.push({ type: 'text', text });
+    }
+
+    if (response.citations != null) {
+      for (const url of response.citations) {
+        content.push({
+          type: 'source',
+          sourceType: 'url',
+          id: this.config.generateId(),
+          url,
+        });
+      }
+    }
 
     return {
-      text: { type: 'text', text },
-      toolCalls: [],
+      content,
       finishReason: mapPerplexityFinishReason(choice.finish_reason),
       usage: {
         inputTokens: response.usage?.prompt_tokens,
@@ -155,12 +172,6 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
         body: rawResponse,
       },
       warnings,
-      sources: response.citations?.map(url => ({
-        type: 'source',
-        sourceType: 'url',
-        id: this.config.generateId(),
-        url,
-      })),
       providerMetadata: {
         perplexity: {
           images:
