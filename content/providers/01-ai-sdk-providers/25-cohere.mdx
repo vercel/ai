@@ -119,15 +119,22 @@ using the `.embedding()` factory method.
 const model = cohere.embedding('embed-english-v3.0');
 ```
 
-Cohere embedding models support additional settings. You can pass them as an options argument:
+Cohere embedding models support provider options. You can pass them as an options argument:
 
 ```ts
-const model = cohere.embedding('embed-english-v3.0', {
-  inputType: 'search_document',
+const model = cohere.embedding('embed-english-v3.0');
+
+await embed({
+  model,
+  providerOptions: {
+    cohere: {
+      inputType: 'search_document',
+    },
+  },
 });
 ```
 
-The following optional settings are available for Cohere embedding models:
+The following optional provider options are available for Cohere embedding models:
 
 - **inputType** _'search_document' | 'search_query' | 'classification' | 'clustering'_
 

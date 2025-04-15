@@ -111,14 +111,14 @@ describe('result.text', () => {
   });
 });
 
-describe('result.reasoning', () => {
+describe('result.reasoningText', () => {
   it('should contain reasoning string from model response', async () => {
     const result = await generateText({
       model: modelWithReasoning,
       prompt: 'prompt',
     });
 
-    expect(result.reasoning).toStrictEqual(
+    expect(result.reasoningText).toStrictEqual(
       'I will open the conversation with witty banter.',
     );
   });

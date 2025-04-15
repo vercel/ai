@@ -1,5 +1,3 @@
-import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
-
 // https://docs.together.ai/docs/serverless-models#chat-models
 export type TogetherAIChatModelId =
   | 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
@@ -36,5 +34,3 @@ export type TogetherAIChatModelId =
   | 'Qwen/Qwen2-72B-Instruct'
   | 'upstage/SOLAR-10.7B-Instruct-v1.0'
   | (string & {});
-
-export interface TogetherAIChatSettings extends OpenAICompatibleChatSettings {}
