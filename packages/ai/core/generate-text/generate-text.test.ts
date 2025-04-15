@@ -38,7 +38,7 @@ const modelWithSources = new MockLanguageModelV2({
         providerMetadata: { provider: { custom: 'value2' } },
       },
     ],
-    text: 'Hello, world!',
+    text: { type: 'text', text: 'Hello, world!' },
   }),
 });
 
@@ -57,7 +57,7 @@ const modelWithFiles = new MockLanguageModelV2({
         mediaType: 'image/jpeg',
       },
     ],
-    text: 'Hello, world!',
+    text: { type: 'text', text: 'Hello, world!' },
   }),
 });
 
