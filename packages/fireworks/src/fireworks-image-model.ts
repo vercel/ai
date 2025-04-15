@@ -9,7 +9,7 @@ import {
 import {
   FireworksImageModelId,
   FireworksImageSettings,
-} from './fireworks-image-settings';
+} from './fireworks-image-options';
 
 interface FireworksImageModelBackendConfig {
   urlFormat: 'workflows' | 'image_generation';

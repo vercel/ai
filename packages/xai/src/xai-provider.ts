@@ -14,11 +14,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  XaiChatModelId,
-  XaiChatSettings,
-  supportsStructuredOutputs,
-} from './xai-chat-settings';
+import { XaiChatModelId, supportsStructuredOutputs } from './xai-chat-settings';
 import { XaiImageSettings } from './xai-image-settings';
 import { XaiImageModelId } from './xai-image-settings';
 import { XaiErrorData, xaiErrorSchema } from './xai-error';
@@ -32,23 +28,17 @@ export interface XaiProvider extends ProviderV2 {
   /**
 Creates an Xai chat model for text generation.
    */
-  (modelId: XaiChatModelId, settings?: XaiChatSettings): LanguageModelV2;
+  (modelId: XaiChatModelId): LanguageModelV2;
 
   /**
 Creates an Xai language model for text generation.
    */
-  languageModel(
-    modelId: XaiChatModelId,
-    settings?: XaiChatSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: XaiChatModelId): LanguageModelV2;
 
   /**
 Creates an Xai chat model for text generation.
    */
-  chat: (
-    modelId: XaiChatModelId,
-    settings?: XaiChatSettings,
-  ) => LanguageModelV2;
+  chat: (modelId: XaiChatModelId) => LanguageModelV2;
 
   /**
 Creates an Xai image model for image generation.
@@ -100,12 +90,9 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     ...options.headers,
   });
 
-  const createLanguageModel = (
-    modelId: XaiChatModelId,
-    settings: XaiChatSettings = {},
-  ) => {
+  const createLanguageModel = (modelId: XaiChatModelId) => {
     const structuredOutputs = supportsStructuredOutputs(modelId);
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
+    return new OpenAICompatibleChatLanguageModel(modelId, {
       provider: 'xai.chat',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -129,8 +116,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const provider = (modelId: XaiChatModelId, settings?: XaiChatSettings) =>
-    createLanguageModel(modelId, settings);
+  const provider = (modelId: XaiChatModelId) => createLanguageModel(modelId);
 
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;

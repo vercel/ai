@@ -1,5 +1,25 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.6
+
+### Major Changes
+
+- 14c9410: chore: refactor file towards source pattern (spec)
+- d9c98f4: chore: refactor reasoning parts (spec)
+- 0054544: chore: refactor source parts (spec)
+- 9e9c809: chore: refactor tool call and tool call delta parts (spec)
+- 32831c6: chore: refactor text parts (spec)
+- d0f9495: chore: refactor file parts (spec)
+
+### Patch Changes
+
+- 26735b5: chore(embedding-model): add v2 interface
+- 443d8ec: feat(embedding-model-v2): add response body field
+- c4a2fec: chore (provider): extract shared provider options and metadata (spec)
+- fd65bc6: chore(embedding-model-v2): rename rawResponse to response
+- 393138b: feat(embedding-model-v2): add providerOptions
+- 7182d14: Remove `Experimental_LanguageModelV2Middleware` type
+
 ## 2.0.0-canary.5
 
 ### Major Changes
