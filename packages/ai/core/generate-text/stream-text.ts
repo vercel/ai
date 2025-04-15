@@ -933,7 +933,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           hasLeadingWhitespace: boolean;
           messageId: string;
         }) {
-          const initialPrompt = standardizePrompt({
+          const initialPrompt = await standardizePrompt({
             prompt: { system, prompt, messages },
             tools,
           });
