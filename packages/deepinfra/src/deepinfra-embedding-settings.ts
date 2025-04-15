@@ -1,5 +1,3 @@
-import { OpenAICompatibleEmbeddingSettings } from '@ai-sdk/openai-compatible';
-
 // https://deepinfra.com/models/embeddings
 export type DeepInfraEmbeddingModelId =
   | 'BAAI/bge-base-en-v1.5'
@@ -19,6 +17,3 @@ export type DeepInfraEmbeddingModelId =
   | 'thenlper/gte-base'
   | 'thenlper/gte-large'
   | (string & {});
-
-export interface DeepInfraEmbeddingSettings
-  extends OpenAICompatibleEmbeddingSettings {}
