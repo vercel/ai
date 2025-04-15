@@ -478,10 +478,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['text']>
   >();
   private readonly reasoningPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoning']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoningText']>
   >();
   private readonly reasoningDetailsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoningDetails']>
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoning']>
   >();
   private readonly sourcesPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['sources']>
@@ -1480,11 +1480,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     return this.textPromise.value;
   }
 
-  get reasoning() {
+  get reasoningText() {
     return this.reasoningPromise.value;
   }
 
-  get reasoningDetails() {
+  get reasoning() {
     return this.reasoningDetailsPromise.value;
   }
 
