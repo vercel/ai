@@ -14,10 +14,4 @@ export type ToolCallUnion<TOOLS extends ToolSet> = ValueOf<{
   };
 }>;
 
-/**
- * @deprecated Use `ToolCallUnion` instead.
- */
-// TODO remove in v5
-export type CoreToolCallUnion<TOOLS extends ToolSet> = ToolCallUnion<ToolSet>;
-
 export type ToolCallArray<TOOLS extends ToolSet> = Array<ToolCallUnion<TOOLS>>;
