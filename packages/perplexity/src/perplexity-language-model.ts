@@ -1,10 +1,9 @@
 import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  LanguageModelV2Source,
   LanguageModelV2StreamPart,
-  LanguageModelV2Text,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
@@ -140,13 +139,15 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     });
 
     const choice = response.choices[0];
-    const content: Array<LanguageModelV2Text | LanguageModelV2Source> = [];
+    const content: Array<LanguageModelV2Content> = [];
 
+    // text content:
     const text = choice.message.content;
     if (text.length > 0) {
       content.push({ type: 'text', text });
     }
 
+    // sources:
     if (response.citations != null) {
       for (const url of response.citations) {
         content.push({

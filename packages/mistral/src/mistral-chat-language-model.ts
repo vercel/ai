@@ -1,17 +1,18 @@
 import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
-  FetchFunction,
-  ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  FetchFunction,
   parseProviderOptions,
+  ParseResult,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -21,7 +22,6 @@ import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
   MistralChatModelId,
   mistralProviderOptions,
-  MistralProviderOptions,
 } from './mistral-chat-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
@@ -185,9 +185,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     });
 
     const choice = response.choices[0];
+    const content: Array<LanguageModelV2Content> = [];
 
-    // extract text content.
-    // image content or reference content is currently ignored.
+    // text content:
     let text = extractTextContent(choice.message.content);
 
     // when there is a trailing assistant message, mistral will send the
@@ -201,15 +201,25 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       text = text.slice(lastMessage.content.length);
     }
 
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text });
+    }
+
+    // tool calls:
+    if (choice.message.tool_calls != null) {
+      for (const toolCall of choice.message.tool_calls) {
+        content.push({
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: toolCall.id,
+          toolName: toolCall.function.name,
+          args: toolCall.function.arguments!,
+        });
+      }
+    }
+
     return {
-      text: text != null ? { type: 'text', text } : undefined,
-      toolCalls: choice.message.tool_calls?.map(toolCall => ({
-        type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: toolCall.id,
-        toolName: toolCall.function.name,
-        args: toolCall.function.arguments!,
-      })),
+      content,
       finishReason: mapMistralFinishReason(choice.finish_reason),
       usage: {
         inputTokens: response.usage.prompt_tokens,
