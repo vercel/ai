@@ -1,5 +1,3 @@
-import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
-
 // https://console.x.ai and see "View models"
 export type XaiChatModelId =
   | 'grok-3'
@@ -22,8 +20,6 @@ export type XaiChatModelId =
   | 'grok-vision-beta'
   | 'grok-beta'
   | (string & {});
-
-export interface XaiChatSettings extends OpenAICompatibleChatSettings {}
 
 /**
  * https://docs.x.ai/docs/guides/structured-outputs

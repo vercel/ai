@@ -32,7 +32,7 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoning).toStrictEqual('analyzing the request');
+      expect(result.reasoningText).toStrictEqual('analyzing the request');
       expect(result.text).toStrictEqual('Here is the response');
     });
 
@@ -58,7 +58,7 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoning).toStrictEqual('analyzing the request\n');
+      expect(result.reasoningText).toStrictEqual('analyzing the request\n');
       expect(result.text).toStrictEqual('');
     });
 
@@ -84,7 +84,7 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoning).toStrictEqual(
+      expect(result.reasoningText).toStrictEqual(
         'analyzing the request\nthinking about the response',
       );
       expect(result.text).toStrictEqual('Here is the response\nmore');
@@ -125,9 +125,9 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(resultTrue.reasoning).toStrictEqual('analyzing the request');
+      expect(resultTrue.reasoningText).toStrictEqual('analyzing the request');
       expect(resultTrue.text).toStrictEqual('Here is the response');
-      expect(resultFalse.reasoning).toBeUndefined();
+      expect(resultFalse.reasoningText).toBeUndefined();
       expect(resultFalse.text).toStrictEqual(
         'analyzing the request</think>Here is the response',
       );
@@ -156,7 +156,7 @@ describe('extractReasoningMiddleware', () => {
         prompt: 'Hello, how can I help?',
       });
 
-      expect(result.reasoning).toStrictEqual('analyzing the request');
+      expect(result.reasoningText).toStrictEqual('analyzing the request');
       expect(result.text).toStrictEqual('Here is the response');
     });
   });

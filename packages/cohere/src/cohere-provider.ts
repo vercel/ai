@@ -10,33 +10,21 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { CohereChatLanguageModel } from './cohere-chat-language-model';
-import { CohereChatModelId, CohereChatSettings } from './cohere-chat-settings';
+import { CohereChatModelId } from './cohere-chat-options';
 import { CohereEmbeddingModel } from './cohere-embedding-model';
-import {
-  CohereEmbeddingModelId,
-  CohereEmbeddingSettings,
-} from './cohere-embedding-settings';
+import { CohereEmbeddingModelId } from './cohere-embedding-options';
 
 export interface CohereProvider extends ProviderV2 {
-  (modelId: CohereChatModelId, settings?: CohereChatSettings): LanguageModelV2;
+  (modelId: CohereChatModelId): LanguageModelV2;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(
-    modelId: CohereChatModelId,
-    settings?: CohereChatSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: CohereChatModelId): LanguageModelV2;
 
-  embedding(
-    modelId: CohereEmbeddingModelId,
-    settings?: CohereEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV2<string>;
 
-  textEmbeddingModel(
-    modelId: CohereEmbeddingModelId,
-    settings?: CohereEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV2<string>;
 }
 
 export interface CohereProviderSettings {
@@ -82,39 +70,30 @@ export function createCohere(
     ...options.headers,
   });
 
-  const createChatModel = (
-    modelId: CohereChatModelId,
-    settings: CohereChatSettings = {},
-  ) =>
-    new CohereChatLanguageModel(modelId, settings, {
+  const createChatModel = (modelId: CohereChatModelId) =>
+    new CohereChatLanguageModel(modelId, {
       provider: 'cohere.chat',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const createTextEmbeddingModel = (
-    modelId: CohereEmbeddingModelId,
-    settings: CohereEmbeddingSettings = {},
-  ) =>
-    new CohereEmbeddingModel(modelId, settings, {
+  const createTextEmbeddingModel = (modelId: CohereEmbeddingModelId) =>
+    new CohereEmbeddingModel(modelId, {
       provider: 'cohere.textEmbedding',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const provider = function (
-    modelId: CohereChatModelId,
-    settings?: CohereChatSettings,
-  ) {
+  const provider = function (modelId: CohereChatModelId) {
     if (new.target) {
       throw new Error(
         'The Cohere model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;
