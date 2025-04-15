@@ -760,7 +760,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 
   get experimental_output() {
-    // TODO: check if error can be removed (https://github.com/vercel/ai/pull/5779/files#r2046224268)
     if (this.resolvedOutput == null) {
       throw new NoOutputSpecifiedError();
     }

@@ -6,70 +6,72 @@ import { JSONParseError } from '@ai-sdk/provider';
 vi.mock('@ai-sdk/provider-utils');
 vi.mock('./fix-json');
 
-it('should handle nullish input', () => {
-  expect(parsePartialJson(undefined)).toEqual({
-    value: undefined,
-    state: 'undefined-input',
-  });
-});
-
-it('should parse valid JSON', () => {
-  const validJson = '{"key": "value"}';
-  const parsedValue = { key: 'value' };
-
-  vi.mocked(safeParseJSON).mockResolvedValueOnce({
-    success: true,
-    value: parsedValue,
-    rawValue: parsedValue,
+describe('parsePartialJson', () => {
+  it('should handle nullish input', async () => {
+    expect(await parsePartialJson(undefined)).toEqual({
+      value: undefined,
+      state: 'undefined-input',
+    });
   });
 
-  expect(parsePartialJson(validJson)).toEqual({
-    value: parsedValue,
-    state: 'successful-parse',
-  });
-  expect(safeParseJSON).toHaveBeenCalledWith({ text: validJson });
-});
+  it('should parse valid JSON', async () => {
+    const validJson = '{"key": "value"}';
+    const parsedValue = { key: 'value' };
 
-it('should repair and parse partial JSON', () => {
-  const partialJson = '{"key": "value"';
-  const fixedJson = '{"key": "value"}';
-  const parsedValue = { key: 'value' };
-
-  vi.mocked(safeParseJSON)
-    .mockResolvedValueOnce({
-      success: false,
-      error: new JSONParseError({ text: partialJson, cause: undefined }),
-    })
-    .mockResolvedValueOnce({
+    vi.mocked(safeParseJSON).mockResolvedValueOnce({
       success: true,
       value: parsedValue,
       rawValue: parsedValue,
     });
-  vi.mocked(fixJson).mockReturnValueOnce(fixedJson);
 
-  expect(parsePartialJson(partialJson)).toEqual({
-    value: parsedValue,
-    state: 'repaired-parse',
+    expect(await parsePartialJson(validJson)).toEqual({
+      value: parsedValue,
+      state: 'successful-parse',
+    });
+    expect(safeParseJSON).toHaveBeenCalledWith({ text: validJson });
   });
-  expect(safeParseJSON).toHaveBeenCalledWith({ text: partialJson });
-  expect(fixJson).toHaveBeenCalledWith(partialJson);
-  expect(safeParseJSON).toHaveBeenCalledWith({ text: fixedJson });
-});
 
-it('should handle invalid JSON that cannot be repaired', () => {
-  const invalidJson = 'not json at all';
+  it('should repair and parse partial JSON', async () => {
+    const partialJson = '{"key": "value"';
+    const fixedJson = '{"key": "value"}';
+    const parsedValue = { key: 'value' };
 
-  vi.mocked(safeParseJSON).mockResolvedValueOnce({
-    success: false,
-    error: new JSONParseError({ text: invalidJson, cause: undefined }),
+    vi.mocked(safeParseJSON)
+      .mockResolvedValueOnce({
+        success: false,
+        error: new JSONParseError({ text: partialJson, cause: undefined }),
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        value: parsedValue,
+        rawValue: parsedValue,
+      });
+    vi.mocked(fixJson).mockReturnValueOnce(fixedJson);
+
+    expect(await parsePartialJson(partialJson)).toEqual({
+      value: parsedValue,
+      state: 'repaired-parse',
+    });
+    expect(safeParseJSON).toHaveBeenCalledWith({ text: partialJson });
+    expect(fixJson).toHaveBeenCalledWith(partialJson);
+    expect(safeParseJSON).toHaveBeenCalledWith({ text: fixedJson });
   });
-  vi.mocked(fixJson).mockReturnValueOnce(invalidJson);
 
-  expect(parsePartialJson(invalidJson)).toEqual({
-    value: undefined,
-    state: 'failed-parse',
+  it('should handle invalid JSON that cannot be repaired', async () => {
+    const invalidJson = 'not json at all';
+
+    vi.mocked(safeParseJSON).mockResolvedValue({
+      success: false,
+      error: new JSONParseError({ text: invalidJson, cause: undefined }),
+    });
+    vi.mocked(fixJson).mockReturnValueOnce(invalidJson);
+
+    expect(await parsePartialJson(invalidJson)).toEqual({
+      value: undefined,
+      state: 'failed-parse',
+    });
+    expect(safeParseJSON).toHaveBeenCalledWith({ text: invalidJson });
+    expect(fixJson).toHaveBeenCalledWith(invalidJson);
+    expect(safeParseJSON).toHaveBeenCalledWith({ text: invalidJson });
   });
-  expect(safeParseJSON).toHaveBeenCalledWith({ text: invalidJson });
-  expect(fixJson).toHaveBeenCalledWith(invalidJson);
-  expect(safeParseJSON).toHaveBeenCalledWith({ text: invalidJson });
 });
