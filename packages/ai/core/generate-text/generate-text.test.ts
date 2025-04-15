@@ -955,7 +955,7 @@ describe('options.headers', () => {
 
           return {
             ...dummyResponseValues,
-            text: { type: 'text', text: 'Hello, world!' },
+            content: [{ type: 'text', text: 'Hello, world!' }],
           };
         },
       }),
@@ -978,7 +978,7 @@ describe('options.providerOptions', () => {
 
           return {
             ...dummyResponseValues,
-            text: { type: 'text', text: 'provider metadata test' },
+            content: [{ type: 'text', text: 'provider metadata test' }],
           };
         },
       }),
@@ -1001,7 +1001,7 @@ describe('options.abortSignal', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
-          toolCalls: [
+          content: [
             {
               type: 'tool-call',
               toolCallType: 'function',
@@ -1050,7 +1050,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          text: { type: 'text', text: 'Hello, world!' },
+          content: [{ type: 'text', text: 'Hello, world!' }],
         }),
       }),
       prompt: 'prompt',
@@ -1065,7 +1065,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          text: { type: 'text', text: 'Hello, world!' },
+          content: [{ type: 'text', text: 'Hello, world!' }],
           response: {
             id: 'test-id-from-model',
             timestamp: new Date(10000),
@@ -1103,7 +1103,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          toolCalls: [
+          content: [
             {
               type: 'tool-call',
               toolCallType: 'function',
@@ -1139,7 +1139,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          toolCalls: [
+          content: [
             {
               type: 'tool-call',
               toolCallType: 'function',
@@ -1215,7 +1215,7 @@ describe('tools with custom schema', () => {
 
           return {
             ...dummyResponseValues,
-            toolCalls: [
+            content: [
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -1320,7 +1320,7 @@ describe('options.messages', () => {
 
           return {
             ...dummyResponseValues,
-            text: { type: 'text', text: 'Hello, world!' },
+            content: [{ type: 'text', text: 'Hello, world!' }],
           };
         },
       }),
@@ -1362,7 +1362,7 @@ describe('options.messages', () => {
           },
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: { type: 'text', text: 'Hello, world!' },
+            content: [{ type: 'text', text: 'Hello, world!' }],
           }),
         });
       }
@@ -1392,7 +1392,7 @@ describe('options.output', () => {
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: { type: 'text', text: `Hello, world!` },
+            content: [{ type: 'text', text: `Hello, world!` }],
           }),
         }),
         prompt: 'prompt',
@@ -1410,7 +1410,7 @@ describe('options.output', () => {
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: { type: 'text', text: `Hello, world!` },
+            content: [{ type: 'text', text: `Hello, world!` }],
           }),
         }),
         prompt: 'prompt',
@@ -1429,7 +1429,7 @@ describe('options.output', () => {
             callOptions = args;
             return {
               ...dummyResponseValues,
-              text: { type: 'text', text: `Hello, world!` },
+              content: [{ type: 'text', text: `Hello, world!` }],
             };
           },
         }),
@@ -1460,7 +1460,7 @@ describe('options.output', () => {
             supportsStructuredOutputs: false,
             doGenerate: async () => ({
               ...dummyResponseValues,
-              text: { type: 'text', text: `{ "value": "test-value" }` },
+              content: [{ type: 'text', text: `{ "value": "test-value" }` }],
             }),
           }),
           prompt: 'prompt',
@@ -1482,7 +1482,7 @@ describe('options.output', () => {
               callOptions = args;
               return {
                 ...dummyResponseValues,
-                text: { type: 'text', text: `{ "value": "test-value" }` },
+                content: [{ type: 'text', text: `{ "value": "test-value" }` }],
               };
             },
           }),
@@ -1521,7 +1521,7 @@ describe('options.output', () => {
             supportsStructuredOutputs: true,
             doGenerate: async () => ({
               ...dummyResponseValues,
-              text: { type: 'text', text: `{ "value": "test-value" }` },
+              content: [{ type: 'text', text: `{ "value": "test-value" }` }],
             }),
           }),
           prompt: 'prompt',
@@ -1543,7 +1543,7 @@ describe('options.output', () => {
               callOptions = args;
               return {
                 ...dummyResponseValues,
-                text: { type: 'text', text: `{ "value": "test-value" }` },
+                content: [{ type: 'text', text: `{ "value": "test-value" }` }],
               };
             },
           }),
@@ -1586,7 +1586,7 @@ describe('tool execution errors', () => {
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            toolCalls: [
+            content: [
               {
                 type: 'tool-call',
                 toolCallType: 'function',
