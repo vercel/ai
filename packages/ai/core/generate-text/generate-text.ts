@@ -709,7 +709,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 {
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
   readonly files: GenerateTextResult<TOOLS, OUTPUT>['files'];
-  readonly reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
+  readonly reasoningText: GenerateTextResult<TOOLS, OUTPUT>['reasoningText'];
   readonly reasoningDetails: GenerateTextResult<
     TOOLS,
     OUTPUT
@@ -737,7 +737,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   constructor(options: {
     text: GenerateTextResult<TOOLS, OUTPUT>['text'];
     files: GenerateTextResult<TOOLS, OUTPUT>['files'];
-    reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
+    reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoningText'];
     reasoningDetails: GenerateTextResult<TOOLS, OUTPUT>['reasoningDetails'];
     toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
     toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
@@ -757,7 +757,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }) {
     this.text = options.text;
     this.files = options.files;
-    this.reasoning = options.reasoning;
+    this.reasoningText = options.reasoning;
     this.reasoningDetails = options.reasoningDetails;
     this.toolCalls = options.toolCalls;
     this.toolResults = options.toolResults;

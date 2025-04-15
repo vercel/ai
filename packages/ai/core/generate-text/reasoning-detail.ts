@@ -1,3 +1,4 @@
+// TODO v5: rename to `Reasoning` (keep old name for backwards compatibility)
 export type ReasoningDetail =
   | { type: 'text'; text: string; signature?: string }
   | { type: 'redacted'; data: string };
