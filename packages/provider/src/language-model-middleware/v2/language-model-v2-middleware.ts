@@ -59,9 +59,3 @@ export type LanguageModelV2Middleware = {
     model: LanguageModelV2;
   }) => PromiseLike<Awaited<ReturnType<LanguageModelV2['doStream']>>>;
 };
-
-/**
- * @deprecated Use `LanguageModelV2Middleware` instead.
- */
-// TODO remove in v5
-export type Experimental_LanguageModelV2Middleware = LanguageModelV2Middleware;
