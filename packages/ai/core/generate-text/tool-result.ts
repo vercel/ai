@@ -2,7 +2,7 @@ import { Tool } from '../tool';
 import { ValueOf } from '../util/value-of';
 import { ToolSet } from './tool-set';
 
-export type { CoreToolResult, ToolResult } from '@ai-sdk/provider-utils';
+export type { ToolResult } from '@ai-sdk/provider-utils';
 
 // limits the tools to those that have execute !== undefined
 export type ToToolsWithDefinedExecute<TOOLS extends ToolSet> = {
@@ -25,12 +25,6 @@ type ToToolResultObject<TOOLS extends ToolSet> = ValueOf<{
 export type ToolResultUnion<TOOLS extends ToolSet> = ToToolResultObject<
   ToToolsWithDefinedExecute<TOOLS>
 >;
-
-/**
- * @deprecated Use `ToolResultUnion` instead.
- */
-// TODO remove in v5
-export type CoreToolResultUnion<TOOLS extends ToolSet> = ToolResultUnion<TOOLS>;
 
 export type ToolResultArray<TOOLS extends ToolSet> = Array<
   ToolResultUnion<TOOLS>

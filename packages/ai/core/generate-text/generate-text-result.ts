@@ -26,22 +26,20 @@ The generated text.
   readonly text: string;
 
   /**
+The full reasoning that the model has generated.
+   */
+  readonly reasoning: Array<ReasoningDetail>;
+
+  /**
 The reasoning text that the model has generated. Can be undefined if the model
 has only generated text.
    */
-  // TODO v5: rename to `reasoningText`
-  readonly reasoning: string | undefined;
+  readonly reasoningText: string | undefined;
 
   /**
 The files that were generated. Empty array if no files were generated.
      */
   readonly files: Array<GeneratedFile>;
-
-  /**
-The full reasoning that the model has generated.
-   */
-  // TODO v5: rename to `reasoning`
-  readonly reasoningDetails: Array<ReasoningDetail>;
 
   /**
 Sources that have been used as input to generate the response.

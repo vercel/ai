@@ -20,4 +20,22 @@ export interface EmbedManyResult<VALUE> {
   The embedding token usage.
     */
   readonly usage: EmbeddingModelUsage;
+
+  /**
+  Optional raw response data.
+     */
+  readonly responses?: Array<
+    | {
+        /**
+  Response headers.
+       */
+        headers?: Record<string, string>;
+
+        /**
+    The response body.
+    */
+        body?: unknown;
+      }
+    | undefined
+  >;
 }

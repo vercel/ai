@@ -30,16 +30,10 @@ packages/example/
 1. **example-chat-settings.ts** - Define chat model IDs and settings:
 
 ```ts
-import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
-
 export type ExampleChatModelId =
   | 'example/chat-model-1'
   | 'example/chat-model-2'
   | (string & {});
-
-export interface ExampleChatSettings extends OpenAICompatibleChatSettings {
-  // Add any custom settings here
-}
 ```
 
 The completion, embedding, and image settings are implemented similarly to the chat settings.

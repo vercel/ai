@@ -28,7 +28,7 @@ describe('CerebrasProvider', () => {
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[2];
+      const config = constructorCall[1];
       config.headers();
 
       expect(loadApiKey).toHaveBeenCalledWith({
@@ -49,7 +49,7 @@ describe('CerebrasProvider', () => {
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[2];
+      const config = constructorCall[1];
       config.headers();
 
       expect(loadApiKey).toHaveBeenCalledWith({
@@ -62,9 +62,8 @@ describe('CerebrasProvider', () => {
     it('should return a chat model when called as a function', () => {
       const provider = createCerebras();
       const modelId = 'foo-model-id';
-      const settings = { user: 'foo-user' };
 
-      const model = provider(modelId, settings);
+      const model = provider(modelId);
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
   });
@@ -73,9 +72,8 @@ describe('CerebrasProvider', () => {
     it('should construct a language model with correct configuration', () => {
       const provider = createCerebras();
       const modelId = 'foo-model-id';
-      const settings = { user: 'foo-user' };
 
-      const model = provider.languageModel(modelId, settings);
+      const model = provider.languageModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
@@ -95,9 +93,8 @@ describe('CerebrasProvider', () => {
     it('should construct a chat model with correct configuration', () => {
       const provider = createCerebras();
       const modelId = 'foo-model-id';
-      const settings = { user: 'foo-user' };
 
-      const model = provider.chat(modelId, settings);
+      const model = provider.chat(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });

@@ -14,18 +14,9 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  DeepInfraChatModelId,
-  DeepInfraChatSettings,
-} from './deepinfra-chat-settings';
-import {
-  DeepInfraEmbeddingModelId,
-  DeepInfraEmbeddingSettings,
-} from './deepinfra-embedding-settings';
-import {
-  DeepInfraCompletionModelId,
-  DeepInfraCompletionSettings,
-} from './deepinfra-completion-settings';
+import { DeepInfraChatModelId } from './deepinfra-chat-settings';
+import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-settings';
+import { DeepInfraCompletionModelId } from './deepinfra-completion-settings';
 import {
   DeepInfraImageModelId,
   DeepInfraImageSettings,
@@ -56,18 +47,12 @@ export interface DeepInfraProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
-  (
-    modelId: DeepInfraChatModelId,
-    settings?: DeepInfraChatSettings,
-  ): LanguageModelV2;
+  (modelId: DeepInfraChatModelId): LanguageModelV2;
 
   /**
 Creates a chat model for text generation.
 */
-  chatModel(
-    modelId: DeepInfraChatModelId,
-    settings?: DeepInfraChatSettings,
-  ): LanguageModelV2;
+  chatModel(modelId: DeepInfraChatModelId): LanguageModelV2;
 
   /**
 Creates a model for image generation.
@@ -88,25 +73,18 @@ Creates a model for image generation.
   /**
 Creates a chat model for text generation.
 */
-  languageModel(
-    modelId: DeepInfraChatModelId,
-    settings?: DeepInfraChatSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: DeepInfraChatModelId): LanguageModelV2;
 
   /**
 Creates a completion model for text generation.
 */
-  completionModel(
-    modelId: DeepInfraCompletionModelId,
-    settings?: DeepInfraCompletionSettings,
-  ): LanguageModelV2;
+  completionModel(modelId: DeepInfraCompletionModelId): LanguageModelV2;
 
   /**
 Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId: DeepInfraEmbeddingModelId,
-    settings?: DeepInfraEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 }
 
@@ -139,33 +117,22 @@ export function createDeepInfra(
     fetch: options.fetch,
   });
 
-  const createChatModel = (
-    modelId: DeepInfraChatModelId,
-    settings: DeepInfraChatSettings = {},
-  ) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
+  const createChatModel = (modelId: DeepInfraChatModelId) => {
+    return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       defaultObjectGenerationMode: 'json',
     });
   };
 
-  const createCompletionModel = (
-    modelId: DeepInfraCompletionModelId,
-    settings: DeepInfraCompletionSettings = {},
-  ) =>
+  const createCompletionModel = (modelId: DeepInfraCompletionModelId) =>
     new OpenAICompatibleCompletionLanguageModel(
       modelId,
-      settings,
       getCommonModelConfig('completion'),
     );
 
-  const createTextEmbeddingModel = (
-    modelId: DeepInfraEmbeddingModelId,
-    settings: DeepInfraEmbeddingSettings = {},
-  ) =>
+  const createTextEmbeddingModel = (modelId: DeepInfraEmbeddingModelId) =>
     new OpenAICompatibleEmbeddingModel(
       modelId,
-      settings,
       getCommonModelConfig('embedding'),
     );
 
@@ -180,10 +147,7 @@ export function createDeepInfra(
         : 'https://api.deepinfra.com/v1/inference',
     });
 
-  const provider = (
-    modelId: DeepInfraChatModelId,
-    settings?: DeepInfraChatSettings,
-  ) => createChatModel(modelId, settings);
+  const provider = (modelId: DeepInfraChatModelId) => createChatModel(modelId);
 
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;

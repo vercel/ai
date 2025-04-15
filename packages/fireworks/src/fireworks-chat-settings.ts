@@ -1,5 +1,3 @@
-import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
-
 // https://docs.fireworks.ai/docs/serverless-models#chat-models
 // Below is just a subset of the available models.
 export type FireworksChatModelId =
@@ -19,5 +17,3 @@ export type FireworksChatModelId =
   | 'accounts/fireworks/models/qwq-32b'
   | 'accounts/fireworks/models/yi-large'
   | (string & {});
-
-export interface FireworksChatSettings extends OpenAICompatibleChatSettings {}

@@ -28,7 +28,7 @@ describe('DeepSeekProvider', () => {
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[2];
+      const config = constructorCall[1];
       config.headers();
 
       expect(loadApiKey).toHaveBeenCalledWith({
@@ -49,7 +49,7 @@ describe('DeepSeekProvider', () => {
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[2];
+      const config = constructorCall[1];
       config.headers();
 
       expect(loadApiKey).toHaveBeenCalledWith({
@@ -62,9 +62,8 @@ describe('DeepSeekProvider', () => {
     it('should return a chat model when called as a function', () => {
       const provider = createDeepSeek();
       const modelId = 'foo-model-id';
-      const settings = { user: 'foo-user' };
 
-      const model = provider(modelId, settings);
+      const model = provider(modelId);
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
   });
@@ -73,9 +72,8 @@ describe('DeepSeekProvider', () => {
     it('should construct a chat model with correct configuration', () => {
       const provider = createDeepSeek();
       const modelId = 'deepseek-chat-model';
-      const settings = { user: 'foo-user' };
 
-      const model = provider.chat(modelId, settings);
+      const model = provider.chat(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });

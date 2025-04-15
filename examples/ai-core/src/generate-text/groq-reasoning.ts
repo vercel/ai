@@ -12,7 +12,7 @@ async function main() {
   });
 
   console.log('Reasoning:');
-  console.log(result.reasoning);
+  console.log(result.reasoningText);
   console.log();
 
   console.log('Text:');

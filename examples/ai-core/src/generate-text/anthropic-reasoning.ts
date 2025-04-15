@@ -16,7 +16,7 @@ async function main() {
   });
 
   console.log('Reasoning:');
-  console.log(result.reasoningDetails);
+  console.log(result.reasoning);
   console.log();
 
   console.log('Text:');

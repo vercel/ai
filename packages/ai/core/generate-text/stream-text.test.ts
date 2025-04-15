@@ -1836,6 +1836,19 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.reasoningText', () => {
+    it('should contain reasoning text from model response', async () => {
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      result.consumeStream();
+
+      expect(await result.reasoningText).toMatchSnapshot();
+    });
+  });
+
   describe('result.reasoning', () => {
     it('should contain reasoning from model response', async () => {
       const result = streamText({
@@ -1846,19 +1859,6 @@ describe('streamText', () => {
       result.consumeStream();
 
       expect(await result.reasoning).toMatchSnapshot();
-    });
-  });
-
-  describe('result.reasoningDetails', () => {
-    it('should contain reasoning from model response', async () => {
-      const result = streamText({
-        model: modelWithReasoning,
-        ...defaultSettings(),
-      });
-
-      result.consumeStream();
-
-      expect(await result.reasoningDetails).toMatchSnapshot();
     });
   });
 

@@ -1,5 +1,3 @@
-import { OpenAICompatibleChatSettings } from '@ai-sdk/openai-compatible';
-
 // https://deepinfra.com/models/text-generation
 export type DeepInfraChatModelId =
   | 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'
@@ -69,5 +67,3 @@ export type DeepInfraChatModelId =
   | 'openchat/openchat-3.6-8b'
   | 'openchat/openchat_3.5'
   | (string & {});
-
-export interface DeepInfraChatSettings extends OpenAICompatibleChatSettings {}

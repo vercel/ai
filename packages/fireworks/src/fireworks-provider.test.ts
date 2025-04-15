@@ -53,7 +53,7 @@ describe('FireworksProvider', () => {
       // Use the mocked version
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[2];
+      const config = constructorCall[1];
       config.headers();
 
       expect(loadApiKey).toHaveBeenCalledWith({
@@ -74,7 +74,7 @@ describe('FireworksProvider', () => {
 
       const constructorCall =
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
-      const config = constructorCall[2];
+      const config = constructorCall[1];
       config.headers();
 
       expect(loadApiKey).toHaveBeenCalledWith({
@@ -87,9 +87,8 @@ describe('FireworksProvider', () => {
     it('should return a chat model when called as a function', () => {
       const provider = createFireworks();
       const modelId = 'foo-model-id';
-      const settings = { user: 'foo-user' };
 
-      const model = provider(modelId, settings);
+      const model = provider(modelId);
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
   });
@@ -98,9 +97,8 @@ describe('FireworksProvider', () => {
     it('should construct a chat model with correct configuration', () => {
       const provider = createFireworks();
       const modelId = 'fireworks-chat-model';
-      const settings = { user: 'foo-user' };
 
-      const model = provider.chatModel(modelId, settings);
+      const model = provider.chatModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
@@ -110,9 +108,8 @@ describe('FireworksProvider', () => {
     it('should construct a completion model with correct configuration', () => {
       const provider = createFireworks();
       const modelId = 'fireworks-completion-model';
-      const settings = { user: 'foo-user' };
 
-      const model = provider.completionModel(modelId, settings);
+      const model = provider.completionModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleCompletionLanguageModel);
     });
@@ -122,9 +119,8 @@ describe('FireworksProvider', () => {
     it('should construct a text embedding model with correct configuration', () => {
       const provider = createFireworks();
       const modelId = 'fireworks-embedding-model';
-      const settings = { user: 'foo-user' };
 
-      const model = provider.textEmbeddingModel(modelId, settings);
+      const model = provider.textEmbeddingModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleEmbeddingModel);
     });

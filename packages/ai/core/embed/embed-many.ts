@@ -105,7 +105,7 @@ Only applicable for HTTP-based providers.
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
       if (maxEmbeddingsPerCall == null) {
-        const { embeddings, usage } = await retry(() => {
+        const { embeddings, usage, response } = await retry(() => {
           // nested spans to align with the embedMany telemetry data:
           return recordSpan({
             name: 'ai.embedMany.doEmbed',
@@ -148,7 +148,11 @@ Only applicable for HTTP-based providers.
                 }),
               );
 
-              return { embeddings, usage };
+              return {
+                embeddings,
+                usage,
+                response: modelResponse.response,
+              };
             },
           });
         });
@@ -166,7 +170,12 @@ Only applicable for HTTP-based providers.
           }),
         );
 
-        return new DefaultEmbedManyResult({ values, embeddings, usage });
+        return new DefaultEmbedManyResult({
+          values,
+          embeddings,
+          usage,
+          responses: [response],
+        });
       }
 
       // split the values into chunks that are small enough for the model:
@@ -174,10 +183,21 @@ Only applicable for HTTP-based providers.
 
       // serially embed the chunks:
       const embeddings: Array<Embedding> = [];
+      const responses: Array<
+        | {
+            headers?: Record<string, string>;
+            body?: unknown;
+          }
+        | undefined
+      > = [];
       let tokens = 0;
 
       for (const chunk of valueChunks) {
-        const { embeddings: responseEmbeddings, usage } = await retry(() => {
+        const {
+          embeddings: responseEmbeddings,
+          usage,
+          response,
+        } = await retry(() => {
           // nested spans to align with the embedMany telemetry data:
           return recordSpan({
             name: 'ai.embedMany.doEmbed',
@@ -220,12 +240,17 @@ Only applicable for HTTP-based providers.
                 }),
               );
 
-              return { embeddings, usage };
+              return {
+                embeddings,
+                usage,
+                response: modelResponse.response,
+              };
             },
           });
         });
 
         embeddings.push(...responseEmbeddings);
+        responses.push(response);
         tokens += usage.tokens;
       }
 
@@ -246,6 +271,7 @@ Only applicable for HTTP-based providers.
         values,
         embeddings,
         usage: { tokens },
+        responses,
       });
     },
   });
@@ -255,14 +281,17 @@ class DefaultEmbedManyResult<VALUE> implements EmbedManyResult<VALUE> {
   readonly values: EmbedManyResult<VALUE>['values'];
   readonly embeddings: EmbedManyResult<VALUE>['embeddings'];
   readonly usage: EmbedManyResult<VALUE>['usage'];
+  readonly responses: EmbedManyResult<VALUE>['responses'];
 
   constructor(options: {
     values: EmbedManyResult<VALUE>['values'];
     embeddings: EmbedManyResult<VALUE>['embeddings'];
     usage: EmbedManyResult<VALUE>['usage'];
+    responses?: EmbedManyResult<VALUE>['responses'];
   }) {
     this.values = options.values;
     this.embeddings = options.embeddings;
     this.usage = options.usage;
+    this.responses = options.responses;
   }
 }

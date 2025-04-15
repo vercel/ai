@@ -7,13 +7,14 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import {
   OpenAICompatibleEmbeddingModelId,
-  OpenAICompatibleEmbeddingSettings,
-} from './openai-compatible-embedding-settings';
+  openaiCompatibleEmbeddingProviderOptions,
+} from './openai-compatible-embedding-options';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
@@ -44,7 +45,6 @@ export class OpenAICompatibleEmbeddingModel
   readonly modelId: OpenAICompatibleEmbeddingModelId;
 
   private readonly config: OpenAICompatibleEmbeddingConfig;
-  private readonly settings: OpenAICompatibleEmbeddingSettings;
 
   get provider(): string {
     return this.config.provider;
@@ -60,21 +60,37 @@ export class OpenAICompatibleEmbeddingModel
 
   constructor(
     modelId: OpenAICompatibleEmbeddingModelId,
-    settings: OpenAICompatibleEmbeddingSettings,
     config: OpenAICompatibleEmbeddingConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
+  }
+
+  private get providerOptionsName(): string {
+    return this.config.provider.split('.')[0].trim();
   }
 
   async doEmbed({
     values,
     headers,
     abortSignal,
+    providerOptions,
   }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
+    const compatibleOptions = Object.assign(
+      parseProviderOptions({
+        provider: 'openai-compatible',
+        providerOptions,
+        schema: openaiCompatibleEmbeddingProviderOptions,
+      }) ?? {},
+      parseProviderOptions({
+        provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompatibleEmbeddingProviderOptions,
+      }) ?? {},
+    );
+
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
@@ -98,8 +114,8 @@ export class OpenAICompatibleEmbeddingModel
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: this.settings.dimensions,
-        user: this.settings.user,
+        dimensions: compatibleOptions.dimensions,
+        user: compatibleOptions.user,
       },
       failedResponseHandler: createJsonErrorResponseHandler(
         this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,

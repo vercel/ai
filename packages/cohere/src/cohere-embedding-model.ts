@@ -6,13 +6,14 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   FetchFunction,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import {
   CohereEmbeddingModelId,
-  CohereEmbeddingSettings,
-} from './cohere-embedding-settings';
+  cohereEmbeddingOptions,
+} from './cohere-embedding-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 
 type CohereEmbeddingConfig = {
@@ -30,15 +31,9 @@ export class CohereEmbeddingModel implements EmbeddingModelV2<string> {
   readonly supportsParallelCalls = true;
 
   private readonly config: CohereEmbeddingConfig;
-  private readonly settings: CohereEmbeddingSettings;
 
-  constructor(
-    modelId: CohereEmbeddingModelId,
-    settings: CohereEmbeddingSettings,
-    config: CohereEmbeddingConfig,
-  ) {
+  constructor(modelId: CohereEmbeddingModelId, config: CohereEmbeddingConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -50,9 +45,16 @@ export class CohereEmbeddingModel implements EmbeddingModelV2<string> {
     values,
     headers,
     abortSignal,
+    providerOptions,
   }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
+    const embeddingOptions = parseProviderOptions({
+      provider: 'cohere',
+      providerOptions,
+      schema: cohereEmbeddingOptions,
+    });
+
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
@@ -76,8 +78,8 @@ export class CohereEmbeddingModel implements EmbeddingModelV2<string> {
         // https://docs.cohere.com/v2/reference/embed#request.body.embedding_types
         embedding_types: ['float'],
         texts: values,
-        input_type: this.settings.inputType ?? 'search_query',
-        truncate: this.settings.truncate,
+        input_type: embeddingOptions?.inputType ?? 'search_query',
+        truncate: embeddingOptions?.truncate,
       },
       failedResponseHandler: cohereFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

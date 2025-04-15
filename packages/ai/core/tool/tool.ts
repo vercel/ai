@@ -82,35 +82,26 @@ If not provided, the tool will not be executed automatically.
     | {
         /**
 Function tool.
-       */
+     */
         type?: undefined | 'function';
       }
     | {
         /**
 Provider-defined tool.
-       */
+     */
         type: 'provider-defined';
 
         /**
 The ID of the tool. Should follow the format `<provider-name>.<tool-name>`.
-       */
+     */
         id: `${string}.${string}`;
 
         /**
 The arguments for configuring the tool. Must match the expected arguments defined by the provider for this tool.
-       */
+     */
         args: Record<string, unknown>;
       }
   );
-
-/**
- * @deprecated Use `Tool` instead.
- */
-// TODO remove in v5
-export type CoreTool<
-  PARAMETERS extends ToolParameters = any,
-  RESULT = any,
-> = Tool<PARAMETERS, RESULT>;
 
 /**
 Helper function for inferring the execute args of a tool.

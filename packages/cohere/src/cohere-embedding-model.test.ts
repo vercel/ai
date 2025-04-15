@@ -89,11 +89,14 @@ describe('doEmbed', () => {
   it('should pass the input_type setting', async () => {
     prepareJsonResponse();
 
-    await provider
-      .textEmbeddingModel('embed-english-v3.0', {
-        inputType: 'search_document',
-      })
-      .doEmbed({ values: testValues });
+    await provider.textEmbeddingModel('embed-english-v3.0').doEmbed({
+      values: testValues,
+      providerOptions: {
+        cohere: {
+          inputType: 'search_document',
+        },
+      },
+    });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'embed-english-v3.0',

@@ -14,18 +14,9 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  TogetherAIChatModelId,
-  TogetherAIChatSettings,
-} from './togetherai-chat-settings';
-import {
-  TogetherAIEmbeddingModelId,
-  TogetherAIEmbeddingSettings,
-} from './togetherai-embedding-settings';
-import {
-  TogetherAICompletionModelId,
-  TogetherAICompletionSettings,
-} from './togetherai-completion-settings';
+import { TogetherAIChatModelId } from './togetherai-chat-settings';
+import { TogetherAIEmbeddingModelId } from './togetherai-embedding-settings';
+import { TogetherAICompletionModelId } from './togetherai-completion-settings';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import {
   TogetherAIImageModelId,
@@ -56,41 +47,28 @@ export interface TogetherAIProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
-  (
-    modelId: TogetherAIChatModelId,
-    settings?: TogetherAIChatSettings,
-  ): LanguageModelV2;
+  (modelId: TogetherAIChatModelId): LanguageModelV2;
 
   /**
 Creates a chat model for text generation.
 */
-  chatModel(
-    modelId: TogetherAIChatModelId,
-    settings?: TogetherAIChatSettings,
-  ): LanguageModelV2;
+  chatModel(modelId: TogetherAIChatModelId): LanguageModelV2;
 
   /**
 Creates a chat model for text generation.
 */
-  languageModel(
-    modelId: TogetherAIChatModelId,
-    settings?: TogetherAIChatSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: TogetherAIChatModelId): LanguageModelV2;
 
   /**
 Creates a completion model for text generation.
 */
-  completionModel(
-    modelId: TogetherAICompletionModelId,
-    settings?: TogetherAICompletionSettings,
-  ): LanguageModelV2;
+  completionModel(modelId: TogetherAICompletionModelId): LanguageModelV2;
 
   /**
 Creates a text embedding model for text generation.
 */
   textEmbeddingModel(
     modelId: TogetherAIEmbeddingModelId,
-    settings?: TogetherAIEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 
   /**
@@ -104,10 +82,7 @@ Creates a text embedding model for text generation.
   /**
   Creates a model for image generation.
    */
-  imageModel(
-    modelId: TogetherAIImageModelId,
-    settings?: TogetherAIImageSettings,
-  ): ImageModelV1;
+  imageModel(modelId: TogetherAIImageModelId): ImageModelV1;
 }
 
 export function createTogetherAI(
@@ -139,33 +114,22 @@ export function createTogetherAI(
     fetch: options.fetch,
   });
 
-  const createChatModel = (
-    modelId: TogetherAIChatModelId,
-    settings: TogetherAIChatSettings = {},
-  ) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
+  const createChatModel = (modelId: TogetherAIChatModelId) => {
+    return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       defaultObjectGenerationMode: 'tool',
     });
   };
 
-  const createCompletionModel = (
-    modelId: TogetherAICompletionModelId,
-    settings: TogetherAICompletionSettings = {},
-  ) =>
+  const createCompletionModel = (modelId: TogetherAICompletionModelId) =>
     new OpenAICompatibleCompletionLanguageModel(
       modelId,
-      settings,
       getCommonModelConfig('completion'),
     );
 
-  const createTextEmbeddingModel = (
-    modelId: TogetherAIEmbeddingModelId,
-    settings: TogetherAIEmbeddingSettings = {},
-  ) =>
+  const createTextEmbeddingModel = (modelId: TogetherAIEmbeddingModelId) =>
     new OpenAICompatibleEmbeddingModel(
       modelId,
-      settings,
       getCommonModelConfig('embedding'),
     );
 
@@ -178,10 +142,7 @@ export function createTogetherAI(
       baseURL: baseURL ?? 'https://api.together.xyz/v1/',
     });
 
-  const provider = (
-    modelId: TogetherAIChatModelId,
-    settings?: TogetherAIChatSettings,
-  ) => createChatModel(modelId, settings);
+  const provider = (modelId: TogetherAIChatModelId) => createChatModel(modelId);
 
   provider.completionModel = createCompletionModel;
   provider.languageModel = createChatModel;

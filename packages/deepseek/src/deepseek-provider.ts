@@ -9,10 +9,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  DeepSeekChatModelId,
-  DeepSeekChatSettings,
-} from './deepseek-chat-settings';
+import { DeepSeekChatModelId } from './deepseek-chat-settings';
 import { deepSeekMetadataExtractor } from './deepseek-metadata-extractor';
 
 export interface DeepSeekProviderSettings {
@@ -39,26 +36,17 @@ export interface DeepSeekProvider extends ProviderV2 {
   /**
 Creates a DeepSeek model for text generation.
 */
-  (
-    modelId: DeepSeekChatModelId,
-    settings?: DeepSeekChatSettings,
-  ): LanguageModelV2;
+  (modelId: DeepSeekChatModelId): LanguageModelV2;
 
   /**
 Creates a DeepSeek model for text generation.
 */
-  languageModel(
-    modelId: DeepSeekChatModelId,
-    settings?: DeepSeekChatSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: DeepSeekChatModelId): LanguageModelV2;
 
   /**
 Creates a DeepSeek chat model for text generation.
 */
-  chat(
-    modelId: DeepSeekChatModelId,
-    settings?: DeepSeekChatSettings,
-  ): LanguageModelV2;
+  chat(modelId: DeepSeekChatModelId): LanguageModelV2;
 }
 
 export function createDeepSeek(
@@ -76,11 +64,8 @@ export function createDeepSeek(
     ...options.headers,
   });
 
-  const createLanguageModel = (
-    modelId: DeepSeekChatModelId,
-    settings: DeepSeekChatSettings = {},
-  ) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
+  const createLanguageModel = (modelId: DeepSeekChatModelId) => {
+    return new OpenAICompatibleChatLanguageModel(modelId, {
       provider: `deepseek.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -90,10 +75,8 @@ export function createDeepSeek(
     });
   };
 
-  const provider = (
-    modelId: DeepSeekChatModelId,
-    settings?: DeepSeekChatSettings,
-  ) => createLanguageModel(modelId, settings);
+  const provider = (modelId: DeepSeekChatModelId) =>
+    createLanguageModel(modelId);
 
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;

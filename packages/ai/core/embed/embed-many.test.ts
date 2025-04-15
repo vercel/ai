@@ -57,6 +57,51 @@ describe('result.embedding', () => {
   });
 });
 
+describe('result.responses', () => {
+  it('should include responses in the result', async () => {
+    let callCount = 0;
+    const result = await embedMany({
+      model: new MockEmbeddingModelV2({
+        maxEmbeddingsPerCall: 1,
+
+        doEmbed: async ({ values }) => {
+          switch (callCount++) {
+            case 0:
+              assert.deepStrictEqual(values, [testValues[0]]);
+              return {
+                embeddings: dummyEmbeddings,
+                response: {
+                  body: { first: true },
+                },
+              };
+            case 1:
+              assert.deepStrictEqual(values, [testValues[1]]);
+              return {
+                embeddings: dummyEmbeddings,
+                response: {
+                  body: { second: true },
+                },
+              };
+            case 2:
+              assert.deepStrictEqual(values, [testValues[2]]);
+              return {
+                embeddings: dummyEmbeddings,
+                response: {
+                  body: { third: true },
+                },
+              };
+            default:
+              throw new Error('Unexpected call');
+          }
+        },
+      }),
+      values: testValues,
+    });
+
+    expect(result.responses).toMatchSnapshot();
+  });
+});
+
 describe('result.values', () => {
   it('should include values in the result', async () => {
     const result = await embedMany({
