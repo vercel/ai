@@ -122,7 +122,7 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(await server.calls[1].requestBodyJson).toMatchObject({
+    expect(await server.calls[1].requestBody).toMatchObject({
       audio_url: 'https://storage.gladia.io/mock-upload-url',
     });
   });
