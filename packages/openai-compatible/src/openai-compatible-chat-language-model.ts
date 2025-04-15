@@ -97,7 +97,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     return this.config.provider.split('.')[0].trim();
   }
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -116,16 +116,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
     // Parse provider options
     const compatibleOptions = Object.assign(
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'openai-compatible',
         providerOptions,
         schema: openaiCompatibleProviderOptions,
-      }) ?? {},
-      parseProviderOptions({
+      })) ?? {},
+      (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
         schema: openaiCompatibleProviderOptions,
-      }) ?? {},
+      })) ?? {},
     );
 
     if (topK != null) {
@@ -201,7 +201,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs({ ...options });
+    const { args, warnings } = await this.getArgs({ ...options });
 
     const body = JSON.stringify(args);
 
@@ -294,7 +294,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs({ ...options });
+    const { args, warnings } = await this.getArgs({ ...options });
 
     const body = JSON.stringify({ ...args, stream: true });
     const metadataExtractor =

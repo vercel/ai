@@ -73,7 +73,7 @@ export class OpenAICompatibleCompletionLanguageModel
     return this.config.provider.split('.')[0].trim();
   }
 
-  private getArgs({
+  private async getArgs({
     inputFormat,
     prompt,
     maxOutputTokens,
@@ -93,11 +93,11 @@ export class OpenAICompatibleCompletionLanguageModel
 
     // Parse provider options
     const completionOptions =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
         schema: openaiCompatibleCompletionProviderOptions,
-      }) ?? {};
+      })) ?? {};
 
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
@@ -157,7 +157,7 @@ export class OpenAICompatibleCompletionLanguageModel
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -200,7 +200,7 @@ export class OpenAICompatibleCompletionLanguageModel
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const body = {
       ...args,
