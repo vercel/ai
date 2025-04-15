@@ -1,11 +1,12 @@
 import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  SharedV2ProviderMetadata,
   LanguageModelV2Source,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -110,7 +111,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       args: {
         generationConfig: {
           // standardized settings:
-          maxOutputTokens: maxOutputTokens,
+          maxOutputTokens,
           temperature,
           topK,
           topP,
@@ -180,32 +181,53 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     });
 
     const candidate = response.candidates[0];
+    const content: Array<LanguageModelV2Content> = [];
 
+    // map ordered parts to content:
     const parts =
       candidate.content == null ||
       typeof candidate.content !== 'object' ||
       !('parts' in candidate.content)
         ? []
-        : candidate.content.parts;
+        : (candidate.content.parts ?? []);
 
-    const toolCalls = getToolCallsFromParts({
-      parts,
-      generateId: this.config.generateId,
-    });
+    for (const part of parts) {
+      if ('text' in part && part.text.length > 0) {
+        content.push({ type: 'text', text: part.text });
+      } else if ('functionCall' in part) {
+        content.push({
+          type: 'tool-call' as const,
+          toolCallType: 'function' as const,
+          toolCallId: this.config.generateId(),
+          toolName: part.functionCall.name,
+          args: JSON.stringify(part.functionCall.args),
+        });
+      } else if ('inlineData' in part) {
+        content.push({
+          type: 'file' as const,
+          data: part.inlineData.data,
+          mediaType: part.inlineData.mimeType,
+        });
+      }
+    }
+
+    // sources
+    const sources =
+      extractSources({
+        groundingMetadata: candidate.groundingMetadata,
+        generateId: this.config.generateId,
+      }) ?? [];
+    for (const source of sources) {
+      content.push(source);
+    }
 
     const usageMetadata = response.usageMetadata;
 
     return {
-      text: getTextFromParts(parts),
-      files: getInlineDataParts(parts)?.map(part => ({
-        type: 'file',
-        data: part.inlineData.data,
-        mediaType: part.inlineData.mimeType,
-      })),
-      toolCalls,
+      content,
       finishReason: mapGoogleGenerativeAIFinishReason({
         finishReason: candidate.finishReason,
-        hasToolCalls: toolCalls != null && toolCalls.length > 0,
+        hasToolCalls: content.some(part => part.type === 'tool-call'),
       }),
       usage: {
         inputTokens: usageMetadata?.promptTokenCount ?? undefined,
@@ -218,10 +240,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           safetyRatings: candidate.safetyRatings ?? null,
         },
       },
-      sources: extractSources({
-        groundingMetadata: candidate.groundingMetadata,
-        generateId: this.config.generateId,
-      }),
       request: { body },
       response: {
         // TODO timestamp, model id, id
