@@ -424,13 +424,13 @@ A function that attempts to repair a tool call that failed to parse.
           tools == null
             ? []
             : await executeTools({
-                toolCalls: currentToolCalls,
-                tools,
-                tracer,
-                telemetry,
-                messages: stepInputMessages,
-                abortSignal,
-              });
+              toolCalls: currentToolCalls,
+              tools,
+              tracer,
+              telemetry,
+              messages: stepInputMessages,
+              abortSignal,
+            });
 
         // token usage:
         const currentUsage = calculateLanguageModelUsage(
@@ -462,7 +462,7 @@ A function that attempts to repair a tool call that failed to parse.
         const originalText = currentModelResponse.text?.text ?? '';
         const stepTextLeadingWhitespaceTrimmed =
           stepType === 'continue' && // only for continue steps
-          text.trimEnd() !== text // only trim when there is preceding whitespace
+            text.trimEnd() !== text // only trim when there is preceding whitespace
             ? originalText.trimStart()
             : originalText;
         const stepText =
@@ -573,26 +573,26 @@ A function that attempts to repair a tool call that failed to parse.
         }),
       );
 
+      if (output == null) {
+        throw new NoOutputSpecifiedError();
+      }
+
+      const resolvedOutput = await output.parseOutput(
+        { text },
+        {
+          response: currentModelResponse.response,
+          usage,
+          finishReason: currentModelResponse.finishReason,
+        },
+      );
+
       return new DefaultGenerateTextResult({
         text,
         files: asFiles(currentModelResponse.files),
         reasoning: asReasoningText(currentReasoningDetails),
         reasoningDetails: currentReasoningDetails,
         sources,
-        outputResolver: async () => {
-          if (output == null) {
-            throw new NoOutputSpecifiedError();
-          }
-
-          return await output.parseOutput(
-            { text },
-            {
-              response: currentModelResponse.response,
-              usage,
-              finishReason: currentModelResponse.finishReason,
-            },
-          );
-        },
+        resolvedOutput,
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
@@ -705,8 +705,7 @@ async function executeTools<TOOLS extends ToolSet>({
 }
 
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
-  implements GenerateTextResult<TOOLS, OUTPUT>
-{
+  implements GenerateTextResult<TOOLS, OUTPUT> {
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
   readonly files: GenerateTextResult<TOOLS, OUTPUT>['files'];
   readonly reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
@@ -729,10 +728,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
   readonly sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
 
-  private readonly outputResolver: () => GenerateTextResult<
-    TOOLS,
-    OUTPUT
-  >['experimental_output'];
+  private readonly resolvedOutput: OUTPUT;
 
   constructor(options: {
     text: GenerateTextResult<TOOLS, OUTPUT>['text'];
@@ -749,10 +745,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     providerMetadata: GenerateTextResult<TOOLS, OUTPUT>['providerMetadata'];
     response: GenerateTextResult<TOOLS, OUTPUT>['response'];
     request: GenerateTextResult<TOOLS, OUTPUT>['request'];
-    outputResolver: () => GenerateTextResult<
-      TOOLS,
-      OUTPUT
-    >['experimental_output'];
+    resolvedOutput: OUTPUT;
     sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
   }) {
     this.text = options.text;
@@ -769,12 +762,12 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.steps = options.steps;
     this.providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;
-    this.outputResolver = options.outputResolver;
+    this.resolvedOutput = options.resolvedOutput;
     this.sources = options.sources;
   }
 
   get experimental_output() {
-    return this.outputResolver();
+    return this.resolvedOutput;
   }
 }
 
@@ -824,9 +817,9 @@ function asReasoningDetails(
 function asFiles(
   files:
     | Array<{
-        data: string | Uint8Array;
-        mediaType: string;
-      }>
+      data: string | Uint8Array;
+      mediaType: string;
+    }>
     | undefined,
 ): Array<GeneratedFile> {
   return files?.map(file => new DefaultGeneratedFile(file)) ?? [];
