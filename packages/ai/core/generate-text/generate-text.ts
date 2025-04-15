@@ -424,13 +424,13 @@ A function that attempts to repair a tool call that failed to parse.
           tools == null
             ? []
             : await executeTools({
-              toolCalls: currentToolCalls,
-              tools,
-              tracer,
-              telemetry,
-              messages: stepInputMessages,
-              abortSignal,
-            });
+                toolCalls: currentToolCalls,
+                tools,
+                tracer,
+                telemetry,
+                messages: stepInputMessages,
+                abortSignal,
+              });
 
         // token usage:
         const currentUsage = calculateLanguageModelUsage(
@@ -462,7 +462,7 @@ A function that attempts to repair a tool call that failed to parse.
         const originalText = currentModelResponse.text?.text ?? '';
         const stepTextLeadingWhitespaceTrimmed =
           stepType === 'continue' && // only for continue steps
-            text.trimEnd() !== text // only trim when there is preceding whitespace
+          text.trimEnd() !== text // only trim when there is preceding whitespace
             ? originalText.trimStart()
             : originalText;
         const stepText =
@@ -705,7 +705,8 @@ async function executeTools<TOOLS extends ToolSet>({
 }
 
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
-  implements GenerateTextResult<TOOLS, OUTPUT> {
+  implements GenerateTextResult<TOOLS, OUTPUT>
+{
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
   readonly files: GenerateTextResult<TOOLS, OUTPUT>['files'];
   readonly reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
@@ -817,9 +818,9 @@ function asReasoningDetails(
 function asFiles(
   files:
     | Array<{
-      data: string | Uint8Array;
-      mediaType: string;
-    }>
+        data: string | Uint8Array;
+        mediaType: string;
+      }>
     | undefined,
 ): Array<GeneratedFile> {
   return files?.map(file => new DefaultGeneratedFile(file)) ?? [];
