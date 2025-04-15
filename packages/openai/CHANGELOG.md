@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.12
+
+### Patch Changes
+
+- 575339f: feat (providers/openai): add gpt-4.1 models
+
 ## 1.3.11
 
 ### Patch Changes
