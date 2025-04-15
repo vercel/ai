@@ -23,13 +23,3 @@ Result of the tool call. This is the result of the tool's execution.
      */
   result: RESULT;
 }
-
-/**
- * @deprecated Use `ToolResult` instead.
- */
-// TODO remove in v5
-export type CoreToolResult<NAME extends string, ARGS, RESULT> = ToolResult<
-  NAME,
-  ARGS,
-  RESULT
->;
