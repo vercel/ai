@@ -67,16 +67,18 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ text: 'Hello, World!' });
 
-    const { text } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
     `);
   });
 
@@ -95,7 +97,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { text, toolCalls, finishReason } = await model.doGenerate({
+    const { content, finishReason } = await model.doGenerate({
       inputFormat: 'prompt',
       tools: [
         {
@@ -113,8 +115,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(toolCalls).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
         {
           "args": "{"value":"example value"}",
           "toolCallId": "test-id-1",
@@ -123,12 +129,6 @@ describe('doGenerate', () => {
           "type": "tool-call",
         },
       ]
-    `);
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
     `);
     expect(finishReason).toStrictEqual('stop');
   });
@@ -412,7 +412,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { toolCalls } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       tools: [
         {
@@ -435,7 +435,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(toolCalls).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
         {
           "args": "{}",
