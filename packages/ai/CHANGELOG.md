@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.7
+
+### Patch Changes
+
+- f4f3945: fix (ai/core): refactor `toResponseMessages` to filter out empty string/content
+
 ## 4.3.6
 
 ### Patch Changes
