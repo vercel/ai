@@ -414,8 +414,7 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
 }
 
 class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-{
+  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   private readonly objectPromise = new DelayedPromise<RESULT>();
   private readonly usagePromise = new DelayedPromise<LanguageModelUsage>();
   private readonly providerMetadataPromise = new DelayedPromise<
@@ -536,7 +535,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       tracer,
       endWhenDone: false,
       fn: async rootSpan => {
-        const standardizedPrompt = standardizePrompt({
+        const standardizedPrompt = await standardizePrompt({
           prompt: { system, prompt, messages },
           tools: undefined,
         });
@@ -688,14 +687,14 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   textDelta += chunk;
 
                   const { value: currentObjectJson, state: parseState } =
-                    parsePartialJson(accumulatedText);
+                    await parsePartialJson(accumulatedText);
 
                   if (
                     currentObjectJson !== undefined &&
                     !isDeepEqualData(latestObjectJson, currentObjectJson)
                   ) {
                     const validationResult =
-                      outputStrategy.validatePartialResult({
+                      await outputStrategy.validatePartialResult({
                         value: currentObjectJson,
                         textDelta,
                         latestObject,
@@ -770,7 +769,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
 
                     // resolve the object promise with the latest object:
-                    const validationResult = outputStrategy.validateFinalResult(
+                    const validationResult = await outputStrategy.validateFinalResult(
                       latestObjectJson,
                       {
                         text: accumulatedText,
@@ -1011,22 +1010,22 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 export type ObjectStreamInputPart =
   | string
   | {
-      type: 'stream-start';
-      warnings: LanguageModelV2CallWarning[];
-    }
+    type: 'stream-start';
+    warnings: LanguageModelV2CallWarning[];
+  }
   | {
-      type: 'error';
-      error: unknown;
-    }
+    type: 'error';
+    error: unknown;
+  }
   | {
-      type: 'response-metadata';
-      id?: string;
-      timestamp?: Date;
-      modelId?: string;
-    }
+    type: 'response-metadata';
+    id?: string;
+    timestamp?: Date;
+    modelId?: string;
+  }
   | {
-      type: 'finish';
-      finishReason: LanguageModelV2FinishReason;
-      usage: LanguageModelV2Usage;
-      providerMetadata?: SharedV2ProviderMetadata;
-    };
+    type: 'finish';
+    finishReason: LanguageModelV2FinishReason;
+    usage: LanguageModelV2Usage;
+    providerMetadata?: SharedV2ProviderMetadata;
+  };

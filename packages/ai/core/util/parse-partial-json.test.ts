@@ -17,7 +17,7 @@ it('should parse valid JSON', () => {
   const validJson = '{"key": "value"}';
   const parsedValue = { key: 'value' };
 
-  vi.mocked(safeParseJSON).mockReturnValueOnce({
+  vi.mocked(safeParseJSON).mockResolvedValueOnce({
     success: true,
     value: parsedValue,
     rawValue: parsedValue,
@@ -36,11 +36,11 @@ it('should repair and parse partial JSON', () => {
   const parsedValue = { key: 'value' };
 
   vi.mocked(safeParseJSON)
-    .mockReturnValueOnce({
+    .mockResolvedValueOnce({
       success: false,
       error: new JSONParseError({ text: partialJson, cause: undefined }),
     })
-    .mockReturnValueOnce({
+    .mockResolvedValueOnce({
       success: true,
       value: parsedValue,
       rawValue: parsedValue,
@@ -59,7 +59,7 @@ it('should repair and parse partial JSON', () => {
 it('should handle invalid JSON that cannot be repaired', () => {
   const invalidJson = 'not json at all';
 
-  vi.mocked(safeParseJSON).mockReturnValue({
+  vi.mocked(safeParseJSON).mockResolvedValueOnce({
     success: false,
     error: new JSONParseError({ text: invalidJson, cause: undefined }),
   });

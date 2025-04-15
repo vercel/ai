@@ -233,7 +233,7 @@ A function that attempts to repair a tool call that failed to parse.
     settings: { ...callSettings, maxRetries },
   });
 
-  const initialPrompt = standardizePrompt({
+  const initialPrompt = await standardizePrompt({
     prompt: { system, prompt, messages },
     tools,
   });
@@ -425,13 +425,13 @@ A function that attempts to repair a tool call that failed to parse.
           tools == null
             ? []
             : await executeTools({
-                toolCalls: currentToolCalls,
-                tools,
-                tracer,
-                telemetry,
-                messages: stepInputMessages,
-                abortSignal,
-              });
+              toolCalls: currentToolCalls,
+              tools,
+              tracer,
+              telemetry,
+              messages: stepInputMessages,
+              abortSignal,
+            });
 
         // token usage:
         const currentUsage = calculateLanguageModelUsage(
@@ -464,7 +464,7 @@ A function that attempts to repair a tool call that failed to parse.
           extractContentText(currentModelResponse.content) ?? '';
         const stepTextLeadingWhitespaceTrimmed =
           stepType === 'continue' && // only for continue steps
-          text.trimEnd() !== text // only trim when there is preceding whitespace
+            text.trimEnd() !== text // only trim when there is preceding whitespace
             ? originalText.trimStart()
             : originalText;
 
@@ -577,26 +577,22 @@ A function that attempts to repair a tool call that failed to parse.
         }),
       );
 
+      const resolvedOutput = await output?.parseOutput(
+        { text },
+        {
+          response: currentModelResponse.response,
+          usage,
+          finishReason: currentModelResponse.finishReason,
+        },
+      );
+
       return new DefaultGenerateTextResult({
         text,
         files: asFiles(currentModelResponse.content),
         reasoning: asReasoningText(currentReasoningDetails),
         reasoningDetails: currentReasoningDetails,
         sources,
-        outputResolver: () => {
-          if (output == null) {
-            throw new NoOutputSpecifiedError();
-          }
-
-          return output.parseOutput(
-            { text },
-            {
-              response: currentModelResponse.response,
-              usage,
-              finishReason: currentModelResponse.finishReason,
-            },
-          );
-        },
+        resolvedOutput,
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
@@ -708,8 +704,7 @@ async function executeTools<TOOLS extends ToolSet>({
 }
 
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
-  implements GenerateTextResult<TOOLS, OUTPUT>
-{
+  implements GenerateTextResult<TOOLS, OUTPUT> {
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
   readonly files: GenerateTextResult<TOOLS, OUTPUT>['files'];
   readonly reasoningText: GenerateTextResult<TOOLS, OUTPUT>['reasoningText'];
@@ -728,10 +723,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
   readonly sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
 
-  private readonly outputResolver: () => GenerateTextResult<
-    TOOLS,
-    OUTPUT
-  >['experimental_output'];
+  private readonly resolvedOutput: OUTPUT;
 
   constructor(options: {
     text: GenerateTextResult<TOOLS, OUTPUT>['text'];
@@ -747,10 +739,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     providerMetadata: GenerateTextResult<TOOLS, OUTPUT>['providerMetadata'];
     response: GenerateTextResult<TOOLS, OUTPUT>['response'];
     request: GenerateTextResult<TOOLS, OUTPUT>['request'];
-    outputResolver: () => GenerateTextResult<
-      TOOLS,
-      OUTPUT
-    >['experimental_output'];
+    resolvedOutput: OUTPUT;
     sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
   }) {
     this.text = options.text;
@@ -766,12 +755,17 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.response = options.response;
     this.steps = options.steps;
     this.providerMetadata = options.providerMetadata;
-    this.outputResolver = options.outputResolver;
+    this.resolvedOutput = options.resolvedOutput;
     this.sources = options.sources;
   }
 
   get experimental_output() {
-    return this.outputResolver();
+    // TODO: check if error can be removed (https://github.com/vercel/ai/pull/5779/files#r2046224268)
+    if (this.resolvedOutput == null) {
+      throw new NoOutputSpecifiedError();
+    }
+
+    return this.resolvedOutput;
   }
 }
 

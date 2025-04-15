@@ -88,7 +88,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
 
-    const googleOptions = parseProviderOptions({
+    const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions,
       schema: googleGenerativeAIProviderOptionsSchema,

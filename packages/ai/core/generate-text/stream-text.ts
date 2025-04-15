@@ -117,13 +117,13 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
     TextStreamPart<TOOLS>,
     {
       type:
-        | 'text'
-        | 'reasoning'
-        | 'source'
-        | 'tool-call'
-        | 'tool-call-streaming-start'
-        | 'tool-call-delta'
-        | 'tool-result';
+      | 'text'
+      | 'reasoning'
+      | 'source'
+      | 'tool-call'
+      | 'tool-call-streaming-start'
+      | 'tool-call-delta'
+      | 'tool-result';
     }
   >;
 }) => Promise<void> | void;
@@ -308,8 +308,8 @@ They are applied in the order they are provided.
 The stream transformations must maintain the stream structure for streamText to work correctly.
      */
     experimental_transform?:
-      | StreamTextTransform<TOOLS>
-      | Array<StreamTextTransform<TOOLS>>;
+    | StreamTextTransform<TOOLS>
+    | Array<StreamTextTransform<TOOLS>>;
 
     /**
 Callback that is called for each chunk of the stream.
@@ -427,7 +427,7 @@ function createOutputTransformStream<
     TextStreamPart<TOOLS>,
     EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
   >({
-    transform(chunk, controller) {
+    async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
       if (chunk.type === 'step-finish') {
         publishTextChunk({ controller });
@@ -442,7 +442,7 @@ function createOutputTransformStream<
       textChunk += chunk.text;
 
       // only publish if partial json can be parsed:
-      const result = output.parsePartial({ text });
+      const result = await output.parsePartial({ text });
       if (result != null) {
         // only send new json if it has changed:
         const currentJson = JSON.stringify(result.partial);
@@ -463,8 +463,7 @@ function createOutputTransformStream<
 }
 
 class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
-  implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
-{
+  implements StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
   private readonly warningsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['warnings']>
   >();
@@ -896,11 +895,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       settings: { ...callSettings, maxRetries },
     });
 
-    const initialPrompt = standardizePrompt({
-      prompt: { system, prompt, messages },
-      tools,
-    });
-
     const self = this;
 
     recordSpan({
@@ -939,6 +933,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           hasLeadingWhitespace: boolean;
           messageId: string;
         }) {
+          const initialPrompt = standardizePrompt({
+            prompt: { system, prompt, messages },
+            tools,
+          });
+
           // after the 1st step, we need to switch to messages format:
           const promptFormat =
             responseMessages.length === 0 ? initialPrompt.type : 'messages';
@@ -1721,9 +1720,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                   finishReason: chunk.finishReason,
                   usage: sendUsage
                     ? {
-                        promptTokens: chunk.usage.promptTokens,
-                        completionTokens: chunk.usage.completionTokens,
-                      }
+                      promptTokens: chunk.usage.promptTokens,
+                      completionTokens: chunk.usage.completionTokens,
+                    }
                     : undefined,
                   isContinued: chunk.isContinued,
                 }),
@@ -1738,9 +1737,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                     finishReason: chunk.finishReason,
                     usage: sendUsage
                       ? {
-                          promptTokens: chunk.usage.promptTokens,
-                          completionTokens: chunk.usage.completionTokens,
-                        }
+                        promptTokens: chunk.usage.promptTokens,
+                        completionTokens: chunk.usage.completionTokens,
+                      }
                       : undefined,
                   }),
                 );

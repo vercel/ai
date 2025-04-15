@@ -258,9 +258,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     // provider metadata:
     const providerMetadata: SharedV2ProviderMetadata = {
       [this.providerOptionsName]: {},
-      ...this.config.metadataExtractor?.extractMetadata?.({
+      ...(await this.config.metadataExtractor?.extractMetadata?.({
         parsedBody: rawResponse,
-      }),
+      })),
     };
     const completionTokenDetails =
       responseBody.usage?.completion_tokens_details;
