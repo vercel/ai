@@ -2,7 +2,7 @@ import { FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
 import { FireworksImageModel } from './fireworks-image-model';
-import { FireworksImageSettings } from './fireworks-image-settings';
+import { FireworksImageSettings } from './fireworks-image-options';
 
 const prompt = 'A cute baby sea otter';
 

@@ -1,5 +1,3 @@
-import { OpenAICompatibleEmbeddingSettings } from '@ai-sdk/openai-compatible';
-
 // https://docs.together.ai/docs/serverless-models#embedding-models
 export type TogetherAIEmbeddingModelId =
   | 'togethercomputer/m2-bert-80M-2k-retrieval'
@@ -11,6 +9,3 @@ export type TogetherAIEmbeddingModelId =
   | 'sentence-transformers/msmarco-bert-base-dot-v5'
   | 'bert-base-uncased'
   | (string & {});
-
-export interface TogetherAIEmbeddingSettings
-  extends OpenAICompatibleEmbeddingSettings {}
