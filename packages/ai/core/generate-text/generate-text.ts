@@ -709,11 +709,8 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 {
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
   readonly files: GenerateTextResult<TOOLS, OUTPUT>['files'];
+  readonly reasoningText: GenerateTextResult<TOOLS, OUTPUT>['reasoningText'];
   readonly reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
-  readonly reasoningDetails: GenerateTextResult<
-    TOOLS,
-    OUTPUT
-  >['reasoningDetails'];
   readonly toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
   readonly toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
   readonly finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
@@ -737,8 +734,8 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   constructor(options: {
     text: GenerateTextResult<TOOLS, OUTPUT>['text'];
     files: GenerateTextResult<TOOLS, OUTPUT>['files'];
-    reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
-    reasoningDetails: GenerateTextResult<TOOLS, OUTPUT>['reasoningDetails'];
+    reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoningText'];
+    reasoningDetails: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
     toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
     toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
     finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
@@ -757,8 +754,8 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }) {
     this.text = options.text;
     this.files = options.files;
-    this.reasoning = options.reasoning;
-    this.reasoningDetails = options.reasoningDetails;
+    this.reasoningText = options.reasoning;
+    this.reasoning = options.reasoningDetails;
     this.toolCalls = options.toolCalls;
     this.toolResults = options.toolResults;
     this.finishReason = options.finishReason;

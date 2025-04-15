@@ -1,5 +1,42 @@
 # ai
 
+## 5.0.0-canary.8
+
+### Major Changes
+
+- 14c9410: chore: refactor file towards source pattern (spec)
+
+### Patch Changes
+
+- 5d1e3ba: chore (ai): remove provider re-exports
+- 26735b5: chore(embedding-model): add v2 interface
+- 7827a49: fix (ai/core): refactor `toResponseMessages` to filter out empty string/content
+- bd8a36c: feat(embedding-model-v2/embedMany): add response body field
+- b6f9f3c: remove deprecated `CoreTool*` types
+- 92c8e66: fix(ai/core): properly handle custom separator in provider registry
+- fd65bc6: chore(embedding-model-v2): rename rawResponse to response
+- 5bdff05: Removed deprecated `options.throwErrorForEmptyVectors` from `cosineSimilarity()`. Since `throwErrorForEmptyVectors` was the only option the entire `options` argument was removed.
+
+  ```diff
+  - cosineSimilarity(vector1, vector2, options)
+  +cosineSimilarity(vector1, vector2)
+  ```
+
+- Updated dependencies [26735b5]
+- Updated dependencies [443d8ec]
+- Updated dependencies [14c9410]
+- Updated dependencies [d9c98f4]
+- Updated dependencies [c4a2fec]
+- Updated dependencies [0054544]
+- Updated dependencies [9e9c809]
+- Updated dependencies [32831c6]
+- Updated dependencies [d0f9495]
+- Updated dependencies [fd65bc6]
+- Updated dependencies [393138b]
+- Updated dependencies [7182d14]
+  - @ai-sdk/provider@2.0.0-canary.6
+  - @ai-sdk/provider-utils@3.0.0-canary.7
+
 ## 5.0.0-canary.7
 
 ### Major Changes
