@@ -17,9 +17,6 @@ export default function Chat() {
       console.log('Usage', usage);
       console.log('FinishReason', finishReason);
     },
-    onError(error) {
-      console.log('Error', error);
-    },
   });
 
   return (
