@@ -13,6 +13,7 @@ export { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step
 export { fillMessageParts } from './fill-message-parts';
 export { getMessageParts } from './get-message-parts';
 export { isDeepEqualData } from './is-deep-equal-data';
+export { MessagesStore } from './messages-store';
 export { parsePartialJson } from './parse-partial-json';
 export { prepareAttachmentsForRequest } from './prepare-attachments-for-request';
 export { processDataStream } from './process-data-stream';
@@ -25,3 +26,4 @@ export {
 } from './should-resubmit-messages';
 export { updateToolCallResult } from './update-tool-call-result';
 export { zodSchema } from './zod-schema';
+

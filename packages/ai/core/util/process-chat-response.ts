@@ -1,11 +1,5 @@
 import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
-import {
-  calculateLanguageModelUsage,
-  LanguageModelUsage,
-} from '../types/duplicated/usage';
-import { parsePartialJson } from './parse-partial-json';
-import { processDataStream } from './process-data-stream';
 import type {
   JSONValue,
   ReasoningUIPart,
@@ -15,6 +9,13 @@ import type {
   UIMessage,
   UseChatOptions,
 } from '../types';
+import {
+  calculateLanguageModelUsage,
+  LanguageModelUsage,
+} from '../types/duplicated/usage';
+import { MessagesStore } from './messages-store';
+import { parsePartialJson } from './parse-partial-json';
+import { processDataStream } from './process-data-stream';
 
 export async function processChatResponse({
   stream,
@@ -23,7 +24,7 @@ export async function processChatResponse({
   onFinish,
   generateId = generateIdFunction,
   getCurrentDate = () => new Date(),
-  lastMessage,
+  store,
 }: {
   stream: ReadableStream<Uint8Array>;
   update: (options: {
@@ -39,8 +40,9 @@ export async function processChatResponse({
   }) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
-  lastMessage: UIMessage | undefined;
+  store: MessagesStore;
 }) {
+  const lastMessage = store.getLastMessage();
   const replaceLastMessage = lastMessage?.role === 'assistant';
   let step = replaceLastMessage
     ? 1 +
