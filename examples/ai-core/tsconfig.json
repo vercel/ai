@@ -38,6 +38,9 @@
       "path": "../../packages/elevenlabs"
     },
     {
+      "path": "../../packages/revai"
+    },
+    {
       "path": "../../packages/cohere"
     },
     {
