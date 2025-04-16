@@ -10,6 +10,7 @@
     "@ai-sdk/cohere": "2.0.0-canary.7",
     "@ai-sdk/deepinfra": "1.0.0-canary.7",
     "@ai-sdk/deepseek": "1.0.0-canary.7",
+    "@ai-sdk/elevenlabs": "1.0.0-canary.0",
     "@ai-sdk/fal": "1.0.0-canary.7",
     "@ai-sdk/fireworks": "1.0.0-canary.7",
     "@ai-sdk/google": "2.0.0-canary.8",
