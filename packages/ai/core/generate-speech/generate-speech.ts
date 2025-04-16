@@ -6,9 +6,9 @@ import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
 import {
-  audioMimeTypeSignatures,
-  detectMimeType,
-} from '../util/detect-mimetype';
+  audioMediaTypeSignatures,
+  detectMediaType,
+} from '../util/detect-media-type';
 import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,
@@ -127,10 +127,10 @@ Only applicable for HTTP-based providers.
   return new DefaultSpeechResult({
     audio: new DefaultGeneratedAudioFile({
       data: result.audio,
-      mimeType:
-        detectMimeType({
+      mediaType:
+        detectMediaType({
           data: result.audio,
-          signatures: audioMimeTypeSignatures,
+          signatures: audioMediaTypeSignatures,
         }) ?? 'audio/mp3',
     }),
     warnings: result.warnings,

@@ -21,21 +21,21 @@ export class DefaultGeneratedAudioFile
 
   constructor({
     data,
-    mimeType,
+    mediaType,
   }: {
     data: string | Uint8Array;
-    mimeType: string;
+    mediaType: string;
   }) {
-    super({ data, mimeType });
+    super({ data, mediaType });
     let format = 'mp3';
 
     // If format is not provided, try to determine it from the mimeType
-    if (mimeType) {
-      const mimeTypeParts = mimeType.split('/');
+    if (mediaType) {
+      const mimeTypeParts = mediaType.split('/');
 
       if (mimeTypeParts.length === 2) {
         // Handle special cases for audio formats
-        if (mimeType !== 'audio/mpeg') {
+        if (mediaType !== 'audio/mpeg') {
           format = mimeTypeParts[1];
         }
       }
@@ -56,7 +56,7 @@ export class DefaultGeneratedAudioFileWithType extends DefaultGeneratedAudioFile
 
   constructor(options: {
     data: string | Uint8Array;
-    mimeType: string;
+    mediaType: string;
     format: string;
   }) {
     super(options);

@@ -14,7 +14,7 @@ const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
 const mockFile = new DefaultGeneratedAudioFile({
   data: audio,
-  mimeType: 'audio/mp3',
+  mediaType: 'audio/mp3',
 });
 
 const sampleText = 'This is a sample text to convert to speech.';
@@ -135,7 +135,7 @@ describe('generateSpeech', () => {
               createMockResponse({
                 audio: new DefaultGeneratedAudioFile({
                   data: new Uint8Array(),
-                  mimeType: 'audio/mp3',
+                  mediaType: 'audio/mp3',
                 }),
                 timestamp: testDate,
               }),
@@ -162,7 +162,7 @@ describe('generateSpeech', () => {
               createMockResponse({
                 audio: new DefaultGeneratedAudioFile({
                   data: new Uint8Array(),
-                  mimeType: 'audio/mp3',
+                  mediaType: 'audio/mp3',
                 }),
                 timestamp: testDate,
                 headers: {
