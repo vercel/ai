@@ -4,6 +4,7 @@ import {
   imageMimeTypeSignatures,
   audioMimeTypeSignatures,
 } from './detect-mimetype';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
 describe('detectMimeType', () => {
   describe('GIF', () => {
@@ -212,6 +213,80 @@ describe('detectMimeType', () => {
       expect(
         detectMimeType({
           data: mp3Base64,
+          signatures: audioMimeTypeSignatures,
+        }),
+      ).toBe('audio/mpeg');
+    });
+
+    it('should detect MP3 with ID3v2 tags from bytes', () => {
+      const mp3WithID3Bytes = new Uint8Array([
+        0x49,
+        0x44,
+        0x33, // 'ID3'
+        0x03,
+        0x00, // version
+        0x00, // flags
+        0x00,
+        0x00,
+        0x00,
+        0x0a, // size (10 bytes)
+        // 10 bytes of ID3 data
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        // MP3 frame header
+        0xff,
+        0xfb,
+        0x00,
+        0x00,
+      ]);
+      expect(
+        detectMimeType({
+          data: mp3WithID3Bytes,
+          signatures: audioMimeTypeSignatures,
+        }),
+      ).toBe('audio/mpeg');
+    });
+    it('should detect MP3 with ID3v2 tags from base64', () => {
+      const mp3WithID3Bytes = new Uint8Array([
+        0x49,
+        0x44,
+        0x33, // 'ID3'
+        0x03,
+        0x00, // version
+        0x00, // flags
+        0x00,
+        0x00,
+        0x00,
+        0x0a, // size (10 bytes)
+        // 10 bytes of ID3 data
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        // MP3 frame header
+        0xff,
+        0xfb,
+        0x00,
+        0x00,
+      ]);
+      const mp3WithID3Base64 = convertUint8ArrayToBase64(mp3WithID3Bytes);
+      expect(
+        detectMimeType({
+          data: mp3WithID3Base64,
           signatures: audioMimeTypeSignatures,
         }),
       ).toBe('audio/mpeg');
