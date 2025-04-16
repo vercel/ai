@@ -13,7 +13,6 @@ import {
   calculateLanguageModelUsage,
   LanguageModelUsage,
 } from '../types/duplicated/usage';
-import { MessagesStore } from './messages-store';
 import { parsePartialJson } from './parse-partial-json';
 import { processDataStream } from './process-data-stream';
 
@@ -24,7 +23,7 @@ export async function processChatResponse({
   onFinish,
   generateId = generateIdFunction,
   getCurrentDate = () => new Date(),
-  store,
+  lastMessage,
 }: {
   stream: ReadableStream<Uint8Array>;
   update: (options: {
@@ -40,9 +39,8 @@ export async function processChatResponse({
   }) => void;
   generateId?: () => string;
   getCurrentDate?: () => Date;
-  store: MessagesStore;
+  lastMessage: UIMessage | undefined;
 }) {
-  const lastMessage = store.getLastMessage();
   const replaceLastMessage = lastMessage?.role === 'assistant';
   let step = replaceLastMessage
     ? 1 +

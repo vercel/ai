@@ -1,11 +1,12 @@
-import { processChatResponse } from './process-chat-response';
+import { IdGenerator, JSONValue, UseChatOptions } from '../types';
+import { MessagesStore } from './messages-store';
+import { processChatResponseV2 } from './process-chat-response-v2';
 import { processChatTextResponse } from './process-chat-text-response';
-import { IdGenerator, JSONValue, UIMessage, UseChatOptions } from '../types';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export async function callChatApi({
+export async function callChatApiV2({
   api,
   body,
   streamProtocol = 'data',
@@ -19,7 +20,7 @@ export async function callChatApi({
   onToolCall,
   generateId,
   fetch = getOriginalFetch(),
-  lastMessage,
+  store,
 }: {
   api: string;
   body: Record<string, any>;
@@ -30,15 +31,15 @@ export async function callChatApi({
   restoreMessagesOnFailure: () => void;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onUpdate: (options: {
-    message: UIMessage;
+    // message: UIMessage;
     data: JSONValue[] | undefined;
-    replaceLastMessage: boolean;
+    // replaceLastMessage: boolean;
   }) => void;
   onFinish: UseChatOptions['onFinish'];
   onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
-  lastMessage: UIMessage | undefined;
+  store: MessagesStore;
 }) {
   const response = await fetch(api, {
     method: 'POST',
@@ -85,10 +86,10 @@ export async function callChatApi({
     }
 
     case 'data': {
-      await processChatResponse({
+      await processChatResponseV2({
         stream: response.body,
         update: onUpdate,
-        lastMessage,
+        store,
         onToolCall,
         onFinish({ message, finishReason, usage }) {
           if (onFinish && message != null) {

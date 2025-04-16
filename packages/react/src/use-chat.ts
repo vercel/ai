@@ -8,7 +8,7 @@ import type {
   UseChatOptions,
 } from 'ai';
 import {
-  callChatApi,
+  callChatApiV2,
   extractMaxToolInvocationStep,
   fillMessageParts,
   generateId as generateIdFunc,
@@ -194,7 +194,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
   );
 
   // Keep the latest messages in a ref.
-  const messagesRef = useRef<UIMessage[]>(processedInitialMessages || []);
+  // const messagesRef = useRef<UIMessage[]>(processedInitialMessages || []);
   const messagesStore = useMemo(
     () =>
       new MessagesStore({
@@ -205,8 +205,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
     [processedInitialMessages, throttleWaitMs, chatId],
   );
   const messages = useSyncExternalStore(
-    messagesStore.onChange,
-    messagesStore.getMessages,
+    callback => messagesStore.onChange(callback),
+    () => messagesStore.getMessages(),
     () => processedInitialMessages,
   );
 
@@ -296,7 +296,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
         const existingData = streamDataRef.current;
 
-        await callChatApi({
+        await callChatApiV2({
           api,
           body: experimental_prepareRequestBody?.({
             id: chatId,
@@ -323,15 +323,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
             }
           },
           onResponse,
-          onUpdate({ message, data, replaceLastMessage }) {
+          onUpdate({ data }) {
             mutateStatus('streaming');
-
-            if (replaceLastMessage) {
-              messagesStore.updateLastMessage(message);
-            } else {
-              messagesStore.appendMessage(message);
-            }
-
             if (data?.length) {
               const updatedData = [...(existingData ?? []), ...data];
               throttledMutateStreamData(updatedData, false);
@@ -341,7 +334,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           onFinish,
           generateId,
           fetch,
-          lastMessage: chatMessages[chatMessages.length - 1],
+          store: messagesStore,
         });
 
         abortControllerRef.current = null;
