@@ -41,7 +41,6 @@ describe('defaultSettingsMiddleware', () => {
       expect(result.temperature).toBe(0.5);
     });
 
-    // https://github.com/vercel/ai/pull/5769
     it('should default temparature to undefined', async () => {
       const middleware = defaultSettingsMiddleware({
         settings: {},
