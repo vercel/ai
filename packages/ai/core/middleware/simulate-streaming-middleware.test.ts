@@ -147,9 +147,8 @@ describe('simulateStreamingMiddleware', () => {
       ...DEFAULT_SETTINGs,
     });
 
-    expect(
-      await convertAsyncIterableToArray(result.fullStream),
-    ).toMatchInlineSnapshot(`
+    expect(await convertAsyncIterableToArray(result.fullStream))
+      .toMatchInlineSnapshot(`
       [
         {
           "messageId": "msg-3",
