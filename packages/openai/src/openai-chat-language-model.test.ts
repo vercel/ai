@@ -225,16 +225,18 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
     `);
   });
 
@@ -621,7 +623,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(result.toolCalls).toMatchInlineSnapshot(`
+    expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "args": "{"value":"Spark"}",
@@ -926,7 +928,7 @@ describe('doGenerate', () => {
         ],
       });
 
-      expect(result.toolCalls).toMatchInlineSnapshot(`
+      expect(result.content).toMatchInlineSnapshot(`
         [
           {
             "args": "{"value":"Spark"}",
@@ -1002,7 +1004,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(result.toolCalls).toMatchInlineSnapshot(`
+    expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "args": "{"value":"Spark"}",

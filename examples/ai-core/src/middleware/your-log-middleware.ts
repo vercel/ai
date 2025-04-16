@@ -11,7 +11,7 @@ export const yourLogMiddleware: LanguageModelV2Middleware = {
     const result = await doGenerate();
 
     console.log('doGenerate finished');
-    console.log(`generated text: ${result.text}`);
+    console.log(`generated content: ${JSON.stringify(result.content)}`);
 
     return result;
   },

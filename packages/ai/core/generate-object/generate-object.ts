@@ -35,6 +35,7 @@ import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { extractContentText } from '../generate-text/extract-content-text';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -359,7 +360,9 @@ export async function generateObject<SCHEMA, RESULT>({
                   body: result.response?.body,
                 };
 
-                if (result.text === undefined) {
+                const text = extractContentText(result.content);
+
+                if (text === undefined) {
                   throw new NoObjectGeneratedError({
                     message:
                       'No object generated: the model did not return a response.',
@@ -375,7 +378,7 @@ export async function generateObject<SCHEMA, RESULT>({
                     telemetry,
                     attributes: {
                       'ai.response.finishReason': result.finishReason,
-                      'ai.response.object': { output: () => result.text?.text },
+                      'ai.response.object': { output: () => text },
                       'ai.response.id': responseData.id,
                       'ai.response.model': responseData.modelId,
                       'ai.response.timestamp':
@@ -395,12 +398,12 @@ export async function generateObject<SCHEMA, RESULT>({
                   }),
                 );
 
-                return { ...result, objectText: result.text, responseData };
+                return { ...result, objectText: text, responseData };
               },
             }),
           );
 
-          result = generateResult.objectText?.text;
+          result = generateResult.objectText;
           finishReason = generateResult.finishReason;
           usage = generateResult.usage;
           warnings = generateResult.warnings;
@@ -476,7 +479,11 @@ export async function generateObject<SCHEMA, RESULT>({
                   headers,
                 });
 
-                const objectText = result.toolCalls?.[0]?.args;
+                const firstToolCall = result.content.find(
+                  content => content.type === 'tool-call',
+                );
+
+                const objectText = firstToolCall?.args;
 
                 const responseData = {
                   id: result.response?.id ?? generateId(),

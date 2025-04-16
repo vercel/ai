@@ -16,28 +16,8 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
         start(controller) {
           controller.enqueue({ type: 'response-metadata', ...result.response });
 
-          if (result.reasoning) {
-            for (const reasoningPart of result.reasoning) {
-              controller.enqueue(reasoningPart);
-            }
-          }
-
-          if (result.text) {
-            controller.enqueue(result.text);
-          }
-
-          if (result.toolCalls) {
-            for (const toolCall of result.toolCalls) {
-              controller.enqueue({
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                argsTextDelta: toolCall.args,
-              });
-
-              controller.enqueue(toolCall);
-            }
+          for (const part of result.content) {
+            controller.enqueue(part);
           }
 
           controller.enqueue({

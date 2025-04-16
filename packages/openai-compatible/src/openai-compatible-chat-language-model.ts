@@ -7,6 +7,7 @@ import {
   LanguageModelV2ObjectGenerationMode,
   SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
+  LanguageModelV2Content,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -224,8 +225,37 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
     const choice = responseBody.choices[0];
+    const content: Array<LanguageModelV2Content> = [];
+
+    // text content:
+    const text = choice.message.content;
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text });
+    }
+
+    // reasoning content:
+    const reasoning = choice.message.reasoning_content;
+    if (reasoning != null && reasoning.length > 0) {
+      content.push({
+        type: 'reasoning',
+        reasoningType: 'text',
+        text: reasoning,
+      });
+    }
+
+    // tool calls:
+    if (choice.message.tool_calls != null) {
+      for (const toolCall of choice.message.tool_calls) {
+        content.push({
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: toolCall.id ?? generateId(),
+          toolName: toolCall.function.name,
+          args: toolCall.function.arguments!,
+        });
+      }
+    }
 
     // provider metadata:
     const providerMetadata: SharedV2ProviderMetadata = {
@@ -255,26 +285,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     }
 
     return {
-      text:
-        choice.message.content != null
-          ? { type: 'text', text: choice.message.content }
-          : undefined,
-      reasoning: choice.message.reasoning_content
-        ? [
-            {
-              type: 'reasoning',
-              reasoningType: 'text',
-              text: choice.message.reasoning_content,
-            },
-          ]
-        : undefined,
-      toolCalls: choice.message.tool_calls?.map(toolCall => ({
-        type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: toolCall.id ?? generateId(),
-        toolName: toolCall.function.name,
-        args: toolCall.function.arguments!,
-      })),
+      content,
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       usage: {
         inputTokens: responseBody.usage?.prompt_tokens ?? undefined,

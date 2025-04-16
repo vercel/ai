@@ -161,16 +161,18 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
     `);
   });
 
@@ -180,19 +182,17 @@ describe('doGenerate', () => {
       reasoning_content: 'This is the reasoning behind the response',
     });
 
-    const { text, reasoning } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
-    `);
-    expect(reasoning).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
         {
           "reasoningType": "text",
           "text": "This is the reasoning behind the response",
@@ -513,15 +513,17 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(result.toolCalls).toStrictEqual([
-      {
-        args: '{"value":"Spark"}',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        type: 'tool-call',
-      },
-    ]);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "args": "{"value":"Spark"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 
   describe('response format', () => {

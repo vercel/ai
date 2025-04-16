@@ -8,6 +8,7 @@ import {
   SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
+  LanguageModelV2Content,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -318,8 +319,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = body;
     const choice = response.choices[0];
+    const content: Array<LanguageModelV2Content> = [];
+
+    // text content:
+    const text = choice.message.content;
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text });
+    }
+
+    // tool calls:
+    for (const toolCall of choice.message.tool_calls ?? []) {
+      content.push({
+        type: 'tool-call' as const,
+        toolCallType: 'function',
+        toolCallId: toolCall.id ?? generateId(),
+        toolName: toolCall.function.name,
+        args: toolCall.function.arguments!,
+      });
+    }
 
     // provider metadata:
     const completionTokenDetails = response.usage?.completion_tokens_details;
@@ -343,17 +361,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     }
 
     return {
-      text:
-        choice.message.content != null
-          ? { type: 'text', text: choice.message.content }
-          : undefined,
-      toolCalls: choice.message.tool_calls?.map(toolCall => ({
-        type: 'tool-call' as const,
-        toolCallType: 'function',
-        toolCallId: toolCall.id ?? generateId(),
-        toolName: toolCall.function.name,
-        args: toolCall.function.arguments!,
-      })),
+      content,
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       usage: {
         inputTokens: response.usage?.prompt_tokens ?? undefined,

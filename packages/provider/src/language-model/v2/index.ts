@@ -1,6 +1,7 @@
 export * from './language-model-v2';
 export * from './language-model-v2-call-options';
 export * from './language-model-v2-call-warning';
+export * from './language-model-v2-content';
 export * from './language-model-v2-data-content';
 export * from './language-model-v2-file';
 export * from './language-model-v2-finish-reason';

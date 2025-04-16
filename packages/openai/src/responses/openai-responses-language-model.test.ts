@@ -121,11 +121,13 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
         });
 
-        expect(result.text).toMatchInlineSnapshot(`
-          {
-            "text": "answer text",
-            "type": "text",
-          }
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "answer text",
+              "type": "text",
+            },
+          ]
         `);
       });
 
@@ -800,7 +802,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           tools: TEST_TOOLS,
         });
 
-        expect(result.toolCalls).toMatchInlineSnapshot(`
+        expect(result.content).toMatchInlineSnapshot(`
           [
             {
               "args": "{"location":"San Francisco"}",
@@ -953,15 +955,16 @@ describe('OpenAIResponsesLanguageModel', () => {
         };
       });
 
-      it('should generate text', async () => {
+      it('should generate text and sources', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
         });
 
-        expect(result.text).toMatchInlineSnapshot(`
-          {
-            "text": "Last week in San Francisco, several notable events and developments took place:
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "Last week in San Francisco, several notable events and developments took place:
 
           **Bruce Lee Statue in Chinatown**
 
@@ -988,19 +991,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           - [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)
           - [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)
           - [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)",
-            "type": "text",
-          }
-        `);
-      });
-
-      it('should return sources', async () => {
-        const result = await createModel('gpt-4o').doGenerate({
-          prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-        });
-
-        expect(result.sources).toMatchInlineSnapshot(`
-          [
+              "type": "text",
+            },
             {
               "id": "id-0",
               "sourceType": "url",
