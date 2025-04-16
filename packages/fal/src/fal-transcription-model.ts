@@ -1,7 +1,7 @@
 import {
   AISDKError,
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV1,
+  TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -13,10 +13,10 @@ import {
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
-import { FalTranscriptionModelId } from './fal-transcription-options';
+import { FalTranscriptionModelId } from './fal-transcription-settings';
 import { FalTranscriptionAPITypes } from './fal-api-types';
 
 // https://fal.ai/models/fal-ai/whisper/api?platform=http
@@ -67,8 +67,8 @@ interface FalTranscriptionModelConfig extends FalConfig {
   };
 }
 
-export class FalTranscriptionModel implements TranscriptionModelV2 {
-  readonly specificationVersion = 'v2';
+export class FalTranscriptionModel implements TranscriptionModelV1 {
+  readonly specificationVersion = 'v1';
 
   get provider(): string {
     return this.config.provider;
@@ -81,11 +81,11 @@ export class FalTranscriptionModel implements TranscriptionModelV2 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV2CallWarning[] = [];
+  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const falOptions = await parseProviderOptions({
+    const falOptions = parseProviderOptions({
       provider: 'fal',
       providerOptions,
       schema: falProviderOptionsSchema,
@@ -121,8 +121,8 @@ export class FalTranscriptionModel implements TranscriptionModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { body, warnings } = await this.getArgs(options);
 
