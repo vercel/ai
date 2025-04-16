@@ -30,11 +30,7 @@ export async function callChatApiV2({
   abortController: (() => AbortController | null) | undefined;
   restoreMessagesOnFailure: () => void;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
-  onUpdate: (options: {
-    // message: UIMessage;
-    data: JSONValue[] | undefined;
-    // replaceLastMessage: boolean;
-  }) => void;
+  onUpdate: (options: { data: JSONValue[] | undefined }) => void;
   onFinish: UseChatOptions['onFinish'];
   onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
@@ -86,6 +82,8 @@ export async function callChatApiV2({
     }
 
     case 'data': {
+      // Sets status to streaming:
+      onUpdate({ data: [] });
       await processChatResponseV2({
         stream: response.body,
         update: onUpdate,

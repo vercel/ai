@@ -6,6 +6,7 @@ import type {
   ToolInvocationUIPart,
   UIMessage,
 } from '../types';
+import { throttle } from './throttle';
 
 type SubscriberCallback = () => void;
 
@@ -41,11 +42,9 @@ export class MessagesStore {
     this.messages = initialMessages;
     this.chatId = chatId;
     this.subscribers = new Set();
-    this.notify = () => this.emit();
-    // TODO: Install `throttleit` + move throttle.ts
-    // this.notify = throttleMs
-    //   ? throttle(() => this.emit(), throttleMs)
-    //   : () => this.emit();
+    this.notify = throttleMs
+      ? throttle(() => this.emit(), throttleMs)
+      : () => this.emit();
   }
 
   private emit() {
@@ -87,40 +86,6 @@ export class MessagesStore {
     this.setMessages([...this.messages.slice(0, -1), message]);
   }
 
-  updateToolCallResult({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: unknown;
-  }) {
-    const lastMessage = this.getLastMessage();
-    if (!lastMessage) return;
-
-    const invocationPart = lastMessage.parts.find(
-      (part): part is ToolInvocationUIPart =>
-        part.type === 'tool-invocation' &&
-        part.toolInvocation.toolCallId === toolCallId,
-    );
-
-    if (!invocationPart) return;
-
-    const toolResult: ToolInvocation = {
-      ...invocationPart.toolInvocation,
-      state: 'result',
-      result,
-    };
-
-    invocationPart.toolInvocation = toolResult;
-
-    lastMessage.toolInvocations = lastMessage.toolInvocations?.map(
-      toolInvocation =>
-        toolInvocation.toolCallId === toolCallId ? toolResult : toolInvocation,
-    );
-
-    this.setMessages([...this.messages.slice(0, -1), { ...lastMessage }]);
-  }
-
   addOrUpdateAssistantMessageParts({
     generateId = generateIdFunction,
     partDelta,
@@ -128,7 +93,7 @@ export class MessagesStore {
     id,
   }: {
     partDelta: UIMessage['parts'][number];
-    step: number;
+    step?: number;
     id?: string;
     generateId?: () => string;
   }) {
@@ -252,31 +217,39 @@ export class MessagesStore {
   private addOrUpdateToolInvocation({
     toolInvocation,
     assistantMessage,
-    step,
+    step: stepNumber,
   }: {
     toolInvocation: ToolInvocation;
     assistantMessage: UIMessage;
-    step: number;
+    step?: number;
   }) {
     if (assistantMessage.toolInvocations == null) {
       assistantMessage.toolInvocations = [];
     }
 
-    const existingToolInvocation =
+    const step =
+      stepNumber ??
+      1 +
+        // find max step in existing tool invocations:
+        (assistantMessage.toolInvocations?.reduce((max, toolInvocation) => {
+          return Math.max(max, toolInvocation.step ?? 0);
+        }, 0) ?? 0);
+
+    const existingPartialToolInvocation =
       this.partialToolCalls[toolInvocation.toolCallId];
 
-    if (existingToolInvocation) {
+    if (existingPartialToolInvocation) {
       let updatedInvocation: ToolInvocation | undefined;
 
       switch (toolInvocation.state) {
         case 'partial-call': {
-          existingToolInvocation.text += toolInvocation.args;
+          existingPartialToolInvocation.text += toolInvocation.args;
           const { value: partialArgs } = parsePartialJson(toolInvocation.args);
           updatedInvocation = {
             state: 'partial-call',
             step,
             toolCallId: toolInvocation.toolCallId,
-            toolName: existingToolInvocation.toolName,
+            toolName: existingPartialToolInvocation.toolName,
             args: partialArgs,
           };
           break;
@@ -286,24 +259,20 @@ export class MessagesStore {
             state: toolInvocation.state,
             step,
             toolCallId: toolInvocation.toolCallId,
-            toolName: existingToolInvocation.toolName,
+            toolName: existingPartialToolInvocation.toolName,
             args: toolInvocation.args,
           };
-          delete this.partialToolCalls[toolInvocation.toolCallId];
           break;
         }
         case 'result': {
-          existingToolInvocation.text += toolInvocation.args;
-          const { value: args } = parsePartialJson(toolInvocation.args);
           updatedInvocation = {
-            state: toolInvocation.state,
+            state: 'result',
             step,
             toolCallId: toolInvocation.toolCallId,
-            toolName: existingToolInvocation.toolName,
-            args,
+            toolName: existingPartialToolInvocation.toolName,
+            args: existingPartialToolInvocation.text,
             result: toolInvocation.result,
           };
-          delete this.partialToolCalls[toolInvocation.toolCallId];
           break;
         }
         default: {
@@ -313,7 +282,7 @@ export class MessagesStore {
 
       if (updatedInvocation) {
         // Update legacy state:
-        assistantMessage.toolInvocations[existingToolInvocation.index] =
+        assistantMessage.toolInvocations[existingPartialToolInvocation.index] =
           updatedInvocation;
 
         // Update existing part:
@@ -332,7 +301,7 @@ export class MessagesStore {
         case 'result': {
           throw new Error('tool_result must be preceded by a tool_call');
         }
-        case 'partial-call': {
+        case 'call': {
           this.partialToolCalls[toolInvocation.toolCallId] = {
             text: toolInvocation.args,
             step,
@@ -341,7 +310,13 @@ export class MessagesStore {
           };
           break;
         }
-        case 'call': {
+        case 'partial-call': {
+          this.partialToolCalls[toolInvocation.toolCallId] = {
+            text: '',
+            step,
+            toolName: toolInvocation.toolName,
+            index: assistantMessage.toolInvocations.length,
+          };
           break;
         }
         default: {

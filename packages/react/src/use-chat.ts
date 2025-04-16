@@ -526,9 +526,17 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const addToolResult = useCallback(
     ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
-      messagesStore.updateToolCallResult({
-        toolCallId,
-        result,
+      messagesStore.addOrUpdateAssistantMessageParts({
+        partDelta: {
+          type: 'tool-invocation',
+          toolInvocation: {
+            toolCallId,
+            result,
+            state: 'result',
+            toolName: '',
+            args: undefined,
+          },
+        },
       });
 
       // when the request is ongoing, the auto-submit will be triggered after the request is finished
