@@ -1,5 +1,11 @@
 # @ai-sdk/fal
 
+## 0.1.9
+
+### Patch Changes
+
+- 6e8a73b: feat(providers/fal): add transcribe
+
 ## 0.1.8
 
 ### Patch Changes
