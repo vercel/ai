@@ -8,6 +8,7 @@
     "@ai-sdk/azure": "2.0.0-canary.8",
     "@ai-sdk/cerebras": "1.0.0-canary.7",
     "@ai-sdk/cohere": "2.0.0-canary.7",
+    "@ai-sdk/deepgram": "1.0.0-canary.0",
     "@ai-sdk/deepinfra": "1.0.0-canary.7",
     "@ai-sdk/deepseek": "1.0.0-canary.7",
     "@ai-sdk/elevenlabs": "1.0.0-canary.0",

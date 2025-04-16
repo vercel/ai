@@ -41,6 +41,9 @@
       "path": "../../packages/cohere"
     },
     {
+      "path": "../../packages/deepgram"
+    },
+    {
       "path": "../../packages/deepinfra"
     },
     {
