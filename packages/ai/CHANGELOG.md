@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.8
+
+### Patch Changes
+
+- 6e8a73b: feat(providers/fal): add transcribe
+
 ## 4.3.7
 
 ### Patch Changes
