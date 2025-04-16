@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.15
+
+### Patch Changes
+
+- 98d954e: feat (providers/openai): add o3 and o4-mini models
+
 ## 1.3.14
 
 ### Patch Changes
