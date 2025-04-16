@@ -35,6 +35,7 @@ import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import { extractContentText } from '../generate-text/extract-content-text';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -359,10 +360,7 @@ export async function generateObject<SCHEMA, RESULT>({
                   body: result.response?.body,
                 };
 
-                const text = result.content
-                  .filter(content => content.type === 'text')
-                  .map(content => content.text)
-                  .join('');
+                const text = extractContentText(result.content);
 
                 if (text === undefined) {
                   throw new NoObjectGeneratedError({

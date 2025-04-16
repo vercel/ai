@@ -14,10 +14,12 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: {
-              type: 'text',
-              text: '<think>analyzing the request</think>Here is the response',
-            },
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response',
+              },
+            ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -40,10 +42,12 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: {
-              type: 'text',
-              text: '<think>analyzing the request\n</think>',
-            },
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request\n</think>',
+              },
+            ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -66,10 +70,12 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: {
-              type: 'text',
-              text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
-            },
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+              },
+            ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -90,14 +96,16 @@ describe('extractReasoningMiddleware', () => {
       expect(result.text).toStrictEqual('Here is the response\nmore');
     });
 
-    it('should preprend <think> tag IFF startWithReasoning is true', async () => {
+    it('should prepend <think> tag IFF startWithReasoning is true', async () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: {
-              type: 'text',
-              text: 'analyzing the request</think>Here is the response',
-            },
+            content: [
+              {
+                type: 'text',
+                text: 'analyzing the request</think>Here is the response',
+              },
+            ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
           };
@@ -137,10 +145,12 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: {
-              type: 'text',
-              text: '<think>analyzing the request</think>Here is the response',
-            },
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response',
+              },
+            ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
             reasoning: undefined,
