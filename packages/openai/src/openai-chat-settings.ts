@@ -23,6 +23,8 @@ export type OpenAIChatModelId =
   | 'gpt-4o-audio-preview-2024-12-17'
   | 'gpt-4o-search-preview'
   | 'gpt-4o-search-preview-2025-03-11'
+  | 'gpt-4o-mini-search-preview'
+  | 'gpt-4o-mini-search-preview-2025-03-11'
   | 'gpt-4o-mini'
   | 'gpt-4o-mini-2024-07-18'
   | 'gpt-4-turbo'
