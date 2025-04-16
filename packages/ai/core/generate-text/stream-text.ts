@@ -1,6 +1,5 @@
 import { AISDKError, LanguageModelV2Source } from '@ai-sdk/provider';
 import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
-import { DataStreamString, formatDataStreamPart } from '../util';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
@@ -34,6 +33,7 @@ import {
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import { DataStreamString, formatDataStreamPart } from '../util';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -47,7 +47,7 @@ import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
-import { asReasoningText, ReasoningDetail } from './reasoning-detail';
+import { asReasoningText, Reasoning } from './reasoning';
 import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
@@ -591,9 +591,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedContinuationText = '';
     let recordedFullText = '';
 
-    let stepReasoning: Array<ReasoningDetail> = [];
+    let stepReasoning: Array<Reasoning> = [];
     let stepFiles: Array<GeneratedFile> = [];
-    let activeReasoningText: undefined | (ReasoningDetail & { type: 'text' }) =
+    let activeReasoningText: undefined | (Reasoning & { type: 'text' }) =
       undefined;
 
     let recordedStepSources: LanguageModelV2Source[] = [];
@@ -723,8 +723,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const currentStepResult: StepResult<TOOLS> = {
             stepType,
             text: recordedStepText,
-            reasoning: asReasoningText(stepReasoning),
-            reasoningDetails: stepReasoning,
+            reasoningText: asReasoningText(stepReasoning),
+            reasoning: stepReasoning,
             files: stepFiles,
             sources: recordedStepSources,
             toolCalls: recordedToolCalls,
@@ -789,8 +789,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.toolCallsPromise.resolve(lastStep.toolCalls);
           self.toolResultsPromise.resolve(lastStep.toolResults);
           self.providerMetadataPromise.resolve(lastStep.providerMetadata);
-          self.reasoningPromise.resolve(lastStep.reasoning);
-          self.reasoningDetailsPromise.resolve(lastStep.reasoningDetails);
+          self.reasoningPromise.resolve(lastStep.reasoningText);
+          self.reasoningDetailsPromise.resolve(lastStep.reasoning);
 
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
@@ -816,8 +816,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             logprobs: undefined,
             usage,
             text: recordedFullText,
+            reasoningText: lastStep.reasoningText,
             reasoning: lastStep.reasoning,
-            reasoningDetails: lastStep.reasoningDetails,
             files: lastStep.files,
             sources: lastStep.sources,
             toolCalls: lastStep.toolCalls,
@@ -1045,11 +1045,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
           const stepToolResults: ToolResultUnion<TOOLS>[] = [];
 
-          const stepReasoning: Array<ReasoningDetail> = [];
+          const stepReasoning: Array<Reasoning> = [];
           const stepFiles: Array<GeneratedFile> = [];
-          let activeReasoningText:
-            | undefined
-            | (ReasoningDetail & { type: 'text' }) = undefined;
+          let activeReasoningText: undefined | (Reasoning & { type: 'text' }) =
+            undefined;
 
           let stepFinishReason: FinishReason = 'unknown';
           let stepUsage: LanguageModelUsage = {
