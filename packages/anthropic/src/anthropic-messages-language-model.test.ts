@@ -118,16 +118,18 @@ describe('AnthropicMessagesLanguageModel', () => {
         content: [{ type: 'text', text: 'Hello, World!' }],
       });
 
-      const { text } = await provider('claude-3-haiku-20240307').doGenerate({
+      const { content } = await model.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
-      expect(text).toMatchInlineSnapshot(`
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        }
+      expect(content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Hello, World!",
+            "type": "text",
+          },
+        ]
       `);
     });
 
@@ -143,12 +145,12 @@ describe('AnthropicMessagesLanguageModel', () => {
         ],
       });
 
-      const { reasoning, text } = await model.doGenerate({
+      const { content } = await model.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
-      expect(reasoning).toMatchInlineSnapshot(`
+      expect(content).toMatchInlineSnapshot(`
         [
           {
             "reasoningType": "text",
@@ -160,29 +162,12 @@ describe('AnthropicMessagesLanguageModel', () => {
             "signature": "1234567890",
             "type": "reasoning",
           },
+          {
+            "text": "Hello, World!",
+            "type": "text",
+          },
         ]
       `);
-      expect(text).toMatchInlineSnapshot(`
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        }
-      `);
-    });
-
-    it('should return undefined reasoning when no thinking is present', async () => {
-      prepareJsonResponse({
-        content: [{ type: 'text', text: 'Hello, World!' }],
-      });
-
-      const { reasoning } = await provider(
-        'claude-3-haiku-20240307',
-      ).doGenerate({
-        inputFormat: 'prompt',
-        prompt: TEST_PROMPT,
-      });
-
-      expect(reasoning).toBeUndefined();
     });
 
     it('should extract tool calls', async () => {
@@ -199,7 +184,7 @@ describe('AnthropicMessagesLanguageModel', () => {
         stopReason: 'tool_use',
       });
 
-      const { toolCalls, finishReason, text } = await model.doGenerate({
+      const { content, finishReason } = await model.doGenerate({
         inputFormat: 'prompt',
         tools: [
           {
@@ -217,8 +202,14 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(toolCalls).toMatchInlineSnapshot(`
+      expect(content).toMatchInlineSnapshot(`
         [
+          {
+            "text": "Some text
+
+        ",
+            "type": "text",
+          },
           {
             "args": "{"value":"example value"}",
             "toolCallId": "toolu_1",
@@ -227,14 +218,6 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "tool-call",
           },
         ]
-      `);
-      expect(text).toMatchInlineSnapshot(`
-        {
-          "text": "Some text
-
-        ",
-          "type": "text",
-        }
       `);
       expect(finishReason).toStrictEqual('tool-calls');
     });
