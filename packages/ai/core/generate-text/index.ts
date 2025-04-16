@@ -21,11 +21,7 @@ export type {
   StreamTextResult,
   TextStreamPart,
 } from './stream-text-result';
-export type { CoreToolCall, ToolCall, ToolCallUnion } from './tool-call';
+export type { ToolCall, ToolCallUnion } from './tool-call';
 export type { ToolCallRepairFunction } from './tool-call-repair';
-export type {
-  CoreToolResult,
-  ToolResult,
-  ToolResultUnion,
-} from './tool-result';
+export type { ToolResult, ToolResultUnion } from './tool-result';
 export type { ToolSet } from './tool-set';
