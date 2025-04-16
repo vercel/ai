@@ -238,7 +238,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     options: Parameters<LanguageModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV1['doGenerate']>>> {
     const { args: body, warnings } = this.getArgs(options);
-    console.log(JSON.stringify(body, null, 2));
 
     const {
       responseHeaders,
