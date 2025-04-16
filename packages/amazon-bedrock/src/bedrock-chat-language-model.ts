@@ -1,13 +1,12 @@
 import {
-  InvalidArgumentError,
   JSONObject,
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  LanguageModelV2Reasoning,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -16,9 +15,9 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
-  parseProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import {
@@ -209,6 +208,52 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
+    const content: Array<LanguageModelV2Content> = [];
+
+    // map response content to content array
+    for (const part of response.output.message.content) {
+      // text
+      if (part.text) {
+        content.push({ type: 'text', text: part.text });
+      }
+
+      // reasoning
+      if (part.reasoningContent) {
+        if ('reasoningText' in part.reasoningContent) {
+          content.push({
+            type: 'reasoning',
+            reasoningType: 'text',
+            text: part.reasoningContent.reasoningText.text,
+          });
+          if (part.reasoningContent.reasoningText.signature) {
+            content.push({
+              type: 'reasoning',
+              reasoningType: 'signature',
+              signature: part.reasoningContent.reasoningText.signature,
+            });
+          }
+        } else if ('redactedReasoning' in part.reasoningContent) {
+          content.push({
+            type: 'reasoning',
+            reasoningType: 'redacted',
+            data: part.reasoningContent.redactedReasoning.data ?? '',
+          });
+        }
+      }
+
+      // tool calls
+      if (part.toolUse) {
+        content.push({
+          type: 'tool-call' as const,
+          toolCallType: 'function',
+          toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
+          toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
+          args: JSON.stringify(part.toolUse?.input ?? ''),
+        });
+      }
+    }
+
+    // provider metadata:
     const providerMetadata =
       response.trace || response.usage
         ? {
@@ -228,48 +273,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           }
         : undefined;
 
-    const reasoning: Array<LanguageModelV2Reasoning> = [];
-
-    for (const content of response.output.message.content) {
-      if (content.reasoningContent) {
-        if ('reasoningText' in content.reasoningContent) {
-          reasoning.push({
-            type: 'reasoning',
-            reasoningType: 'text',
-            text: content.reasoningContent.reasoningText.text,
-          });
-          if (content.reasoningContent.reasoningText.signature) {
-            reasoning.push({
-              type: 'reasoning',
-              reasoningType: 'signature',
-              signature: content.reasoningContent.reasoningText.signature,
-            });
-          }
-        } else if ('redactedReasoning' in content.reasoningContent) {
-          reasoning.push({
-            type: 'reasoning',
-            reasoningType: 'redacted',
-            data: content.reasoningContent.redactedReasoning.data ?? '',
-          });
-        }
-      }
-    }
-
-    const text = response.output?.message?.content
-      ?.map(part => part.text ?? '')
-      .join('');
-
     return {
-      text: text != null ? { type: 'text', text } : undefined,
-      toolCalls: response.output?.message?.content
-        ?.filter(part => !!part.toolUse)
-        ?.map(part => ({
-          type: 'tool-call' as const,
-          toolCallType: 'function',
-          toolCallId: part.toolUse?.toolUseId ?? this.config.generateId(),
-          toolName: part.toolUse?.name ?? `tool-${this.config.generateId()}`,
-          args: JSON.stringify(part.toolUse?.input ?? ''),
-        })),
+      content,
       finishReason: mapBedrockFinishReason(
         response.stopReason as BedrockStopReason,
       ),
@@ -282,7 +287,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         headers: responseHeaders,
       },
       warnings,
-      reasoning: reasoning.length > 0 ? reasoning : undefined,
       ...(providerMetadata && { providerMetadata }),
     };
   }

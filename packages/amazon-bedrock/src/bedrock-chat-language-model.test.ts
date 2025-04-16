@@ -1184,16 +1184,18 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
-    const { text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
     `);
   });
 
@@ -1548,18 +1550,12 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "The answer is 42.",
-        "type": "text",
-      }
-    `);
-    expect(reasoning).toMatchInlineSnapshot(`
+    expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "reasoningType": "text",
@@ -1570,6 +1566,10 @@ describe('doGenerate', () => {
           "reasoningType": "signature",
           "signature": "abc123signature",
           "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
         },
       ]
     `);
@@ -1591,23 +1591,21 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "The answer is 42.",
-        "type": "text",
-      }
-    `);
-    expect(reasoning).toMatchInlineSnapshot(`
+    expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "reasoningType": "text",
           "text": "I need to think about this problem carefully...",
           "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
         },
       ]
     `);
@@ -1627,23 +1625,21 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "The answer is 42.",
-        "type": "text",
-      }
-    `);
-    expect(reasoning).toMatchInlineSnapshot(`
+    expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "data": "redacted-reasoning-data",
           "reasoningType": "redacted",
           "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
         },
       ]
     `);
@@ -1671,18 +1667,12 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "The answer is 42.",
-        "type": "text",
-      }
-    `);
-    expect(reasoning).toMatchInlineSnapshot(`
+    expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "reasoningType": "text",
@@ -1698,6 +1688,10 @@ describe('doGenerate', () => {
           "data": "redacted-data",
           "reasoningType": "redacted",
           "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
         },
       ]
     `);
