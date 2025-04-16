@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.9
+
+### Patch Changes
+
+- b69a253: fix(utils/detect-mimetype): add support for detecting id3 tags
+
 ## 4.3.8
 
 ### Patch Changes
