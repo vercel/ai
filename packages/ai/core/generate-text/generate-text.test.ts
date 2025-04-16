@@ -21,6 +21,7 @@ const modelWithSources = new MockLanguageModelV2({
   doGenerate: async () => ({
     ...dummyResponseValues,
     content: [
+      { type: 'text', text: 'Hello, world!' },
       {
         type: 'source',
         sourceType: 'url',
@@ -38,7 +39,6 @@ const modelWithSources = new MockLanguageModelV2({
         providerMetadata: { provider: { custom: 'value2' } },
       },
     ],
-    text: { type: 'text', text: 'Hello, world!' },
   }),
 });
 
@@ -46,6 +46,7 @@ const modelWithFiles = new MockLanguageModelV2({
   doGenerate: async () => ({
     ...dummyResponseValues,
     content: [
+      { type: 'text', text: 'Hello, world!' },
       {
         type: 'file',
         data: new Uint8Array([1, 2, 3]),
@@ -57,7 +58,6 @@ const modelWithFiles = new MockLanguageModelV2({
         mediaType: 'image/jpeg',
       },
     ],
-    text: { type: 'text', text: 'Hello, world!' },
   }),
 });
 
@@ -80,8 +80,8 @@ const modelWithReasoning = new MockLanguageModelV2({
         reasoningType: 'redacted',
         data: 'redacted-reasoning-data',
       },
+      { type: 'text', text: 'Hello, world!' },
     ],
-    text: { type: 'text', text: 'Hello, world!' },
   }),
 });
 
@@ -398,8 +398,8 @@ describe('result.response.messages', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
-          text: { type: 'text', text: 'Hello, world!' },
           content: [
+            { type: 'text', text: 'Hello, world!' },
             {
               type: 'tool-call',
               toolCallType: 'function',

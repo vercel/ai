@@ -1,3 +1,7 @@
+import {
+  LanguageModelV2Content,
+  LanguageModelV2ToolCall,
+} from '@ai-sdk/provider';
 import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
@@ -17,13 +21,14 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModel, ToolChoice, ProviderOptions } from '../types';
+import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
 import {
   addLanguageModelUsage,
   calculateLanguageModelUsage,
   LanguageModelUsage,
 } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
+import { extractContentText } from './extract-content-text';
 import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
 import { Output } from './output';
@@ -35,7 +40,6 @@ import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
-import { LanguageModelV2Reasoning } from '@ai-sdk/provider';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -369,18 +373,15 @@ A function that attempts to repair a tool call that failed to parse.
                   attributes: {
                     'ai.response.finishReason': result.finishReason,
                     'ai.response.text': {
-                      output: () => result.text?.text,
+                      output: () => extractContentText(result.content),
                     },
                     'ai.response.toolCalls': {
-                      output: () =>
-                        JSON.stringify(
-                          result.toolCalls?.map(toolCall => ({
-                            toolCallType: toolCall.toolCallType,
-                            toolCallId: toolCall.toolCallId,
-                            toolName: toolCall.toolName,
-                            args: toolCall.args,
-                          })),
-                        ),
+                      output: () => {
+                        const toolCalls = asToolCalls(result.content);
+                        return toolCalls == null
+                          ? undefined
+                          : JSON.stringify(toolCalls);
+                      },
                     },
                     'ai.response.id': responseData.id,
                     'ai.response.model': responseData.modelId,
@@ -408,15 +409,20 @@ A function that attempts to repair a tool call that failed to parse.
 
         // parse tool calls:
         currentToolCalls = await Promise.all(
-          (currentModelResponse.toolCalls ?? []).map(toolCall =>
-            parseToolCall({
-              toolCall,
-              tools,
-              repairToolCall,
-              system,
-              messages: stepInputMessages,
-            }),
-          ),
+          currentModelResponse.content
+            .filter(
+              (part): part is LanguageModelV2ToolCall =>
+                part.type === 'tool-call',
+            )
+            .map(toolCall =>
+              parseToolCall({
+                toolCall,
+                tools,
+                repairToolCall,
+                system,
+                messages: stepInputMessages,
+              }),
+            ),
         );
 
         // execute tools:
@@ -459,12 +465,14 @@ A function that attempts to repair a tool call that failed to parse.
         }
 
         // text:
-        const originalText = currentModelResponse.text?.text ?? '';
+        const originalText =
+          extractContentText(currentModelResponse.content) ?? '';
         const stepTextLeadingWhitespaceTrimmed =
           stepType === 'continue' && // only for continue steps
           text.trimEnd() !== text // only trim when there is preceding whitespace
             ? originalText.trimStart()
             : originalText;
+
         const stepText =
           nextStepType === 'continue'
             ? removeTextAfterLastWhitespace(stepTextLeadingWhitespaceTrimmed)
@@ -476,11 +484,15 @@ A function that attempts to repair a tool call that failed to parse.
             : stepText;
 
         currentReasoningDetails = asReasoningDetails(
-          currentModelResponse.reasoning,
+          currentModelResponse.content,
         );
 
         // sources:
-        sources.push(...(currentModelResponse.sources ?? []));
+        sources.push(
+          ...currentModelResponse.content.filter(
+            part => part.type === 'source',
+          ),
+        );
 
         // append to messages for potential next step:
         if (stepType === 'continue') {
@@ -503,8 +515,8 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               text,
-              files: asFiles(currentModelResponse.files),
-              reasoning: asReasoningDetails(currentModelResponse.reasoning),
+              files: asFiles(currentModelResponse.content),
+              reasoning: asReasoningDetails(currentModelResponse.content),
               tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
               toolResults: currentToolResults,
@@ -521,8 +533,10 @@ A function that attempts to repair a tool call that failed to parse.
           // TODO v5: rename reasoning to reasoningText (and use reasoning for composite array)
           reasoning: asReasoningText(currentReasoningDetails),
           reasoningDetails: currentReasoningDetails,
-          files: asFiles(currentModelResponse.files),
-          sources: currentModelResponse.sources ?? [],
+          files: asFiles(currentModelResponse.content),
+          sources: currentModelResponse.content.filter(
+            part => part.type === 'source',
+          ),
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,
@@ -551,18 +565,15 @@ A function that attempts to repair a tool call that failed to parse.
           attributes: {
             'ai.response.finishReason': currentModelResponse.finishReason,
             'ai.response.text': {
-              output: () => currentModelResponse.text?.text,
+              output: () => extractContentText(currentModelResponse.content),
             },
             'ai.response.toolCalls': {
-              output: () =>
-                JSON.stringify(
-                  currentModelResponse.toolCalls?.map(toolCall => ({
-                    toolCallType: toolCall.toolCallType,
-                    toolCallId: toolCall.toolCallId,
-                    toolName: toolCall.toolName,
-                    args: toolCall.args,
-                  })),
-                ),
+              output: () => {
+                const toolCalls = asToolCalls(currentModelResponse.content);
+                return toolCalls == null
+                  ? undefined
+                  : JSON.stringify(toolCalls);
+              },
             },
 
             // TODO rename telemetry attributes to inputTokens and outputTokens
@@ -575,7 +586,7 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        files: asFiles(currentModelResponse.files),
+        files: asFiles(currentModelResponse.content),
         reasoning: asReasoningText(currentReasoningDetails),
         reasoningDetails: currentReasoningDetails,
         sources,
@@ -776,12 +787,14 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 }
 
 function asReasoningDetails(
-  reasoning: Array<LanguageModelV2Reasoning> | undefined,
+  content: Array<LanguageModelV2Content>,
 ): Array<
   | { type: 'text'; text: string; signature?: string }
   | { type: 'redacted'; data: string }
 > {
-  if (reasoning == null) {
+  const reasoning = content.filter(part => part.type === 'reasoning');
+
+  if (reasoning.length === 0) {
     return [];
   }
 
@@ -818,13 +831,25 @@ function asReasoningDetails(
   return result;
 }
 
-function asFiles(
-  files:
-    | Array<{
-        data: string | Uint8Array;
-        mediaType: string;
-      }>
-    | undefined,
-): Array<GeneratedFile> {
-  return files?.map(file => new DefaultGeneratedFile(file)) ?? [];
+function asFiles(content: Array<LanguageModelV2Content>): Array<GeneratedFile> {
+  return content
+    .filter(part => part.type === 'file')
+    .map(part => new DefaultGeneratedFile(part));
+}
+
+function asToolCalls(content: Array<LanguageModelV2Content>) {
+  const parts = content.filter(
+    (part): part is LanguageModelV2ToolCall => part.type === 'tool-call',
+  );
+
+  if (parts.length === 0) {
+    return undefined;
+  }
+
+  return parts.map(toolCall => ({
+    toolCallType: toolCall.toolCallType,
+    toolCallId: toolCall.toolCallId,
+    toolName: toolCall.toolName,
+    args: toolCall.args,
+  }));
 }

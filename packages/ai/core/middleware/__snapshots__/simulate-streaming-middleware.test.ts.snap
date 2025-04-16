@@ -120,69 +120,6 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
 ]
 `;
 
-exports[`simulateStreamingMiddleware > should simulate streaming with reasoning as array of mixed objects 1`] = `
-[
-  {
-    "messageId": "msg-3",
-    "request": {},
-    "type": "step-start",
-    "warnings": [],
-  },
-  {
-    "reasoningType": "text",
-    "text": "First reasoning step",
-    "type": "reasoning",
-  },
-  {
-    "data": "data",
-    "reasoningType": "redacted",
-    "type": "reasoning",
-  },
-  {
-    "text": "This is a test response",
-    "type": "text",
-  },
-  {
-    "finishReason": "stop",
-    "isContinued": false,
-    "logprobs": undefined,
-    "messageId": "msg-3",
-    "providerMetadata": undefined,
-    "request": {},
-    "response": {
-      "headers": undefined,
-      "id": "id-7",
-      "modelId": "mock-model-id",
-      "timestamp": 2025-01-01T00:00:00.000Z,
-    },
-    "type": "step-finish",
-    "usage": {
-      "completionTokens": 10,
-      "promptTokens": 10,
-      "totalTokens": 20,
-    },
-    "warnings": undefined,
-  },
-  {
-    "finishReason": "stop",
-    "logprobs": undefined,
-    "providerMetadata": undefined,
-    "response": {
-      "headers": undefined,
-      "id": "id-7",
-      "modelId": "mock-model-id",
-      "timestamp": 2025-01-01T00:00:00.000Z,
-    },
-    "type": "finish",
-    "usage": {
-      "completionTokens": 10,
-      "promptTokens": 10,
-      "totalTokens": 20,
-    },
-  },
-]
-`;
-
 exports[`simulateStreamingMiddleware > should simulate streaming with reasoning as array of text objects 1`] = `
 [
   {
@@ -190,6 +127,10 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "request": {},
     "type": "step-start",
     "warnings": [],
+  },
+  {
+    "text": "This is a test response",
+    "type": "text",
   },
   {
     "reasoningType": "text",
@@ -205,10 +146,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "reasoningType": "signature",
     "signature": "abc",
     "type": "reasoning",
-  },
-  {
-    "text": "This is a test response",
-    "type": "text",
   },
   {
     "finishReason": "stop",
