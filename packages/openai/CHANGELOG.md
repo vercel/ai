@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.14
+
+### Patch Changes
+
+- 980141c: fix (openai): structure output for responses model
+
 ## 1.3.13
 
 ### Patch Changes
