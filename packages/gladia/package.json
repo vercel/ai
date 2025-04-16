@@ -11,8 +11,8 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "build:watch": "tsup --watch",
+    "build": "tsup --tsconfig tsconfig.build.json",
+    "build:watch": "tsup --tsconfig tsconfig.build.json --watch",
     "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
