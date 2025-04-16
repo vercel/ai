@@ -4406,7 +4406,6 @@ describe('streamText', () => {
         await result.consumeStream();
 
         expect(callOptions).toEqual({
-          temperature: 0,
           inputFormat: 'prompt',
           responseFormat: { type: 'json', schema: undefined },
           prompt: [
