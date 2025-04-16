@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.13
+
+### Patch Changes
+
+- 75b9849: adding support for gpt-4o-search-preview and handling unsupported parameters
+
 ## 1.3.12
 
 ### Patch Changes
