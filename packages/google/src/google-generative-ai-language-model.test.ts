@@ -243,16 +243,18 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
     `);
   });
 
@@ -297,12 +299,12 @@ describe('doGenerate', () => {
       },
     };
 
-    const { text, finishReason } = await model.doGenerate({
+    const { content, finishReason } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toBeUndefined();
+    expect(content).toMatchInlineSnapshot(`[]`);
     expect(finishReason).toStrictEqual('error');
   });
 
@@ -332,7 +334,7 @@ describe('doGenerate', () => {
       },
     };
 
-    const { toolCalls, finishReason, text } = await model.doGenerate({
+    const { content, finishReason } = await model.doGenerate({
       inputFormat: 'prompt',
       tools: [
         {
@@ -350,7 +352,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(toolCalls).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
         {
           "args": "{"value":"example value"}",
@@ -361,7 +363,6 @@ describe('doGenerate', () => {
         },
       ]
     `);
-    expect(text).toStrictEqual(undefined);
     expect(finishReason).toStrictEqual('tool-calls');
   });
 
@@ -736,13 +737,17 @@ describe('doGenerate', () => {
       },
     });
 
-    const { sources } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(sources).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
+        {
+          "text": "test response",
+          "type": "text",
+        },
         {
           "id": "test-id",
           "sourceType": "url",
@@ -1131,23 +1136,25 @@ describe('doGenerate', () => {
       },
     };
 
-    const { text, files } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Here is an image:And another image:",
-        "type": "text",
-      }
-    `);
-    expect(files).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
+        {
+          "text": "Here is an image:",
+          "type": "text",
+        },
         {
           "data": "base64encodedimagedata",
           "mediaType": "image/jpeg",
           "type": "file",
+        },
+        {
+          "text": "And another image:",
+          "type": "text",
         },
         {
           "data": "anotherbase64encodedimagedata",
@@ -1195,13 +1202,12 @@ describe('doGenerate', () => {
       },
     };
 
-    const { text, files } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toBeUndefined();
-    expect(files).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
         {
           "data": "imagedata1",
@@ -1270,19 +1276,17 @@ describe('doGenerate', () => {
       },
     };
 
-    const { text, files } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Here is content:",
-        "type": "text",
-      }
-    `);
-    expect(files).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
+        {
+          "text": "Here is content:",
+          "type": "text",
+        },
         {
           "data": "validimagedata",
           "mediaType": "image/jpeg",

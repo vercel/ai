@@ -10,7 +10,7 @@ async function main() {
       doGenerate: async () => ({
         usage: { inputTokens: 10, outputTokens: 20 },
         finishReason: 'tool-calls',
-        toolCalls: [
+        content: [
           {
             type: 'tool-call',
             toolCallType: 'function',

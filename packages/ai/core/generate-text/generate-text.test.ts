@@ -20,7 +20,8 @@ const dummyResponseValues = {
 const modelWithSources = new MockLanguageModelV2({
   doGenerate: async () => ({
     ...dummyResponseValues,
-    sources: [
+    content: [
+      { type: 'text', text: 'Hello, world!' },
       {
         type: 'source',
         sourceType: 'url',
@@ -38,14 +39,14 @@ const modelWithSources = new MockLanguageModelV2({
         providerMetadata: { provider: { custom: 'value2' } },
       },
     ],
-    text: { type: 'text', text: 'Hello, world!' },
   }),
 });
 
 const modelWithFiles = new MockLanguageModelV2({
   doGenerate: async () => ({
     ...dummyResponseValues,
-    files: [
+    content: [
+      { type: 'text', text: 'Hello, world!' },
       {
         type: 'file',
         data: new Uint8Array([1, 2, 3]),
@@ -57,14 +58,13 @@ const modelWithFiles = new MockLanguageModelV2({
         mediaType: 'image/jpeg',
       },
     ],
-    text: { type: 'text', text: 'Hello, world!' },
   }),
 });
 
 const modelWithReasoning = new MockLanguageModelV2({
   doGenerate: async () => ({
     ...dummyResponseValues,
-    reasoning: [
+    content: [
       {
         type: 'reasoning',
         reasoningType: 'text',
@@ -80,8 +80,8 @@ const modelWithReasoning = new MockLanguageModelV2({
         reasoningType: 'redacted',
         data: 'redacted-reasoning-data',
       },
+      { type: 'text', text: 'Hello, world!' },
     ],
-    text: { type: 'text', text: 'Hello, world!' },
   }),
 });
 
@@ -100,7 +100,7 @@ describe('result.text', () => {
 
           return {
             ...dummyResponseValues,
-            text: { type: 'text', text: 'Hello, world!' },
+            content: [{ type: 'text', text: 'Hello, world!' }],
           };
         },
       }),
@@ -236,7 +236,7 @@ describe('result.toolCalls', () => {
 
           return {
             ...dummyResponseValues,
-            toolCalls: [
+            content: [
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -309,7 +309,7 @@ describe('result.toolResults', () => {
 
           return {
             ...dummyResponseValues,
-            toolCalls: [
+            content: [
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -356,6 +356,7 @@ describe('result.providerMetadata', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
+          content: [],
           providerMetadata: {
             anthropic: {
               cacheCreationInputTokens: 10,
@@ -382,7 +383,7 @@ describe('result.response.messages', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
-          text: { type: 'text', text: 'Hello, world!' },
+          content: [{ type: 'text', text: 'Hello, world!' }],
         }),
       }),
       prompt: 'test-input',
@@ -397,22 +398,14 @@ describe('result.response.messages', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
-          text: { type: 'text', text: 'Hello, world!' },
-          toolCalls: [
+          content: [
+            { type: 'text', text: 'Hello, world!' },
             {
               type: 'tool-call',
               toolCallType: 'function',
               toolCallId: 'call-1',
               toolName: 'tool1',
               args: `{ "value": "value" }`,
-            },
-          ],
-          toolResults: [
-            {
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              args: { value: 'value' },
-              result: 'result1',
             },
           ],
         }),
@@ -453,7 +446,7 @@ describe('result.request', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          text: { type: 'text', text: 'Hello, world!' },
+          content: [{ type: 'text', text: 'Hello, world!' }],
           request: {
             body: 'test body',
           },
@@ -474,7 +467,7 @@ describe('result.response', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          text: { type: 'text', text: 'Hello, world!' },
+          content: [{ type: 'text', text: 'Hello, world!' }],
           response: {
             id: 'test-id-from-model',
             timestamp: new Date(10000),
@@ -536,21 +529,13 @@ describe('options.maxSteps', () => {
 
                 return {
                   ...dummyResponseValues,
-                  toolCalls: [
+                  content: [
                     {
                       type: 'tool-call',
                       toolCallType: 'function',
                       toolCallId: 'call-1',
                       toolName: 'tool1',
                       args: `{ "value": "value" }`,
-                    },
-                  ],
-                  toolResults: [
-                    {
-                      toolCallId: 'call-1',
-                      toolName: 'tool1',
-                      args: { value: 'value' },
-                      result: 'result1',
                     },
                   ],
                   finishReason: 'tool-calls',
@@ -616,7 +601,7 @@ describe('options.maxSteps', () => {
                 ]);
                 return {
                   ...dummyResponseValues,
-                  text: { type: 'text', text: 'Hello, world!' },
+                  content: [{ type: 'text', text: 'Hello, world!' }],
                   response: {
                     id: 'test-id-2-from-model',
                     timestamp: new Date(10000),
@@ -709,7 +694,9 @@ describe('options.maxSteps', () => {
                 return {
                   ...dummyResponseValues,
                   // trailing text is to be discarded, trailing whitespace is to be kept:
-                  text: { type: 'text', text: 'part 1 \n to-be-discarded' },
+                  content: [
+                    { type: 'text', text: 'part 1 \n to-be-discarded' },
+                  ],
                   finishReason: 'length', // trigger continue
                   usage: { inputTokens: 10, outputTokens: 20 },
                   response: {
@@ -742,7 +729,23 @@ describe('options.maxSteps', () => {
                 return {
                   ...dummyResponseValues,
                   // case where there is no leading nor trailing whitespace:
-                  text: { type: 'text', text: 'no-whitespace' },
+                  content: [
+                    { type: 'text', text: 'no-whitespace' },
+                    {
+                      type: 'file',
+                      data: new Uint8Array([1, 2, 3]),
+                      mediaType: 'image/png',
+                      filename: 'test.png',
+                    },
+                    {
+                      type: 'source',
+                      sourceType: 'url',
+                      id: '123',
+                      url: 'https://example.com',
+                      title: 'Example',
+                      providerMetadata: { provider: { custom: 'value' } },
+                    },
+                  ],
                   finishReason: 'length',
                   response: {
                     id: 'test-id-2-from-model',
@@ -753,24 +756,6 @@ describe('options.maxSteps', () => {
                       'custom-response-header': 'response-header-value',
                     },
                   },
-                  sources: [
-                    {
-                      type: 'source',
-                      sourceType: 'url',
-                      id: '123',
-                      url: 'https://example.com',
-                      title: 'Example',
-                      providerMetadata: { provider: { custom: 'value' } },
-                    },
-                  ],
-                  files: [
-                    {
-                      type: 'file',
-                      data: new Uint8Array([1, 2, 3]),
-                      mediaType: 'image/png',
-                      filename: 'test.png',
-                    },
-                  ],
                   usage: { inputTokens: 30, outputTokens: 5 },
                 };
               }
@@ -802,9 +787,8 @@ describe('options.maxSteps', () => {
                 return {
                   ...dummyResponseValues,
                   // set up trailing whitespace for next step:
-                  text: { type: 'text', text: 'immediatefollow  ' },
-                  finishReason: 'length',
-                  sources: [
+                  content: [
+                    { type: 'text', text: 'immediatefollow  ' },
                     {
                       type: 'source',
                       sourceType: 'url',
@@ -822,6 +806,7 @@ describe('options.maxSteps', () => {
                       providerMetadata: { provider: { custom: 'value3' } },
                     },
                   ],
+                  finishReason: 'length',
                   response: {
                     id: 'test-id-3-from-model',
                     timestamp: new Date(20000),
@@ -864,12 +849,11 @@ describe('options.maxSteps', () => {
                   ...dummyResponseValues,
                   // leading whitespace is to be discarded when there is whitespace from previous step
                   // (for models such as Anthropic that trim trailing whitespace in their inputs):
-                  text: {
-                    type: 'text',
-                    text: '  final value keep all whitespace\n end',
-                  },
-                  finishReason: 'stop',
-                  files: [
+                  content: [
+                    {
+                      type: 'text',
+                      text: '  final value keep all whitespace\n end',
+                    },
                     {
                       type: 'file',
                       data: 'QkFVRw==',
@@ -877,6 +861,7 @@ describe('options.maxSteps', () => {
                       filename: 'test.jpeg',
                     },
                   ],
+                  finishReason: 'stop',
                   response: {
                     id: 'test-id-4-from-model',
                     timestamp: new Date(20000),
@@ -970,7 +955,7 @@ describe('options.headers', () => {
 
           return {
             ...dummyResponseValues,
-            text: { type: 'text', text: 'Hello, world!' },
+            content: [{ type: 'text', text: 'Hello, world!' }],
           };
         },
       }),
@@ -993,7 +978,7 @@ describe('options.providerOptions', () => {
 
           return {
             ...dummyResponseValues,
-            text: { type: 'text', text: 'provider metadata test' },
+            content: [{ type: 'text', text: 'provider metadata test' }],
           };
         },
       }),
@@ -1016,7 +1001,7 @@ describe('options.abortSignal', () => {
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
           ...dummyResponseValues,
-          toolCalls: [
+          content: [
             {
               type: 'tool-call',
               toolCallType: 'function',
@@ -1065,7 +1050,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          text: { type: 'text', text: 'Hello, world!' },
+          content: [{ type: 'text', text: 'Hello, world!' }],
         }),
       }),
       prompt: 'prompt',
@@ -1080,7 +1065,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          text: { type: 'text', text: 'Hello, world!' },
+          content: [{ type: 'text', text: 'Hello, world!' }],
           response: {
             id: 'test-id-from-model',
             timestamp: new Date(10000),
@@ -1118,7 +1103,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          toolCalls: [
+          content: [
             {
               type: 'tool-call',
               toolCallType: 'function',
@@ -1154,7 +1139,7 @@ describe('telemetry', () => {
       model: new MockLanguageModelV2({
         doGenerate: async ({}) => ({
           ...dummyResponseValues,
-          toolCalls: [
+          content: [
             {
               type: 'tool-call',
               toolCallType: 'function',
@@ -1230,7 +1215,7 @@ describe('tools with custom schema', () => {
 
           return {
             ...dummyResponseValues,
-            toolCalls: [
+            content: [
               {
                 type: 'tool-call',
                 toolCallType: 'function',
@@ -1335,7 +1320,7 @@ describe('options.messages', () => {
 
           return {
             ...dummyResponseValues,
-            text: { type: 'text', text: 'Hello, world!' },
+            content: [{ type: 'text', text: 'Hello, world!' }],
           };
         },
       }),
@@ -1377,7 +1362,7 @@ describe('options.messages', () => {
           },
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: { type: 'text', text: 'Hello, world!' },
+            content: [{ type: 'text', text: 'Hello, world!' }],
           }),
         });
       }
@@ -1407,7 +1392,7 @@ describe('options.output', () => {
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: { type: 'text', text: `Hello, world!` },
+            content: [{ type: 'text', text: `Hello, world!` }],
           }),
         }),
         prompt: 'prompt',
@@ -1425,7 +1410,7 @@ describe('options.output', () => {
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            text: { type: 'text', text: `Hello, world!` },
+            content: [{ type: 'text', text: `Hello, world!` }],
           }),
         }),
         prompt: 'prompt',
@@ -1444,7 +1429,7 @@ describe('options.output', () => {
             callOptions = args;
             return {
               ...dummyResponseValues,
-              text: { type: 'text', text: `Hello, world!` },
+              content: [{ type: 'text', text: `Hello, world!` }],
             };
           },
         }),
@@ -1475,7 +1460,7 @@ describe('options.output', () => {
             supportsStructuredOutputs: false,
             doGenerate: async () => ({
               ...dummyResponseValues,
-              text: { type: 'text', text: `{ "value": "test-value" }` },
+              content: [{ type: 'text', text: `{ "value": "test-value" }` }],
             }),
           }),
           prompt: 'prompt',
@@ -1497,7 +1482,7 @@ describe('options.output', () => {
               callOptions = args;
               return {
                 ...dummyResponseValues,
-                text: { type: 'text', text: `{ "value": "test-value" }` },
+                content: [{ type: 'text', text: `{ "value": "test-value" }` }],
               };
             },
           }),
@@ -1536,7 +1521,7 @@ describe('options.output', () => {
             supportsStructuredOutputs: true,
             doGenerate: async () => ({
               ...dummyResponseValues,
-              text: { type: 'text', text: `{ "value": "test-value" }` },
+              content: [{ type: 'text', text: `{ "value": "test-value" }` }],
             }),
           }),
           prompt: 'prompt',
@@ -1558,7 +1543,7 @@ describe('options.output', () => {
               callOptions = args;
               return {
                 ...dummyResponseValues,
-                text: { type: 'text', text: `{ "value": "test-value" }` },
+                content: [{ type: 'text', text: `{ "value": "test-value" }` }],
               };
             },
           }),
@@ -1601,7 +1586,7 @@ describe('tool execution errors', () => {
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
             ...dummyResponseValues,
-            toolCalls: [
+            content: [
               {
                 type: 'tool-call',
                 toolCallType: 'function',

@@ -2,10 +2,11 @@ import {
   InvalidResponseDataError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -184,28 +185,39 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     });
 
     const choice = response.choices[0];
+    const content: Array<LanguageModelV2Content> = [];
+
+    // text content:
+    const text = choice.message.content;
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text: text });
+    }
+
+    // reasoning:
+    const reasoning = choice.message.reasoning;
+    if (reasoning != null && reasoning.length > 0) {
+      content.push({
+        type: 'reasoning',
+        reasoningType: 'text',
+        text: reasoning,
+      });
+    }
+
+    // tool calls:
+    if (choice.message.tool_calls != null) {
+      for (const toolCall of choice.message.tool_calls) {
+        content.push({
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: toolCall.id ?? generateId(),
+          toolName: toolCall.function.name,
+          args: toolCall.function.arguments!,
+        });
+      }
+    }
 
     return {
-      text:
-        choice.message.content != null
-          ? { type: 'text', text: choice.message.content }
-          : undefined,
-      reasoning: choice.message.reasoning
-        ? [
-            {
-              type: 'reasoning',
-              reasoningType: 'text',
-              text: choice.message.reasoning,
-            },
-          ]
-        : undefined,
-      toolCalls: choice.message.tool_calls?.map(toolCall => ({
-        type: 'tool-call',
-        toolCallType: 'function',
-        toolCallId: toolCall.id ?? generateId(),
-        toolName: toolCall.function.name,
-        args: toolCall.function.arguments!,
-      })),
+      content,
       finishReason: mapGroqFinishReason(choice.finish_reason),
       usage: {
         inputTokens: response.usage?.prompt_tokens ?? undefined,
