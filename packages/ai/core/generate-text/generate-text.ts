@@ -33,7 +33,7 @@ import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import { asReasoningText, ReasoningDetail } from './reasoning-detail';
+import { asReasoningText, Reasoning } from './reasoning';
 import { ResponseMessage, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
@@ -272,7 +272,7 @@ A function that attempts to repair a tool call that failed to parse.
       > & { response: { id: string; timestamp: Date; modelId: string } };
       let currentToolCalls: ToolCallArray<TOOLS> = [];
       let currentToolResults: ToolResultArray<TOOLS> = [];
-      let currentReasoningDetails: Array<ReasoningDetail> = [];
+      let currentReasoningDetails: Array<Reasoning> = [];
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       let text = '';
@@ -530,9 +530,8 @@ A function that attempts to repair a tool call that failed to parse.
         const currentStepResult: StepResult<TOOLS> = {
           stepType,
           text: stepText,
-          // TODO v5: rename reasoning to reasoningText (and use reasoning for composite array)
-          reasoning: asReasoningText(currentReasoningDetails),
-          reasoningDetails: currentReasoningDetails,
+          reasoningText: asReasoningText(currentReasoningDetails),
+          reasoning: currentReasoningDetails,
           files: asFiles(currentModelResponse.content),
           sources: currentModelResponse.content.filter(
             part => part.type === 'source',

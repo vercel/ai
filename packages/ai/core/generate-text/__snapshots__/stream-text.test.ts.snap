@@ -88,8 +88,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": undefined,
-  "reasoning": undefined,
-  "reasoningDetails": [],
+  "reasoning": [],
+  "reasoningText": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -149,13 +149,13 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "isContinued": false,
       "logprobs": undefined,
       "providerMetadata": undefined,
-      "reasoning": "thinking",
-      "reasoningDetails": [
+      "reasoning": [
         {
           "text": "thinking",
           "type": "text",
         },
       ],
+      "reasoningText": "thinking",
       "request": {},
       "response": {
         "headers": {
@@ -234,8 +234,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "isContinued": false,
       "logprobs": undefined,
       "providerMetadata": undefined,
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": [],
+      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -320,13 +320,13 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": "thinking",
-    "reasoningDetails": [
+    "reasoning": [
       {
         "text": "thinking",
         "type": "text",
       },
     ],
+    "reasoningText": "thinking",
     "request": {},
     "response": {
       "headers": {
@@ -405,8 +405,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -767,13 +767,13 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": "thinking",
-    "reasoningDetails": [
+    "reasoning": [
       {
         "text": "thinking",
         "type": "text",
       },
     ],
+    "reasoningText": "thinking",
     "request": {},
     "response": {
       "headers": {
@@ -852,8 +852,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -926,8 +926,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": undefined,
-  "reasoning": undefined,
-  "reasoningDetails": [],
+  "reasoning": [],
+  "reasoningText": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -959,8 +959,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "isContinued": true,
       "logprobs": undefined,
       "providerMetadata": undefined,
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": [],
+      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -1000,8 +1000,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "isContinued": true,
       "logprobs": undefined,
       "providerMetadata": undefined,
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": [],
+      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -1053,8 +1053,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "isContinued": true,
       "logprobs": undefined,
       "providerMetadata": undefined,
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": [],
+      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -1120,8 +1120,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "isContinued": false,
       "logprobs": undefined,
       "providerMetadata": undefined,
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": [],
+      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -1181,8 +1181,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1222,8 +1222,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1275,8 +1275,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1342,8 +1342,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1881,8 +1881,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1922,8 +1922,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -1975,8 +1975,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -2042,8 +2042,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -2163,8 +2163,8 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       "testKey": "testValue",
     },
   },
-  "reasoning": undefined,
-  "reasoningDetails": [],
+  "reasoning": [],
+  "reasoningText": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -2218,8 +2218,8 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
           "testKey": "testValue",
         },
       },
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": [],
+      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -2343,8 +2343,8 @@ exports[`streamText > options.onFinish > should send files 1`] = `
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": undefined,
-  "reasoning": undefined,
-  "reasoningDetails": [],
+  "reasoning": [],
+  "reasoningText": undefined,
   "request": {},
   "response": {
     "headers": undefined,
@@ -2395,8 +2395,8 @@ exports[`streamText > options.onFinish > should send files 1`] = `
       "isContinued": false,
       "logprobs": undefined,
       "providerMetadata": undefined,
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": [],
+      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -2457,8 +2457,8 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": undefined,
-  "reasoning": undefined,
-  "reasoningDetails": [],
+  "reasoning": [],
+  "reasoningText": undefined,
   "request": {},
   "response": {
     "headers": undefined,
@@ -2511,8 +2511,8 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
       "isContinued": false,
       "logprobs": undefined,
       "providerMetadata": undefined,
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": [],
+      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -2588,8 +2588,8 @@ exports[`streamText > options.output > object output > should call onFinish with
   "finishReason": "stop",
   "logprobs": undefined,
   "providerMetadata": undefined,
-  "reasoning": undefined,
-  "reasoningDetails": [],
+  "reasoning": [],
+  "reasoningText": undefined,
   "request": {},
   "response": {
     "headers": undefined,
@@ -2617,8 +2617,8 @@ exports[`streamText > options.output > object output > should call onFinish with
       "isContinued": false,
       "logprobs": undefined,
       "providerMetadata": undefined,
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": [],
+      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -2673,8 +2673,8 @@ exports[`streamText > options.transform > with base transformation > options.onF
       "testKey": "TEST VALUE",
     },
   },
-  "reasoning": undefined,
-  "reasoningDetails": [],
+  "reasoning": [],
+  "reasoningText": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -2728,8 +2728,8 @@ exports[`streamText > options.transform > with base transformation > options.onF
           "testKey": "TEST VALUE",
         },
       },
-      "reasoning": undefined,
-      "reasoningDetails": [],
+      "reasoning": [],
+      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -2845,8 +2845,8 @@ exports[`streamText > options.transform > with base transformation > options.onS
       "testKey": "TEST VALUE",
     },
   },
-  "reasoning": undefined,
-  "reasoningDetails": [],
+  "reasoning": [],
+  "reasoningText": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -2929,8 +2929,8 @@ exports[`streamText > options.transform > with base transformation > result.step
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3094,8 +3094,8 @@ exports[`streamText > options.transform > with transformation that aborts stream
   "isContinued": false,
   "logprobs": undefined,
   "providerMetadata": undefined,
-  "reasoning": undefined,
-  "reasoningDetails": [],
+  "reasoning": [],
+  "reasoningText": undefined,
   "request": {},
   "response": {
     "id": "response-id",
@@ -4287,8 +4287,8 @@ exports[`streamText > result.steps > should add the files from the model respons
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -4341,8 +4341,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
-    "reasoningDetails": [
+    "reasoning": [
       {
         "signature": "1234567890",
         "text": "I will open the conversation with witty banter. ",
@@ -4358,6 +4357,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
         "type": "text",
       },
     ],
+    "reasoningText": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
     "request": {},
     "response": {
       "headers": undefined,
@@ -4414,8 +4414,8 @@ exports[`streamText > result.steps > should add the sources from the model respo
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,

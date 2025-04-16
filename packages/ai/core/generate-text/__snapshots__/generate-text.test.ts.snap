@@ -8,8 +8,8 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -83,8 +83,8 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -197,8 +197,8 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -272,8 +272,8 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -345,8 +345,8 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -397,8 +397,8 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -457,8 +457,8 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -537,8 +537,8 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -648,8 +648,8 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -700,8 +700,8 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -760,8 +760,8 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "isContinued": true,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -840,8 +840,8 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -1070,8 +1070,7 @@ exports[`result.steps > should add the reasoning from the model response to the 
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": "I will open the conversation with witty banter.",
-    "reasoningDetails": [
+    "reasoning": [
       {
         "signature": "signature",
         "text": "I will open the conversation with witty banter.",
@@ -1082,6 +1081,7 @@ exports[`result.steps > should add the reasoning from the model response to the 
         "type": "redacted",
       },
     ],
+    "reasoningText": "I will open the conversation with witty banter.",
     "request": {},
     "response": {
       "body": undefined,
@@ -1149,8 +1149,8 @@ exports[`result.steps > should contain files 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -1204,8 +1204,8 @@ exports[`result.steps > should contain sources 1`] = `
     "isContinued": false,
     "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
