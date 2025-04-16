@@ -931,7 +931,8 @@ function isReasoningModel(modelId: string) {
     modelId === 'o1' ||
     modelId.startsWith('o1-') ||
     modelId === 'o3' ||
-    modelId.startsWith('o3-')
+    modelId.startsWith('o3-') ||
+    modelId.startsWith('o4-')
   );
 }
 
