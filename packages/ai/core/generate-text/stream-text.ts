@@ -1,4 +1,8 @@
-import { AISDKError, LanguageModelV2Source } from '@ai-sdk/provider';
+import {
+  AISDKError,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Source,
+} from '@ai-sdk/provider';
 import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -964,7 +968,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           };
 
           const {
-            result: { stream, warnings, response, request },
+            result: { stream, response, request },
             doStreamSpan,
             startTimestampMs,
           } = await retry(() =>
@@ -1044,6 +1048,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepRequest = request ?? {};
           const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
           const stepToolResults: ToolResultUnion<TOOLS>[] = [];
+          let warnings: LanguageModelV2CallWarning[] | undefined;
 
           const stepReasoning: Array<Reasoning> = [];
           const stepFiles: Array<GeneratedFile> = [];
@@ -1095,6 +1100,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 TextStreamPart<TOOLS>
               >({
                 async transform(chunk, controller): Promise<void> {
+                  if (chunk.type === 'stream-start') {
+                    warnings = chunk.warnings;
+                    return; // stream start chunks are sent immediately and do not count as first chunk
+                  }
+
                   if (stepFirstChunk) {
                     // Telemetry for first chunk:
                     const msToFirstChunk = now() - startTimestampMs;

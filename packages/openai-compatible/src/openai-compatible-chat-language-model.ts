@@ -372,6 +372,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof this.chunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           // TODO we lost type safety on Chunk, most likely due to the error schema. MUST FIX
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
@@ -613,7 +617,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       ),
       request: { body },
       response: { headers: responseHeaders },
-      warnings,
     };
   }
 }
