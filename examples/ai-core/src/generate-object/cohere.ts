@@ -6,7 +6,6 @@ import { z } from 'zod';
 async function main() {
   const result = await generateObject({
     model: cohere('command-a-03-2025'),
-    mode: 'tool',
     schema: z.object({
       recipe: z.object({
         name: z.string(),

@@ -261,16 +261,10 @@ export async function generateObject<SCHEMA, RESULT>({
         'ai.schema.name': schemaName,
         'ai.schema.description': schemaDescription,
         'ai.settings.output': outputStrategy.type,
-        'ai.settings.mode': mode,
       },
     }),
     tracer,
     fn: async span => {
-      // use the default provider mode when the mode is set to 'auto' or unspecified
-      if (mode === 'auto' || mode == null) {
-        mode = model.defaultObjectGenerationMode;
-      }
-
       let result: string;
       let finishReason: FinishReason;
       let usage: Parameters<typeof calculateLanguageModelUsage>[0];
@@ -280,282 +274,121 @@ export async function generateObject<SCHEMA, RESULT>({
       let logprobs: LogProbs | undefined;
       let resultProviderMetadata: ProviderMetadata | undefined;
 
-      switch (mode) {
-        case 'json': {
-          const standardizedPrompt = standardizePrompt({
-            prompt: {
-              system:
-                outputStrategy.jsonSchema == null
-                  ? injectJsonInstruction({ prompt: system })
-                  : model.supportsStructuredOutputs
-                    ? system
-                    : injectJsonInstruction({
-                        prompt: system,
-                        schema: outputStrategy.jsonSchema,
-                      }),
-              prompt,
-              messages,
+      const standardizedPrompt = standardizePrompt({
+        prompt: { system, prompt, messages },
+        tools: undefined,
+      });
+
+      const promptMessages = await convertToLanguageModelPrompt({
+        prompt: standardizedPrompt,
+        modelSupportsImageUrls: model.supportsImageUrls,
+        modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
+      });
+
+      const generateResult = await retry(() =>
+        recordSpan({
+          name: 'ai.generateObject.doGenerate',
+          attributes: selectTelemetryAttributes({
+            telemetry,
+            attributes: {
+              ...assembleOperationName({
+                operationId: 'ai.generateObject.doGenerate',
+                telemetry,
+              }),
+              ...baseTelemetryAttributes,
+              'ai.prompt.format': {
+                input: () => standardizedPrompt.type,
+              },
+              'ai.prompt.messages': {
+                input: () => JSON.stringify(promptMessages),
+              },
+
+              // standardized gen-ai llm span attributes:
+              'gen_ai.system': model.provider,
+              'gen_ai.request.model': model.modelId,
+              'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
+              'gen_ai.request.max_tokens': settings.maxOutputTokens,
+              'gen_ai.request.presence_penalty': settings.presencePenalty,
+              'gen_ai.request.temperature': settings.temperature,
+              'gen_ai.request.top_k': settings.topK,
+              'gen_ai.request.top_p': settings.topP,
             },
-            tools: undefined,
-          });
+          }),
+          tracer,
+          fn: async span => {
+            const result = await model.doGenerate({
+              responseFormat: {
+                type: 'json',
+                schema: outputStrategy.jsonSchema,
+                name: schemaName,
+                description: schemaDescription,
+              },
+              ...prepareCallSettings(settings),
+              inputFormat: standardizedPrompt.type,
+              prompt: promptMessages,
+              providerOptions,
+              abortSignal,
+              headers,
+            });
 
-          const promptMessages = await convertToLanguageModelPrompt({
-            prompt: standardizedPrompt,
-            modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
-          });
+            const responseData = {
+              id: result.response?.id ?? generateId(),
+              timestamp: result.response?.timestamp ?? currentDate(),
+              modelId: result.response?.modelId ?? model.modelId,
+              headers: result.response?.headers,
+              body: result.response?.body,
+            };
 
-          const generateResult = await retry(() =>
-            recordSpan({
-              name: 'ai.generateObject.doGenerate',
-              attributes: selectTelemetryAttributes({
+            const text = extractContentText(result.content);
+
+            if (text === undefined) {
+              throw new NoObjectGeneratedError({
+                message:
+                  'No object generated: the model did not return a response.',
+                response: responseData,
+                usage: calculateLanguageModelUsage(result.usage),
+                finishReason: result.finishReason,
+              });
+            }
+
+            // Add response information to the span:
+            span.setAttributes(
+              selectTelemetryAttributes({
                 telemetry,
                 attributes: {
-                  ...assembleOperationName({
-                    operationId: 'ai.generateObject.doGenerate',
-                    telemetry,
-                  }),
-                  ...baseTelemetryAttributes,
-                  'ai.prompt.format': {
-                    input: () => standardizedPrompt.type,
-                  },
-                  'ai.prompt.messages': {
-                    input: () => JSON.stringify(promptMessages),
-                  },
-                  'ai.settings.mode': mode,
+                  'ai.response.finishReason': result.finishReason,
+                  'ai.response.object': { output: () => text },
+                  'ai.response.id': responseData.id,
+                  'ai.response.model': responseData.modelId,
+                  'ai.response.timestamp': responseData.timestamp.toISOString(),
+
+                  // TODO rename telemetry attributes to inputTokens and outputTokens
+                  'ai.usage.promptTokens': result.usage.inputTokens,
+                  'ai.usage.completionTokens': result.usage.outputTokens,
 
                   // standardized gen-ai llm span attributes:
-                  'gen_ai.system': model.provider,
-                  'gen_ai.request.model': model.modelId,
-                  'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                  'gen_ai.request.presence_penalty': settings.presencePenalty,
-                  'gen_ai.request.temperature': settings.temperature,
-                  'gen_ai.request.top_k': settings.topK,
-                  'gen_ai.request.top_p': settings.topP,
+                  'gen_ai.response.finish_reasons': [result.finishReason],
+                  'gen_ai.response.id': responseData.id,
+                  'gen_ai.response.model': responseData.modelId,
+                  'gen_ai.usage.input_tokens': result.usage.inputTokens,
+                  'gen_ai.usage.output_tokens': result.usage.outputTokens,
                 },
               }),
-              tracer,
-              fn: async span => {
-                const result = await model.doGenerate({
-                  responseFormat: {
-                    type: 'json',
-                    schema: outputStrategy.jsonSchema,
-                    name: schemaName,
-                    description: schemaDescription,
-                  },
-                  ...prepareCallSettings(settings),
-                  inputFormat: standardizedPrompt.type,
-                  prompt: promptMessages,
-                  providerOptions,
-                  abortSignal,
-                  headers,
-                });
+            );
 
-                const responseData = {
-                  id: result.response?.id ?? generateId(),
-                  timestamp: result.response?.timestamp ?? currentDate(),
-                  modelId: result.response?.modelId ?? model.modelId,
-                  headers: result.response?.headers,
-                  body: result.response?.body,
-                };
+            return { ...result, objectText: text, responseData };
+          },
+        }),
+      );
 
-                const text = extractContentText(result.content);
-
-                if (text === undefined) {
-                  throw new NoObjectGeneratedError({
-                    message:
-                      'No object generated: the model did not return a response.',
-                    response: responseData,
-                    usage: calculateLanguageModelUsage(result.usage),
-                    finishReason: result.finishReason,
-                  });
-                }
-
-                // Add response information to the span:
-                span.setAttributes(
-                  selectTelemetryAttributes({
-                    telemetry,
-                    attributes: {
-                      'ai.response.finishReason': result.finishReason,
-                      'ai.response.object': { output: () => text },
-                      'ai.response.id': responseData.id,
-                      'ai.response.model': responseData.modelId,
-                      'ai.response.timestamp':
-                        responseData.timestamp.toISOString(),
-
-                      // TODO rename telemetry attributes to inputTokens and outputTokens
-                      'ai.usage.promptTokens': result.usage.inputTokens,
-                      'ai.usage.completionTokens': result.usage.outputTokens,
-
-                      // standardized gen-ai llm span attributes:
-                      'gen_ai.response.finish_reasons': [result.finishReason],
-                      'gen_ai.response.id': responseData.id,
-                      'gen_ai.response.model': responseData.modelId,
-                      'gen_ai.usage.input_tokens': result.usage.inputTokens,
-                      'gen_ai.usage.output_tokens': result.usage.outputTokens,
-                    },
-                  }),
-                );
-
-                return { ...result, objectText: text, responseData };
-              },
-            }),
-          );
-
-          result = generateResult.objectText;
-          finishReason = generateResult.finishReason;
-          usage = generateResult.usage;
-          warnings = generateResult.warnings;
-          logprobs = generateResult.logprobs;
-          resultProviderMetadata = generateResult.providerMetadata;
-          request = generateResult.request ?? {};
-          response = generateResult.responseData;
-
-          break;
-        }
-
-        case 'tool': {
-          const standardizedPrompt = standardizePrompt({
-            prompt: { system, prompt, messages },
-            tools: undefined,
-          });
-
-          const promptMessages = await convertToLanguageModelPrompt({
-            prompt: standardizedPrompt,
-            modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context,
-          });
-          const inputFormat = standardizedPrompt.type;
-
-          const generateResult = await retry(() =>
-            recordSpan({
-              name: 'ai.generateObject.doGenerate',
-              attributes: selectTelemetryAttributes({
-                telemetry,
-                attributes: {
-                  ...assembleOperationName({
-                    operationId: 'ai.generateObject.doGenerate',
-                    telemetry,
-                  }),
-                  ...baseTelemetryAttributes,
-                  'ai.prompt.format': {
-                    input: () => inputFormat,
-                  },
-                  'ai.prompt.messages': {
-                    input: () => JSON.stringify(promptMessages),
-                  },
-                  'ai.settings.mode': mode,
-
-                  // standardized gen-ai llm span attributes:
-                  'gen_ai.system': model.provider,
-                  'gen_ai.request.model': model.modelId,
-                  'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                  'gen_ai.request.presence_penalty': settings.presencePenalty,
-                  'gen_ai.request.temperature': settings.temperature,
-                  'gen_ai.request.top_k': settings.topK,
-                  'gen_ai.request.top_p': settings.topP,
-                },
-              }),
-              tracer,
-              fn: async span => {
-                const result = await model.doGenerate({
-                  tools: [
-                    {
-                      type: 'function',
-                      name: schemaName ?? 'json',
-                      description:
-                        schemaDescription ?? 'Respond with a JSON object.',
-                      parameters: outputStrategy.jsonSchema!,
-                    },
-                  ],
-                  toolChoice: { type: 'required' },
-                  ...prepareCallSettings(settings),
-                  inputFormat,
-                  prompt: promptMessages,
-                  providerOptions,
-                  abortSignal,
-                  headers,
-                });
-
-                const firstToolCall = result.content.find(
-                  content => content.type === 'tool-call',
-                );
-
-                const objectText = firstToolCall?.args;
-
-                const responseData = {
-                  id: result.response?.id ?? generateId(),
-                  timestamp: result.response?.timestamp ?? currentDate(),
-                  modelId: result.response?.modelId ?? model.modelId,
-                  headers: result.response?.headers,
-                  body: result.response?.body,
-                };
-
-                if (objectText === undefined) {
-                  throw new NoObjectGeneratedError({
-                    message: 'No object generated: the tool was not called.',
-                    response: responseData,
-                    usage: calculateLanguageModelUsage(result.usage),
-                    finishReason: result.finishReason,
-                  });
-                }
-
-                // Add response information to the span:
-                span.setAttributes(
-                  selectTelemetryAttributes({
-                    telemetry,
-                    attributes: {
-                      'ai.response.finishReason': result.finishReason,
-                      'ai.response.object': { output: () => objectText },
-                      'ai.response.id': responseData.id,
-                      'ai.response.model': responseData.modelId,
-                      'ai.response.timestamp':
-                        responseData.timestamp.toISOString(),
-
-                      // TODO rename telemetry attributes to inputTokens and outputTokens
-                      'ai.usage.promptTokens': result.usage.inputTokens,
-                      'ai.usage.completionTokens': result.usage.outputTokens,
-
-                      // standardized gen-ai llm span attributes:
-                      'gen_ai.response.finish_reasons': [result.finishReason],
-                      'gen_ai.response.id': responseData.id,
-                      'gen_ai.response.model': responseData.modelId,
-                      'gen_ai.usage.input_tokens': result.usage.inputTokens,
-                      'gen_ai.usage.output_tokens': result.usage.outputTokens,
-                    },
-                  }),
-                );
-
-                return { ...result, objectText, responseData };
-              },
-            }),
-          );
-
-          result = generateResult.objectText;
-          finishReason = generateResult.finishReason;
-          usage = generateResult.usage;
-          warnings = generateResult.warnings;
-          logprobs = generateResult.logprobs;
-          resultProviderMetadata = generateResult.providerMetadata;
-          request = generateResult.request ?? {};
-          response = generateResult.responseData;
-
-          break;
-        }
-
-        case undefined: {
-          throw new Error(
-            'Model does not have a default object generation mode.',
-          );
-        }
-
-        default: {
-          const _exhaustiveCheck: never = mode;
-          throw new Error(`Unsupported mode: ${_exhaustiveCheck}`);
-        }
-      }
+      result = generateResult.objectText;
+      finishReason = generateResult.finishReason;
+      usage = generateResult.usage;
+      warnings = generateResult.warnings;
+      logprobs = generateResult.logprobs;
+      resultProviderMetadata = generateResult.providerMetadata;
+      request = generateResult.request ?? {};
+      response = generateResult.responseData;
 
       function processResult(result: string): RESULT {
         const parseResult = safeParseJSON({ text: result });

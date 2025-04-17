@@ -4381,7 +4381,6 @@ describe('streamText', () => {
 
         const result = streamText({
           model: new MockLanguageModelV2({
-            supportsStructuredOutputs: false,
             doStream: async args => {
               callOptions = args;
               return {
@@ -4409,25 +4408,52 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(callOptions).toEqual({
-          temperature: 0,
-          inputFormat: 'prompt',
-          responseFormat: { type: 'json', schema: undefined },
-          prompt: [
-            {
-              content:
-                'JSON schema:\n' +
-                '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                'You MUST answer with a JSON object that matches the JSON schema above.',
-              role: 'system',
+        expect(callOptions).toMatchInlineSnapshot(`
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": undefined,
+            "inputFormat": "prompt",
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "type": "json",
             },
-            {
-              content: [{ text: 'prompt', type: 'text' }],
-              providerOptions: undefined,
-              role: 'user',
-            },
-          ],
-        });
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": 0,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
 
       it('should send valid partial text fragments', async () => {

@@ -14,16 +14,12 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
   doGenerateCalls: Parameters<LanguageModelV2['doGenerate']>[0][] = [];
   doStreamCalls: Parameters<LanguageModelV2['doStream']>[0][] = [];
 
-  readonly defaultObjectGenerationMode: LanguageModelV2['defaultObjectGenerationMode'];
-  readonly supportsStructuredOutputs: LanguageModelV2['supportsStructuredOutputs'];
   constructor({
     provider = 'mock-provider',
     modelId = 'mock-model-id',
     supportsUrl = undefined,
     doGenerate = notImplemented,
     doStream = notImplemented,
-    defaultObjectGenerationMode = undefined,
-    supportsStructuredOutputs = undefined,
   }: {
     provider?: LanguageModelV2['provider'];
     modelId?: LanguageModelV2['modelId'];
@@ -36,8 +32,6 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
       | LanguageModelV2['doStream']
       | Awaited<ReturnType<LanguageModelV2['doStream']>>
       | Awaited<ReturnType<LanguageModelV2['doStream']>>[];
-    defaultObjectGenerationMode?: LanguageModelV2['defaultObjectGenerationMode'];
-    supportsStructuredOutputs?: LanguageModelV2['supportsStructuredOutputs'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
@@ -64,8 +58,5 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
       }
     };
     this.supportsUrl = supportsUrl;
-
-    this.defaultObjectGenerationMode = defaultObjectGenerationMode;
-    this.supportsStructuredOutputs = supportsStructuredOutputs;
   }
 }

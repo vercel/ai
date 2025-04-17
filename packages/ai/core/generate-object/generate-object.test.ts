@@ -1,12 +1,12 @@
+import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod';
 import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../../errors/no-object-generated-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
-import { jsonSchema } from '../util';
 import { MockTracer } from '../test/mock-tracer';
+import { jsonSchema } from '../util';
 import { generateObject } from './generate-object';
-import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
@@ -17,7 +17,7 @@ const dummyResponseValues = {
 
 describe('output = "object"', () => {
   describe('result.object', () => {
-    it('should generate object with json mode', async () => {
+    it('should generate object', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
           doGenerate: async ({ prompt, responseFormat }) => {
@@ -58,17 +58,15 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
       assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
     });
 
-    it('should generate object with json mode when structured outputs are enabled', async () => {
+    it('should generate object when structured outputs are enabled', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          supportsStructuredOutputs: true,
           doGenerate: async ({ prompt, responseFormat }) => {
             expect(responseFormat).toStrictEqual({
               type: 'json',
@@ -100,17 +98,15 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
       assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
     });
 
-    it('should use name and description with json mode when structured outputs are enabled', async () => {
+    it('should use name and description when structured outputs are enabled', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          supportsStructuredOutputs: true,
           doGenerate: async ({ prompt, responseFormat }) => {
             expect(responseFormat).toStrictEqual({
               type: 'json',
@@ -144,109 +140,6 @@ describe('output = "object"', () => {
         schema: z.object({ content: z.string() }),
         schemaName: 'test-name',
         schemaDescription: 'test description',
-        mode: 'json',
-        prompt: 'prompt',
-      });
-
-      assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
-    });
-
-    it('should generate object with tool mode', async () => {
-      const result = await generateObject({
-        model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt, tools, toolChoice }) => {
-            expect(tools).toStrictEqual([
-              {
-                type: 'function',
-                name: 'json',
-                description: 'Respond with a JSON object.',
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { content: { type: 'string' } },
-                  required: ['content'],
-                  type: 'object',
-                },
-              },
-            ]);
-            expect(toolChoice).toStrictEqual({ type: 'required' });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'prompt' }],
-                providerOptions: undefined,
-              },
-            ]);
-
-            return {
-              ...dummyResponseValues,
-              content: [
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  args: `{ "content": "Hello, world!" }`,
-                },
-              ],
-            };
-          },
-        }),
-        schema: z.object({ content: z.string() }),
-        mode: 'tool',
-        prompt: 'prompt',
-      });
-
-      assert.deepStrictEqual(result.object, { content: 'Hello, world!' });
-    });
-
-    it('should use name and description with tool mode', async () => {
-      const result = await generateObject({
-        model: new MockLanguageModelV2({
-          doGenerate: async ({ prompt, tools, toolChoice }) => {
-            expect(tools).toStrictEqual([
-              {
-                type: 'function',
-                name: 'test-name',
-                description: 'test description',
-                parameters: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { content: { type: 'string' } },
-                  required: ['content'],
-                  type: 'object',
-                },
-              },
-            ]);
-            expect(toolChoice).toStrictEqual({ type: 'required' });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'prompt' }],
-                providerOptions: undefined,
-              },
-            ]);
-
-            return {
-              ...dummyResponseValues,
-              content: [
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  args: `{ "content": "Hello, world!" }`,
-                },
-              ],
-            };
-          },
-        }),
-        schema: z.object({ content: z.string() }),
-        schemaName: 'test-name',
-        schemaDescription: 'test description',
-        mode: 'tool',
         prompt: 'prompt',
       });
 
@@ -255,7 +148,7 @@ describe('output = "object"', () => {
   });
 
   describe('result.request', () => {
-    it('should contain request information with json mode', async () => {
+    it('should contain request information', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
@@ -267,36 +160,6 @@ describe('output = "object"', () => {
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
-        prompt: 'prompt',
-      });
-
-      expect(result.request).toStrictEqual({
-        body: 'test body',
-      });
-    });
-
-    it('should contain request information with tool mode', async () => {
-      const result = await generateObject({
-        model: new MockLanguageModelV2({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                args: `{ "content": "Hello, world!" }`,
-              },
-            ],
-            request: {
-              body: 'test body',
-            },
-          }),
-        }),
-        schema: z.object({ content: z.string() }),
-        mode: 'tool',
         prompt: 'prompt',
       });
 
@@ -307,7 +170,7 @@ describe('output = "object"', () => {
   });
 
   describe('result.response', () => {
-    it('should contain response information with json mode', async () => {
+    it('should contain response information', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
           doGenerate: async () => ({
@@ -325,48 +188,6 @@ describe('output = "object"', () => {
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
-        prompt: 'prompt',
-      });
-
-      expect(result.response).toStrictEqual({
-        id: 'test-id-from-model',
-        timestamp: new Date(10000),
-        modelId: 'test-response-model-id',
-        headers: {
-          'custom-response-header': 'response-header-value',
-        },
-        body: 'test body',
-      });
-    });
-
-    it('should contain response information with tool mode', async () => {
-      const result = await generateObject({
-        model: new MockLanguageModelV2({
-          doGenerate: async () => ({
-            ...dummyResponseValues,
-            content: [
-              {
-                type: 'tool-call',
-                toolCallType: 'function',
-                toolCallId: 'tool-call-1',
-                toolName: 'json',
-                args: `{ "content": "Hello, world!" }`,
-              },
-            ],
-            response: {
-              id: 'test-id-from-model',
-              timestamp: new Date(10000),
-              modelId: 'test-response-model-id',
-              headers: {
-                'custom-response-header': 'response-header-value',
-              },
-              body: 'test body',
-            },
-          }),
-        }),
-        schema: z.object({ content: z.string() }),
-        mode: 'tool',
         prompt: 'prompt',
       });
 
@@ -425,7 +246,6 @@ describe('output = "object"', () => {
         schema: z.object({
           content: z.string().transform(value => value.length),
         }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -477,7 +297,6 @@ describe('output = "object"', () => {
             z.string(),
           ),
         }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -486,7 +305,7 @@ describe('output = "object"', () => {
   });
 
   describe('custom schema', () => {
-    it('should generate object with json mode', async () => {
+    it('should generate object', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
           doGenerate: async ({ prompt, responseFormat }) => {
@@ -530,7 +349,6 @@ describe('output = "object"', () => {
           required: ['content'],
           additionalProperties: false,
         }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -548,7 +366,6 @@ describe('output = "object"', () => {
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -585,7 +402,6 @@ describe('output = "object"', () => {
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -599,7 +415,7 @@ describe('output = "object"', () => {
   });
 
   describe('options.headers', () => {
-    it('should pass headers to model in json mode', async () => {
+    it('should pass headers to model', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
           doGenerate: async ({ headers }) => {
@@ -616,38 +432,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
-        prompt: 'prompt',
-        headers: { 'custom-request-header': 'request-header-value' },
-      });
-
-      expect(result.object).toStrictEqual({ content: 'headers test' });
-    });
-
-    it('should pass headers to model in tool mode', async () => {
-      const result = await generateObject({
-        model: new MockLanguageModelV2({
-          doGenerate: async ({ headers }) => {
-            expect(headers).toStrictEqual({
-              'custom-request-header': 'request-header-value',
-            });
-
-            return {
-              ...dummyResponseValues,
-              content: [
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  args: `{ "content": "headers test" }`,
-                },
-              ],
-            };
-          },
-        }),
-        schema: z.object({ content: z.string() }),
-        mode: 'tool',
         prompt: 'prompt',
         headers: { 'custom-request-header': 'request-header-value' },
       });
@@ -673,7 +457,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         experimental_repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(JSONParseError);
@@ -703,7 +486,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         experimental_repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(TypeValidationError);
@@ -735,7 +517,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         experimental_repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(TypeValidationError);
@@ -753,7 +534,7 @@ describe('output = "object"', () => {
   });
 
   describe('options.providerOptions', () => {
-    it('should pass provider options to model in json mode', async () => {
+    it('should pass provider options to model', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
           doGenerate: async ({ providerOptions }) => {
@@ -773,42 +554,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
-        prompt: 'prompt',
-        providerOptions: {
-          aProvider: { someKey: 'someValue' },
-        },
-      });
-
-      expect(result.object).toStrictEqual({
-        content: 'provider metadata test',
-      });
-    });
-
-    it('should pass provider options to model in tool mode', async () => {
-      const result = await generateObject({
-        model: new MockLanguageModelV2({
-          doGenerate: async ({ providerOptions }) => {
-            expect(providerOptions).toStrictEqual({
-              aProvider: { someKey: 'someValue' },
-            });
-
-            return {
-              ...dummyResponseValues,
-              content: [
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  args: `{ "content": "provider metadata test" }`,
-                },
-              ],
-            };
-          },
-        }),
-        schema: z.object({ content: z.string() }),
-        mode: 'tool',
         prompt: 'prompt',
         providerOptions: {
           aProvider: { someKey: 'someValue' },
@@ -842,37 +587,7 @@ describe('output = "object"', () => {
       });
     }
 
-    it('should throw NoObjectGeneratedError when schema validation fails in tool model', async () => {
-      try {
-        await generateObject({
-          model: new MockLanguageModelV2({
-            doGenerate: async ({}) => ({
-              ...dummyResponseValues,
-              content: [
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  args: `{ "content": 123 }`,
-                },
-              ],
-            }),
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'tool',
-          prompt: 'prompt',
-        });
-
-        fail('must throw error');
-      } catch (error) {
-        verifyNoObjectGeneratedError(error, {
-          message: 'No object generated: response did not match schema.',
-        });
-      }
-    });
-
-    it('should throw NoObjectGeneratedError when schema validation fails in json model', async () => {
+    it('should throw NoObjectGeneratedError when schema validation fails', async () => {
       try {
         await generateObject({
           model: new MockLanguageModelV2({
@@ -882,7 +597,6 @@ describe('output = "object"', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -894,25 +608,16 @@ describe('output = "object"', () => {
       }
     });
 
-    it('should throw NoObjectGeneratedError when parsing fails in tool model', async () => {
+    it('should throw NoObjectGeneratedError when parsing fails', async () => {
       try {
         await generateObject({
           model: new MockLanguageModelV2({
             doGenerate: async ({}) => ({
               ...dummyResponseValues,
-              content: [
-                {
-                  type: 'tool-call',
-                  toolCallType: 'function',
-                  toolCallId: 'tool-call-1',
-                  toolName: 'json',
-                  args: `{ broken json`,
-                },
-              ],
+              content: [{ type: 'text', text: '{ broken json' }],
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'tool',
           prompt: 'prompt',
         });
 
@@ -924,7 +629,7 @@ describe('output = "object"', () => {
       }
     });
 
-    it('should throw NoObjectGeneratedError when parsing fails in json model', async () => {
+    it('should throw NoObjectGeneratedError when parsing fails with repairResponse', async () => {
       try {
         await generateObject({
           model: new MockLanguageModelV2({
@@ -934,29 +639,6 @@ describe('output = "object"', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
-          prompt: 'prompt',
-        });
-
-        fail('must throw error');
-      } catch (error) {
-        verifyNoObjectGeneratedError(error, {
-          message: 'No object generated: could not parse the response.',
-        });
-      }
-    });
-
-    it('should throw NoObjectGeneratedError when parsing fails in json model also with repairResponse', async () => {
-      try {
-        await generateObject({
-          model: new MockLanguageModelV2({
-            doGenerate: async ({}) => ({
-              ...dummyResponseValues,
-              content: [{ type: 'text', text: '{ broken json' }],
-            }),
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
           experimental_repairText: async ({ text }) => text + '{',
         });
@@ -969,7 +651,7 @@ describe('output = "object"', () => {
       }
     });
 
-    it('should throw NoObjectGeneratedError when the tool was not called in tool mode', async () => {
+    it('should throw NoObjectGeneratedError when no text is available', async () => {
       try {
         await generateObject({
           model: new MockLanguageModelV2({
@@ -979,29 +661,6 @@ describe('output = "object"', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'tool',
-          prompt: 'prompt',
-        });
-
-        fail('must throw error');
-      } catch (error) {
-        verifyNoObjectGeneratedError(error, {
-          message: 'No object generated: the tool was not called.',
-        });
-      }
-    });
-
-    it('should throw NoObjectGeneratedError when no text is available in json model', async () => {
-      try {
-        await generateObject({
-          model: new MockLanguageModelV2({
-            doGenerate: async ({}) => ({
-              ...dummyResponseValues,
-              content: [],
-            }),
-          }),
-          schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -1078,7 +737,6 @@ describe('output = "array"', () => {
       }),
       schema: z.object({ content: z.string() }),
       output: 'array',
-      mode: 'json',
       prompt: 'prompt',
     });
 
@@ -1138,7 +796,6 @@ describe('output = "enum"', () => {
       }),
       output: 'enum',
       enum: ['sunny', 'rainy', 'snowy'],
-      mode: 'json',
       prompt: 'prompt',
     });
 
@@ -1197,14 +854,13 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
-      mode: 'json',
       prompt: 'prompt',
     });
 
     assert.deepStrictEqual(tracer.jsonSpans, []);
   });
 
-  it('should record telemetry data when enabled with mode "json"', async () => {
+  it('should record telemetry data when enabled', async () => {
     await generateObject({
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
@@ -1220,7 +876,6 @@ describe('telemetry', () => {
       schema: z.object({ content: z.string() }),
       schemaName: 'test-name',
       schemaDescription: 'test description',
-      mode: 'json',
       prompt: 'prompt',
       topK: 0.1,
       topP: 0.2,
@@ -1245,56 +900,7 @@ describe('telemetry', () => {
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 
-  it('should record telemetry data when enabled with mode "tool"', async () => {
-    await generateObject({
-      model: new MockLanguageModelV2({
-        doGenerate: async ({}) => ({
-          ...dummyResponseValues,
-          content: [
-            {
-              type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'tool-call-1',
-              toolName: 'json',
-              args: `{ "content": "Hello, world!" }`,
-            },
-          ],
-          response: {
-            id: 'test-id-from-model',
-            timestamp: new Date(10000),
-            modelId: 'test-response-model-id',
-          },
-        }),
-      }),
-      schema: z.object({ content: z.string() }),
-      schemaName: 'test-name',
-      schemaDescription: 'test description',
-      mode: 'tool',
-      prompt: 'prompt',
-      topK: 0.1,
-      topP: 0.2,
-      frequencyPenalty: 0.3,
-      presencePenalty: 0.4,
-      temperature: 0.5,
-      headers: {
-        header1: 'value1',
-        header2: 'value2',
-      },
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'test-function-id',
-        metadata: {
-          test1: 'value1',
-          test2: false,
-        },
-        tracer,
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should not record telemetry inputs / outputs when disabled with mode "json"', async () => {
+  it('should not record telemetry inputs / outputs when disabled', async () => {
     await generateObject({
       model: new MockLanguageModelV2({
         doGenerate: async () => ({
@@ -1308,42 +914,6 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
-      mode: 'json',
-      prompt: 'prompt',
-      experimental_telemetry: {
-        isEnabled: true,
-        recordInputs: false,
-        recordOutputs: false,
-        tracer,
-      },
-    });
-
-    expect(tracer.jsonSpans).toMatchSnapshot();
-  });
-
-  it('should not record telemetry inputs / outputs when disabled with mode "tool"', async () => {
-    await generateObject({
-      model: new MockLanguageModelV2({
-        doGenerate: async ({}) => ({
-          ...dummyResponseValues,
-          content: [
-            {
-              type: 'tool-call',
-              toolCallType: 'function',
-              toolCallId: 'tool-call-1',
-              toolName: 'json',
-              args: `{ "content": "Hello, world!" }`,
-            },
-          ],
-          response: {
-            id: 'test-id-from-model',
-            timestamp: new Date(10000),
-            modelId: 'test-response-model-id',
-          },
-        }),
-      }),
-      schema: z.object({ content: z.string() }),
-      mode: 'tool',
       prompt: 'prompt',
       experimental_telemetry: {
         isEnabled: true,
@@ -1419,7 +989,6 @@ describe('options.messages', () => {
         },
       }),
       schema: z.object({ content: z.string() }),
-      mode: 'json',
       messages: [
         {
           role: 'user',
@@ -1469,7 +1038,6 @@ describe('options.messages', () => {
     const result = await generateObject({
       model,
       schema: z.object({ content: z.string() }),
-      mode: 'json',
       messages: [
         {
           role: 'user',
