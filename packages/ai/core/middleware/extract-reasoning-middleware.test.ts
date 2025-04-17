@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
 
 describe('extractReasoningMiddleware', () => {
