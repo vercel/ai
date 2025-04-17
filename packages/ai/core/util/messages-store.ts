@@ -93,7 +93,7 @@ export class MessagesStore {
     id,
   }: {
     partDelta: UIMessage['parts'][number];
-    step?: number;
+    step: number;
     id?: string;
     generateId?: () => string;
   }) {
@@ -170,23 +170,15 @@ export class MessagesStore {
   private addOrUpdateToolInvocation({
     toolInvocation,
     assistantMessage,
-    step: stepNumber,
+    step,
   }: {
     toolInvocation: ToolInvocation;
     assistantMessage: UIMessage;
-    step?: number;
+    step: number;
   }) {
     if (assistantMessage.toolInvocations == null) {
       assistantMessage.toolInvocations = [];
     }
-
-    const step =
-      stepNumber ??
-      1 +
-        // find max step in existing tool invocations:
-        (assistantMessage.toolInvocations?.reduce((max, toolInvocation) => {
-          return Math.max(max, toolInvocation.step ?? 0);
-        }, 0) ?? 0);
 
     const existingPartialToolInvocation =
       this.partialToolCalls[toolInvocation.toolCallId];

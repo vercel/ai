@@ -526,6 +526,16 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const addToolResult = useCallback(
     ({ toolCallId, result }: { toolCallId: string; result: unknown }) => {
+      const lastMessage = messagesStore.getLastMessage();
+      const replaceLastMessage = lastMessage?.role === 'assistant';
+      const step = replaceLastMessage
+        ? 1 +
+          // find max step in existing tool invocations:
+          (lastMessage.toolInvocations?.reduce((max, toolInvocation) => {
+            return Math.max(max, toolInvocation.step ?? 0);
+          }, 0) ?? 0)
+        : 0;
+
       messagesStore.addOrUpdateAssistantMessageParts({
         partDelta: {
           type: 'tool-invocation',
@@ -537,6 +547,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
             args: undefined,
           },
         },
+        step,
       });
 
       // when the request is ongoing, the auto-submit will be triggered after the request is finished
@@ -545,7 +556,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
       }
 
       // auto-submit when all tool calls in the last assistant message have results:
-      const lastMessage = messagesStore.getLastMessage();
       if (
         lastMessage &&
         isAssistantMessageWithCompletedToolCalls(lastMessage)
