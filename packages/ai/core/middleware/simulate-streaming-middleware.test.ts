@@ -24,6 +24,7 @@ describe('simulateStreamingMiddleware', () => {
           content: [{ type: 'text', text: 'This is a test response' }],
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
+          warnings: [],
         };
       },
     });
@@ -55,6 +56,7 @@ describe('simulateStreamingMiddleware', () => {
           ],
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
+          warnings: [],
         };
       },
     });
@@ -96,6 +98,7 @@ describe('simulateStreamingMiddleware', () => {
           ],
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
+          warnings: [],
         };
       },
     });
@@ -135,6 +138,7 @@ describe('simulateStreamingMiddleware', () => {
           ],
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
+          warnings: [],
         };
       },
     });
@@ -149,67 +153,67 @@ describe('simulateStreamingMiddleware', () => {
 
     expect(await convertAsyncIterableToArray(result.fullStream))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "messageId": "msg-3",
-          "request": {},
-          "type": "step-start",
-          "warnings": [],
-        },
-        {
-          "reasoningType": "text",
-          "text": "First reasoning step",
-          "type": "reasoning",
-        },
-        {
-          "data": "data",
-          "reasoningType": "redacted",
-          "type": "reasoning",
-        },
-        {
-          "text": "This is a test response",
-          "type": "text",
-        },
-        {
-          "finishReason": "stop",
-          "isContinued": false,
-          "logprobs": undefined,
-          "messageId": "msg-3",
-          "providerMetadata": undefined,
-          "request": {},
-          "response": {
-            "headers": undefined,
-            "id": "id-7",
-            "modelId": "mock-model-id",
-            "timestamp": 2025-01-01T00:00:00.000Z,
+        [
+          {
+            "messageId": "msg-3",
+            "request": {},
+            "type": "step-start",
+            "warnings": [],
           },
-          "type": "step-finish",
-          "usage": {
-            "completionTokens": 10,
-            "promptTokens": 10,
-            "totalTokens": 20,
+          {
+            "reasoningType": "text",
+            "text": "First reasoning step",
+            "type": "reasoning",
           },
-          "warnings": undefined,
-        },
-        {
-          "finishReason": "stop",
-          "logprobs": undefined,
-          "providerMetadata": undefined,
-          "response": {
-            "headers": undefined,
-            "id": "id-7",
-            "modelId": "mock-model-id",
-            "timestamp": 2025-01-01T00:00:00.000Z,
+          {
+            "data": "data",
+            "reasoningType": "redacted",
+            "type": "reasoning",
           },
-          "type": "finish",
-          "usage": {
-            "completionTokens": 10,
-            "promptTokens": 10,
-            "totalTokens": 20,
+          {
+            "text": "This is a test response",
+            "type": "text",
           },
-        },
-      ]
-    `);
+          {
+            "finishReason": "stop",
+            "isContinued": false,
+            "logprobs": undefined,
+            "messageId": "msg-3",
+            "providerMetadata": undefined,
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-7",
+              "modelId": "mock-model-id",
+              "timestamp": 2025-01-01T00:00:00.000Z,
+            },
+            "type": "step-finish",
+            "usage": {
+              "completionTokens": 10,
+              "promptTokens": 10,
+              "totalTokens": 20,
+            },
+            "warnings": [],
+          },
+          {
+            "finishReason": "stop",
+            "logprobs": undefined,
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-7",
+              "modelId": "mock-model-id",
+              "timestamp": 2025-01-01T00:00:00.000Z,
+            },
+            "type": "finish",
+            "usage": {
+              "completionTokens": 10,
+              "promptTokens": 10,
+              "totalTokens": 20,
+            },
+          },
+        ]
+      `);
   });
 
   it('should simulate streaming with tool calls', async () => {
@@ -238,6 +242,7 @@ describe('simulateStreamingMiddleware', () => {
           ],
           finishReason: 'tool-calls',
           usage: { inputTokens: 10, outputTokens: 10 },
+          warnings: [],
         };
       },
     });
@@ -263,6 +268,7 @@ describe('simulateStreamingMiddleware', () => {
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 10 },
           providerMetadata: { custom: { key: 'value' } },
+          warnings: [],
         };
       },
     });
@@ -287,6 +293,7 @@ describe('simulateStreamingMiddleware', () => {
           content: [{ type: 'text', text: '' }],
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 0 },
+          warnings: [],
         };
       },
     });

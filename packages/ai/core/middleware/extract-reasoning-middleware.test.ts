@@ -22,6 +22,7 @@ describe('extractReasoningMiddleware', () => {
             ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
+            warnings: [],
           };
         },
       });
@@ -50,6 +51,7 @@ describe('extractReasoningMiddleware', () => {
             ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
+            warnings: [],
           };
         },
       });
@@ -78,6 +80,7 @@ describe('extractReasoningMiddleware', () => {
             ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
+            warnings: [],
           };
         },
       });
@@ -108,6 +111,7 @@ describe('extractReasoningMiddleware', () => {
             ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
+            warnings: [],
           };
         },
       });
@@ -154,6 +158,7 @@ describe('extractReasoningMiddleware', () => {
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
             reasoning: undefined,
+            warnings: [],
           };
         },
       });

@@ -158,7 +158,7 @@ Response HTTP body.
     /**
 Warnings for the call, e.g. unsupported settings.
      */
-    warnings?: LanguageModelV2CallWarning[];
+    warnings: Array<LanguageModelV2CallWarning>;
   }>;
 
   /**
