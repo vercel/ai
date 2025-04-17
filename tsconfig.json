@@ -79,6 +79,9 @@
       "path": "packages/togetherai"
     },
     {
+      "path": "packages/revai"
+    },
+    {
       "path": "packages/valibot"
     },
     {
