@@ -17,7 +17,7 @@ import { z } from 'zod';
 import { ToolExecutionError } from '../../errors/tool-execution-error';
 import { StreamData } from '../../streams/stream-data';
 import { createDataStream } from '../data-stream/create-data-stream';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
@@ -40,7 +40,12 @@ const defaultSettings = () =>
   }) as const;
 
 function createTestModel({
+  warnings = [],
   stream = convertArrayToReadableStream([
+    {
+      type: 'stream-start',
+      warnings,
+    },
     {
       type: 'response-metadata',
       id: 'id-0',
@@ -59,7 +64,6 @@ function createTestModel({
   ]),
   request = undefined,
   response = undefined,
-  warnings,
 }: {
   stream?: ReadableStream<LanguageModelV2StreamPart>;
   request?: { body: string };

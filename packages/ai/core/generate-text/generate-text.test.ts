@@ -4,7 +4,7 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
 import { ToolExecutionError } from '../../errors';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
 import { jsonSchema } from '../util';
@@ -15,10 +15,11 @@ import { StepResult } from './step-result';
 const dummyResponseValues = {
   finishReason: 'stop' as const,
   usage: { inputTokens: 10, outputTokens: 20 },
+  warnings: [],
 };
 
 const modelWithSources = new MockLanguageModelV2({
-  doGenerate: async () => ({
+  doGenerate: {
     ...dummyResponseValues,
     content: [
       { type: 'text', text: 'Hello, world!' },
@@ -39,11 +40,11 @@ const modelWithSources = new MockLanguageModelV2({
         providerMetadata: { provider: { custom: 'value2' } },
       },
     ],
-  }),
+  },
 });
 
 const modelWithFiles = new MockLanguageModelV2({
-  doGenerate: async () => ({
+  doGenerate: {
     ...dummyResponseValues,
     content: [
       { type: 'text', text: 'Hello, world!' },
@@ -58,11 +59,11 @@ const modelWithFiles = new MockLanguageModelV2({
         mediaType: 'image/jpeg',
       },
     ],
-  }),
+  },
 });
 
 const modelWithReasoning = new MockLanguageModelV2({
-  doGenerate: async () => ({
+  doGenerate: {
     ...dummyResponseValues,
     content: [
       {
@@ -82,31 +83,22 @@ const modelWithReasoning = new MockLanguageModelV2({
       },
       { type: 'text', text: 'Hello, world!' },
     ],
-  }),
+  },
 });
 
 describe('result.text', () => {
   it('should generate text', async () => {
     const result = await generateText({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt }) => {
-          expect(prompt).toStrictEqual([
-            {
-              role: 'user',
-              content: [{ type: 'text', text: 'prompt' }],
-              providerOptions: undefined,
-            },
-          ]);
-
-          return {
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello, world!' }],
-          };
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'Hello, world!' }],
         },
       }),
       prompt: 'prompt',
     });
 
+    expect(modelWithSources.doGenerateCalls).toMatchSnapshot();
     expect(result.text).toStrictEqual('Hello, world!');
   });
 });

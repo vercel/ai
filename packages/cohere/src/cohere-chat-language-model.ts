@@ -199,6 +199,10 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof cohereChatChunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
@@ -318,7 +322,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       ),
       request: { body: { ...args, stream: true } },
       response: { headers: responseHeaders },
-      warnings,
     };
   }
 }

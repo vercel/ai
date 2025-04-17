@@ -1,6 +1,6 @@
 import { LanguageModelV2, LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 
 describe('wrapLanguageModel', () => {
   it('should pass through model properties', () => {
@@ -38,7 +38,7 @@ describe('wrapLanguageModel', () => {
 
   it('should call transformParams middleware for doGenerate', async () => {
     const mockModel = new MockLanguageModelV2({
-      doGenerate: vi.fn().mockResolvedValue('mock result'),
+      doGenerate: [],
     });
     const transformParams = vi.fn().mockImplementation(({ params }) => ({
       ...params,
@@ -65,7 +65,7 @@ describe('wrapLanguageModel', () => {
       type: 'generate',
     });
 
-    expect(mockModel.doGenerate).toHaveBeenCalledWith({
+    expect(mockModel.doGenerateCalls[0]).toStrictEqual({
       ...params,
       transformed: true,
     });
@@ -104,8 +104,9 @@ describe('wrapLanguageModel', () => {
 
   it('should call transformParams middleware for doStream', async () => {
     const mockModel = new MockLanguageModelV2({
-      doStream: vi.fn().mockResolvedValue('mock stream'),
+      doStream: [],
     });
+
     const transformParams = vi.fn().mockImplementation(({ params }) => ({
       ...params,
       transformed: true,
@@ -130,7 +131,7 @@ describe('wrapLanguageModel', () => {
       params,
       type: 'stream',
     });
-    expect(mockModel.doStream).toHaveBeenCalledWith({
+    expect(mockModel.doStreamCalls[0]).toStrictEqual({
       ...params,
       transformed: true,
     });
@@ -236,7 +237,7 @@ describe('wrapLanguageModel', () => {
   describe('wrapLanguageModel with multiple middlewares', () => {
     it('should call multiple transformParams middlewares in sequence for doGenerate', async () => {
       const mockModel = new MockLanguageModelV2({
-        doGenerate: vi.fn().mockResolvedValue('final result'),
+        doGenerate: [],
       });
 
       const transformParams1 = vi.fn().mockImplementation(({ params }) => ({
@@ -279,7 +280,7 @@ describe('wrapLanguageModel', () => {
         type: 'generate',
       });
 
-      expect(mockModel.doGenerate).toHaveBeenCalledWith(
+      expect(mockModel.doGenerateCalls[0]).toStrictEqual(
         expect.objectContaining({
           transformationStep1: true,
           transformationStep2: true,
@@ -289,7 +290,7 @@ describe('wrapLanguageModel', () => {
 
     it('should call multiple transformParams middlewares in sequence for doStream', async () => {
       const mockModel = new MockLanguageModelV2({
-        doStream: vi.fn().mockResolvedValue('final stream'),
+        doStream: [],
       });
 
       const transformParams1 = vi.fn().mockImplementation(({ params }) => ({
@@ -330,7 +331,7 @@ describe('wrapLanguageModel', () => {
         params: expect.objectContaining({ transformationStep1: true }),
         type: 'stream',
       });
-      expect(mockModel.doStream).toHaveBeenCalledWith(
+      expect(mockModel.doStreamCalls[0]).toStrictEqual(
         expect.objectContaining({
           transformationStep1: true,
           transformationStep2: true,
