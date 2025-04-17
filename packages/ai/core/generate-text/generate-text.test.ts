@@ -19,7 +19,7 @@ const dummyResponseValues = {
 };
 
 const modelWithSources = new MockLanguageModelV2({
-  doGenerate: async () => ({
+  doGenerate: {
     ...dummyResponseValues,
     content: [
       { type: 'text', text: 'Hello, world!' },
@@ -40,11 +40,11 @@ const modelWithSources = new MockLanguageModelV2({
         providerMetadata: { provider: { custom: 'value2' } },
       },
     ],
-  }),
+  },
 });
 
 const modelWithFiles = new MockLanguageModelV2({
-  doGenerate: async () => ({
+  doGenerate: {
     ...dummyResponseValues,
     content: [
       { type: 'text', text: 'Hello, world!' },
@@ -59,11 +59,11 @@ const modelWithFiles = new MockLanguageModelV2({
         mediaType: 'image/jpeg',
       },
     ],
-  }),
+  },
 });
 
 const modelWithReasoning = new MockLanguageModelV2({
-  doGenerate: async () => ({
+  doGenerate: {
     ...dummyResponseValues,
     content: [
       {
@@ -83,31 +83,22 @@ const modelWithReasoning = new MockLanguageModelV2({
       },
       { type: 'text', text: 'Hello, world!' },
     ],
-  }),
+  },
 });
 
 describe('result.text', () => {
   it('should generate text', async () => {
     const result = await generateText({
       model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt }) => {
-          expect(prompt).toStrictEqual([
-            {
-              role: 'user',
-              content: [{ type: 'text', text: 'prompt' }],
-              providerOptions: undefined,
-            },
-          ]);
-
-          return {
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello, world!' }],
-          };
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [{ type: 'text', text: 'Hello, world!' }],
         },
       }),
       prompt: 'prompt',
     });
 
+    expect(modelWithSources.doGenerateCalls).toMatchSnapshot();
     expect(result.text).toStrictEqual('Hello, world!');
   });
 });
