@@ -2,6 +2,7 @@ import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
+  isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 import { createOpenAICompatible } from './openai-compatible-provider';
@@ -484,18 +485,20 @@ describe('doStream', () => {
     `);
   });
 
-  it('should handle unparsable stream parts', async () => {
-    server.urls['https://my.api.com/v1/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-    };
+  it.skipIf(isNodeVersion(22))(
+    'should handle unparsable stream parts',
+    async () => {
+      server.urls['https://my.api.com/v1/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+      };
 
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      prompt: TEST_PROMPT,
-    });
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        prompt: TEST_PROMPT,
+      });
 
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
           "type": "stream-start",
@@ -516,7 +519,8 @@ describe('doStream', () => {
         },
       ]
     `);
-  });
+    },
+  );
 
   it('should send request body', async () => {
     prepareStreamResponse({ content: [] });

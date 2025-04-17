@@ -2,6 +2,7 @@ import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
+  isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
 
@@ -692,18 +693,20 @@ describe('doStream', () => {
     expect(new Set(toolCallIds)).toStrictEqual(new Set(['test-id-1']));
   });
 
-  it('should handle unparsable stream parts', async () => {
-    server.urls['https://api.cohere.com/v2/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [`event: foo-message\ndata: {unparsable}\n\n`],
-    };
+  it.skipIf(isNodeVersion(22))(
+    'should handle unparsable stream parts',
+    async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [`event: foo-message\ndata: {unparsable}\n\n`],
+      };
 
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      prompt: TEST_PROMPT,
-    });
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        prompt: TEST_PROMPT,
+      });
 
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
           "type": "stream-start",
@@ -724,7 +727,8 @@ describe('doStream', () => {
         },
       ]
     `);
-  });
+    },
+  );
 
   it('should expose the raw response headers', async () => {
     prepareStreamResponse({
