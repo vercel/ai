@@ -75,7 +75,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
       "promptTokens": 10,
       "totalTokens": 15,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "files": [],
@@ -143,7 +143,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
       "promptTokens": 10,
       "totalTokens": 30,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
@@ -264,7 +264,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
       "promptTokens": 10,
       "totalTokens": 15,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "files": [],
@@ -332,7 +332,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
       "promptTokens": 10,
       "totalTokens": 30,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
@@ -379,7 +379,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "promptTokens": 10,
       "totalTokens": 30,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "files": [
@@ -449,7 +449,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "promptTokens": 30,
       "totalTokens": 35,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "files": [],
@@ -523,7 +523,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "promptTokens": 3,
       "totalTokens": 5,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "files": [
@@ -584,7 +584,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
       "promptTokens": 3,
       "totalTokens": 5,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
@@ -682,7 +682,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "promptTokens": 10,
       "totalTokens": 30,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "files": [
@@ -752,7 +752,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "promptTokens": 30,
       "totalTokens": 35,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "files": [],
@@ -826,7 +826,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "promptTokens": 3,
       "totalTokens": 5,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "files": [
@@ -887,7 +887,7 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
       "promptTokens": 3,
       "totalTokens": 5,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
@@ -1121,7 +1121,7 @@ exports[`result.steps > should add the reasoning from the model response to the 
       "promptTokens": 10,
       "totalTokens": 30,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
@@ -1191,7 +1191,7 @@ exports[`result.steps > should contain files 1`] = `
       "promptTokens": 10,
       "totalTokens": 30,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
@@ -1261,7 +1261,7 @@ exports[`result.steps > should contain sources 1`] = `
       "promptTokens": 10,
       "totalTokens": 30,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;

@@ -12,6 +12,7 @@ const dummyResponseValues = {
   finishReason: 'stop' as const,
   usage: { inputTokens: 10, outputTokens: 20 },
   response: { id: 'id-1', timestamp: new Date(123), modelId: 'm-1' },
+  warnings: [],
 };
 
 describe('output = "object"', () => {

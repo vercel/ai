@@ -40,7 +40,12 @@ const defaultSettings = () =>
   }) as const;
 
 function createTestModel({
+  warnings = [],
   stream = convertArrayToReadableStream([
+    {
+      type: 'stream-start',
+      warnings,
+    },
     {
       type: 'response-metadata',
       id: 'id-0',
@@ -59,7 +64,6 @@ function createTestModel({
   ]),
   request = undefined,
   response = undefined,
-  warnings,
 }: {
   stream?: ReadableStream<LanguageModelV2StreamPart>;
   request?: { body: string };

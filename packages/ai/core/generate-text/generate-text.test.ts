@@ -15,6 +15,7 @@ import { StepResult } from './step-result';
 const dummyResponseValues = {
   finishReason: 'stop' as const,
   usage: { inputTokens: 10, outputTokens: 20 },
+  warnings: [],
 };
 
 const modelWithSources = new MockLanguageModelV2({

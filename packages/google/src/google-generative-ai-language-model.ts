@@ -288,6 +288,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof chunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             if (!chunk.success) {
               controller.enqueue({ type: 'error', error: chunk.error });
@@ -395,7 +399,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         }),
       ),
       response: { headers: responseHeaders },
-      warnings,
       request: { body },
     };
   }

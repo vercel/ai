@@ -336,6 +336,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof BedrockStreamSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             function enqueueError(bedrockError: Record<string, any>) {
               finishReason = 'error';
@@ -513,8 +517,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
+      // TODO request?
       response: { headers: responseHeaders },
-      warnings,
     };
   }
 
