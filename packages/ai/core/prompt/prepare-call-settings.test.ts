@@ -25,3 +25,10 @@ it('should pass through all provided values and set defaults correctly', () => {
     seed: 42,
   });
 });
+
+it('should default temperature to undefined', () => {
+  const input = {};
+
+  const result = prepareCallSettings(input);
+  expect(result.temperature).toBeUndefined();
+});

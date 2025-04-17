@@ -97,8 +97,7 @@ export function prepareCallSettings({
 
   return {
     maxOutputTokens,
-    // TODO v5 remove default 0 for temperature
-    temperature: temperature ?? 0,
+    temperature,
     topP,
     topK,
     presencePenalty,
