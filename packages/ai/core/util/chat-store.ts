@@ -8,18 +8,38 @@ import type {
 } from '../types';
 import { throttle } from './throttle';
 
-type SubscriberCallback = () => void;
+interface ChatStoreSubscriber {
+  onChatMessagesChanged(): void;
+  // onChatStateChanged?
+  // onActiveChatChanged?
+  // onChatAdded?
+  // onChatRemoved?
+}
+
+type ChatStoreEvent = 'chat-messages-changed';
+
+const ChatStoreEventMap = {
+  'chat-messages-changed': 'onChatMessagesChanged',
+} as const;
+
+interface ChatStoreInitialization {
+  chatId?: string;
+  initialMessages?: UIMessage[];
+  throttleMs?: number;
+}
 
 /**
  * Internal class for managing UIMessages
  */
-export class MessagesStore {
-  chatId: string;
-  private messages: UIMessage[] = [];
-  private subscribers: Set<SubscriberCallback>;
-  private notify: () => void;
+export class ChatStore {
+  private chatId: string;
+  private messages: UIMessage[];
+  private subscribers: Set<ChatStoreSubscriber>;
+  private notify: (event: ChatStoreEvent) => void;
 
-  // Temporary state for in-progress chat response:
+  /**
+   * Transient stream state for in-progress LLM responses:
+   */
   private partialToolCalls: Record<
     string,
     { text: string; step: number; index: number; toolName: string }
@@ -31,31 +51,32 @@ export class MessagesStore {
   } = {};
 
   constructor({
-    chatId = generateIdFunction(),
     initialMessages,
+    chatId = generateIdFunction(),
     throttleMs,
-  }: {
-    initialMessages: UIMessage[];
-    throttleMs?: number;
-    chatId?: string;
-  }) {
-    this.messages = initialMessages;
+  }: ChatStoreInitialization = {}) {
+    console.log('constructed');
     this.chatId = chatId;
+    this.messages = initialMessages ?? [];
     this.subscribers = new Set();
     this.notify = throttleMs
-      ? throttle(() => this.emit(), throttleMs)
-      : () => this.emit();
+      ? throttle((event: ChatStoreEvent) => this.emitEvent(event), throttleMs)
+      : (event: ChatStoreEvent) => this.emitEvent(event);
   }
 
-  private emit() {
+  private emitEvent(event: ChatStoreEvent) {
     for (const subscriber of this.subscribers) {
-      subscriber();
+      subscriber[ChatStoreEventMap[event]]();
     }
   }
 
-  onChange(callback: SubscriberCallback): () => void {
-    this.subscribers.add(callback);
-    return () => this.subscribers.delete(callback);
+  subscribe(subscriber: ChatStoreSubscriber): () => void {
+    this.subscribers.add(subscriber);
+    return () => this.subscribers.delete(subscriber);
+  }
+
+  getChatId(): string {
+    return this.chatId;
   }
 
   getMessages(): UIMessage[] {
@@ -75,15 +96,17 @@ export class MessagesStore {
 
   setMessages(messages: UIMessage[]) {
     this.messages = messages;
-    this.notify();
+    this.notify('chat-messages-changed');
   }
 
   appendMessage(message: UIMessage) {
-    this.setMessages([...this.messages, message]);
+    this.messages.push(message);
+    this.notify('chat-messages-changed');
   }
 
   updateLastMessage(message: UIMessage) {
     this.setMessages([...this.messages.slice(0, -1), message]);
+    this.notify('chat-messages-changed');
   }
 
   addOrUpdateAssistantMessageParts({
@@ -343,6 +366,6 @@ export class MessagesStore {
 
   clear() {
     this.messages = [];
-    this.notify();
+    this.notify('chat-messages-changed');
   }
 }

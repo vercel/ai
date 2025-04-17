@@ -1,5 +1,5 @@
 import { IdGenerator, JSONValue, UseChatOptions } from '../types';
-import { MessagesStore } from './messages-store';
+import { ChatStore } from './chat-store';
 import { processChatResponseV2 } from './process-chat-response-v2';
 import { processChatTextResponse } from './process-chat-text-response';
 
@@ -35,7 +35,7 @@ export async function callChatApiV2({
   onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
-  store: MessagesStore;
+  store: ChatStore;
 }) {
   const response = await fetch(api, {
     method: 'POST',

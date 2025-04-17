@@ -9,12 +9,12 @@ import type {
 } from 'ai';
 import {
   callChatApiV2,
+  ChatStore,
   extractMaxToolInvocationStep,
   fillMessageParts,
   generateId as generateIdFunc,
   getMessageParts,
   isAssistantMessageWithCompletedToolCalls,
-  MessagesStore,
   prepareAttachmentsForRequest,
   shouldResubmitMessages,
 } from 'ai';
@@ -182,6 +182,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
+  useEffect(() => console.log('re-render'), []);
+
   // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
   const chatId = id ?? hookId;
   const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
@@ -197,7 +199,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
   // const messagesRef = useRef<UIMessage[]>(processedInitialMessages || []);
   const messagesStore = useMemo(
     () =>
-      new MessagesStore({
+      new ChatStore({
         initialMessages: processedInitialMessages,
         throttleMs: throttleWaitMs,
         chatId,
@@ -205,7 +207,10 @@ By default, it's set to 1, which means that only a single LLM call is made.
     [processedInitialMessages, throttleWaitMs, chatId],
   );
   const messages = useSyncExternalStore(
-    callback => messagesStore.onChange(callback),
+    callback =>
+      messagesStore.subscribe({
+        onChatMessagesChanged: callback,
+      }),
     () => messagesStore.getMessages(),
     () => processedInitialMessages,
   );

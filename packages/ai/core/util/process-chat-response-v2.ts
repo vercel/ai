@@ -5,7 +5,7 @@ import {
   calculateLanguageModelUsage,
   LanguageModelUsage,
 } from '../types/duplicated/usage';
-import { MessagesStore } from './messages-store';
+import { ChatStore } from './chat-store';
 import { processDataStream } from './process-data-stream';
 
 export async function processChatResponseV2({
@@ -25,7 +25,7 @@ export async function processChatResponseV2({
     usage: LanguageModelUsage;
   }) => void;
   generateId?: () => string;
-  store: MessagesStore;
+  store: ChatStore;
 }) {
   const lastMessage = store.getLastMessage();
   const replaceLastMessage = lastMessage?.role === 'assistant';
