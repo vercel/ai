@@ -63,10 +63,7 @@ export function convertToCohereChatPrompt(
 
         messages.push({
           role: 'assistant',
-          // note: this is a workaround for a Cohere API bug
-          // that requires content to be provided
-          // even if there are tool calls
-          content: text !== '' ? text : 'call tool',
+          content: toolCalls.length > 0 ? undefined : text,
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
           tool_plan: undefined,
         });
