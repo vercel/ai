@@ -31,16 +31,6 @@ Provider-specific model ID for logging purposes.
   readonly modelId: string;
 
   /**
-Default object generation mode that should be used with this model when
-no mode is specified. Should be the mode with the best results for this
-model. `undefined` can be returned if object generation is not supported.
-
-This is needed to generate the best objects possible w/o requiring the
-user to explicitly specify the object generation mode.
-   */
-  readonly defaultObjectGenerationMode: LanguageModelV2ObjectGenerationMode;
-
-  /**
 Flag whether this model supports image URLs. Default is `true`.
 
 When the flag is set to `false`, the AI SDK will download the image and
@@ -48,25 +38,6 @@ pass the image data to the model.
    */
   // TODO generalize to file urls in language model v2
   readonly supportsImageUrls?: boolean;
-
-  /**
-Flag whether this model supports grammar-guided generation,
-i.e. follows JSON schemas for object generation
-when the response format is set to 'json' or
-when the `object-json` mode is used.
-
-This means that the model guarantees that the generated JSON
-will be a valid JSON object AND that the object will match the
-JSON schema.
-
-Please note that `generateObject` and `streamObject` will work
-regardless of this flag, but might send different prompts and
-use further optimizations if this flag is set to `true`.
-
-Defaults to `false`.
-*/
-  // TODO v2: rename to supportsGrammarGuidedGeneration? supports output schemas?
-  readonly supportsStructuredOutputs?: boolean;
 
   /**
 Checks if the model supports the given URL for file parts natively.
