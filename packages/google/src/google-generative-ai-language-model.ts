@@ -331,7 +331,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
             }
 
             const value = chunk.value;
-            // console.log('value', JSON.stringify(value, null, 2));
 
             const usageMetadata = value.usageMetadata;
 
