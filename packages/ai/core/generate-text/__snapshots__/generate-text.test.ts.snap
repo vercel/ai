@@ -1266,6 +1266,8 @@ exports[`result.steps > should contain sources 1`] = `
 ]
 `;
 
+exports[`result.text > should generate text 1`] = `[]`;
+
 exports[`telemetry > should not record any telemetry data when not explicitly enabled 1`] = `[]`;
 
 exports[`telemetry > should not record telemetry inputs / outputs when disabled 1`] = `
