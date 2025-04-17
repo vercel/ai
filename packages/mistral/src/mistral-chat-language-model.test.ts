@@ -428,6 +428,10 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
           "id": "6e2cd91750904b7092f49bdca9083de1",
           "modelId": "mistral-small-latest",
           "timestamp": 2024-03-22T08:46:15.000Z,
@@ -481,6 +485,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "6e2cd91750904b7092f49bdca9083de1",
           "modelId": "mistral-small-latest",
@@ -553,6 +561,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "ad6f7ce6543c4d0890280ae184fe4dd8",
           "modelId": "mistral-large-latest",
@@ -711,6 +723,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "stream-object-id",
           "modelId": "mistral-small-latest",

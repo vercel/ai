@@ -364,6 +364,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof openaiResponsesChunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
@@ -471,7 +475,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       ),
       request: { body },
       response: { headers: responseHeaders },
-      warnings,
     };
   }
 }
