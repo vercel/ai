@@ -1,17 +1,14 @@
-import {
-  LanguageModelV2Prompt,
-  UnsupportedFunctionalityError,
-} from '@ai-sdk/provider';
+import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
   mockId,
 } from '@ai-sdk/provider-utils/test';
+import { z } from 'zod';
 import {
   perplexityImageSchema,
   PerplexityLanguageModel,
 } from './perplexity-language-model';
-import { z } from 'zod';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -21,7 +18,7 @@ describe('PerplexityLanguageModel', () => {
   describe('doGenerate', () => {
     const modelId = 'perplexity-001';
 
-    const perplexityLM = new PerplexityLanguageModel(modelId, {
+    const perplexityModel = new PerplexityLanguageModel(modelId, {
       baseURL: 'https://api.perplexity.ai',
       headers: () => ({
         authorization: 'Bearer test-token',
@@ -89,21 +86,25 @@ describe('PerplexityLanguageModel', () => {
       };
     }
 
-    it('should extract text response correctly', async () => {
+    it('should extract content correctly', async () => {
       prepareJsonResponse({ content: 'Hello, World!' });
 
-      const result = await perplexityLM.doGenerate({
+      const result = await perplexityModel.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
-      expect(result.text).toMatchInlineSnapshot(`
-        {
-          "text": "Hello, World!",
-          "type": "text",
-        }
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Hello, World!",
+            "type": "text",
+          },
+        ]
       `);
+
       expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 20 });
+
       expect({
         id: result.response?.id,
         timestamp: result.response?.timestamp,
@@ -117,7 +118,7 @@ describe('PerplexityLanguageModel', () => {
 
     it('should send the correct request body', async () => {
       prepareJsonResponse({ content: '' });
-      await perplexityLM.doGenerate({
+      await perplexityModel.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
@@ -130,7 +131,7 @@ describe('PerplexityLanguageModel', () => {
 
     it('should pass through perplexity provider options', async () => {
       prepareJsonResponse({ content: '' });
-      await perplexityLM.doGenerate({
+      await perplexityModel.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         providerOptions: {
@@ -155,12 +156,12 @@ describe('PerplexityLanguageModel', () => {
         citations: ['http://example.com/123', 'https://example.com/456'],
       });
 
-      const result = await perplexityLM.doGenerate({
+      const result = await perplexityModel.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
-      expect(result.sources).toMatchInlineSnapshot(`
+      expect(result.content).toMatchInlineSnapshot(`
         [
           {
             "id": "id-0",
@@ -190,7 +191,7 @@ describe('PerplexityLanguageModel', () => {
         ],
       });
 
-      const result = await perplexityLM.doGenerate({
+      const result = await perplexityModel.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
@@ -223,7 +224,7 @@ describe('PerplexityLanguageModel', () => {
         },
       });
 
-      const result = await perplexityLM.doGenerate({
+      const result = await perplexityModel.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });

@@ -1,6 +1,7 @@
 import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2Reasoning,
   LanguageModelV2StreamPart,
@@ -256,59 +257,51 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const { messages: rawPrompt, ...rawSettings } = args;
+    const content: Array<LanguageModelV2Content> = [];
 
-    // extract text
-    let text = '';
-    for (const content of response.content) {
-      if (content.type === 'text') {
-        text += content.text;
-      }
-    }
-
-    // extract tool calls
-    let toolCalls: LanguageModelV2ToolCall[] | undefined = undefined;
-    if (response.content.some(content => content.type === 'tool_use')) {
-      toolCalls = [];
-      for (const content of response.content) {
-        if (content.type === 'tool_use') {
-          toolCalls.push({
+    // map response content to content array
+    for (const part of response.content) {
+      switch (part.type) {
+        case 'text': {
+          content.push({ type: 'text', text: part.text });
+          break;
+        }
+        case 'thinking': {
+          content.push({
+            type: 'reasoning',
+            reasoningType: 'text',
+            text: part.thinking,
+          });
+          content.push({
+            type: 'reasoning',
+            reasoningType: 'signature',
+            signature: part.signature,
+          });
+          break;
+        }
+        case 'redacted_thinking': {
+          content.push({
+            type: 'reasoning',
+            reasoningType: 'redacted',
+            data: part.data,
+          });
+          break;
+        }
+        case 'tool_use': {
+          content.push({
             type: 'tool-call' as const,
             toolCallType: 'function',
-            toolCallId: content.id,
-            toolName: content.name,
-            args: JSON.stringify(content.input),
+            toolCallId: part.id,
+            toolName: part.name,
+            args: JSON.stringify(part.input),
           });
+          break;
         }
       }
     }
 
-    const reasoning: Array<LanguageModelV2Reasoning> = [];
-    for (const content of response.content) {
-      if (content.type === 'redacted_thinking') {
-        reasoning.push({
-          type: 'reasoning',
-          reasoningType: 'redacted',
-          data: content.data,
-        });
-      } else if (content.type === 'thinking') {
-        reasoning.push({
-          type: 'reasoning',
-          reasoningType: 'text',
-          text: content.thinking,
-        });
-        reasoning.push({
-          type: 'reasoning',
-          reasoningType: 'signature',
-          signature: content.signature,
-        });
-      }
-    }
-
     return {
-      text: text != null ? { type: 'text', text } : undefined,
-      reasoning: reasoning.length > 0 ? reasoning : undefined,
-      toolCalls,
+      content,
       finishReason: mapAnthropicStopReason(response.stop_reason),
       usage: {
         inputTokens: response.usage.input_tokens,

@@ -1,3 +1,6 @@
+/**
+Reasoning that the model has generated.
+ */
 export type LanguageModelV2Reasoning =
   | {
       type: 'reasoning';

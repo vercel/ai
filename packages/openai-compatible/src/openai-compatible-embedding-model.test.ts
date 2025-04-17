@@ -97,9 +97,14 @@ describe('doEmbed', () => {
   it('should pass the dimensions setting', async () => {
     prepareJsonResponse();
 
-    await provider
-      .textEmbeddingModel('text-embedding-3-large', { dimensions: 64 })
-      .doEmbed({ values: testValues });
+    await provider.textEmbeddingModel('text-embedding-3-large').doEmbed({
+      values: testValues,
+      providerOptions: {
+        'openai-compatible': {
+          dimensions: 64,
+        },
+      },
+    });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
       model: 'text-embedding-3-large',

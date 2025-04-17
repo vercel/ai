@@ -1,5 +1,6 @@
 import {
   LanguageModelV2,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
@@ -13,13 +14,10 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import {
-  CohereChatModelId,
-  CohereChatSettings,
-} from '../src/cohere-chat-settings';
-import { cohereFailedResponseHandler } from '../src/cohere-error';
-import { convertToCohereChatPrompt } from '../src/convert-to-cohere-chat-prompt';
-import { mapCohereFinishReason } from '../src/map-cohere-finish-reason';
+import { CohereChatModelId } from './cohere-chat-options';
+import { cohereFailedResponseHandler } from './cohere-error';
+import { convertToCohereChatPrompt } from './convert-to-cohere-chat-prompt';
+import { mapCohereFinishReason } from './map-cohere-finish-reason';
 import { prepareTools } from './cohere-prepare-tools';
 
 type CohereChatConfig = {
@@ -34,17 +32,11 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: CohereChatModelId;
-  readonly settings: CohereChatSettings;
 
   private readonly config: CohereChatConfig;
 
-  constructor(
-    modelId: CohereChatModelId,
-    settings: CohereChatSettings,
-    config: CohereChatConfig,
-  ) {
+  constructor(modelId: CohereChatModelId, config: CohereChatConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -127,21 +119,31 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
+    const content: Array<LanguageModelV2Content> = [];
+
+    // text content:
     const text = response.message.content?.[0]?.text;
+    if (text != null && text.length > 0) {
+      content.push({ type: 'text', text });
+    }
+
+    // tool calls:
+    if (response.message.tool_calls != null) {
+      for (const toolCall of response.message.tool_calls) {
+        content.push({
+          type: 'tool-call' as const,
+          toolCallId: toolCall.id,
+          toolName: toolCall.function.name,
+          // Cohere sometimes returns `null` for tool call arguments for tools
+          // defined as having no arguments.
+          args: toolCall.function.arguments.replace(/^null$/, '{}'),
+          toolCallType: 'function',
+        });
+      }
+    }
 
     return {
-      text: text != null ? { type: 'text', text } : undefined,
-      toolCalls: response.message.tool_calls
-        ? response.message.tool_calls.map(toolCall => ({
-            type: 'tool-call' as const,
-            toolCallId: toolCall.id,
-            toolName: toolCall.function.name,
-            // Cohere sometimes returns `null` for tool call arguments for tools
-            // defined as having no arguments.
-            args: toolCall.function.arguments.replace(/^null$/, '{}'),
-            toolCallType: 'function',
-          }))
-        : [],
+      content,
       finishReason: mapCohereFinishReason(response.finish_reason),
       usage: {
         inputTokens: response.usage.tokens.input_tokens,

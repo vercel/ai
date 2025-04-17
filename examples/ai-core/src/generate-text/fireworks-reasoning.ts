@@ -19,7 +19,7 @@ async function main() {
   });
 
   console.log('\nREASONING:\n');
-  console.log(result.reasoning);
+  console.log(result.reasoningText);
 
   console.log('\nTEXT:\n');
   console.log(result.text);

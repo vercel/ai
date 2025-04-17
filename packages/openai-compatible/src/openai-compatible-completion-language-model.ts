@@ -2,6 +2,7 @@ import {
   APICallError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
@@ -12,6 +13,7 @@ import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
   FetchFunction,
+  parseProviderOptions,
   ParseResult,
   postJsonToApi,
   ResponseHandler,
@@ -22,8 +24,8 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAICompatibleFinishReason } from './map-openai-compatible-finish-reason';
 import {
   OpenAICompatibleCompletionModelId,
-  OpenAICompatibleCompletionSettings,
-} from './openai-compatible-completion-settings';
+  openaiCompatibleCompletionProviderOptions,
+} from './openai-compatible-completion-options';
 import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
@@ -44,19 +46,15 @@ export class OpenAICompatibleCompletionLanguageModel
   readonly defaultObjectGenerationMode = undefined;
 
   readonly modelId: OpenAICompatibleCompletionModelId;
-  readonly settings: OpenAICompatibleCompletionSettings;
-
   private readonly config: OpenAICompatibleCompletionConfig;
   private readonly failedResponseHandler: ResponseHandler<APICallError>;
   private readonly chunkSchema; // type inferred via constructor
 
   constructor(
     modelId: OpenAICompatibleCompletionModelId,
-    settings: OpenAICompatibleCompletionSettings,
     config: OpenAICompatibleCompletionConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
 
     // initialize error handling:
@@ -94,6 +92,14 @@ export class OpenAICompatibleCompletionLanguageModel
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
 
+    // Parse provider options
+    const completionOptions =
+      parseProviderOptions({
+        provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompatibleCompletionProviderOptions,
+      }) ?? {};
+
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
     }
@@ -125,10 +131,10 @@ export class OpenAICompatibleCompletionLanguageModel
         model: this.modelId,
 
         // model specific settings:
-        echo: this.settings.echo,
-        logit_bias: this.settings.logitBias,
-        suffix: this.settings.suffix,
-        user: this.settings.user,
+        echo: completionOptions.echo,
+        logit_bias: completionOptions.logitBias,
+        suffix: completionOptions.suffix,
+        user: completionOptions.user,
 
         // standardized settings:
         max_tokens: maxOutputTokens,
@@ -174,9 +180,15 @@ export class OpenAICompatibleCompletionLanguageModel
     });
 
     const choice = response.choices[0];
+    const content: Array<LanguageModelV2Content> = [];
+
+    // text content:
+    if (choice.text != null && choice.text.length > 0) {
+      content.push({ type: 'text', text: choice.text });
+    }
 
     return {
-      text: { type: 'text', text: choice.text },
+      content,
       usage: {
         inputTokens: response.usage?.prompt_tokens ?? undefined,
         outputTokens: response.usage?.completion_tokens ?? undefined,

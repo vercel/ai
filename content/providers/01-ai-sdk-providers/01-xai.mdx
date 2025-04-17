@@ -94,17 +94,23 @@ xAI language models can also be used in the `streamText`, `generateObject`, and 
 
 ### Chat Models
 
-xAI chat models also support some model specific settings that are not part of
-the [standard call settings](/docs/ai-sdk-core/settings). You can pass them as
-an options argument:
+xAI chat models also support some model specific provider options that are not part of
+the [standard call settings](/docs/ai-sdk-core/settings). You can pass them in `providerOptions` argument:
 
 ```ts
-const model = xai('grok-3', {
-  user: 'test-user', // optional unique user identifier
+const model = xai('grok-3');
+
+await generateText({
+  model,
+  providerOptions: {
+    xai: {
+      user: 'test-user', // optional unique user identifier
+    },
+  },
 });
 ```
 
-The following optional settings are available for xAI chat models:
+The following optional provider options are available for xAI chat models:
 
 - **user** _string_
 

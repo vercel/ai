@@ -1,4 +1,5 @@
 import type {
+  LanguageModelV2Content,
   LanguageModelV2Middleware,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
@@ -27,54 +28,55 @@ export function extractReasoningMiddleware({
   return {
     middlewareVersion: 'v2',
     wrapGenerate: async ({ doGenerate }) => {
-      const { text: rawText, ...rest } = await doGenerate();
+      const { content, ...rest } = await doGenerate();
 
-      if (rawText == null) {
-        return { text: undefined, ...rest };
+      const transformedContent: LanguageModelV2Content[] = [];
+      for (const part of content) {
+        if (part.type !== 'text') {
+          transformedContent.push(part);
+          continue;
+        }
+
+        const text = startWithReasoning ? openingTag + part.text : part.text;
+
+        const regexp = new RegExp(`${openingTag}(.*?)${closingTag}`, 'gs');
+        const matches = Array.from(text.matchAll(regexp));
+
+        if (!matches.length) {
+          transformedContent.push(part);
+          continue;
+        }
+
+        const reasoningText = matches.map(match => match[1]).join(separator);
+
+        let textWithoutReasoning = text;
+        for (let i = matches.length - 1; i >= 0; i--) {
+          const match = matches[i];
+
+          const beforeMatch = textWithoutReasoning.slice(0, match.index);
+          const afterMatch = textWithoutReasoning.slice(
+            match.index! + match[0].length,
+          );
+
+          textWithoutReasoning =
+            beforeMatch +
+            (beforeMatch.length > 0 && afterMatch.length > 0 ? separator : '') +
+            afterMatch;
+        }
+
+        transformedContent.push({
+          type: 'reasoning',
+          reasoningType: 'text',
+          text: reasoningText,
+        });
+
+        transformedContent.push({
+          type: 'text',
+          text: textWithoutReasoning,
+        });
       }
 
-      const text = startWithReasoning
-        ? openingTag + rawText.text
-        : rawText.text;
-
-      const regexp = new RegExp(`${openingTag}(.*?)${closingTag}`, 'gs');
-      const matches = Array.from(text.matchAll(regexp));
-
-      if (!matches.length) {
-        return { text: { type: 'text', text }, ...rest };
-      }
-
-      const reasoningText = matches.map(match => match[1]).join(separator);
-
-      let textWithoutReasoning = text;
-      for (let i = matches.length - 1; i >= 0; i--) {
-        const match = matches[i];
-
-        const beforeMatch = textWithoutReasoning.slice(0, match.index);
-        const afterMatch = textWithoutReasoning.slice(
-          match.index! + match[0].length,
-        );
-
-        textWithoutReasoning =
-          beforeMatch +
-          (beforeMatch.length > 0 && afterMatch.length > 0 ? separator : '') +
-          afterMatch;
-      }
-
-      return {
-        ...rest,
-        text: { type: 'text', text: textWithoutReasoning },
-        reasoning:
-          reasoningText.length > 0
-            ? [
-                {
-                  type: 'reasoning',
-                  reasoningType: 'text',
-                  text: reasoningText,
-                },
-              ]
-            : undefined,
-      };
+      return { content: transformedContent, ...rest };
     },
 
     wrapStream: async ({ doStream }) => {

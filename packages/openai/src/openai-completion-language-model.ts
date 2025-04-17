@@ -165,7 +165,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     const choice = response.choices[0];
 
     return {
-      text: { type: 'text', text: choice.text },
+      content: [{ type: 'text', text: choice.text }],
       usage: {
         inputTokens: response.usage.prompt_tokens,
         outputTokens: response.usage.completion_tokens,

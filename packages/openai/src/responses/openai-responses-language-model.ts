@@ -1,6 +1,7 @@
 import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
@@ -249,40 +250,50 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const outputTextElements = response.output
-      .filter(output => output.type === 'message')
-      .flatMap(output => output.content)
-      .filter(content => content.type === 'output_text');
+    const content: Array<LanguageModelV2Content> = [];
 
-    const toolCalls = response.output
-      .filter(output => output.type === 'function_call')
-      .map(output => ({
-        type: 'tool-call' as const,
-        toolCallType: 'function' as const,
-        toolCallId: output.call_id,
-        toolName: output.name,
-        args: output.arguments,
-      }));
+    // map response content to content array
+    for (const part of response.output) {
+      switch (part.type) {
+        case 'message': {
+          for (const contentPart of part.content) {
+            content.push({
+              type: 'text',
+              text: contentPart.text,
+            });
+
+            for (const annotation of contentPart.annotations) {
+              content.push({
+                type: 'source',
+                sourceType: 'url',
+                id: this.config.generateId?.() ?? generateId(),
+                url: annotation.url,
+                title: annotation.title,
+              });
+            }
+          }
+          break;
+        }
+
+        case 'function_call': {
+          content.push({
+            type: 'tool-call' as const,
+            toolCallType: 'function' as const,
+            toolCallId: part.call_id,
+            toolName: part.name,
+            args: part.arguments,
+          });
+          break;
+        }
+      }
+    }
 
     return {
-      text: {
-        type: 'text',
-        text: outputTextElements.map(content => content.text).join('\n'),
-      },
-      sources: outputTextElements.flatMap(content =>
-        content.annotations.map(annotation => ({
-          type: 'source',
-          sourceType: 'url',
-          id: this.config.generateId?.() ?? generateId(),
-          url: annotation.url,
-          title: annotation.title,
-        })),
-      ),
+      content,
       finishReason: mapOpenAIResponseFinishReason({
         finishReason: response.incomplete_details?.reason,
-        hasToolCalls: toolCalls.length > 0,
+        hasToolCalls: content.some(part => part.type === 'tool-call'),
       }),
-      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,

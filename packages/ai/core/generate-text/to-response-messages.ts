@@ -1,6 +1,6 @@
 import { ToolResultPart } from '../prompt';
 import { GeneratedFile } from './generated-file';
-import { ReasoningDetail } from './reasoning-detail';
+import { Reasoning } from './reasoning';
 import { ResponseMessage } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -21,7 +21,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 }: {
   text: string | undefined;
   files: Array<GeneratedFile>;
-  reasoning: Array<ReasoningDetail>;
+  reasoning: Array<Reasoning>;
   tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
   toolResults: ToolResultArray<TOOLS>;
@@ -30,25 +30,45 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 }): Array<ResponseMessage> {
   const responseMessages: Array<ResponseMessage> = [];
 
-  responseMessages.push({
-    role: 'assistant',
-    content: [
+  const content = [];
+
+  // TODO language model v2: switch to order response content (instead of type-based ordering)
+
+  if (reasoning.length > 0) {
+    content.push(
       ...reasoning.map(part =>
         part.type === 'text'
           ? { ...part, type: 'reasoning' as const }
           : { ...part, type: 'redacted-reasoning' as const },
       ),
-      // TODO language model v2: switch to order response content (instead of type-based ordering)
+    );
+  }
+
+  if (files.length > 0) {
+    content.push(
       ...files.map(file => ({
         type: 'file' as const,
         data: file.base64,
         mediaType: file.mediaType,
       })),
-      { type: 'text' as const, text },
-      ...toolCalls,
-    ],
-    id: messageId,
-  });
+    );
+  }
+
+  if (text.length > 0) {
+    content.push({ type: 'text' as const, text });
+  }
+
+  if (toolCalls.length > 0) {
+    content.push(...toolCalls);
+  }
+
+  if (content.length > 0) {
+    responseMessages.push({
+      role: 'assistant',
+      content,
+      id: messageId,
+    });
+  }
 
   if (toolResults.length > 0) {
     responseMessages.push({
