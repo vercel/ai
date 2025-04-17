@@ -125,57 +125,10 @@ export class MessagesStore {
         break;
       }
       case 'reasoning': {
-        // onRedactedReasoningPart we reset the reasoningTextDetail:
-        if (partDelta.details[0].type === 'redacted') {
-          this.tempParts.reasoningTextDetail = undefined;
-        } // onReasoningPart we append the reasoning to the reasoningTextDetail (if it exists):
-        else if (this.tempParts.reasoningTextDetail) {
-          this.tempParts.reasoningTextDetail.text += partDelta.reasoning;
-
-          // And we update the signature on onReasoningSignaturePart:
-          if (
-            partDelta.details[0].type === 'text' &&
-            partDelta.details[0].signature
-          ) {
-            this.tempParts.reasoningTextDetail.signature =
-              partDelta.details[0].signature;
-          }
-        } // When reasonTextDetail is not set, we initialize:
-        else {
-          this.tempParts.reasoningTextDetail = {
-            type: 'text',
-            text: partDelta.reasoning,
-          };
-          if (this.tempParts.reasoning) {
-            this.tempParts.reasoning.details.push(
-              this.tempParts.reasoningTextDetail,
-            );
-          }
-        }
-
-        // If reasoning part exists, just append the reasoning text (since details have already been updated above):
-        if (this.tempParts.reasoning) {
-          this.tempParts.reasoning.reasoning += partDelta.reasoning;
-        } // Otherwise, we initialize the entire reasoning part:
-        else {
-          this.tempParts.reasoning = {
-            type: 'reasoning',
-            reasoning: partDelta.reasoning,
-            // reasonTextDetail can be undefined if we received a redacted reasoning part:
-            details: this.tempParts.reasoningTextDetail
-              ? [this.tempParts.reasoningTextDetail]
-              : [],
-          };
-          assistantMessage.parts.push(this.tempParts.reasoning);
-        }
-
-        // If redacted, we push the redacted data to the details:
-        if (partDelta.details[0].type === 'redacted') {
-          this.tempParts.reasoning.details.push(partDelta.details[0]);
-        }
-
-        assistantMessage.reasoning =
-          (assistantMessage.reasoning ?? '') + partDelta.reasoning;
+        this.addOrUpdateReasoning({
+          reasoning: partDelta,
+          assistantMessage,
+        });
         break;
       }
       case 'tool-invocation': {
@@ -333,6 +286,66 @@ export class MessagesStore {
         toolInvocation,
       });
     }
+  }
+
+  private addOrUpdateReasoning({
+    reasoning,
+    assistantMessage,
+  }: {
+    reasoning: ReasoningUIPart;
+    assistantMessage: UIMessage;
+  }) {
+    const detail = reasoning.details[0];
+
+    // Reset text detail if sent redacted part:
+    if (detail?.type === 'redacted') {
+      this.tempParts.reasoningTextDetail = undefined;
+    } // Append to existing reasoning text detail if exists:
+    else if (this.tempParts.reasoningTextDetail) {
+      this.tempParts.reasoningTextDetail.text += reasoning.reasoning;
+
+      // Update the signature if sent:
+      if (detail?.type === 'text' && detail?.signature) {
+        this.tempParts.reasoningTextDetail.signature = detail.signature;
+      }
+    } // Initialize if reasoning text detail is undefined:
+    else {
+      this.tempParts.reasoningTextDetail = {
+        type: 'text',
+        text: reasoning.reasoning,
+      };
+      // Only push if reasoning part exists:
+      if (this.tempParts.reasoning) {
+        this.tempParts.reasoning.details.push(
+          this.tempParts.reasoningTextDetail,
+        );
+      }
+    }
+
+    // If reasoning part exists, append reasoning text
+    // (since inner text details array has been updated above):
+    if (this.tempParts.reasoning) {
+      this.tempParts.reasoning.reasoning += reasoning.reasoning;
+    } // Otherwise, we initialize the entire reasoning part:
+    else {
+      this.tempParts.reasoning = {
+        type: 'reasoning',
+        reasoning: reasoning.reasoning,
+        // detail may be undefined if we received a redacted reasoning part:
+        details: this.tempParts.reasoningTextDetail
+          ? [this.tempParts.reasoningTextDetail]
+          : [],
+      };
+      assistantMessage.parts.push(this.tempParts.reasoning);
+    }
+
+    // If redacted, we push the redacted data to the details:
+    if (detail?.type === 'redacted') {
+      this.tempParts.reasoning.details.push(detail);
+    }
+
+    assistantMessage.reasoning =
+      (assistantMessage.reasoning ?? '') + reasoning.reasoning;
   }
 
   clear() {

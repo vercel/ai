@@ -228,7 +228,6 @@ export async function processChatResponseV2({
       }
     },
     onErrorPart(error) {
-      console.log('onErrorPart: ', error);
       throw new Error(error);
     },
   });
