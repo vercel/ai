@@ -1,5 +1,38 @@
 # @ai-sdk/openai
 
+## 1.3.15
+
+### Patch Changes
+
+- 98d954e: feat (providers/openai): add o3 and o4-mini models
+
+## 1.3.14
+
+### Patch Changes
+
+- 980141c: fix (openai): structure output for responses model
+
+## 1.3.13
+
+### Patch Changes
+
+- 75b9849: adding support for gpt-4o-search-preview and handling unsupported parameters
+
+## 1.3.12
+
+### Patch Changes
+
+- 575339f: feat (providers/openai): add gpt-4.1 models
+
+## 1.3.11
+
+### Patch Changes
+
+- beef951: feat: add speech with experimental_generateSpeech
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/provider-utils@2.2.7
+
 ## 1.3.10
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @ai-sdk/groq
 
+## 1.2.8
+
+### Patch Changes
+
+- 74688db: feat(providers/groq): add transcribe
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/provider-utils@2.2.7
+
 ## 1.2.7
 
 ### Patch Changes

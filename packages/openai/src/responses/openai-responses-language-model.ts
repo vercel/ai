@@ -24,6 +24,7 @@ import { OpenAIResponsesModelId } from './openai-responses-settings';
 export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
   readonly defaultObjectGenerationMode = 'json';
+  readonly supportsStructuredOutputs = true;
 
   readonly modelId: OpenAIResponsesModelId;
 
