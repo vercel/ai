@@ -505,6 +505,10 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
           "modelId": "gemma2-9b-it",
           "timestamp": 2023-12-15T16:17:00.000Z,
@@ -563,6 +567,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
           "modelId": "gemma2-9b-it",
@@ -650,75 +658,84 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'gemma2-9b-it',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'value',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '":"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'Spark',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'le',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: ' Day',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: 18, outputTokens: 439 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "gemma2-9b-it",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "argsTextDelta": "{"",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "value",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "":"",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "Spark",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "le",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " Day",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": ""}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 18,
+            "outputTokens": 439,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
@@ -776,82 +793,91 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'gemma2-9b-it',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'va',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'lue',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '":"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'Spark',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'le',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: ' Day',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: 18, outputTokens: 439 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "gemma2-9b-it",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "argsTextDelta": "{"",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "va",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "lue",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "":"",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "Spark",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "le",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " Day",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": ""}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 18,
+            "outputTokens": 439,
+          },
+        },
+      ]
+    `);
   });
 
   it('should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed', async () => {
@@ -915,62 +941,70 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chat-2267f7e2910a4254bac0650ba74cfc1c',
-        modelId: 'meta/llama-3.1-8b-instruct:fp8',
-        timestamp: new Date('2024-12-02T17:57:21.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: '{"query": "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: 'latest',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' news',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' on',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        argsTextDelta: ' ai"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa',
-        toolCallType: 'function',
-        toolName: 'searchGoogle',
-        args: '{"query": "latest news on ai"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        // note: test copied from openai-compatible test, no groq-specific usage data
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chat-2267f7e2910a4254bac0650ba74cfc1c",
+          "modelId": "meta/llama-3.1-8b-instruct:fp8",
+          "timestamp": 2024-12-02T17:57:21.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "argsTextDelta": "{"query": "",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "latest",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " news",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " on",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " ai"}",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"query": "latest news on ai"}",
+          "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "toolCallType": "function",
+          "toolName": "searchGoogle",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool call that is sent in one chunk', async () => {
@@ -1007,33 +1041,42 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'gemma2-9b-it',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: 18, outputTokens: 439 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "gemma2-9b-it",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "argsTextDelta": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 18,
+            "outputTokens": 439,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle error stream parts', async () => {
@@ -1050,21 +1093,29 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'error',
-        error: {
-          message:
-            'The server had an error processing your request. Sorry about that!',
-          type: 'invalid_request_error',
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+        {
+          "error": {
+            "message": "The server had an error processing your request. Sorry about that!",
+            "type": "invalid_request_error",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle unparsable stream parts', async () => {
@@ -1078,15 +1129,27 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    const elements = await convertReadableStreamToArray(stream);
-
-    expect(elements.length).toBe(2);
-    expect(elements[0].type).toBe('error');
-    expect(elements[1]).toStrictEqual({
-      finishReason: 'error',
-      type: 'finish',
-      usage: { inputTokens: undefined, outputTokens: undefined },
-    });
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
+      Error message: Expected property name or '}' in JSON at position 1],
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should expose the raw response headers', async () => {
