@@ -88,7 +88,6 @@ describe('streamObject', () => {
       it('should send object deltas with json mode when structured outputs are enabled', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            supportsStructuredOutputs: true,
             doStream: async ({ prompt, responseFormat }) => {
               expect(responseFormat).toStrictEqual({
                 type: 'json',
@@ -146,7 +145,6 @@ describe('streamObject', () => {
       it('should use name and description with json mode when structured outputs are enabled', async () => {
         const result = streamObject({
           model: new MockLanguageModelV2({
-            supportsStructuredOutputs: true,
             doStream: async ({ prompt, responseFormat }) => {
               expect(responseFormat).toStrictEqual({
                 type: 'json',

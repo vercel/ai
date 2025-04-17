@@ -68,7 +68,6 @@ describe('output = "object"', () => {
     it('should generate object with json mode when structured outputs are enabled', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          supportsStructuredOutputs: true,
           doGenerate: async ({ prompt, responseFormat }) => {
             expect(responseFormat).toStrictEqual({
               type: 'json',
@@ -110,7 +109,6 @@ describe('output = "object"', () => {
     it('should use name and description with json mode when structured outputs are enabled', async () => {
       const result = await generateObject({
         model: new MockLanguageModelV2({
-          supportsStructuredOutputs: true,
           doGenerate: async ({ prompt, responseFormat }) => {
             expect(responseFormat).toStrictEqual({
               type: 'json',
