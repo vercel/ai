@@ -2,6 +2,7 @@ import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
+  isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 import { createOpenAICompatible } from './openai-compatible-provider';
@@ -161,16 +162,18 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
     `);
   });
 
@@ -180,19 +183,17 @@ describe('doGenerate', () => {
       reasoning_content: 'This is the reasoning behind the response',
     });
 
-    const { text, reasoning } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
-    `);
-    expect(reasoning).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
         {
           "reasoningType": "text",
           "text": "This is the reasoning behind the response",
@@ -513,15 +514,17 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(result.toolCalls).toStrictEqual([
-      {
-        args: '{"value":"Spark"}',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        type: 'tool-call',
-      },
-    ]);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "args": "{"value":"Spark"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 
   describe('response format', () => {
@@ -912,6 +915,10 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
           "modelId": "grok-beta",
           "timestamp": 2023-12-15T16:17:00.000Z,
@@ -974,6 +981,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
           "modelId": "grok-beta",
@@ -1068,78 +1079,87 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'grok-beta',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'value',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '":"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'Spark',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'le',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: ' Day',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: 18, outputTokens: 439 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-    ]);
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "argsTextDelta": "{"",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "value",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "":"",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "Spark",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "le",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " Day",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": ""}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 18,
+            "outputTokens": 439,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream tool call deltas when tool call arguments are passed in the first chunk', async () => {
@@ -1197,85 +1217,94 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'grok-beta',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'va',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'lue',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '":"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'Spark',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'le',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: ' Day',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: 18, outputTokens: 439 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-    ]);
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "argsTextDelta": "{"",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "va",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "lue",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "":"",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "Spark",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "le",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " Day",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": ""}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 18,
+            "outputTokens": 439,
+          },
+        },
+      ]
+    `);
   });
 
   it('should not duplicate tool calls when there is an additional empty chunk after the tool call has been completed', async () => {
@@ -1341,6 +1370,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "chat-2267f7e2910a4254bac0650ba74cfc1c",
           "modelId": "meta/llama-3.1-8b-instruct:fp8",
@@ -1442,36 +1475,45 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'response-metadata',
-        id: 'chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798',
-        modelId: 'grok-beta',
-        timestamp: new Date('2024-03-25T09:06:38.000Z'),
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'call_O17Uplv4lJvD6DVdIvFFeRMw',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: 18, outputTokens: 439 },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-    ]);
+        {
+          "id": "chatcmpl-e7f8e220-656c-4455-a132-dacfc1370798",
+          "modelId": "grok-beta",
+          "timestamp": 2024-03-25T09:06:38.000Z,
+          "type": "response-metadata",
+        },
+        {
+          "argsTextDelta": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"value":"Sparkle Day"}",
+          "toolCallId": "call_O17Uplv4lJvD6DVdIvFFeRMw",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": 18,
+            "outputTokens": 439,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle error stream parts', async () => {
@@ -1488,47 +1530,70 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'error',
-        error:
-          'Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.',
-      },
-      {
-        type: 'finish',
-        finishReason: 'error',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-        providerMetadata: {
-          'test-provider': {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-    ]);
+        {
+          "error": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.",
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
-  it('should handle unparsable stream parts', async () => {
-    server.urls['https://my.api.com/v1/chat/completions'].response = {
-      type: 'stream-chunks',
-      chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
-    };
+  it.skipIf(isNodeVersion(20))(
+    'should handle unparsable stream parts',
+    async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [`data: {unparsable}\n\n`, 'data: [DONE]\n\n'],
+      };
 
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      prompt: TEST_PROMPT,
-    });
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        prompt: TEST_PROMPT,
+      });
 
-    const elements = await convertReadableStreamToArray(stream);
-
-    expect(elements.length).toBe(2);
-    expect(elements[0].type).toBe('error');
-    expect(elements[1]).toStrictEqual({
-      finishReason: 'error',
-      type: 'finish',
-      usage: { inputTokens: undefined, outputTokens: undefined },
-      providerMetadata: {
-        'test-provider': {},
-      },
-    });
-  });
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
+        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+            "type": "error",
+          },
+          {
+            "finishReason": "error",
+            "providerMetadata": {
+              "test-provider": {},
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+            },
+          },
+        ]
+      `);
+    },
+  );
 
   it('should expose the raw response headers', async () => {
     prepareStreamResponse({

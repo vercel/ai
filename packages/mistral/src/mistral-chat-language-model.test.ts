@@ -65,26 +65,28 @@ describe('doGenerate', () => {
     };
   }
 
-  it('should extract text response', async () => {
+  it('should extract text content', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
-    const { text } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
     `);
   });
 
   it('should avoid duplication when there is a trailing assistant message', async () => {
     prepareJsonResponse({ content: 'prefix and more content' });
 
-    const { text } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'messages',
       prompt: [
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -95,15 +97,17 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "and more content",
-        "type": "text",
-      }
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "and more content",
+          "type": "text",
+        },
+      ]
     `);
   });
 
-  it('should extract tool call response', async () => {
+  it('should extract tool call content', async () => {
     server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
       type: 'json-value',
       body: {
@@ -135,12 +139,12 @@ describe('doGenerate', () => {
       },
     };
 
-    const { toolCalls } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(toolCalls).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
         {
           "args": "{"location": "paris"}",
@@ -337,7 +341,7 @@ describe('doGenerate', () => {
     `);
   });
 
-  it('should extract text response when message content is a content object', async () => {
+  it('should extract content when message content is a content object', async () => {
     server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
       type: 'json-value',
       body: {
@@ -366,16 +370,18 @@ describe('doGenerate', () => {
       },
     };
 
-    const { text } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello from object",
-        "type": "text",
-      }
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello from object",
+          "type": "text",
+        },
+      ]
     `);
   });
 });
@@ -421,6 +427,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "6e2cd91750904b7092f49bdca9083de1",
           "modelId": "mistral-small-latest",
@@ -475,6 +485,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "6e2cd91750904b7092f49bdca9083de1",
           "modelId": "mistral-small-latest",
@@ -547,6 +561,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "ad6f7ce6543c4d0890280ae184fe4dd8",
           "modelId": "mistral-large-latest",
@@ -705,6 +723,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "stream-object-id",
           "modelId": "mistral-small-latest",

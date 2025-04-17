@@ -2,6 +2,7 @@ import {
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
+  TranscriptionModelV1,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -10,6 +11,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { GroqChatLanguageModel } from './groq-chat-language-model';
 import { GroqChatModelId, GroqChatSettings } from './groq-chat-options';
+import { GroqTranscriptionModelId } from './groq-transcription-settings';
+import { GroqTranscriptionModel } from './groq-transcription-model';
 
 export interface GroqProvider extends ProviderV2 {
   /**
@@ -24,6 +27,11 @@ Creates an Groq chat model for text generation.
     modelId: GroqChatModelId,
     settings?: GroqChatSettings,
   ): LanguageModelV2;
+
+  /**
+Creates a model for transcription.
+   */
+  transcription(modelId: GroqTranscriptionModelId): TranscriptionModelV1;
 }
 
 export interface GroqProviderSettings {
@@ -89,6 +97,15 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
     return createChatModel(modelId, settings);
   };
 
+  const createTranscriptionModel = (modelId: GroqTranscriptionModelId) => {
+    return new GroqTranscriptionModel(modelId, {
+      provider: 'groq.transcription',
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+  };
+
   const provider = function (
     modelId: GroqChatModelId,
     settings?: GroqChatSettings,
@@ -105,6 +122,7 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+  provider.transcription = createTranscriptionModel;
 
   return provider;
 }

@@ -2,6 +2,7 @@ import { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   createTestServer,
+  isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
 import { createCohere } from './cohere-provider';
 
@@ -67,16 +68,18 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ text: 'Hello, World!' });
 
-    const { text } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
     `);
   });
 
@@ -95,7 +98,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { text, toolCalls, finishReason } = await model.doGenerate({
+    const { content, finishReason } = await model.doGenerate({
       inputFormat: 'prompt',
       tools: [
         {
@@ -113,8 +116,12 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(toolCalls).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
         {
           "args": "{"value":"example value"}",
           "toolCallId": "test-id-1",
@@ -123,12 +130,6 @@ describe('doGenerate', () => {
           "type": "tool-call",
         },
       ]
-    `);
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
     `);
     expect(finishReason).toStrictEqual('stop');
   });
@@ -412,7 +413,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { toolCalls } = await model.doGenerate({
+    const { content } = await model.doGenerate({
       inputFormat: 'prompt',
       tools: [
         {
@@ -435,7 +436,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(toolCalls).toMatchInlineSnapshot(`
+    expect(content).toMatchInlineSnapshot(`
       [
         {
           "args": "{}",
@@ -501,6 +502,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "id": "586ac33f-9c64-452c-8f8d-e5890e73b6fb",
           "type": "response-metadata",
@@ -571,98 +576,112 @@ describe('doStream', () => {
 
     const responseArray = await convertReadableStreamToArray(stream);
 
-    expect(responseArray).toStrictEqual([
-      { type: 'response-metadata', id: '29f14a5a-11de-4cae-9800-25e4747408ea' },
-      {
-        type: 'tool-call-delta',
-        toolCallType: 'function',
-        toolCallId: 'test-id-1',
-        toolName: 'test-tool',
-        argsTextDelta: '',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{\n    "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'ticker',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '_',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'symbol',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: ' "',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: 'AAPL',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '\n',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"ticker_symbol":"AAPL"}',
-      },
-      {
-        finishReason: 'stop',
-        type: 'finish',
-        usage: { inputTokens: 893, outputTokens: 62 },
-      },
-    ]);
+    expect(responseArray).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "29f14a5a-11de-4cae-9800-25e4747408ea",
+          "type": "response-metadata",
+        },
+        {
+          "argsTextDelta": "",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "{
+          "",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "ticker",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "_",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "symbol",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "":",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": " "",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "AAPL",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": """,
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "
+      ",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "}",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"ticker_symbol":"AAPL"}",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 893,
+            "outputTokens": 62,
+          },
+        },
+      ]
+    `);
 
     // Check if the tool call ID is the same in the tool call delta and the tool call
     const toolCallIds = responseArray
@@ -674,26 +693,42 @@ describe('doStream', () => {
     expect(new Set(toolCallIds)).toStrictEqual(new Set(['test-id-1']));
   });
 
-  it('should handle unparsable stream parts', async () => {
-    server.urls['https://api.cohere.com/v2/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [`event: foo-message\ndata: {unparsable}\n\n`],
-    };
+  it.skipIf(isNodeVersion(20))(
+    'should handle unparsable stream parts',
+    async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [`event: foo-message\ndata: {unparsable}\n\n`],
+      };
 
-    const { stream } = await model.doStream({
-      inputFormat: 'prompt',
-      prompt: TEST_PROMPT,
-    });
+      const { stream } = await model.doStream({
+        inputFormat: 'prompt',
+        prompt: TEST_PROMPT,
+      });
 
-    const elements = await convertReadableStreamToArray(stream);
-    expect(elements.length).toBe(2);
-    expect(elements[0].type).toBe('error');
-    expect(elements[1]).toStrictEqual({
-      finishReason: 'error',
-      type: 'finish',
-      usage: { inputTokens: undefined, outputTokens: undefined },
-    });
-  });
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
+        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+            "type": "error",
+          },
+          {
+            "finishReason": "error",
+            "type": "finish",
+            "usage": {
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+            },
+          },
+        ]
+      `);
+    },
+  );
 
   it('should expose the raw response headers', async () => {
     prepareStreamResponse({
@@ -836,27 +871,39 @@ describe('doStream', () => {
       ],
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      { type: 'response-metadata', id: 'test-id' },
-      {
-        type: 'tool-call-delta',
-        toolCallType: 'function',
-        toolCallId: 'test-id-1',
-        toolName: 'test-tool',
-        argsTextDelta: '',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'test-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'stop',
-        usage: { inputTokens: 10, outputTokens: 5 },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "id": "test-id",
+          "type": "response-metadata",
+        },
+        {
+          "argsTextDelta": "",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{}",
+          "toolCallId": "test-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "stop",
+          "type": "finish",
+          "usage": {
+            "inputTokens": 10,
+            "outputTokens": 5,
+          },
+        },
+      ]
+    `);
   });
 });

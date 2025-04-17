@@ -8,8 +8,11 @@ async function main() {
     model: new MockLanguageModelV2({
       doGenerate: async () => ({
         usage: { inputTokens: 10, outputTokens: 20 },
+        warnings: [],
         finishReason: 'tool-calls',
-        text: { type: 'text', text: `{ "content": "provider metadata test"` },
+        content: [
+          { type: 'text', text: `{ "content": "provider metadata test"` },
+        ],
       }),
     }),
     schema: z.object({ content: z.string() }),

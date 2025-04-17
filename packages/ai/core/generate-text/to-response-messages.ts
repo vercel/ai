@@ -1,6 +1,6 @@
 import { ToolResultPart } from '../prompt';
 import { GeneratedFile } from './generated-file';
-import { ReasoningDetail } from './reasoning-detail';
+import { Reasoning } from './reasoning';
 import { ResponseMessage } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -21,7 +21,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 }: {
   text: string | undefined;
   files: Array<GeneratedFile>;
-  reasoning: Array<ReasoningDetail>;
+  reasoning: Array<Reasoning>;
   tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
   toolResults: ToolResultArray<TOOLS>;

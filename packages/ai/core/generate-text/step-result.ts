@@ -10,7 +10,7 @@ import {
 import { Source } from '../types/language-model';
 import { LanguageModelUsage } from '../types/usage';
 import { GeneratedFile } from './generated-file';
-import { ReasoningDetail } from './reasoning-detail';
+import { Reasoning } from './reasoning';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -38,11 +38,12 @@ The generated text.
   /**
 The reasoning that was generated during the generation.
 */
-  // TODO v5: rename to `reasoningText`
-  readonly reasoning: string | undefined;
+  readonly reasoning: Array<Reasoning>;
 
-  // TODO v5: rename to `reasoning`
-  readonly reasoningDetails: Array<ReasoningDetail>;
+  /**
+The reasoning text that was generated during the generation.
+*/
+  readonly reasoningText: string | undefined;
 
   /**
 The files that were generated during the generation.

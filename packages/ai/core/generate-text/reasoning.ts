@@ -1,10 +1,9 @@
-// TODO v5: rename to `Reasoning` (keep old name for backwards compatibility)
-export type ReasoningDetail =
+export type Reasoning =
   | { type: 'text'; text: string; signature?: string }
   | { type: 'redacted'; data: string };
 
 export function asReasoningText(
-  reasoning: Array<ReasoningDetail>,
+  reasoning: Array<Reasoning>,
 ): string | undefined {
   const reasoningText = reasoning
     .filter(part => part.type === 'text')

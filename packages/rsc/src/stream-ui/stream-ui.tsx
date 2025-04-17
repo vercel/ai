@@ -1,4 +1,4 @@
-import { LanguageModelV2 } from '@ai-sdk/provider';
+import { LanguageModelV2, LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { ReactNode } from 'react';
 import { z } from 'zod';
@@ -288,6 +288,7 @@ functionality that can be fully encapsulated in the provider.
     try {
       let content = '';
       let hasToolCall = false;
+      let warnings: LanguageModelV2CallWarning[] | undefined;
 
       const reader = forkedStream.getReader();
       while (true) {
@@ -295,6 +296,11 @@ functionality that can be fully encapsulated in the provider.
         if (done) break;
 
         switch (value.type) {
+          case 'stream-start': {
+            warnings = value.warnings;
+            break;
+          }
+
           case 'text': {
             content += value.text;
             render({
@@ -363,7 +369,7 @@ functionality that can be fully encapsulated in the provider.
             finishEvent = {
               finishReason: value.finishReason,
               usage: calculateLanguageModelUsage(value.usage),
-              warnings: result.warnings,
+              warnings,
               response: result.response,
             };
             break;

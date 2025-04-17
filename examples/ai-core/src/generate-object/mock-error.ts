@@ -9,6 +9,8 @@ async function main() {
       model: new MockLanguageModelV2({
         defaultObjectGenerationMode: 'json',
         doGenerate: async () => ({
+          warnings: [],
+          content: [{ type: 'text', text: `{"content":"Hello broken json` }],
           response: {
             id: 'id-1',
             timestamp: new Date(123),
@@ -16,7 +18,6 @@ async function main() {
           },
           finishReason: 'stop',
           usage: { inputTokens: 10, outputTokens: 20 },
-          text: { type: 'text', text: `{"content":"Hello broken json` },
         }),
       }),
       schema: z.object({ content: z.string() }),

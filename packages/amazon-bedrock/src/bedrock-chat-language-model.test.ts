@@ -172,6 +172,10 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
           "text": "Hello",
           "type": "text",
         },
@@ -250,34 +254,43 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '{"value":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        argsTextDelta: '"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'tool-use-id',
-        toolCallType: 'function',
-        toolName: 'test-tool',
-        args: '{"value":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "argsTextDelta": "{"value":",
+          "toolCallId": "tool-use-id",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": ""Sparkle Day"}",
+          "toolCallId": "tool-use-id",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"value":"Sparkle Day"}",
+          "toolCallId": "tool-use-id",
+          "toolCallType": "function",
+          "toolName": "test-tool",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should stream parallel tool calls', async () => {
@@ -369,55 +382,64 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool-1',
-        argsTextDelta: '{"value1":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-2',
-        argsTextDelta: '{"value2":',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-2',
-        argsTextDelta: '"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call-delta',
-        toolCallId: 'tool-use-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool-1',
-        argsTextDelta: '"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'tool-use-id-1',
-        toolCallType: 'function',
-        toolName: 'test-tool-1',
-        args: '{"value1":"Sparkle Day"}',
-      },
-      {
-        type: 'tool-call',
-        toolCallId: 'tool-use-id-2',
-        toolCallType: 'function',
-        toolName: 'test-tool-2',
-        args: '{"value2":"Sparkle Day"}',
-      },
-      {
-        type: 'finish',
-        finishReason: 'tool-calls',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "argsTextDelta": "{"value1":",
+          "toolCallId": "tool-use-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool-1",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": "{"value2":",
+          "toolCallId": "tool-use-id-2",
+          "toolCallType": "function",
+          "toolName": "test-tool-2",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": ""Sparkle Day"}",
+          "toolCallId": "tool-use-id-2",
+          "toolCallType": "function",
+          "toolName": "test-tool-2",
+          "type": "tool-call-delta",
+        },
+        {
+          "argsTextDelta": ""Sparkle Day"}",
+          "toolCallId": "tool-use-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool-1",
+          "type": "tool-call-delta",
+        },
+        {
+          "args": "{"value1":"Sparkle Day"}",
+          "toolCallId": "tool-use-id-1",
+          "toolCallType": "function",
+          "toolName": "test-tool-1",
+          "type": "tool-call",
+        },
+        {
+          "args": "{"value2":"Sparkle Day"}",
+          "toolCallId": "tool-use-id-2",
+          "toolCallType": "function",
+          "toolName": "test-tool-2",
+          "type": "tool-call",
+        },
+        {
+          "finishReason": "tool-calls",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle error stream parts', async () => {
@@ -441,23 +463,31 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    const result = await convertReadableStreamToArray(stream);
-    expect(result).toStrictEqual([
-      {
-        type: 'error',
-        error: {
-          message: 'Internal Server Error',
-          name: 'InternalServerException',
-          $fault: 'server',
-          $metadata: {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+        {
+          "error": {
+            "$fault": "server",
+            "$metadata": {},
+            "message": "Internal Server Error",
+            "name": "InternalServerException",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle modelStreamErrorException error', async () => {
@@ -481,23 +511,31 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    const result = await convertReadableStreamToArray(stream);
-    expect(result).toStrictEqual([
-      {
-        type: 'error',
-        error: {
-          message: 'Model Stream Error',
-          name: 'ModelStreamErrorException',
-          $fault: 'server',
-          $metadata: {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+        {
+          "error": {
+            "$fault": "server",
+            "$metadata": {},
+            "message": "Model Stream Error",
+            "name": "ModelStreamErrorException",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle throttlingException error', async () => {
@@ -521,23 +559,31 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    const result = await convertReadableStreamToArray(stream);
-    expect(result).toStrictEqual([
-      {
-        type: 'error',
-        error: {
-          message: 'Throttling Error',
-          name: 'ThrottlingException',
-          $fault: 'server',
-          $metadata: {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+        {
+          "error": {
+            "$fault": "server",
+            "$metadata": {},
+            "message": "Throttling Error",
+            "name": "ThrottlingException",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle validationException error', async () => {
@@ -561,23 +607,31 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    const result = await convertReadableStreamToArray(stream);
-    expect(result).toStrictEqual([
-      {
-        type: 'error',
-        error: {
-          message: 'Validation Error',
-          name: 'ValidationException',
-          $fault: 'server',
-          $metadata: {},
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
         },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+        {
+          "error": {
+            "$fault": "server",
+            "$metadata": {},
+            "message": "Validation Error",
+            "name": "ValidationException",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should handle failed chunk parsing', async () => {
@@ -590,18 +644,29 @@ describe('doStream', () => {
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
-    const result = await convertReadableStreamToArray(stream);
-    expect(result).toStrictEqual([
-      {
-        type: 'error',
-        error: { message: 'Chunk Parsing Failed' },
-      },
-      {
-        finishReason: 'error',
-        type: 'finish',
-        usage: { inputTokens: undefined, outputTokens: undefined },
-      },
-    ]);
+
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
+          "error": {
+            "message": "Chunk Parsing Failed",
+          },
+          "type": "error",
+        },
+        {
+          "finishReason": "error",
+          "type": "finish",
+          "usage": {
+            "inputTokens": undefined,
+            "outputTokens": undefined,
+          },
+        },
+      ]
+    `);
   });
 
   it('should pass the messages and the model', async () => {
@@ -689,6 +754,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "text": "Hello",
           "type": "text",
@@ -926,6 +995,10 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
           "text": "Hello",
           "type": "text",
         },
@@ -1038,6 +1111,10 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
           "reasoningType": "text",
           "text": "I am thinking",
           "type": "reasoning",
@@ -1102,6 +1179,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "data": "redacted-reasoning-data",
           "reasoningType": "redacted",
@@ -1184,16 +1265,18 @@ describe('doGenerate', () => {
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
-    const { text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "Hello, World!",
-        "type": "text",
-      }
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, World!",
+          "type": "text",
+        },
+      ]
     `);
   });
 
@@ -1548,18 +1631,12 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "The answer is 42.",
-        "type": "text",
-      }
-    `);
-    expect(reasoning).toMatchInlineSnapshot(`
+    expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "reasoningType": "text",
@@ -1570,6 +1647,10 @@ describe('doGenerate', () => {
           "reasoningType": "signature",
           "signature": "abc123signature",
           "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
         },
       ]
     `);
@@ -1591,23 +1672,21 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "The answer is 42.",
-        "type": "text",
-      }
-    `);
-    expect(reasoning).toMatchInlineSnapshot(`
+    expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "reasoningType": "text",
           "text": "I need to think about this problem carefully...",
           "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
         },
       ]
     `);
@@ -1627,23 +1706,21 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "The answer is 42.",
-        "type": "text",
-      }
-    `);
-    expect(reasoning).toMatchInlineSnapshot(`
+    expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "data": "redacted-reasoning-data",
           "reasoningType": "redacted",
           "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
         },
       ]
     `);
@@ -1671,18 +1748,12 @@ describe('doGenerate', () => {
       ],
     });
 
-    const { reasoning, text } = await model.doGenerate({
+    const result = await model.doGenerate({
       inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(text).toMatchInlineSnapshot(`
-      {
-        "text": "The answer is 42.",
-        "type": "text",
-      }
-    `);
-    expect(reasoning).toMatchInlineSnapshot(`
+    expect(result.content).toMatchInlineSnapshot(`
       [
         {
           "reasoningType": "text",
@@ -1698,6 +1769,10 @@ describe('doGenerate', () => {
           "data": "redacted-data",
           "reasoningType": "redacted",
           "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
         },
       ]
     `);

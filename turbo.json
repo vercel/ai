@@ -15,6 +15,7 @@
         "COHERE_API_KEY",
         "DEEPINFRA_API_KEY",
         "DEEPSEEK_API_KEY",
+        "ELEVENLABS_API_KEY",
         "FAL_KEY",
         "FAL_API_KEY",
         "FIREWORKS_API_KEY",
@@ -59,6 +60,9 @@
       "dependsOn": ["^build", "build"]
     },
     "test": {
+      "dependsOn": ["^build", "build"]
+    },
+    "test:update": {
       "dependsOn": ["^build", "build"]
     },
     "publint": {

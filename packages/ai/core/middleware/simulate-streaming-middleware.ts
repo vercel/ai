@@ -14,30 +14,15 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
 
       const simulatedStream = new ReadableStream<LanguageModelV2StreamPart>({
         start(controller) {
+          controller.enqueue({
+            type: 'stream-start',
+            warnings: result.warnings,
+          });
+
           controller.enqueue({ type: 'response-metadata', ...result.response });
 
-          if (result.reasoning) {
-            for (const reasoningPart of result.reasoning) {
-              controller.enqueue(reasoningPart);
-            }
-          }
-
-          if (result.text) {
-            controller.enqueue(result.text);
-          }
-
-          if (result.toolCalls) {
-            for (const toolCall of result.toolCalls) {
-              controller.enqueue({
-                type: 'tool-call-delta',
-                toolCallType: 'function',
-                toolCallId: toolCall.toolCallId,
-                toolName: toolCall.toolName,
-                argsTextDelta: toolCall.args,
-              });
-
-              controller.enqueue(toolCall);
-            }
+          for (const part of result.content) {
+            controller.enqueue(part);
           }
 
           controller.enqueue({
@@ -56,7 +41,6 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
         stream: simulatedStream,
         request: result.request,
         response: result.response,
-        warnings: result.warnings,
       };
     },
   };

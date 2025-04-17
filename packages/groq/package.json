@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/groq",
-  "version": "2.0.0-canary.8",
+  "version": "2.0.0-canary.9",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -18,9 +18,10 @@
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
+    "test:update": "pnpm test:node -u",
+    "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
-    "test:node": "vitest --config vitest.node.config.js --run",
-    "test:node:watch": "vitest --config vitest.node.config.js"
+    "test:node": "vitest --config vitest.node.config.js --run"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -31,8 +32,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "2.0.0-canary.6",
-    "@ai-sdk/provider-utils": "3.0.0-canary.7"
+    "@ai-sdk/provider": "2.0.0-canary.7",
+    "@ai-sdk/provider-utils": "3.0.0-canary.8"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

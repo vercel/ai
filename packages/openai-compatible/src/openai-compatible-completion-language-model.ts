@@ -2,6 +2,7 @@ import {
   APICallError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
@@ -179,9 +180,15 @@ export class OpenAICompatibleCompletionLanguageModel
     });
 
     const choice = response.choices[0];
+    const content: Array<LanguageModelV2Content> = [];
+
+    // text content:
+    if (choice.text != null && choice.text.length > 0) {
+      content.push({ type: 'text', text: choice.text });
+    }
 
     return {
-      text: { type: 'text', text: choice.text },
+      content,
       usage: {
         inputTokens: response.usage?.prompt_tokens ?? undefined,
         outputTokens: response.usage?.completion_tokens ?? undefined,
@@ -235,6 +242,10 @@ export class OpenAICompatibleCompletionLanguageModel
           ParseResult<z.infer<typeof this.chunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
@@ -293,7 +304,6 @@ export class OpenAICompatibleCompletionLanguageModel
       ),
       request: { body },
       response: { headers: responseHeaders },
-      warnings,
     };
   }
 }

@@ -1,4 +1,7 @@
-import { LanguageModelV2StreamPart } from '@ai-sdk/provider';
+import {
+  LanguageModelV2CallWarning,
+  LanguageModelV2StreamPart,
+} from '@ai-sdk/provider';
 import { Tracer } from '@opentelemetry/api';
 import { ToolExecutionError } from '../../errors';
 import { CoreMessage } from '../prompt/message';
@@ -23,6 +26,7 @@ import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
+  | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
   | { type: 'text'; text: string }
   | { type: 'reasoning'; reasoningType: 'text'; text: string }
   | { type: 'reasoning'; reasoningType: 'signature'; signature: string }
@@ -135,6 +139,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
       switch (chunkType) {
         // forward:
+        case 'stream-start':
         case 'text':
         case 'reasoning':
         case 'source':

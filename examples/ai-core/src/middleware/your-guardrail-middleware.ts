@@ -1,15 +1,24 @@
-import { LanguageModelV2Middleware } from '@ai-sdk/provider';
+import {
+  LanguageModelV2Content,
+  LanguageModelV2Middleware,
+} from '@ai-sdk/provider';
 
 export const yourGuardrailMiddleware: LanguageModelV2Middleware = {
   wrapGenerate: async ({ doGenerate }) => {
-    const { text, ...rest } = await doGenerate();
+    const { content, ...rest } = await doGenerate();
 
     // filtering approach, e.g. for PII or other sensitive information:
-    const cleanedText = text?.text?.replace(/badword/g, '<REDACTED>');
+    const cleanedContent: Array<LanguageModelV2Content> = content.map(part => {
+      return part.type === 'text'
+        ? {
+            type: 'text',
+            text: part.text.replace(/badword/g, '<REDACTED>'),
+          }
+        : part;
+    });
 
     return {
-      text:
-        cleanedText != null ? { type: 'text', text: cleanedText } : undefined,
+      content: cleanedContent,
       ...rest,
     };
   },

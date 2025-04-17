@@ -121,11 +121,13 @@ describe('OpenAIResponsesLanguageModel', () => {
           inputFormat: 'prompt',
         });
 
-        expect(result.text).toMatchInlineSnapshot(`
-          {
-            "text": "answer text",
-            "type": "text",
-          }
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "answer text",
+              "type": "text",
+            },
+          ]
         `);
       });
 
@@ -800,7 +802,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           tools: TEST_TOOLS,
         });
 
-        expect(result.toolCalls).toMatchInlineSnapshot(`
+        expect(result.content).toMatchInlineSnapshot(`
           [
             {
               "args": "{"location":"San Francisco"}",
@@ -953,15 +955,16 @@ describe('OpenAIResponsesLanguageModel', () => {
         };
       });
 
-      it('should generate text', async () => {
+      it('should generate text and sources', async () => {
         const result = await createModel('gpt-4o').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
         });
 
-        expect(result.text).toMatchInlineSnapshot(`
-          {
-            "text": "Last week in San Francisco, several notable events and developments took place:
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "text": "Last week in San Francisco, several notable events and developments took place:
 
           **Bruce Lee Statue in Chinatown**
 
@@ -988,19 +991,8 @@ describe('OpenAIResponsesLanguageModel', () => {
           - [Bruce Lee statue to be installed in SF Chinatown](https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com)
           - [The Bay Area is set to make an office leasing comeback](https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com)
           - [Oceanfront Great Highway park set to open in April](https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com)",
-            "type": "text",
-          }
-        `);
-      });
-
-      it('should return sources', async () => {
-        const result = await createModel('gpt-4o').doGenerate({
-          prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-        });
-
-        expect(result.sources).toMatchInlineSnapshot(`
-          [
+              "type": "text",
+            },
             {
               "id": "id-0",
               "sourceType": "url",
@@ -1068,6 +1060,10 @@ describe('OpenAIResponsesLanguageModel', () => {
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
             "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
             "modelId": "gpt-4o-2024-07-18",
             "timestamp": 2025-03-06T13:50:19.000Z,
@@ -1123,6 +1119,10 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
             "modelId": "gpt-4o-2024-07-18",
@@ -1180,96 +1180,105 @@ describe('OpenAIResponsesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          id: 'resp_67cb13a755c08190acbe3839a49632fc',
-          modelId: 'gpt-4o-2024-07-18',
-          timestamp: new Date('2025-03-07T15:41:27.000Z'),
-          type: 'response-metadata',
-        },
-        {
-          argsTextDelta: '',
-          toolCallId: 'call_6KxSghkb4MVnunFH2TxPErLP',
-          toolCallType: 'function',
-          toolName: 'currentLocation',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '{}',
-          toolCallId: 'call_6KxSghkb4MVnunFH2TxPErLP',
-          toolCallType: 'function',
-          toolName: 'currentLocation',
-          type: 'tool-call-delta',
-        },
-        {
-          args: '{}',
-          toolCallId: 'call_pgjcAI4ZegMkP6bsAV7sfrJA',
-          toolCallType: 'function',
-          toolName: 'currentLocation',
-          type: 'tool-call',
-        },
-        {
-          argsTextDelta: '',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '{',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '"location',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '":',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '"Rome',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          argsTextDelta: '"}',
-          toolCallId: 'call_Dg6WUmFHNeR5JxX1s53s1G4b',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call-delta',
-        },
-        {
-          args: '{"location":"Rome"}',
-          toolCallId: 'call_X2PAkDJInno9VVnNkDrfhboW',
-          toolCallType: 'function',
-          toolName: 'weather',
-          type: 'tool-call',
-        },
-        {
-          finishReason: 'tool-calls',
-          type: 'finish',
-          usage: { inputTokens: 0, outputTokens: 0 },
-          providerMetadata: {
-            openai: {
-              responseId: 'resp_67cb13a755c08190acbe3839a49632fc',
-              cachedPromptTokens: 0,
-              reasoningTokens: 0,
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67cb13a755c08190acbe3839a49632fc",
+            "modelId": "gpt-4o-2024-07-18",
+            "timestamp": 2025-03-07T15:41:27.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "argsTextDelta": "",
+            "toolCallId": "call_6KxSghkb4MVnunFH2TxPErLP",
+            "toolCallType": "function",
+            "toolName": "currentLocation",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": "{}",
+            "toolCallId": "call_6KxSghkb4MVnunFH2TxPErLP",
+            "toolCallType": "function",
+            "toolName": "currentLocation",
+            "type": "tool-call-delta",
+          },
+          {
+            "args": "{}",
+            "toolCallId": "call_pgjcAI4ZegMkP6bsAV7sfrJA",
+            "toolCallType": "function",
+            "toolName": "currentLocation",
+            "type": "tool-call",
+          },
+          {
+            "argsTextDelta": "",
+            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "toolCallType": "function",
+            "toolName": "weather",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": "{",
+            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "toolCallType": "function",
+            "toolName": "weather",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": ""location",
+            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "toolCallType": "function",
+            "toolName": "weather",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": "":",
+            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "toolCallType": "function",
+            "toolName": "weather",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": ""Rome",
+            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "toolCallType": "function",
+            "toolName": "weather",
+            "type": "tool-call-delta",
+          },
+          {
+            "argsTextDelta": ""}",
+            "toolCallId": "call_Dg6WUmFHNeR5JxX1s53s1G4b",
+            "toolCallType": "function",
+            "toolName": "weather",
+            "type": "tool-call-delta",
+          },
+          {
+            "args": "{"location":"Rome"}",
+            "toolCallId": "call_X2PAkDJInno9VVnNkDrfhboW",
+            "toolCallType": "function",
+            "toolName": "weather",
+            "type": "tool-call",
+          },
+          {
+            "finishReason": "tool-calls",
+            "providerMetadata": {
+              "openai": {
+                "cachedPromptTokens": 0,
+                "reasoningTokens": 0,
+                "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 0,
+              "outputTokens": 0,
             },
           },
-        },
-      ]);
+        ]
+      `);
     });
 
     it('should stream sources', async () => {
@@ -1306,6 +1315,10 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "resp_67cf3390786881908b27489d7e8cfb6b",
             "modelId": "gpt-4o-mini-2024-07-18",

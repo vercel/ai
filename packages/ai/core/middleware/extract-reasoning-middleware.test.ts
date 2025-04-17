@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
 
 describe('extractReasoningMiddleware', () => {
@@ -14,12 +14,15 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: {
-              type: 'text',
-              text: '<think>analyzing the request</think>Here is the response',
-            },
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response',
+              },
+            ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
+            warnings: [],
           };
         },
       });
@@ -40,12 +43,15 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: {
-              type: 'text',
-              text: '<think>analyzing the request\n</think>',
-            },
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request\n</think>',
+              },
+            ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
+            warnings: [],
           };
         },
       });
@@ -66,12 +72,15 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: {
-              type: 'text',
-              text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
-            },
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response<think>thinking about the response</think>more',
+              },
+            ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
+            warnings: [],
           };
         },
       });
@@ -90,16 +99,19 @@ describe('extractReasoningMiddleware', () => {
       expect(result.text).toStrictEqual('Here is the response\nmore');
     });
 
-    it('should preprend <think> tag IFF startWithReasoning is true', async () => {
+    it('should prepend <think> tag IFF startWithReasoning is true', async () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: {
-              type: 'text',
-              text: 'analyzing the request</think>Here is the response',
-            },
+            content: [
+              {
+                type: 'text',
+                text: 'analyzing the request</think>Here is the response',
+              },
+            ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
+            warnings: [],
           };
         },
       });
@@ -137,13 +149,16 @@ describe('extractReasoningMiddleware', () => {
       const mockModel = new MockLanguageModelV2({
         async doGenerate() {
           return {
-            text: {
-              type: 'text',
-              text: '<think>analyzing the request</think>Here is the response',
-            },
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response',
+              },
+            ],
             finishReason: 'stop',
             usage: { inputTokens: 10, outputTokens: 10 },
             reasoning: undefined,
+            warnings: [],
           };
         },
       });

@@ -32,8 +32,8 @@ async function main() {
     console.log('Assistant:');
 
     for (const step of steps) {
-      if (step.reasoning) {
-        console.log(`\x1b[36m${step.reasoning}\x1b[0m`);
+      if (step.reasoningText) {
+        console.log(`\x1b[36m${step.reasoningText}\x1b[0m`);
       }
 
       if (step.text) {

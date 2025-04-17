@@ -35,6 +35,9 @@
       "path": "../../packages/cerebras"
     },
     {
+      "path": "../../packages/elevenlabs"
+    },
+    {
       "path": "../../packages/cohere"
     },
     {

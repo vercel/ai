@@ -1,6 +1,7 @@
 import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
@@ -138,11 +139,28 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     });
 
     const choice = response.choices[0];
+    const content: Array<LanguageModelV2Content> = [];
+
+    // text content:
     const text = choice.message.content;
+    if (text.length > 0) {
+      content.push({ type: 'text', text });
+    }
+
+    // sources:
+    if (response.citations != null) {
+      for (const url of response.citations) {
+        content.push({
+          type: 'source',
+          sourceType: 'url',
+          id: this.config.generateId(),
+          url,
+        });
+      }
+    }
 
     return {
-      text: { type: 'text', text },
-      toolCalls: [],
+      content,
       finishReason: mapPerplexityFinishReason(choice.finish_reason),
       usage: {
         inputTokens: response.usage?.prompt_tokens,
@@ -155,12 +173,6 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
         body: rawResponse,
       },
       warnings,
-      sources: response.citations?.map(url => ({
-        type: 'source',
-        sourceType: 'url',
-        id: this.config.generateId(),
-        url,
-      })),
       providerMetadata: {
         perplexity: {
           images:
@@ -239,6 +251,10 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof perplexityChunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             if (!chunk.success) {
               controller.enqueue({ type: 'error', error: chunk.error });
@@ -316,7 +332,6 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       ),
       request: { body },
       response: { headers: responseHeaders },
-      warnings,
     };
   }
 }
