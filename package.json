@@ -15,6 +15,7 @@
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
     "publint": "turbo publint",
     "test": "turbo test",
+    "test:update": "turbo test:update",
     "ci:release": "turbo clean && turbo build && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile"
