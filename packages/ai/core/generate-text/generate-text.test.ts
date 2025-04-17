@@ -4,7 +4,7 @@ import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
 import { ToolExecutionError } from '../../errors';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
 import { jsonSchema } from '../util';
