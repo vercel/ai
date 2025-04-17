@@ -62,10 +62,8 @@ const doWrap = ({
     provider: providerId ?? model.provider,
     modelId: modelId ?? model.modelId,
 
-    defaultObjectGenerationMode: model.defaultObjectGenerationMode,
     supportsImageUrls: model.supportsImageUrls,
     supportsUrl: model.supportsUrl?.bind(model),
-    supportsStructuredOutputs: model.supportsStructuredOutputs,
 
     async doGenerate(
       params: LanguageModelV2CallOptions,
