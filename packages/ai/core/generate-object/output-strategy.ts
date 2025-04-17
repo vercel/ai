@@ -36,10 +36,12 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
     isFirstDelta: boolean;
     isFinalDelta: boolean;
     latestObject: PARTIAL | undefined;
-  }): ValidationResult<{
-    partial: PARTIAL;
-    textDelta: string;
-  }>;
+  }): Promise<
+    ValidationResult<{
+      partial: PARTIAL;
+      textDelta: string;
+    }>
+  >;
   validateFinalResult(
     value: JSONValue | undefined,
     context: {
@@ -47,7 +49,7 @@ export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
       response: LanguageModelResponseMetadata;
       usage: LanguageModelUsage;
     },
-  ): ValidationResult<RESULT>;
+  ): Promise<ValidationResult<RESULT>>;
 
   createElementStream(
     originalStream: ReadableStream<ObjectStreamPart<PARTIAL>>,
@@ -58,11 +60,11 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
   type: 'no-schema',
   jsonSchema: undefined,
 
-  validatePartialResult({ value, textDelta }) {
+  async validatePartialResult({ value, textDelta }) {
     return { success: true, value: { partial: value, textDelta } };
   },
 
-  validateFinalResult(
+  async validateFinalResult(
     value: JSONValue | undefined,
     context: {
       text: string;
@@ -70,7 +72,7 @@ const noSchemaOutputStrategy: OutputStrategy<JSONValue, JSONValue, never> = {
       usage: LanguageModelUsage;
       finishReason: FinishReason;
     },
-  ): ValidationResult<JSONValue> {
+  ): Promise<ValidationResult<JSONValue>> {
     return value === undefined
       ? {
           success: false,
@@ -98,7 +100,7 @@ const objectOutputStrategy = <OBJECT>(
   type: 'object',
   jsonSchema: schema.jsonSchema,
 
-  validatePartialResult({ value, textDelta }) {
+  async validatePartialResult({ value, textDelta }) {
     return {
       success: true,
       value: {
@@ -109,7 +111,9 @@ const objectOutputStrategy = <OBJECT>(
     };
   },
 
-  validateFinalResult(value: JSONValue | undefined): ValidationResult<OBJECT> {
+  async validateFinalResult(
+    value: JSONValue | undefined,
+  ): Promise<ValidationResult<OBJECT>> {
     return safeValidateTypes({ value, schema });
   },
 
@@ -142,7 +146,12 @@ const arrayOutputStrategy = <ELEMENT>(
       additionalProperties: false,
     },
 
-    validatePartialResult({ value, latestObject, isFirstDelta, isFinalDelta }) {
+    async validatePartialResult({
+      value,
+      latestObject,
+      isFirstDelta,
+      isFinalDelta,
+    }) {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || !isJSONArray(value.elements)) {
         return {
@@ -159,7 +168,7 @@ const arrayOutputStrategy = <ELEMENT>(
 
       for (let i = 0; i < inputArray.length; i++) {
         const element = inputArray[i];
-        const result = safeValidateTypes({ value: element, schema });
+        const result = await safeValidateTypes({ value: element, schema });
 
         // special treatment for last processed element:
         // ignore parse or validation failures, since they indicate that the
@@ -207,9 +216,9 @@ const arrayOutputStrategy = <ELEMENT>(
       };
     },
 
-    validateFinalResult(
+    async validateFinalResult(
       value: JSONValue | undefined,
-    ): ValidationResult<Array<ELEMENT>> {
+    ): Promise<ValidationResult<Array<ELEMENT>>> {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || !isJSONArray(value.elements)) {
         return {
@@ -225,7 +234,7 @@ const arrayOutputStrategy = <ELEMENT>(
 
       // check that each element in the array is of the correct type:
       for (const element of inputArray) {
-        const result = safeValidateTypes({ value: element, schema });
+        const result = await safeValidateTypes({ value: element, schema });
         if (!result.success) {
           return result;
         }
@@ -298,7 +307,9 @@ const enumOutputStrategy = <ENUM extends string>(
       additionalProperties: false,
     },
 
-    validateFinalResult(value: JSONValue | undefined): ValidationResult<ENUM> {
+    async validateFinalResult(
+      value: JSONValue | undefined,
+    ): Promise<ValidationResult<ENUM>> {
       // check that the value is an object that contains an array of elements:
       if (!isJSONObject(value) || typeof value.result !== 'string') {
         return {

@@ -244,12 +244,14 @@ export async function processChatResponse({
 
       execUpdate();
     },
-    onToolCallDeltaPart(value) {
+    async onToolCallDeltaPart(value) {
       const partialToolCall = partialToolCalls[value.toolCallId];
 
       partialToolCall.text += value.argsTextDelta;
 
-      const { value: partialArgs } = parsePartialJson(partialToolCall.text);
+      const { value: partialArgs } = await parsePartialJson(
+        partialToolCall.text,
+      );
 
       const invocation = {
         state: 'partial-call',

@@ -231,7 +231,7 @@ A function that attempts to repair a tool call that failed to parse.
     settings: { ...settings, maxRetries },
   });
 
-  const initialPrompt = standardizePrompt({
+  const initialPrompt = await standardizePrompt({
     prompt: {
       system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
       prompt,
@@ -583,26 +583,22 @@ A function that attempts to repair a tool call that failed to parse.
         }),
       );
 
+      const resolvedOutput = await output?.parseOutput(
+        { text },
+        {
+          response: currentModelResponse.response,
+          usage,
+          finishReason: currentModelResponse.finishReason,
+        },
+      );
+
       return new DefaultGenerateTextResult({
         text,
         files: asFiles(currentModelResponse.content),
         reasoning: asReasoningText(currentReasoningDetails),
         reasoningDetails: currentReasoningDetails,
         sources,
-        outputResolver: () => {
-          if (output == null) {
-            throw new NoOutputSpecifiedError();
-          }
-
-          return output.parseOutput(
-            { text },
-            {
-              response: currentModelResponse.response,
-              usage,
-              finishReason: currentModelResponse.finishReason,
-            },
-          );
-        },
+        resolvedOutput,
         toolCalls: currentToolCalls,
         toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
@@ -736,10 +732,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
   readonly sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
 
-  private readonly outputResolver: () => GenerateTextResult<
-    TOOLS,
-    OUTPUT
-  >['experimental_output'];
+  private readonly resolvedOutput: OUTPUT;
 
   constructor(options: {
     text: GenerateTextResult<TOOLS, OUTPUT>['text'];
@@ -756,10 +749,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     providerMetadata: GenerateTextResult<TOOLS, OUTPUT>['providerMetadata'];
     response: GenerateTextResult<TOOLS, OUTPUT>['response'];
     request: GenerateTextResult<TOOLS, OUTPUT>['request'];
-    outputResolver: () => GenerateTextResult<
-      TOOLS,
-      OUTPUT
-    >['experimental_output'];
+    resolvedOutput: OUTPUT;
     sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
   }) {
     this.text = options.text;
@@ -776,12 +766,16 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.steps = options.steps;
     this.providerMetadata = options.providerMetadata;
     this.logprobs = options.logprobs;
-    this.outputResolver = options.outputResolver;
+    this.resolvedOutput = options.resolvedOutput;
     this.sources = options.sources;
   }
 
   get experimental_output() {
-    return this.outputResolver();
+    if (this.resolvedOutput == null) {
+      throw new NoOutputSpecifiedError();
+    }
+
+    return this.resolvedOutput;
   }
 }
 

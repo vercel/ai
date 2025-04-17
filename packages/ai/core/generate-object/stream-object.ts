@@ -562,7 +562,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
         switch (mode) {
           case 'json': {
-            const standardizedPrompt = standardizePrompt({
+            const standardizedPrompt = await standardizePrompt({
               prompt: {
                 system:
                   outputStrategy.jsonSchema == null
@@ -617,7 +617,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           }
 
           case 'tool': {
-            const standardizedPrompt = standardizePrompt({
+            const standardizedPrompt = await standardizePrompt({
               prompt: { system, prompt, messages },
               tools: undefined,
             });
@@ -786,14 +786,14 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   textDelta += chunk;
 
                   const { value: currentObjectJson, state: parseState } =
-                    parsePartialJson(accumulatedText);
+                    await parsePartialJson(accumulatedText);
 
                   if (
                     currentObjectJson !== undefined &&
                     !isDeepEqualData(latestObjectJson, currentObjectJson)
                   ) {
                     const validationResult =
-                      outputStrategy.validatePartialResult({
+                      await outputStrategy.validatePartialResult({
                         value: currentObjectJson,
                         textDelta,
                         latestObject,
@@ -868,14 +868,15 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
 
                     // resolve the object promise with the latest object:
-                    const validationResult = outputStrategy.validateFinalResult(
-                      latestObjectJson,
-                      {
-                        text: accumulatedText,
-                        response: fullResponse,
-                        usage,
-                      },
-                    );
+                    const validationResult =
+                      await outputStrategy.validateFinalResult(
+                        latestObjectJson,
+                        {
+                          text: accumulatedText,
+                          response: fullResponse,
+                          usage,
+                        },
+                      );
 
                     if (validationResult.success) {
                       object = validationResult.value;

@@ -93,8 +93,8 @@ async function doParseToolCall<TOOLS extends ToolSet>({
   // (many LLMs generate empty strings for tool calls with no arguments)
   const parseResult =
     toolCall.args.trim() === ''
-      ? safeValidateTypes({ value: {}, schema })
-      : safeParseJSON({ text: toolCall.args, schema });
+      ? await safeValidateTypes({ value: {}, schema })
+      : await safeParseJSON({ text: toolCall.args, schema });
 
   if (parseResult.success === false) {
     throw new InvalidToolArgumentsError({

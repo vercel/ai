@@ -1799,7 +1799,7 @@ describe('doStream', () => {
 
 describe('metadata extraction', () => {
   const testMetadataExtractor = {
-    extractMetadata: ({ parsedBody }: { parsedBody: unknown }) => {
+    extractMetadata: async ({ parsedBody }: { parsedBody: unknown }) => {
       if (
         typeof parsedBody !== 'object' ||
         !parsedBody ||

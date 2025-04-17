@@ -79,7 +79,7 @@ export async function generateObject<
       ? {
           /**
 The enum values that the model should use.
-          */
+        */
           enum: Array<TYPE>;
           mode?: 'json';
           output: 'enum';
@@ -89,21 +89,21 @@ The enum values that the model should use.
         : {
             /**
 The schema of the object that the model should generate.
-            */
+        */
             schema: SCHEMA;
 
             /**
 Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
-            */
+        */
             schemaName?: string;
 
             /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
-            */
+        */
             schemaDescription?: string;
 
             /**
@@ -118,32 +118,32 @@ The schema is converted into a JSON schema and used in one of the following ways
 Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
-            */
+        */
             mode?: 'auto' | 'json' | 'tool';
           }) & {
       output?: Output;
 
       /**
-The language model to use.
-     */
+  The language model to use.
+       */
       model: LanguageModel;
       /**
-A function that attempts to repair the raw output of the mode
-to enable JSON parsing.
-     */
+  A function that attempts to repair the raw output of the mode
+  to enable JSON parsing.
+       */
       experimental_repairText?: RepairTextFunction;
 
       /**
-Optional telemetry configuration (experimental).
-       */
+  Optional telemetry configuration (experimental).
+         */
 
       experimental_telemetry?: TelemetrySettings;
 
       /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
+  Additional provider-specific options. They are passed through
+  to the provider from the AI SDK and enable provider-specific
+  functionality that can be fully encapsulated in the provider.
+   */
       providerOptions?: ProviderOptions;
 
       /**
@@ -282,7 +282,7 @@ export async function generateObject<SCHEMA, RESULT>({
 
       switch (mode) {
         case 'json': {
-          const standardizedPrompt = standardizePrompt({
+          const standardizedPrompt = await standardizePrompt({
             prompt: {
               system:
                 outputStrategy.jsonSchema == null
@@ -416,7 +416,7 @@ export async function generateObject<SCHEMA, RESULT>({
         }
 
         case 'tool': {
-          const standardizedPrompt = standardizePrompt({
+          const standardizedPrompt = await standardizePrompt({
             prompt: { system, prompt, messages },
             tools: undefined,
           });
@@ -557,8 +557,8 @@ export async function generateObject<SCHEMA, RESULT>({
         }
       }
 
-      function processResult(result: string): RESULT {
-        const parseResult = safeParseJSON({ text: result });
+      async function processResult(result: string): Promise<RESULT> {
+        const parseResult = await safeParseJSON({ text: result });
 
         if (!parseResult.success) {
           throw new NoObjectGeneratedError({
@@ -571,7 +571,7 @@ export async function generateObject<SCHEMA, RESULT>({
           });
         }
 
-        const validationResult = outputStrategy.validateFinalResult(
+        const validationResult = await outputStrategy.validateFinalResult(
           parseResult.value,
           {
             text: result,
@@ -596,7 +596,7 @@ export async function generateObject<SCHEMA, RESULT>({
 
       let object: RESULT;
       try {
-        object = processResult(result);
+        object = await processResult(result);
       } catch (error) {
         if (
           repairText != null &&
@@ -613,7 +613,7 @@ export async function generateObject<SCHEMA, RESULT>({
             throw error;
           }
 
-          object = processResult(repairedText);
+          object = await processResult(repairedText);
         } else {
           throw error;
         }

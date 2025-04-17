@@ -68,7 +68,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     return !this.settings.downloadImages;
   }
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -107,7 +107,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const groqOptions = parseProviderOptions({
+    const groqOptions = await parseProviderOptions({
       provider: 'groq',
       providerOptions,
       schema: groqProviderOptions,
@@ -161,7 +161,10 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs({ ...options, stream: false });
+    const { args, warnings } = await this.getArgs({
+      ...options,
+      stream: false,
+    });
 
     const body = JSON.stringify(args);
 
@@ -236,7 +239,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs({ ...options, stream: true });
+    const { args, warnings } = await this.getArgs({ ...options, stream: true });
 
     const body = JSON.stringify({ ...args, stream: true });
 

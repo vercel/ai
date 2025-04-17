@@ -1,7 +1,7 @@
 import { deepSeekMetadataExtractor } from './deepseek-metadata-extractor';
 
 describe('buildMetadataFromResponse', () => {
-  it('should extract metadata from complete response with usage data', () => {
+  it('should extract metadata from complete response with usage data', async () => {
     const response = {
       usage: {
         prompt_cache_hit_tokens: 100,
@@ -9,7 +9,7 @@ describe('buildMetadataFromResponse', () => {
       },
     };
 
-    const metadata = deepSeekMetadataExtractor.extractMetadata({
+    const metadata = await deepSeekMetadataExtractor.extractMetadata({
       parsedBody: response,
     });
 
@@ -21,23 +21,23 @@ describe('buildMetadataFromResponse', () => {
     });
   });
 
-  it('should handle missing usage data', () => {
+  it('should handle missing usage data', async () => {
     const response = {
       id: 'test-id',
       choices: [],
     };
 
-    const metadata = deepSeekMetadataExtractor.extractMetadata({
+    const metadata = await deepSeekMetadataExtractor.extractMetadata({
       parsedBody: response,
     });
 
     expect(metadata).toBeUndefined();
   });
 
-  it('should handle invalid response data', () => {
+  it('should handle invalid response data', async () => {
     const response = 'invalid data';
 
-    const metadata = deepSeekMetadataExtractor.extractMetadata({
+    const metadata = await deepSeekMetadataExtractor.extractMetadata({
       parsedBody: response,
     });
 
@@ -46,16 +46,16 @@ describe('buildMetadataFromResponse', () => {
 });
 
 describe('streaming metadata extractor', () => {
-  it('should process streaming chunks and build final metadata', () => {
+  it('should process streaming chunks and build final metadata', async () => {
     const extractor = deepSeekMetadataExtractor.createStreamExtractor();
 
     // Process initial chunks without usage data
-    extractor.processChunk({
+    await extractor.processChunk({
       choices: [{ finish_reason: null }],
     });
 
     // Process final chunk with usage data
-    extractor.processChunk({
+    await extractor.processChunk({
       choices: [{ finish_reason: 'stop' }],
       usage: {
         prompt_cache_hit_tokens: 100,
@@ -73,10 +73,10 @@ describe('streaming metadata extractor', () => {
     });
   });
 
-  it('should handle streaming chunks without usage data', () => {
+  it('should handle streaming chunks without usage data', async () => {
     const extractor = deepSeekMetadataExtractor.createStreamExtractor();
 
-    extractor.processChunk({
+    await extractor.processChunk({
       choices: [{ finish_reason: 'stop' }],
     });
 
@@ -85,21 +85,21 @@ describe('streaming metadata extractor', () => {
     expect(finalMetadata).toBeUndefined();
   });
 
-  it('should handle invalid streaming chunks', () => {
+  it('should handle invalid streaming chunks', async () => {
     const extractor = deepSeekMetadataExtractor.createStreamExtractor();
 
-    extractor.processChunk('invalid chunk');
+    await extractor.processChunk('invalid chunk');
 
     const finalMetadata = extractor.buildMetadata();
 
     expect(finalMetadata).toBeUndefined();
   });
 
-  it('should only capture usage data from final chunk with stop reason', () => {
+  it('should only capture usage data from final chunk with stop reason', async () => {
     const extractor = deepSeekMetadataExtractor.createStreamExtractor();
 
     // Process chunk with usage but no stop reason
-    extractor.processChunk({
+    await extractor.processChunk({
       choices: [{ finish_reason: null }],
       usage: {
         prompt_cache_hit_tokens: 50,
@@ -108,7 +108,7 @@ describe('streaming metadata extractor', () => {
     });
 
     // Process final chunk with different usage data
-    extractor.processChunk({
+    await extractor.processChunk({
       choices: [{ finish_reason: 'stop' }],
       usage: {
         prompt_cache_hit_tokens: 100,
@@ -126,10 +126,10 @@ describe('streaming metadata extractor', () => {
     });
   });
 
-  it('should handle null values in usage data', () => {
+  it('should handle null values in usage data', async () => {
     const extractor = deepSeekMetadataExtractor.createStreamExtractor();
 
-    extractor.processChunk({
+    await extractor.processChunk({
       choices: [{ finish_reason: 'stop' }],
       usage: {
         prompt_cache_hit_tokens: null,

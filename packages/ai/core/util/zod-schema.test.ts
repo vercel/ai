@@ -147,7 +147,7 @@ describe('zodSchema', () => {
   });
 
   describe('output validation', () => {
-    it('should validate output with transform', () => {
+    it('should validate output with transform', async () => {
       const schema = zodSchema(
         z.object({
           user: z.object({
@@ -157,7 +157,7 @@ describe('zodSchema', () => {
         }),
       );
 
-      const result = safeParseJSON({
+      const result = await safeParseJSON({
         text: '{"user": {"id": "123", "name": "John"}}',
         schema,
       });
