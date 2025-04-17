@@ -70,7 +70,6 @@ describe('streamObject', () => {
             },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -127,7 +126,6 @@ describe('streamObject', () => {
             },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -187,7 +185,6 @@ describe('streamObject', () => {
           schema: z.object({ content: z.string() }),
           schemaName: 'test-name',
           schemaDescription: 'test description',
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -405,7 +402,6 @@ describe('streamObject', () => {
             },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -424,7 +420,6 @@ describe('streamObject', () => {
             },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
           onError(event) {
             result.push(event);
@@ -466,7 +461,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -497,7 +491,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -529,7 +522,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -573,7 +565,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -614,7 +605,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -651,7 +641,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -691,7 +680,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -778,7 +766,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -853,7 +840,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -885,7 +871,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -915,7 +900,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -958,7 +942,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
           onFinish: async event => {
             result = event as unknown as typeof result;
@@ -1001,7 +984,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
           onFinish: async event => {
             result = event as unknown as typeof result;
@@ -1043,7 +1025,6 @@ describe('streamObject', () => {
             },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
           headers: { 'custom-request-header': 'request-header-value' },
         });
@@ -1116,7 +1097,6 @@ describe('streamObject', () => {
             },
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
           providerOptions: {
             aProvider: { someKey: 'someValue' },
@@ -1223,7 +1203,6 @@ describe('streamObject', () => {
             required: ['content'],
             additionalProperties: false,
           }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -1310,7 +1289,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -1402,7 +1380,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -1486,7 +1463,6 @@ describe('streamObject', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -1598,7 +1574,6 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           output: 'array',
-          mode: 'json',
           prompt: 'prompt',
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
@@ -1737,7 +1712,6 @@ describe('streamObject', () => {
           }),
           schema: z.object({ content: z.string() }),
           output: 'array',
-          mode: 'json',
           prompt: 'prompt',
           onFinish: async event => {
             onFinishResult = event as unknown as typeof onFinishResult;
@@ -1875,7 +1849,6 @@ describe('streamObject', () => {
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         _internal: { now: () => 0 },
       });
@@ -1914,7 +1887,6 @@ describe('streamObject', () => {
         schema: z.object({ content: z.string() }),
         schemaName: 'test-name',
         schemaDescription: 'test description',
-        mode: 'json',
         prompt: 'prompt',
         topK: 0.1,
         topP: 0.2,
@@ -2062,7 +2034,6 @@ describe('streamObject', () => {
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         experimental_telemetry: {
           isEnabled: true,
@@ -2232,7 +2203,6 @@ describe('streamObject', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         messages: [
           {
             role: 'user',
@@ -2298,7 +2268,6 @@ describe('streamObject', () => {
       const result = streamObject({
         model,
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         messages: [
           {
             role: 'user',

@@ -23,7 +23,6 @@ async function main() {
         logprobs: 2,
       },
     },
-    mode: 'json',
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
   });

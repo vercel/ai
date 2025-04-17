@@ -58,7 +58,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -99,7 +98,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -142,7 +140,6 @@ describe('output = "object"', () => {
         schema: z.object({ content: z.string() }),
         schemaName: 'test-name',
         schemaDescription: 'test description',
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -265,7 +262,6 @@ describe('output = "object"', () => {
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -323,7 +319,6 @@ describe('output = "object"', () => {
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -423,7 +418,6 @@ describe('output = "object"', () => {
         schema: z.object({
           content: z.string().transform(value => value.length),
         }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -475,7 +469,6 @@ describe('output = "object"', () => {
             z.string(),
           ),
         }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -528,7 +521,6 @@ describe('output = "object"', () => {
           required: ['content'],
           additionalProperties: false,
         }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -546,7 +538,6 @@ describe('output = "object"', () => {
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -583,7 +574,6 @@ describe('output = "object"', () => {
           }),
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
       });
 
@@ -614,7 +604,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         headers: { 'custom-request-header': 'request-header-value' },
       });
@@ -671,7 +660,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         experimental_repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(JSONParseError);
@@ -701,7 +689,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         experimental_repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(TypeValidationError);
@@ -733,7 +720,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         experimental_repairText: async ({ text, error }) => {
           expect(error).toBeInstanceOf(TypeValidationError);
@@ -771,7 +757,6 @@ describe('output = "object"', () => {
           },
         }),
         schema: z.object({ content: z.string() }),
-        mode: 'json',
         prompt: 'prompt',
         providerOptions: {
           aProvider: { someKey: 'someValue' },
@@ -880,7 +865,6 @@ describe('output = "object"', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -932,7 +916,6 @@ describe('output = "object"', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -954,7 +937,6 @@ describe('output = "object"', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
           experimental_repairText: async ({ text }) => text + '{',
         });
@@ -999,7 +981,6 @@ describe('output = "object"', () => {
             }),
           }),
           schema: z.object({ content: z.string() }),
-          mode: 'json',
           prompt: 'prompt',
         });
 
@@ -1076,7 +1057,6 @@ describe('output = "array"', () => {
       }),
       schema: z.object({ content: z.string() }),
       output: 'array',
-      mode: 'json',
       prompt: 'prompt',
     });
 
@@ -1136,7 +1116,6 @@ describe('output = "enum"', () => {
       }),
       output: 'enum',
       enum: ['sunny', 'rainy', 'snowy'],
-      mode: 'json',
       prompt: 'prompt',
     });
 
@@ -1195,7 +1174,6 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
-      mode: 'json',
       prompt: 'prompt',
     });
 
@@ -1218,7 +1196,6 @@ describe('telemetry', () => {
       schema: z.object({ content: z.string() }),
       schemaName: 'test-name',
       schemaDescription: 'test description',
-      mode: 'json',
       prompt: 'prompt',
       topK: 0.1,
       topP: 0.2,
@@ -1306,7 +1283,6 @@ describe('telemetry', () => {
         }),
       }),
       schema: z.object({ content: z.string() }),
-      mode: 'json',
       prompt: 'prompt',
       experimental_telemetry: {
         isEnabled: true,
@@ -1417,7 +1393,6 @@ describe('options.messages', () => {
         },
       }),
       schema: z.object({ content: z.string() }),
-      mode: 'json',
       messages: [
         {
           role: 'user',
@@ -1467,7 +1442,6 @@ describe('options.messages', () => {
     const result = await generateObject({
       model,
       schema: z.object({ content: z.string() }),
-      mode: 'json',
       messages: [
         {
           role: 'user',
