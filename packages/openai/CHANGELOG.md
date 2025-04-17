@@ -1,5 +1,23 @@
 # @ai-sdk/openai
 
+## 1.3.16
+
+### Patch Changes
+
+- bd6e457: feat (provider/openai): o4 updates for responses api
+
+## 1.3.15
+
+### Patch Changes
+
+- 98d954e: feat (providers/openai): add o3 and o4-mini models
+
+## 1.3.14
+
+### Patch Changes
+
+- 980141c: fix (openai): structure output for responses model
+
 ## 1.3.13
 
 ### Patch Changes
