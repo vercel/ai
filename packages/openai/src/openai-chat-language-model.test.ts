@@ -2086,7 +2086,7 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(22))(
+  it.skipIf(isNodeVersion(20))(
     'should handle unparsable stream parts',
     async () => {
       server.urls['https://api.openai.com/v1/chat/completions'].response = {

@@ -693,7 +693,7 @@ describe('doStream', () => {
     expect(new Set(toolCallIds)).toStrictEqual(new Set(['test-id-1']));
   });
 
-  it.skipIf(isNodeVersion(22))(
+  it.skipIf(isNodeVersion(20))(
     'should handle unparsable stream parts',
     async () => {
       server.urls['https://api.cohere.com/v2/chat'].response = {
