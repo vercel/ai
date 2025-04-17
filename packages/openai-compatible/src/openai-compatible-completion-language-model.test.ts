@@ -485,7 +485,7 @@ describe('doStream', () => {
     `);
   });
 
-  it.skipIf(isNodeVersion(22))(
+  it.skipIf(isNodeVersion(20))(
     'should handle unparsable stream parts',
     async () => {
       server.urls['https://my.api.com/v1/completions'].response = {
@@ -499,26 +499,26 @@ describe('doStream', () => {
       });
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
-      Error message: Expected property name or '}' in JSON at position 1],
-          "type": "error",
-        },
-        {
-          "finishReason": "error",
-          "type": "finish",
-          "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
           },
-        },
-      ]
-    `);
+          {
+            "error": [AI_JSONParseError: JSON parsing failed: Text: {unparsable}.
+        Error message: Expected property name or '}' in JSON at position 1 (line 1 column 2)],
+            "type": "error",
+          },
+          {
+            "finishReason": "error",
+            "type": "finish",
+            "usage": {
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+            },
+          },
+        ]
+      `);
     },
   );
 
