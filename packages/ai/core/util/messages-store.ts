@@ -200,6 +200,7 @@ export class MessagesStore {
           break;
         }
         case 'call': {
+          existingPartialToolInvocation.text = toolInvocation.args;
           updatedInvocation = {
             state: toolInvocation.state,
             step,
