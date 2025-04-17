@@ -4381,7 +4381,6 @@ describe('streamText', () => {
 
         const result = streamText({
           model: new MockLanguageModelV2({
-            supportsStructuredOutputs: false,
             doStream: async args => {
               callOptions = args;
               return {

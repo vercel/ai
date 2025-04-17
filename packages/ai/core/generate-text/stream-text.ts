@@ -898,11 +898,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     });
 
     const initialPrompt = standardizePrompt({
-      prompt: {
-        system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
-        prompt,
-        messages,
-      },
+      prompt: { system, prompt, messages },
       tools,
     });
 
@@ -1023,7 +1019,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   ...prepareCallSettings(settings),
                   ...toolsAndToolChoice,
                   inputFormat: promptFormat,
-                  responseFormat: output?.responseFormat({ model }),
+                  responseFormat: output?.responseFormat,
                   prompt: promptMessages,
                   providerOptions,
                   abortSignal,
