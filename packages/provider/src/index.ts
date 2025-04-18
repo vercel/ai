@@ -1,3 +1,4 @@
+export * from './voice-changer-model/index';
 export * from './embedding-model/index';
 export * from './errors/index';
 export * from './image-model/index';
