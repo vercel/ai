@@ -55,7 +55,6 @@ export class ChatStore {
     chatId = generateIdFunction(),
     throttleMs,
   }: ChatStoreInitialization = {}) {
-    console.log('constructed');
     this.chatId = chatId;
     this.messages = initialMessages ?? [];
     this.subscribers = new Set();
@@ -105,8 +104,10 @@ export class ChatStore {
   }
 
   updateLastMessage(message: UIMessage) {
+    if (this.messages.length === 0) {
+      throw new Error('Cannot update last message of empty chat');
+    }
     this.setMessages([...this.messages.slice(0, -1), message]);
-    this.notify('chat-messages-changed');
   }
 
   addOrUpdateAssistantMessageParts({
@@ -212,7 +213,9 @@ export class ChatStore {
       switch (toolInvocation.state) {
         case 'partial-call': {
           existingPartialToolInvocation.text += toolInvocation.args;
-          const { value: partialArgs } = parsePartialJson(toolInvocation.args);
+          const { value: partialArgs } = parsePartialJson(
+            existingPartialToolInvocation.text,
+          );
           updatedInvocation = {
             state: 'partial-call',
             step,
@@ -281,7 +284,7 @@ export class ChatStore {
         }
         case 'partial-call': {
           this.partialToolCalls[toolInvocation.toolCallId] = {
-            text: '',
+            text: toolInvocation.args ?? '',
             step,
             toolName: toolInvocation.toolName,
             index: assistantMessage.toolInvocations.length,
@@ -329,6 +332,7 @@ export class ChatStore {
       this.tempParts.reasoningTextDetail = {
         type: 'text',
         text: reasoning.reasoning,
+        signature: detail?.signature,
       };
       // Only push if reasoning part exists:
       if (this.tempParts.reasoning) {
