@@ -26,24 +26,36 @@ describe('createChildProcess', () => {
   });
 
   it('should spawn a child process', async () => {
-    const childProcess = await createChildProcess(
+    const childProcess = createChildProcess(
       { command: process.execPath },
       new AbortController().signal,
     );
 
-    expect(childProcess.pid).toBeDefined();
+    await new Promise<void>((resolve) => {
+      childProcess.on("spawn", () => {
+        expect(childProcess.pid).toBeDefined();
+        resolve();
+      });
+    });
+
     expect(mockGetEnvironment).toHaveBeenCalledWith(undefined);
     childProcess.kill();
   });
 
   it('should spawn a child process with custom env', async () => {
     const customEnv = { FOO: 'bar' };
-    const childProcessWithCustomEnv = await createChildProcess(
+    const childProcessWithCustomEnv = createChildProcess(
       { command: process.execPath, env: customEnv },
       new AbortController().signal,
     );
 
-    expect(childProcessWithCustomEnv.pid).toBeDefined();
+    await new Promise<void>((resolve) => {
+      childProcessWithCustomEnv.on("spawn", () => {
+        expect(childProcessWithCustomEnv.pid).toBeDefined();
+        resolve();
+      });
+    });
+
     expect(mockGetEnvironment).toHaveBeenCalledWith(customEnv);
     expect(mockGetEnvironment).toHaveReturnedWith({
       ...DEFAULT_ENV,
@@ -53,40 +65,58 @@ describe('createChildProcess', () => {
   });
 
   it('should spawn a child process with args', async () => {
-    const childProcessWithArgs = await createChildProcess(
+    const childProcessWithArgs = createChildProcess(
       { command: process.execPath, args: ['-c', 'echo', 'test'] },
       new AbortController().signal,
     );
 
-    expect(childProcessWithArgs.pid).toBeDefined();
-    expect(childProcessWithArgs.spawnargs).toContain(process.execPath);
-    expect(childProcessWithArgs.spawnargs).toEqual([
-      process.execPath,
-      '-c',
-      'echo',
-      'test',
-    ]);
+    await new Promise<void>((resolve) => {
+      childProcessWithArgs.on("spawn", () => {
+        expect(childProcessWithArgs.pid).toBeDefined();
+        expect(childProcessWithArgs.spawnargs).toContain(process.execPath);
+        expect(childProcessWithArgs.spawnargs).toEqual([
+          process.execPath,
+          '-c',
+          'echo',
+          'test',
+        ]);
+        resolve();
+      });
+    });
+
     childProcessWithArgs.kill();
   });
 
   it('should spawn a child process with cwd', async () => {
-    const childProcessWithCwd = await createChildProcess(
+    const childProcessWithCwd = createChildProcess(
       { command: process.execPath, cwd: '/tmp' },
       new AbortController().signal,
     );
 
-    expect(childProcessWithCwd.pid).toBeDefined();
+    await new Promise<void>((resolve) => {
+      childProcessWithCwd.on("spawn", () => {
+        expect(childProcessWithCwd.pid).toBeDefined();
+        resolve();
+      });
+    });
+
     childProcessWithCwd.kill();
   });
 
   it('should spawn a child process with stderr', async () => {
-    const childProcessWithStderr = await createChildProcess(
+    const childProcessWithStderr = createChildProcess(
       { command: process.execPath, stderr: 'pipe' },
       new AbortController().signal,
     );
 
-    expect(childProcessWithStderr.pid).toBeDefined();
-    expect(childProcessWithStderr.stderr).toBeDefined();
+    await new Promise<void>((resolve) => {
+      childProcessWithStderr.on("spawn", () => {
+        expect(childProcessWithStderr.pid).toBeDefined();
+        expect(childProcessWithStderr.stderr).toBeDefined();
+        resolve();
+      });
+    });
+
     childProcessWithStderr.kill();
   });
 });
