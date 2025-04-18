@@ -206,7 +206,6 @@ describe('ChatStore', () => {
 
       store.addOrUpdateAssistantMessageParts({
         partDelta: { type: 'text', text: ' im a robot' },
-        step: 1,
       });
       expect(store.getMessages()).toEqual([
         { id: '1', content: 'hello', role: 'user', parts: [] },
@@ -222,7 +221,6 @@ describe('ChatStore', () => {
       unsubscribe();
       store.addOrUpdateAssistantMessageParts({
         partDelta: { type: 'text', text: 'hi' },
-        step: 1,
       });
       expect(callback).toHaveBeenCalledOnce();
     });
@@ -231,7 +229,6 @@ describe('ChatStore', () => {
       const { store } = initChat();
       store.addOrUpdateAssistantMessageParts({
         partDelta: { type: 'text', text: 'hi' },
-        step: 1,
       });
       expect(store.getMessages()).toEqual([]);
     });
@@ -242,7 +239,6 @@ describe('ChatStore', () => {
       ]);
       store.addOrUpdateAssistantMessageParts({
         partDelta: { type: 'text', text: 'hi' },
-        step: 1,
       });
       const messages = store.getMessages();
       expect(messages).toHaveLength(2);
@@ -262,7 +258,6 @@ describe('ChatStore', () => {
 
       store.addOrUpdateAssistantMessageParts({
         partDelta: { type: 'text', text: 'hi' },
-        step: 1,
         generateId: mockGenerateId,
       });
 
@@ -276,15 +271,12 @@ describe('ChatStore', () => {
       ]);
       store.addOrUpdateAssistantMessageParts({
         partDelta: { type: 'text', text: 'Hello' },
-        step: 1,
       });
       store.addOrUpdateAssistantMessageParts({
         partDelta: { type: 'text', text: ' ' },
-        step: 1,
       });
       store.addOrUpdateAssistantMessageParts({
         partDelta: { type: 'text', text: 'world' },
-        step: 1,
       });
       const message = store.getMessages()[1];
       expect(message.content).toBe('Hello world');
@@ -298,10 +290,9 @@ describe('ChatStore', () => {
         { id: '2', content: '', role: 'assistant', parts: [] },
       ]);
 
-      const stepStart = { type: 'step-start' as const, step: 1 };
+      const stepStart = { type: 'step-start' as const };
       store.addOrUpdateAssistantMessageParts({
         partDelta: stepStart,
-        step: 1,
       });
 
       expect(store.getMessages()[1].parts).toContainEqual(stepStart);
@@ -323,7 +314,6 @@ describe('ChatStore', () => {
       };
       store.addOrUpdateAssistantMessageParts({
         partDelta: source,
-        step: 1,
       });
       expect(store.getMessages()[1].parts).toContainEqual(source);
     });
@@ -340,7 +330,6 @@ describe('ChatStore', () => {
       };
       store.addOrUpdateAssistantMessageParts({
         partDelta: file,
-        step: 1,
       });
       expect(store.getMessages()[1].parts).toContainEqual(file);
     });
@@ -358,13 +347,11 @@ describe('ChatStore', () => {
           toolName: 'test-tool',
           args: '{"arg": "value"}',
           state: 'call' as const,
-          step: 1,
         },
       };
 
       store.addOrUpdateAssistantMessageParts({
         partDelta: toolInvocation,
-        step: 1,
       });
 
       expect(store.getMessages()[1].parts).toContainEqual(toolInvocation);
@@ -384,7 +371,6 @@ describe('ChatStore', () => {
 
       store.addOrUpdateAssistantMessageParts({
         partDelta: reasoning,
-        step: 1,
       });
 
       expect(store.getMessages()[1].parts).toContainEqual(reasoning);
@@ -398,7 +384,6 @@ describe('ChatStore', () => {
       expect(() =>
         store.addOrUpdateAssistantMessageParts({
           partDelta: { type: 'invalid' as any },
-          step: 1,
         }),
       ).toThrow('Invalid part delta type');
     });
@@ -418,13 +403,11 @@ describe('ChatStore', () => {
           toolName: 'test-tool',
           args: '{"arg": "value"}',
           state: 'partial-call' as const,
-          step: 1,
         },
       };
 
       store.addOrUpdateAssistantMessageParts({
         partDelta: toolInvocation,
-        step: 1,
       });
 
       const messages = store.getMessages();
@@ -434,7 +417,6 @@ describe('ChatStore', () => {
           toolName: 'test-tool',
           args: '{"arg": "value"}',
           state: 'partial-call',
-          step: 1,
         },
       ]);
       expect(messages[1].parts).toContainEqual(toolInvocation);
@@ -455,11 +437,9 @@ describe('ChatStore', () => {
               toolName: 'test-tool',
               state: 'result' as const,
               args: undefined,
-              step: 1,
               result: 'some result',
             },
           },
-          step: 1,
         }),
       ).toThrow('tool_result must be preceded by a tool_call');
     });
@@ -478,10 +458,8 @@ describe('ChatStore', () => {
             toolName: 'test-tool',
             args: '{"arg": "val',
             state: 'partial-call',
-            step: 1,
           },
         },
-        step: 1,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -492,10 +470,8 @@ describe('ChatStore', () => {
             toolName: 'test-tool',
             args: 'ue"}',
             state: 'partial-call',
-            step: 1,
           },
         },
-        step: 1,
       });
 
       const message = store.getMessages()[1];
@@ -530,10 +506,8 @@ describe('ChatStore', () => {
             toolName: 'test-tool',
             args: { arg: 'value' },
             state: 'call' as const,
-            step: 1,
           },
         },
-        step: 1,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -544,11 +518,9 @@ describe('ChatStore', () => {
             toolName: 'test-tool',
             args: undefined,
             state: 'result' as const,
-            step: 1,
             result: 'success',
           },
         },
-        step: 1,
       });
 
       const message = store.getMessages()[1];
@@ -584,12 +556,10 @@ describe('ChatStore', () => {
               toolCallId: 'test-id',
               toolName: 'test-tool',
               state: 'invalid' as any,
-              step: 1,
               args: undefined,
               result: undefined,
             },
           },
-          step: 1,
         }),
       ).toThrow('Invalid tool invocation state');
     });
@@ -608,10 +578,8 @@ describe('ChatStore', () => {
             toolName: 'test-tool',
             args: { arg: 'value1' },
             state: 'call' as const,
-            step: 1,
           },
         },
-        step: 1,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -622,10 +590,8 @@ describe('ChatStore', () => {
             toolName: 'test-tool',
             args: { arg: 'value2' },
             state: 'call' as const,
-            step: 2,
           },
         },
-        step: 2,
       });
 
       const message = store.getMessages()[1];
@@ -649,7 +615,6 @@ describe('ChatStore', () => {
           reasoning: 'initial thought',
           details: [],
         },
-        step: 1,
       });
 
       const message = store.getMessages()[1];
@@ -679,7 +644,6 @@ describe('ChatStore', () => {
             },
           ],
         },
-        step: 1,
       });
 
       const message = store.getMessages()[1];
@@ -713,7 +677,6 @@ describe('ChatStore', () => {
             },
           ],
         },
-        step: 1,
       });
 
       const message = store.getMessages()[1];
@@ -741,7 +704,6 @@ describe('ChatStore', () => {
           reasoning: 'First thought. ',
           details: [],
         },
-        step: 1,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -750,7 +712,6 @@ describe('ChatStore', () => {
           reasoning: 'Second thought.',
           details: [],
         },
-        step: 1,
       });
 
       const message = store.getMessages()[1];
@@ -774,7 +735,6 @@ describe('ChatStore', () => {
           reasoning: 'Initial thought',
           details: [],
         },
-        step: 1,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -789,7 +749,6 @@ describe('ChatStore', () => {
             },
           ],
         },
-        step: 1,
       });
 
       const message = store.getMessages()[1];
@@ -818,7 +777,6 @@ describe('ChatStore', () => {
           reasoning: 'Initial text.',
           details: [],
         },
-        step: 1,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -832,7 +790,6 @@ describe('ChatStore', () => {
             },
           ],
         },
-        step: 1,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -841,7 +798,6 @@ describe('ChatStore', () => {
           reasoning: ' Another thought.',
           details: [],
         },
-        step: 1,
       });
 
       const message = store.getMessages()[1];
