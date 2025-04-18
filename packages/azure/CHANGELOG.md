@@ -1,5 +1,18 @@
 # @ai-sdk/azure
 
+## 2.0.0-canary.9
+
+### Patch Changes
+
+- 3b13ccf: feat(providers/azure): add transcribe
+- Updated dependencies [5d142ab]
+- Updated dependencies [b6b43c7]
+- Updated dependencies [8aa9e20]
+- Updated dependencies [3795467]
+  - @ai-sdk/provider-utils@3.0.0-canary.8
+  - @ai-sdk/provider@2.0.0-canary.7
+  - @ai-sdk/openai@2.0.0-canary.8
+
 ## 2.0.0-canary.8
 
 ### Patch Changes

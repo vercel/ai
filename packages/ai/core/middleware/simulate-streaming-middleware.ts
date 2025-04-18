@@ -14,6 +14,11 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
 
       const simulatedStream = new ReadableStream<LanguageModelV2StreamPart>({
         start(controller) {
+          controller.enqueue({
+            type: 'stream-start',
+            warnings: result.warnings,
+          });
+
           controller.enqueue({ type: 'response-metadata', ...result.response });
 
           for (const part of result.content) {
@@ -36,7 +41,6 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
         stream: simulatedStream,
         request: result.request,
         response: result.response,
-        warnings: result.warnings,
       };
     },
   };
