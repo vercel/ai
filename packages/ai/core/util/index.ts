@@ -4,7 +4,9 @@ export { generateId } from '@ai-sdk/provider-utils';
 // both on the client and server side.
 // NOTE: this is experimental / internal and may change without notice
 export { callChatApi } from './call-chat-api';
+export { callChatApiV2 } from './call-chat-api-v2';
 export { callCompletionApi } from './call-completion-api';
+export { ChatStore } from './chat-store';
 export { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
 export type { DataStreamPart, DataStreamString } from './data-stream-parts';
 export { getTextFromDataUrl } from './data-url';

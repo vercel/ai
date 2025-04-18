@@ -3,15 +3,15 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
+import '@testing-library/jest-dom/vitest';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   formatDataStreamPart,
   generateId,
   getTextFromDataUrl,
   Message,
 } from 'ai';
-import '@testing-library/jest-dom/vitest';
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -717,7 +717,7 @@ describe('onToolCall', () => {
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
-      `{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}`,
+      `{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"step":0}`,
     );
 
     resolve();
@@ -742,7 +742,7 @@ describe('tool invocations', () => {
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.toolInvocations?.map((toolInvocation, toolIdx) => {
               return (
-                <div key={toolIdx}>
+                <div key={`tool-invocation-${toolIdx}`}>
                   <div data-testid={`tool-invocation-${toolIdx}`}>
                     {JSON.stringify(toolInvocation)}
                   </div>
@@ -792,7 +792,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool"}',
+        '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","step":0}',
       );
     });
 
@@ -870,7 +870,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"step":0}',
       );
     });
 
@@ -905,9 +905,14 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"step":0}',
       );
     });
+
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [],
+    };
 
     await userEvent.click(screen.getByTestId('add-result-0'));
 
@@ -947,7 +952,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"step":0}',
       );
     });
 
