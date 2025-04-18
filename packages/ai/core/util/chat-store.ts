@@ -40,6 +40,7 @@ export class ChatStore {
   /**
    * Transient stream state for in-progress LLM responses:
    */
+  private step: number;
   private partialToolCalls: Record<
     string,
     { text: string; step: number; index: number; toolName: string }
@@ -56,6 +57,7 @@ export class ChatStore {
     throttleMs,
   }: ChatStoreInitialization = {}) {
     this.chatId = chatId;
+    this.step = 0;
     this.messages = initialMessages ?? [];
     this.subscribers = new Set();
     this.notify = throttleMs
@@ -76,6 +78,18 @@ export class ChatStore {
 
   getChatId(): string {
     return this.chatId;
+  }
+
+  getStep(): number {
+    return this.step;
+  }
+
+  private resetStep() {
+    this.step = 0;
+  }
+
+  incrementStep() {
+    this.step++;
   }
 
   getMessages(): UIMessage[] {
@@ -100,6 +114,10 @@ export class ChatStore {
 
   appendMessage(message: UIMessage) {
     this.messages.push(message);
+    if (message.role === 'assistant') {
+      this.resetStep();
+      this.partialToolCalls = {};
+    }
     this.notify('chat-messages-changed');
   }
 
@@ -113,11 +131,9 @@ export class ChatStore {
   addOrUpdateAssistantMessageParts({
     generateId = generateIdFunction,
     partDelta,
-    step,
     id,
   }: {
     partDelta: UIMessage['parts'][number];
-    step: number;
     id?: string;
     generateId?: () => string;
   }) {
@@ -159,7 +175,6 @@ export class ChatStore {
         this.addOrUpdateToolInvocation({
           toolInvocation: partDelta.toolInvocation,
           assistantMessage,
-          step,
         });
         break;
       }
@@ -194,12 +209,12 @@ export class ChatStore {
   private addOrUpdateToolInvocation({
     toolInvocation,
     assistantMessage,
-    step,
   }: {
     toolInvocation: ToolInvocation;
     assistantMessage: UIMessage;
-    step: number;
   }) {
+    const step = this.getStep();
+
     if (assistantMessage.toolInvocations == null) {
       assistantMessage.toolInvocations = [];
     }
@@ -369,6 +384,7 @@ export class ChatStore {
   }
 
   clear() {
+    this.resetStep();
     this.messages = [];
     this.notify('chat-messages-changed');
   }

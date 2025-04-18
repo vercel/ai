@@ -29,13 +29,6 @@ export async function processChatResponseV2({
 }) {
   const lastMessage = store.getLastMessage();
   const replaceLastMessage = lastMessage?.role === 'assistant';
-  let step = replaceLastMessage
-    ? 1 +
-      // find max step in existing tool invocations:
-      (lastMessage.toolInvocations?.reduce((max, toolInvocation) => {
-        return Math.max(max, toolInvocation.step ?? 0);
-      }, 0) ?? 0)
-    : 0;
 
   const data: JSONValue[] = [];
 
@@ -55,7 +48,6 @@ export async function processChatResponseV2({
   const updateMessageStore = (partDelta: UIMessage['parts'][number]) => {
     store.addOrUpdateAssistantMessageParts({
       partDelta,
-      step,
       generateId,
     });
   };
@@ -196,7 +188,7 @@ export async function processChatResponseV2({
       }
     },
     onFinishStepPart(value) {
-      step += 1;
+      store.incrementStep();
       store.resetTempParts({ isContinued: value.isContinued });
     },
     onStartStepPart(value) {
@@ -205,7 +197,6 @@ export async function processChatResponseV2({
         partDelta: {
           type: 'step-start',
         },
-        step,
         // keep message id stable when we are updating an existing message:
         id: !replaceLastMessage ? value.messageId : undefined,
       });
