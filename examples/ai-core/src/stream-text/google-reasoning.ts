@@ -16,12 +16,11 @@ async function main() {
   });
 
   for await (const part of result.fullStream) {
-    console.log(part);
-    // if (part.type === 'reasoning') {
-    //   process.stdout.write('\x1b[34m' + part.textDelta + '\x1b[0m');
-    // } else if (part.type === 'text-delta') {
-    //   process.stdout.write(part.textDelta);
-    // }
+    if (part.type === 'reasoning') {
+      process.stdout.write('\x1b[34m' + part.textDelta + '\x1b[0m');
+    } else if (part.type === 'text-delta') {
+      process.stdout.write(part.textDelta);
+    }
   }
 
   console.log();
@@ -33,5 +32,3 @@ async function main() {
 }
 
 main().catch(console.error);
-
-// thoughts_token_count in usage
