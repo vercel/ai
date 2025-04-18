@@ -140,6 +140,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
           // provider options:
           responseModalities: googleOptions?.responseModalities,
+          thinkingConfig: googleOptions?.thinkingConfig,
         },
         contents,
         systemInstruction,
@@ -591,6 +592,11 @@ const chunkSchema = z.object({
 
 const googleGenerativeAIProviderOptionsSchema = z.object({
   responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).nullish(),
+  thinkingConfig: z
+    .object({
+      thinkingBudget: z.number().nullish(),
+    })
+    .nullish(),
 });
 export type GoogleGenerativeAIProviderOptions = z.infer<
   typeof googleGenerativeAIProviderOptionsSchema
