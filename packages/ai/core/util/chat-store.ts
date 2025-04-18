@@ -58,7 +58,7 @@ export class ChatStore {
   }: ChatStoreInitialization = {}) {
     this.chatId = chatId;
     this.step = 0;
-    this.messages = initialMessages ?? [];
+    this.messages = initialMessages ? [...initialMessages] : [];
     this.subscribers = new Set();
     this.notify = throttleMs
       ? throttle((event: ChatStoreEvent) => this.emitEvent(event), throttleMs)
@@ -84,8 +84,16 @@ export class ChatStore {
     return this.step;
   }
 
-  private resetStep() {
-    this.step = 0;
+  private calculateStep() {
+    const lastMessage = this.getLastMessage();
+    if (lastMessage?.role === 'assistant') {
+      this.step =
+        lastMessage.toolInvocations?.reduce((max, toolInvocation) => {
+          return Math.max(max, toolInvocation.step ?? 0);
+        }, 0) ?? 0;
+    } else {
+      this.step = 0;
+    }
   }
 
   incrementStep() {
@@ -109,15 +117,15 @@ export class ChatStore {
 
   setMessages(messages: UIMessage[]) {
     this.messages = messages;
+    this.calculateStep();
     this.notify('chat-messages-changed');
   }
 
   appendMessage(message: UIMessage) {
-    this.messages.push(message);
-    if (message.role === 'assistant') {
-      this.resetStep();
-      this.partialToolCalls = {};
+    if (this.messages.length > 0 && message.role === 'user') {
+      this.resetAllTempState();
     }
+    this.messages = [...this.messages, message];
     this.notify('chat-messages-changed');
   }
 
@@ -197,13 +205,19 @@ export class ChatStore {
     }
   }
 
-  resetTempParts({ isContinued = false }: { isContinued?: boolean }) {
+  resetTempParts({ isContinued = false }: { isContinued?: boolean } = {}) {
     if (isContinued) {
       this.tempParts.reasoning = undefined;
       this.tempParts.reasoningTextDetail = undefined;
     } else {
       this.tempParts = {};
     }
+  }
+
+  private resetAllTempState() {
+    this.resetTempParts();
+    this.step = 0;
+    this.partialToolCalls = {};
   }
 
   private addOrUpdateToolInvocation({
@@ -311,13 +325,15 @@ export class ChatStore {
         }
       }
 
+      const withStep = { ...toolInvocation, step };
+
       // Update legacy state:
-      assistantMessage.toolInvocations.push(toolInvocation);
+      assistantMessage.toolInvocations.push(withStep);
 
       // Push new tool invocation part:
       assistantMessage.parts.push({
         type: 'tool-invocation',
-        toolInvocation,
+        toolInvocation: withStep,
       });
     }
   }
@@ -384,7 +400,7 @@ export class ChatStore {
   }
 
   clear() {
-    this.resetStep();
+    this.resetAllTempState();
     this.messages = [];
     this.notify('chat-messages-changed');
   }

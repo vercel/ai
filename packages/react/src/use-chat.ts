@@ -182,8 +182,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
-  useEffect(() => console.log('re-render'), []);
-
   // Use the caller-supplied ID if available; otherwise, fall back to our stable ID
   const chatId = id ?? hookId;
   const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
@@ -195,8 +193,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
     [stableInitialMessages],
   );
 
-  // Keep the latest messages in a ref.
-  // const messagesRef = useRef<UIMessage[]>(processedInitialMessages || []);
   const messagesStore = useMemo(
     () =>
       new ChatStore({

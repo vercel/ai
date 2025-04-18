@@ -1,7 +1,7 @@
 import { IdGenerator, JSONValue, UseChatOptions } from '../types';
 import { ChatStore } from './chat-store';
 import { processChatResponseV2 } from './process-chat-response-v2';
-import { processChatTextResponse } from './process-chat-text-response';
+import { processChatTextResponseV2 } from './process-chat-text-response-v2';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -72,18 +72,17 @@ export async function callChatApiV2({
 
   switch (streamProtocol) {
     case 'text': {
-      await processChatTextResponse({
+      await processChatTextResponseV2({
         stream: response.body,
         update: onUpdate,
         onFinish,
         generateId,
+        store,
       });
       return;
     }
 
     case 'data': {
-      // Sets status to streaming:
-      onUpdate({ data: [] });
       await processChatResponseV2({
         stream: response.body,
         update: onUpdate,

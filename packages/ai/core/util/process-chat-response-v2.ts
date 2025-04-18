@@ -46,6 +46,7 @@ export async function processChatResponseV2({
   let finishReason: LanguageModelV2FinishReason = 'unknown';
 
   const updateMessageStore = (partDelta: UIMessage['parts'][number]) => {
+    update({ data: [] }); // Sets status to streaming (SWR)
     store.addOrUpdateAssistantMessageParts({
       partDelta,
       generateId,
