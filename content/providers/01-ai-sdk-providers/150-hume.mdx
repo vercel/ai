@@ -1,0 +1,99 @@
+---
+title: Hume
+description: Learn how to use the Hume provider for the AI SDK.
+---
+
+# Hume Provider
+
+The [Hume](https://hume.ai/) provider contains language model support for the Hume transcription API.
+
+## Setup
+
+The Hume provider is available in the `@ai-sdk/hume` module. You can install it with
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/hume" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/hume" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/hume" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `hume` from `@ai-sdk/hume`:
+
+```ts
+import { hume } from '@ai-sdk/hume';
+```
+
+If you need a customized setup, you can import `createHume` from `@ai-sdk/hume` and create a provider instance with your settings:
+
+```ts
+import { createHume } from '@ai-sdk/hume';
+
+const hume = createHume({
+  // custom settings, e.g.
+  fetch: customFetch,
+});
+```
+
+You can use the following optional settings to customize the Hume provider instance:
+
+- **apiKey** _string_
+
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `HUME_API_KEY` environment variable.
+
+- **headers** _Record&lt;string,string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+  Defaults to the global `fetch` function.
+  You can use it as a middleware to intercept requests,
+  or to provide a custom fetch implementation for e.g. testing.
+
+## Speech Models
+
+You can create models that call the [Hume speech API](https://dev.hume.ai/docs/text-to-speech-tts/overview)
+using the `.speech()` factory method.
+
+```ts
+const model = hume.speech();
+```
+
+You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying a voice to use for the generated audio.
+
+```ts highlight="6"
+import { experimental_generateSpeech as generateSpeech } from 'ai';
+import { hume } from '@ai-sdk/hume';
+
+const result = await generateSpeech({
+  model: hume.speech(),
+  text: 'Hello, world!',
+  voice: 'd8ab67c6-953d-4bd8-9370-8fa53a0f1453',
+  providerOptions: { hume: {} },
+});
+```
+
+The following provider options are available:
+
+- **context** _object_
+
+  Either:
+
+  - `{ generationId: string }` - A generation ID to use for context.
+  - `{ utterances: HumeUtterance[] }` - An array of utterance objects for context.
+
+### Model Capabilities
+
+| Model     | Instructions        |
+| --------- | ------------------- |
+| `default` | <Check size={18} /> |
