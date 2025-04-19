@@ -1,6 +1,7 @@
 import {
   LanguageModelV1,
   LanguageModelV1CallWarning,
+  LanguageModelV1Citation,
   LanguageModelV1FinishReason,
   LanguageModelV1LogProbs,
   LanguageModelV1Source,
@@ -62,6 +63,11 @@ export type CallWarning = LanguageModelV1CallWarning;
 A source that has been used as input to generate the response.
 */
 export type Source = LanguageModelV1Source;
+
+/**
+A citation that has been used as input to generate the response.
+*/
+export type Citation = LanguageModelV1Citation;
 
 /**
 Tool choice for the generation. It supports the following settings:

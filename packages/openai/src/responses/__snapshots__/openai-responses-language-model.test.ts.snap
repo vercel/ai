@@ -1,0 +1,66 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > web search > should return sources and citations 1`] = `
+[
+  {
+    "id": "id-0",
+    "sourceType": "url",
+    "title": "Bruce Lee statue to be installed in SF Chinatown",
+    "url": "https://www.axios.com/local/san-francisco/2025/03/07/bruce-lee-statue-sf-chinatown?utm_source=chatgpt.com",
+  },
+  {
+    "id": "id-1",
+    "sourceType": "url",
+    "title": "The Bay Area is set to make an office leasing comeback",
+    "url": "https://www.axios.com/local/san-francisco/2025/03/03/bay-area-office-leasing-activity?utm_source=chatgpt.com",
+  },
+  {
+    "id": "id-2",
+    "sourceType": "url",
+    "title": "Where to see spring blooms in the Bay Area",
+    "url": "https://www.axios.com/local/san-francisco/2025/03/03/where-to-see-spring-blooms-bay-area?utm_source=chatgpt.com",
+  },
+  {
+    "id": "id-3",
+    "sourceType": "url",
+    "title": "Oceanfront Great Highway park set to open in April",
+    "url": "https://www.axios.com/local/san-francisco/2025/03/03/great-highway-park-opening-april-recall-campaign?utm_source=chatgpt.com",
+  },
+  {
+    "id": "id-4",
+    "sourceType": "url",
+    "title": "San Francisco's spring seasons are getting warmer",
+    "url": "https://www.axios.com/local/san-francisco/2025/03/03/climate-weather-spring-temperatures-warmer-sf?utm_source=chatgpt.com",
+  },
+]
+`;
+
+exports[`OpenAIResponsesLanguageModel > doGenerate > web search > should return sources and citations 2`] = `
+[
+  {
+    "endIndex": 606,
+    "sourceId": "id-0",
+    "startIndex": 486,
+  },
+  {
+    "endIndex": 1035,
+    "sourceId": "id-1",
+    "startIndex": 912,
+  },
+  {
+    "endIndex": 1472,
+    "sourceId": "id-2",
+    "startIndex": 1346,
+  },
+  {
+    "endIndex": 2023,
+    "sourceId": "id-3",
+    "startIndex": 1884,
+  },
+  {
+    "endIndex": 2540,
+    "sourceId": "id-4",
+    "startIndex": 2404,
+  },
+]
+`;
