@@ -143,6 +143,8 @@ export function useAssistant({
 
     input.value = '';
 
+    error.value = undefined;
+
     const controller = new AbortController();
 
     try {
