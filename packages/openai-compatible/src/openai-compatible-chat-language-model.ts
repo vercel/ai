@@ -56,6 +56,11 @@ model. `undefined` can be specified if object generation is not supported.
   supportsStructuredOutputs?: boolean;
 };
 
+export type OpenAICompatibleChatConfigOverride = Pick<
+  OpenAICompatibleChatConfig,
+  'defaultObjectGenerationMode' | 'supportsStructuredOutputs'
+>;
+
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
   readonly specificationVersion = 'v1';
 
