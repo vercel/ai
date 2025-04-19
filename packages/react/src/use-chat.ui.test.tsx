@@ -1050,6 +1050,66 @@ describe('maxSteps', () => {
       expect(screen.getByTestId('message-1')).toHaveTextContent('final result');
     });
   });
+  
+  describe('should trigger request again when experimental_throttle is not undefined', () => {
+    let onToolCallInvoked = false;
+
+    setupTestComponent(() => {
+      const { append } = useChat({
+        async onToolCall({ toolCall }) {
+          onToolCallInvoked = true;
+
+          return `test-tool-response: ${toolCall.toolName} ${
+            toolCall.toolCallId
+          } ${JSON.stringify(toolCall.args)}`;
+        },
+        maxSteps: 5,
+        experimental_throttle: 100
+      });
+
+      return (
+        <div>
+          <button
+            data-testid="do-append"
+            onClick={() => {
+              append({ role: 'user', content: 'hi' });
+            }}
+          />
+        </div>
+      );
+    });
+
+    beforeEach(() => {
+      onToolCallInvoked = false;
+    });
+
+    it('should trigger request again', async () => {
+      server.urls['/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatDataStreamPart('tool_call', {
+              toolCallId: 'tool-call-0',
+              toolName: 'test-tool',
+              args: { testArg: 'test-value' },
+            }),
+          ],
+        },
+        {
+          type: 'stream-chunks',
+          chunks: [formatDataStreamPart('text', 'final result')],
+        },
+      ];
+
+      await userEvent.click(screen.getByTestId('do-append'));
+
+      expect(onToolCallInvoked).toBe(true);
+  
+      await waitFor(async () => {
+        expect(await server.calls.length).toBe(2);
+      });
+    });
+  });
 
   describe('two steps with error response', () => {
     let onToolCallCounter = 0;

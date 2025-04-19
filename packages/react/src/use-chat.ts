@@ -317,15 +317,19 @@ By default, it's set to 1, which means that only a single LLM call is made.
           onUpdate({ message, data, replaceLastMessage }) {
             mutateStatus('streaming');
 
+            const newMessages = [
+              ...(replaceLastMessage
+                ? chatMessages.slice(0, chatMessages.length - 1)
+                : chatMessages),
+              message,
+            ];
+
             throttledMutate(
-              [
-                ...(replaceLastMessage
-                  ? chatMessages.slice(0, chatMessages.length - 1)
-                  : chatMessages),
-                message,
-              ],
+              newMessages,
               false,
             );
+          
+            messagesRef.current = newMessages;
 
             if (data?.length) {
               throttledMutateStreamData(
