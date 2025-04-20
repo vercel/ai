@@ -1,5 +1,41 @@
 # ai
 
+## 4.3.9
+
+### Patch Changes
+
+- b69a253: fix(utils/detect-mimetype): add support for detecting id3 tags
+
+## 4.3.8
+
+### Patch Changes
+
+- 6e8a73b: feat(providers/fal): add transcribe
+
+## 4.3.7
+
+### Patch Changes
+
+- f4f3945: fix (ai/core): refactor `toResponseMessages` to filter out empty string/content
+
+## 4.3.6
+
+### Patch Changes
+
+- beef951: feat: add speech with experimental_generateSpeech
+- bd41167: fix(ai/core): properly handle custom separator in provider registry
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/provider-utils@2.2.7
+  - @ai-sdk/ui-utils@1.2.8
+  - @ai-sdk/react@1.2.9
+
+## 4.3.5
+
+### Patch Changes
+
+- 452bf12: fix (ai/mcp): better support for zero-argument MCP tools
+
 ## 4.3.4
 
 ### Patch Changes

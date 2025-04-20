@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { mockValues } from '../test/mock-values';
 import { tool } from '../tool';
-import { toResponseMessages } from './to-response-messages';
 import { DefaultGeneratedFile } from './generated-file';
+import { toResponseMessages } from './to-response-messages';
 
 describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
@@ -138,7 +138,13 @@ describe('toResponseMessages', () => {
     const result = toResponseMessages({
       text: undefined,
       files: [],
-      reasoning: [],
+      reasoning: [
+        {
+          type: 'text',
+          text: 'Thinking text',
+          signature: 'sig',
+        },
+      ],
       tools: {},
       toolCalls: [],
       toolResults: [],
@@ -149,7 +155,9 @@ describe('toResponseMessages', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: [{ type: 'text', text: '' }],
+        content: [
+          { type: 'reasoning', text: 'Thinking text', signature: 'sig' },
+        ],
         id: 'msg-123',
       },
     ]);
@@ -391,5 +399,60 @@ describe('toResponseMessages', () => {
         ],
       },
     ]);
+  });
+
+  it('should not append text parts if text is empty string', () => {
+    const result = toResponseMessages({
+      text: '',
+      files: [],
+      reasoning: [],
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          parameters: z.object({}),
+        },
+      },
+      toolCalls: [
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          args: {},
+        },
+      ],
+      toolResults: [],
+      messageId: 'msg-123',
+      generateMessageId: mockValues('msg-345'),
+    });
+
+    expect(result).toEqual([
+      {
+        role: 'assistant',
+        id: 'msg-123',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: '123',
+            toolName: 'testTool',
+            args: {},
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should not append assistant message if there is no content', () => {
+    const result = toResponseMessages({
+      text: '',
+      files: [],
+      reasoning: [],
+      tools: {},
+      toolCalls: [],
+      toolResults: [],
+      messageId: 'msg-123',
+      generateMessageId: mockValues('msg-345'),
+    });
+
+    expect(result).toEqual([]);
   });
 });

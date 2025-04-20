@@ -37,9 +37,9 @@ export class StdioMCPTransport implements MCPTransport {
       });
     }
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       try {
-        const process = await createChildProcess(
+        const process = createChildProcess(
           this.serverParams,
           this.abortController.signal,
         );
