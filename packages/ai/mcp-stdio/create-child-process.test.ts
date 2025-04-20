@@ -31,13 +31,7 @@ describe('createChildProcess', () => {
       new AbortController().signal,
     );
 
-    await new Promise<void>((resolve) => {
-      childProcess.on("spawn", () => {
-        expect(childProcess.pid).toBeDefined();
-        resolve();
-      });
-    });
-
+    expect(childProcess.pid).toBeDefined();
     expect(mockGetEnvironment).toHaveBeenCalledWith(undefined);
     childProcess.kill();
   });
@@ -49,13 +43,7 @@ describe('createChildProcess', () => {
       new AbortController().signal,
     );
 
-    await new Promise<void>((resolve) => {
-      childProcessWithCustomEnv.on("spawn", () => {
-        expect(childProcessWithCustomEnv.pid).toBeDefined();
-        resolve();
-      });
-    });
-
+    expect(childProcessWithCustomEnv.pid).toBeDefined();
     expect(mockGetEnvironment).toHaveBeenCalledWith(customEnv);
     expect(mockGetEnvironment).toHaveReturnedWith({
       ...DEFAULT_ENV,
@@ -70,19 +58,14 @@ describe('createChildProcess', () => {
       new AbortController().signal,
     );
 
-    await new Promise<void>((resolve) => {
-      childProcessWithArgs.on("spawn", () => {
-        expect(childProcessWithArgs.pid).toBeDefined();
-        expect(childProcessWithArgs.spawnargs).toContain(process.execPath);
-        expect(childProcessWithArgs.spawnargs).toEqual([
-          process.execPath,
-          '-c',
-          'echo',
-          'test',
-        ]);
-        resolve();
-      });
-    });
+    expect(childProcessWithArgs.pid).toBeDefined();
+    expect(childProcessWithArgs.spawnargs).toContain(process.execPath);
+    expect(childProcessWithArgs.spawnargs).toEqual([
+      process.execPath,
+      '-c',
+      'echo',
+      'test',
+    ]);
 
     childProcessWithArgs.kill();
   });
@@ -93,13 +76,7 @@ describe('createChildProcess', () => {
       new AbortController().signal,
     );
 
-    await new Promise<void>((resolve) => {
-      childProcessWithCwd.on("spawn", () => {
-        expect(childProcessWithCwd.pid).toBeDefined();
-        resolve();
-      });
-    });
-
+    expect(childProcessWithCwd.pid).toBeDefined();
     childProcessWithCwd.kill();
   });
 
@@ -109,14 +86,8 @@ describe('createChildProcess', () => {
       new AbortController().signal,
     );
 
-    await new Promise<void>((resolve) => {
-      childProcessWithStderr.on("spawn", () => {
-        expect(childProcessWithStderr.pid).toBeDefined();
-        expect(childProcessWithStderr.stderr).toBeDefined();
-        resolve();
-      });
-    });
-
+    expect(childProcessWithStderr.pid).toBeDefined();
+    expect(childProcessWithStderr.stderr).toBeDefined();
     childProcessWithStderr.kill();
   });
 });
