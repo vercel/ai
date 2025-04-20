@@ -1,15 +1,18 @@
+import * as RJSON from 'relaxed-json';
+
+import { LanguageModelV1Middleware } from './language-model-v1-middleware';
 import {
-  generateId,
-  LanguageModelV1Middleware,
   LanguageModelV1Prompt,
   LanguageModelV1StreamPart,
-} from 'ai';
-import * as RJSON from 'relaxed-json';
+} from '@ai-sdk/provider';
+import { generateId } from '@ai-sdk/provider-utils';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 const defaultTemplate = (tools: string) =>
-  `You are a function calling AI model. You are provided with function signatures within <tools></tools> XML tags.
-You may call one or more functions to assist with the user query. Don't make assumptions about what values to plug into functions.
+  `You are a function calling AI model.
+You are provided with function signatures within <tools></tools> XML tags.
+You may call one or more functions to assist with the user query.
+Don't make assumptions about what values to plug into functions.
 Here are the available tools: <tools>${tools}</tools>
 Use the following pydantic model json schema for each tool call you will make: {'title': 'FunctionCall', 'type': 'object', 'properties': {'arguments': {'title': 'Arguments', 'type': 'object'}, 'name': {'title': 'Name', 'type': 'string'}}, 'required': ['arguments', 'name']}
 For each function call return a json object with function name and arguments within <tool_call></tool_call> XML tags as follows:
@@ -17,7 +20,25 @@ For each function call return a json object with function name and arguments wit
 {'arguments': <args-dict>, 'name': <function-name>}
 </tool_call>`;
 
-export function hermesToolMiddleware({
+const gemmaToolMiddleware = createToolMiddleware({
+  toolSystemPromptTemplate(tools) {
+    return `You have access to functions. If you decide to invoke any of the function(s),
+  you MUST put it in the format of
+  \`\`\`tool_call
+  {'name': <function-name>, 'arguments': <args-dict>}
+  \`\`\`
+  You SHOULD NOT include any other text in the response if you call a function
+  ${tools}`;
+  },
+  toolCallTag: '```tool_call\n',
+  toolCallEndTag: '```',
+  toolResponseTag: '```tool_response\n',
+  toolResponseEndTag: '\n```',
+});
+
+const hermesToolMiddleware = createToolMiddleware({});
+
+function createToolMiddleware({
   toolCallTag = '<tool_call>',
   toolCallEndTag = '</tool_call>',
   toolResponseTag = '<tool_response>',
@@ -70,7 +91,7 @@ export function hermesToolMiddleware({
 
                   controller.enqueue({
                     type: 'text-delta',
-                    textDelta: `Failed to parse tool call: ${e.message}`,
+                    textDelta: `Failed to parse tool call: ${e}`,
                   });
                 }
               });
@@ -268,3 +289,5 @@ export function hermesToolMiddleware({
     },
   };
 }
+
+export { gemmaToolMiddleware, hermesToolMiddleware, createToolMiddleware };
