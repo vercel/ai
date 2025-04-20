@@ -20,10 +20,6 @@ if (import.meta.url.endsWith(process.argv[1])) {
   } catch (error) {
     // write error to summary
     console.error(error.message);
-    console.error('error.path');
-    console.error(error.path);
-    console.error('error.content');
-    console.error(error.content);
     await fs.writeFile(
       process.env.GITHUB_STEP_SUMMARY,
       `## Changeset verification failed ❌
