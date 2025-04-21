@@ -124,7 +124,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             // Google GenAI does not support all OpenAPI Schema features,
             // so this is needed as an escape hatch:
             // TODO convert into provider option
-            this.settings.structuredOutputs
+            (this.settings.structuredOutputs ?? true)
               ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
               : undefined,
           ...(this.settings.audioTimestamp && {
