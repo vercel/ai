@@ -264,14 +264,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         }
         baseArgs.max_tokens = undefined;
       }
-    } else if (this.modelId.startsWith('gpt-4o-search-preview')) {
+    } else if (
+      this.modelId.startsWith('gpt-4o-search-preview') ||
+      this.modelId.startsWith('gpt-4o-mini-search-preview')
+    ) {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
           type: 'unsupported-setting',
           setting: 'temperature',
           details:
-            'temperature is not supported for the gpt-4o-search-preview model and has been removed.',
+            'temperature is not supported for the search preview models and has been removed.',
         });
       }
     }
@@ -438,6 +441,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof openaiChatChunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
@@ -648,7 +655,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       ),
       request: { body },
       response: { headers: responseHeaders },
-      warnings,
     };
   }
 }

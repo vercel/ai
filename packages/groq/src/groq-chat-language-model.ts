@@ -281,6 +281,10 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof groqChatChunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
@@ -460,9 +464,8 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      response: { headers: responseHeaders },
-      warnings,
       request: { body },
+      response: { headers: responseHeaders },
     };
   }
 }

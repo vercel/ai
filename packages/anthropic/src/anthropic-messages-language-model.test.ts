@@ -517,6 +517,10 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
@@ -576,6 +580,10 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
@@ -641,6 +649,10 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
           {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
             "type": "response-metadata",
@@ -693,6 +705,10 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
@@ -763,6 +779,10 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "msg_01GouTqNCGXzrj5LQ5jEkw67",
             "modelId": "claude-3-haiku-20240307",
@@ -859,14 +879,26 @@ describe('AnthropicMessagesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await convertReadableStreamToArray(stream)).toStrictEqual([
-        {
-          type: 'response-metadata',
-          id: 'msg_01KfpJoAEabmH2iHRRFjQMAG',
-          modelId: 'claude-3-haiku-20240307',
-        },
-        { type: 'error', error: { type: 'error', message: 'test error' } },
-      ]);
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
+            "modelId": "claude-3-haiku-20240307",
+            "type": "response-metadata",
+          },
+          {
+            "error": {
+              "message": "test error",
+              "type": "error",
+            },
+            "type": "error",
+          },
+        ]
+      `);
     });
 
     it('should expose the raw response headers', async () => {
@@ -992,6 +1024,10 @@ describe('AnthropicMessagesLanguageModel', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "msg_01KfpJoAEabmH2iHRRFjQMAG",
             "modelId": "claude-3-haiku-20240307",
