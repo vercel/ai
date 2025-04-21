@@ -1,12 +1,11 @@
 import {
   JSONValue,
-  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2LogProbs,
-  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  LanguageModelV2CallWarning,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
@@ -48,7 +47,6 @@ import { now as originalNow } from '../util/now';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
-import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
@@ -341,7 +339,6 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   schema: inputSchema,
   schemaName,
   schemaDescription,
-  mode,
   output = 'object',
   system,
   prompt,
@@ -376,7 +373,6 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
     schemaName?: string;
     schemaDescription?: string;
-    mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
     providerOptions?: ProviderOptions;
     onError?: StreamObjectOnErrorCallback;
@@ -389,18 +385,12 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   }): StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   validateObjectGenerationInput({
     output,
-    mode,
     schema: inputSchema,
     schemaName,
     schemaDescription,
   });
 
   const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
-
-  // automatically set mode to 'json' for no-schema output
-  if (outputStrategy.type === 'no-schema' && mode === undefined) {
-    mode = 'json';
-  }
 
   return new DefaultStreamObjectResult({
     model,

@@ -21,182 +21,146 @@ describe('streamObject', () => {
   describe('output = "object"', () => {
     describe('result.objectStream', () => {
       it('should send object deltas', async () => {
+        const mockModel = new MockLanguageModelV2({
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"content": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world` },
+              { type: 'text', text: `!"` },
+              { type: 'text', text: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 3, outputTokens: 10 },
+              },
+            ]),
+          },
+        });
+
         const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async ({ prompt, responseFormat }) => {
-              expect(responseFormat).toStrictEqual({
-                type: 'json',
-                name: undefined,
-                description: undefined,
-                schema: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { content: { type: 'string' } },
-                  required: ['content'],
-                  type: 'object',
-                },
-              });
-
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'system',
-                  content:
-                    'JSON schema:\n' +
-                    '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                    'You MUST answer with a JSON object that matches the JSON schema above.',
-                },
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerOptions: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'text', text: '{ ' },
-                  { type: 'text', text: '"content": ' },
-                  { type: 'text', text: `"Hello, ` },
-                  { type: 'text', text: `world` },
-                  { type: 'text', text: `!"` },
-                  { type: 'text', text: ' }' },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { inputTokens: 3, outputTokens: 10 },
-                  },
-                ]),
-              };
-            },
-          }),
+          model: mockModel,
           schema: z.object({ content: z.string() }),
           prompt: 'prompt',
         });
 
-        assert.deepStrictEqual(
-          await convertAsyncIterableToArray(result.partialObjectStream),
+        expect(await convertAsyncIterableToArray(result.partialObjectStream))
+          .toMatchInlineSnapshot(`
           [
             {},
-            { content: 'Hello, ' },
-            { content: 'Hello, world' },
-            { content: 'Hello, world!' },
-          ],
-        );
+            {
+              "content": "Hello, ",
+            },
+            {
+              "content": "Hello, world",
+            },
+            {
+              "content": "Hello, world!",
+            },
+          ]
+        `);
+
+        expect(mockModel.doStreamCalls[0].responseFormat)
+          .toMatchInlineSnapshot(`
+          {
+            "description": undefined,
+            "name": undefined,
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "content",
+              ],
+              "type": "object",
+            },
+            "type": "json",
+          }
+        `);
       });
 
-      it('should send object deltas when structured outputs are enabled', async () => {
-        const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async ({ prompt, responseFormat }) => {
-              expect(responseFormat).toStrictEqual({
-                type: 'json',
-                name: undefined,
-                description: undefined,
-                schema: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { content: { type: 'string' } },
-                  required: ['content'],
-                  type: 'object',
-                },
-              });
-
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerOptions: undefined,
-                },
-              ]);
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'text', text: '{ ' },
-                  { type: 'text', text: '"content": ' },
-                  { type: 'text', text: `"Hello, ` },
-                  { type: 'text', text: `world` },
-                  { type: 'text', text: `!"` },
-                  { type: 'text', text: ' }' },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { inputTokens: 3, outputTokens: 10 },
-                  },
-                ]),
-              };
-            },
-          }),
-          schema: z.object({ content: z.string() }),
-          prompt: 'prompt',
+      it('should use name and description', async () => {
+        const model = new MockLanguageModelV2({
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"content": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world` },
+              { type: 'text', text: `!"` },
+              { type: 'text', text: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 3, outputTokens: 10 },
+              },
+            ]),
+          },
         });
 
-        assert.deepStrictEqual(
-          await convertAsyncIterableToArray(result.partialObjectStream),
-          [
-            {},
-            { content: 'Hello, ' },
-            { content: 'Hello, world' },
-            { content: 'Hello, world!' },
-          ],
-        );
-      });
-
-      it('should use name and description when structured outputs are enabled', async () => {
         const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async ({ prompt, responseFormat }) => {
-              expect(responseFormat).toStrictEqual({
-                type: 'json',
-                name: 'test-name',
-                description: 'test description',
-                schema: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: { content: { type: 'string' } },
-                  required: ['content'],
-                  type: 'object',
-                },
-              });
-
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerOptions: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'text', text: '{ ' },
-                  { type: 'text', text: '"content": ' },
-                  { type: 'text', text: `"Hello, ` },
-                  { type: 'text', text: `world` },
-                  { type: 'text', text: `!"` },
-                  { type: 'text', text: ' }' },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { inputTokens: 3, outputTokens: 10 },
-                  },
-                ]),
-              };
-            },
-          }),
+          model,
           schema: z.object({ content: z.string() }),
           schemaName: 'test-name',
           schemaDescription: 'test description',
           prompt: 'prompt',
         });
 
-        assert.deepStrictEqual(
+        expect(
           await convertAsyncIterableToArray(result.partialObjectStream),
+        ).toMatchInlineSnapshot(`
           [
             {},
-            { content: 'Hello, ' },
-            { content: 'Hello, world' },
-            { content: 'Hello, world!' },
-          ],
-        );
+            {
+              "content": "Hello, ",
+            },
+            {
+              "content": "Hello, world",
+            },
+            {
+              "content": "Hello, world!",
+            },
+          ]
+        `);
+        expect(model.doStreamCalls[0].prompt).toMatchInlineSnapshot(`
+          [
+            {
+              "content": [
+                {
+                  "text": "prompt",
+                  "type": "text",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ]
+        `);
+        expect(model.doStreamCalls[0].responseFormat).toMatchInlineSnapshot(`
+          {
+            "description": "test description",
+            "name": "test-name",
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "content",
+              ],
+              "type": "object",
+            },
+            "type": "json",
+          }
+        `);
       });
 
       it('should suppress error in partialObjectStream', async () => {
@@ -794,53 +758,25 @@ describe('streamObject', () => {
 
     describe('custom schema', () => {
       it('should send object deltas', async () => {
+        const mockModel = new MockLanguageModelV2({
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'text', text: '{ ' },
+              { type: 'text', text: '"content": ' },
+              { type: 'text', text: `"Hello, ` },
+              { type: 'text', text: `world` },
+              { type: 'text', text: `!"` },
+              { type: 'text', text: ' }' },
+              {
+                type: 'finish',
+                finishReason: 'stop',
+                usage: { inputTokens: 3, outputTokens: 10 },
+              },
+            ]),
+          },
+        });
         const result = streamObject({
-          model: new MockLanguageModelV2({
-            doStream: async ({ prompt, responseFormat }) => {
-              expect(responseFormat).toStrictEqual({
-                type: 'json',
-                name: undefined,
-                description: undefined,
-                schema: jsonSchema({
-                  type: 'object',
-                  properties: { content: { type: 'string' } },
-                  required: ['content'],
-                  additionalProperties: false,
-                }).jsonSchema,
-              });
-
-              expect(prompt).toStrictEqual([
-                {
-                  role: 'system',
-                  content:
-                    'JSON schema:\n' +
-                    '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false}\n' +
-                    'You MUST answer with a JSON object that matches the JSON schema above.',
-                },
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerOptions: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'text', text: '{ ' },
-                  { type: 'text', text: '"content": ' },
-                  { type: 'text', text: `"Hello, ` },
-                  { type: 'text', text: `world` },
-                  { type: 'text', text: `!"` },
-                  { type: 'text', text: ' }' },
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { inputTokens: 3, outputTokens: 10 },
-                  },
-                ]),
-              };
-            },
-          }),
+          model: mockModel,
           schema: jsonSchema({
             type: 'object',
             properties: { content: { type: 'string' } },
@@ -850,15 +786,42 @@ describe('streamObject', () => {
           prompt: 'prompt',
         });
 
-        assert.deepStrictEqual(
-          await convertAsyncIterableToArray(result.partialObjectStream),
+        expect(await convertAsyncIterableToArray(result.partialObjectStream))
+          .toMatchInlineSnapshot(`
           [
             {},
-            { content: 'Hello, ' },
-            { content: 'Hello, world' },
-            { content: 'Hello, world!' },
-          ],
-        );
+            {
+              "content": "Hello, ",
+            },
+            {
+              "content": "Hello, world",
+            },
+            {
+              "content": "Hello, world!",
+            },
+          ]
+        `);
+
+        expect(mockModel.doStreamCalls[0].responseFormat)
+          .toMatchInlineSnapshot(`
+          {
+            "description": undefined,
+            "name": undefined,
+            "schema": {
+              "additionalProperties": false,
+              "properties": {
+                "content": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "content",
+              ],
+              "type": "object",
+            },
+            "type": "json",
+          }
+        `);
       });
     });
 
@@ -1005,75 +968,34 @@ describe('streamObject', () => {
       beforeEach(async () => {
         result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, responseFormat }) => {
-              expect(responseFormat).toStrictEqual({
-                type: 'json',
-                name: undefined,
-                description: undefined,
-                schema: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: {
-                    elements: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: { content: { type: 'string' } },
-                        required: ['content'],
-                        additionalProperties: false,
-                      },
-                    },
-                  },
-                  required: ['elements'],
-                  type: 'object',
-                },
-              });
-
-              expect(prompt).toStrictEqual([
+            doStream: {
+              stream: convertArrayToReadableStream([
+                { type: 'text', text: '{"elements":[' },
+                // first element:
+                { type: 'text', text: '{' },
+                { type: 'text', text: '"content":' },
+                { type: 'text', text: `"element 1"` },
+                { type: 'text', text: '},' },
+                // second element:
+                { type: 'text', text: '{ ' },
+                { type: 'text', text: '"content": ' },
+                { type: 'text', text: `"element 2"` },
+                { type: 'text', text: '},' },
+                // third element:
+                { type: 'text', text: '{' },
+                { type: 'text', text: '"content":' },
+                { type: 'text', text: `"element 3"` },
+                { type: 'text', text: '}' },
+                // end of array
+                { type: 'text', text: ']' },
+                { type: 'text', text: '}' },
+                // finish
                 {
-                  role: 'system',
-                  content:
-                    'JSON schema:\n' +
-                    `{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"elements\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false}}},\"required\":[\"elements\"],\"additionalProperties\":false}` +
-                    `\n` +
-                    'You MUST answer with a JSON object that matches the JSON schema above.',
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { inputTokens: 3, outputTokens: 10 },
                 },
-                {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerOptions: undefined,
-                },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  { type: 'text', text: '{"elements":[' },
-                  // first element:
-                  { type: 'text', text: '{' },
-                  { type: 'text', text: '"content":' },
-                  { type: 'text', text: `"element 1"` },
-                  { type: 'text', text: '},' },
-                  // second element:
-                  { type: 'text', text: '{ ' },
-                  { type: 'text', text: '"content": ' },
-                  { type: 'text', text: `"element 2"` },
-                  { type: 'text', text: '},' },
-                  // third element:
-                  { type: 'text', text: '{' },
-                  { type: 'text', text: '"content":' },
-                  { type: 'text', text: `"element 3"` },
-                  { type: 'text', text: '}' },
-                  // end of array
-                  { type: 'text', text: ']' },
-                  { type: 'text', text: '}' },
-                  // finish
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { inputTokens: 3, outputTokens: 10 },
-                  },
-                ]),
-              };
+              ]),
             },
           }),
           schema: z.object({ content: z.string() }),
@@ -1158,60 +1080,18 @@ describe('streamObject', () => {
       beforeEach(async () => {
         result = streamObject({
           model: new MockLanguageModelV2({
-            doStream: async ({ prompt, responseFormat }) => {
-              expect(responseFormat).toStrictEqual({
-                type: 'json',
-                name: undefined,
-                description: undefined,
-                schema: {
-                  $schema: 'http://json-schema.org/draft-07/schema#',
-                  additionalProperties: false,
-                  properties: {
-                    elements: {
-                      type: 'array',
-                      items: {
-                        type: 'object',
-                        properties: { content: { type: 'string' } },
-                        required: ['content'],
-                        additionalProperties: false,
-                      },
-                    },
-                  },
-                  required: ['elements'],
-                  type: 'object',
-                },
-              });
-
-              expect(prompt).toStrictEqual([
+            doStream: {
+              stream: convertArrayToReadableStream([
                 {
-                  role: 'system',
-                  content:
-                    'JSON schema:\n' +
-                    `{\"$schema\":\"http://json-schema.org/draft-07/schema#\",\"type\":\"object\",\"properties\":{\"elements\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"content\":{\"type\":\"string\"}},\"required\":[\"content\"],\"additionalProperties\":false}}},\"required\":[\"elements\"],\"additionalProperties\":false}` +
-                    `\n` +
-                    'You MUST answer with a JSON object that matches the JSON schema above.',
+                  type: 'text',
+                  text: '{"elements":[{"content":"element 1"},{"content":"element 2"}]}',
                 },
                 {
-                  role: 'user',
-                  content: [{ type: 'text', text: 'prompt' }],
-                  providerOptions: undefined,
+                  type: 'finish',
+                  finishReason: 'stop',
+                  usage: { inputTokens: 3, outputTokens: 10 },
                 },
-              ]);
-
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'text',
-                    text: '{"elements":[{"content":"element 1"},{"content":"element 2"}]}',
-                  },
-                  // finish
-                  {
-                    type: 'finish',
-                    finishReason: 'stop',
-                    usage: { inputTokens: 3, outputTokens: 10 },
-                  },
-                ]),
-              };
+              ]),
             },
           }),
           schema: z.object({ content: z.string() }),
@@ -1265,58 +1145,54 @@ describe('streamObject', () => {
 
   describe('output = "no-schema"', () => {
     it('should send object deltas', async () => {
+      const mockModel = new MockLanguageModelV2({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: '{ ' },
+            { type: 'text', text: '"content": ' },
+            { type: 'text', text: `"Hello, ` },
+            { type: 'text', text: `world` },
+            { type: 'text', text: `!"` },
+            { type: 'text', text: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { inputTokens: 3, outputTokens: 10 },
+            },
+          ]),
+        },
+      });
+
       const result = streamObject({
-        model: new MockLanguageModelV2({
-          doStream: async ({ prompt, responseFormat }) => {
-            expect(responseFormat).toStrictEqual({
-              type: 'json',
-              name: undefined,
-              description: undefined,
-              schema: undefined,
-            });
-
-            expect(prompt).toStrictEqual([
-              {
-                role: 'system',
-                content: 'You MUST answer with JSON.',
-              },
-              {
-                role: 'user',
-                content: [{ type: 'text', text: 'prompt' }],
-                providerOptions: undefined,
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"content": ' },
-                { type: 'text', text: `"Hello, ` },
-                { type: 'text', text: `world` },
-                { type: 'text', text: `!"` },
-                { type: 'text', text: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
-                },
-              ]),
-            };
-          },
-        }),
+        model: mockModel,
         output: 'no-schema',
         prompt: 'prompt',
       });
 
-      assert.deepStrictEqual(
-        await convertAsyncIterableToArray(result.partialObjectStream),
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
         [
           {},
-          { content: 'Hello, ' },
-          { content: 'Hello, world' },
-          { content: 'Hello, world!' },
-        ],
-      );
+          {
+            "content": "Hello, ",
+          },
+          {
+            "content": "Hello, world",
+          },
+          {
+            "content": "Hello, world!",
+          },
+        ]
+      `);
+
+      expect(mockModel.doStreamCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "description": undefined,
+          "name": undefined,
+          "schema": undefined,
+          "type": "json",
+        }
+      `);
     });
   });
 
@@ -1464,76 +1340,26 @@ describe('streamObject', () => {
 
   describe('options.messages', () => {
     it('should detect and convert ui messages', async () => {
-      const result = streamObject({
-        model: new MockLanguageModelV2({
-          doStream: async ({ prompt }) => {
-            expect(prompt).toStrictEqual([
-              {
-                role: 'system',
-                content:
-                  'JSON schema:\n' +
-                  '{"type":"object","properties":{"content":{"type":"string"}},"required":["content"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                  'You MUST answer with a JSON object that matches the JSON schema above.',
-              },
-              {
-                content: [
-                  {
-                    text: 'prompt',
-                    type: 'text',
-                  },
-                ],
-                providerOptions: undefined,
-                role: 'user',
-              },
-              {
-                content: [
-                  {
-                    args: {
-                      value: 'test-value',
-                    },
-                    providerOptions: undefined,
-                    toolCallId: 'call-1',
-                    toolName: 'test-tool',
-                    type: 'tool-call',
-                  },
-                ],
-                providerOptions: undefined,
-                role: 'assistant',
-              },
-              {
-                content: [
-                  {
-                    content: undefined,
-                    isError: undefined,
-                    providerOptions: undefined,
-                    result: 'test result',
-                    toolCallId: 'call-1',
-                    toolName: 'test-tool',
-                    type: 'tool-result',
-                  },
-                ],
-                providerOptions: undefined,
-                role: 'tool',
-              },
-            ]);
+      const mockModel = new MockLanguageModelV2({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: '{ ' },
+            { type: 'text', text: '"content": ' },
+            { type: 'text', text: `"Hello, ` },
+            { type: 'text', text: `world` },
+            { type: 'text', text: `!"` },
+            { type: 'text', text: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { inputTokens: 3, outputTokens: 10 },
+            },
+          ]),
+        },
+      });
 
-            return {
-              stream: convertArrayToReadableStream([
-                { type: 'text', text: '{ ' },
-                { type: 'text', text: '"content": ' },
-                { type: 'text', text: `"Hello, ` },
-                { type: 'text', text: `world` },
-                { type: 'text', text: `!"` },
-                { type: 'text', text: ' }' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
-                },
-              ]),
-            };
-          },
-        }),
+      const result = streamObject({
+        model: mockModel,
         schema: z.object({ content: z.string() }),
         messages: [
           {
@@ -1556,14 +1382,87 @@ describe('streamObject', () => {
         ],
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.partialObjectStream),
-      ).toStrictEqual([
-        {},
-        { content: 'Hello, ' },
-        { content: 'Hello, world' },
-        { content: 'Hello, world!' },
-      ]);
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
+        [
+          {},
+          {
+            "content": "Hello, ",
+          },
+          {
+            "content": "Hello, world",
+          },
+          {
+            "content": "Hello, world!",
+          },
+        ]
+      `);
+
+      expect(mockModel.doStreamCalls[0].prompt).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "prompt",
+                "type": "text",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "args": {
+                  "value": "test-value",
+                },
+                "providerOptions": undefined,
+                "toolCallId": "call-1",
+                "toolName": "test-tool",
+                "type": "tool-call",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "content": undefined,
+                "isError": undefined,
+                "providerOptions": undefined,
+                "result": "test result",
+                "toolCallId": "call-1",
+                "toolName": "test-tool",
+                "type": "tool-result",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "tool",
+          },
+        ]
+      `);
+
+      expect(mockModel.doStreamCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "description": undefined,
+          "name": undefined,
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "content": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "content",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
     });
 
     it('should support models that use "this" context in supportsUrl', async () => {

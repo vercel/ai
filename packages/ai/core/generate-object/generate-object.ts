@@ -4,9 +4,9 @@ import {
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
-import { Schema } from '../util';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
+import { extractContentText } from '../generate-text/extract-content-text';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -30,12 +30,11 @@ import { LanguageModelRequestMetadata } from '../types/language-model-request-me
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderOptions } from '../types/provider-metadata';
 import { calculateLanguageModelUsage } from '../types/usage';
+import { Schema } from '../util';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
-import { injectJsonInstruction } from './inject-json-instruction';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
-import { extractContentText } from '../generate-text/extract-content-text';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -162,7 +161,6 @@ export async function generateObject<SCHEMA, RESULT>({
   schema: inputSchema,
   schemaName,
   schemaDescription,
-  mode,
   output = 'object',
   system,
   prompt,
@@ -196,7 +194,6 @@ export async function generateObject<SCHEMA, RESULT>({
     schema?: z.Schema<SCHEMA> | Schema<SCHEMA>;
     schemaName?: string;
     schemaDescription?: string;
-    mode?: 'auto' | 'json' | 'tool';
     experimental_repairText?: RepairTextFunction;
     experimental_telemetry?: TelemetrySettings;
     providerOptions?: ProviderOptions;
@@ -211,7 +208,6 @@ export async function generateObject<SCHEMA, RESULT>({
   }): Promise<GenerateObjectResult<RESULT>> {
   validateObjectGenerationInput({
     output,
-    mode,
     schema: inputSchema,
     schemaName,
     schemaDescription,
@@ -225,11 +221,6 @@ export async function generateObject<SCHEMA, RESULT>({
     schema: inputSchema,
     enumValues,
   });
-
-  // automatically set mode to 'json' for no-schema output
-  if (outputStrategy.type === 'no-schema' && mode === undefined) {
-    mode = 'json';
-  }
 
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
