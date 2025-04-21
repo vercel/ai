@@ -27,7 +27,7 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
       "promptTokens": 10,
       "totalTokens": 10,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "finishReason": "stop",
@@ -94,7 +94,7 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
       "promptTokens": 10,
       "totalTokens": 20,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "finishReason": "stop",
@@ -166,7 +166,7 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
       "promptTokens": 10,
       "totalTokens": 20,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "finishReason": "stop",
@@ -224,7 +224,7 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
       "promptTokens": 10,
       "totalTokens": 20,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "finishReason": "stop",
@@ -277,7 +277,7 @@ exports[`simulateStreamingMiddleware > should simulate streaming with text respo
       "promptTokens": 10,
       "totalTokens": 20,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "finishReason": "stop",
@@ -338,7 +338,7 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
       "promptTokens": 10,
       "totalTokens": 20,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
     "finishReason": "tool-calls",

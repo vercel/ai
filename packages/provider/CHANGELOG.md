@@ -1,5 +1,16 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.7
+
+### Major Changes
+
+- b6b43c7: chore: move warnings into stream-start part (spec)
+- 3795467: chore: return content array from doGenerate (spec)
+
+### Patch Changes
+
+- 8aa9e20: feat: add speech with experimental_generateSpeech
+
 ## 2.0.0-canary.6
 
 ### Major Changes

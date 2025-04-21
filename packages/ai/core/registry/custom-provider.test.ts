@@ -2,7 +2,7 @@ import { NoSuchModelError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockImageModelV1 } from '../test/mock-image-model-v1';
-import { MockLanguageModelV2 } from '../test/mock-language-model-v1';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { customProvider } from './custom-provider';
 
 const mockLanguageModel = new MockLanguageModelV2();
