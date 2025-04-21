@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/fireworks",
-  "version": "1.0.0-canary.7",
+  "version": "1.0.0-canary.8",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -18,6 +18,8 @@
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
+    "test:update": "pnpm test:node -u",
+    "test:watch": "vitest --config vitest.node.config.js",
     "test:edge": "vitest --config vitest.edge.config.js --run",
     "test:node": "vitest --config vitest.node.config.js --run"
   },
@@ -30,9 +32,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "1.0.0-canary.7",
-    "@ai-sdk/provider": "2.0.0-canary.6",
-    "@ai-sdk/provider-utils": "3.0.0-canary.7"
+    "@ai-sdk/openai-compatible": "workspace:*",
+    "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

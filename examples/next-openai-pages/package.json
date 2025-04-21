@@ -9,9 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/openai": "2.0.0-canary.7",
-    "@ai-sdk/react": "2.0.0-canary.7",
-    "ai": "5.0.0-canary.8",
+    "@ai-sdk/openai": "workspace:*",
+    "@ai-sdk/react": "workspace:*",
+    "ai": "workspace:*",
     "next": "latest",
     "react": "^18",
     "react-dom": "^18",

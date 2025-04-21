@@ -5,7 +5,7 @@
     "build": "turbo build",
     "changeset": "changeset",
     "clean": "turbo clean",
-    "dev": "turbo dev --no-cache  --concurrency 16 --continue",
+    "dev": "turbo dev --no-cache --concurrency 16 --continue",
     "lint": "turbo lint",
     "prepare": "husky install",
     "update-references": "update-ts-references",
@@ -14,7 +14,8 @@
     "type-check:full": "tsc --build tsconfig.with-examples.json",
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
     "publint": "turbo publint",
-    "test": "turbo test",
+    "test": "turbo test --concurrency 16",
+    "test:update": "turbo test:update",
     "ci:release": "turbo clean && turbo build && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile"

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "3.0.0-canary.7",
+  "version": "3.0.0-canary.8",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -14,6 +14,7 @@
     "prettier-check": "prettier --check .",
     "lint": "eslint .",
     "test": "vitest --run",
+    "test:update": "vitest --run -u",
     "test:watch": "vitest",
     "clean": "rm -rf dist *.tsbuildinfo"
   },
@@ -51,8 +52,8 @@
     }
   },
   "dependencies": {
-    "ai": "5.0.0-canary.8",
-    "@ai-sdk/provider-utils": "3.0.0-canary.7"
+    "ai": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

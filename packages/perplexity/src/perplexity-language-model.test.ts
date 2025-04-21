@@ -362,6 +362,10 @@ describe('PerplexityLanguageModel', () => {
       expect(result).toMatchInlineSnapshot(`
         [
           {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
             "id": "stream-id",
             "modelId": "perplexity-001",
             "timestamp": 2023-03-28T11:40:00.000Z,
@@ -415,6 +419,10 @@ describe('PerplexityLanguageModel', () => {
 
       expect(result).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "stream-id",
             "modelId": "perplexity-001",
@@ -504,6 +512,10 @@ describe('PerplexityLanguageModel', () => {
       expect(result).toMatchInlineSnapshot(`
         [
           {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
             "id": "stream-id",
             "modelId": "perplexity-001",
             "timestamp": 2023-03-28T11:40:00.000Z,
@@ -569,6 +581,10 @@ describe('PerplexityLanguageModel', () => {
 
       expect(result).toMatchInlineSnapshot(`
         [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
           {
             "id": "stream-id",
             "modelId": "perplexity-001",
