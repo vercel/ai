@@ -5,14 +5,16 @@ import {
 import {
   combineHeaders,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import {
   OpenAIEmbeddingModelId,
+  openaiEmbeddingProviderOptions,
   OpenAIEmbeddingSettings,
-} from './openai-embedding-settings';
+} from './openai-embedding-options';
 import { openaiFailedResponseHandler } from './openai-error';
 
 export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
@@ -48,6 +50,7 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
     values,
     headers,
     abortSignal,
+    providerOptions,
   }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
@@ -59,6 +62,14 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
         values,
       });
     }
+
+    // Parse provider options
+    const openaiOptions =
+      parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiEmbeddingProviderOptions,
+      }) ?? {};
 
     const {
       responseHeaders,
@@ -74,8 +85,8 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
         model: this.modelId,
         input: values,
         encoding_format: 'float',
-        dimensions: this.settings.dimensions,
-        user: this.settings.user,
+        dimensions: openaiOptions.dimensions,
+        user: openaiOptions.user,
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
