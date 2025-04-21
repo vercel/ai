@@ -181,11 +181,13 @@ const model = azure('your-deployment-name');
 
 await model.doGenerate({
   providerOptions: {
-    logitBias: {
-      // optional likelihood for specific tokens
-      '50256': -100,
+    'azure-openai': {
+      logitBias: {
+        // optional likelihood for specific tokens
+        '50256': -100,
+      },
+      user: 'test-user', // optional unique user identifier
     },
-    user: 'test-user', // optional unique user identifier
   },
 });
 ```
