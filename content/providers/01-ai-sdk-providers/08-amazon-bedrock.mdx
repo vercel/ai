@@ -444,13 +444,19 @@ Bedrock Titan embedding model amazon.titan-embed-text-v2:0 supports several adit
 You can pass them as an options argument:
 
 ```ts
-const model = bedrock.embedding('amazon.titan-embed-text-v2:0', {
-  dimensions: 512 // optional, number of dimensions for the embedding
-  normalize: true // optional  normalize the output embeddings
-})
+const model = bedrock.embedding('amazon.titan-embed-text-v2:0');
+
+await model.doEmbed({
+  providerOptions: {
+    bedrock: {
+      dimensions: 512 // optional, number of dimensions for the embedding
+      normalize: true // optional  normalize the output embeddings
+    },
+  },
+});
 ```
 
-The following optional settings are available for Bedrock Titan embedding models:
+The following optional provider options are available for Bedrock Titan embedding models:
 
 - **dimensions**: _number_
 

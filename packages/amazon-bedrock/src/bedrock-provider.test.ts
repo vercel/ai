@@ -111,7 +111,7 @@ describe('AmazonBedrockProvider', () => {
       provider.embedding('amazon.titan-embed-text-v1');
 
       const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
-      expect(constructorCall[2].headers).toEqual(customHeaders);
+      expect(constructorCall[1].headers).toEqual(customHeaders);
     });
 
     it('should throw error when called with new keyword', () => {
@@ -129,14 +129,10 @@ describe('AmazonBedrockProvider', () => {
       const provider = createAmazonBedrock();
       const modelId = 'amazon.titan-embed-text-v1';
 
-      const model = provider.embedding(modelId, {
-        dimensions: 1024,
-        normalize: true,
-      });
+      const model = provider.embedding(modelId);
 
       const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1]).toEqual({ dimensions: 1024, normalize: true });
       expect(model).toBeInstanceOf(BedrockEmbeddingModel);
     });
 
