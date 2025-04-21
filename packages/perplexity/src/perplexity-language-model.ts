@@ -251,6 +251,10 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
           ParseResult<z.infer<typeof perplexityChunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             if (!chunk.success) {
               controller.enqueue({ type: 'error', error: chunk.error });
@@ -328,7 +332,6 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       ),
       request: { body },
       response: { headers: responseHeaders },
-      warnings,
     };
   }
 }
