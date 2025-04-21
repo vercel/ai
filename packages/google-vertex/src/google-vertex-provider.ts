@@ -10,10 +10,7 @@ import {
   GoogleVertexModelId,
   GoogleVertexSettings,
 } from './google-vertex-settings';
-import {
-  GoogleVertexEmbeddingModelId,
-  GoogleVertexEmbeddingSettings,
-} from './google-vertex-embedding-settings';
+import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
@@ -141,15 +138,8 @@ export function createVertex(
     });
   };
 
-  const createEmbeddingModel = (
-    modelId: GoogleVertexEmbeddingModelId,
-    settings: GoogleVertexEmbeddingSettings = {},
-  ) =>
-    new GoogleVertexEmbeddingModel(
-      modelId,
-      settings,
-      createConfig('embedding'),
-    );
+  const createEmbeddingModel = (modelId: GoogleVertexEmbeddingModelId) =>
+    new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
 
   const createImageModel = (
     modelId: GoogleVertexImageModelId,

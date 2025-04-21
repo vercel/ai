@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/text-embeddings-api
 export type GoogleVertexEmbeddingModelId =
   | 'textembedding-gecko'
@@ -10,10 +12,14 @@ export type GoogleVertexEmbeddingModelId =
   | 'text-embedding-005'
   | (string & {});
 
-export interface GoogleVertexEmbeddingSettings {
+export const googleVertexEmbeddingProviderOptions = z.object({
   /**
    * Optional. Optional reduced dimension for the output embedding.
    * If set, excessive values in the output embedding are truncated from the end.
    */
-  outputDimensionality?: number;
-}
+  outputDimensionality: z.number().optional(),
+});
+
+export type GoogleVertexEmbeddingProviderOptions = z.infer<
+  typeof googleVertexEmbeddingProviderOptions
+>;
