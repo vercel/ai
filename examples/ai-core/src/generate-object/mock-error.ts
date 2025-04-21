@@ -7,7 +7,6 @@ async function main() {
   try {
     await generateObject({
       model: new MockLanguageModelV2({
-        defaultObjectGenerationMode: 'json',
         doGenerate: async () => ({
           warnings: [],
           content: [{ type: 'text', text: `{"content":"Hello broken json` }],
