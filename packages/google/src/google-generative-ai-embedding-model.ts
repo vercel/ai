@@ -6,6 +6,7 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   FetchFunction,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
@@ -13,8 +14,8 @@ import { z } from 'zod';
 import { googleFailedResponseHandler } from './google-error';
 import {
   GoogleGenerativeAIEmbeddingModelId,
-  GoogleGenerativeAIEmbeddingSettings,
-} from './google-generative-ai-embedding-settings';
+  googleGenerativeAIEmbeddingProviderOptions,
+} from './google-generative-ai-embedding-options';
 
 type GoogleGenerativeAIEmbeddingConfig = {
   provider: string;
@@ -30,7 +31,6 @@ export class GoogleGenerativeAIEmbeddingModel
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
 
   private readonly config: GoogleGenerativeAIEmbeddingConfig;
-  private readonly settings: GoogleGenerativeAIEmbeddingSettings;
 
   get provider(): string {
     return this.config.provider;
@@ -46,11 +46,9 @@ export class GoogleGenerativeAIEmbeddingModel
 
   constructor(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings: GoogleGenerativeAIEmbeddingSettings,
     config: GoogleGenerativeAIEmbeddingConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -58,9 +56,18 @@ export class GoogleGenerativeAIEmbeddingModel
     values,
     headers,
     abortSignal,
+    providerOptions,
   }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
+    // Parse provider options
+    const googleOptions =
+      parseProviderOptions({
+        provider: 'google',
+        providerOptions,
+        schema: googleGenerativeAIEmbeddingProviderOptions,
+      }) ?? {};
+
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,
@@ -86,7 +93,7 @@ export class GoogleGenerativeAIEmbeddingModel
         requests: values.map(value => ({
           model: `models/${this.modelId}`,
           content: { role: 'user', parts: [{ text: value }] },
-          outputDimensionality: this.settings.outputDimensionality,
+          outputDimensionality: googleOptions.outputDimensionality,
         })),
       },
       failedResponseHandler: googleFailedResponseHandler,
