@@ -4,7 +4,7 @@ import type {
   LanguageModelV2StreamPart,
   LanguageModelV2ToolCall,
 } from '@ai-sdk/provider';
-import { generateId, parse } from '@ai-sdk/provider-utils';
+import { generateId, relaxedParse } from '@ai-sdk/provider-utils';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 export const gemmaToolMiddleware = createToolMiddleware({
@@ -79,7 +79,7 @@ export function createToolMiddleware({
               toolCallBuffer.forEach(toolCall => {
                 try {
                   // TODO, replace like 'relaxed-json'
-                  const parsedToolCall = parse(toolCall) as {
+                  const parsedToolCall = relaxedParse(toolCall) as {
                     name: string;
                     arguments: string;
                   };
@@ -206,7 +206,7 @@ export function createToolMiddleware({
       const tool_calls: LanguageModelV2ToolCall[] = function_call_tuples.map(
         toolCall => {
           // TODO, replace like 'relaxed-json'
-          const parsedToolCall = parse(toolCall) as {
+          const parsedToolCall = relaxedParse(toolCall) as {
             name: string;
             arguments: string;
           };
