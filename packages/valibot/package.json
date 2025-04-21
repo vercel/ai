@@ -27,7 +27,7 @@
     }
   },
   "dependencies": {
-    "ai": "5.0.0-canary.9"
+    "ai": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
