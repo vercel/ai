@@ -513,12 +513,18 @@ const model = google.textEmbeddingModel('text-embedding-004');
 Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
 
 ```ts
-const model = google.textEmbeddingModel('text-embedding-004', {
-  outputDimensionality: 512, // optional, number of dimensions for the embedding
+const model = google.textEmbeddingModel('text-embedding-004');
+
+await model.doEmbed({
+  providerOptions: {
+    google: {
+      outputDimensionality: 512, // optional, number of dimensions for the embedding
+    },
+  },
 });
 ```
 
-The following optional settings are available for Google Generative AI embedding models:
+The following optional provider options are available for Google Generative AI embedding models:
 
 - **outputDimensionality**: _number_
 
