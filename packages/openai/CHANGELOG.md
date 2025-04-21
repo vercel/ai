@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 2.0.0-canary.9
+
+### Patch Changes
+
+- d63bcbc: feat (provider/openai): o4 updates for responses api
+- d2af019: feat (providers/openai): add gpt-4.1 models
+- 870c5c0: feat (providers/openai): add o3 and o4-mini models
+- 06bac05: fix (openai): structure output for responses model
+
 ## 2.0.0-canary.8
 
 ### Patch Changes

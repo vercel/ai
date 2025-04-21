@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 2.0.0-canary.9
+
+### Patch Changes
+
+- ef4f44e: fix (provider/cohere): tool calling
+
 ## 2.0.0-canary.8
 
 ### Patch Changes
