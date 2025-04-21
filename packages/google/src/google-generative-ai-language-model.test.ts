@@ -1455,6 +1455,10 @@ describe('doStream', () => {
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
         {
+          "type": "stream-start",
+          "warnings": [],
+        },
+        {
           "text": "Hello",
           "type": "text",
         },
@@ -1612,6 +1616,10 @@ describe('doStream', () => {
 
     expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "text": "test",
           "type": "text",
@@ -1839,6 +1847,10 @@ describe('doStream', () => {
 
     expect(events).toMatchInlineSnapshot(`
       [
+        {
+          "type": "stream-start",
+          "warnings": [],
+        },
         {
           "data": "test",
           "mediaType": "text/plain",

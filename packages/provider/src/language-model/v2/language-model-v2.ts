@@ -158,7 +158,7 @@ Response HTTP body.
     /**
 Warnings for the call, e.g. unsupported settings.
      */
-    warnings?: LanguageModelV2CallWarning[];
+    warnings: Array<LanguageModelV2CallWarning>;
   }>;
 
   /**
@@ -191,11 +191,6 @@ Response headers.
        */
       headers?: Record<string, string>;
     };
-
-    /**
-Warnings for the call, e.g. unsupported settings.
-     */
-    warnings?: Array<LanguageModelV2CallWarning>;
   }>;
 };
 
@@ -205,6 +200,12 @@ export type LanguageModelV2StreamPart =
 
   // Tool calls delta:
   | LanguageModelV2ToolCallDelta
+
+  // stream start event with warnings for the call, e.g. unsupported settings:
+  | {
+      type: 'stream-start';
+      warnings: Array<LanguageModelV2CallWarning>;
+    }
 
   // metadata for the response.
   // separate stream part so it can be sent once it is available.
