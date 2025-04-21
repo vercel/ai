@@ -38,7 +38,13 @@
       "path": "../../packages/elevenlabs"
     },
     {
+      "path": "../../packages/revai"
+    },
+    {
       "path": "../../packages/cohere"
+    },
+    {
+      "path": "../../packages/revai"
     },
     {
       "path": "../../packages/deepinfra"
@@ -48,6 +54,9 @@
     },
     {
       "path": "../../packages/deepseek"
+    },
+    {
+      "path": "../../packages/hume"
     },
     {
       "path": "../../packages/fal"
