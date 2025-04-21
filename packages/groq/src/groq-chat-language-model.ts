@@ -41,8 +41,6 @@ type GroqChatConfig = {
 export class GroqChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
-  readonly supportsStructuredOutputs = false;
-
   readonly modelId: GroqChatModelId;
   readonly settings: GroqChatSettings;
 

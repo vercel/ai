@@ -29,7 +29,6 @@ type PerplexityChatConfig = {
 
 export class PerplexityLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly supportsStructuredOutputs = true;
   readonly supportsImageUrls = false;
   readonly provider = 'perplexity';
 
