@@ -12,7 +12,7 @@
     "@ai-sdk/deepinfra": "0.2.12",
     "@ai-sdk/deepseek": "0.2.11",
     "@ai-sdk/elevenlabs": "0.0.2",
-    "@ai-sdk/fal": "0.1.9",
+    "@ai-sdk/fal": "0.1.10",
     "@ai-sdk/fireworks": "0.2.11",
     "@ai-sdk/gladia": "0.0.1",
     "@ai-sdk/google": "1.2.12",
