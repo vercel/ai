@@ -79,13 +79,25 @@
       "path": "packages/togetherai"
     },
     {
+      "path": "packages/revai"
+    },
+    {
       "path": "packages/valibot"
+    },
+    {
+      "path": "packages/hume"
     },
     {
       "path": "packages/vue"
     },
     {
+      "path": "packages/deepgram"
+    },
+    {
       "path": "packages/xai"
+    },
+    {
+      "path": "packages/lmnt"
     }
   ],
   "include": []
