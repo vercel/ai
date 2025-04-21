@@ -12,6 +12,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -21,8 +22,8 @@ import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAICompletionModelId,
-  OpenAICompletionSettings,
-} from './openai-completion-settings';
+  openaiCompletionProviderOptions,
+} from './openai-completion-options';
 import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
@@ -41,17 +42,18 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   readonly defaultObjectGenerationMode = undefined;
 
   readonly modelId: OpenAICompletionModelId;
-  readonly settings: OpenAICompletionSettings;
 
   private readonly config: OpenAICompletionConfig;
 
+  private get providerOptionsName(): string {
+    return this.config.provider.split('.')[0].trim();
+  }
+
   constructor(
     modelId: OpenAICompletionModelId,
-    settings: OpenAICompletionSettings,
     config: OpenAICompletionConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -73,8 +75,23 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     seed,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const openaiOptions = Object.assign(
+      parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiCompletionProviderOptions,
+      }) ?? {},
+      parseProviderOptions({
+        provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompletionProviderOptions,
+      }) ?? {},
+    );
 
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
@@ -107,18 +124,18 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         model: this.modelId,
 
         // model specific settings:
-        echo: this.settings.echo,
-        logit_bias: this.settings.logitBias,
+        echo: openaiOptions.echo,
+        logit_bias: openaiOptions.logitBias,
         logprobs:
-          typeof this.settings.logprobs === 'number'
-            ? this.settings.logprobs
-            : typeof this.settings.logprobs === 'boolean'
-              ? this.settings.logprobs
+          typeof openaiOptions.logprobs === 'number'
+            ? openaiOptions.logprobs
+            : typeof openaiOptions.logprobs === 'boolean'
+              ? openaiOptions.logprobs
                 ? 0
                 : undefined
               : undefined,
-        suffix: this.settings.suffix,
-        user: this.settings.user,
+        suffix: openaiOptions.suffix,
+        user: openaiOptions.user,
 
         // standardized settings:
         max_tokens: maxOutputTokens,

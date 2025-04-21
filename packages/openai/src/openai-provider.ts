@@ -14,10 +14,7 @@ import {
 import { OpenAIChatLanguageModel } from './openai-chat-language-model';
 import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-options';
 import { OpenAICompletionLanguageModel } from './openai-completion-language-model';
-import {
-  OpenAICompletionModelId,
-  OpenAICompletionSettings,
-} from './openai-completion-settings';
+import { OpenAICompletionModelId } from './openai-completion-options';
 import { OpenAIEmbeddingModel } from './openai-embedding-model';
 import {
   OpenAIEmbeddingModelId,
@@ -37,10 +34,7 @@ import { OpenAISpeechModel } from './openai-speech-model';
 import { OpenAISpeechModelId } from './openai-speech-settings';
 
 export interface OpenAIProvider extends ProviderV2 {
-  (
-    modelId: 'gpt-3.5-turbo-instruct',
-    settings?: OpenAICompletionSettings,
-  ): OpenAICompletionLanguageModel;
+  (modelId: 'gpt-3.5-turbo-instruct'): OpenAICompletionLanguageModel;
   (modelId: OpenAIChatModelId, settings?: OpenAIChatSettings): LanguageModelV2;
 
   /**
@@ -48,7 +42,6 @@ Creates an OpenAI model for text generation.
    */
   languageModel(
     modelId: 'gpt-3.5-turbo-instruct',
-    settings?: OpenAICompletionSettings,
   ): OpenAICompletionLanguageModel;
   languageModel(
     modelId: OpenAIChatModelId,
@@ -71,10 +64,7 @@ Creates an OpenAI responses API model for text generation.
   /**
 Creates an OpenAI completion model for text generation.
    */
-  completion(
-    modelId: OpenAICompletionModelId,
-    settings?: OpenAICompletionSettings,
-  ): LanguageModelV2;
+  completion(modelId: OpenAICompletionModelId): LanguageModelV2;
 
   /**
 Creates a model for text embeddings.
@@ -216,11 +206,8 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createCompletionModel = (
-    modelId: OpenAICompletionModelId,
-    settings: OpenAICompletionSettings = {},
-  ) =>
-    new OpenAICompletionLanguageModel(modelId, settings, {
+  const createCompletionModel = (modelId: OpenAICompletionModelId) =>
+    new OpenAICompletionLanguageModel(modelId, {
       provider: `${providerName}.completion`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -268,7 +255,7 @@ export function createOpenAI(
 
   const createLanguageModel = (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
-    settings?: OpenAIChatSettings | OpenAICompletionSettings,
+    settings?: OpenAIChatSettings,
   ) => {
     if (new.target) {
       throw new Error(
@@ -277,10 +264,7 @@ export function createOpenAI(
     }
 
     if (modelId === 'gpt-3.5-turbo-instruct') {
-      return createCompletionModel(
-        modelId,
-        settings as OpenAICompletionSettings,
-      );
+      return createCompletionModel(modelId);
     }
 
     return createChatModel(modelId, settings as OpenAIChatSettings);
@@ -297,7 +281,7 @@ export function createOpenAI(
 
   const provider = function (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
-    settings?: OpenAIChatSettings | OpenAICompletionSettings,
+    settings?: OpenAIChatSettings,
   ) {
     return createLanguageModel(modelId, settings);
   };

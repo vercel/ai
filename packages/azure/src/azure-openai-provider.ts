@@ -2,7 +2,6 @@ import {
   OpenAIChatLanguageModel,
   OpenAIChatSettings,
   OpenAICompletionLanguageModel,
-  OpenAICompletionSettings,
   OpenAIEmbeddingModel,
   OpenAIEmbeddingSettings,
   OpenAIImageModel,
@@ -43,10 +42,7 @@ Creates an Azure OpenAI responses API model for text generation.
   /**
 Creates an Azure OpenAI completion model for text generation.
    */
-  completion(
-    deploymentId: string,
-    settings?: OpenAICompletionSettings,
-  ): LanguageModelV2;
+  completion(deploymentId: string): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel` instead.
@@ -179,11 +175,8 @@ export function createAzure(
       fetch: options.fetch,
     });
 
-  const createCompletionModel = (
-    modelId: string,
-    settings: OpenAICompletionSettings = {},
-  ) =>
-    new OpenAICompletionLanguageModel(modelId, settings, {
+  const createCompletionModel = (modelId: string) =>
+    new OpenAICompletionLanguageModel(modelId, {
       provider: 'azure-openai.completion',
       url,
       compatibility: 'strict',
@@ -231,7 +224,7 @@ export function createAzure(
 
   const provider = function (
     deploymentId: string,
-    settings?: OpenAIChatSettings | OpenAICompletionSettings,
+    settings?: OpenAIChatSettings,
   ) {
     if (new.target) {
       throw new Error(

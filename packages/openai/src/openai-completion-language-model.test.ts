@@ -192,12 +192,15 @@ describe('doGenerate', () => {
 
     const provider = createOpenAI({ apiKey: 'test-api-key' });
 
-    const response = await provider
-      .completion('gpt-3.5-turbo', { logprobs: 1 })
-      .doGenerate({
-        inputFormat: 'prompt',
-        prompt: TEST_PROMPT,
-      });
+    const response = await provider.completion('gpt-3.5-turbo').doGenerate({
+      inputFormat: 'prompt',
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          logprobs: 1,
+        },
+      },
+    });
     expect(response.logprobs).toStrictEqual(
       mapOpenAICompletionLogProbs(TEST_LOGPROBS),
     );

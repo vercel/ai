@@ -177,16 +177,20 @@ Azure OpenAI chat models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-const model = azure('your-deployment-name', {
-  logitBias: {
-    // optional likelihood for specific tokens
-    '50256': -100,
+const model = azure('your-deployment-name');
+
+await model.doGenerate({
+  providerOptions: {
+    logitBias: {
+      // optional likelihood for specific tokens
+      '50256': -100,
+    },
+    user: 'test-user', // optional unique user identifier
   },
-  user: 'test-user', // optional unique user identifier
 });
 ```
 
-The following optional settings are available for OpenAI chat models:
+The following optional provider options are available for OpenAI chat models:
 
 - **logitBias** _Record&lt;number, number&gt;_
 
@@ -377,18 +381,24 @@ OpenAI completion models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-const model = azure.completion('your-gpt-35-turbo-instruct-deployment', {
-  echo: true, // optional, echo the prompt in addition to the completion
-  logitBias: {
-    // optional likelihood for specific tokens
-    '50256': -100,
+const model = azure.completion('your-gpt-35-turbo-instruct-deployment');
+
+await model.doGenerate({
+  providerOptions: {
+    'azure-openai': {
+      echo: true, // optional, echo the prompt in addition to the completion
+      logitBias: {
+        // optional likelihood for specific tokens
+        '50256': -100,
+      },
+      suffix: 'some text', // optional suffix that comes after a completion of inserted text
+      user: 'test-user', // optional unique user identifier
+    },
   },
-  suffix: 'some text', // optional suffix that comes after a completion of inserted text
-  user: 'test-user', // optional unique user identifier
 });
 ```
 
-The following optional settings are available for Azure OpenAI completion models:
+The following optional provider options are available for Azure OpenAI completion models:
 
 - **echo**: _boolean_
 
