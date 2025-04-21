@@ -2,8 +2,9 @@ import type {
   LanguageModelV2Prompt,
   LanguageModelV2Middleware,
   LanguageModelV2StreamPart,
+  LanguageModelV2ToolCall,
 } from '@ai-sdk/provider';
-import { generateId } from '@ai-sdk/provider-utils';
+import { generateId, parse } from '@ai-sdk/provider-utils';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 export const gemmaToolMiddleware = createToolMiddleware({
@@ -78,7 +79,7 @@ export function createToolMiddleware({
               toolCallBuffer.forEach(toolCall => {
                 try {
                   // TODO, replace like 'relaxed-json'
-                  const parsedToolCall = JSON.parse(toolCall) as {
+                  const parsedToolCall = parse(toolCall) as {
                     name: string;
                     arguments: string;
                   };
@@ -198,17 +199,14 @@ export function createToolMiddleware({
 
       const matches =
         result.content[0].type === 'text'
-          ? result.content[0].text.matchAll(toolCallRegex)
+          ? Array.from(result.content[0].text.matchAll(toolCallRegex))
           : [];
       const function_call_tuples = matches.map(match => match[1] || match[2]);
 
-      return {
-        ...result,
-        // TODO: Return the remaining value after extracting the tool call tag.
-        text: '',
-        toolCalls: function_call_tuples.map(toolCall => {
+      const tool_calls: LanguageModelV2ToolCall[] = function_call_tuples.map(
+        toolCall => {
           // TODO, replace like 'relaxed-json'
-          const parsedToolCall = JSON.parse(toolCall) as {
+          const parsedToolCall = parse(toolCall) as {
             name: string;
             arguments: string;
           };
@@ -217,13 +215,19 @@ export function createToolMiddleware({
           const args = parsedToolCall.arguments;
 
           return {
+            type: 'tool-call',
             toolCallType: 'function',
             toolCallId: generateId(),
             toolName: toolName,
-            // TODO, replace like 'relaxed-json'
             args: JSON.stringify(args),
-          };
-        }),
+          } as LanguageModelV2ToolCall;
+        },
+      );
+
+      return {
+        ...result,
+        // TODO: Return the remaining value after extracting the tool call tag.
+        content: [...tool_calls],
       };
     },
 

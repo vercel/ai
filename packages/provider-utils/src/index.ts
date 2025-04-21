@@ -23,6 +23,7 @@ export * from './uint8-utils';
 export * from './validate-types';
 export * from './validator';
 export * from './without-trailing-slash';
+export * from './relaxed-json';
 
 export type { ToolCall } from './types/tool-call';
 export type { ToolResult } from './types/tool-result';
