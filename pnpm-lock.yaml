@@ -78,7 +78,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/cohere
       '@ai-sdk/deepgram':
-        specifier: 1.0.0-canary.0
+        specifier: workspace:*
         version: link:../../packages/deepgram
       '@ai-sdk/deepinfra':
         specifier: workspace:*
@@ -1377,10 +1377,10 @@ importers:
   packages/deepgram:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.6
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
