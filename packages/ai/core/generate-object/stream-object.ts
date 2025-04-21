@@ -6,6 +6,7 @@ import {
   SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
+  LanguageModelV2CallWarning,
 } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
@@ -675,7 +676,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         }
 
         const {
-          result: { stream, warnings, response, request },
+          result: { stream, response, request },
           doStreamSpan,
           startTimestampMs,
         } = await retry(() =>
@@ -721,6 +722,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
         self.requestPromise.resolve(request ?? {});
 
         // store information for onFinish callback:
+        let warnings: LanguageModelV2CallWarning[] | undefined;
         let usage: LanguageModelUsage | undefined;
         let finishReason: LanguageModelV2FinishReason | undefined;
         let providerMetadata: ProviderMetadata | undefined;
@@ -755,6 +757,14 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
               ObjectStreamPart<PARTIAL>
             >({
               async transform(chunk, controller): Promise<void> {
+                if (
+                  typeof chunk === 'object' &&
+                  chunk.type === 'stream-start'
+                ) {
+                  warnings = chunk.warnings;
+                  return; // stream start chunks are sent immediately and do not count as first chunk
+                }
+
                 // Telemetry event for first chunk:
                 if (isFirstChunk) {
                   const msToFirstChunk = now() - startTimestampMs;
@@ -1098,6 +1108,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
 export type ObjectStreamInputPart =
   | string
+  | {
+      type: 'stream-start';
+      warnings: LanguageModelV2CallWarning[];
+    }
   | {
       type: 'error';
       error: unknown;

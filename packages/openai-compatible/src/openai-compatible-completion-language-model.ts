@@ -242,6 +242,10 @@ export class OpenAICompatibleCompletionLanguageModel
           ParseResult<z.infer<typeof this.chunkSchema>>,
           LanguageModelV2StreamPart
         >({
+          start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings });
+          },
+
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
@@ -300,7 +304,6 @@ export class OpenAICompatibleCompletionLanguageModel
       ),
       request: { body },
       response: { headers: responseHeaders },
-      warnings,
     };
   }
 }
