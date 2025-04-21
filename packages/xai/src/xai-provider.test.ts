@@ -89,7 +89,7 @@ describe('xAIProvider', () => {
       expect(model).toBeInstanceOf(OpenAICompatibleChatLanguageModel);
     });
 
-    it('should pass strict compatibility mode to the chat model, to enable usage on streaming', () => {
+    it('should pass the includeUsage option to the chat model, to make sure usage is reported while streaming', () => {
       const provider = createXai();
       const modelId = 'xai-chat-model';
       const settings = { user: 'foo-user' };
