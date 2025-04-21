@@ -1,5 +1,12 @@
 # ai
 
+## 5.0.0-canary.10
+
+### Patch Changes
+
+- d8aeaef: feat(providers/fal): add transcribe
+- 3e10408: fix(utils/detect-mimetype): add support for detecting id3 tags
+
 ## 5.0.0-canary.9
 
 ### Major Changes
