@@ -647,7 +647,7 @@ describe('doGenerate', () => {
     });
 
     it('should respect the includeUsage option', async () => {
-      prepareJsonResponse({ content: '{"value":"Spark"}' });
+      prepareJsonResponse({ content: '{"value":"test"}' });
 
       const model = new OpenAICompatibleChatLanguageModel(
         'gpt-4o-2024-08-06',
