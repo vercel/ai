@@ -92,6 +92,9 @@
     },
     {
       "path": "packages/xai"
+    },
+    {
+      "path": "packages/lmnt"
     }
   ],
   "include": []

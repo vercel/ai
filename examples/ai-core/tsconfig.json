@@ -50,6 +50,9 @@
       "path": "../../packages/deepinfra"
     },
     {
+      "path": "../../packages/lmnt"
+    },
+    {
       "path": "../../packages/deepseek"
     },
     {
