@@ -1789,7 +1789,7 @@ importers:
   packages/provider-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
     devDependencies:
       '@types/node':
