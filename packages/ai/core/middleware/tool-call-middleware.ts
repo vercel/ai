@@ -181,7 +181,6 @@ export function createToolMiddleware({
 
       // NOTE: Needs more proper handling
       if (result.content.length !== 1) {
-        console.log('content length !== 1');
         return result;
       }
 
@@ -189,7 +188,6 @@ export function createToolMiddleware({
         result.content[0].type === 'text' &&
         !result.content[0].text.includes(toolCallTag)
       ) {
-        console.log('no tool call tag');
         return result;
       }
 
