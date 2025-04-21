@@ -34,11 +34,7 @@ describe('GoogleVertexEmbeddingModel', () => {
       'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
   };
 
-  const model = new GoogleVertexEmbeddingModel(
-    mockModelId,
-    mockSettings,
-    mockConfig,
-  );
+  const model = new GoogleVertexEmbeddingModel(mockModelId, mockConfig);
 
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
@@ -116,7 +112,7 @@ describe('GoogleVertexEmbeddingModel', () => {
   it('should pass headers correctly', async () => {
     prepareJsonResponse();
 
-    const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+    const model = new GoogleVertexEmbeddingModel(mockModelId, {
       ...mockConfig,
       headers: () => ({
         'X-Custom-Header': 'custom-value',
@@ -160,7 +156,6 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const modelWithCustomUrl = new GoogleVertexEmbeddingModel(
       'textembedding-gecko@001',
-      { outputDimensionality: 768 },
       {
         headers: () => ({}),
         baseURL: 'https://custom-endpoint.com',
@@ -170,6 +165,9 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const response = await modelWithCustomUrl.doEmbed({
       values: testValues,
+      providerOptions: {
+        google: { outputDimensionality: 768 },
+      },
     });
 
     expect(response.embeddings).toStrictEqual(dummyEmbeddings);
@@ -195,7 +193,7 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const modelWithCustomFetch = new GoogleVertexEmbeddingModel(
       'textembedding-gecko@001',
-      { outputDimensionality: 768 },
+
       {
         headers: () => ({}),
         baseURL: 'https://custom-endpoint.com',
@@ -206,6 +204,9 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const response = await modelWithCustomFetch.doEmbed({
       values: testValues,
+      providerOptions: {
+        google: { outputDimensionality: 768 },
+      },
     });
 
     expect(response.embeddings).toStrictEqual(dummyEmbeddings);
