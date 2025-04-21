@@ -1,15 +1,30 @@
-import * as RJSON from 'relaxed-json';
-
-import { LanguageModelV1Middleware } from './language-model-v1-middleware';
-import {
-  LanguageModelV1Prompt,
-  LanguageModelV1StreamPart,
+import type {
+  LanguageModelV2Prompt,
+  LanguageModelV2Middleware,
+  LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { generateId } from '@ai-sdk/provider-utils';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
-const defaultTemplate = (tools: string) =>
-  `You are a function calling AI model.
+export const gemmaToolMiddleware = createToolMiddleware({
+  toolSystemPromptTemplate(tools) {
+    return `You have access to functions. If you decide to invoke any of the function(s),
+you MUST put it in the format of
+\`\`\`tool_call
+{'name': <function-name>, 'arguments': <args-dict>}
+\`\`\`
+You SHOULD NOT include any other text in the response if you call a function
+${tools}`;
+  },
+  toolCallTag: '```tool_call\n',
+  toolCallEndTag: '```',
+  toolResponseTag: '```tool_response\n',
+  toolResponseEndTag: '\n```',
+});
+
+export const hermesToolMiddleware = createToolMiddleware({
+  toolSystemPromptTemplate(tools) {
+    return `You are a function calling AI model.
 You are provided with function signatures within <tools></tools> XML tags.
 You may call one or more functions to assist with the user query.
 Don't make assumptions about what values to plug into functions.
@@ -19,40 +34,28 @@ For each function call return a json object with function name and arguments wit
 <tool_call>
 {'arguments': <args-dict>, 'name': <function-name>}
 </tool_call>`;
-
-const gemmaToolMiddleware = createToolMiddleware({
-  toolSystemPromptTemplate(tools) {
-    return `You have access to functions. If you decide to invoke any of the function(s),
-  you MUST put it in the format of
-  \`\`\`tool_call
-  {'name': <function-name>, 'arguments': <args-dict>}
-  \`\`\`
-  You SHOULD NOT include any other text in the response if you call a function
-  ${tools}`;
   },
-  toolCallTag: '```tool_call\n',
-  toolCallEndTag: '```',
-  toolResponseTag: '```tool_response\n',
-  toolResponseEndTag: '\n```',
+  toolCallTag: '<tool_call>',
+  toolCallEndTag: '</tool_call>',
+  toolResponseTag: '<tool_response>',
+  toolResponseEndTag: '</tool_response>',
 });
 
-const hermesToolMiddleware = createToolMiddleware({});
-
-function createToolMiddleware({
-  toolCallTag = '<tool_call>',
-  toolCallEndTag = '</tool_call>',
-  toolResponseTag = '<tool_response>',
-  toolResponseEndTag = '</tool_response>',
-  toolSystemPromptTemplate = defaultTemplate,
+export function createToolMiddleware({
+  toolCallTag,
+  toolCallEndTag,
+  toolResponseTag,
+  toolResponseEndTag,
+  toolSystemPromptTemplate,
 }: {
-  toolCallTag?: string;
-  toolCallEndTag?: string;
-  toolResponseTag?: string;
-  toolResponseEndTag?: string;
-  toolSystemPromptTemplate?: (tools: string) => string;
-}): LanguageModelV1Middleware {
+  toolCallTag: string;
+  toolCallEndTag: string;
+  toolResponseTag: string;
+  toolResponseEndTag: string;
+  toolSystemPromptTemplate: (tools: string) => string;
+}): LanguageModelV2Middleware {
   return {
-    middlewareVersion: 'v1',
+    middlewareVersion: 'v2',
     wrapStream: async ({ doStream }) => {
       const { stream, ...rest } = await doStream();
 
@@ -66,15 +69,16 @@ function createToolMiddleware({
       let toolCallBuffer: string[] = [];
 
       const transformStream = new TransformStream<
-        LanguageModelV1StreamPart,
-        LanguageModelV1StreamPart
+        LanguageModelV2StreamPart,
+        LanguageModelV2StreamPart
       >({
         transform(chunk, controller) {
           if (chunk.type === 'finish') {
             if (toolCallBuffer.length > 0) {
               toolCallBuffer.forEach(toolCall => {
                 try {
-                  const parsedToolCall = RJSON.parse(toolCall) as {
+                  // TODO, replace like 'relaxed-json'
+                  const parsedToolCall = JSON.parse(toolCall) as {
                     name: string;
                     arguments: string;
                   };
@@ -249,7 +253,7 @@ function createToolMiddleware({
         }
 
         return message;
-      }) as LanguageModelV1Prompt;
+      }) as LanguageModelV2Prompt;
 
       // Appropriate fixes are needed as they are disappearing in LanguageModelV2
       const originalToolDefinitions =
@@ -261,7 +265,7 @@ function createToolMiddleware({
         JSON.stringify(Object.entries(originalToolDefinitions)),
       );
 
-      const toolSystemPrompt: LanguageModelV1Prompt =
+      const toolSystemPrompt: LanguageModelV2Prompt =
         processedPrompt[0].role === 'system'
           ? [
               {
@@ -289,5 +293,3 @@ function createToolMiddleware({
     },
   };
 }
-
-export { gemmaToolMiddleware, hermesToolMiddleware, createToolMiddleware };
