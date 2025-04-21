@@ -1332,7 +1332,6 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       temperature: 0.7,
     });
@@ -1356,7 +1355,6 @@ describe('doGenerate', () => {
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
-      mode: { type: 'regular' },
       prompt: TEST_PROMPT,
       temperature: 0.7,
     });
