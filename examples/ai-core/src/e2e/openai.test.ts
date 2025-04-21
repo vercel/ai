@@ -23,6 +23,8 @@ createFeatureTestSuite({
       createChatModel('gpt-4.1'),
       createChatModel('gpt-4.1-mini'),
       createChatModel('gpt-4.1-nano'),
+      createChatModel('o3'),
+      createChatModel('o4-mini'),
       createChatModel('o1-mini'),
       createChatModel('gpt-4o-mini'),
       createChatModel('gpt-3.5-turbo'),
