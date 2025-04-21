@@ -111,9 +111,8 @@ describe('streamObject', () => {
           prompt: 'prompt',
         });
 
-        expect(
-          await convertAsyncIterableToArray(result.partialObjectStream),
-        ).toMatchInlineSnapshot(`
+        expect(await convertAsyncIterableToArray(result.partialObjectStream))
+          .toMatchInlineSnapshot(`
           [
             {},
             {
