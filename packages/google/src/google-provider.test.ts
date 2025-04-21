@@ -58,7 +58,6 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledWith(
       'embedding-001',
-      {},
       expect.objectContaining({
         provider: 'google.generative-ai',
         headers: expect.any(Function),

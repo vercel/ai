@@ -11,10 +11,7 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
-import {
-  GoogleGenerativeAIEmbeddingModelId,
-  GoogleGenerativeAIEmbeddingSettings,
-} from './google-generative-ai-embedding-settings';
+import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import {
   GoogleGenerativeAIModelId,
@@ -51,7 +48,6 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
    */
   embedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 
   /**
@@ -59,12 +55,10 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
  */
   textEmbedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 }
 
@@ -130,11 +124,8 @@ export function createGoogleGenerativeAI(
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings: GoogleGenerativeAIEmbeddingSettings = {},
-  ) =>
-    new GoogleGenerativeAIEmbeddingModel(modelId, settings, {
+  const createEmbeddingModel = (modelId: GoogleGenerativeAIEmbeddingModelId) =>
+    new GoogleGenerativeAIEmbeddingModel(modelId, {
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
