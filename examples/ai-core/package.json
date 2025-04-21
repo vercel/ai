@@ -14,6 +14,7 @@
     "@ai-sdk/elevenlabs": "workspace:*",
     "@ai-sdk/fal": "workspace:*",
     "@ai-sdk/fireworks": "workspace:*",
+    "@ai-sdk/gladia": "workspace:*",
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/groq": "workspace:*",
