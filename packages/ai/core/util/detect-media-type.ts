@@ -122,8 +122,10 @@ export function detectMediaType({
   signatures,
 }: {
   data: Uint8Array | string;
-  signatures: typeof audioMimeTypeSignatures | typeof imageMimeTypeSignatures;
-}): (typeof signatures)[number]['mimeType'] | undefined {
+  signatures: typeof audioMediaTypeSignatures | typeof imageMediaTypeSignatures;
+}): (typeof signatures)[number]['mediaType'] | undefined {
+  const processedData = stripID3TagsIfPresent(data);
+
   for (const signature of signatures) {
     if (
       typeof processedData === 'string'

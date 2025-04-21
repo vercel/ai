@@ -260,9 +260,9 @@ describe('detectMediaType', () => {
         0x00,
       ]);
       expect(
-        detectMimeType({
+        detectMediaType({
           data: mp3WithID3Bytes,
-          signatures: audioMimeTypeSignatures,
+          signatures: audioMediaTypeSignatures,
         }),
       ).toBe('audio/mpeg');
     });
@@ -297,9 +297,9 @@ describe('detectMediaType', () => {
       ]);
       const mp3WithID3Base64 = convertUint8ArrayToBase64(mp3WithID3Bytes);
       expect(
-        detectMimeType({
+        detectMediaType({
           data: mp3WithID3Base64,
-          signatures: audioMimeTypeSignatures,
+          signatures: audioMediaTypeSignatures,
         }),
       ).toBe('audio/mpeg');
     });
