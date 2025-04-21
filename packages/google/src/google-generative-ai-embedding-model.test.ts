@@ -80,9 +80,12 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   it('should pass the outputDimensionality setting', async () => {
     prepareJsonResponse();
 
-    await provider
-      .embedding('text-embedding-004', { outputDimensionality: 64 })
-      .doEmbed({ values: testValues });
+    await provider.embedding('text-embedding-004').doEmbed({
+      values: testValues,
+      providerOptions: {
+        google: { outputDimensionality: 64 },
+      },
+    });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
       requests: testValues.map(value => ({
@@ -119,15 +122,11 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   });
 
   it('should throw an error if too many values are provided', async () => {
-    const model = new GoogleGenerativeAIEmbeddingModel(
-      'text-embedding-004',
-      {},
-      {
-        provider: 'google.generative-ai',
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: () => ({}),
-      },
-    );
+    const model = new GoogleGenerativeAIEmbeddingModel('text-embedding-004', {
+      provider: 'google.generative-ai',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: () => ({}),
+    });
 
     const tooManyValues = Array(2049).fill('test');
 

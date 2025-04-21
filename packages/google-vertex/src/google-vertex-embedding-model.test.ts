@@ -24,7 +24,7 @@ const server = createTestServer({
 
 describe('GoogleVertexEmbeddingModel', () => {
   const mockModelId = 'textembedding-gecko@001';
-  const mockSettings = { outputDimensionality: 768 };
+  const mockProviderOptions = { outputDimensionality: 768 };
   const mockConfig = {
     provider: 'google-vertex',
     region: 'us-central1',
@@ -34,11 +34,7 @@ describe('GoogleVertexEmbeddingModel', () => {
       'https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google',
   };
 
-  const model = new GoogleVertexEmbeddingModel(
-    mockModelId,
-    mockSettings,
-    mockConfig,
-  );
+  const model = new GoogleVertexEmbeddingModel(mockModelId, mockConfig);
 
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
@@ -66,7 +62,10 @@ describe('GoogleVertexEmbeddingModel', () => {
   it('should extract embeddings', async () => {
     prepareJsonResponse();
 
-    const { embeddings } = await model.doEmbed({ values: testValues });
+    const { embeddings } = await model.doEmbed({
+      values: testValues,
+      providerOptions: { google: mockProviderOptions },
+    });
 
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
@@ -78,7 +77,10 @@ describe('GoogleVertexEmbeddingModel', () => {
       },
     });
 
-    const { response } = await model.doEmbed({ values: testValues });
+    const { response } = await model.doEmbed({
+      values: testValues,
+      providerOptions: { google: mockProviderOptions },
+    });
 
     expect(response?.headers).toStrictEqual({
       // default headers:
@@ -95,7 +97,10 @@ describe('GoogleVertexEmbeddingModel', () => {
       tokenCounts: [10, 15],
     });
 
-    const { usage } = await model.doEmbed({ values: testValues });
+    const { usage } = await model.doEmbed({
+      values: testValues,
+      providerOptions: { google: mockProviderOptions },
+    });
 
     expect(usage).toStrictEqual({ tokens: 25 });
   });
@@ -103,12 +108,15 @@ describe('GoogleVertexEmbeddingModel', () => {
   it('should pass the model parameters correctly', async () => {
     prepareJsonResponse();
 
-    await model.doEmbed({ values: testValues });
+    await model.doEmbed({
+      values: testValues,
+      providerOptions: { google: mockProviderOptions },
+    });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
       instances: testValues.map(value => ({ content: value })),
       parameters: {
-        outputDimensionality: mockSettings.outputDimensionality,
+        outputDimensionality: mockProviderOptions.outputDimensionality,
       },
     });
   });
@@ -116,7 +124,7 @@ describe('GoogleVertexEmbeddingModel', () => {
   it('should pass headers correctly', async () => {
     prepareJsonResponse();
 
-    const model = new GoogleVertexEmbeddingModel(mockModelId, mockSettings, {
+    const model = new GoogleVertexEmbeddingModel(mockModelId, {
       ...mockConfig,
       headers: () => ({
         'X-Custom-Header': 'custom-value',
@@ -140,9 +148,12 @@ describe('GoogleVertexEmbeddingModel', () => {
   it('should throw TooManyEmbeddingValuesForCallError when too many values provided', async () => {
     const tooManyValues = Array(2049).fill('test');
 
-    await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
-      TooManyEmbeddingValuesForCallError,
-    );
+    await expect(
+      model.doEmbed({
+        values: tooManyValues,
+        providerOptions: { google: mockProviderOptions },
+      }),
+    ).rejects.toThrow(TooManyEmbeddingValuesForCallError);
   });
 
   it('should use custom baseURL when provided', async () => {
@@ -160,7 +171,6 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const modelWithCustomUrl = new GoogleVertexEmbeddingModel(
       'textembedding-gecko@001',
-      { outputDimensionality: 768 },
       {
         headers: () => ({}),
         baseURL: 'https://custom-endpoint.com',
@@ -170,6 +180,9 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const response = await modelWithCustomUrl.doEmbed({
       values: testValues,
+      providerOptions: {
+        google: { outputDimensionality: 768 },
+      },
     });
 
     expect(response.embeddings).toStrictEqual(dummyEmbeddings);
@@ -195,7 +208,7 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const modelWithCustomFetch = new GoogleVertexEmbeddingModel(
       'textembedding-gecko@001',
-      { outputDimensionality: 768 },
+
       {
         headers: () => ({}),
         baseURL: 'https://custom-endpoint.com',
@@ -206,6 +219,9 @@ describe('GoogleVertexEmbeddingModel', () => {
 
     const response = await modelWithCustomFetch.doEmbed({
       values: testValues,
+      providerOptions: {
+        google: { outputDimensionality: 768 },
+      },
     });
 
     expect(response.embeddings).toStrictEqual(dummyEmbeddings);
