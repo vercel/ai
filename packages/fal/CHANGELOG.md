@@ -1,5 +1,11 @@
 # @ai-sdk/fal
 
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- d8aeaef: feat(providers/fal): add transcribe
+
 ## 1.0.0-canary.8
 
 ### Patch Changes

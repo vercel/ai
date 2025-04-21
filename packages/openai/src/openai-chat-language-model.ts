@@ -264,14 +264,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         }
         baseArgs.max_tokens = undefined;
       }
-    } else if (this.modelId.startsWith('gpt-4o-search-preview')) {
+    } else if (
+      this.modelId.startsWith('gpt-4o-search-preview') ||
+      this.modelId.startsWith('gpt-4o-mini-search-preview')
+    ) {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
           type: 'unsupported-setting',
           setting: 'temperature',
           details:
-            'temperature is not supported for the gpt-4o-search-preview model and has been removed.',
+            'temperature is not supported for the search preview models and has been removed.',
         });
       }
     }
@@ -780,12 +783,7 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return (
-    modelId === 'o1' ||
-    modelId.startsWith('o1-') ||
-    modelId === 'o3' ||
-    modelId.startsWith('o3-')
-  );
+  return modelId.startsWith('o');
 }
 
 function isAudioModel(modelId: string) {

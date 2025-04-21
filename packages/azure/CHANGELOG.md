@@ -1,5 +1,15 @@
 # @ai-sdk/azure
 
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- Updated dependencies [d63bcbc]
+- Updated dependencies [d2af019]
+- Updated dependencies [870c5c0]
+- Updated dependencies [06bac05]
+  - @ai-sdk/openai@2.0.0-canary.9
+
 ## 2.0.0-canary.9
 
 ### Patch Changes
