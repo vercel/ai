@@ -3,12 +3,12 @@ import {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2LogProbs,
-  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  LanguageModelV2Content,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -18,11 +18,12 @@ import {
   createJsonResponseHandler,
   generateId,
   isParsableJson,
-  postJsonToApi,
   parseProviderOptions,
+  postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
+import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
@@ -34,7 +35,6 @@ import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
-import { getResponseMetadata } from './get-response-metadata';
 import { prepareTools } from './openai-prepare-tools';
 
 type OpenAIChatConfig = {
@@ -68,15 +68,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     // TODO in the next major version, remove this and always use json mode for models
     // that support structured outputs (blacklist other models)
     return this.settings.structuredOutputs ?? isReasoningModel(this.modelId);
-  }
-
-  get defaultObjectGenerationMode() {
-    // audio models don't support structured outputs:
-    if (isAudioModel(this.modelId)) {
-      return 'tool';
-    }
-
-    return this.supportsStructuredOutputs ? 'json' : 'tool';
   }
 
   get provider(): string {

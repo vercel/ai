@@ -29,7 +29,6 @@ type CohereChatConfig = {
 
 export class CohereChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: CohereChatModelId;
 

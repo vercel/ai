@@ -86,7 +86,6 @@ export function createCerebras(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      defaultObjectGenerationMode: 'tool',
       errorStructure: cerebrasErrorStructure,
     });
   };

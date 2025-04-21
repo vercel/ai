@@ -35,7 +35,6 @@ type MistralChatConfig = {
 
 export class MistralChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
 
   readonly modelId: MistralChatModelId;

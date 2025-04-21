@@ -70,7 +70,6 @@ export function createDeepSeek(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      defaultObjectGenerationMode: 'json',
       metadataExtractor: deepSeekMetadataExtractor,
     });
   };

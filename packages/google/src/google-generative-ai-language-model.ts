@@ -43,7 +43,6 @@ type GoogleGenerativeAIConfig = {
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
 
   get supportsStructuredOutputs() {

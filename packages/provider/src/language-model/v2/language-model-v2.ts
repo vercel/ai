@@ -201,9 +201,3 @@ export type LanguageModelV2StreamPart =
 
   // error parts are streamed, allowing for multiple errors
   | { type: 'error'; error: unknown };
-
-/**
-The object generation modes available for use with a model. `undefined`
-represents no support for object generation.
-   */
-export type LanguageModelV2ObjectGenerationMode = 'json' | 'tool' | undefined;
