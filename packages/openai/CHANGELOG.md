@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.16
+
+### Patch Changes
+
+- bd6e457: feat (provider/openai): o4 updates for responses api
+
 ## 1.3.15
 
 ### Patch Changes

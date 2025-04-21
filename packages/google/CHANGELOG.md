@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.2.12
+
+### Patch Changes
+
+- c56331d: feat (providers/google): add thinking config to provider options
+
 ## 1.2.11
 
 ### Patch Changes
