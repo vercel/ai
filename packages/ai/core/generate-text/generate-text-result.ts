@@ -4,7 +4,7 @@ import {
   LogProbs,
   ProviderMetadata,
 } from '../types';
-import { Source } from '../types/language-model';
+import { Citation, Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
@@ -44,10 +44,16 @@ The full reasoning that the model has generated.
   readonly reasoningDetails: Array<ReasoningDetail>;
 
   /**
-Sources that have been used as input to generate the response.
-For multi-step generation, the sources are accumulated from all steps.
+Sources that have been used as input to generate the response
+of the last step.
    */
   readonly sources: Source[];
+
+  /**
+Citations that have been used as input to generate the response
+of the last step.
+   */
+  readonly citations: Citation[];
 
   /**
 The generated structured output. It uses the `experimental_output` specification.
@@ -55,27 +61,27 @@ The generated structured output. It uses the `experimental_output` specification
   readonly experimental_output: OUTPUT;
 
   /**
-  The tool calls that were made during the generation.
+The tool calls that were made during the last step.
    */
   readonly toolCalls: ToolCallArray<TOOLS>;
 
   /**
-  The results of the tool calls.
+The results of the tool calls that were made during the last step.
    */
   readonly toolResults: ToolResultArray<TOOLS>;
 
   /**
-  The reason why the generation finished.
+The reason why the generation finished.
    */
   readonly finishReason: FinishReason;
 
   /**
-  The token usage of the generated text.
+The token usage of the generated text.
    */
   readonly usage: LanguageModelUsage;
 
   /**
-  Warnings from the model provider (e.g. unsupported settings)
+Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: CallWarning[] | undefined;
 
