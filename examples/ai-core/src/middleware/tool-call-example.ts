@@ -11,7 +11,7 @@ const openrouter = createOpenAICompatible({
 async function main() {
   await generateText({
     model: wrapLanguageModel({
-      model: openrouter('thudm/glm-4-32b:free'),
+      model: openrouter('google/gemma-3-27b-it'),
       middleware: hermesToolMiddleware,
     }),
     system: 'You are a helpful assistant.',
