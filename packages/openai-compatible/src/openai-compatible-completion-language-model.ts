@@ -43,7 +43,6 @@ export class OpenAICompatibleCompletionLanguageModel
   implements LanguageModelV2
 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = undefined;
 
   readonly modelId: OpenAICompatibleCompletionModelId;
   private readonly config: OpenAICompatibleCompletionConfig;

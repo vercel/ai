@@ -160,10 +160,11 @@ export function createExample(
     modelId: ExampleChatModelId,
     settings: ExampleChatSettings = {},
   ) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
-      ...getCommonModelConfig('chat'),
-      defaultObjectGenerationMode: 'tool',
-    });
+    return new OpenAICompatibleChatLanguageModel(
+      modelId,
+      settings,
+      getCommonModelConfig('chat'),
+    );
   };
 
   const createCompletionModel = (

@@ -114,10 +114,10 @@ export function createOpenAICompatible<
     createChatModel(modelId);
 
   const createChatModel = (modelId: CHAT_MODEL_IDS) =>
-    new OpenAICompatibleChatLanguageModel(modelId, {
-      ...getCommonModelConfig('chat'),
-      defaultObjectGenerationMode: 'tool',
-    });
+    new OpenAICompatibleChatLanguageModel(
+      modelId,
+      getCommonModelConfig('chat'),
+    );
 
   const createCompletionModel = (modelId: COMPLETION_MODEL_IDS) =>
     new OpenAICompatibleCompletionLanguageModel(

@@ -3,12 +3,12 @@ import {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2LogProbs,
-  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  LanguageModelV2Content,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -18,11 +18,12 @@ import {
   createJsonResponseHandler,
   generateId,
   isParsableJson,
-  postJsonToApi,
   parseProviderOptions,
+  postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
+import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
@@ -34,7 +35,6 @@ import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
-import { getResponseMetadata } from './get-response-metadata';
 import { prepareTools } from './openai-prepare-tools';
 
 type OpenAIChatConfig = {
@@ -61,22 +61,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     this.modelId = modelId;
     this.settings = settings;
     this.config = config;
-  }
-
-  get supportsStructuredOutputs(): boolean {
-    // enable structured outputs for reasoning models by default:
-    // TODO in the next major version, remove this and always use json mode for models
-    // that support structured outputs (blacklist other models)
-    return this.settings.structuredOutputs ?? isReasoningModel(this.modelId);
-  }
-
-  get defaultObjectGenerationMode() {
-    // audio models don't support structured outputs:
-    if (isAudioModel(this.modelId)) {
-      return 'tool';
-    }
-
-    return this.supportsStructuredOutputs ? 'json' : 'tool';
   }
 
   get provider(): string {
@@ -123,7 +107,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !this.supportsStructuredOutputs
+      !this.settings.structuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -170,10 +154,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
-      // TODO improve below:
       response_format:
         responseFormat?.type === 'json'
-          ? this.supportsStructuredOutputs && responseFormat.schema != null
+          ? // TODO convert into provider option
+            this.settings.structuredOutputs && responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -285,7 +269,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     } = prepareTools({
       tools,
       toolChoice,
-      structuredOutputs: this.supportsStructuredOutputs,
+      structuredOutputs: this.settings.structuredOutputs ?? false,
     });
 
     return {

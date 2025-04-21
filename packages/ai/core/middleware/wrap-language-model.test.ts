@@ -8,8 +8,6 @@ describe('wrapLanguageModel', () => {
       model: new MockLanguageModelV2({
         provider: 'test-provider',
         modelId: 'test-model',
-        defaultObjectGenerationMode: 'json',
-        supportsStructuredOutputs: true,
       }),
       middleware: {
         middlewareVersion: 'v2',
@@ -18,8 +16,6 @@ describe('wrapLanguageModel', () => {
 
     expect(wrappedModel.provider).toBe('test-provider');
     expect(wrappedModel.modelId).toBe('test-model');
-    expect(wrappedModel.defaultObjectGenerationMode).toBe('json');
-    expect(wrappedModel.supportsStructuredOutputs).toBe(true);
   });
 
   it('should override provider and modelId if provided', () => {
@@ -206,7 +202,6 @@ describe('wrapLanguageModel', () => {
       readonly specificationVersion = 'v2';
       readonly provider = 'test-provider';
       readonly modelId = 'test-model';
-      readonly defaultObjectGenerationMode = 'json';
       readonly supportsImageUrls = false;
 
       readonly doGenerate: LanguageModelV2['doGenerate'] = vi.fn();

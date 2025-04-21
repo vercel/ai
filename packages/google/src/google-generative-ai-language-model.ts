@@ -43,12 +43,7 @@ type GoogleGenerativeAIConfig = {
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'json';
   readonly supportsImageUrls = false;
-
-  get supportsStructuredOutputs() {
-    return this.settings.structuredOutputs ?? true;
-  }
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: InternalGoogleGenerativeAISettings;
@@ -128,7 +123,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             responseFormat.schema != null &&
             // Google GenAI does not support all OpenAPI Schema features,
             // so this is needed as an escape hatch:
-            this.supportsStructuredOutputs
+            // TODO convert into provider option
+            (this.settings.structuredOutputs ?? true)
               ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
               : undefined,
           ...(this.settings.audioTimestamp && {

@@ -115,10 +115,10 @@ export function createTogetherAI(
   });
 
   const createChatModel = (modelId: TogetherAIChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, {
-      ...getCommonModelConfig('chat'),
-      defaultObjectGenerationMode: 'tool',
-    });
+    return new OpenAICompatibleChatLanguageModel(
+      modelId,
+      getCommonModelConfig('chat'),
+    );
   };
 
   const createCompletionModel = (modelId: TogetherAICompletionModelId) =>

@@ -232,11 +232,7 @@ A function that attempts to repair a tool call that failed to parse.
   });
 
   const initialPrompt = standardizePrompt({
-    prompt: {
-      system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
-      prompt,
-      messages,
-    },
+    prompt: { system, prompt, messages },
     tools,
   });
 
@@ -350,7 +346,7 @@ A function that attempts to repair a tool call that failed to parse.
                 ...callSettings,
                 ...toolsAndToolChoice,
                 inputFormat: promptFormat,
-                responseFormat: output?.responseFormat({ model }),
+                responseFormat: output?.responseFormat,
                 prompt: promptMessages,
                 providerOptions,
                 abortSignal,

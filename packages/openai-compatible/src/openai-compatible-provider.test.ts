@@ -156,7 +156,6 @@ describe('OpenAICompatibleProvider', () => {
         'model-id',
         expect.objectContaining({
           provider: 'test-provider.chat',
-          defaultObjectGenerationMode: 'tool',
         }),
       );
     });

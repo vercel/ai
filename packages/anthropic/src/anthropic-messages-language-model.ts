@@ -43,7 +43,6 @@ type AnthropicMessagesConfig = {
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: AnthropicMessagesModelId;
   readonly settings: AnthropicMessagesSettings;

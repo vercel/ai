@@ -1,12 +1,11 @@
 import {
   JSONValue,
-  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
   LanguageModelV2LogProbs,
-  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  LanguageModelV2CallWarning,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
@@ -48,7 +47,6 @@ import { now as originalNow } from '../util/now';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
-import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
@@ -341,7 +339,6 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   schema: inputSchema,
   schemaName,
   schemaDescription,
-  mode,
   output = 'object',
   system,
   prompt,
@@ -376,7 +373,6 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
     schemaName?: string;
     schemaDescription?: string;
-    mode?: 'auto' | 'json' | 'tool';
     experimental_telemetry?: TelemetrySettings;
     providerOptions?: ProviderOptions;
     onError?: StreamObjectOnErrorCallback;
@@ -389,18 +385,12 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
   }): StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   validateObjectGenerationInput({
     output,
-    mode,
     schema: inputSchema,
     schemaName,
     schemaDescription,
   });
 
   const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
-
-  // automatically set mode to 'json' for no-schema output
-  if (outputStrategy.type === 'no-schema' && mode === undefined) {
-    mode = 'json';
-  }
 
   return new DefaultStreamObjectResult({
     model,
@@ -416,7 +406,6 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schemaName,
     schemaDescription,
     providerOptions,
-    mode,
     onError,
     onFinish,
     generateId,
@@ -463,7 +452,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName,
     schemaDescription,
     providerOptions,
-    mode,
     onError,
     onFinish,
     generateId,
@@ -483,7 +471,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName: string | undefined;
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
-    mode: 'auto' | 'json' | 'tool' | undefined;
     onError: StreamObjectOnErrorCallback | undefined;
     onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
     generateId: () => string;
@@ -543,137 +530,52 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           'ai.schema.name': schemaName,
           'ai.schema.description': schemaDescription,
           'ai.settings.output': outputStrategy.type,
-          'ai.settings.mode': mode,
         },
       }),
       tracer,
       endWhenDone: false,
       fn: async rootSpan => {
-        // use the default provider mode when the mode is set to 'auto' or unspecified
-        if (mode === 'auto' || mode == null) {
-          mode = model.defaultObjectGenerationMode;
-        }
+        const standardizedPrompt = standardizePrompt({
+          prompt: { system, prompt, messages },
+          tools: undefined,
+        });
 
-        let callOptions: LanguageModelV2CallOptions;
-        let transformer: Transformer<
+        const callOptions = {
+          responseFormat: {
+            type: 'json' as const,
+            schema: outputStrategy.jsonSchema,
+            name: schemaName,
+            description: schemaDescription,
+          },
+          ...prepareCallSettings(settings),
+          inputFormat: standardizedPrompt.type,
+          prompt: await convertToLanguageModelPrompt({
+            prompt: standardizedPrompt,
+            modelSupportsImageUrls: model.supportsImageUrls,
+            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
+          }),
+          providerOptions,
+          abortSignal,
+          headers,
+        };
+
+        const transformer: Transformer<
           LanguageModelV2StreamPart,
           ObjectStreamInputPart
-        >;
-
-        switch (mode) {
-          case 'json': {
-            const standardizedPrompt = standardizePrompt({
-              prompt: {
-                system:
-                  outputStrategy.jsonSchema == null
-                    ? injectJsonInstruction({ prompt: system })
-                    : model.supportsStructuredOutputs
-                      ? system
-                      : injectJsonInstruction({
-                          prompt: system,
-                          schema: outputStrategy.jsonSchema,
-                        }),
-                prompt,
-                messages,
-              },
-              tools: undefined,
-            });
-
-            callOptions = {
-              responseFormat: {
-                type: 'json',
-                schema: outputStrategy.jsonSchema,
-                name: schemaName,
-                description: schemaDescription,
-              },
-              ...prepareCallSettings(settings),
-              inputFormat: standardizedPrompt.type,
-              prompt: await convertToLanguageModelPrompt({
-                prompt: standardizedPrompt,
-                modelSupportsImageUrls: model.supportsImageUrls,
-                modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
-              }),
-              providerOptions,
-              abortSignal,
-              headers,
-            };
-
-            transformer = {
-              transform: (chunk, controller) => {
-                switch (chunk.type) {
-                  case 'text':
-                    controller.enqueue(chunk.text);
-                    break;
-                  case 'response-metadata':
-                  case 'finish':
-                  case 'error':
-                    controller.enqueue(chunk);
-                    break;
-                }
-              },
-            };
-
-            break;
-          }
-
-          case 'tool': {
-            const standardizedPrompt = standardizePrompt({
-              prompt: { system, prompt, messages },
-              tools: undefined,
-            });
-
-            callOptions = {
-              tools: [
-                {
-                  type: 'function',
-                  name: schemaName ?? 'json',
-                  description:
-                    schemaDescription ?? 'Respond with a JSON object.',
-                  parameters: outputStrategy.jsonSchema!,
-                },
-              ],
-              toolChoice: { type: 'required' },
-              ...prepareCallSettings(settings),
-              inputFormat: standardizedPrompt.type,
-              prompt: await convertToLanguageModelPrompt({
-                prompt: standardizedPrompt,
-                modelSupportsImageUrls: model.supportsImageUrls,
-                modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context,
-              }),
-              providerOptions,
-              abortSignal,
-              headers,
-            };
-
-            transformer = {
-              transform(chunk, controller) {
-                switch (chunk.type) {
-                  case 'tool-call-delta':
-                    controller.enqueue(chunk.argsTextDelta);
-                    break;
-                  case 'response-metadata':
-                  case 'finish':
-                  case 'error':
-                    controller.enqueue(chunk);
-                    break;
-                }
-              },
-            };
-
-            break;
-          }
-
-          case undefined: {
-            throw new Error(
-              'Model does not have a default object generation mode.',
-            );
-          }
-
-          default: {
-            const _exhaustiveCheck: never = mode;
-            throw new Error(`Unsupported mode: ${_exhaustiveCheck}`);
-          }
-        }
+        > = {
+          transform: (chunk, controller) => {
+            switch (chunk.type) {
+              case 'text':
+                controller.enqueue(chunk.text);
+                break;
+              case 'response-metadata':
+              case 'finish':
+              case 'error':
+                controller.enqueue(chunk);
+                break;
+            }
+          },
+        };
 
         const {
           result: { stream, response, request },
@@ -696,7 +598,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(callOptions.prompt),
                 },
-                'ai.settings.mode': mode,
 
                 // standardized gen-ai llm span attributes:
                 'gen_ai.system': model.provider,

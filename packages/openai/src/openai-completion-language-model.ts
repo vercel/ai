@@ -38,7 +38,6 @@ type OpenAICompletionConfig = {
 
 export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = undefined;
 
   readonly modelId: OpenAICompletionModelId;
   readonly settings: OpenAICompletionSettings;

@@ -3,11 +3,10 @@ import {
   InvalidResponseDataError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
-  LanguageModelV2FinishReason,
-  LanguageModelV2ObjectGenerationMode,
-  SharedV2ProviderMetadata,
-  LanguageModelV2StreamPart,
   LanguageModelV2Content,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,8 +16,8 @@ import {
   FetchFunction,
   generateId,
   isParsableJson,
-  ParseResult,
   parseProviderOptions,
+  ParseResult,
   postJsonToApi,
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
@@ -34,8 +33,8 @@ import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
 } from './openai-compatible-error';
-import { prepareTools } from './openai-compatible-prepare-tools';
 import { MetadataExtractor } from './openai-compatible-metadata-extractor';
+import { prepareTools } from './openai-compatible-prepare-tools';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -44,13 +43,6 @@ export type OpenAICompatibleChatConfig = {
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
   metadataExtractor?: MetadataExtractor;
-
-  /**
-Default object generation mode that should be used with this model when
-no mode is specified. Should be the mode with the best results for this
-model. `undefined` can be specified if object generation is not supported.
-  */
-  defaultObjectGenerationMode?: LanguageModelV2ObjectGenerationMode;
 
   /**
    * Whether the model supports structured outputs.
@@ -84,10 +76,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     this.failedResponseHandler = createJsonErrorResponseHandler(errorStructure);
 
     this.supportsStructuredOutputs = config.supportsStructuredOutputs ?? false;
-  }
-
-  get defaultObjectGenerationMode(): 'json' | 'tool' | undefined {
-    return this.config.defaultObjectGenerationMode;
   }
 
   get provider(): string {
