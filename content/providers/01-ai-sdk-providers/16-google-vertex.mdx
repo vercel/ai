@@ -561,12 +561,18 @@ const model = vertex.textEmbeddingModel('text-embedding-004');
 Google Vertex AI embedding models support additional settings. You can pass them as an options argument:
 
 ```ts
-const model = vertex.textEmbeddingModel('text-embedding-004', {
-  outputDimensionality: 512, // optional, number of dimensions for the embedding
+const model = vertex.textEmbeddingModel('text-embedding-004');
+
+await model.doEmbed({
+  providerOptions: {
+    google: {
+      outputDimensionality: 512, // optional, number of dimensions for the embedding
+    },
+  },
 });
 ```
 
-The following optional settings are available for Google Vertex AI embedding models:
+The following optional provider options are available for Google Vertex AI embedding models:
 
 - **outputDimensionality**: _number_
 
