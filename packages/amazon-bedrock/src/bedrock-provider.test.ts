@@ -111,7 +111,7 @@ describe('AmazonBedrockProvider', () => {
       provider.embedding('amazon.titan-embed-text-v1');
 
       const constructorCall = BedrockEmbeddingModelMock.mock.calls[0];
-      expect(constructorCall[2].headers).toEqual(customHeaders);
+      expect(constructorCall[1].headers).toEqual(customHeaders);
     });
 
     it('should throw error when called with new keyword', () => {
