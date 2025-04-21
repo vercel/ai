@@ -53,6 +53,9 @@
       "path": "../../packages/deepinfra"
     },
     {
+      "path": "../../packages/gladia"
+    },
+    {
       "path": "../../packages/lmnt"
     },
     {
