@@ -5,13 +5,14 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
 } from '@ai-sdk/provider-utils';
 import {
   BedrockEmbeddingModelId,
-  BedrockEmbeddingSettings,
-} from './bedrock-embedding-settings';
+  bedrockEmbeddingProviderOptions,
+} from './bedrock-embedding-options';
 import { BedrockErrorSchema } from './bedrock-error';
 import { z } from 'zod';
 
@@ -31,7 +32,6 @@ export class BedrockEmbeddingModel implements EmbeddingModelV2<string> {
 
   constructor(
     readonly modelId: BedrockEmbeddingModelId,
-    private readonly settings: BedrockEmbeddingSettings,
     private readonly config: BedrockEmbeddingConfig,
   ) {}
 
@@ -44,15 +44,24 @@ export class BedrockEmbeddingModel implements EmbeddingModelV2<string> {
     values,
     headers,
     abortSignal,
+    providerOptions,
   }: Parameters<
     EmbeddingModelV2<string>['doEmbed']
   >[0]): Promise<DoEmbedResponse> {
+    // Parse provider options
+    const bedrockOptions =
+      parseProviderOptions({
+        provider: 'bedrock',
+        providerOptions,
+        schema: bedrockEmbeddingProviderOptions,
+      }) ?? {};
+
     const embedSingleText = async (inputText: string) => {
       // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html
       const args = {
         inputText,
-        dimensions: this.settings.dimensions,
-        normalize: this.settings.normalize,
+        dimensions: bedrockOptions.dimensions,
+        normalize: bedrockOptions.normalize,
       };
       const url = this.getUrl(this.modelId);
       const { value: response } = await postJsonToApi({
