@@ -63,85 +63,85 @@ importers:
   examples/ai-core:
     dependencies:
       '@ai-sdk/amazon-bedrock':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/amazon-bedrock
       '@ai-sdk/anthropic':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/anthropic
       '@ai-sdk/azure':
-        specifier: 2.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/azure
       '@ai-sdk/cerebras':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/cohere
       '@ai-sdk/deepgram':
         specifier: 1.0.0-canary.0
         version: link:../../packages/deepgram
       '@ai-sdk/deepinfra':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/deepinfra
       '@ai-sdk/deepseek':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/deepseek
       '@ai-sdk/elevenlabs':
-        specifier: 1.0.0-canary.1
+        specifier: workspace:*
         version: link:../../packages/elevenlabs
       '@ai-sdk/fal':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/fal
       '@ai-sdk/fireworks':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 2.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 3.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/google-vertex
       '@ai-sdk/groq':
-        specifier: 2.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/groq
       '@ai-sdk/hume':
-        specifier: 1.0.0-canary.0
+        specifier: workspace:*
         version: link:../../packages/hume
       '@ai-sdk/lmnt':
-        specifier: 1.0.0-canary.0
+        specifier: workspace:*
         version: link:../../packages/lmnt
       '@ai-sdk/luma':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/luma
       '@ai-sdk/mistral':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/mistral
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai-compatible
       '@ai-sdk/perplexity':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/perplexity
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../../packages/provider
       '@ai-sdk/replicate':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/replicate
       '@ai-sdk/revai':
-        specifier: 1.0.0-canary.0
+        specifier: workspace:*
         version: link:../../packages/revai
       '@ai-sdk/togetherai':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/togetherai
       '@ai-sdk/valibot':
-        specifier: 1.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
@@ -156,7 +156,7 @@ importers:
         specifier: 1.28.0
         version: 1.28.0(@opentelemetry/api@1.9.0)
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -199,10 +199,10 @@ importers:
   examples/express:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -230,10 +230,10 @@ importers:
   examples/fastify:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -258,13 +258,13 @@ importers:
   examples/hono:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@hono/node-server':
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -289,13 +289,13 @@ importers:
   examples/mcp:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@modelcontextprotocol/sdk':
         specifier: ^1.7.0
         version: 1.7.0
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -326,7 +326,7 @@ importers:
   examples/nest:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@nestjs/common':
         specifier: ^10.4.15
@@ -338,7 +338,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.9(@nestjs/common@10.4.15(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -417,10 +417,10 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/react':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/react
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -472,10 +472,10 @@ importers:
   examples/next-google-vertex:
     dependencies:
       '@ai-sdk/google-vertex':
-        specifier: 3.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/google-vertex
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -518,7 +518,7 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/react':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/react
       '@langchain/core':
         specifier: 0.1.63
@@ -527,7 +527,7 @@ importers:
         specifier: 0.0.28
         version: 0.0.28
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       langchain:
         specifier: 0.1.36
@@ -576,37 +576,37 @@ importers:
   examples/next-openai:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/anthropic
       '@ai-sdk/deepseek':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/fireworks
       '@ai-sdk/google':
-        specifier: 2.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/google
       '@ai-sdk/google-vertex':
-        specifier: 3.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/google-vertex
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/perplexity':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/perplexity
       '@ai-sdk/react':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/react
       '@ai-sdk/rsc':
-        specifier: 1.0.0-canary.7
+        specifier: workspace:*
         version: link:../../packages/rsc
       '@vercel/blob':
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -658,16 +658,16 @@ importers:
   examples/next-openai-kasada-bot-protection:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/react
       '@vercel/functions':
         specifier: latest
         version: 2.0.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0))
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -716,13 +716,13 @@ importers:
   examples/next-openai-pages:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/react
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -771,10 +771,10 @@ importers:
   examples/next-openai-telemetry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -789,7 +789,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.29.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -835,10 +835,10 @@ importers:
   examples/next-openai-telemetry-sentry:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -859,7 +859,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -908,10 +908,10 @@ importers:
   examples/next-openai-upstash-rate-limits:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -920,7 +920,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -969,10 +969,10 @@ importers:
   examples/node-http-server:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -1000,13 +1000,13 @@ importers:
   examples/nuxt-openai:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/vue':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/vue
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       zod:
         specifier: 3.23.8
@@ -1058,13 +1058,13 @@ importers:
   examples/sveltekit-openai:
     devDependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/openai
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/provider-utils
       '@ai-sdk/svelte':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../../packages/svelte
       '@eslint/compat':
         specifier: ^1.2.5
@@ -1085,7 +1085,7 @@ importers:
         specifier: workspace:*
         version: link:../../tools/tsconfig
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../../packages/ai
       autoprefixer:
         specifier: ^10.4.20
@@ -1142,10 +1142,10 @@ importers:
   packages/ai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1185,10 +1185,10 @@ importers:
   packages/amazon-bedrock:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
       '@smithy/eventstream-codec':
         specifier: ^4.0.1
@@ -1219,10 +1219,10 @@ importers:
   packages/anthropic:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1244,13 +1244,13 @@ importers:
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../openai
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1272,13 +1272,13 @@ importers:
   packages/cerebras:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1331,7 +1331,7 @@ importers:
         specifier: workspace:*
         version: link:../../tools/tsconfig
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../ai
       msw:
         specifier: 2.6.4
@@ -1352,10 +1352,10 @@ importers:
   packages/cohere:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1402,13 +1402,13 @@ importers:
   packages/deepinfra:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1430,13 +1430,13 @@ importers:
   packages/deepseek:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1458,10 +1458,10 @@ importers:
   packages/elevenlabs:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1483,10 +1483,10 @@ importers:
   packages/fal:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1508,13 +1508,13 @@ importers:
   packages/fireworks:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1536,10 +1536,10 @@ importers:
   packages/google:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1561,16 +1561,16 @@ importers:
   packages/google-vertex:
     dependencies:
       '@ai-sdk/anthropic':
-        specifier: 2.0.0-canary.8
+        specifier: workspace:*
         version: link:../anthropic
       '@ai-sdk/google':
-        specifier: 2.0.0-canary.9
+        specifier: workspace:*
         version: link:../google
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
       google-auth-library:
         specifier: ^9.15.0
@@ -1595,10 +1595,10 @@ importers:
   packages/groq:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1620,10 +1620,10 @@ importers:
   packages/hume:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1645,10 +1645,10 @@ importers:
   packages/lmnt:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1670,10 +1670,10 @@ importers:
   packages/luma:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1695,10 +1695,10 @@ importers:
   packages/mistral:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1720,10 +1720,10 @@ importers:
   packages/openai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1745,10 +1745,10 @@ importers:
   packages/openai-compatible:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1770,10 +1770,10 @@ importers:
   packages/perplexity:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1817,7 +1817,7 @@ importers:
   packages/provider-utils:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
     devDependencies:
       '@types/node':
@@ -1842,10 +1842,10 @@ importers:
   packages/react:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../ai
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
@@ -1906,10 +1906,10 @@ importers:
   packages/replicate:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -1931,11 +1931,11 @@ importers:
   packages/revai:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.6
-        version: 2.0.0-canary.6
+        specifier: workspace:*
+        version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.7
-        version: 3.0.0-canary.7(zod@3.23.8)
+        specifier: workspace:*
+        version: link:../provider-utils
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -1956,13 +1956,13 @@ importers:
   packages/rsc:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../ai
       jsondiffpatch:
         specifier: 0.6.0
@@ -2041,10 +2041,10 @@ importers:
   packages/svelte:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../ai
     devDependencies:
       '@eslint/compat':
@@ -2111,13 +2111,13 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -2142,7 +2142,7 @@ importers:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.0.0-rc.0(valibot@1.0.0-rc.0(typescript@5.8.3))
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../ai
     devDependencies:
       '@types/node':
@@ -2164,10 +2164,10 @@ importers:
   packages/vue:
     dependencies:
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
       ai:
-        specifier: 5.0.0-canary.9
+        specifier: workspace:*
         version: link:../ai
       swrv:
         specifier: ^1.0.4
@@ -2219,13 +2219,13 @@ importers:
   packages/xai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 1.0.0-canary.8
+        specifier: workspace:*
         version: link:../openai-compatible
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.7
+        specifier: workspace:*
         version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.8
+        specifier: workspace:*
         version: link:../provider-utils
     devDependencies:
       '@types/node':
@@ -2283,16 +2283,6 @@ packages:
 
   '@adobe/css-tools@4.4.0':
     resolution: {integrity: sha512-Ff9+ksdQQB3rMncgqDK78uLznstjyfIf2Arnh22pW8kBpLs6rpKDwgnZT46hin5Hl1WzazzK64DOrhSwYpS7bQ==}
-
-  '@ai-sdk/provider-utils@3.0.0-canary.7':
-    resolution: {integrity: sha512-eVsCJx9CJZ8ZMzgBHn02dYbKjUl54ji9yV5+mTIL7h9+iVpqRNX4/570cFc+dPuy/WuTf6Mqnw3esbK1WgWhSw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.23.8
-
-  '@ai-sdk/provider@2.0.0-canary.6':
-    resolution: {integrity: sha512-cvl91VElPdC8oBzNyjcpH/3Vc73/JpJkH2sNejyAN5dAlMt8zNsYkYxLb2TBdnqmFEiBkU2lEDIOCq1QLaZbSw==}
-    engines: {node: '>=18'}
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -15010,15 +15000,6 @@ packages:
 snapshots:
 
   '@adobe/css-tools@4.4.0': {}
-
-  '@ai-sdk/provider-utils@3.0.0-canary.7(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0-canary.6
-      zod: 3.23.8
-
-  '@ai-sdk/provider@2.0.0-canary.6':
-    dependencies:
-      json-schema: 0.4.0
 
   '@alloc/quick-lru@5.2.0': {}
 
