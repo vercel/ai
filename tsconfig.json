@@ -91,6 +91,9 @@
       "path": "packages/vue"
     },
     {
+      "path": "packages/deepgram"
+    },
+    {
       "path": "packages/xai"
     },
     {
