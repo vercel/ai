@@ -40,7 +40,7 @@ export type OpenAICompatibleChatConfig = {
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
-  includeUsgae?: boolean;
+  includeUsage?: boolean;
   errorStructure?: ProviderErrorStructure<any>;
   metadataExtractor?: MetadataExtractor;
 
@@ -381,7 +381,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV1 {
       stream: true,
 
       // only include stream_options when in strict compatibility mode:
-      stream_options: this.config.includeUsgae
+      stream_options: this.config.includeUsage
         ? { include_usage: true }
         : undefined,
     };
