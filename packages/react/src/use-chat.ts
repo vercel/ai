@@ -9,6 +9,7 @@ import type {
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
+  resumeChatApi,
   extractMaxToolInvocationStep,
   fillMessageParts,
   generateId as generateIdFunc,
@@ -52,6 +53,12 @@ export type UseChatHelpers = {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop: () => void;
+
+  /**
+  * Resume an ongoing chat generation stream. This does not resume an aborted generation.
+  */
+  resume: () => Promise<string | null | undefined>;
+
   /**
    * Update the `messages` state locally. This is useful when you want to
    * edit the messages on the client, and then trigger the `reload` method
@@ -264,26 +271,26 @@ By default, it's set to 1, which means that only a single LLM call is made.
         const constructedMessagesPayload = sendExtraMessageFields
           ? chatMessages
           : chatMessages.map(
-              ({
-                role,
-                content,
+            ({
+              role,
+              content,
+              experimental_attachments,
+              data,
+              annotations,
+              toolInvocations,
+              parts,
+            }) => ({
+              role,
+              content,
+              ...(experimental_attachments !== undefined && {
                 experimental_attachments,
-                data,
-                annotations,
-                toolInvocations,
-                parts,
-              }) => ({
-                role,
-                content,
-                ...(experimental_attachments !== undefined && {
-                  experimental_attachments,
-                }),
-                ...(data !== undefined && { data }),
-                ...(annotations !== undefined && { annotations }),
-                ...(toolInvocations !== undefined && { toolInvocations }),
-                ...(parts !== undefined && { parts }),
               }),
-            );
+              ...(data !== undefined && { data }),
+              ...(annotations !== undefined && { annotations }),
+              ...(toolInvocations !== undefined && { toolInvocations }),
+              ...(parts !== undefined && { parts }),
+            }),
+          );
 
         const existingData = streamDataRef.current;
 
@@ -400,6 +407,19 @@ By default, it's set to 1, which means that only a single LLM call is made.
     ],
   );
 
+  const triggerResumeRequest = useCallback(async () => {
+    const body = {
+      id: chatId,
+    }
+
+    try {
+      await resumeChatApi({ api, body, fetch, })
+    } catch (error) {
+      console.error("Error resuming chat:", error);
+      return null;
+    }
+  }, [api, chatId, fetch])
+
   const append = useCallback(
     async (
       message: Message | CreateMessage,
@@ -455,6 +475,11 @@ By default, it's set to 1, which means that only a single LLM call is made.
       abortControllerRef.current = null;
     }
   }, []);
+
+  const resume = useCallback(async () => {
+    console.log("invoked: resume()")
+    return triggerResumeRequest();
+  }, [triggerResumeRequest])
 
   const setMessages = useCallback(
     (messages: Message[] | ((messages: Message[]) => Message[])) => {
@@ -581,6 +606,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     append,
     reload,
     stop,
+    resume,
     input,
     setInput,
     handleInputChange,

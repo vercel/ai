@@ -106,3 +106,23 @@ export async function callChatApi({
     }
   }
 }
+
+export async function resumeChatApi({
+  api,
+  body,
+  fetch = getOriginalFetch(),
+}: {
+  api: string,
+  body: Record<string, any>,
+  fetch: ReturnType<typeof getOriginalFetch> | undefined;
+}) {
+  const { id } = body;
+
+  const response = await fetch(`${api}?id=${id}`, {
+    method: "GET",
+  })
+
+  console.log("invoked: resumeChatApi()")
+
+  return response;
+}
