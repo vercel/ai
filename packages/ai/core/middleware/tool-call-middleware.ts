@@ -94,8 +94,8 @@ export function createToolMiddleware({
                   console.error(`Error parsing tool call: ${toolCall}`, e);
 
                   controller.enqueue({
-                    type: 'text-delta',
-                    textDelta: `Failed to parse tool call: ${e}`,
+                    type: 'text',
+                    text: `Failed to parse tool call: ${e}`,
                   });
                 }
               });
@@ -105,12 +105,12 @@ export function createToolMiddleware({
             controller.enqueue(chunk);
 
             return;
-          } else if (chunk.type !== 'text-delta') {
+          } else if (chunk.type !== 'text') {
             controller.enqueue(chunk);
             return;
           }
 
-          buffer += chunk.textDelta;
+          buffer += chunk.text;
 
           function publish(text: string) {
             if (text.length > 0) {
@@ -127,8 +127,8 @@ export function createToolMiddleware({
                 toolCallBuffer[toolCallIndex] += text;
               } else {
                 controller.enqueue({
-                  type: 'text-delta',
-                  textDelta: prefix + text,
+                  type: 'text',
+                  text: prefix + text,
                 });
               }
 
@@ -179,7 +179,15 @@ export function createToolMiddleware({
     wrapGenerate: async ({ doGenerate }) => {
       const result = await doGenerate();
 
-      if (!result.text?.includes(toolCallTag)) {
+      // NOTE: Needs more proper handling
+      if (result.content.length === 1) {
+        return result;
+      }
+
+      if (
+        result.content[0].type === 'text' &&
+        !result.content[0].text.includes(toolCallTag)
+      ) {
         return result;
       }
 
@@ -187,7 +195,11 @@ export function createToolMiddleware({
         `${toolCallTag}(.*?)(?:${toolCallEndTag}|$)`,
         'gs',
       );
-      const matches = [...result.text.matchAll(toolCallRegex)];
+
+      const matches =
+        result.content[0].type === 'text'
+          ? result.content[0].text.matchAll(toolCallRegex)
+          : [];
       const function_call_tuples = matches.map(match => match[1] || match[2]);
 
       return {
@@ -195,7 +207,8 @@ export function createToolMiddleware({
         // TODO: Return the remaining value after extracting the tool call tag.
         text: '',
         toolCalls: function_call_tuples.map(toolCall => {
-          const parsedToolCall = RJSON.parse(toolCall) as {
+          // TODO, replace like 'relaxed-json'
+          const parsedToolCall = JSON.parse(toolCall) as {
             name: string;
             arguments: string;
           };
@@ -207,7 +220,8 @@ export function createToolMiddleware({
             toolCallType: 'function',
             toolCallId: generateId(),
             toolName: toolName,
-            args: RJSON.stringify(args),
+            // TODO, replace like 'relaxed-json'
+            args: JSON.stringify(args),
           };
         }),
       };
@@ -255,14 +269,8 @@ export function createToolMiddleware({
         return message;
       }) as LanguageModelV2Prompt;
 
-      // Appropriate fixes are needed as they are disappearing in LanguageModelV2
-      const originalToolDefinitions =
-        params.mode.type === 'regular' && params.mode.tools
-          ? params.mode.tools
-          : {};
-
       const HermesPrompt = toolSystemPromptTemplate(
-        JSON.stringify(Object.entries(originalToolDefinitions)),
+        JSON.stringify(Object.entries(params.tools || {})),
       );
 
       const toolSystemPrompt: LanguageModelV2Prompt =
@@ -284,11 +292,11 @@ export function createToolMiddleware({
 
       return {
         ...params,
-        mode: {
-          // set the mode back to regular and remove the default tools.
-          type: 'regular',
-        },
         prompt: toolSystemPrompt,
+
+        // set the mode back to regular and remove the default tools.
+        tools: [],
+        toolChoice: undefined,
       };
     },
   };
