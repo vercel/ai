@@ -114,6 +114,35 @@ const model = wrapLanguageModel({
 });
 ```
 
+## Community Middleware
+
+The AI SDK provides a Language Model Middleware specification. Community members can develop middleware that adheres to this specification, making it compatible with the AI SDK ecosystem.
+
+Here are some community middlewares that you can explore:
+
+### Custom tool call parser
+
+The [Custom tool call parser](https://github.com/minpeter/ai-sdk-tool-call-middleware) middleware enables tool calls for models that don't natively support the OpenAI-style `tools` parameter (e.g., many self-hosted or third-party models).
+It parses tool calls directly from the model's generated text in streaming or batch responses, supporting formats like Hermes and Gemma. This provides a flexible way to add tool usage capabilities regardless of the underlying model.
+
+Currently we provide three versions of middleware:
+
+- `createToolMiddleware`: A generic function to create custom tool call middleware for any model.
+- `hermesToolMiddleware`: Predefined Hermes & Qwen format function call middleware.
+- `gemmaToolMiddleware`: Predefined Gemma 3 format function call middleware.
+
+Here's an example usage, adding a function call for gemma-3-27b, which doesn't support native function calls.
+
+```ts
+import { wrapLanguageModel } from 'ai';
+import { gemmaToolMiddleware } from '@ai-sdk-tool/parser';
+
+const model = wrapLanguageModel({
+  model: openrouter('google/gemma-3-27b-it'),
+  middleware: gemmaToolMiddleware,
+});
+```
+
 ## Implementing Language Model Middleware
 
 <Note>
