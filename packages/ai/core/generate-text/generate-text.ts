@@ -224,11 +224,13 @@ A function that attempts to repair a tool call that failed to parse.
 
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
+  const callSettings = prepareCallSettings(settings);
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
     headers,
-    settings: { ...settings, maxRetries },
+    settings: { ...callSettings, maxRetries },
   });
 
   const initialPrompt = standardizePrompt({
@@ -260,8 +262,6 @@ A function that attempts to repair a tool call that failed to parse.
       const toolsAndToolChoice = {
         ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
       };
-
-      const callSettings = prepareCallSettings(settings);
 
       let currentModelResponse: Awaited<
         ReturnType<LanguageModel['doGenerate']>
@@ -334,7 +334,7 @@ A function that attempts to repair a tool call that failed to parse.
                 'gen_ai.request.max_tokens': settings.maxOutputTokens,
                 'gen_ai.request.presence_penalty': settings.presencePenalty,
                 'gen_ai.request.stop_sequences': settings.stopSequences,
-                'gen_ai.request.temperature': settings.temperature,
+                'gen_ai.request.temperature': settings.temperature ?? undefined,
                 'gen_ai.request.top_k': settings.topK,
                 'gen_ai.request.top_p': settings.topP,
               },
