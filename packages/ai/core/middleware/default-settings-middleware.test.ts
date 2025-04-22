@@ -148,4 +148,55 @@ describe('defaultSettingsMiddleware', () => {
       });
     });
   });
+
+  describe('temperature', () => {
+    it('should keep 0 if settings.temperature is not set', async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: {},
+      });
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: { ...BASE_PARAMS, temperature: 0 },
+      });
+
+      expect(result.temperature).toBe(0);
+    });
+
+    it("should reset the temperature to undefined if it's null", async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: { temperature: null },
+      });
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: { ...BASE_PARAMS, temperature: 0 },
+      });
+
+      expect(result.temperature).toBe(undefined);
+    });
+  });
+
+  describe('headers', () => {
+    it('should merge headers', async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: {
+          headers: { 'X-Custom-Header': 'test', 'X-Another-Header': 'test2' },
+        },
+      });
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: {
+          ...BASE_PARAMS,
+          headers: { 'X-Custom-Header': 'test2' },
+        },
+      });
+
+      expect(result.headers).toEqual({
+        'X-Custom-Header': 'test2',
+        'X-Another-Header': 'test2',
+      });
+    });
+  });
 });
