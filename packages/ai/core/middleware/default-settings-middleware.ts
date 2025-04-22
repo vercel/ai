@@ -28,11 +28,11 @@ export function defaultSettingsMiddleware({
           params.providerOptions,
         ),
 
-        // special case for temperature 0
-        // TODO remove when temperature defaults to undefined
+        // special case for temperature 0 or null
         temperature:
-          params.temperature === 0 || params.temperature == null
-            ? (settings.temperature ?? 0)
+          (params.temperature === 0 || params.temperature == null) &&
+          settings.temperature !== undefined
+            ? settings.temperature // allow override 0 with null
             : params.temperature,
       };
     },
