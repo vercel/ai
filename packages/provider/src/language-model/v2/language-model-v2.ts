@@ -181,4 +181,7 @@ export type LanguageModelV2StreamPart =
     }
 
   // error parts are streamed, allowing for multiple errors
-  | { type: 'error'; error: unknown };
+  | {
+      type: 'error';
+      error: unknown;
+    };
