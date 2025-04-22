@@ -38,12 +38,15 @@ type GoogleGenerativeAIConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
-  isSupportedUrl: (url: URL) => boolean;
+
+  /**
+   * The supported URLs for the model.
+   */
+  getSupportedUrls?: () => Promise<Record<string, RegExp[]>>;
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly supportsImageUrls = false;
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: InternalGoogleGenerativeAISettings;
@@ -62,6 +65,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return this.config.getSupportedUrls?.() ?? {};
   }
 
   private async getArgs({
@@ -143,10 +150,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       },
       warnings: [...warnings, ...toolWarnings],
     };
-  }
-
-  supportsUrl(url: URL): boolean {
-    return this.config.isSupportedUrl(url);
   }
 
   async doGenerate(

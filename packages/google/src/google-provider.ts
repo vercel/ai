@@ -17,7 +17,6 @@ import {
   GoogleGenerativeAIModelId,
   GoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
-import { isSupportedFileUrl } from './google-supported-file-url';
 
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (
@@ -120,7 +119,12 @@ export function createGoogleGenerativeAI(
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
-      isSupportedUrl: isSupportedFileUrl,
+      getSupportedUrls: async () => ({
+        '*': [
+          // HTTP URLs:
+          /^https?:\/\/.*$/,
+        ],
+      }),
       fetch: options.fetch,
     });
 
