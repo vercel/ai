@@ -2,7 +2,6 @@ import {
   JSONValue,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
-  LanguageModelV2LogProbs,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -1028,7 +1027,6 @@ export type ObjectStreamInputPart =
   | {
       type: 'finish';
       finishReason: LanguageModelV2FinishReason;
-      logprobs?: LanguageModelV2LogProbs;
       usage: LanguageModelV2Usage;
       providerMetadata?: SharedV2ProviderMetadata;
     };

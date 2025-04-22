@@ -31,7 +31,6 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   FinishReason,
   LanguageModel,
-  LogProbs,
   ToolChoice,
 } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
@@ -736,7 +735,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             finishReason: part.finishReason,
             usage: part.usage,
             warnings: part.warnings,
-            logprobs: part.logprobs,
             request: part.request,
             response: {
               ...part.response,
@@ -817,7 +815,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // call onFinish callback:
           await onFinish?.({
             finishReason,
-            logprobs: undefined,
             usage,
             text: recordedFullText,
             reasoningText: lastStep.reasoningText,
@@ -1066,7 +1063,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let stepFirstChunk = true;
           let stepText = '';
           let fullStepText = stepType === 'continue' ? previousStepText : '';
-          let stepLogProbs: LogProbs | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: currentDate(),
@@ -1234,7 +1230,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       stepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
                       stepProviderMetadata = chunk.providerMetadata;
-                      stepLogProbs = chunk.logprobs;
 
                       // Telemetry for finish event timing
                       // (since tool executions can take longer and distort calculations)
@@ -1361,7 +1356,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     finishReason: stepFinishReason,
                     usage: stepUsage,
                     providerMetadata: stepProviderMetadata,
-                    logprobs: stepLogProbs,
                     request: stepRequest,
                     response: {
                       ...stepResponse,
@@ -1380,7 +1374,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       finishReason: stepFinishReason,
                       usage: combinedUsage,
                       providerMetadata: stepProviderMetadata,
-                      logprobs: stepLogProbs,
                       response: {
                         ...stepResponse,
                         headers: response?.headers,

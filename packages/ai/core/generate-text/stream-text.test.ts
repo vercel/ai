@@ -3369,69 +3369,64 @@ describe('streamText', () => {
 
       expect(
         await convertAsyncIterableToArray(result.fullStream),
-      ).toStrictEqual([
-        {
-          type: 'step-start',
-          request: {},
-          warnings: [],
-          messageId: expect.any(String),
-        },
-        {
-          type: 'tool-call',
-          args: {
-            value: 'value',
+      ).toMatchInlineSnapshot(`
+        [
+          {
+            "messageId": "msg-DkcEGFfqfo86P1nvgIi9htFX",
+            "request": {},
+            "type": "step-start",
+            "warnings": [],
           },
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-        },
-        {
-          type: 'error',
-          error: new ToolExecutionError({
-            toolName: 'tool1',
-            toolCallId: 'call-1',
-            toolArgs: { value: 'value' },
-            cause: new Error('test error'),
-          }),
-        },
-        {
-          type: 'step-finish',
-          messageId: expect.any(String),
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          isContinued: false,
-          logprobs: undefined,
-          request: {},
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-            headers: undefined,
+          {
+            "args": {
+              "value": "value",
+            },
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
           },
-          warnings: undefined,
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
+          {
+            "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
+            "type": "error",
           },
-        },
-        {
-          type: 'finish',
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-            headers: undefined,
+          {
+            "finishReason": "stop",
+            "isContinued": false,
+            "messageId": "msg-DkcEGFfqfo86P1nvgIi9htFX",
+            "providerMetadata": undefined,
+            "request": {},
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "step-finish",
+            "usage": {
+              "completionTokens": 10,
+              "promptTokens": 3,
+              "totalTokens": 13,
+            },
+            "warnings": undefined,
           },
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
+            },
+            "type": "finish",
+            "usage": {
+              "completionTokens": 10,
+              "promptTokens": 3,
+              "totalTokens": 13,
+            },
           },
-        },
-      ]);
+        ]
+      `);
     });
   });
 
@@ -4177,7 +4172,6 @@ describe('streamText', () => {
                   type: 'step-finish',
                   messageId: 'msg-transformed-123',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   providerMetadata: undefined,
                   usage: {
                     completionTokens: NaN,
@@ -4197,7 +4191,6 @@ describe('streamText', () => {
                 controller.enqueue({
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   providerMetadata: undefined,
                   usage: {
                     completionTokens: NaN,
@@ -4240,51 +4233,54 @@ describe('streamText', () => {
 
         expect(
           await convertAsyncIterableToArray(result.fullStream),
-        ).toStrictEqual([
-          {
-            type: 'step-start',
-            messageId: 'msg-0',
-            request: {},
-            warnings: [],
-          },
-          { type: 'text', text: 'Hello, ' },
-          {
-            type: 'step-finish',
-            providerMetadata: undefined,
-            messageId: 'msg-transformed-123',
-            finishReason: 'stop',
-            logprobs: undefined,
-            usage: {
-              completionTokens: NaN,
-              promptTokens: NaN,
-              totalTokens: NaN,
+        ).toMatchInlineSnapshot(`
+          [
+            {
+              "messageId": "msg-0",
+              "request": {},
+              "type": "step-start",
+              "warnings": [],
             },
-            request: {},
-            response: {
-              id: 'response-id',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
+            {
+              "text": "Hello, ",
+              "type": "text",
             },
-            warnings: [],
-            isContinued: false,
-          },
-          {
-            type: 'finish',
-            providerMetadata: undefined,
-            finishReason: 'stop',
-            logprobs: undefined,
-            usage: {
-              completionTokens: NaN,
-              promptTokens: NaN,
-              totalTokens: NaN,
+            {
+              "finishReason": "stop",
+              "isContinued": false,
+              "messageId": "msg-transformed-123",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "id": "response-id",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "step-finish",
+              "usage": {
+                "completionTokens": NaN,
+                "promptTokens": NaN,
+                "totalTokens": NaN,
+              },
+              "warnings": [],
             },
-            response: {
-              id: 'response-id',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "id": "response-id",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish",
+              "usage": {
+                "completionTokens": NaN,
+                "promptTokens": NaN,
+                "totalTokens": NaN,
+              },
             },
-          },
-        ]);
+          ]
+        `);
       });
 
       it('options.onStepFinish should be called', async () => {

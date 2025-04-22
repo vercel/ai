@@ -4,7 +4,6 @@ import {
   createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
-import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
 import { createOpenAI } from './openai-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -185,22 +184,6 @@ describe('doGenerate', () => {
       timestamp: new Date(123 * 1000),
       modelId: 'test-model',
     });
-  });
-
-  it('should extract logprobs', async () => {
-    prepareJsonResponse({ logprobs: TEST_LOGPROBS });
-
-    const provider = createOpenAI({ apiKey: 'test-api-key' });
-
-    const response = await provider
-      .completion('gpt-3.5-turbo', { logprobs: 1 })
-      .doGenerate({
-        inputFormat: 'prompt',
-        prompt: TEST_PROMPT,
-      });
-    expect(response.logprobs).toStrictEqual(
-      mapOpenAICompletionLogProbs(TEST_LOGPROBS),
-    );
   });
 
   it('should extract finish reason', async () => {

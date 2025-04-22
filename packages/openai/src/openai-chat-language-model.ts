@@ -5,7 +5,6 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  LanguageModelV2LogProbs,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -24,7 +23,6 @@ import {
 import { z } from 'zod';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAIChatModelId,
@@ -362,7 +360,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         body: rawResponse,
       },
       warnings,
-      logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
       providerMetadata,
     };
   }
@@ -415,7 +412,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
     };
-    let logprobs: LanguageModelV2LogProbs;
     let isFirstChunk = true;
 
     const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
@@ -506,14 +502,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 type: 'text',
                 text: delta.content,
               });
-            }
-
-            const mappedLogprobs = mapOpenAIChatLogProbsOutput(
-              choice?.logprobs,
-            );
-            if (mappedLogprobs?.length) {
-              if (logprobs === undefined) logprobs = [];
-              logprobs.push(...mappedLogprobs);
             }
 
             if (delta.tool_calls != null) {
@@ -631,7 +619,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              logprobs,
               usage,
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
@@ -688,24 +675,6 @@ const openaiChatResponseSchema = z.object({
           .nullish(),
       }),
       index: z.number(),
-      logprobs: z
-        .object({
-          content: z
-            .array(
-              z.object({
-                token: z.string(),
-                logprob: z.number(),
-                top_logprobs: z.array(
-                  z.object({
-                    token: z.string(),
-                    logprob: z.number(),
-                  }),
-                ),
-              }),
-            )
-            .nullable(),
-        })
-        .nullish(),
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -738,24 +707,6 @@ const openaiChatChunkSchema = z.union([
                 }),
               )
               .nullish(),
-          })
-          .nullish(),
-        logprobs: z
-          .object({
-            content: z
-              .array(
-                z.object({
-                  token: z.string(),
-                  logprob: z.number(),
-                  top_logprobs: z.array(
-                    z.object({
-                      token: z.string(),
-                      logprob: z.number(),
-                    }),
-                  ),
-                }),
-              )
-              .nullable(),
           })
           .nullish(),
         finish_reason: z.string().nullable().optional(),

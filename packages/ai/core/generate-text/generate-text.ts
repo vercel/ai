@@ -536,7 +536,6 @@ A function that attempts to repair a tool call that failed to parse.
           finishReason: currentModelResponse.finishReason,
           usage: currentUsage,
           warnings: currentModelResponse.warnings,
-          logprobs: currentModelResponse.logprobs,
           request: currentModelResponse.request ?? {},
           response: {
             ...currentModelResponse.response,
@@ -608,7 +607,6 @@ A function that attempts to repair a tool call that failed to parse.
           ...currentModelResponse.response,
           messages: responseMessages,
         },
-        logprobs: currentModelResponse.logprobs,
         steps,
         providerMetadata: currentModelResponse.providerMetadata,
       });
@@ -722,7 +720,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   readonly usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
   readonly warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
-  readonly logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
   readonly providerMetadata: GenerateTextResult<
     TOOLS,
     OUTPUT
@@ -746,7 +743,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
     usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
     warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
-    logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
     providerMetadata: GenerateTextResult<TOOLS, OUTPUT>['providerMetadata'];
     response: GenerateTextResult<TOOLS, OUTPUT>['response'];
@@ -770,7 +766,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.response = options.response;
     this.steps = options.steps;
     this.providerMetadata = options.providerMetadata;
-    this.logprobs = options.logprobs;
     this.outputResolver = options.outputResolver;
     this.sources = options.sources;
   }

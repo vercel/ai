@@ -4,7 +4,6 @@ import {
   createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
-import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { createOpenAI } from './openai-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -337,25 +336,6 @@ describe('doGenerate', () => {
     });
 
     expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: undefined });
-  });
-
-  it('should extract logprobs', async () => {
-    prepareJsonResponse({
-      logprobs: TEST_LOGPROBS,
-    });
-
-    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
-      inputFormat: 'prompt',
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        openai: {
-          logprobs: 1,
-        },
-      },
-    });
-    expect(response.logprobs).toStrictEqual(
-      mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
-    );
   });
 
   it('should extract finish reason', async () => {
