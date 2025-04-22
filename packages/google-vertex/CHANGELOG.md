@@ -1,5 +1,19 @@
 # @ai-sdk/google-vertex
 
+## 3.0.0-canary.10
+
+### Patch Changes
+
+- cea5997: chore(providers/google-vertex): update embedding model to use providerOptions
+- Updated dependencies [95857aa]
+- Updated dependencies [3259565]
+- Updated dependencies [fd98925]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/google@2.0.0-canary.10
+  - @ai-sdk/anthropic@2.0.0-canary.9
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
 ## 3.0.0-canary.9
 
 ### Patch Changes

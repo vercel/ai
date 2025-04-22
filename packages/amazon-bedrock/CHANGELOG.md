@@ -1,5 +1,15 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.0-canary.9
+
+### Patch Changes
+
+- 92c0b4b: chore(providers/bedrock): update embedding model to use providerOptions
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
 ## 3.0.0-canary.8
 
 ### Patch Changes
