@@ -9,10 +9,11 @@ Temperature setting. This is a number between 0 (almost no randomness) and
 1 (very random).
 
 It is recommended to set either `temperature` or `topP`, but not both.
+Use `null` to use the provider's default temperature.
 
 @default 0
    */
-  temperature?: number;
+  temperature?: number | null;
 
   /**
 Nucleus sampling. This is a number between 0 and 1.
