@@ -134,12 +134,12 @@ test('minor update', async () => {
   ]);
 });
 
-test('minor update - with label', async () => {
+test('minor update - with "minor" label', async () => {
   const event = {
     pull_request: {
       labels: [
         {
-          name: 'minor-release',
+          name: 'minor',
         },
       ],
     },
@@ -159,6 +159,35 @@ test('minor update - with label', async () => {
   const message = await verifyChangesets(event, env, readFile);
   assert.strictEqual(
     message,
-    'Skipping changeset verification - minor-release label found',
+    'Skipping changeset verification - "minor" label found',
+  );
+});
+
+test('major update - with "major" label', async () => {
+  const event = {
+    pull_request: {
+      labels: [
+        {
+          name: 'major',
+        },
+      ],
+    },
+  };
+  const env = {
+    CHANGED_FILES: '.changeset/patch-update.md .changeset/major-update.md',
+  };
+
+  const readFile = mock.fn(async path => {
+    if (path.endsWith('patch-update.md')) {
+      return `---\nai: patch\n---\n## Test changeset`;
+    }
+
+    return `---\n@ai-sdk/provider: major\n---\n## Test changeset`;
+  });
+
+  const message = await verifyChangesets(event, env, readFile);
+  assert.strictEqual(
+    message,
+    'Skipping changeset verification - "major" label found',
   );
 });

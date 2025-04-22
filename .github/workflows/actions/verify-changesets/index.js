@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises';
 
+const BYPASS_LABELS = ['minor', 'major'];
+
 // check if current file is the entry point
 if (import.meta.url.endsWith(process.argv[1])) {
   // https://docs.github.com/en/webhooks/webhook-events-and-payloads#pull_request
@@ -51,11 +53,11 @@ export async function verifyChangesets(
   readFile = fs.readFile,
 ) {
   // Skip check if pull request has "minor-release" label
-  const hasMinorReleaseLabel = event.pull_request.labels.some(
-    label => label.name === 'minor-release',
+  const byPassLabel = event.pull_request.labels.find(label =>
+    BYPASS_LABELS.includes(label.name),
   );
-  if (hasMinorReleaseLabel) {
-    return 'Skipping changeset verification - minor-release label found';
+  if (byPassLabel) {
+    return `Skipping changeset verification - "${byPassLabel.name}" label found`;
   }
 
   // Iterate through all changed .changeset/*.md files
