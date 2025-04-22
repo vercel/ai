@@ -1,4 +1,8 @@
-import { generateId as generateIdFunction, parsePartialJson } from '.';
+import {
+  generateId,
+  generateId as generateIdFunction,
+  parsePartialJson,
+} from '.';
 import type {
   ReasoningUIPart,
   TextUIPart,
@@ -6,68 +10,88 @@ import type {
   ToolInvocationUIPart,
   UIMessage,
 } from '../types';
-import { throttle } from './throttle';
 
 interface ChatStoreSubscriber {
-  onChatMessagesChanged(): void;
-  // onChatStateChanged?
-  // onActiveChatChanged?
+  onChatMessagesChanged(id: string): void;
+  onChatStatusChanged(id: string): void;
+  onChatErrorChanged(id: string): void;
   // onChatAdded?
   // onChatRemoved?
 }
 
-type ChatStoreEvent = 'chat-messages-changed';
+enum ChatStoreEvent {
+  ChatMessagesChanged = 'chat-messages-changed',
+  ChatStatusChanged = 'chat-status-changed',
+  ChatErrorChanged = 'chat-error-changed',
+}
 
 const ChatStoreEventMap = {
-  'chat-messages-changed': 'onChatMessagesChanged',
+  [ChatStoreEvent.ChatMessagesChanged]: 'onChatMessagesChanged',
+  [ChatStoreEvent.ChatStatusChanged]: 'onChatStatusChanged',
+  [ChatStoreEvent.ChatErrorChanged]: 'onChatErrorChanged',
 } as const;
 
 interface ChatStoreInitialization {
-  chatId?: string;
-  initialMessages?: UIMessage[];
-  throttleMs?: number;
+  chats?: Record<string, Pick<ChatState, 'messages'>>;
 }
 
-/**
- * Internal class for managing UIMessages
- */
+interface ChatState {
+  status: 'submitted' | 'streaming' | 'ready' | 'error';
+  messages: UIMessage[];
+  step?: number;
+  activeResponse?: {
+    message: UIMessage;
+    partialState: {
+      textPart?: TextUIPart;
+      reasoningPart?: ReasoningUIPart;
+      reasoningTextDetail?: { type: 'text'; text: string; signature?: string };
+      tools?: Record<
+        string,
+        { step: number; text: string; index: number; toolName: string }
+      >;
+    };
+  };
+  error?: Error;
+}
+
 export class ChatStore {
-  private chatId: string;
-  private messages: UIMessage[];
+  private chats: Map<string, ChatState>;
   private subscribers: Set<ChatStoreSubscriber>;
-  private notify: (event: ChatStoreEvent) => void;
 
   /**
    * Transient stream state for in-progress LLM responses:
    */
-  private step: number;
-  private partialToolCalls: Record<
-    string,
-    { text: string; step: number; index: number; toolName: string }
-  > = {};
-  private tempParts: {
-    text?: TextUIPart;
-    reasoning?: ReasoningUIPart;
-    reasoningTextDetail?: { type: 'text'; text: string; signature?: string };
-  } = {};
+  // private step: number;
+  // private partialToolCalls: Record<
+  //   string,
+  //   { text: string; step: number; index: number; toolName: string }
+  // > = {};
+  // private tempParts: {
+  //   text?: TextUIPart;
+  //   reasoning?: ReasoningUIPart;
+  //   reasoningTextDetail?: { type: 'text'; text: string; signature?: string };
+  // } = {};
 
-  constructor({
-    initialMessages,
-    chatId = generateIdFunction(),
-    throttleMs,
-  }: ChatStoreInitialization = {}) {
-    this.chatId = chatId;
-    this.step = 0;
-    this.messages = initialMessages ? [...initialMessages] : [];
+  constructor({ chats = {} }: ChatStoreInitialization = {}) {
+    this.chats = new Map(
+      Object.entries(chats).map(([id, state]) => [
+        id,
+        {
+          messages: [...state.messages],
+          status: 'ready',
+          activeResponse: undefined,
+          error: undefined,
+          step: 0,
+        },
+      ]),
+    );
     this.subscribers = new Set();
-    this.notify = throttleMs
-      ? throttle((event: ChatStoreEvent) => this.emitEvent(event), throttleMs)
-      : (event: ChatStoreEvent) => this.emitEvent(event);
   }
 
-  private emitEvent(event: ChatStoreEvent) {
+  private emitEvent({ id, event }: { id: string; event: ChatStoreEvent }) {
     for (const subscriber of this.subscribers) {
-      subscriber[ChatStoreEventMap[event]]();
+      const handler = ChatStoreEventMap[event];
+      subscriber[handler](id);
     }
   }
 
@@ -76,113 +100,158 @@ export class ChatStore {
     return () => this.subscribers.delete(subscriber);
   }
 
-  getChatId(): string {
-    return this.chatId;
+  private getStep(id: string): number {
+    const chat = this.chats.get(id);
+    if (!chat) return 0;
+    return chat.step ?? 0;
   }
 
-  getStep(): number {
-    return this.step;
+  private resetActiveResponseState(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    chat.step = 0;
+    chat.activeResponse = undefined;
+    chat.error = undefined;
+    chat.status = 'ready';
+    this.emitEvent({ id, event: ChatStoreEvent.ChatStatusChanged });
+    this.emitEvent({ id, event: ChatStoreEvent.ChatErrorChanged });
   }
 
-  private calculateStep() {
-    const lastMessage = this.getLastMessage();
-    if (lastMessage?.role === 'assistant') {
-      this.step =
-        lastMessage.toolInvocations?.reduce((max, toolInvocation) => {
-          return Math.max(max, toolInvocation.step ?? 0);
+  private calculateActiveResponseStep(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    const activeResponse = chat?.activeResponse;
+
+    if (activeResponse?.role === 'assistant') {
+      chat.step =
+        activeResponse.parts?.reduce((max, part) => {
+          if (part.type === 'tool-invocation') {
+            return Math.max(max, part.toolInvocation.step ?? 0) ?? 0;
+          }
+          return max;
         }, 0) ?? 0;
     } else {
-      this.step = 0;
+      chat.step = 0;
     }
   }
 
-  incrementStep() {
-    this.step++;
+  incrementStep(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    chat.step = (chat.step ?? 0) + 1;
   }
 
-  getMessages(): UIMessage[] {
-    return this.messages;
+  getMessages(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    return chat.activeResponse
+      ? [...chat.messages, { ...chat.activeResponse.message }]
+      : chat.messages;
   }
 
-  getLastMessage(): UIMessage | undefined {
-    return this.messages[this.messages.length - 1];
-  }
+  removeAssistantResponse(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
 
-  removeLastMessage(role: 'assistant' | 'user' = 'assistant') {
-    const lastMessage = this.getLastMessage();
-    if (lastMessage?.role === role) {
-      this.setMessages(this.messages.slice(0, -1));
+    if (chat.messages[chat.messages.length - 1].role !== 'assistant') {
+      throw new Error('Last message is not an assistant message');
     }
+
+    this.setMessages({ id, messages: chat.messages.slice(0, -1) });
+    this.resetActiveResponseState(id);
   }
 
-  setMessages(messages: UIMessage[]) {
-    this.messages = messages;
-    this.calculateStep();
-    this.notify('chat-messages-changed');
+  setMessages({ id, messages }: { id: string; messages: UIMessage[] }) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    chat.messages = [...messages];
+    this.calculateActiveResponseStep(id);
+    this.emitEvent({ id, event: ChatStoreEvent.ChatMessagesChanged });
   }
 
-  appendMessage(message: UIMessage) {
-    if (this.messages.length > 0 && message.role === 'user') {
-      this.resetAllTempState();
-    }
-    this.messages = [...this.messages, message];
-    this.notify('chat-messages-changed');
+  appendMessage({ id, message }: { id: string; message: UIMessage }) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    chat.messages = [...chat.messages, { ...message }];
+    this.emitEvent({ id, event: ChatStoreEvent.ChatMessagesChanged });
   }
 
-  updateLastMessage(message: UIMessage) {
-    if (this.messages.length === 0) {
-      throw new Error('Cannot update last message of empty chat');
-    }
-    this.setMessages([...this.messages.slice(0, -1), message]);
+  private initializeActiveResponse({
+    chatId,
+    messageId,
+    customGenerateId,
+  }: {
+    chatId: string;
+    messageId?: string;
+    customGenerateId?: () => string;
+  }) {
+    const chat = this.chats.get(chatId);
+    if (!chat) return;
+
+    chat.activeResponse = {
+      message: {
+        id: messageId ?? generateId(),
+        createdAt: new Date(),
+        role: 'assistant',
+        content: '',
+        parts: [],
+      },
+      partialState: {},
+    };
   }
 
   addOrUpdateAssistantMessageParts({
+    chatId,
     generateId = generateIdFunction,
     partDelta,
-    id,
+    messageId,
   }: {
+    chatId: string;
     partDelta: UIMessage['parts'][number];
-    id?: string;
+    messageId?: string;
     generateId?: () => string;
   }) {
-    const lastMessage = this.getLastMessage();
-    if (!lastMessage) return;
+    const chat = this.chats.get(chatId);
+    if (!chat) return;
 
-    const isNewAssistantMessage = lastMessage.role === 'user';
+    if (!chat.activeResponse) {
+      this.initializeActiveResponse({
+        chatId,
+        messageId,
+        customGenerateId: generateId,
+      });
+    }
 
-    const assistantMessage: UIMessage = isNewAssistantMessage
-      ? {
-          id: id ?? generateId(),
-          createdAt: new Date(),
-          role: 'assistant',
-          content: '',
-          parts: [],
-        }
-      : lastMessage;
+    const activeResponse = chat.activeResponse!;
 
     switch (partDelta.type) {
-      // Parts that are updated *in place*:
+      // Parts that are updated in place:
       case 'text': {
-        if (this.tempParts.text) {
-          this.tempParts.text.text += partDelta.text;
+        if (activeResponse.partialState.textPart) {
+          activeResponse.partialState.textPart.text += partDelta.text;
         } else {
-          this.tempParts.text = partDelta;
-          assistantMessage.parts.push(this.tempParts.text);
+          activeResponse.partialState.textPart = partDelta;
+          activeResponse.message.parts.push(partDelta);
         }
-        assistantMessage.content += partDelta.text;
+        activeResponse.message.content += partDelta.text;
         break;
       }
       case 'reasoning': {
         this.addOrUpdateReasoning({
           reasoning: partDelta,
-          assistantMessage,
+          activeResponse,
         });
         break;
       }
       case 'tool-invocation': {
         this.addOrUpdateToolInvocation({
           toolInvocation: partDelta.toolInvocation,
-          assistantMessage,
+          activeResponse,
+          chatId,
         });
         break;
       }
@@ -190,19 +259,15 @@ export class ChatStore {
       case 'step-start':
       case 'source':
       case 'file': {
-        assistantMessage.parts.push(partDelta);
+        activeResponse.message.parts.push(partDelta);
         break;
       }
       default: {
-        throw new Error('Invalid part delta type');
+        throw new Error('Invalid message part type');
       }
     }
 
-    if (isNewAssistantMessage) {
-      this.appendMessage(assistantMessage);
-    } else {
-      this.updateLastMessage(assistantMessage);
-    }
+    this.emitEvent({ id: chatId, event: ChatStoreEvent.ChatMessagesChanged });
   }
 
   resetTempParts({ isContinued = false }: { isContinued?: boolean } = {}) {
@@ -221,22 +286,26 @@ export class ChatStore {
   }
 
   private addOrUpdateToolInvocation({
+    chatId,
     toolInvocation,
-    assistantMessage,
+    activeResponse,
   }: {
+    chatId: string;
     toolInvocation: ToolInvocation;
-    assistantMessage: UIMessage;
+    activeResponse: ChatState['activeResponse'];
   }) {
-    const step = this.getStep();
+    if (!activeResponse) return;
 
-    if (assistantMessage.toolInvocations == null) {
-      assistantMessage.toolInvocations = [];
-    }
+    const step = this.getStep(chatId);
+    const { toolCallId } = toolInvocation;
+    const { message, partialState } = activeResponse;
 
-    const existingPartialToolInvocation =
-      this.partialToolCalls[toolInvocation.toolCallId];
+    if (message.toolInvocations == null) message.toolInvocations = [];
+    if (!partialState.tools) partialState.tools = {};
 
-    if (existingPartialToolInvocation) {
+    const existingCall = partialState.tools[toolCallId];
+
+    if (existingCall) {
       let updatedInvocation: ToolInvocation | undefined;
 
       switch (toolInvocation.state) {
@@ -340,63 +409,75 @@ export class ChatStore {
 
   private addOrUpdateReasoning({
     reasoning,
-    assistantMessage,
+    activeResponse,
   }: {
     reasoning: ReasoningUIPart;
-    assistantMessage: UIMessage;
+    activeResponse: ChatState['activeResponse'];
   }) {
+    if (!activeResponse) return;
+
     const detail = reasoning.details[0];
+    const isRedacted = detail?.type === 'redacted';
+    const maybeSignature =
+      detail?.type === 'text' && detail?.signature
+        ? detail.signature
+        : undefined;
 
-    // Reset text detail if sent redacted part:
-    if (detail?.type === 'redacted') {
-      this.tempParts.reasoningTextDetail = undefined;
-    } // Append to existing reasoning text detail if exists:
-    else if (this.tempParts.reasoningTextDetail) {
-      this.tempParts.reasoningTextDetail.text += reasoning.reasoning;
+    /**
+     * First we handle Reasoning Text Detail:
+     *
+     * 1. Reset if we received a redacted part
+     * 2. Append/update if Reasoning Text Detail exists
+     * 3. Initialize if reasoning text detail is undefined
+     * 4. Only push the detail if parent reasoning part exists
+     */
+    if (isRedacted) {
+      activeResponse.partialState.reasoningTextDetail = undefined;
+    }
 
-      // Update the signature if sent:
-      if (detail?.type === 'text' && detail?.signature) {
-        this.tempParts.reasoningTextDetail.signature = detail.signature;
-      }
-    } // Initialize if reasoning text detail is undefined:
-    else {
-      this.tempParts.reasoningTextDetail = {
+    const { reasoningTextDetail, reasoningPart } = activeResponse.partialState;
+
+    if (reasoningTextDetail) {
+      reasoningTextDetail.text += reasoning.reasoning;
+      if (maybeSignature) reasoningTextDetail.signature = maybeSignature;
+    } else {
+      activeResponse.partialState.reasoningTextDetail = {
         type: 'text',
         text: reasoning.reasoning,
-        signature: detail?.signature,
+        signature: maybeSignature,
       };
-      // Only push if reasoning part exists:
-      if (this.tempParts.reasoning) {
-        this.tempParts.reasoning.details.push(
-          this.tempParts.reasoningTextDetail,
+
+      if (reasoningPart) {
+        reasoningPart.details.push(
+          activeResponse.partialState.reasoningTextDetail,
         );
       }
     }
 
-    // If reasoning part exists, append reasoning text
-    // (since inner text details array has been updated above):
-    if (this.tempParts.reasoning) {
-      this.tempParts.reasoning.reasoning += reasoning.reasoning;
-    } // Otherwise, we initialize the entire reasoning part:
-    else {
-      this.tempParts.reasoning = {
+    /**
+     * Then, we handle the Reasoning Part:
+     * 1. If Reasoning Part exists, append reasoning text
+     * 2. Otherwise, we initialize the entire reasoning part
+     */
+    if (reasoningPart) {
+      reasoningPart.reasoning += reasoning.reasoning;
+    } else {
+      activeResponse.partialState.reasoningPart = {
         type: 'reasoning',
         reasoning: reasoning.reasoning,
-        // detail may be undefined if we received a redacted reasoning part:
-        details: this.tempParts.reasoningTextDetail
-          ? [this.tempParts.reasoningTextDetail]
-          : [],
+        details: reasoningTextDetail ? [reasoningTextDetail] : [],
       };
-      assistantMessage.parts.push(this.tempParts.reasoning);
+      activeResponse.message.parts.push(
+        activeResponse.partialState.reasoningPart,
+      );
     }
 
-    // If redacted, we push the redacted data to the details:
-    if (detail?.type === 'redacted') {
-      this.tempParts.reasoning.details.push(detail);
+    if (isRedacted) {
+      activeResponse.partialState.reasoningPart?.details.push(detail);
     }
 
-    assistantMessage.reasoning =
-      (assistantMessage.reasoning ?? '') + reasoning.reasoning;
+    activeResponse.message.reasoning =
+      (activeResponse.message.reasoning ?? '') + reasoning.reasoning;
   }
 
   clear() {
