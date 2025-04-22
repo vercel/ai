@@ -4,7 +4,6 @@ import {
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
-  LogProbs,
   ProviderMetadata,
 } from '../types';
 import { LanguageModelUsage } from '../types/usage';
@@ -108,7 +107,6 @@ export type ObjectStreamPart<PARTIAL> =
   | {
       type: 'finish';
       finishReason: FinishReason;
-      logprobs?: LogProbs;
       usage: LanguageModelUsage;
       response: LanguageModelResponseMetadata;
       providerMetadata?: ProviderMetadata;

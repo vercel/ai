@@ -1,5 +1,5 @@
 {
-  "name": "next-openai-telemetry",
+  "name": "@example/next-openai-telemetry",
   "version": "0.0.0",
   "private": true,
   "scripts": {

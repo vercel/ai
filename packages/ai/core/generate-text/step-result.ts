@@ -4,7 +4,6 @@ import {
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
-  LogProbs,
   ProviderMetadata,
 } from '../types';
 import { Source } from '../types/language-model';
@@ -79,12 +78,6 @@ The token usage of the generated text.
 Warnings from the model provider (e.g. unsupported settings).
 */
   readonly warnings: CallWarning[] | undefined;
-
-  /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled.
-*/
-  readonly logprobs: LogProbs | undefined;
 
   /**
 Additional request information.

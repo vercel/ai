@@ -1,5 +1,16 @@
 # @ai-sdk/rsc
 
+## 1.0.0-canary.9
+
+### Patch Changes
+
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+- Updated dependencies [8e64e9c]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - ai@5.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
 ## 1.0.0-canary.8
 
 ### Patch Changes

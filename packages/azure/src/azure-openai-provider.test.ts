@@ -145,7 +145,6 @@ describe('completion', () => {
         total_tokens: 34,
         completion_tokens: 30,
       },
-      logprobs = null,
       finish_reason = 'stop',
     }: {
       content?: string;
@@ -154,11 +153,6 @@ describe('completion', () => {
         total_tokens: number;
         completion_tokens: number;
       };
-      logprobs?: {
-        tokens: string[];
-        token_logprobs: number[];
-        top_logprobs: Record<string, number>[];
-      } | null;
       finish_reason?: string;
     }) {
       server.urls[
@@ -174,7 +168,6 @@ describe('completion', () => {
             {
               text: content,
               index: 0,
-              logprobs,
               finish_reason,
             },
           ],
