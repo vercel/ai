@@ -272,8 +272,7 @@ export async function generateObject<SCHEMA, RESULT>({
 
       const promptMessages = await convertToLanguageModelPrompt({
         prompt: standardizedPrompt,
-        modelSupportsImageUrls: model.supportsImageUrls,
-        modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
+        supportedUrls: await model.getSupportedUrls(),
       });
 
       const generateResult = await retry(() =>

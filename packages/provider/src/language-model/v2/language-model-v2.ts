@@ -31,22 +31,17 @@ Provider-specific model ID for logging purposes.
   readonly modelId: string;
 
   /**
-Flag whether this model supports image URLs. Default is `true`.
-
-When the flag is set to `false`, the AI SDK will download the image and
-pass the image data to the model.
+   * Returns a map of supported URL patterns for the model.
+   * The keys are media type patterns or full media types (e.g. `*\/*` for everything, `audio/*`, `video/*`, or `application/pdf`).
+   * and the values are arrays of regular expressions that match the URL paths.
+   *
+   * The matching should be against lower-case URLs.
+   *
+   * Matched URLs are supported natively by the model and are not downloaded.
+   *
+   * @returns A promise resolving to a map of supported URL patterns.
    */
-  // TODO generalize to file urls in language model v2
-  readonly supportsImageUrls?: boolean;
-
-  /**
-Checks if the model supports the given URL for file parts natively.
-If the model does not support the URL,
-the AI SDK will download the file and pass the file data to the model.
-
-When undefined, the AI SDK will download the file.
-   */
-  supportsUrl?(url: URL): boolean;
+  getSupportedUrls(): PromiseLike<Record<string, RegExp[]>>;
 
   /**
 Generates a language model output (non-streaming).

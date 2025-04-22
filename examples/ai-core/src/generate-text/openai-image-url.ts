@@ -4,10 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: openai('gpt-4o', {
-      // AI SDK will download the images and add them as data:
-      downloadImages: true,
-    }),
+    model: openai('gpt-4o'),
     messages: [
       {
         role: 'user',
@@ -29,6 +26,9 @@ async function main() {
   });
 
   console.log(result.text);
+  console.log();
+  console.log('REQUEST');
+  console.log(JSON.stringify(result.request!.body, null, 2));
 }
 
 main().catch(console.error);

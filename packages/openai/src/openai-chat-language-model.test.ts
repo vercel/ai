@@ -117,27 +117,6 @@ const server = createTestServer({
   'https://api.openai.com/v1/chat/completions': {},
 });
 
-describe('settings', () => {
-  it('should set supportsImageUrls to true by default', () => {
-    const defaultModel = provider.chat('gpt-3.5-turbo');
-    expect(defaultModel.supportsImageUrls).toBe(true);
-  });
-
-  it('should set supportsImageUrls to false when downloadImages is true', () => {
-    const modelWithDownloadImages = provider.chat('gpt-3.5-turbo', {
-      downloadImages: true,
-    });
-    expect(modelWithDownloadImages.supportsImageUrls).toBe(false);
-  });
-
-  it('should set supportsImageUrls to true when downloadImages is false', () => {
-    const modelWithoutDownloadImages = provider.chat('gpt-3.5-turbo', {
-      downloadImages: false,
-    });
-    expect(modelWithoutDownloadImages.supportsImageUrls).toBe(true);
-  });
-});
-
 describe('doGenerate', () => {
   function prepareJsonResponse({
     content = '',

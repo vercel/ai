@@ -29,7 +29,6 @@ type PerplexityChatConfig = {
 
 export class PerplexityLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly supportsImageUrls = false;
   readonly provider = 'perplexity';
 
   readonly modelId: PerplexityLanguageModelId;
@@ -42,6 +41,12 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
   ) {
     this.modelId = modelId;
     this.config = config;
+  }
+
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      // No URLs are supported.
+    };
   }
 
   private getArgs({

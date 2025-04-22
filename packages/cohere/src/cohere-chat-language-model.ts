@@ -39,6 +39,12 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     this.config = config;
   }
 
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      // No URLs are supported.
+    };
+  }
+
   get provider(): string {
     return this.config.provider;
   }

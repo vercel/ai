@@ -3286,17 +3286,20 @@ describe('streamText', () => {
       ).toStrictEqual(['Hello']);
     });
 
-    it('should support models that use "this" context in supportsUrl', async () => {
-      let supportsUrlCalled = false;
+    it('should support models that use "this" context in getSupportedUrls', async () => {
+      let getSupportedUrlsCalled = false;
       class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
-        readonly supportsImageUrls = false;
-
         constructor() {
           super({
-            supportsUrl(url: URL) {
-              supportsUrlCalled = true;
+            async getSupportedUrls() {
+              getSupportedUrlsCalled = true;
               // Reference 'this' to verify context
-              return this.modelId === 'mock-model-id';
+              return this.modelId === 'mock-model-id'
+                ? ({ 'image/*': [/^https:\/\/.*$/] } as Record<
+                    string,
+                    RegExp[]
+                  >)
+                : {};
             },
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -3322,7 +3325,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(supportsUrlCalled).toBe(true);
+      expect(getSupportedUrlsCalled).toBe(true);
       expect(await result.text).toBe('Hello, world!');
     });
   });
