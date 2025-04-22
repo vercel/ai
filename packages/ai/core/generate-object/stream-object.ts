@@ -551,8 +551,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           inputFormat: standardizedPrompt.type,
           prompt: await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
-            modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
+            supportedUrls: await model.getSupportedUrls(),
           }),
           providerOptions,
           abortSignal,

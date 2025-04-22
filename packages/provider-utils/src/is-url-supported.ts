@@ -9,7 +9,7 @@
  * @returns `true` if the URL matches a pattern under the specific media type
  *          or the wildcard '*', `false` otherwise.
  */
-export async function isUrlSupported({
+export function isUrlSupported({
   mediaType,
   url,
   supportedUrls,
@@ -17,7 +17,7 @@ export async function isUrlSupported({
   mediaType: string;
   url: string;
   supportedUrls: Record<string, RegExp[]>;
-}): Promise<boolean> {
+}): boolean {
   // standardize media type and url to lower case
   url = url.toLowerCase();
   mediaType = mediaType.toLowerCase();

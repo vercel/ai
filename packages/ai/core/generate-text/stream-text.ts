@@ -955,8 +955,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               system: initialPrompt.system,
               messages: stepInputMessages,
             },
-            modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
+            supportedUrls: await model.getSupportedUrls(),
           });
 
           const toolsAndToolChoice = {

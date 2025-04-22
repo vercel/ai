@@ -4,7 +4,7 @@ describe('isUrlSupported', () => {
   describe('when the model does not support any URLs', () => {
     it('should return false', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://example.com',
           supportedUrls: {},
@@ -16,7 +16,7 @@ describe('isUrlSupported', () => {
   describe('when the model supports specific media types and URLs', () => {
     it('should return true for exact media type and exact URL match', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://example.com',
           supportedUrls: { 'text/plain': [/https:\/\/example\.com/] },
@@ -26,7 +26,7 @@ describe('isUrlSupported', () => {
 
     it('should return true for exact media type and regex URL match', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'image/png',
           url: 'https://images.example.com/cat.png',
           supportedUrls: {
@@ -38,7 +38,7 @@ describe('isUrlSupported', () => {
 
     it('should return true for exact media type and one of multiple regex URLs match', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'image/png',
           url: 'https://another.com/img.png',
           supportedUrls: {
@@ -53,7 +53,7 @@ describe('isUrlSupported', () => {
 
     it('should return false for exact media type but URL mismatch', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://another.com',
           supportedUrls: { 'text/plain': [/https:\/\/example\.com/] },
@@ -63,7 +63,7 @@ describe('isUrlSupported', () => {
 
     it('should return false for URL match but media type mismatch', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'image/png', // Different media type
           url: 'https://example.com',
           supportedUrls: { 'text/plain': [/https:\/\/example\.com/] },
@@ -75,7 +75,7 @@ describe('isUrlSupported', () => {
   describe('when the model supports URLs via wildcard media type (*)', () => {
     it('should return true for wildcard media type and exact URL match', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://example.com',
           supportedUrls: { '*': [/https:\/\/example\.com/] },
@@ -85,7 +85,7 @@ describe('isUrlSupported', () => {
 
     it('should return true for wildcard media type and regex URL match', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'image/jpeg',
           url: 'https://images.example.com/dog.jpg',
           supportedUrls: { '*': [/https:\/\/images\.example\.com\/.+/] },
@@ -95,7 +95,7 @@ describe('isUrlSupported', () => {
 
     it('should return false for wildcard media type but URL mismatch', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'video/mp4',
           url: 'https://another.com',
           supportedUrls: { '*': [/https:\/\/example\.com/] },
@@ -112,7 +112,7 @@ describe('isUrlSupported', () => {
 
     it('should return true if URL matches under specific media type', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://text.com',
           supportedUrls,
@@ -123,7 +123,7 @@ describe('isUrlSupported', () => {
     it('should return true if URL matches under wildcard media type even if specific exists', async () => {
       // Assumes the logic checks specific first, then falls back to wildcard
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain', // Specific type exists
           url: 'https://any.com', // Matches wildcard
           supportedUrls,
@@ -133,7 +133,7 @@ describe('isUrlSupported', () => {
 
     it('should return true if URL matches under wildcard for a non-specified media type', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'image/png', // No specific entry for this type
           url: 'https://any.com', // Matches wildcard
           supportedUrls,
@@ -143,7 +143,7 @@ describe('isUrlSupported', () => {
 
     it('should return false if URL matches neither specific nor wildcard', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://other.com',
           supportedUrls,
@@ -153,7 +153,7 @@ describe('isUrlSupported', () => {
 
     it('should return false if URL does not match wildcard for a non-specified media type', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'image/png',
           url: 'https://other.com',
           supportedUrls,
@@ -165,7 +165,7 @@ describe('isUrlSupported', () => {
   describe('edge cases', () => {
     it('should return true if an empty URL matches a pattern', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: '',
           supportedUrls: { 'text/plain': [/.*/] }, // Matches any string, including empty
@@ -175,7 +175,7 @@ describe('isUrlSupported', () => {
 
     it('should return false if an empty URL does not match a pattern', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: '',
           supportedUrls: { 'text/plain': [/https:\/\/.+/] }, // Requires non-empty string
@@ -187,7 +187,7 @@ describe('isUrlSupported', () => {
   describe('case sensitivity', () => {
     it('should be case-insensitive for media types', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'TEXT/PLAIN', // Uppercase
           url: 'https://example.com',
           supportedUrls: { 'text/plain': [/https:\/\/example\.com/] }, // Lowercase
@@ -197,7 +197,7 @@ describe('isUrlSupported', () => {
 
     it('should handle case-insensitive regex for URLs if specified', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://EXAMPLE.com/path', // Uppercase domain
           supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/] },
@@ -207,7 +207,7 @@ describe('isUrlSupported', () => {
 
     it('should be case-insensitive for URL paths by default regex', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://example.com/PATH', // Uppercase path
           supportedUrls: { 'text/plain': [/https:\/\/example\.com\/path/] }, // Lowercase path in regex
@@ -219,7 +219,7 @@ describe('isUrlSupported', () => {
   describe('wildcard subtypes in media types', () => {
     it('should return true for wildcard subtype match', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'image/png',
           url: 'https://example.com',
           supportedUrls: { 'image/*': [/https:\/\/example\.com/] },
@@ -229,7 +229,7 @@ describe('isUrlSupported', () => {
 
     it('should use full wildcard "*" if subtype wildcard is not matched or supported', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'image/png',
           url: 'https://any.com',
           supportedUrls: {
@@ -244,7 +244,7 @@ describe('isUrlSupported', () => {
   describe('empty URL arrays for a media type', () => {
     it('should return false if the specific media type has an empty URL array', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://example.com',
           supportedUrls: { 'text/plain': [] },
@@ -254,7 +254,7 @@ describe('isUrlSupported', () => {
 
     it('should fall back to wildcard "*" if specific media type has empty array but wildcard matches', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://any.com',
           supportedUrls: {
@@ -267,7 +267,7 @@ describe('isUrlSupported', () => {
 
     it('should return false if specific media type has empty array and wildcard does not match', async () => {
       expect(
-        await isUrlSupported({
+        isUrlSupported({
           mediaType: 'text/plain',
           url: 'https://another.com',
           supportedUrls: {

@@ -1340,17 +1340,17 @@ describe('options.messages', () => {
     expect(result.text).toStrictEqual('Hello, world!');
   });
 
-  it('should support models that use "this" context in supportsUrl', async () => {
-    let supportsUrlCalled = false;
+  it('should support models that use "this" context in getSupportedUrls', async () => {
+    let getSupportedUrlsCalled = false;
     class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
-      readonly supportsImageUrls = false;
-
       constructor() {
         super({
-          supportsUrl(url: URL) {
-            supportsUrlCalled = true;
+          async getSupportedUrls() {
+            getSupportedUrlsCalled = true;
             // Reference 'this' to verify context
-            return this.modelId === 'mock-model-id';
+            return this.modelId === 'mock-model-id'
+              ? ({ 'image/*': [/^https:\/\/.*$/] } as Record<string, RegExp[]>)
+              : {};
           },
           doGenerate: async () => ({
             ...dummyResponseValues,
@@ -1373,7 +1373,7 @@ describe('options.messages', () => {
     });
 
     expect(result.text).toStrictEqual('Hello, world!');
-    expect(supportsUrlCalled).toBe(true);
+    expect(getSupportedUrlsCalled).toBe(true);
   });
 });
 

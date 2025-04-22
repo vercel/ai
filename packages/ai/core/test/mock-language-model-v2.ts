@@ -17,13 +17,15 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
   constructor({
     provider = 'mock-provider',
     modelId = 'mock-model-id',
-    supportedUrls = {},
+    getSupportedUrls = {},
     doGenerate = notImplemented,
     doStream = notImplemented,
   }: {
     provider?: LanguageModelV2['provider'];
     modelId?: LanguageModelV2['modelId'];
-    supportedUrls?: Awaited<ReturnType<LanguageModelV2['getSupportedUrls']>>;
+    getSupportedUrls?:
+      | LanguageModelV2['getSupportedUrls']
+      | Awaited<ReturnType<LanguageModelV2['getSupportedUrls']>>;
     doGenerate?:
       | LanguageModelV2['doGenerate']
       | Awaited<ReturnType<LanguageModelV2['doGenerate']>>
@@ -57,6 +59,9 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
         return doStream;
       }
     };
-    this.getSupportedUrls = async () => supportedUrls;
+    this.getSupportedUrls =
+      typeof getSupportedUrls === 'function'
+        ? getSupportedUrls
+        : async () => getSupportedUrls;
   }
 }
