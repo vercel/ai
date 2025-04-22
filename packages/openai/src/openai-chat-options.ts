@@ -114,13 +114,4 @@ Whether to use structured outputs. Defaults to false.
 When enabled, tool calls and object generation will be strict and follow the provided schema.
 */
   structuredOutputs?: boolean;
-
-  /**
-Automatically download images and pass the image as data to the model.
-OpenAI supports image URLs for public models, so this is only needed for
-private models or when the images are not publicly accessible.
-
-Defaults to `false`.
-   */
-  downloadImages?: boolean;
 }

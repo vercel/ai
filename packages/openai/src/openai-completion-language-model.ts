@@ -58,6 +58,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      // no supported urls for completion models
+    };
+  }
+
   private getArgs({
     inputFormat,
     prompt,

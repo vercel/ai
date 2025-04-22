@@ -67,9 +67,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  get supportsImageUrls(): boolean {
-    // image urls can be sent if downloadImages is disabled (default):
-    return !this.settings.downloadImages;
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      'image/*': [/^https?:\/\/.*$/],
+    };
   }
 
   private getArgs({
