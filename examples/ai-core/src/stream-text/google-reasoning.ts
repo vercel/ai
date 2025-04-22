@@ -16,10 +16,10 @@ async function main() {
   });
 
   for await (const part of result.fullStream) {
-    if (part.type === 'reasoning') {
-      process.stdout.write('\x1b[34m' + part.textDelta + '\x1b[0m');
-    } else if (part.type === 'text-delta') {
-      process.stdout.write(part.textDelta);
+    if (part.type === 'reasoning' && part.reasoningType === 'text') {
+      process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
+    } else if (part.type === 'text') {
+      process.stdout.write(part.text);
     }
   }
 
