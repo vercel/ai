@@ -481,11 +481,13 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       maxRetries: maxRetriesArg,
     });
 
+    const callSettings = prepareCallSettings(settings);
+
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model,
       telemetry,
       headers,
-      settings: { ...settings, maxRetries },
+      settings: { ...callSettings, maxRetries },
     });
 
     const tracer = getTracer(telemetry);
@@ -601,12 +603,13 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                 // standardized gen-ai llm span attributes:
                 'gen_ai.system': model.provider,
                 'gen_ai.request.model': model.modelId,
-                'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                'gen_ai.request.presence_penalty': settings.presencePenalty,
-                'gen_ai.request.temperature': settings.temperature,
-                'gen_ai.request.top_k': settings.topK,
-                'gen_ai.request.top_p': settings.topP,
+                'gen_ai.request.frequency_penalty':
+                  callSettings.frequencyPenalty,
+                'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+                'gen_ai.request.presence_penalty': callSettings.presencePenalty,
+                'gen_ai.request.temperature': callSettings.temperature,
+                'gen_ai.request.top_k': callSettings.topK,
+                'gen_ai.request.top_p': callSettings.topP,
               },
             }),
             tracer,
