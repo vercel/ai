@@ -1,12 +1,14 @@
+import { loadChat } from '@/util/chat-store';
 import { Chat } from '../chat';
 
-
-export default async function Page({ params }: {
-  params: Promise<{ id: string }>
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
 
-  return (
-    <Chat chatId={id} />
-  );
+  const messages = await loadChat(id);
+
+  return <Chat chatId={id} autoResume={true} initialMessages={messages} />;
 }

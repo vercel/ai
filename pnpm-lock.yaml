@@ -603,8 +603,8 @@ importers:
         specifier: ^4.7.0
         version: 4.7.0
       resumable-stream:
-        specifier: ^1.0.6
-        version: 1.0.6
+        specifier: ^2.0.0
+        version: 2.0.0
       zod:
         specifier: 3.23.8
         version: 3.23.8
@@ -13374,8 +13374,8 @@ packages:
     resolution: {integrity: sha512-oMA2dcrw6u0YfxJQXm342bFKX/E4sG9rbTzO9ptUcR/e8A33cHuvStiYOwH7fszkZlZ1z/ta9AAoPk2F4qIOHA==}
     engines: {node: '>=18'}
 
-  resumable-stream@1.0.6:
-    resolution: {integrity: sha512-giPuLv6BPOlUylTc/l608VXcMkSZxJjMTbslu02KBv8yG6Z7X4VAW8UBw3cwvAtxdy7D5sQ11tiu06Ew/Ks/uA==}
+  resumable-stream@2.0.0:
+    resolution: {integrity: sha512-D7E0wDUnfoy+Lerba/gyuD44OG3G0APqDcQ9soMSerujaVujPLWc5sSCLXf/ZFQPreLb3MKDjSm3TOPXpNtpZw==}
 
   ret@0.5.0:
     resolution: {integrity: sha512-I1XxrZSQ+oErkRR4jYbAyEEu2I0avBvvMM5JN+6EBprOGRCs63ENqZ3vjavq8fBw2+62G5LF5XelKwuJpcvcxw==}
@@ -29143,7 +29143,7 @@ snapshots:
       onetime: 7.0.0
       signal-exit: 4.1.0
 
-  resumable-stream@1.0.6: {}
+  resumable-stream@2.0.0: {}
 
   ret@0.5.0: {}
 

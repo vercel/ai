@@ -1,10 +1,19 @@
-"use client"
+'use client';
 
-import { useChat } from "@ai-sdk/react";
-import Link from "next/link";
-import { useEffect } from "react";
+import { useChat } from '@ai-sdk/react';
+import { Message } from 'ai';
+import Link from 'next/link';
+import { useEffect } from 'react';
 
-export function Chat({ chatId }: { chatId: string }) {
+export function Chat({
+  chatId,
+  autoResume,
+  initialMessages = [],
+}: {
+  chatId: string;
+  autoResume: boolean;
+  initialMessages: Message[];
+}) {
   const {
     error,
     input,
@@ -14,18 +23,21 @@ export function Chat({ chatId }: { chatId: string }) {
     messages,
     reload,
     stop,
-    resume,
+    experimental_resume,
   } = useChat({
     id: chatId,
     api: '/api/use-chat-resume',
-    onError: (error) => {
+    initialMessages,
+    onError: error => {
       console.error('Error streaming text:', error);
     },
   });
 
   useEffect(() => {
-    resume();
-  }, [])
+    if (autoResume) {
+      experimental_resume();
+    }
+  }, []);
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch gap-8">

@@ -55,9 +55,9 @@ export type UseChatHelpers = {
   stop: () => void;
 
   /**
-  * Resume an ongoing chat generation stream. This does not resume an aborted generation.
-  */
-  resume: () => Promise<string | null | undefined>;
+   * Resume an ongoing chat generation stream. This does not resume an aborted generation.
+   */
+  experimental_resume: () => Promise<string | null | undefined>;
 
   /**
    * Update the `messages` state locally. This is useful when you want to
@@ -271,26 +271,26 @@ By default, it's set to 1, which means that only a single LLM call is made.
         const constructedMessagesPayload = sendExtraMessageFields
           ? chatMessages
           : chatMessages.map(
-            ({
-              role,
-              content,
-              experimental_attachments,
-              data,
-              annotations,
-              toolInvocations,
-              parts,
-            }) => ({
-              role,
-              content,
-              ...(experimental_attachments !== undefined && {
+              ({
+                role,
+                content,
                 experimental_attachments,
+                data,
+                annotations,
+                toolInvocations,
+                parts,
+              }) => ({
+                role,
+                content,
+                ...(experimental_attachments !== undefined && {
+                  experimental_attachments,
+                }),
+                ...(data !== undefined && { data }),
+                ...(annotations !== undefined && { annotations }),
+                ...(toolInvocations !== undefined && { toolInvocations }),
+                ...(parts !== undefined && { parts }),
               }),
-              ...(data !== undefined && { data }),
-              ...(annotations !== undefined && { annotations }),
-              ...(toolInvocations !== undefined && { toolInvocations }),
-              ...(parts !== undefined && { parts }),
-            }),
-          );
+            );
 
         const existingData = streamDataRef.current;
 
@@ -410,15 +410,76 @@ By default, it's set to 1, which means that only a single LLM call is made.
   const triggerResumeRequest = useCallback(async () => {
     const body = {
       id: chatId,
-    }
+      messages: messagesRef.current,
+    };
 
     try {
-      await resumeChatApi({ api, body, fetch, })
+      const throttledMutate = throttle(mutate, throttleWaitMs);
+      const throttledMutateStreamData = throttle(
+        mutateStreamData,
+        throttleWaitMs,
+      );
+
+      const previousMessages = messagesRef.current;
+      const chatMessages = fillMessageParts(previousMessages);
+
+      const existingData = streamDataRef.current;
+
+      await resumeChatApi({
+        api,
+        body,
+        fetch,
+        onResponse,
+        restoreMessagesOnFailure() {
+          if (!keepLastMessageOnError) {
+            throttledMutate(previousMessages, false);
+          }
+        },
+        streamProtocol,
+        onUpdate({ message, data, replaceLastMessage }) {
+          mutateStatus('streaming');
+
+          throttledMutate(
+            [
+              ...(replaceLastMessage
+                ? chatMessages.slice(0, chatMessages.length - 1)
+                : chatMessages),
+              message,
+            ],
+            false,
+          );
+
+          if (data?.length) {
+            throttledMutateStreamData(
+              [...(existingData ?? []), ...data],
+              false,
+            );
+          }
+        },
+        onFinish,
+        onToolCall,
+        generateId,
+        lastMessage: chatMessages[chatMessages.length - 1],
+      });
     } catch (error) {
-      console.error("Error resuming chat:", error);
+      console.error('Error resuming chat:', error);
       return null;
     }
-  }, [api, chatId, fetch])
+  }, [
+    api,
+    chatId,
+    fetch,
+    generateId,
+    keepLastMessageOnError,
+    mutate,
+    mutateStatus,
+    mutateStreamData,
+    onFinish,
+    onResponse,
+    onToolCall,
+    streamProtocol,
+    throttleWaitMs,
+  ]);
 
   const append = useCallback(
     async (
@@ -476,10 +537,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
     }
   }, []);
 
-  const resume = useCallback(async () => {
-    console.log("invoked: resume()")
+  const experimental_resume = useCallback(async () => {
     return triggerResumeRequest();
-  }, [triggerResumeRequest])
+  }, [triggerResumeRequest]);
 
   const setMessages = useCallback(
     (messages: Message[] | ((messages: Message[]) => Message[])) => {
@@ -606,7 +666,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     append,
     reload,
     stop,
-    resume,
+    experimental_resume,
     input,
     setInput,
     handleInputChange,
