@@ -22,11 +22,7 @@ import {
 import { z } from 'zod';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import {
-  GroqChatModelId,
-  GroqChatSettings,
-  groqProviderOptions,
-} from './groq-chat-options';
+import { GroqChatModelId, groqProviderOptions } from './groq-chat-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
@@ -42,17 +38,11 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
   readonly modelId: GroqChatModelId;
-  readonly settings: GroqChatSettings;
 
   private readonly config: GroqChatConfig;
 
-  constructor(
-    modelId: GroqChatModelId,
-    settings: GroqChatSettings,
-    config: GroqChatConfig,
-  ) {
+  constructor(modelId: GroqChatModelId, config: GroqChatConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -60,9 +50,10 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  get supportsImageUrls(): boolean {
-    // image urls can be sent if downloadImages is disabled (default):
-    return !this.settings.downloadImages;
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      'image/*': [/^https:\/\/.*$/],
+    };
   }
 
   private getArgs({

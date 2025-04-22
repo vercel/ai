@@ -19,17 +19,6 @@ export type GroqChatModelId =
   | 'deepseek-r1-distill-llama-70b'
   | (string & {});
 
-export interface GroqChatSettings {
-  /**
-Automatically download images and pass the image as data to the model.
-Groq supports image URLs for public models, so this is only needed for
-private models or when the images are not publicly accessible.
-
-Defaults to `false`.
-   */
-  downloadImages?: boolean;
-}
-
 export const groqProviderOptions = z.object({
   reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).nullish(),
 
