@@ -3,21 +3,14 @@ import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { asSchema, DeepPartial, parsePartialJson, Schema } from '../../core';
 import { NoObjectGeneratedError } from '../../errors';
-import { injectJsonInstruction } from '../generate-object/inject-json-instruction';
-import { FinishReason, LanguageModel } from '../types/language-model';
+import { FinishReason } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 
 export interface Output<OUTPUT, PARTIAL> {
   readonly type: 'object' | 'text';
-  injectIntoSystemPrompt(options: {
-    system: string | undefined;
-    model: LanguageModel;
-  }): string | undefined;
 
-  responseFormat: (options: {
-    model: LanguageModel;
-  }) => LanguageModelV2CallOptions['responseFormat'];
+  responseFormat: LanguageModelV2CallOptions['responseFormat'];
 
   parsePartial(options: { text: string }): { partial: PARTIAL } | undefined;
 
@@ -34,11 +27,7 @@ export interface Output<OUTPUT, PARTIAL> {
 export const text = (): Output<string, string> => ({
   type: 'text',
 
-  responseFormat: () => ({ type: 'text' }),
-
-  injectIntoSystemPrompt({ system }: { system: string | undefined }) {
-    return system;
-  },
+  responseFormat: { type: 'text' },
 
   parsePartial({ text }: { text: string }) {
     return { partial: text };
@@ -59,20 +48,9 @@ export const object = <OUTPUT>({
   return {
     type: 'object',
 
-    responseFormat: ({ model }) => ({
+    responseFormat: {
       type: 'json',
-      schema: model.supportsStructuredOutputs ? schema.jsonSchema : undefined,
-    }),
-
-    injectIntoSystemPrompt({ system, model }) {
-      // when the model supports structured outputs,
-      // we can use the system prompt as is:
-      return model.supportsStructuredOutputs
-        ? system
-        : injectJsonInstruction({
-            prompt: system,
-            schema: schema.jsonSchema,
-          });
+      schema: schema.jsonSchema,
     },
 
     parsePartial({ text }: { text: string }) {

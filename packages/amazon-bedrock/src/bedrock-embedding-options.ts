@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export type BedrockEmbeddingModelId =
   | 'amazon.titan-embed-text-v1'
   | 'amazon.titan-embed-text-v2:0'
@@ -5,16 +7,18 @@ export type BedrockEmbeddingModelId =
   | 'cohere.embed-multilingual-v3'
   | (string & {});
 
-export interface BedrockEmbeddingSettings {
+export const bedrockEmbeddingProviderOptions = z.object({
   /**
 The number of dimensions the resulting output embeddings should have (defaults to 1024).
 Only supported in amazon.titan-embed-text-v2:0.
    */
-  dimensions?: 1024 | 512 | 256;
+  dimensions: z
+    .union([z.literal(1024), z.literal(512), z.literal(256)])
+    .optional(),
 
   /**
 Flag indicating whether or not to normalize the output embeddings. Defaults to true
 Only supported in amazon.titan-embed-text-v2:0.
-   */
-  normalize?: boolean;
-}
+ */
+  normalize: z.boolean().optional(),
+});

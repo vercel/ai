@@ -443,13 +443,19 @@ Azure OpenAI embedding models support several aditional settings.
 You can pass them as an options argument:
 
 ```ts
-const model = azure.embedding('your-embedding-deployment', {
-  dimensions: 512 // optional, number of dimensions for the embedding
-  user: 'test-user' // optional unique user identifier
+const model = azure.embedding('your-embedding-deployment');
+
+await model.doEmbed({
+  providerOptions: {
+    'azure-openai': {
+      dimensions: 512 // optional, number of dimensions for the embedding
+      user: 'test-user' // optional unique user identifier
+    }
+  }
 })
 ```
 
-The following optional settings are available for Azure OpenAI embedding models:
+The following optional provider options are available for Azure OpenAI embedding models:
 
 - **dimensions**: _number_
 

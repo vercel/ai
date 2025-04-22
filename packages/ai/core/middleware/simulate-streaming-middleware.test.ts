@@ -177,7 +177,6 @@ describe('simulateStreamingMiddleware', () => {
           {
             "finishReason": "stop",
             "isContinued": false,
-            "logprobs": undefined,
             "messageId": "msg-3",
             "providerMetadata": undefined,
             "request": {},
@@ -197,7 +196,6 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
-            "logprobs": undefined,
             "providerMetadata": undefined,
             "response": {
               "headers": undefined,

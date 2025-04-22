@@ -204,13 +204,6 @@ And the following optional settings:
 
   When enabled, tool calls and object generation will be strict and follow the provided schema.
 
-- **downloadImages** _boolean_
-
-  Automatically download images and pass the image as data to the model.
-  OpenAI supports image URLs for public models, so this is only needed for
-  private models or when the images are not publicly accessible.
-  Defaults to `false`.
-
 #### Reasoning
 
 OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
@@ -796,17 +789,23 @@ using the `.embedding()` factory method.
 const model = openai.embedding('text-embedding-3-large');
 ```
 
-OpenAI embedding models support several additional settings.
+OpenAI embedding models support several additional provider options.
 You can pass them as an options argument:
 
 ```ts
-const model = openai.embedding('text-embedding-3-large', {
-  dimensions: 512 // optional, number of dimensions for the embedding
-  user: 'test-user' // optional unique user identifier
-})
+const model = openai.embedding('text-embedding-3-large');
+
+await model.doEmbed({
+  providerOptions: {
+    openai: {
+      dimensions: 512 // optional, number of dimensions for the embedding
+      user: 'test-user' // optional unique user identifier
+    }
+  }
+});
 ```
 
-The following optional settings are available for OpenAI embedding models:
+The following optional provider options are available for OpenAI embedding models:
 
 - **dimensions**: _number_
 

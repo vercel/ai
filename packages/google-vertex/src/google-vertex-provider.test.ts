@@ -65,7 +65,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleVertexEmbeddingModel).toHaveBeenCalledWith(
       'test-embedding-model',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.embedding',
         headers: expect.any(Object),

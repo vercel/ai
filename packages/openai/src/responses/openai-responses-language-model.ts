@@ -25,8 +25,6 @@ import { OpenAIResponsesModelId } from './openai-responses-settings';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'json';
-  readonly supportsStructuredOutputs = true;
 
   readonly modelId: OpenAIResponsesModelId;
 
@@ -35,6 +33,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   constructor(modelId: OpenAIResponsesModelId, config: OpenAIConfig) {
     this.modelId = modelId;
     this.config = config;
+  }
+
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      'image/*': [/^https?:\/\/.*$/],
+    };
   }
 
   get provider(): string {

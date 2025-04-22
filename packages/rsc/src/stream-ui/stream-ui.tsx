@@ -273,8 +273,7 @@ functionality that can be fully encapsulated in the provider.
       inputFormat: validatedPrompt.type,
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
-        modelSupportsImageUrls: model.supportsImageUrls,
-        modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
+        supportedUrls: await model.getSupportedUrls(),
       }),
       providerOptions,
       abortSignal,

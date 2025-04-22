@@ -3,9 +3,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  LanguageModelV2Reasoning,
   LanguageModelV2StreamPart,
-  LanguageModelV2ToolCall,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
@@ -35,15 +33,14 @@ type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
-  supportsImageUrls: boolean;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  getSupportedUrls?: LanguageModelV2['getSupportedUrls'];
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: AnthropicMessagesModelId;
   readonly settings: AnthropicMessagesSettings;
@@ -68,8 +65,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  get supportsImageUrls(): boolean {
-    return this.config.supportsImageUrls;
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return this.config.getSupportedUrls?.() ?? {};
   }
 
   private async getArgs({

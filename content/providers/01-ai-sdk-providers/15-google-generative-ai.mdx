@@ -150,10 +150,41 @@ const { text } = await generateText({
 });
 ```
 
+Another example showing the use of provider options to specify the thinking budget for a Google Generative AI thinking model:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google('gemini-2.5-flash-preview-04-17'),
+  providerOptions: {
+    google: {
+      thinkingConfig: {
+        thinkingBudget: 2048,
+      },
+    } satisfies GoogleGenerativeAIProviderOptions,
+  },
+  // ...
+});
+```
+
 The following provider options are available:
 
 - **responseModalities** _string[]_
   The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
+
+- **thinkingConfig** _\{ thinkingBudget: number; \}_
+
+  Optional. Configuration for the model's thinking process. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/thinking).
+
+  - **thinkingBudget** _number_
+
+    Optional. Gives the model guidance on the number of thinking tokens it can use when
+    generating a response. Must be an integer in the range 0 to 24576. Setting it to 0
+    disables thinking. Budgets from 1 to 1024 tokens will be set to 1024.
+    For more information see [Google Generative AI documentation](https://ai.google.dev/gemini-api/docs/thinking).
 
 You can use Google Generative AI language models to generate text with the `generateText` function:
 
@@ -513,12 +544,18 @@ const model = google.textEmbeddingModel('text-embedding-004');
 Google Generative AI embedding models support aditional settings. You can pass them as an options argument:
 
 ```ts
-const model = google.textEmbeddingModel('text-embedding-004', {
-  outputDimensionality: 512, // optional, number of dimensions for the embedding
+const model = google.textEmbeddingModel('text-embedding-004');
+
+await model.doEmbed({
+  providerOptions: {
+    google: {
+      outputDimensionality: 512, // optional, number of dimensions for the embedding
+    },
+  },
 });
 ```
 
-The following optional settings are available for Google Generative AI embedding models:
+The following optional provider options are available for Google Generative AI embedding models:
 
 - **outputDimensionality**: _number_
 

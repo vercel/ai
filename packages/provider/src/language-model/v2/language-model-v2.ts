@@ -3,7 +3,6 @@ import { LanguageModelV2CallOptions } from './language-model-v2-call-options';
 import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
 import { LanguageModelV2Content } from './language-model-v2-content';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
-import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
 import { LanguageModelV2ToolCallDelta } from './language-model-v2-tool-call-delta';
 import { LanguageModelV2Usage } from './language-model-v2-usage';
 
@@ -31,51 +30,17 @@ Provider-specific model ID for logging purposes.
   readonly modelId: string;
 
   /**
-Default object generation mode that should be used with this model when
-no mode is specified. Should be the mode with the best results for this
-model. `undefined` can be returned if object generation is not supported.
-
-This is needed to generate the best objects possible w/o requiring the
-user to explicitly specify the object generation mode.
+   * Returns a map of supported URL patterns for the model.
+   * The keys are media type patterns or full media types (e.g. `*\/*` for everything, `audio/*`, `video/*`, or `application/pdf`).
+   * and the values are arrays of regular expressions that match the URL paths.
+   *
+   * The matching should be against lower-case URLs.
+   *
+   * Matched URLs are supported natively by the model and are not downloaded.
+   *
+   * @returns A promise resolving to a map of supported URL patterns.
    */
-  readonly defaultObjectGenerationMode: LanguageModelV2ObjectGenerationMode;
-
-  /**
-Flag whether this model supports image URLs. Default is `true`.
-
-When the flag is set to `false`, the AI SDK will download the image and
-pass the image data to the model.
-   */
-  // TODO generalize to file urls in language model v2
-  readonly supportsImageUrls?: boolean;
-
-  /**
-Flag whether this model supports grammar-guided generation,
-i.e. follows JSON schemas for object generation
-when the response format is set to 'json' or
-when the `object-json` mode is used.
-
-This means that the model guarantees that the generated JSON
-will be a valid JSON object AND that the object will match the
-JSON schema.
-
-Please note that `generateObject` and `streamObject` will work
-regardless of this flag, but might send different prompts and
-use further optimizations if this flag is set to `true`.
-
-Defaults to `false`.
-*/
-  // TODO v2: rename to supportsGrammarGuidedGeneration? supports output schemas?
-  readonly supportsStructuredOutputs?: boolean;
-
-  /**
-Checks if the model supports the given URL for file parts natively.
-If the model does not support the URL,
-the AI SDK will download the file and pass the file data to the model.
-
-When undefined, the AI SDK will download the file.
-   */
-  supportsUrl?(url: URL): boolean;
+  getSupportedUrls(): PromiseLike<Record<string, RegExp[]>>;
 
   /**
 Generates a language model output (non-streaming).
@@ -88,15 +53,6 @@ by the user.
 Ordered content that the model has generated.
      */
     content: Array<LanguageModelV2Content>;
-
-    /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled
-
-@deprecated will be changed into a provider-specific extension in v2
- */
-    // TODO change in language model v2
-    logprobs?: LanguageModelV2LogProbs;
 
     /**
 Finish reason.
@@ -216,23 +172,16 @@ export type LanguageModelV2StreamPart =
       modelId?: string;
     }
 
-  // the usage stats, finish reason and logprobs should be the last part of the
-  // stream:
+  // metadata that is available after the stream is finished:
   | {
       type: 'finish';
       finishReason: LanguageModelV2FinishReason;
       providerMetadata?: SharedV2ProviderMetadata;
       usage: LanguageModelV2Usage;
-
-      // @deprecated - will be changed into a provider-specific extension in v2
-      logprobs?: LanguageModelV2LogProbs;
     }
 
   // error parts are streamed, allowing for multiple errors
-  | { type: 'error'; error: unknown };
-
-/**
-The object generation modes available for use with a model. `undefined`
-represents no support for object generation.
-   */
-export type LanguageModelV2ObjectGenerationMode = 'json' | 'tool' | undefined;
+  | {
+      type: 'error';
+      error: unknown;
+    };

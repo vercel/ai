@@ -29,7 +29,6 @@ type CohereChatConfig = {
 
 export class CohereChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: CohereChatModelId;
 
@@ -38,6 +37,12 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
   constructor(modelId: CohereChatModelId, config: CohereChatConfig) {
     this.modelId = modelId;
     this.config = config;
+  }
+
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      // No URLs are supported.
+    };
   }
 
   get provider(): string {

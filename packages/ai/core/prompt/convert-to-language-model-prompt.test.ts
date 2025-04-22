@@ -22,8 +22,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
@@ -63,8 +62,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
@@ -107,8 +105,9 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: true,
-          modelSupportsUrl: () => true,
+          supportedUrls: {
+            '*': [/^https:\/\/.*$/],
+          },
         });
 
         expect(result).toEqual([
@@ -142,8 +141,10 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: true,
-          modelSupportsUrl: () => false,
+          supportedUrls: {
+            // PDF is not supported, but image/* is
+            'image/*': [/^https:\/\/.*$/],
+          },
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -185,8 +186,9 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: true,
-          modelSupportsUrl: undefined,
+          supportedUrls: {
+            'image/*': [/^https:\/\/.*$/],
+          },
         });
 
         expect(result).toEqual([
@@ -221,8 +223,9 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: true,
-          modelSupportsUrl: undefined,
+          supportedUrls: {
+            'image/*': [/^https:\/\/.*$/],
+          },
         });
 
         expect(result).toEqual([
@@ -256,8 +259,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -298,8 +300,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -340,9 +341,12 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: url =>
-            url.toString() !== 'https://example.com/document.pdf',
+          supportedUrls: {
+            'application/pdf': [
+              // everything except https://example.com/document.pdf
+              /^(?!https:\/\/example\.com\/document\.pdf$).*$/,
+            ],
+          },
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -383,9 +387,12 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: url =>
-            url.toString() === 'https://example.com/document.pdf',
+          supportedUrls: {
+            'application/pdf': [
+              // match exactly https://example.com/document.pdf
+              /^https:\/\/example\.com\/document\.pdf$/,
+            ],
+          },
         });
 
         expect(result).toEqual([
@@ -419,8 +426,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -462,8 +468,9 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: true,
-          modelSupportsUrl: undefined,
+          supportedUrls: {
+            'image/*': [/^https:\/\/.*$/],
+          },
         });
 
         expect(result).toEqual([
@@ -499,8 +506,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: () => false,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -549,8 +555,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: undefined,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
         });
 
         expect(result).toEqual([

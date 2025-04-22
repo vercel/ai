@@ -3,12 +3,11 @@ import {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  LanguageModelV2LogProbs,
-  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  LanguageModelV2Content,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -18,12 +17,12 @@ import {
   createJsonResponseHandler,
   generateId,
   isParsableJson,
-  postJsonToApi,
   parseProviderOptions,
+  postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
-import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
+import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAIChatModelId,
@@ -34,7 +33,6 @@ import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
-import { getResponseMetadata } from './get-response-metadata';
 import { prepareTools } from './openai-prepare-tools';
 
 type OpenAIChatConfig = {
@@ -63,29 +61,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     this.config = config;
   }
 
-  get supportsStructuredOutputs(): boolean {
-    // enable structured outputs for reasoning models by default:
-    // TODO in the next major version, remove this and always use json mode for models
-    // that support structured outputs (blacklist other models)
-    return this.settings.structuredOutputs ?? isReasoningModel(this.modelId);
-  }
-
-  get defaultObjectGenerationMode() {
-    // audio models don't support structured outputs:
-    if (isAudioModel(this.modelId)) {
-      return 'tool';
-    }
-
-    return this.supportsStructuredOutputs ? 'json' : 'tool';
-  }
-
   get provider(): string {
     return this.config.provider;
   }
 
-  get supportsImageUrls(): boolean {
-    // image urls can be sent if downloadImages is disabled (default):
-    return !this.settings.downloadImages;
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      'image/*': [/^https?:\/\/.*$/],
+    };
   }
 
   private getArgs({
@@ -123,7 +106,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !this.supportsStructuredOutputs
+      !this.settings.structuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -148,19 +131,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
       // model specific settings:
       logit_bias: openaiOptions.logitBias,
-      logprobs:
-        openaiOptions.logprobs === true ||
-        typeof openaiOptions.logprobs === 'number'
-          ? true
-          : undefined,
-      top_logprobs:
-        typeof openaiOptions.logprobs === 'number'
-          ? openaiOptions.logprobs
-          : typeof openaiOptions.logprobs === 'boolean'
-            ? openaiOptions.logprobs
-              ? 0
-              : undefined
-            : undefined,
       user: openaiOptions.user,
       parallel_tool_calls: openaiOptions.parallelToolCalls,
 
@@ -170,10 +140,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
-      // TODO improve below:
       response_format:
         responseFormat?.type === 'json'
-          ? this.supportsStructuredOutputs && responseFormat.schema != null
+          ? // TODO convert into provider option
+            this.settings.structuredOutputs && responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -242,20 +212,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           message: 'logitBias is not supported for reasoning models',
         });
       }
-      if (baseArgs.logprobs != null) {
-        baseArgs.logprobs = undefined;
-        warnings.push({
-          type: 'other',
-          message: 'logprobs is not supported for reasoning models',
-        });
-      }
-      if (baseArgs.top_logprobs != null) {
-        baseArgs.top_logprobs = undefined;
-        warnings.push({
-          type: 'other',
-          message: 'topLogprobs is not supported for reasoning models',
-        });
-      }
 
       // reasoning models use max_completion_tokens instead of max_tokens:
       if (baseArgs.max_tokens != null) {
@@ -285,7 +241,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     } = prepareTools({
       tools,
       toolChoice,
-      structuredOutputs: this.supportsStructuredOutputs,
+      structuredOutputs: this.settings.structuredOutputs ?? false,
     });
 
     return {
@@ -377,7 +333,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         body: rawResponse,
       },
       warnings,
-      logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
       providerMetadata,
     };
   }
@@ -430,7 +385,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
     };
-    let logprobs: LanguageModelV2LogProbs;
     let isFirstChunk = true;
 
     const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
@@ -521,14 +475,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 type: 'text',
                 text: delta.content,
               });
-            }
-
-            const mappedLogprobs = mapOpenAIChatLogProbsOutput(
-              choice?.logprobs,
-            );
-            if (mappedLogprobs?.length) {
-              if (logprobs === undefined) logprobs = [];
-              logprobs.push(...mappedLogprobs);
             }
 
             if (delta.tool_calls != null) {
@@ -646,7 +592,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              logprobs,
               usage,
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
@@ -703,24 +648,6 @@ const openaiChatResponseSchema = z.object({
           .nullish(),
       }),
       index: z.number(),
-      logprobs: z
-        .object({
-          content: z
-            .array(
-              z.object({
-                token: z.string(),
-                logprob: z.number(),
-                top_logprobs: z.array(
-                  z.object({
-                    token: z.string(),
-                    logprob: z.number(),
-                  }),
-                ),
-              }),
-            )
-            .nullable(),
-        })
-        .nullish(),
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -753,24 +680,6 @@ const openaiChatChunkSchema = z.union([
                 }),
               )
               .nullish(),
-          })
-          .nullish(),
-        logprobs: z
-          .object({
-            content: z
-              .array(
-                z.object({
-                  token: z.string(),
-                  logprob: z.number(),
-                  top_logprobs: z.array(
-                    z.object({
-                      token: z.string(),
-                      logprob: z.number(),
-                    }),
-                  ),
-                }),
-              )
-              .nullable(),
           })
           .nullish(),
         finish_reason: z.string().nullable().optional(),

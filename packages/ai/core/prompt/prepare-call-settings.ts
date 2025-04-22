@@ -15,8 +15,8 @@ export function prepareCallSettings({
   seed,
 }: Omit<CallSettings, 'abortSignal' | 'headers' | 'maxRetries'>): Omit<
   CallSettings,
-  'abortSignal' | 'headers' | 'maxRetries'
-> {
+  'abortSignal' | 'headers' | 'maxRetries' | 'temperature'
+> & { temperature?: number } {
   if (maxOutputTokens != null) {
     if (!Number.isInteger(maxOutputTokens)) {
       throw new InvalidArgumentError({
@@ -97,8 +97,7 @@ export function prepareCallSettings({
 
   return {
     maxOutputTokens,
-    // TODO v5 remove default 0 for temperature
-    temperature: temperature ?? 0,
+    temperature: temperature ?? (temperature === null ? undefined : 0),
     topP,
     topK,
     presencePenalty,

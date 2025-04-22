@@ -1,4 +1,5 @@
-import { LanguageModelV2, ProviderV2, ImageModelV1 } from '@ai-sdk/provider';
+import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { ImageModelV1, LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -6,23 +7,18 @@ import {
   Resolvable,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import {
-  GoogleVertexModelId,
-  GoogleVertexSettings,
-} from './google-vertex-settings';
-import {
-  GoogleVertexEmbeddingModelId,
-  GoogleVertexEmbeddingSettings,
-} from './google-vertex-embedding-settings';
+import { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
-import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
+import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
 import {
   GoogleVertexImageModelId,
   GoogleVertexImageSettings,
 } from './google-vertex-image-settings';
-import { GoogleVertexConfig } from './google-vertex-config';
-import { isSupportedFileUrl } from './google-vertex-supported-file-url';
+import {
+  GoogleVertexModelId,
+  GoogleVertexSettings,
+} from './google-vertex-settings';
 
 export interface GoogleVertexProvider extends ProviderV2 {
   /**
@@ -137,19 +133,19 @@ export function createVertex(
     return new GoogleGenerativeAILanguageModel(modelId, settings, {
       ...createConfig('chat'),
       generateId: options.generateId ?? generateId,
-      isSupportedUrl: isSupportedFileUrl,
+      getSupportedUrls: async () => ({
+        '*': [
+          // HTTP URLs:
+          /^https?:\/\/.*$/,
+          // Google Cloud Storage URLs:
+          /^gs:\/\/.*$/,
+        ],
+      }),
     });
   };
 
-  const createEmbeddingModel = (
-    modelId: GoogleVertexEmbeddingModelId,
-    settings: GoogleVertexEmbeddingSettings = {},
-  ) =>
-    new GoogleVertexEmbeddingModel(
-      modelId,
-      settings,
-      createConfig('embedding'),
-    );
+  const createEmbeddingModel = (modelId: GoogleVertexEmbeddingModelId) =>
+    new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
 
   const createImageModel = (
     modelId: GoogleVertexImageModelId,

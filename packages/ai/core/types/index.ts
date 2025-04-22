@@ -8,7 +8,6 @@ export type {
   CallWarning,
   FinishReason,
   LanguageModel,
-  LogProbs,
   ToolChoice,
 } from './language-model';
 export type { LanguageModelRequestMetadata } from './language-model-request-metadata';

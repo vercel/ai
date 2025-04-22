@@ -58,17 +58,6 @@ export const openaiProviderOptions = z.object({
   logitBias: z.record(z.coerce.number(), z.number()).optional(),
 
   /**
-   * Return the log probabilities of the tokens.
-   *
-   * Setting to true will return the log probabilities of the tokens that
-   * were generated.
-   *
-   * Setting to a number will return the log probabilities of the top n
-   * tokens that were generated.
-   */
-  logprobs: z.union([z.boolean(), z.number()]).optional(),
-
-  /**
    * Whether to enable parallel function calling during tool use. Default to true.
    */
   parallelToolCalls: z.boolean().optional(),
@@ -114,13 +103,4 @@ Whether to use structured outputs. Defaults to false.
 When enabled, tool calls and object generation will be strict and follow the provided schema.
 */
   structuredOutputs?: boolean;
-
-  /**
-Automatically download images and pass the image as data to the model.
-OpenAI supports image URLs for public models, so this is only needed for
-private models or when the images are not publicly accessible.
-
-Defaults to `false`.
-   */
-  downloadImages?: boolean;
 }

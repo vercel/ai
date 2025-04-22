@@ -29,7 +29,6 @@ export function simulateStreamingMiddleware(): LanguageModelV2Middleware {
             type: 'finish',
             finishReason: result.finishReason,
             usage: result.usage,
-            logprobs: result.logprobs,
             providerMetadata: result.providerMetadata,
           });
 

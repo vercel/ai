@@ -37,7 +37,7 @@ describe('google-provider', () => {
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
         headers: expect.any(Function),
         generateId: expect.any(Function),
-        isSupportedUrl: expect.any(Function),
+        getSupportedUrls: expect.any(Function),
       }),
     );
   });
@@ -58,7 +58,6 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAIEmbeddingModel).toHaveBeenCalledWith(
       'embedding-001',
-      {},
       expect.objectContaining({
         provider: 'google.generative-ai',
         headers: expect.any(Function),

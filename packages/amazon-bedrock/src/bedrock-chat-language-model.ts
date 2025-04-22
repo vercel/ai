@@ -45,8 +45,6 @@ type BedrockChatConfig = {
 export class BedrockChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
   readonly provider = 'amazon-bedrock';
-  readonly defaultObjectGenerationMode = 'tool';
-  readonly supportsImageUrls = false;
 
   constructor(
     readonly modelId: BedrockChatModelId,
@@ -181,6 +179,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         ...(toolConfig.tools?.length ? { toolConfig } : {}),
       },
       warnings: [...warnings, ...toolWarnings],
+    };
+  }
+
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      // no supported urls for bedrock
     };
   }
 

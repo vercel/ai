@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- 3bd3c0b: chore(providers/openai): update embedding model to use providerOptions
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
 ## 2.0.0-canary.9
 
 ### Patch Changes

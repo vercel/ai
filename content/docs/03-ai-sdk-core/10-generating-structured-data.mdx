@@ -186,19 +186,6 @@ const { object } = await generateObject({
 });
 ```
 
-## Generation Mode
-
-While some models (like OpenAI) natively support object generation, others require alternative methods, like modified [tool calling](/docs/ai-sdk-core/tools-and-tool-calling). The `generateObject` function allows you to specify the method it will use to return structured data.
-
-- `auto`: The provider will choose the best mode for the model. This recommended mode is used by default.
-- `tool`: A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- `json`: The response format is set to JSON when supported by the provider, e.g. via json modes or grammar-guided generation. If grammar-guided generation is not supported, the JSON schema and instructions to generate JSON that conforms to the schema are injected into the system prompt.
-
-<Note>
-  Please note that not every provider supports all generation modes. Some
-  providers do not support object generation at all.
-</Note>
-
 ## Schema Name and Description
 
 You can optionally specify a name and description for the schema. These are used by some providers for additional LLM guidance, e.g. via tool or schema name.

@@ -23,7 +23,6 @@ async function main() {
         logprobs: 2,
       },
     },
-    mode: 'json',
     prompt:
       'Generate 3 character descriptions for a fantasy role playing game.',
   });
@@ -37,7 +36,6 @@ async function main() {
 
       case 'finish': {
         console.log('Finish reason:', part.finishReason);
-        console.log('Logprobs:', part.logprobs);
         console.log('Usage:', part.usage);
         break;
       }

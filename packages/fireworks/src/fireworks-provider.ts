@@ -138,7 +138,6 @@ export function createFireworks(
     return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       errorStructure: fireworksErrorStructure,
-      defaultObjectGenerationMode: 'json',
     });
   };
 
