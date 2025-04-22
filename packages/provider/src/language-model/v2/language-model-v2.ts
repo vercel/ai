@@ -35,6 +35,8 @@ Provider-specific model ID for logging purposes.
    * The keys are media type patterns or full media types (e.g. `*\/*` for everything, `audio/*`, `video/*`, or `application/pdf`).
    * and the values are arrays of regular expressions that match the URL paths.
    *
+   * The matching should be against lower-case URLs.
+   *
    * Matched URLs are supported natively by the model and are not downloaded.
    *
    * @returns A promise resolving to a map of supported URL patterns.
