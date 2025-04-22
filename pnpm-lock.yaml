@@ -69,7 +69,7 @@ importers:
         specifier: 1.3.17
         version: link:../../packages/azure
       '@ai-sdk/cerebras':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../../packages/cerebras
       '@ai-sdk/cohere':
         specifier: 1.2.9
@@ -78,19 +78,19 @@ importers:
         specifier: 0.0.1
         version: link:../../packages/deepgram
       '@ai-sdk/deepinfra':
-        specifier: 0.2.12
+        specifier: 0.2.13
         version: link:../../packages/deepinfra
       '@ai-sdk/deepseek':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../../packages/deepseek
       '@ai-sdk/elevenlabs':
         specifier: 0.0.2
         version: link:../../packages/elevenlabs
       '@ai-sdk/fal':
-        specifier: 0.1.9
+        specifier: 0.1.10
         version: link:../../packages/fal
       '@ai-sdk/fireworks':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../../packages/fireworks
       '@ai-sdk/gladia':
         specifier: 0.0.1
@@ -120,7 +120,7 @@ importers:
         specifier: 1.3.16
         version: link:../../packages/openai
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../../packages/openai-compatible
       '@ai-sdk/perplexity':
         specifier: 1.1.7
@@ -135,13 +135,13 @@ importers:
         specifier: 0.0.1
         version: link:../../packages/revai
       '@ai-sdk/togetherai':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../../packages/togetherai
       '@ai-sdk/valibot':
         specifier: 0.1.21
         version: link:../../packages/valibot
       '@ai-sdk/xai':
-        specifier: 1.2.13
+        specifier: 1.2.14
         version: link:../../packages/xai
       '@google/generative-ai':
         specifier: 0.21.0
@@ -555,10 +555,10 @@ importers:
         specifier: 1.2.10
         version: link:../../packages/anthropic
       '@ai-sdk/deepseek':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../../packages/deepseek
       '@ai-sdk/fireworks':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../../packages/fireworks
       '@ai-sdk/google':
         specifier: 1.2.12
@@ -1318,7 +1318,7 @@ importers:
   packages/cerebras:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -1445,7 +1445,7 @@ importers:
   packages/deepinfra:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -1473,7 +1473,7 @@ importers:
   packages/deepseek:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -1551,7 +1551,7 @@ importers:
   packages/fireworks:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -2155,7 +2155,7 @@ importers:
   packages/togetherai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3
@@ -2297,7 +2297,7 @@ importers:
   packages/xai:
     dependencies:
       '@ai-sdk/openai-compatible':
-        specifier: 0.2.11
+        specifier: 0.2.12
         version: link:../openai-compatible
       '@ai-sdk/provider':
         specifier: 1.1.3

@@ -113,6 +113,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       defaultObjectGenerationMode: structuredOutputs ? 'json' : 'tool',
       errorStructure: xaiErrorStructure,
       supportsStructuredOutputs: structuredOutputs,
+      includeUsage: true,
     });
   };
 
