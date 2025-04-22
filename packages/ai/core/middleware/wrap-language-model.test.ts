@@ -184,7 +184,6 @@ describe('wrapLanguageModel', () => {
       readonly specificationVersion = 'v2';
       readonly provider = 'test-provider';
       readonly modelId = 'test-model';
-      readonly supportsImageUrls = false;
 
       readonly doGenerate: LanguageModelV2['doGenerate'] = vi.fn();
       readonly doStream: LanguageModelV2['doStream'] = vi.fn();
