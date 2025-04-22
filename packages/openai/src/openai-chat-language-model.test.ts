@@ -4,107 +4,11 @@ import {
   createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
-import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { createOpenAI } from './openai-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
-
-const TEST_LOGPROBS = {
-  content: [
-    {
-      token: 'Hello',
-      logprob: -0.0009994634,
-      top_logprobs: [
-        {
-          token: 'Hello',
-          logprob: -0.0009994634,
-        },
-      ],
-    },
-    {
-      token: '!',
-      logprob: -0.13410144,
-      top_logprobs: [
-        {
-          token: '!',
-          logprob: -0.13410144,
-        },
-      ],
-    },
-    {
-      token: ' How',
-      logprob: -0.0009250381,
-      top_logprobs: [
-        {
-          token: ' How',
-          logprob: -0.0009250381,
-        },
-      ],
-    },
-    {
-      token: ' can',
-      logprob: -0.047709424,
-      top_logprobs: [
-        {
-          token: ' can',
-          logprob: -0.047709424,
-        },
-      ],
-    },
-    {
-      token: ' I',
-      logprob: -0.000009014684,
-      top_logprobs: [
-        {
-          token: ' I',
-          logprob: -0.000009014684,
-        },
-      ],
-    },
-    {
-      token: ' assist',
-      logprob: -0.009125131,
-      top_logprobs: [
-        {
-          token: ' assist',
-          logprob: -0.009125131,
-        },
-      ],
-    },
-    {
-      token: ' you',
-      logprob: -0.0000066306106,
-      top_logprobs: [
-        {
-          token: ' you',
-          logprob: -0.0000066306106,
-        },
-      ],
-    },
-    {
-      token: ' today',
-      logprob: -0.00011093382,
-      top_logprobs: [
-        {
-          token: ' today',
-          logprob: -0.00011093382,
-        },
-      ],
-    },
-    {
-      token: '?',
-      logprob: -0.00004596782,
-      top_logprobs: [
-        {
-          token: '?',
-          logprob: -0.00004596782,
-        },
-      ],
-    },
-  ],
-};
 
 const provider = createOpenAI({
   apiKey: 'test-api-key',
@@ -127,7 +31,6 @@ describe('doGenerate', () => {
       total_tokens: 34,
       completion_tokens: 30,
     },
-    logprobs = null,
     finish_reason = 'stop',
     id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
     created = 1711115037,
@@ -160,15 +63,6 @@ describe('doGenerate', () => {
         cached_tokens?: number;
       };
     };
-    logprobs?: {
-      content:
-        | {
-            token: string;
-            logprob: number;
-            top_logprobs: { token: string; logprob: number }[];
-          }[]
-        | null;
-    } | null;
     finish_reason?: string;
     created?: number;
     id?: string;
@@ -192,7 +86,6 @@ describe('doGenerate', () => {
               tool_calls,
               function_call,
             },
-            logprobs,
             finish_reason,
           },
         ],
@@ -247,7 +140,6 @@ describe('doGenerate', () => {
         "body": {
           "frequency_penalty": undefined,
           "logit_bias": undefined,
-          "logprobs": undefined,
           "max_completion_tokens": undefined,
           "max_tokens": undefined,
           "messages": [
@@ -269,7 +161,6 @@ describe('doGenerate', () => {
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
-          "top_logprobs": undefined,
           "top_p": undefined,
           "user": undefined,
         },
@@ -296,7 +187,6 @@ describe('doGenerate', () => {
             {
               "finish_reason": "stop",
               "index": 0,
-              "logprobs": null,
               "message": {
                 "content": "",
                 "role": "assistant",
@@ -315,7 +205,7 @@ describe('doGenerate', () => {
           },
         },
         "headers": {
-          "content-length": "291",
+          "content-length": "275",
           "content-type": "application/json",
         },
         "id": "test-id",
@@ -337,25 +227,6 @@ describe('doGenerate', () => {
     });
 
     expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: undefined });
-  });
-
-  it('should extract logprobs', async () => {
-    prepareJsonResponse({
-      logprobs: TEST_LOGPROBS,
-    });
-
-    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
-      inputFormat: 'prompt',
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        openai: {
-          logprobs: 1,
-        },
-      },
-    });
-    expect(response.logprobs).toStrictEqual(
-      mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
-    );
   });
 
   it('should extract finish reason', async () => {
@@ -396,14 +267,13 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '337',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "321",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
   });
 
   it('should pass the model and the messages', async () => {
@@ -429,22 +299,28 @@ describe('doGenerate', () => {
       providerOptions: {
         openai: {
           logitBias: { 50256: -100 },
-          logprobs: 2,
           parallelToolCalls: false,
           user: 'test-user-id',
         },
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: true,
-      top_logprobs: 2,
-      logit_bias: { 50256: -100 },
-      parallel_tool_calls: false,
-      user: 'test-user-id',
-    });
+    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      {
+        "logit_bias": {
+          "50256": -100,
+        },
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-3.5-turbo",
+        "parallel_tool_calls": false,
+        "user": "test-user-id",
+      }
+    `);
   });
 
   it('should pass reasoningEffort setting from provider metadata', async () => {
@@ -1360,7 +1236,6 @@ describe('doStream', () => {
       total_tokens: 244,
       completion_tokens: 227,
     },
-    logprobs = null,
     finish_reason = 'stop',
     model = 'gpt-3.5-turbo-0613',
     headers,
@@ -1379,15 +1254,6 @@ describe('doStream', () => {
         rejected_prediction_tokens?: number;
       };
     };
-    logprobs?: {
-      content:
-        | {
-            token: string;
-            logprob: number;
-            top_logprobs: { token: string; logprob: number }[];
-          }[]
-        | null;
-    } | null;
     finish_reason?: string;
     model?: string;
     headers?: Record<string, string>;
@@ -1405,9 +1271,7 @@ describe('doStream', () => {
           );
         }),
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":${JSON.stringify(
-            logprobs,
-          )}}]}\n\n`,
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":${JSON.stringify(
             usage,
@@ -1426,7 +1290,6 @@ describe('doStream', () => {
         total_tokens: 244,
         completion_tokens: 227,
       },
-      logprobs: TEST_LOGPROBS,
     });
 
     const { stream } = await model.doStream({
@@ -1464,98 +1327,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "stop",
-          "logprobs": [
-            {
-              "logprob": -0.0009994634,
-              "token": "Hello",
-              "topLogprobs": [
-                {
-                  "logprob": -0.0009994634,
-                  "token": "Hello",
-                },
-              ],
-            },
-            {
-              "logprob": -0.13410144,
-              "token": "!",
-              "topLogprobs": [
-                {
-                  "logprob": -0.13410144,
-                  "token": "!",
-                },
-              ],
-            },
-            {
-              "logprob": -0.0009250381,
-              "token": " How",
-              "topLogprobs": [
-                {
-                  "logprob": -0.0009250381,
-                  "token": " How",
-                },
-              ],
-            },
-            {
-              "logprob": -0.047709424,
-              "token": " can",
-              "topLogprobs": [
-                {
-                  "logprob": -0.047709424,
-                  "token": " can",
-                },
-              ],
-            },
-            {
-              "logprob": -0.000009014684,
-              "token": " I",
-              "topLogprobs": [
-                {
-                  "logprob": -0.000009014684,
-                  "token": " I",
-                },
-              ],
-            },
-            {
-              "logprob": -0.009125131,
-              "token": " assist",
-              "topLogprobs": [
-                {
-                  "logprob": -0.009125131,
-                  "token": " assist",
-                },
-              ],
-            },
-            {
-              "logprob": -0.0000066306106,
-              "token": " you",
-              "topLogprobs": [
-                {
-                  "logprob": -0.0000066306106,
-                  "token": " you",
-                },
-              ],
-            },
-            {
-              "logprob": -0.00011093382,
-              "token": " today",
-              "topLogprobs": [
-                {
-                  "logprob": -0.00011093382,
-                  "token": " today",
-                },
-              ],
-            },
-            {
-              "logprob": -0.00004596782,
-              "token": "?",
-              "topLogprobs": [
-                {
-                  "logprob": -0.00004596782,
-                  "token": "?",
-                },
-              ],
-            },
-          ],
           "providerMetadata": {
             "openai": {},
           },
@@ -1694,7 +1465,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "tool-calls",
-          "logprobs": undefined,
           "providerMetadata": {
             "openai": {},
           },
@@ -1840,7 +1610,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "tool-calls",
-          "logprobs": undefined,
           "providerMetadata": {
             "openai": {},
           },
@@ -1975,7 +1744,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "tool-calls",
-          "logprobs": undefined,
           "providerMetadata": {
             "openai": {},
           },
@@ -2051,7 +1819,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "tool-calls",
-          "logprobs": undefined,
           "providerMetadata": {
             "openai": {},
           },
@@ -2097,7 +1864,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "error",
-          "logprobs": undefined,
           "providerMetadata": {
             "openai": {},
           },
@@ -2137,7 +1903,6 @@ describe('doStream', () => {
           },
           {
             "finishReason": "error",
-            "logprobs": undefined,
             "providerMetadata": {
               "openai": {},
             },
@@ -2165,7 +1930,6 @@ describe('doStream', () => {
         "body": {
           "frequency_penalty": undefined,
           "logit_bias": undefined,
-          "logprobs": undefined,
           "max_completion_tokens": undefined,
           "max_tokens": undefined,
           "messages": [
@@ -2191,7 +1955,6 @@ describe('doStream', () => {
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
-          "top_logprobs": undefined,
           "top_p": undefined,
           "user": undefined,
         },
@@ -2291,15 +2054,22 @@ describe('doStream', () => {
       messages: [{ role: 'user', content: 'Hello' }],
     });
 
-    expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual({
-      type: 'finish',
-      finishReason: 'stop',
-      logprobs: undefined,
-      usage: { inputTokens: 15, outputTokens: 20 },
-      providerMetadata: {
-        openai: { cachedPromptTokens: 1152 },
-      },
-    });
+    expect((await convertReadableStreamToArray(stream)).at(-1))
+      .toMatchInlineSnapshot(`
+      {
+        "finishReason": "stop",
+        "providerMetadata": {
+          "openai": {
+            "cachedPromptTokens": 1152,
+          },
+        },
+        "type": "finish",
+        "usage": {
+          "inputTokens": 15,
+          "outputTokens": 20,
+        },
+      }
+    `);
   });
 
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in providerMetadata', async () => {
@@ -2328,18 +2098,23 @@ describe('doStream', () => {
       messages: [{ role: 'user', content: 'Hello' }],
     });
 
-    expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual({
-      type: 'finish',
-      finishReason: 'stop',
-      logprobs: undefined,
-      usage: { inputTokens: 15, outputTokens: 20 },
-      providerMetadata: {
-        openai: {
-          acceptedPredictionTokens: 123,
-          rejectedPredictionTokens: 456,
+    expect((await convertReadableStreamToArray(stream)).at(-1))
+      .toMatchInlineSnapshot(`
+      {
+        "finishReason": "stop",
+        "providerMetadata": {
+          "openai": {
+            "acceptedPredictionTokens": 123,
+            "rejectedPredictionTokens": 456,
+          },
         },
-      },
-    });
+        "type": "finish",
+        "usage": {
+          "inputTokens": 15,
+          "outputTokens": 20,
+        },
+      }
+    `);
   });
 
   it('should send store extension setting', async () => {
@@ -2426,7 +2201,6 @@ describe('doStream', () => {
           },
           {
             "finishReason": "stop",
-            "logprobs": undefined,
             "providerMetadata": {
               "openai": {},
             },
@@ -2483,7 +2257,6 @@ describe('doStream', () => {
           },
           {
             "finishReason": "stop",
-            "logprobs": undefined,
             "providerMetadata": {
               "openai": {
                 "reasoningTokens": 10,

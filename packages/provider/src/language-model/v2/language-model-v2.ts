@@ -3,7 +3,6 @@ import { LanguageModelV2CallOptions } from './language-model-v2-call-options';
 import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
 import { LanguageModelV2Content } from './language-model-v2-content';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
-import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
 import { LanguageModelV2ToolCallDelta } from './language-model-v2-tool-call-delta';
 import { LanguageModelV2Usage } from './language-model-v2-usage';
 
@@ -54,15 +53,6 @@ by the user.
 Ordered content that the model has generated.
      */
     content: Array<LanguageModelV2Content>;
-
-    /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled
-
-@deprecated will be changed into a provider-specific extension in v2
- */
-    // TODO change in language model v2
-    logprobs?: LanguageModelV2LogProbs;
 
     /**
 Finish reason.
@@ -182,17 +172,16 @@ export type LanguageModelV2StreamPart =
       modelId?: string;
     }
 
-  // the usage stats, finish reason and logprobs should be the last part of the
-  // stream:
+  // metadata that is available after the stream is finished:
   | {
       type: 'finish';
       finishReason: LanguageModelV2FinishReason;
       providerMetadata?: SharedV2ProviderMetadata;
       usage: LanguageModelV2Usage;
-
-      // @deprecated - will be changed into a provider-specific extension in v2
-      logprobs?: LanguageModelV2LogProbs;
     }
 
   // error parts are streamed, allowing for multiple errors
-  | { type: 'error'; error: unknown };
+  | {
+      type: 'error';
+      error: unknown;
+    };

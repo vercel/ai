@@ -92,13 +92,6 @@ exports[`streamObject > output = "object" > result.fullStream > should send full
   },
   {
     "finishReason": "stop",
-    "logprobs": [
-      {
-        "logprob": 1,
-        "token": "-",
-        "topLogprobs": [],
-      },
-    ],
     "response": {
       "id": "id-0",
       "modelId": "mock-model-id",

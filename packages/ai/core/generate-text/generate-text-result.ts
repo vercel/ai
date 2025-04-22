@@ -1,9 +1,4 @@
-import {
-  CallWarning,
-  FinishReason,
-  LogProbs,
-  ProviderMetadata,
-} from '../types';
+import { CallWarning, FinishReason, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
@@ -108,14 +103,6 @@ Response body (available only for providers that use HTTP requests).
      */
     body?: unknown;
   };
-
-  /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if it was not enabled.
-
-@deprecated Will become a provider extension in the future.
-     */
-  readonly logprobs: LogProbs | undefined;
 
   /**
 Additional provider-specific metadata. They are passed through
