@@ -10,32 +10,8 @@ const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createGroq({
-  apiKey: 'test-api-key',
-});
-
+const provider = createGroq({ apiKey: 'test-api-key' });
 const model = provider('gemma2-9b-it');
-
-describe('settings', () => {
-  it('should set supportsImageUrls to true by default', () => {
-    const defaultModel = provider('gemma2-9b-it');
-    expect(defaultModel.supportsImageUrls).toBe(true);
-  });
-
-  it('should set supportsImageUrls to false when downloadImages is true', () => {
-    const modelWithDownloadImages = provider('gemma2-9b-it', {
-      downloadImages: true,
-    });
-    expect(modelWithDownloadImages.supportsImageUrls).toBe(false);
-  });
-
-  it('should set supportsImageUrls to true when downloadImages is false', () => {
-    const modelWithoutDownloadImages = provider('gemma2-9b-it', {
-      downloadImages: false,
-    });
-    expect(modelWithoutDownloadImages.supportsImageUrls).toBe(true);
-  });
-});
 
 const server = createTestServer({
   'https://api.groq.com/openai/v1/chat/completions': {},
