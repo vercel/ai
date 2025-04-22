@@ -197,7 +197,6 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
@@ -299,7 +298,6 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
@@ -403,7 +401,6 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
@@ -498,7 +495,6 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),

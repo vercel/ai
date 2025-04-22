@@ -172,8 +172,7 @@ export type LanguageModelV2StreamPart =
       modelId?: string;
     }
 
-  // the usage stats, finish reason and logprobs should be the last part of the
-  // stream:
+  // metadata that is available after the stream is finished:
   | {
       type: 'finish';
       finishReason: LanguageModelV2FinishReason;

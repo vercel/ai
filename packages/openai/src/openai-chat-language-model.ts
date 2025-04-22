@@ -131,19 +131,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
       // model specific settings:
       logit_bias: openaiOptions.logitBias,
-      logprobs:
-        openaiOptions.logprobs === true ||
-        typeof openaiOptions.logprobs === 'number'
-          ? true
-          : undefined,
-      top_logprobs:
-        typeof openaiOptions.logprobs === 'number'
-          ? openaiOptions.logprobs
-          : typeof openaiOptions.logprobs === 'boolean'
-            ? openaiOptions.logprobs
-              ? 0
-              : undefined
-            : undefined,
       user: openaiOptions.user,
       parallel_tool_calls: openaiOptions.parallelToolCalls,
 
@@ -223,20 +210,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         warnings.push({
           type: 'other',
           message: 'logitBias is not supported for reasoning models',
-        });
-      }
-      if (baseArgs.logprobs != null) {
-        baseArgs.logprobs = undefined;
-        warnings.push({
-          type: 'other',
-          message: 'logprobs is not supported for reasoning models',
-        });
-      }
-      if (baseArgs.top_logprobs != null) {
-        baseArgs.top_logprobs = undefined;
-        warnings.push({
-          type: 'other',
-          message: 'topLogprobs is not supported for reasoning models',
         });
       }
 
