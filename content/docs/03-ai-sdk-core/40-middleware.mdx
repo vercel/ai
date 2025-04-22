@@ -122,16 +122,23 @@ Here are some community middlewares that you can explore:
 
 ### Custom tool call parser
 
-The [Custom tool call parser](https://github.com/minpeter/ai-sdk-tool-call-middleware) middleware enables tool calls for models that don't natively support the OpenAI-style `tools` parameter (e.g., many self-hosted or third-party models).
-It parses tool calls directly from the model's generated text in streaming or batch responses, supporting formats like Hermes and Gemma. This provides a flexible way to add tool usage capabilities regardless of the underlying model.
+<Note>
+  Using this middleware on models that support native function calls may result
+  in unintended performance degradation, so check whether your model supports
+  native function calls before deciding to use it.
+</Note>
 
-Currently we provide three versions of middleware:
+The [Custom tool call parser](https://github.com/minpeter/ai-sdk-tool-call-middleware) middleware extends tool call capabilities to models that don't natively support the OpenAI-style `tools` parameter. This includes many self-hosted and third-party models that lack native function calling features.
 
-- `createToolMiddleware`: A generic function to create custom tool call middleware for any model.
-- `hermesToolMiddleware`: Predefined Hermes & Qwen format function call middleware.
-- `gemmaToolMiddleware`: Predefined Gemma 3 format function call middleware.
+This middleware enables function calling capabilities by converting function schemas into prompt instructions and parsing the model's responses into structured function calls. It works by transforming the JSON function definitions into natural language instructions the model can understand, then analyzing the generated text to extract function call attempts. This approach allows developers to use the same function calling API across different model providers, even with models that don't natively support the OpenAI-style function calling format, providing a consistent function calling experience regardless of the underlying model implementation.
 
-Here's an example usage, adding a function call for gemma-3-27b, which doesn't support native function calls.
+The `@ai-sdk-tool/parser` package offers three middleware variants:
+
+- `createToolMiddleware`: A flexible function for creating custom tool call middleware tailored to specific models
+- `hermesToolMiddleware`: Ready-to-use middleware for Hermes & Qwen format function calls
+- `gemmaToolMiddleware`: Pre-configured middleware for Gemma 3 model series function call format
+
+Here's how you can enable function calls with Gemma models that don't support them natively:
 
 ```ts
 import { wrapLanguageModel } from 'ai';
