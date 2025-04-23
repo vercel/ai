@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.2.13
+
+### Patch Changes
+
+- 6183b08: feat(providers/google): Add taskType support for Text Embedding Models
+
 ## 1.2.12
 
 ### Patch Changes
