@@ -279,3 +279,35 @@ export const yourGuardrailMiddleware: LanguageModelV1Middleware = {
   // you do not know the full content of the stream until it's finished.
 };
 ```
+
+## Sending Custom Metadata
+
+To send and access custom metadata in Middleware, you can use `providerOptions`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText, wrapLanguageModel, LanguageModelV1Middleware } from 'ai';
+
+export const yourLogMiddleware: LanguageModelV1Middleware = {
+  wrapGenerate: async ({ doGenerate, params }) => {
+    console.log('METADATA', params?.providerMetadata?.yourLogMiddleware);
+    const result = await doGenerate();
+    return result;
+  },
+};
+
+const { text } = await generateText({
+  model: wrapLanguageModel({
+    model: openai('gpt-4o'),
+    middleware: yourLogMiddleware,
+  }),
+  prompt: 'Invent a new holiday and describe its traditions.',
+  providerOptions: {
+    yourLogMiddleware: {
+      hello: 'world',
+    },
+  },
+});
+
+console.log(text);
+```
