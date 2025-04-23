@@ -1,4 +1,5 @@
 import { JSONValue } from '../../json-value';
+import { SharedV2Headers } from '../../shared';
 import { TranscriptionModelV1CallOptions } from './transcription-model-v1-call-options';
 import { TranscriptionModelV1CallWarning } from './transcription-model-v1-call-warning';
 
@@ -98,7 +99,7 @@ The ID of the response model that was used to generate the response.
       /**
 Response headers.
       */
-      headers: Record<string, string> | undefined;
+      headers?: SharedV2Headers;
 
       /**
 Response body.

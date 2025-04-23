@@ -98,6 +98,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       fetch: options.fetch,
       errorStructure: xaiErrorStructure,
       supportsStructuredOutputs: structuredOutputs,
+      includeUsage: true,
     });
   };
 
