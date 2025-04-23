@@ -68,6 +68,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: workspace:*
         version: link:../../packages/anthropic
+      '@ai-sdk/assemblyai':
+        specifier: workspace:*
+        version: link:../../packages/assemblyai
       '@ai-sdk/azure':
         specifier: workspace:*
         version: link:../../packages/azure
@@ -1247,6 +1250,31 @@ importers:
         specifier: 3.23.8
         version: 3.23.8
 
+  packages/assemblyai:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: 1.1.2
+        version: 1.1.2
+      '@ai-sdk/provider-utils':
+        specifier: 2.2.6
+        version: 2.2.6(zod@3.23.8)
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.3)(tsx@4.19.2)(typescript@5.6.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
+      zod:
+        specifier: 3.23.8
+        version: 3.23.8
+
   packages/azure:
     dependencies:
       '@ai-sdk/openai':
@@ -2359,11 +2387,21 @@ packages:
   '@adobe/css-tools@4.4.0':
     resolution: {integrity: sha512-Ff9+ksdQQB3rMncgqDK78uLznstjyfIf2Arnh22pW8kBpLs6rpKDwgnZT46hin5Hl1WzazzK64DOrhSwYpS7bQ==}
 
+  '@ai-sdk/provider-utils@2.2.6':
+    resolution: {integrity: sha512-sUlZ7Gnq84DCGWMQRIK8XVbkzIBnvPR1diV4v6JwPgpn5armnLI/j+rqn62MpLrU5ZCQZlDKl/Lw6ed3ulYqaA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.23.8
+
   '@ai-sdk/provider-utils@3.0.0-canary.7':
     resolution: {integrity: sha512-eVsCJx9CJZ8ZMzgBHn02dYbKjUl54ji9yV5+mTIL7h9+iVpqRNX4/570cFc+dPuy/WuTf6Mqnw3esbK1WgWhSw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.23.8
+
+  '@ai-sdk/provider@1.1.2':
+    resolution: {integrity: sha512-ITdgNilJZwLKR7X5TnUr1BsQW6UTX5yFp0h66Nfx8XjBYkWD9W3yugr50GOz3CnE9m/U/Cd5OyEbTMI0rgi6ZQ==}
+    engines: {node: '>=18'}
 
   '@ai-sdk/provider@2.0.0-canary.6':
     resolution: {integrity: sha512-cvl91VElPdC8oBzNyjcpH/3Vc73/JpJkH2sNejyAN5dAlMt8zNsYkYxLb2TBdnqmFEiBkU2lEDIOCq1QLaZbSw==}
@@ -15086,10 +15124,21 @@ snapshots:
 
   '@adobe/css-tools@4.4.0': {}
 
+  '@ai-sdk/provider-utils@2.2.6(zod@3.23.8)':
+    dependencies:
+      '@ai-sdk/provider': 1.1.2
+      nanoid: 3.3.8
+      secure-json-parse: 2.7.0
+      zod: 3.23.8
+
   '@ai-sdk/provider-utils@3.0.0-canary.7(zod@3.23.8)':
     dependencies:
       '@ai-sdk/provider': 2.0.0-canary.6
       zod: 3.23.8
+
+  '@ai-sdk/provider@1.1.2':
+    dependencies:
+      json-schema: 0.4.0
 
   '@ai-sdk/provider@2.0.0-canary.6':
     dependencies:
