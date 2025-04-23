@@ -964,4 +964,10 @@ const reasoningModels = {
   'o3-mini-2025-01-31': {
     systemMessageMode: 'developer',
   },
+  'o4-mini': {
+    systemMessageMode: 'developer',
+  },
+  'o4-mini-2025-04-16': {
+    systemMessageMode: 'developer',
+  },
 } as const;
