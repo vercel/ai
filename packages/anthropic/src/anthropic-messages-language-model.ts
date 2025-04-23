@@ -281,7 +281,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             text: '',
             providerMetadata: {
               anthropic: {
-                isRedacted: true,
                 redactedData: part.data,
               } satisfies AnthropicReasoningMetadata,
             },
@@ -405,10 +404,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'redacted_thinking': {
                     controller.enqueue({
                       type: 'reasoning',
-                      text: value.content_block.data,
+                      text: '',
                       providerMetadata: {
                         anthropic: {
-                          isRedacted: true,
+                          redactedData: value.content_block.data,
                         } satisfies AnthropicReasoningMetadata,
                       },
                     });
@@ -720,7 +719,6 @@ export type AnthropicProviderOptions = z.infer<
 
 export const anthropicReasoningMetadataSchema = z.object({
   signature: z.string().optional(),
-  isRedacted: z.boolean().optional(),
   redactedData: z.string().optional(),
 });
 

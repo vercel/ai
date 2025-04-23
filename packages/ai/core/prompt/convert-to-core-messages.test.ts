@@ -263,7 +263,7 @@ describe('convertToCoreMessages', () => {
           content: [
             {
               type: 'reasoning',
-              text: 'Thinking',
+              text: 'Thinking...',
               providerOptions: { testProvider: { signature: '1234567890' } },
             },
             {

@@ -77,10 +77,10 @@ const modelWithReasoning = new MockLanguageModelV2({
       },
       {
         type: 'reasoning',
-        text: 'redacted-reasoning-data',
+        text: '',
         providerMetadata: {
           testProvider: {
-            redacted: 'redacted-reasoning-data',
+            redactedData: 'redacted-reasoning-data',
           },
         },
       },

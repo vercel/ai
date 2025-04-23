@@ -2386,7 +2386,6 @@ describe('streamText', () => {
                           type: 'reasoning',
                           text: 'thinking',
                           providerOptions: undefined,
-                          signature: undefined,
                         },
                         {
                           type: 'tool-call',

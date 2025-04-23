@@ -8,12 +8,12 @@ describe('getMessageParts', () => {
         content: 'Test content',
         parts: [
           { type: 'text', text: 'Hello' },
-          { type: 'reasoning', reasoning: 'Because', providerMetadata: {} },
+          { type: 'reasoning', reasoning: 'Because' },
         ],
       }),
     ).toEqual([
       { type: 'text', text: 'Hello' },
-      { type: 'reasoning', reasoning: 'Because', details: [] },
+      { type: 'reasoning', reasoning: 'Because' },
     ]);
   });
 
@@ -55,7 +55,6 @@ describe('getMessageParts', () => {
       {
         type: 'reasoning',
         reasoning: 'Test reasoning',
-        details: [{ type: 'text', text: 'Test reasoning' }],
       },
       { type: 'text', text: 'Test content' },
     ]);
