@@ -23,7 +23,6 @@ import {
   CallWarning,
   FinishReason,
   LanguageModel,
-  LogProbs,
   ProviderMetadata,
 } from '../types';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
@@ -222,11 +221,13 @@ export async function generateObject<SCHEMA, RESULT>({
     enumValues,
   });
 
+  const callSettings = prepareCallSettings(settings);
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
     headers,
-    settings: { ...settings, maxRetries },
+    settings: { ...callSettings, maxRetries },
   });
 
   const tracer = getTracer(telemetry);
@@ -262,7 +263,6 @@ export async function generateObject<SCHEMA, RESULT>({
       let warnings: CallWarning[] | undefined;
       let response: LanguageModelResponseMetadata;
       let request: LanguageModelRequestMetadata;
-      let logprobs: LogProbs | undefined;
       let resultProviderMetadata: ProviderMetadata | undefined;
 
       const standardizedPrompt = standardizePrompt({
@@ -296,12 +296,12 @@ export async function generateObject<SCHEMA, RESULT>({
               // standardized gen-ai llm span attributes:
               'gen_ai.system': model.provider,
               'gen_ai.request.model': model.modelId,
-              'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-              'gen_ai.request.max_tokens': settings.maxOutputTokens,
-              'gen_ai.request.presence_penalty': settings.presencePenalty,
-              'gen_ai.request.temperature': settings.temperature,
-              'gen_ai.request.top_k': settings.topK,
-              'gen_ai.request.top_p': settings.topP,
+              'gen_ai.request.frequency_penalty': callSettings.frequencyPenalty,
+              'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+              'gen_ai.request.presence_penalty': callSettings.presencePenalty,
+              'gen_ai.request.temperature': callSettings.temperature,
+              'gen_ai.request.top_k': callSettings.topK,
+              'gen_ai.request.top_p': callSettings.topP,
             },
           }),
           tracer,
@@ -375,7 +375,6 @@ export async function generateObject<SCHEMA, RESULT>({
       finishReason = generateResult.finishReason;
       usage = generateResult.usage;
       warnings = generateResult.warnings;
-      logprobs = generateResult.logprobs;
       resultProviderMetadata = generateResult.providerMetadata;
       request = generateResult.request ?? {};
       response = generateResult.responseData;
@@ -466,7 +465,6 @@ export async function generateObject<SCHEMA, RESULT>({
         warnings,
         request,
         response,
-        logprobs,
         providerMetadata: resultProviderMetadata,
       });
     },
@@ -478,7 +476,6 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   readonly finishReason: GenerateObjectResult<T>['finishReason'];
   readonly usage: GenerateObjectResult<T>['usage'];
   readonly warnings: GenerateObjectResult<T>['warnings'];
-  readonly logprobs: GenerateObjectResult<T>['logprobs'];
   readonly providerMetadata: GenerateObjectResult<T>['providerMetadata'];
   readonly response: GenerateObjectResult<T>['response'];
   readonly request: GenerateObjectResult<T>['request'];
@@ -488,7 +485,6 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     finishReason: GenerateObjectResult<T>['finishReason'];
     usage: GenerateObjectResult<T>['usage'];
     warnings: GenerateObjectResult<T>['warnings'];
-    logprobs: GenerateObjectResult<T>['logprobs'];
     providerMetadata: GenerateObjectResult<T>['providerMetadata'];
     response: GenerateObjectResult<T>['response'];
     request: GenerateObjectResult<T>['request'];
@@ -500,7 +496,6 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
     this.providerMetadata = options.providerMetadata;
     this.response = options.response;
     this.request = options.request;
-    this.logprobs = options.logprobs;
   }
 
   toJsonResponse(init?: ResponseInit): Response {

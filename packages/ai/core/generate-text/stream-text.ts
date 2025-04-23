@@ -31,7 +31,6 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   FinishReason,
   LanguageModel,
-  LogProbs,
   ToolChoice,
 } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
@@ -736,7 +735,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             finishReason: part.finishReason,
             usage: part.usage,
             warnings: part.warnings,
-            logprobs: part.logprobs,
             request: part.request,
             response: {
               ...part.response,
@@ -817,7 +815,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // call onFinish callback:
           await onFinish?.({
             finishReason,
-            logprobs: undefined,
             usage,
             text: recordedFullText,
             reasoningText: lastStep.reasoningText,
@@ -890,11 +887,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     const tracer = getTracer(telemetry);
 
+    const callSettings = prepareCallSettings(settings);
+
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model,
       telemetry,
       headers,
-      settings: { ...settings, maxRetries },
+      settings: { ...callSettings, maxRetries },
     });
 
     const initialPrompt = standardizePrompt({
@@ -1000,31 +999,35 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   // standardized gen-ai llm span attributes:
                   'gen_ai.system': model.provider,
                   'gen_ai.request.model': model.modelId,
-                  'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                  'gen_ai.request.presence_penalty': settings.presencePenalty,
-                  'gen_ai.request.stop_sequences': settings.stopSequences,
-                  'gen_ai.request.temperature': settings.temperature,
-                  'gen_ai.request.top_k': settings.topK,
-                  'gen_ai.request.top_p': settings.topP,
+                  'gen_ai.request.frequency_penalty':
+                    callSettings.frequencyPenalty,
+                  'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+                  'gen_ai.request.presence_penalty':
+                    callSettings.presencePenalty,
+                  'gen_ai.request.stop_sequences': callSettings.stopSequences,
+                  'gen_ai.request.temperature': callSettings.temperature,
+                  'gen_ai.request.top_k': callSettings.topK,
+                  'gen_ai.request.top_p': callSettings.topP,
                 },
               }),
               tracer,
               endWhenDone: false,
-              fn: async doStreamSpan => ({
-                startTimestampMs: now(), // get before the call
-                doStreamSpan,
-                result: await model.doStream({
-                  ...prepareCallSettings(settings),
-                  ...toolsAndToolChoice,
-                  inputFormat: promptFormat,
-                  responseFormat: output?.responseFormat,
-                  prompt: promptMessages,
-                  providerOptions,
-                  abortSignal,
-                  headers,
-                }),
-              }),
+              fn: async doStreamSpan => {
+                return {
+                  startTimestampMs: now(), // get before the call
+                  doStreamSpan,
+                  result: await model.doStream({
+                    ...callSettings,
+                    ...toolsAndToolChoice,
+                    inputFormat: promptFormat,
+                    responseFormat: output?.responseFormat,
+                    prompt: promptMessages,
+                    providerOptions,
+                    abortSignal,
+                    headers,
+                  }),
+                };
+              },
             }),
           );
 
@@ -1060,7 +1063,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let stepFirstChunk = true;
           let stepText = '';
           let fullStepText = stepType === 'continue' ? previousStepText : '';
-          let stepLogProbs: LogProbs | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: currentDate(),
@@ -1228,7 +1230,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       stepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
                       stepProviderMetadata = chunk.providerMetadata;
-                      stepLogProbs = chunk.logprobs;
 
                       // Telemetry for finish event timing
                       // (since tool executions can take longer and distort calculations)
@@ -1355,7 +1356,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     finishReason: stepFinishReason,
                     usage: stepUsage,
                     providerMetadata: stepProviderMetadata,
-                    logprobs: stepLogProbs,
                     request: stepRequest,
                     response: {
                       ...stepResponse,
@@ -1374,7 +1374,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       finishReason: stepFinishReason,
                       usage: combinedUsage,
                       providerMetadata: stepProviderMetadata,
-                      logprobs: stepLogProbs,
                       response: {
                         ...stepResponse,
                         headers: response?.headers,

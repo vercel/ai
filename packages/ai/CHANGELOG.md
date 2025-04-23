@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.0-canary.11
+
+### Patch Changes
+
+- 8e64e9c: feat (ai): allow using provider default temperature by specifying null
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
 ## 5.0.0-canary.10
 
 ### Patch Changes

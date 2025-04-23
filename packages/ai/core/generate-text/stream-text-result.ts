@@ -5,7 +5,6 @@ import {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
-  LogProbs,
   ProviderMetadata,
 } from '../types';
 import { Source } from '../types/language-model';
@@ -326,8 +325,6 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       type: 'step-finish';
       messageId: string;
 
-      // TODO 5.0 breaking change: remove logprobs
-      logprobs?: LogProbs;
       // TODO 5.0 breaking change: remove request (on start instead)
       request: LanguageModelRequestMetadata;
       // TODO 5.0 breaking change: remove warnings (on start instead)
@@ -344,12 +341,6 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       finishReason: FinishReason;
       usage: LanguageModelUsage;
       providerMetadata: ProviderMetadata | undefined;
-
-      /**
-       * @deprecated will be moved into provider metadata
-       */
-      // TODO 5.0 breaking change: remove logprobs
-      logprobs?: LogProbs;
 
       /**
        * @deprecated use response on step-finish instead

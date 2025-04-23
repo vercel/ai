@@ -1,5 +1,12 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.8
+
+### Major Changes
+
+- 95857aa: chore: restructure language model supported urls
+- 7ea4132: chore: remove object generation mode
+
 ## 2.0.0-canary.7
 
 ### Major Changes

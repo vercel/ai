@@ -3,8 +3,8 @@ import { LanguageModelV2CallOptions } from './language-model-v2-call-options';
 import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
 import { LanguageModelV2Content } from './language-model-v2-content';
 import { LanguageModelV2FinishReason } from './language-model-v2-finish-reason';
-import { LanguageModelV2LogProbs } from './language-model-v2-logprobs';
-import { LanguageModelV2ToolCallDelta } from './language-model-v2-tool-call-delta';
+import { LanguageModelV2ResponseMetadata } from './language-model-v2-response-metadata';
+import { LanguageModelV2StreamPart } from './language-model-v2-stream-part';
 import { LanguageModelV2Usage } from './language-model-v2-usage';
 
 /**
@@ -56,15 +56,6 @@ Ordered content that the model has generated.
     content: Array<LanguageModelV2Content>;
 
     /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled
-
-@deprecated will be changed into a provider-specific extension in v2
- */
-    // TODO change in language model v2
-    logprobs?: LanguageModelV2LogProbs;
-
-    /**
 Finish reason.
      */
     finishReason: LanguageModelV2FinishReason;
@@ -94,22 +85,7 @@ Request HTTP body that was sent to the provider API.
     /**
 Optional response information for telemetry and debugging purposes.
      */
-    response?: {
-      /**
-ID for the generated response, if the provider sends one.
-     */
-      id?: string;
-
-      /**
-Timestamp for the start of the generated response, if the provider sends one.
-     */
-      timestamp?: Date;
-
-      /**
-The ID of the response model that was used to generate the response, if the provider sends one.
-     */
-      modelId?: string;
-
+    response?: LanguageModelV2ResponseMetadata & {
       /**
 Response headers.
       */
@@ -159,40 +135,3 @@ Response headers.
     };
   }>;
 };
-
-export type LanguageModelV2StreamPart =
-  // Content (similar to doGenerate):
-  | LanguageModelV2Content
-
-  // Tool calls delta:
-  | LanguageModelV2ToolCallDelta
-
-  // stream start event with warnings for the call, e.g. unsupported settings:
-  | {
-      type: 'stream-start';
-      warnings: Array<LanguageModelV2CallWarning>;
-    }
-
-  // metadata for the response.
-  // separate stream part so it can be sent once it is available.
-  | {
-      type: 'response-metadata';
-      id?: string;
-      timestamp?: Date;
-      modelId?: string;
-    }
-
-  // the usage stats, finish reason and logprobs should be the last part of the
-  // stream:
-  | {
-      type: 'finish';
-      finishReason: LanguageModelV2FinishReason;
-      providerMetadata?: SharedV2ProviderMetadata;
-      usage: LanguageModelV2Usage;
-
-      // @deprecated - will be changed into a provider-specific extension in v2
-      logprobs?: LanguageModelV2LogProbs;
-    }
-
-  // error parts are streamed, allowing for multiple errors
-  | { type: 'error'; error: unknown };

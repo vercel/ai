@@ -1,5 +1,5 @@
 {
-  "name": "ai-sdk-fastify-example",
+  "name": "@example/fastify",
   "version": "0.0.0",
   "private": true,
   "dependencies": {
