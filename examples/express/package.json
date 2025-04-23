@@ -1,5 +1,5 @@
 {
-  "name": "ai-sdk-express-example",
+  "name": "@example/express",
   "version": "0.0.0",
   "private": true,
   "scripts": {

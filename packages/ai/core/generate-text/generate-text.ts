@@ -224,11 +224,13 @@ A function that attempts to repair a tool call that failed to parse.
 
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
+  const callSettings = prepareCallSettings(settings);
+
   const baseTelemetryAttributes = getBaseTelemetryAttributes({
     model,
     telemetry,
     headers,
-    settings: { ...settings, maxRetries },
+    settings: { ...callSettings, maxRetries },
   });
 
   const initialPrompt = standardizePrompt({
@@ -260,8 +262,6 @@ A function that attempts to repair a tool call that failed to parse.
       const toolsAndToolChoice = {
         ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
       };
-
-      const callSettings = prepareCallSettings(settings);
 
       let currentModelResponse: Awaited<
         ReturnType<LanguageModel['doGenerate']>
@@ -334,7 +334,7 @@ A function that attempts to repair a tool call that failed to parse.
                 'gen_ai.request.max_tokens': settings.maxOutputTokens,
                 'gen_ai.request.presence_penalty': settings.presencePenalty,
                 'gen_ai.request.stop_sequences': settings.stopSequences,
-                'gen_ai.request.temperature': settings.temperature,
+                'gen_ai.request.temperature': settings.temperature ?? undefined,
                 'gen_ai.request.top_k': settings.topK,
                 'gen_ai.request.top_p': settings.topP,
               },
@@ -536,7 +536,6 @@ A function that attempts to repair a tool call that failed to parse.
           finishReason: currentModelResponse.finishReason,
           usage: currentUsage,
           warnings: currentModelResponse.warnings,
-          logprobs: currentModelResponse.logprobs,
           request: currentModelResponse.request ?? {},
           response: {
             ...currentModelResponse.response,
@@ -608,7 +607,6 @@ A function that attempts to repair a tool call that failed to parse.
           ...currentModelResponse.response,
           messages: responseMessages,
         },
-        logprobs: currentModelResponse.logprobs,
         steps,
         providerMetadata: currentModelResponse.providerMetadata,
       });
@@ -722,7 +720,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   readonly usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
   readonly warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
-  readonly logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
   readonly providerMetadata: GenerateTextResult<
     TOOLS,
     OUTPUT
@@ -746,7 +743,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
     usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
     warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
-    logprobs: GenerateTextResult<TOOLS, OUTPUT>['logprobs'];
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
     providerMetadata: GenerateTextResult<TOOLS, OUTPUT>['providerMetadata'];
     response: GenerateTextResult<TOOLS, OUTPUT>['response'];
@@ -770,7 +766,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.response = options.response;
     this.steps = options.steps;
     this.providerMetadata = options.providerMetadata;
-    this.logprobs = options.logprobs;
     this.outputResolver = options.outputResolver;
     this.sources = options.sources;
   }

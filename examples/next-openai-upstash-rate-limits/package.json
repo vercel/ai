@@ -1,5 +1,5 @@
 {
-  "name": "next-openai-rate-limits",
+  "name": "@example/next-openai-rate-limits",
   "version": "0.0.0",
   "private": true,
   "scripts": {

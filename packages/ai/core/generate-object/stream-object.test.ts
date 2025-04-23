@@ -223,7 +223,6 @@ describe('streamObject', () => {
                   type: 'finish',
                   finishReason: 'stop',
                   usage: { inputTokens: 2, outputTokens: 10 },
-                  logprobs: [{ token: '-', logprob: 1, topLogprobs: [] }],
                 },
               ]),
             }),
@@ -440,7 +439,6 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   usage: { inputTokens: 3, outputTokens: 10 },
                 },
               ]),
@@ -482,7 +480,6 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   usage: { inputTokens: 3, outputTokens: 10 },
                 },
               ]),

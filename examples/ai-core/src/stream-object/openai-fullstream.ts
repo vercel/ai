@@ -36,7 +36,6 @@ async function main() {
 
       case 'finish': {
         console.log('Finish reason:', part.finishReason);
-        console.log('Logprobs:', part.logprobs);
         console.log('Usage:', part.usage);
         break;
       }

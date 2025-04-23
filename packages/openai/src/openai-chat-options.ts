@@ -58,17 +58,6 @@ export const openaiProviderOptions = z.object({
   logitBias: z.record(z.coerce.number(), z.number()).optional(),
 
   /**
-   * Return the log probabilities of the tokens.
-   *
-   * Setting to true will return the log probabilities of the tokens that
-   * were generated.
-   *
-   * Setting to a number will return the log probabilities of the top n
-   * tokens that were generated.
-   */
-  logprobs: z.union([z.boolean(), z.number()]).optional(),
-
-  /**
    * Whether to enable parallel function calling during tool use. Default to true.
    */
   parallelToolCalls: z.boolean().optional(),

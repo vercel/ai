@@ -1,5 +1,5 @@
 {
-  "name": "next-google-vertex",
+  "name": "@example/next-google-vertex",
   "version": "0.0.0",
   "private": true,
   "scripts": {
