@@ -117,7 +117,6 @@ describe('doGenerate', () => {
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "reasoningType": "text",
           "text": "This is a test reasoning",
           "type": "reasoning",
         },
@@ -555,12 +554,10 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "reasoningType": "text",
           "text": "I think,",
           "type": "reasoning",
         },
         {
-          "reasoningType": "text",
           "text": "therefore I am.",
           "type": "reasoning",
         },
