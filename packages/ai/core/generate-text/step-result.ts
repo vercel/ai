@@ -1,3 +1,4 @@
+import { ReasoningPart } from '../prompt/content-part';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import {
   CallWarning,
@@ -9,7 +10,6 @@ import {
 import { Source } from '../types/language-model';
 import { LanguageModelUsage } from '../types/usage';
 import { GeneratedFile } from './generated-file';
-import { Reasoning } from './reasoning';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -37,7 +37,7 @@ The generated text.
   /**
 The reasoning that was generated during the generation.
 */
-  readonly reasoning: Array<Reasoning>;
+  readonly reasoning: Array<ReasoningPart>;
 
   /**
 The reasoning text that was generated during the generation.

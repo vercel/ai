@@ -278,10 +278,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         case 'redacted_thinking': {
           content.push({
             type: 'reasoning',
-            text: part.data,
+            text: '',
             providerMetadata: {
               anthropic: {
                 isRedacted: true,
+                redactedData: part.data,
               } satisfies AnthropicReasoningMetadata,
             },
           });
@@ -720,6 +721,7 @@ export type AnthropicProviderOptions = z.infer<
 export const anthropicReasoningMetadataSchema = z.object({
   signature: z.string().optional(),
   isRedacted: z.boolean().optional(),
+  redactedData: z.string().optional(),
 });
 
 export type AnthropicReasoningMetadata = z.infer<

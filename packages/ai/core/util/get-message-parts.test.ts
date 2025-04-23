@@ -8,7 +8,7 @@ describe('getMessageParts', () => {
         content: 'Test content',
         parts: [
           { type: 'text', text: 'Hello' },
-          { type: 'reasoning', reasoning: 'Because', details: [] },
+          { type: 'reasoning', reasoning: 'Because', providerMetadata: {} },
         ],
       }),
     ).toEqual([

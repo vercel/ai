@@ -223,14 +223,15 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "reasoningType": "text",
               "text": "ana",
               "type": "reasoning",
             },
             {
-              "reasoningType": "text",
               "text": "lyzing the request",
               "type": "reasoning",
+            },
+            {
+              "type": "reasoning-part-finish",
             },
             {
               "text": "Here",
@@ -324,19 +325,23 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "reasoningType": "text",
               "text": "analyzing the request",
               "type": "reasoning",
+            },
+            {
+              "type": "reasoning-part-finish",
             },
             {
               "text": "Here is the response",
               "type": "text",
             },
             {
-              "reasoningType": "text",
               "text": "
           thinking about the response",
               "type": "reasoning",
+            },
+            {
+              "type": "reasoning-part-finish",
             },
             {
               "text": "
@@ -427,15 +432,16 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "reasoningType": "text",
               "text": "ana",
               "type": "reasoning",
             },
             {
-              "reasoningType": "text",
               "text": "lyzing the request
           ",
               "type": "reasoning",
+            },
+            {
+              "type": "reasoning-part-finish",
             },
             {
               "finishReason": "stop",
@@ -533,15 +539,16 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "reasoningType": "text",
               "text": "ana",
               "type": "reasoning",
             },
             {
-              "reasoningType": "text",
               "text": "lyzing the request
           ",
               "type": "reasoning",
+            },
+            {
+              "type": "reasoning-part-finish",
             },
             {
               "text": "this is the response",

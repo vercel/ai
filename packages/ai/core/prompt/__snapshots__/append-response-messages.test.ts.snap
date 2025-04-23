@@ -233,17 +233,11 @@ exports[`appendResponseMessages > after assistant message > appends assistant me
         "type": "step-start",
       },
       {
-        "details": [
-          {
+        "providerMetadata": {
+          "testProvider": {
             "signature": "sig-1",
-            "text": "reasoning part",
-            "type": "text",
           },
-          {
-            "data": "redacted part",
-            "type": "redacted",
-          },
-        ],
+        },
         "reasoning": "reasoning part",
         "type": "reasoning",
       },
@@ -252,13 +246,11 @@ exports[`appendResponseMessages > after assistant message > appends assistant me
         "type": "text",
       },
       {
-        "details": [
-          {
+        "providerMetadata": {
+          "testProvider": {
             "signature": "sig-2",
-            "text": "reasoning part 2",
-            "type": "text",
           },
-        ],
+        },
         "reasoning": "reasoning part 2",
         "type": "reasoning",
       },
@@ -440,18 +432,12 @@ exports[`appendResponseMessages > after user message > appends assistant message
         "type": "step-start",
       },
       {
-        "details": [
-          {
-            "signature": "sig-1",
-            "text": "reasoning part",
-            "type": "text",
+        "providerMetadata": {
+          "testProvider": {
+            "isRedacted": true,
           },
-          {
-            "data": "redacted part",
-            "type": "redacted",
-          },
-        ],
-        "reasoning": "reasoning part",
+        },
+        "reasoning": "reasoning partredacted part",
         "type": "reasoning",
       },
       {
@@ -459,13 +445,11 @@ exports[`appendResponseMessages > after user message > appends assistant message
         "type": "text",
       },
       {
-        "details": [
-          {
+        "providerMetadata": {
+          "testProvider": {
             "signature": "sig-2",
-            "text": "reasoning part 2",
-            "type": "text",
           },
-        ],
+        },
         "reasoning": "reasoning part 2",
         "type": "reasoning",
       },
@@ -474,7 +458,7 @@ exports[`appendResponseMessages > after user message > appends assistant message
         "type": "text",
       },
     ],
-    "reasoning": "reasoning partreasoning part 2",
+    "reasoning": "reasoning partredacted partreasoning part 2",
     "role": "assistant",
     "toolInvocations": [],
   },

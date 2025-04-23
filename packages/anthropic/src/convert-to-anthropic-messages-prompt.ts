@@ -272,7 +272,7 @@ export function convertToAnthropicMessagesPrompt({
                     } else if (anthropicReasoningMetadata.isRedacted) {
                       anthropicContent.push({
                         type: 'redacted_thinking',
-                        data: part.text,
+                        data: anthropicReasoningMetadata.redactedData!,
                         cache_control: cacheControl,
                       });
                     } else {

@@ -136,39 +136,44 @@ const modelWithReasoning = new MockLanguageModelV2({
       },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: 'I will open the conversation',
       },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: ' with witty banter. ',
       },
       {
         type: 'reasoning',
-        reasoningType: 'signature',
-        signature: '1234567890',
+        text: '',
+        providerOptions: {
+          testProvider: { signature: '1234567890' },
+        },
       },
+      { type: 'reasoning-part-finish' },
       {
         type: 'reasoning',
-        reasoningType: 'redacted',
-        data: 'redacted-reasoning-data',
+        text: 'redacted-reasoning-data',
+        providerOptions: {
+          testProvider: { isRedacted: true },
+        },
       },
+      { type: 'reasoning-part-finish' },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: 'Once the user has relaxed,',
       },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: ' I will pry for valuable information.',
       },
       {
         type: 'reasoning',
-        reasoningType: 'signature',
-        signature: '1234567890',
+        text: '',
+        providerOptions: {
+          testProvider: { signature: '1234567890' },
+        },
       },
+      { type: 'reasoning-part-finish' },
       { type: 'text', text: 'Hi' },
       { type: 'text', text: ' there!' },
       {

@@ -91,23 +91,11 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                   break;
                 }
                 case 'reasoning': {
-                  for (const detail of part.details) {
-                    switch (detail.type) {
-                      case 'text':
-                        content.push({
-                          type: 'reasoning' as const,
-                          text: detail.text,
-                          signature: detail.signature,
-                        });
-                        break;
-                      case 'redacted':
-                        content.push({
-                          type: 'redacted-reasoning' as const,
-                          data: detail.data,
-                        });
-                        break;
-                    }
-                  }
+                  content.push({
+                    type: 'reasoning' as const,
+                    text: part.reasoning,
+                    providerOptions: part.providerMetadata,
+                  });
                   break;
                 }
                 case 'tool-invocation':

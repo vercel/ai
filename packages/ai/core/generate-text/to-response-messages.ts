@@ -1,6 +1,6 @@
 import { ToolResultPart } from '../prompt';
+import { ReasoningPart } from '../prompt/content-part';
 import { GeneratedFile } from './generated-file';
-import { Reasoning } from './reasoning';
 import { ResponseMessage } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -21,7 +21,7 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 }: {
   text: string | undefined;
   files: Array<GeneratedFile>;
-  reasoning: Array<Reasoning>;
+  reasoning: Array<ReasoningPart>;
   tools: TOOLS;
   toolCalls: ToolCallArray<TOOLS>;
   toolResults: ToolResultArray<TOOLS>;
@@ -34,14 +34,8 @@ export function toResponseMessages<TOOLS extends ToolSet>({
 
   // TODO language model v2: switch to order response content (instead of type-based ordering)
 
-  if (reasoning.length > 0) {
-    content.push(
-      ...reasoning.map(part =>
-        part.type === 'text'
-          ? { ...part, type: 'reasoning' as const }
-          : { ...part, type: 'redacted-reasoning' as const },
-      ),
-    );
+  for (const part of reasoning) {
+    content.push(part);
   }
 
   if (files.length > 0) {

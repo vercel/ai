@@ -23,9 +23,8 @@ import { ToolSet } from './tool-set';
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
   | { type: 'text'; text: string }
-  | { type: 'reasoning'; reasoningType: 'text'; text: string }
-  | { type: 'reasoning'; reasoningType: 'signature'; signature: string }
-  | { type: 'reasoning'; reasoningType: 'redacted'; data: string }
+  | { type: 'reasoning'; text: string; providerMetadata?: ProviderMetadata }
+  | { type: 'reasoning-part-finish' }
   | { type: 'file'; file: GeneratedFile }
   | ({ type: 'source' } & Source)
   | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
@@ -136,6 +135,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'stream-start':
         case 'text':
         case 'reasoning':
+        case 'reasoning-part-finish':
         case 'source':
         case 'response-metadata':
         case 'error': {

@@ -33,13 +33,14 @@ import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import { asReasoningText, Reasoning } from './reasoning';
+import { convertReasoningContentToParts, asReasoningText } from './reasoning';
 import { ResponseMessage, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ReasoningPart } from '../prompt/content-part';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -268,7 +269,7 @@ A function that attempts to repair a tool call that failed to parse.
       > & { response: { id: string; timestamp: Date; modelId: string } };
       let currentToolCalls: ToolCallArray<TOOLS> = [];
       let currentToolResults: ToolResultArray<TOOLS> = [];
-      let currentReasoningDetails: Array<Reasoning> = [];
+      let currentReasoning: Array<ReasoningPart> = [];
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       let text = '';
@@ -478,7 +479,7 @@ A function that attempts to repair a tool call that failed to parse.
             ? text + stepText
             : stepText;
 
-        currentReasoningDetails = asReasoningDetails(
+        currentReasoning = convertReasoningContentToParts(
           currentModelResponse.content,
         );
 
@@ -511,7 +512,9 @@ A function that attempts to repair a tool call that failed to parse.
             ...toResponseMessages({
               text,
               files: asFiles(currentModelResponse.content),
-              reasoning: asReasoningDetails(currentModelResponse.content),
+              reasoning: convertReasoningContentToParts(
+                currentModelResponse.content,
+              ),
               tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
               toolResults: currentToolResults,
@@ -525,8 +528,8 @@ A function that attempts to repair a tool call that failed to parse.
         const currentStepResult: StepResult<TOOLS> = {
           stepType,
           text: stepText,
-          reasoningText: asReasoningText(currentReasoningDetails),
-          reasoning: currentReasoningDetails,
+          reasoningText: asReasoningText(currentReasoning),
+          reasoning: currentReasoning,
           files: asFiles(currentModelResponse.content),
           sources: currentModelResponse.content.filter(
             part => part.type === 'source',
@@ -580,8 +583,8 @@ A function that attempts to repair a tool call that failed to parse.
       return new DefaultGenerateTextResult({
         text,
         files: asFiles(currentModelResponse.content),
-        reasoning: asReasoningText(currentReasoningDetails),
-        reasoningDetails: currentReasoningDetails,
+        reasoning: asReasoningText(currentReasoning),
+        reasoningDetails: currentReasoning,
         sources,
         outputResolver: () => {
           if (output == null) {
@@ -773,51 +776,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   get experimental_output() {
     return this.outputResolver();
   }
-}
-
-function asReasoningDetails(
-  content: Array<LanguageModelV2Content>,
-): Array<
-  | { type: 'text'; text: string; signature?: string }
-  | { type: 'redacted'; data: string }
-> {
-  const reasoning = content.filter(part => part.type === 'reasoning');
-
-  if (reasoning.length === 0) {
-    return [];
-  }
-
-  const result: Array<
-    | { type: 'text'; text: string; signature?: string }
-    | { type: 'redacted'; data: string }
-  > = [];
-
-  let activeReasoningText:
-    | { type: 'text'; text: string; signature?: string }
-    | undefined;
-
-  for (const part of reasoning) {
-    if (part.reasoningType === 'text') {
-      if (activeReasoningText == null) {
-        activeReasoningText = { type: 'text', text: part.text };
-        result.push(activeReasoningText);
-      } else {
-        activeReasoningText.text += part.text;
-      }
-    } else if (part.reasoningType === 'signature') {
-      if (activeReasoningText == null) {
-        activeReasoningText = { type: 'text', text: '' };
-        result.push(activeReasoningText);
-      }
-
-      activeReasoningText.signature = part.signature;
-      activeReasoningText = undefined; // signature concludes reasoning part
-    } else if (part.reasoningType === 'redacted') {
-      result.push({ type: 'redacted', data: part.data });
-    }
-  }
-
-  return result;
 }
 
 function asFiles(content: Array<LanguageModelV2Content>): Array<GeneratedFile> {
