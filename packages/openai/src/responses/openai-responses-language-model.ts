@@ -299,6 +299,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               }),
               z.object({
                 type: z.literal('reasoning'),
+                summary: z.array(
+                  z.object({
+                    type: z.literal('summary_text'),
+                    text: z.string(),
+                  }),
+                ),
               }),
             ]),
           ),
@@ -324,6 +330,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
         args: output.arguments,
       }));
 
+    const reasoningSummary =
+      response.output.find(item => item.type === 'reasoning')?.summary ?? null;
+
     return {
       text: outputTextElements.map(content => content.text).join('\n'),
       sources: outputTextElements.flatMap(content =>
@@ -339,6 +348,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
         hasToolCalls: toolCalls.length > 0,
       }),
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+      reasoning: reasoningSummary
+        ? reasoningSummary.map(summary => ({
+            type: 'text' as const,
+            text: summary.text,
+          }))
+        : undefined,
       usage: {
         promptTokens: response.usage.input_tokens,
         completionTokens: response.usage.output_tokens,
@@ -366,7 +381,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             response.usage.input_tokens_details?.cached_tokens ?? null,
           reasoningTokens:
             response.usage.output_tokens_details?.reasoning_tokens ?? null,
-          reasoningSummary: null,
         },
       },
       warnings,
@@ -561,6 +575,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               };
             }
 
+            const reasoning =
+              reasoningSummary.length > 0
+                ? reasoningSummary.map(summary => ({
+                    type: 'text' as const,
+                    text: summary.text,
+                  }))
+                : undefined;
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -577,6 +599,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                   },
                 },
               }),
+              ...(reasoning && { reasoning }),
             });
           },
         }),

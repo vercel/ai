@@ -4,6 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
+    // supported: o4-mini, o3, o3-mini and o1
     model: openai.responses('o3-mini'),
     prompt:
       'Tell me about the debate over Taqueria La Cumbre and El Farolito and who created the San Francisco Mission-style burrito.',
@@ -15,7 +16,9 @@ async function main() {
     },
   });
 
+  process.stdout.write('\x1b[34m');
   console.log(result.reasoning);
+  process.stdout.write('\x1b[0m');
   console.log(result.text);
   console.log();
   console.log('Finish reason:', result.finishReason);
