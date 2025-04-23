@@ -637,7 +637,7 @@ const sources = result.sources;
 
 For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process:
 
-```ts highlight="8-9,17-19"
+```ts highlight="8-9,16"
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
@@ -651,11 +651,9 @@ const result = streamText({
   },
 });
 
-// Process the stream
 for await (const part of result.fullStream) {
   if (part.type === 'reasoning') {
-    // Display reasoning summaries in blue
-    console.log('\x1b[34m%s\x1b[0m', `Reasoning: ${part.textDelta}`);
+    console.log(`Reasoning: ${part.textDelta}`);
   } else if (part.type === 'text-delta') {
     process.stdout.write(part.textDelta);
   }
@@ -664,7 +662,7 @@ for await (const part of result.fullStream) {
 
 For non-streaming calls with `generateText`, the reasoning summaries are available in the `reasoning` field of the response:
 
-```ts highlight="8-9,12"
+```ts highlight="8-9,13"
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
