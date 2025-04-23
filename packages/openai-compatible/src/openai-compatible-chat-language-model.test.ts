@@ -195,7 +195,6 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "reasoningType": "text",
           "text": "This is the reasoning behind the response",
           "type": "reasoning",
         },
@@ -1013,12 +1012,10 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "reasoningType": "text",
           "text": "Let me think",
           "type": "reasoning",
         },
         {
-          "reasoningType": "text",
           "text": " about this",
           "type": "reasoning",
         },
