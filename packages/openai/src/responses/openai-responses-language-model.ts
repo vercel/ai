@@ -319,6 +319,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const computerToolCalls: Array<LanguageModelV2ToolCall> = response.output
       .filter(output => output.type === 'computer_call')
       .map(output => ({
+        type: 'tool-call' as const,
         toolCallType: 'function' as const,
         toolCallId: output.call_id,
         toolName: 'computer_use_preview',
@@ -806,7 +807,6 @@ const openaiResponsesProviderOptionsSchema = z.object({
   reasoningEffort: z.enum(['low', 'medium', 'high']).nullish(),
   reasoningSummary: z.enum(['concise', 'detailed']).nullish(),
   instructions: z.string().nullish(),
-  reasoningSummary: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
