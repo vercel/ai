@@ -834,8 +834,11 @@ describe('convertToLanguageModelMessage', () => {
                 text: `I'm thinking`,
               },
               {
-                type: 'redacted-reasoning',
-                data: 'redacted-reasoning-data',
+                type: 'reasoning',
+                text: 'redacted-reasoning-data',
+                providerOptions: {
+                  'test-provider': { redacted: true },
+                },
               },
               {
                 type: 'reasoning',
@@ -858,8 +861,11 @@ describe('convertToLanguageModelMessage', () => {
               text: `I'm thinking`,
             },
             {
-              type: 'redacted-reasoning',
-              data: 'redacted-reasoning-data',
+              type: 'reasoning',
+              text: 'redacted-reasoning-data',
+              providerOptions: {
+                'test-provider': { redacted: true },
+              },
             },
             {
               type: 'reasoning',
