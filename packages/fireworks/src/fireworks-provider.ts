@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/openai-compatible';
 import {
   EmbeddingModelV2,
-  ImageModelV1,
+  ImageModelV2,
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
@@ -94,7 +94,7 @@ Creates a model for image generation.
   image(
     modelId: FireworksImageModelId,
     settings?: FireworksImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 Creates a model for image generation.
@@ -102,7 +102,7 @@ Creates a model for image generation.
   imageModel(
     modelId: FireworksImageModelId,
     settings?: FireworksImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
