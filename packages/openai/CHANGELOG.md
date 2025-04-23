@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- 8493141: feat (providers/openai): add support for reasoning summaries
+- Updated dependencies [e86be6f]
+  - @ai-sdk/provider@2.0.0-canary.9
+  - @ai-sdk/provider-utils@3.0.0-canary.10
+
 ## 2.0.0-canary.10
 
 ### Patch Changes
