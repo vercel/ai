@@ -66,19 +66,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         model: 'o3-mini-2025-01-31',
         output: [
           {
-            id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-            type: 'message',
-            status: 'completed',
-            role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'answer text',
-                annotations: [],
-              },
-            ],
-          },
-          {
             id: 'rs_6808709f6fcc8191ad2e2fdd784017b3',
             type: 'reasoning',
             summary: [
@@ -89,6 +76,19 @@ describe('OpenAIResponsesLanguageModel', () => {
               {
                 type: 'summary_text',
                 text: "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
+              },
+            ],
+          },
+          {
+            id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'answer text',
+                annotations: [],
               },
             ],
           },
@@ -779,8 +779,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         const result = await createModel('o3-mini').doGenerate({
           prompt: TEST_PROMPT,
           inputFormat: 'prompt',
-          mode: { type: 'regular' },
-          providerMetadata: {
+          providerOptions: {
             openai: {
               reasoningEffort: 'low',
               reasoningSummary: 'auto',
@@ -788,16 +787,23 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(result.reasoning).toStrictEqual([
-          {
-            type: 'text',
-            text: '**Exploring burrito origins**\n\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito.',
-          },
-          {
-            type: 'text',
-            text: "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
-          },
-        ]);
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "reasoningType": "text",
+              "text": "**Exploring burrito origins**
+
+          The user is curious about the debate regarding Taqueria La Cumbre and El Farolito.,**Investigating burrito origins**
+
+          There's a fascinating debate about who created the Mission burrito.",
+              "type": "reasoning",
+            },
+            {
+              "text": "answer text",
+              "type": "text",
+            },
+          ]
+        `);
 
         expect(result.providerMetadata).toStrictEqual({
           openai: {
@@ -1519,9 +1525,8 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const { stream } = await createModel('o3-mini').doStream({
         inputFormat: 'prompt',
-        mode: { type: 'regular' },
         prompt: TEST_PROMPT,
-        providerMetadata: {
+        providerOptions: {
           openai: {
             reasoningEffort: 'low',
             reasoningSummary: 'auto',
@@ -1529,35 +1534,58 @@ describe('OpenAIResponsesLanguageModel', () => {
         },
       });
 
-      const streamResults = await convertReadableStreamToArray(stream);
+      expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "stream-start",
+            "warnings": [],
+          },
+          {
+            "id": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+            "modelId": "o3-mini-2025-01-31",
+            "timestamp": 2025-03-06T13:50:19.000Z,
+            "type": "response-metadata",
+          },
+          {
+            "reasoningType": "text",
+            "text": "**Exploring burrito origins**
 
-      expect(streamResults).toContainEqual({
-        type: 'reasoning',
-        textDelta: '**Exploring burrito origins**\n\nThe user is',
-      });
+        The user is",
+            "type": "reasoning",
+          },
+          {
+            "reasoningType": "text",
+            "text": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
+            "type": "reasoning",
+          },
+          {
+            "reasoningType": "text",
+            "text": "**Investigating burrito origins**
 
-      expect(streamResults).toContainEqual({
-        type: 'reasoning',
-        textDelta:
-          ' curious about the debate regarding Taqueria La Cumbre and El Farolito.',
-      });
-
-      expect(streamResults).toContainEqual({
-        type: 'reasoning',
-        textDelta:
-          "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
-      });
-
-      const finishEvent = streamResults.find(event => event.type === 'finish');
-      expect(finishEvent).toBeDefined();
-
-      expect(finishEvent?.providerMetadata).toMatchObject({
-        openai: {
-          responseId: 'resp_67c9a81b6a048190a9ee441c5755a4e8',
-          cachedPromptTokens: 234,
-          reasoningTokens: 350,
-        },
-      });
+        There's a fascinating debate about who created the Mission burrito.",
+            "type": "reasoning",
+          },
+          {
+            "text": "Taqueria La Cumbre",
+            "type": "text",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": {
+              "openai": {
+                "cachedPromptTokens": 234,
+                "reasoningTokens": 350,
+                "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
+              },
+            },
+            "type": "finish",
+            "usage": {
+              "inputTokens": 543,
+              "outputTokens": 478,
+            },
+          },
+        ]
+      `);
 
       expect(await server.calls[0].requestBody).toMatchObject({
         model: 'o3-mini',

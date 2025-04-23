@@ -274,6 +274,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // map response content to content array
     for (const part of response.output) {
       switch (part.type) {
+        case 'reasoning': {
+          content.push({
+            type: 'reasoning',
+            reasoningType: 'text',
+            text: part.summary.map(summary => summary.text).join(),
+          });
+          break;
+        }
+
         case 'message': {
           for (const contentPart of part.content) {
             content.push({
@@ -307,22 +316,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }
     }
 
-    const reasoningSummary =
-      response.output.find(item => item.type === 'reasoning')?.summary ?? null;
-
     return {
       content,
       finishReason: mapOpenAIResponseFinishReason({
         finishReason: response.incomplete_details?.reason,
         hasToolCalls: content.some(part => part.type === 'tool-call'),
       }),
-      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-      reasoning: reasoningSummary
-        ? reasoningSummary.map(summary => ({
-            type: 'text' as const,
-            text: summary.text,
-          }))
-        : undefined,
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
@@ -450,7 +449,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
               controller.enqueue({
                 type: 'reasoning',
-                textDelta: value.delta,
+                reasoningType: 'text',
+                text: value.delta,
               });
             } else if (
               isResponseOutputItemDoneChunk(value) &&
