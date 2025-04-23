@@ -137,8 +137,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
-        openaiOptions?.reasoningEffort != null && {
-          reasoning: { effort: openaiOptions?.reasoningEffort },
+        (openaiOptions?.reasoningEffort != null ||
+          openaiOptions?.reasoningSummary != null) && {
+          reasoning: {
+            ...(openaiOptions?.reasoningEffort != null && {
+              effort: openaiOptions.reasoningEffort,
+            }),
+            ...(openaiOptions?.reasoningSummary != null && {
+              summary: openaiOptions.reasoningSummary,
+            }),
+          },
         }),
       ...(modelConfig.requiredAutoTruncation && {
         truncation: 'auto',
@@ -244,6 +252,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
               z.object({
                 type: z.literal('reasoning'),
+                summary: z.array(
+                  z.object({
+                    type: z.literal('summary_text'),
+                    text: z.string(),
+                  }),
+                ),
               }),
             ]),
           ),
@@ -293,12 +307,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       }
     }
 
+    const reasoningSummary =
+      response.output.find(item => item.type === 'reasoning')?.summary ?? null;
+
     return {
       content,
       finishReason: mapOpenAIResponseFinishReason({
         finishReason: response.incomplete_details?.reason,
         hasToolCalls: content.some(part => part.type === 'tool-call'),
       }),
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+      reasoning: reasoningSummary
+        ? reasoningSummary.map(summary => ({
+            type: 'text' as const,
+            text: summary.text,
+          }))
+        : undefined,
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
@@ -422,6 +446,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               controller.enqueue({
                 type: 'text',
                 text: value.delta,
+              });
+            } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
+              controller.enqueue({
+                type: 'reasoning',
+                textDelta: value.delta,
               });
             } else if (
               isResponseOutputItemDoneChunk(value) &&
@@ -568,6 +597,14 @@ const responseAnnotationAddedSchema = z.object({
   }),
 });
 
+const responseReasoningSummaryTextDeltaSchema = z.object({
+  type: z.literal('response.reasoning_summary_text.delta'),
+  item_id: z.string(),
+  output_index: z.number(),
+  summary_index: z.number(),
+  delta: z.string(),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
@@ -576,6 +613,7 @@ const openaiResponsesChunkSchema = z.union([
   responseFunctionCallArgumentsDeltaSchema,
   responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
+  responseReasoningSummaryTextDeltaSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -623,6 +661,12 @@ function isResponseAnnotationAddedChunk(
   return chunk.type === 'response.output_text.annotation.added';
 }
 
+function isResponseReasoningSummaryTextDeltaChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
+  return chunk.type === 'response.reasoning_summary_text.delta';
+}
+
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -664,6 +708,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   reasoningEffort: z.string().nullish(),
   strictSchemas: z.boolean().nullish(),
   instructions: z.string().nullish(),
+  reasoningSummary: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<
