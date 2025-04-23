@@ -140,8 +140,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
-        openaiOptions?.reasoningEffort != null && {
-          reasoning: { effort: openaiOptions?.reasoningEffort },
+        (openaiOptions?.reasoningEffort != null ||
+          openaiOptions?.reasoningSummary != null) && {
+          reasoning: {
+            ...(openaiOptions?.reasoningEffort != null && {
+              effort: openaiOptions.reasoningEffort,
+            }),
+            ...(openaiOptions?.reasoningSummary != null && {
+              summary: openaiOptions.reasoningSummary,
+            }),
+          },
         }),
       ...(modelConfig.requiredAutoTruncation && {
         truncation: 'auto',
@@ -358,6 +366,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             response.usage.input_tokens_details?.cached_tokens ?? null,
           reasoningTokens:
             response.usage.output_tokens_details?.reasoning_tokens ?? null,
+          reasoningSummaryText: null,
         },
       },
       warnings,
@@ -395,6 +404,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     let cachedPromptTokens: number | null = null;
     let reasoningTokens: number | null = null;
     let responseId: string | null = null;
+    let reasoningSummaryText = '';
     const ongoingToolCalls: Record<
       number,
       { toolName: string; toolCallId: string } | undefined
@@ -457,6 +467,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 type: 'text-delta',
                 textDelta: value.delta,
               });
+            } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
+              reasoningSummaryText += value.delta;
             } else if (
               isResponseOutputItemDoneChunk(value) &&
               value.item.type === 'function_call'
@@ -501,12 +513,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
               type: 'finish',
               finishReason,
               usage: { promptTokens, completionTokens },
-              ...((cachedPromptTokens != null || reasoningTokens != null) && {
+              ...((cachedPromptTokens != null ||
+                reasoningTokens != null ||
+                reasoningSummaryText !== '') && {
                 providerMetadata: {
                   openai: {
                     responseId,
                     cachedPromptTokens,
                     reasoningTokens,
+                    ...(reasoningSummaryText !== '' && {
+                      reasoningSummaryText,
+                    }),
                   },
                 },
               }),
@@ -609,6 +626,14 @@ const responseAnnotationAddedSchema = z.object({
   }),
 });
 
+const responseReasoningSummaryTextDeltaSchema = z.object({
+  type: z.literal('response.reasoning_summary_text.delta'),
+  item_id: z.string(),
+  output_index: z.number(),
+  summary_index: z.number(),
+  delta: z.string(),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
@@ -617,6 +642,7 @@ const openaiResponsesChunkSchema = z.union([
   responseFunctionCallArgumentsDeltaSchema,
   responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
+  responseReasoningSummaryTextDeltaSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -664,6 +690,12 @@ function isResponseAnnotationAddedChunk(
   return chunk.type === 'response.output_text.annotation.added';
 }
 
+function isResponseReasoningSummaryTextDeltaChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
+  return chunk.type === 'response.reasoning_summary_text.delta';
+}
+
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -705,6 +737,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   reasoningEffort: z.string().nullish(),
   strictSchemas: z.boolean().nullish(),
   instructions: z.string().nullish(),
+  reasoningSummary: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

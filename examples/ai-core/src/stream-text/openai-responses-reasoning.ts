@@ -7,11 +7,20 @@ async function main() {
     model: openai.responses('o3-mini'),
     system: 'You are a helpful assistant.',
     prompt: 'Invent a new holiday and describe its traditions.',
+    providerOptions: {
+      openai: {
+        reasoningSummary: 'auto',
+      },
+    },
   });
 
-  for await (const textPart of result.textStream) {
-    process.stdout.write(textPart);
+  for await (const part of result.fullStream) {
+    console.log(part);
   }
+
+  // for await (const textPart of result.textStream) {
+  //   process.stdout.write(textPart);
+  // }
 
   console.log();
   console.log('Finish reason:', await result.finishReason);
