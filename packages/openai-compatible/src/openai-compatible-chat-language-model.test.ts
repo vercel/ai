@@ -1729,9 +1729,32 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}],"stream":true}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "frequency_penalty": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-beta",
+          "presence_penalty": undefined,
+          "response_format": undefined,
+          "seed": undefined,
+          "stop": undefined,
+          "stream": true,
+          "stream_options": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   describe('usage details in streaming', () => {
