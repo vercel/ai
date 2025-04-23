@@ -543,6 +543,7 @@ describe('doStream', () => {
           "seed": undefined,
           "stop": undefined,
           "stream": true,
+          "stream_options": undefined,
           "suffix": undefined,
           "temperature": undefined,
           "top_p": undefined,
