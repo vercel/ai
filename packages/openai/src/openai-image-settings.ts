@@ -7,7 +7,7 @@ export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
   'gpt-image-1': 10,
 };
 
-export const supportsResponseFormat = new Set(['dall-e-2', 'dall-e-3']);
+export const hasDefaultResponseFormat = new Set(['gpt-image-1']);
 
 export interface OpenAIImageSettings {
   /**
