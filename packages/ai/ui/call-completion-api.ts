@@ -1,6 +1,6 @@
-import { processTextStream } from './process-text-stream';
+import { JSONValue } from '@ai-sdk/provider';
 import { processDataStream } from './process-data-stream';
-import { JSONValue } from '../types';
+import { processTextStream } from './process-text-stream';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;

@@ -1,5 +1,5 @@
 import { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
-import { formatDataStreamPart } from '../core';
+import { formatDataStreamPart } from '../ui/data-stream/format-data-stream-part';
 import { DataStreamWriter } from '../core/data-stream/data-stream-writer';
 import { mergeStreams } from '../core/util/merge-streams';
 import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
