@@ -8,7 +8,7 @@ import {
   toDataStream,
   toDataStreamResponse,
 } from './llamaindex-adapter';
-import { createDataStream } from '../core';
+import { createDataStream } from 'ai';
 
 describe('toDataStream', () => {
   it('should convert AsyncIterable<EngineResponse>', async () => {
