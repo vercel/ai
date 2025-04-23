@@ -4,6 +4,7 @@ import {
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
+  LanguageModelV2ToolCall,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import {
@@ -315,19 +316,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }
       }
     }
-    const computerToolCalls: Array<LanguageModelV1FunctionToolCall> =
-      response.output
-        .filter(output => output.type === 'computer_call')
-        .map(output => ({
-          toolCallType: 'function' as const,
-          toolCallId: output.call_id,
-          toolName: 'computer_use_preview',
-          args: JSON.stringify({
-            action: output.action,
-            pendingSafetyChecks: output.pending_safety_checks,
-            id: output.id,
-          }),
-        }));
+    const computerToolCalls: Array<LanguageModelV2ToolCall> = response.output
+      .filter(output => output.type === 'computer_call')
+      .map(output => ({
+        toolCallType: 'function' as const,
+        toolCallId: output.call_id,
+        toolName: 'computer_use_preview',
+        args: JSON.stringify({
+          action: output.action,
+          pendingSafetyChecks: output.pending_safety_checks,
+          id: output.id,
+        }),
+      }));
 
     const functionToolCalls = response.output
       .filter(output => output.type === 'function_call')
