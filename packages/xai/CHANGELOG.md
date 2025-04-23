@@ -1,5 +1,13 @@
 # @ai-sdk/xai
 
+## 1.2.14
+
+### Patch Changes
+
+- 13492fe: fix(providers/xai): return actual usage when streaming instead of NaN
+- Updated dependencies [13492fe]
+  - @ai-sdk/openai-compatible@0.2.12
+
 ## 1.2.13
 
 ### Patch Changes

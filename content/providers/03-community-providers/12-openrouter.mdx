@@ -48,14 +48,14 @@ You can obtain your OpenRouter API key from the [OpenRouter Dashboard](https://o
 
 ## Language Models
 
-OpenRouter supports both chat and completion models. Use `openrouter.chatModel()` for chat models and `openrouter.completionModel()` for completion models:
+OpenRouter supports both chat and completion models. Use `openrouter.chat()` for chat models and `openrouter.completion()` for completion models:
 
 ```typescript
 // Chat models (recommended)
-const chatModel = openrouter.chatModel('anthropic/claude-3.5-sonnet');
+const chatModel = openrouter.chat('anthropic/claude-3.5-sonnet');
 
 // Completion models
-const completionModel = openrouter.completionModel(
+const completionModel = openrouter.completion(
   'meta-llama/llama-3.1-405b-instruct',
 );
 ```
@@ -77,7 +77,7 @@ const openrouter = createOpenRouter({
 });
 
 const { text } = await generateText({
-  model: openrouter.chatModel('anthropic/claude-3.5-sonnet'),
+  model: openrouter.chat('anthropic/claude-3.5-sonnet'),
   prompt: 'What is OpenRouter?',
 });
 
@@ -95,7 +95,7 @@ const openrouter = createOpenRouter({
 });
 
 const result = streamText({
-  model: openrouter.chatModel('meta-llama/llama-3.1-405b-instruct'),
+  model: openrouter.chat('meta-llama/llama-3.1-405b-instruct'),
   prompt: 'Write a short story about AI.',
 });
 
