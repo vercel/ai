@@ -805,7 +805,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   user: z.string().nullish(),
   strictSchemas: z.boolean().nullish(),
   reasoningEffort: z.enum(['low', 'medium', 'high']).nullish(),
-  reasoningSummary: z.enum(['concise', 'detailed']).nullish(),
+  reasoningSummary: z.enum(['concise', 'detailed', 'auto']).nullish(),
   instructions: z.string().nullish(),
 });
 

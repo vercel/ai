@@ -31,6 +31,7 @@
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/xai": "workspace:*",
     "@ai-sdk/valibot": "workspace:*",
+    "@e2b/desktop": "1.7.2",
     "@google/generative-ai": "0.21.0",
     "@opentelemetry/auto-instrumentations-node": "0.54.0",
     "@opentelemetry/sdk-node": "0.54.2",
