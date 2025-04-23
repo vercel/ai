@@ -50,6 +50,83 @@ describe('OpenAIResponsesLanguageModel', () => {
     'https://api.openai.com/v1/responses': {},
   });
 
+  const prepareReasoningResponse = () => {
+    server.urls['https://api.openai.com/v1/responses'].response = {
+      type: 'json-value',
+      body: {
+        id: 'resp_67c97c0203188190a025beb4a75242bc',
+        object: 'response',
+        created_at: 1741257730,
+        status: 'completed',
+        error: null,
+        incomplete_details: null,
+        input: [],
+        instructions: null,
+        max_output_tokens: null,
+        model: 'o3-mini-2025-01-31',
+        output: [
+          {
+            id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
+            type: 'message',
+            status: 'completed',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'answer text',
+                annotations: [],
+              },
+            ],
+          },
+          {
+            id: 'rs_6808709f6fcc8191ad2e2fdd784017b3',
+            type: 'reasoning',
+            summary: [
+              {
+                type: 'summary_text',
+                text: '**Exploring burrito origins**\n\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito.',
+              },
+              {
+                type: 'summary_text',
+                text: "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
+              },
+            ],
+          },
+        ],
+        parallel_tool_calls: true,
+        previous_response_id: null,
+        reasoning: {
+          effort: 'low',
+          summary: 'auto',
+        },
+        store: true,
+        temperature: 1,
+        text: {
+          format: {
+            type: 'text',
+          },
+        },
+        tool_choice: 'auto',
+        tools: [],
+        top_p: 1,
+        truncation: 'disabled',
+        usage: {
+          input_tokens: 34,
+          input_tokens_details: {
+            cached_tokens: 0,
+          },
+          output_tokens: 538,
+          output_tokens_details: {
+            reasoning_tokens: 320,
+          },
+          total_tokens: 572,
+        },
+        user: null,
+        metadata: {},
+      },
+    };
+  };
+
   describe('doGenerate', () => {
     describe('basic text response', () => {
       beforeEach(() => {
@@ -757,6 +834,49 @@ describe('OpenAIResponsesLanguageModel', () => {
           { type: 'unsupported-setting', setting: 'stopSequences' },
         ]);
       });
+
+      it('should extract reasoning summary', async () => {
+        prepareReasoningResponse();
+
+        const result = await createModel('o3-mini').doGenerate({
+          prompt: TEST_PROMPT,
+          inputFormat: 'prompt',
+          mode: { type: 'regular' },
+          providerMetadata: {
+            openai: {
+              reasoningEffort: 'low',
+              reasoningSummary: 'auto',
+            },
+          },
+        });
+
+        expect(result.reasoning).toStrictEqual([
+          {
+            type: 'text',
+            text: '**Exploring burrito origins**\n\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito.',
+          },
+          {
+            type: 'text',
+            text: "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
+          },
+        ]);
+
+        expect(result.providerMetadata).toStrictEqual({
+          openai: {
+            responseId: 'resp_67c97c0203188190a025beb4a75242bc',
+            cachedPromptTokens: 0,
+            reasoningTokens: 320,
+          },
+        });
+
+        expect(await server.calls[0].requestBody).toMatchObject({
+          model: 'o3-mini',
+          reasoning: {
+            effort: 'low',
+            summary: 'auto',
+          },
+        });
+      });
     });
 
     describe('tool calls', () => {
@@ -1374,127 +1494,9 @@ describe('OpenAIResponsesLanguageModel', () => {
       ]);
     });
 
-    describe('reasoning summary', () => {
-      beforeEach(() => {
-        server.urls['https://api.openai.com/v1/responses'].response = {
-          type: 'json-value',
-          body: {
-            id: 'resp_67c97c0203188190a025beb4a75242bc',
-            object: 'response',
-            created_at: 1741257730,
-            status: 'completed',
-            error: null,
-            incomplete_details: null,
-            input: [],
-            instructions: null,
-            max_output_tokens: null,
-            model: 'o3-mini-2025-01-31',
-            output: [
-              {
-                id: 'msg_67c97c02656c81908e080dfdf4a03cd1',
-                type: 'message',
-                status: 'completed',
-                role: 'assistant',
-                content: [
-                  {
-                    type: 'output_text',
-                    text: 'answer text',
-                    annotations: [],
-                  },
-                ],
-              },
-              {
-                id: 'rs_6808709f6fcc8191ad2e2fdd784017b3',
-                type: 'reasoning',
-                summary: [
-                  {
-                    type: 'summary_text',
-                    text: '**Exploring burrito origins**\n\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito.',
-                  },
-                  {
-                    type: 'summary_text',
-                    text: "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
-                  },
-                ],
-              },
-            ],
-            parallel_tool_calls: true,
-            previous_response_id: null,
-            reasoning: {
-              effort: 'low',
-              summary: 'auto',
-            },
-            store: true,
-            temperature: 1,
-            text: {
-              format: {
-                type: 'text',
-              },
-            },
-            tool_choice: 'auto',
-            tools: [],
-            top_p: 1,
-            truncation: 'disabled',
-            usage: {
-              input_tokens: 34,
-              input_tokens_details: {
-                cached_tokens: 0,
-              },
-              output_tokens: 538,
-              output_tokens_details: {
-                reasoning_tokens: 320,
-              },
-              total_tokens: 572,
-            },
-            user: null,
-            metadata: {},
-          },
-        };
-      });
-
-      it('should extract reasoning summary in doGenerate', async () => {
-        const result = await createModel('o3-mini').doGenerate({
-          prompt: TEST_PROMPT,
-          inputFormat: 'prompt',
-          mode: { type: 'regular' },
-          providerMetadata: {
-            openai: {
-              reasoningEffort: 'low',
-              reasoningSummary: 'auto',
-            },
-          },
-        });
-
-        expect(result.reasoning).toStrictEqual([
-          {
-            type: 'text',
-            text: '**Exploring burrito origins**\n\nThe user is curious about the debate regarding Taqueria La Cumbre and El Farolito.',
-          },
-          {
-            type: 'text',
-            text: "**Investigating burrito origins**\n\nThere's a fascinating debate about who created the Mission burrito.",
-          },
-        ]);
-
-        expect(result.providerMetadata).toStrictEqual({
-          openai: {
-            responseId: 'resp_67c97c0203188190a025beb4a75242bc',
-            cachedPromptTokens: 0,
-            reasoningTokens: 320,
-          },
-        });
-
-        expect(await server.calls[0].requestBody).toMatchObject({
-          model: 'o3-mini',
-          reasoning: {
-            effort: 'low',
-            summary: 'auto',
-          },
-        });
-      });
-    });
-
     it('should stream reasoning summary', async () => {
+      prepareReasoningResponse();
+
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
