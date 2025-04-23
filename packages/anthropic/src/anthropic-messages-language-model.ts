@@ -266,21 +266,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         case 'thinking': {
           content.push({
             type: 'reasoning',
-            reasoningType: 'text',
             text: part.thinking,
-          });
-          content.push({
-            type: 'reasoning',
-            reasoningType: 'signature',
-            signature: part.signature,
+            providerMetadata: {
+              anthropic: {
+                signature: part.signature,
+              } satisfies AnthropicReasoningMetadata,
+            },
           });
           break;
         }
         case 'redacted_thinking': {
           content.push({
             type: 'reasoning',
-            reasoningType: 'redacted',
-            data: part.data,
+            text: part.data,
+            providerMetadata: {
+              anthropic: {
+                isRedacted: true,
+              } satisfies AnthropicReasoningMetadata,
+            },
           });
           break;
         }
@@ -401,8 +404,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'redacted_thinking': {
                     controller.enqueue({
                       type: 'reasoning',
-                      reasoningType: 'redacted',
-                      data: value.content_block.data,
+                      text: value.content_block.data,
+                      providerMetadata: {
+                        anthropic: {
+                          isRedacted: true,
+                        } satisfies AnthropicReasoningMetadata,
+                      },
                     });
                     return;
                   }
@@ -426,6 +433,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               }
 
               case 'content_block_stop': {
+                switch (blockType) {
+                  case 'redacted_thinking':
+                  case 'thinking': {
+                    controller.enqueue({ type: 'reasoning-part-finish' });
+                    break;
+                  }
+                }
+
                 // when finishing a tool call block, send the full tool call:
                 if (toolCallContentBlocks[value.index] != null) {
                   const contentBlock = toolCallContentBlocks[value.index];
@@ -461,7 +476,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'thinking_delta': {
                     controller.enqueue({
                       type: 'reasoning',
-                      reasoningType: 'text',
                       text: value.delta.thinking,
                     });
 
@@ -473,8 +487,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     if (blockType === 'thinking') {
                       controller.enqueue({
                         type: 'reasoning',
-                        reasoningType: 'signature',
-                        signature: value.delta.signature,
+                        text: '',
+                        providerMetadata: {
+                          anthropic: {
+                            signature: value.delta.signature,
+                          } satisfies AnthropicReasoningMetadata,
+                        },
                       });
                     }
 
@@ -697,4 +715,13 @@ const anthropicProviderOptionsSchema = z.object({
 
 export type AnthropicProviderOptions = z.infer<
   typeof anthropicProviderOptionsSchema
+>;
+
+export const anthropicReasoningMetadataSchema = z.object({
+  signature: z.string().optional(),
+  isRedacted: z.boolean().optional(),
+});
+
+export type AnthropicReasoningMetadata = z.infer<
+  typeof anthropicReasoningMetadataSchema
 >;

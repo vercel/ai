@@ -579,7 +579,11 @@ describe('assistant messages', () => {
             {
               type: 'reasoning',
               text: 'I need to count the number of "r"s in the word "strawberry".',
-              signature: 'test-signature',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature',
+                },
+              },
             },
             {
               type: 'text',
@@ -617,7 +621,7 @@ describe('assistant messages', () => {
     expect(warnings).toEqual([]);
   });
 
-  it('should convert reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
+  it('should ignore reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
     const warnings: LanguageModelV2CallWarning[] = [];
     const result = convertToAnthropicMessagesPrompt({
       prompt: [
@@ -639,28 +643,34 @@ describe('assistant messages', () => {
       warnings,
     });
 
-    expect(result).toEqual({
-      prompt: {
-        messages: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'thinking',
-                thinking:
-                  'I need to count the number of "r"s in the word "strawberry".',
-              },
-              {
-                type: 'text',
-                text: 'The word "strawberry" has 2 "r"s.',
-              },
-            ],
-          },
-        ],
-      },
-      betas: new Set(),
-    });
-    expect(warnings).toEqual([]);
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "The word "strawberry" has 2 "r"s.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "unsupported reasoning metadata",
+          "type": "other",
+        },
+      ]
+    `);
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
@@ -673,7 +683,11 @@ describe('assistant messages', () => {
             {
               type: 'reasoning',
               text: 'I need to count the number of "r"s in the word "strawberry".',
-              signature: 'test-signature',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature',
+                },
+              },
             },
             {
               type: 'text',

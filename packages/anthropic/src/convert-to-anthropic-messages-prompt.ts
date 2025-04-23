@@ -11,7 +11,8 @@ import {
   AnthropicMessagesPrompt,
   AnthropicUserMessage,
 } from './anthropic-api-types';
-import { convertToBase64 } from '@ai-sdk/provider-utils';
+import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
+import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
 
 export function convertToAnthropicMessagesPrompt({
   prompt,
@@ -254,12 +255,38 @@ export function convertToAnthropicMessagesPrompt({
 
               case 'reasoning': {
                 if (sendReasoning) {
-                  anthropicContent.push({
-                    type: 'thinking',
-                    thinking: part.text,
-                    signature: part.signature!,
-                    cache_control: cacheControl,
+                  const anthropicReasoningMetadata = parseProviderOptions({
+                    provider: 'anthropic',
+                    providerOptions: part.providerOptions,
+                    schema: anthropicReasoningMetadataSchema,
                   });
+
+                  if (anthropicReasoningMetadata != null) {
+                    if (anthropicReasoningMetadata.signature != null) {
+                      anthropicContent.push({
+                        type: 'thinking',
+                        thinking: part.text,
+                        signature: anthropicReasoningMetadata.signature,
+                        cache_control: cacheControl,
+                      });
+                    } else if (anthropicReasoningMetadata.isRedacted) {
+                      anthropicContent.push({
+                        type: 'redacted_thinking',
+                        data: part.text,
+                        cache_control: cacheControl,
+                      });
+                    } else {
+                      warnings.push({
+                        type: 'other',
+                        message: 'unsupported reasoning metadata',
+                      });
+                    }
+                  } else {
+                    warnings.push({
+                      type: 'other',
+                      message: 'unsupported reasoning metadata',
+                    });
+                  }
                 } else {
                   warnings.push({
                     type: 'other',
@@ -267,15 +294,6 @@ export function convertToAnthropicMessagesPrompt({
                       'sending reasoning content is disabled for this model',
                   });
                 }
-                break;
-              }
-
-              case 'redacted-reasoning': {
-                anthropicContent.push({
-                  type: 'redacted_thinking',
-                  data: part.data,
-                  cache_control: cacheControl,
-                });
                 break;
               }
 
