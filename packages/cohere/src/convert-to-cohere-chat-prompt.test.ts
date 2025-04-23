@@ -22,7 +22,7 @@ describe('tool messages', () => {
 
     expect(result).toEqual([
       {
-        content: 'Calling a tool',
+        content: undefined,
         role: 'assistant',
         tool_calls: [
           {

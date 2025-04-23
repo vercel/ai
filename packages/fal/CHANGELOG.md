@@ -1,5 +1,11 @@
 # @ai-sdk/fal
 
+## 0.1.10
+
+### Patch Changes
+
+- 487a1c0: fix (providers/fal): improve model compatibility
+
 ## 0.1.9
 
 ### Patch Changes

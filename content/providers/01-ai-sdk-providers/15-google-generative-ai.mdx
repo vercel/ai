@@ -150,10 +150,41 @@ const { text } = await generateText({
 });
 ```
 
+Another example showing the use of provider options to specify the thinking budget for a Google Generative AI thinking model:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: google('gemini-2.5-flash-preview-04-17'),
+  providerOptions: {
+    google: {
+      thinkingConfig: {
+        thinkingBudget: 2048,
+      },
+    } satisfies GoogleGenerativeAIProviderOptions,
+  },
+  // ...
+});
+```
+
 The following provider options are available:
 
 - **responseModalities** _string[]_
   The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
+
+- **thinkingConfig** _\{ thinkingBudget: number; \}_
+
+  Optional. Configuration for the model's thinking process. Only supported by specific [Google Generative AI models](https://ai.google.dev/gemini-api/docs/thinking).
+
+  - **thinkingBudget** _number_
+
+    Optional. Gives the model guidance on the number of thinking tokens it can use when
+    generating a response. Must be an integer in the range 0 to 24576. Setting it to 0
+    disables thinking. Budgets from 1 to 1024 tokens will be set to 1024.
+    For more information see [Google Generative AI documentation](https://ai.google.dev/gemini-api/docs/thinking).
 
 You can use Google Generative AI language models to generate text with the `generateText` function:
 
@@ -515,6 +546,7 @@ Google Generative AI embedding models support aditional settings. You can pass t
 ```ts
 const model = google.textEmbeddingModel('text-embedding-004', {
   outputDimensionality: 512, // optional, number of dimensions for the embedding
+  taskType: 'SEMANTIC_SIMILARITY', // optional, specifies the task type for generating embeddings
 });
 ```
 
@@ -523,6 +555,19 @@ The following optional settings are available for Google Generative AI embedding
 - **outputDimensionality**: _number_
 
   Optional reduced dimension for the output embedding. If set, excessive values in the output embedding are truncated from the end.
+
+- **taskType**: _string_
+
+  Optional. Specifies the task type for generating embeddings. Supported task types include:
+
+  - `SEMANTIC_SIMILARITY`: Optimized for text similarity.
+  - `CLASSIFICATION`: Optimized for text classification.
+  - `CLUSTERING`: Optimized for clustering texts based on similarity.
+  - `RETRIEVAL_DOCUMENT`: Optimized for document retrieval.
+  - `RETRIEVAL_QUERY`: Optimized for query-based retrieval.
+  - `QUESTION_ANSWERING`: Optimized for answering questions.
+  - `FACT_VERIFICATION`: Optimized for verifying factual information.
+  - `CODE_RETRIEVAL_QUERY`: Optimized for retrieving code blocks based on natural language queries.
 
 ### Model Capabilities
 

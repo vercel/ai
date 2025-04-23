@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 1.2.9
+
+### Patch Changes
+
+- 033f445: fix (provider/cohere): tool calling
+
 ## 1.2.8
 
 ### Patch Changes
