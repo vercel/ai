@@ -140,12 +140,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         (openaiOptions?.reasoningEffort != null ||
           openaiOptions?.reasoningSummary != null) && {
           reasoning: {
-            ...(openaiOptions?.reasoningEffort != null && {
-              effort: openaiOptions.reasoningEffort,
-            }),
-            ...(openaiOptions?.reasoningSummary != null && {
-              summary: openaiOptions.reasoningSummary,
-            }),
+            effort: openaiOptions?.reasoningEffort,
+            generate_summary: openaiOptions?.reasoningSummary,
           },
         }),
       ...(modelConfig.requiredAutoTruncation && {
@@ -249,6 +245,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
               z.object({
                 type: z.literal('computer_call'),
+                id: z.string(),
+                call_id: z.string(),
+                action: computerActionSchema,
+                pending_safety_checks: z.array(computerSafetyCheckSchema),
               }),
               z.object({
                 type: z.literal('reasoning'),
@@ -315,6 +315,30 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         }
       }
     }
+    const computerToolCalls: Array<LanguageModelV1FunctionToolCall> =
+      response.output
+        .filter(output => output.type === 'computer_call')
+        .map(output => ({
+          toolCallType: 'function' as const,
+          toolCallId: output.call_id,
+          toolName: 'computer_use_preview',
+          args: JSON.stringify({
+            action: output.action,
+            pendingSafetyChecks: output.pending_safety_checks,
+            id: output.id,
+          }),
+        }));
+
+    const functionToolCalls = response.output
+      .filter(output => output.type === 'function_call')
+      .map(output => ({
+        toolCallType: 'function' as const,
+        toolCallId: output.call_id,
+        toolName: output.name,
+        args: output.arguments,
+      }));
+
+    const toolCalls = [...computerToolCalls, ...functionToolCalls];
 
     return {
       content,
@@ -513,6 +537,70 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   }
 }
 
+export const computerSafetyCheckSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  message: z.string(),
+});
+
+export const computerActionSchema = z.discriminatedUnion('type', [
+  // Model wants to click at coordinates
+  z.object({
+    type: z.literal('click'),
+    button: z.enum(['left', 'right', 'wheel', 'back', 'forward']),
+    x: z.number(),
+    y: z.number(),
+  }),
+  // Model wants to double click at coordinates
+  z.object({
+    type: z.literal('double_click'),
+    x: z.number(),
+    y: z.number(),
+  }),
+  // Model wants to scroll (scroll_x, scroll_y) with mouse at x, y
+  z.object({
+    type: z.literal('scroll'),
+    x: z.number(),
+    y: z.number(),
+    scroll_x: z.number(),
+    scroll_y: z.number(),
+  }),
+  // Model wants to type in the currently focused input
+  z.object({
+    type: z.literal('type'),
+    text: z.string(),
+  }),
+  // Model wants to wait 3s before continuing
+  z.object({
+    type: z.literal('wait'),
+  }),
+  // Model wants to press a key
+  z.object({
+    type: z.literal('keypress'),
+    keys: z.array(z.string()),
+  }),
+  // model wants to drag along a defined path
+  z.object({
+    type: z.literal('drag'),
+    path: z.array(
+      z.object({
+        x: z.number(),
+        y: z.number(),
+      }),
+    ),
+  }),
+  // model wants a screenshot
+  z.object({
+    type: z.literal('screenshot'),
+  }),
+  // model wants to move the mouse to x, y
+  z.object({
+    type: z.literal('move'),
+    x: z.number(),
+    y: z.number(),
+  }),
+]);
+
 const usageSchema = z.object({
   input_tokens: z.number(),
   input_tokens_details: z
@@ -674,6 +762,15 @@ type ResponsesModelConfig = {
 };
 
 function getResponsesModelConfig(modelId: string): ResponsesModelConfig {
+  // computer use preview model:
+  if (modelId.startsWith('computer-use')) {
+    return {
+      isReasoningModel: true,
+      systemMessageMode: 'system',
+      requiredAutoTruncation: true,
+    };
+  }
+
   // o series reasoning models:
   if (modelId.startsWith('o')) {
     if (modelId.startsWith('o1-mini') || modelId.startsWith('o1-preview')) {
@@ -705,8 +802,9 @@ const openaiResponsesProviderOptionsSchema = z.object({
   previousResponseId: z.string().nullish(),
   store: z.boolean().nullish(),
   user: z.string().nullish(),
-  reasoningEffort: z.string().nullish(),
   strictSchemas: z.boolean().nullish(),
+  reasoningEffort: z.enum(['low', 'medium', 'high']).nullish(),
+  reasoningSummary: z.enum(['concise', 'detailed']).nullish(),
   instructions: z.string().nullish(),
   reasoningSummary: z.string().nullish(),
 });
