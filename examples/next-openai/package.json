@@ -1,5 +1,5 @@
 {
-  "name": "next-openai",
+  "name": "@example/next-openai",
   "version": "0.0.0",
   "private": true,
   "scripts": {

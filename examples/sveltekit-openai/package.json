@@ -1,5 +1,5 @@
 {
-  "name": "sveltekit-openai",
+  "name": "@example/sveltekit-openai",
   "version": "0.0.0",
   "private": true,
   "scripts": {

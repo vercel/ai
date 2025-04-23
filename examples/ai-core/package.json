@@ -1,5 +1,5 @@
 {
-  "name": "ai-core-examples",
+  "name": "@example/ai-core",
   "version": "0.0.0",
   "private": true,
   "dependencies": {
