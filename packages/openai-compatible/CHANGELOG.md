@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 0.2.13
+
+### Patch Changes
+
+- 23571c9: feat(providers/xai): add reasoningEffort provider option
+
 ## 0.2.12
 
 ### Patch Changes
