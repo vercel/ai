@@ -1,4 +1,5 @@
 import { JSONValue } from '../../json-value';
+import { SharedV2Headers } from '../../shared';
 import { SpeechModelV1CallOptions } from './speech-model-v1-call-options';
 import { SpeechModelV1CallWarning } from './speech-model-v1-call-warning';
 
@@ -70,7 +71,7 @@ export type SpeechModelV1 = {
       /**
        * Response headers.
        */
-      headers: Record<string, string> | undefined;
+      headers?: SharedV2Headers;
 
       /**
        * Response body.

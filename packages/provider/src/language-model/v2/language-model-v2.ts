@@ -1,3 +1,4 @@
+import { SharedV2Headers } from '../../shared';
 import { SharedV2ProviderMetadata } from '../../shared/v2/shared-v2-provider-metadata';
 import { LanguageModelV2CallOptions } from './language-model-v2-call-options';
 import { LanguageModelV2CallWarning } from './language-model-v2-call-warning';
@@ -89,7 +90,7 @@ Optional response information for telemetry and debugging purposes.
       /**
 Response headers.
       */
-      headers?: Record<string, string>;
+      headers?: SharedV2Headers;
 
       /**
 Response HTTP body.
@@ -131,7 +132,7 @@ Optional response data.
       /**
 Response headers.
        */
-      headers?: Record<string, string>;
+      headers?: SharedV2Headers;
     };
   }>;
 };
