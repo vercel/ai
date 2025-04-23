@@ -172,13 +172,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             ? this.supportsStructuredOutputs === true &&
               responseFormat.schema != null
               ? {
-                type: 'json_schema',
-                json_schema: {
-                  schema: responseFormat.schema,
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                },
-              }
+                  type: 'json_schema',
+                  json_schema: {
+                    schema: responseFormat.schema,
+                    name: responseFormat.name ?? 'response',
+                    description: responseFormat.description,
+                  },
+                }
               : { type: 'json_object' }
             : undefined,
 

@@ -425,13 +425,13 @@ A function that attempts to repair a tool call that failed to parse.
           tools == null
             ? []
             : await executeTools({
-              toolCalls: currentToolCalls,
-              tools,
-              tracer,
-              telemetry,
-              messages: stepInputMessages,
-              abortSignal,
-            });
+                toolCalls: currentToolCalls,
+                tools,
+                tracer,
+                telemetry,
+                messages: stepInputMessages,
+                abortSignal,
+              });
 
         // token usage:
         const currentUsage = calculateLanguageModelUsage(
@@ -464,7 +464,7 @@ A function that attempts to repair a tool call that failed to parse.
           extractContentText(currentModelResponse.content) ?? '';
         const stepTextLeadingWhitespaceTrimmed =
           stepType === 'continue' && // only for continue steps
-            text.trimEnd() !== text // only trim when there is preceding whitespace
+          text.trimEnd() !== text // only trim when there is preceding whitespace
             ? originalText.trimStart()
             : originalText;
 
@@ -704,7 +704,8 @@ async function executeTools<TOOLS extends ToolSet>({
 }
 
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
-  implements GenerateTextResult<TOOLS, OUTPUT> {
+  implements GenerateTextResult<TOOLS, OUTPUT>
+{
   readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
   readonly files: GenerateTextResult<TOOLS, OUTPUT>['files'];
   readonly reasoningText: GenerateTextResult<TOOLS, OUTPUT>['reasoningText'];

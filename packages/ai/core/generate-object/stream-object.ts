@@ -414,7 +414,8 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
 }
 
 class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
-  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
+  implements StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
+{
   private readonly objectPromise = new DelayedPromise<RESULT>();
   private readonly usagePromise = new DelayedPromise<LanguageModelUsage>();
   private readonly providerMetadataPromise = new DelayedPromise<
@@ -769,14 +770,15 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
 
                     // resolve the object promise with the latest object:
-                    const validationResult = await outputStrategy.validateFinalResult(
-                      latestObjectJson,
-                      {
-                        text: accumulatedText,
-                        response: fullResponse,
-                        usage,
-                      },
-                    );
+                    const validationResult =
+                      await outputStrategy.validateFinalResult(
+                        latestObjectJson,
+                        {
+                          text: accumulatedText,
+                          response: fullResponse,
+                          usage,
+                        },
+                      );
 
                     if (validationResult.success) {
                       object = validationResult.value;
@@ -1010,22 +1012,22 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 export type ObjectStreamInputPart =
   | string
   | {
-    type: 'stream-start';
-    warnings: LanguageModelV2CallWarning[];
-  }
+      type: 'stream-start';
+      warnings: LanguageModelV2CallWarning[];
+    }
   | {
-    type: 'error';
-    error: unknown;
-  }
+      type: 'error';
+      error: unknown;
+    }
   | {
-    type: 'response-metadata';
-    id?: string;
-    timestamp?: Date;
-    modelId?: string;
-  }
+      type: 'response-metadata';
+      id?: string;
+      timestamp?: Date;
+      modelId?: string;
+    }
   | {
-    type: 'finish';
-    finishReason: LanguageModelV2FinishReason;
-    usage: LanguageModelV2Usage;
-    providerMetadata?: SharedV2ProviderMetadata;
-  };
+      type: 'finish';
+      finishReason: LanguageModelV2FinishReason;
+      usage: LanguageModelV2Usage;
+      providerMetadata?: SharedV2ProviderMetadata;
+    };

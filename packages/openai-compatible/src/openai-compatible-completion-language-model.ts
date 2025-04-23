@@ -46,7 +46,8 @@ type OpenAICompatibleCompletionConfig = {
 };
 
 export class OpenAICompatibleCompletionLanguageModel
-  implements LanguageModelV2 {
+  implements LanguageModelV2
+{
   readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAICompatibleCompletionModelId;

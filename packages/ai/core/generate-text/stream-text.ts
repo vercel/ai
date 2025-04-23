@@ -117,13 +117,13 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
     TextStreamPart<TOOLS>,
     {
       type:
-      | 'text'
-      | 'reasoning'
-      | 'source'
-      | 'tool-call'
-      | 'tool-call-streaming-start'
-      | 'tool-call-delta'
-      | 'tool-result';
+        | 'text'
+        | 'reasoning'
+        | 'source'
+        | 'tool-call'
+        | 'tool-call-streaming-start'
+        | 'tool-call-delta'
+        | 'tool-result';
     }
   >;
 }) => Promise<void> | void;
@@ -308,8 +308,8 @@ They are applied in the order they are provided.
 The stream transformations must maintain the stream structure for streamText to work correctly.
      */
     experimental_transform?:
-    | StreamTextTransform<TOOLS>
-    | Array<StreamTextTransform<TOOLS>>;
+      | StreamTextTransform<TOOLS>
+      | Array<StreamTextTransform<TOOLS>>;
 
     /**
 Callback that is called for each chunk of the stream.
@@ -463,7 +463,8 @@ function createOutputTransformStream<
 }
 
 class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
-  implements StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
+  implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
+{
   private readonly warningsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['warnings']>
   >();
@@ -1720,9 +1721,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                   finishReason: chunk.finishReason,
                   usage: sendUsage
                     ? {
-                      promptTokens: chunk.usage.promptTokens,
-                      completionTokens: chunk.usage.completionTokens,
-                    }
+                        promptTokens: chunk.usage.promptTokens,
+                        completionTokens: chunk.usage.completionTokens,
+                      }
                     : undefined,
                   isContinued: chunk.isContinued,
                 }),
@@ -1737,9 +1738,9 @@ However, the LLM results are expected to be small enough to not cause issues.
                     finishReason: chunk.finishReason,
                     usage: sendUsage
                       ? {
-                        promptTokens: chunk.usage.promptTokens,
-                        completionTokens: chunk.usage.completionTokens,
-                      }
+                          promptTokens: chunk.usage.promptTokens,
+                          completionTokens: chunk.usage.completionTokens,
+                        }
                       : undefined,
                   }),
                 );
