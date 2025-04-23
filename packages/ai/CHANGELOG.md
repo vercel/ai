@@ -1,5 +1,17 @@
 # ai
 
+## 4.3.9
+
+### Patch Changes
+
+- b69a253: fix(utils/detect-mimetype): add support for detecting id3 tags
+
+## 4.3.8
+
+### Patch Changes
+
+- 6e8a73b: feat(providers/fal): add transcribe
+
 ## 4.3.7
 
 ### Patch Changes

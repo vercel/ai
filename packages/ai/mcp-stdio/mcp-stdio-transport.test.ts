@@ -35,7 +35,7 @@ describe('StdioMCPTransport', () => {
       removeAllListeners: vi.fn(),
     };
 
-    vi.mocked(createChildProcess).mockResolvedValue(
+    vi.mocked(createChildProcess).mockReturnValue(
       mockChildProcess as unknown as ChildProcess,
     );
 
@@ -114,19 +114,6 @@ describe('StdioMCPTransport', () => {
       const startPromise = transport.start();
       await expect(startPromise).rejects.toThrow('Spawn failed');
       expect(onErrorSpy).toHaveBeenCalledWith(error);
-    });
-
-    it('should handle child_process import errors', async () => {
-      vi.mocked(createChildProcess).mockRejectedValue(
-        new MCPClientError({
-          message: 'Failed to load child_process module dynamically',
-        }),
-      );
-
-      const startPromise = transport.start();
-      await expect(startPromise).rejects.toThrow(
-        'Failed to load child_process module dynamically',
-      );
     });
   });
 
