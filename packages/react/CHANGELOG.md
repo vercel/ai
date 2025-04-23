@@ -1,5 +1,12 @@
 # @ai-sdk/react
 
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- ai@5.0.0-canary.12
+- @ai-sdk/provider-utils@3.0.0-canary.10
+
 ## 2.0.0-canary.10
 
 ### Patch Changes

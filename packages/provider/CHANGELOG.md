@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.9
+
+### Major Changes
+
+- e86be6f: chore: remove logprobs
+
 ## 2.0.0-canary.8
 
 ### Major Changes
