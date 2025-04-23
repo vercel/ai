@@ -142,7 +142,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           openaiOptions?.reasoningSummary != null) && {
           reasoning: {
             effort: openaiOptions?.reasoningEffort,
-            generate_summary: openaiOptions?.reasoningSummary,
+            summary: openaiOptions?.reasoningSummary,
           },
         }),
       ...(modelConfig.requiredAutoTruncation && {
