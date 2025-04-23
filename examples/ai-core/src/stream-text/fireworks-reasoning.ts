@@ -17,7 +17,7 @@ async function main() {
   let enteredReasoning = false;
   let enteredText = false;
   for await (const part of result.fullStream) {
-    if (part.type === 'reasoning' && part.reasoningType === 'text') {
+    if (part.type === 'reasoning') {
       if (!enteredReasoning) {
         enteredReasoning = true;
         console.log('\nREASONING:\n');
