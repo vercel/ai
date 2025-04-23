@@ -3,7 +3,7 @@ import {
   convertReadableStreamToArray,
   convertResponseStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { createDataStream } from '../core/data-stream/create-data-stream';
+import { createDataStream } from 'ai';
 import {
   mergeIntoDataStream,
   toDataStream,
