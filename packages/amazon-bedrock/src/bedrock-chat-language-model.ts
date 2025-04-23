@@ -4,6 +4,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
+  LanguageModelV2Reasoning,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -224,23 +225,30 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       // reasoning
       if (part.reasoningContent) {
         if ('reasoningText' in part.reasoningContent) {
-          content.push({
+          const reasoning: LanguageModelV2Reasoning = {
             type: 'reasoning',
-            reasoningType: 'text',
             text: part.reasoningContent.reasoningText.text,
-          });
+          };
+
           if (part.reasoningContent.reasoningText.signature) {
-            content.push({
-              type: 'reasoning',
-              reasoningType: 'signature',
-              signature: part.reasoningContent.reasoningText.signature,
-            });
+            reasoning.providerMetadata = {
+              bedrock: {
+                signature: part.reasoningContent.reasoningText.signature,
+              } satisfies BedrockReasoningMetadata,
+            };
           }
+
+          content.push(reasoning);
         } else if ('redactedReasoning' in part.reasoningContent) {
           content.push({
             type: 'reasoning',
-            reasoningType: 'redacted',
-            data: part.reasoningContent.redactedReasoning.data ?? '',
+            text: '',
+            providerMetadata: {
+              bedrock: {
+                redactedData:
+                  part.reasoningContent.redactedReasoning.data ?? '',
+              } satisfies BedrockReasoningMetadata,
+            },
           });
         }
       }
@@ -440,7 +448,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               if ('text' in reasoningContent && reasoningContent.text) {
                 controller.enqueue({
                   type: 'reasoning',
-                  reasoningType: 'text',
                   text: reasoningContent.text,
                 });
               } else if (
@@ -449,15 +456,25 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               ) {
                 controller.enqueue({
                   type: 'reasoning',
-                  reasoningType: 'signature',
-                  signature: reasoningContent.signature,
+                  text: '',
+                  providerMetadata: {
+                    bedrock: {
+                      signature: reasoningContent.signature,
+                    } satisfies BedrockReasoningMetadata,
+                  },
                 });
+                controller.enqueue({ type: 'reasoning-part-finish' });
               } else if ('data' in reasoningContent && reasoningContent.data) {
                 controller.enqueue({
                   type: 'reasoning',
-                  reasoningType: 'redacted',
-                  data: reasoningContent.data,
+                  text: '',
+                  providerMetadata: {
+                    bedrock: {
+                      redactedData: reasoningContent.data,
+                    } satisfies BedrockReasoningMetadata,
+                  },
                 });
+                controller.enqueue({ type: 'reasoning-part-finish' });
               }
             }
 
@@ -656,3 +673,12 @@ const BedrockStreamSchema = z.object({
   throttlingException: z.record(z.unknown()).nullish(),
   validationException: z.record(z.unknown()).nullish(),
 });
+
+export const bedrockReasoningMetadataSchema = z.object({
+  signature: z.string().optional(),
+  redactedData: z.string().optional(),
+});
+
+export type BedrockReasoningMetadata = z.infer<
+  typeof bedrockReasoningMetadataSchema
+>;

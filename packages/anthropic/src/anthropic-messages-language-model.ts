@@ -411,6 +411,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                         } satisfies AnthropicReasoningMetadata,
                       },
                     });
+                    controller.enqueue({ type: 'reasoning-part-finish' });
                     return;
                   }
 
@@ -433,14 +434,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
               }
 
               case 'content_block_stop': {
-                switch (blockType) {
-                  case 'redacted_thinking':
-                  case 'thinking': {
-                    controller.enqueue({ type: 'reasoning-part-finish' });
-                    break;
-                  }
-                }
-
                 // when finishing a tool call block, send the full tool call:
                 if (toolCallContentBlocks[value.index] != null) {
                   const contentBlock = toolCallContentBlocks[value.index];
@@ -494,6 +487,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                           } satisfies AnthropicReasoningMetadata,
                         },
                       });
+                      controller.enqueue({ type: 'reasoning-part-finish' });
                     }
 
                     return;

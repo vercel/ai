@@ -5,7 +5,11 @@ import {
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { convertToBase64, createIdGenerator } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  createIdGenerator,
+  parseProviderOptions,
+} from '@ai-sdk/provider-utils';
 import {
   BEDROCK_CACHE_POINT,
   BedrockAssistantMessage,
@@ -16,6 +20,7 @@ import {
   BedrockSystemMessages,
   BedrockUserMessage,
 } from './bedrock-api-types';
+import { bedrockReasoningMetadataSchema } from './bedrock-chat-language-model';
 
 const generateFileId = createIdGenerator({ prefix: 'file', size: 16 });
 
@@ -207,33 +212,41 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
               }
 
               case 'reasoning': {
-                bedrockContent.push({
-                  reasoningContent: {
-                    reasoningText: {
-                      // trim the last text part if it's the last message in the block
-                      // because Bedrock does not allow trailing whitespace
-                      // in pre-filled assistant responses
-                      text: trimIfLast(
-                        isLastBlock,
-                        isLastMessage,
-                        isLastContentPart,
-                        part.text,
-                      ),
-                      signature: part.signature,
-                    },
-                  },
+                const reasoningMetadata = parseProviderOptions({
+                  provider: 'bedrock',
+                  providerOptions: part.providerOptions,
+                  schema: bedrockReasoningMetadataSchema,
                 });
-                break;
-              }
 
-              case 'redacted-reasoning': {
-                bedrockContent.push({
-                  reasoningContent: {
-                    redactedReasoning: {
-                      data: part.data,
-                    },
-                  },
-                });
+                if (reasoningMetadata != null) {
+                  if (reasoningMetadata.signature != null) {
+                    bedrockContent.push({
+                      reasoningContent: {
+                        reasoningText: {
+                          // trim the last text part if it's the last message in the block
+                          // because Bedrock does not allow trailing whitespace
+                          // in pre-filled assistant responses
+                          text: trimIfLast(
+                            isLastBlock,
+                            isLastMessage,
+                            isLastContentPart,
+                            part.text,
+                          ),
+                          signature: reasoningMetadata.signature,
+                        },
+                      },
+                    });
+                  } else if (reasoningMetadata.redactedData != null) {
+                    bedrockContent.push({
+                      reasoningContent: {
+                        redactedReasoning: {
+                          data: reasoningMetadata.redactedData,
+                        },
+                      },
+                    });
+                  }
+                }
+
                 break;
               }
 

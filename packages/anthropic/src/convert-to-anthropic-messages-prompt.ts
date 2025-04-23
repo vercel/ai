@@ -255,24 +255,24 @@ export function convertToAnthropicMessagesPrompt({
 
               case 'reasoning': {
                 if (sendReasoning) {
-                  const anthropicReasoningMetadata = parseProviderOptions({
+                  const reasoningMetadata = parseProviderOptions({
                     provider: 'anthropic',
                     providerOptions: part.providerOptions,
                     schema: anthropicReasoningMetadataSchema,
                   });
 
-                  if (anthropicReasoningMetadata != null) {
-                    if (anthropicReasoningMetadata.signature != null) {
+                  if (reasoningMetadata != null) {
+                    if (reasoningMetadata.signature != null) {
                       anthropicContent.push({
                         type: 'thinking',
                         thinking: part.text,
-                        signature: anthropicReasoningMetadata.signature,
+                        signature: reasoningMetadata.signature,
                         cache_control: cacheControl,
                       });
-                    } else if (anthropicReasoningMetadata.isRedacted) {
+                    } else if (reasoningMetadata.redactedData != null) {
                       anthropicContent.push({
                         type: 'redacted_thinking',
-                        data: anthropicReasoningMetadata.redactedData!,
+                        data: reasoningMetadata.redactedData,
                         cache_control: cacheControl,
                       });
                     } else {

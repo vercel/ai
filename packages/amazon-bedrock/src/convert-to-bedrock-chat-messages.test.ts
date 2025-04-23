@@ -1,3 +1,4 @@
+import { BedrockReasoningMetadata } from './bedrock-chat-language-model';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 
 describe('system messages', () => {
@@ -282,7 +283,11 @@ describe('assistant messages', () => {
           {
             type: 'reasoning',
             text: 'This is my step-by-step reasoning process',
-            signature: 'test-signature',
+            providerOptions: {
+              bedrock: {
+                signature: 'test-signature',
+              } satisfies BedrockReasoningMetadata,
+            },
           },
         ],
       },
@@ -323,8 +328,9 @@ describe('assistant messages', () => {
         role: 'assistant',
         content: [
           {
-            type: 'redacted-reasoning',
-            data: reasoningData,
+            type: 'reasoning',
+            text: '',
+            providerOptions: { bedrock: { redactedData: reasoningData } },
           },
         ],
       },
@@ -365,7 +371,11 @@ describe('assistant messages', () => {
           {
             type: 'reasoning',
             text: 'This is my reasoning with trailing space    ',
-            signature: 'test-signature',
+            providerOptions: {
+              bedrock: {
+                signature: 'test-signature',
+              } satisfies BedrockReasoningMetadata,
+            },
           },
         ],
       },
@@ -408,7 +418,11 @@ describe('assistant messages', () => {
           {
             type: 'reasoning',
             text: 'I calculated this by analyzing the meaning of life',
-            signature: 'reasoning-process',
+            providerOptions: {
+              bedrock: {
+                signature: 'reasoning-process',
+              } satisfies BedrockReasoningMetadata,
+            },
           },
         ],
       },

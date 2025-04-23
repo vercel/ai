@@ -1115,19 +1115,24 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "reasoningType": "text",
           "text": "I am thinking",
           "type": "reasoning",
         },
         {
-          "reasoningType": "text",
           "text": " about this problem...",
           "type": "reasoning",
         },
         {
-          "reasoningType": "signature",
-          "signature": "abc123signature",
+          "providerMetadata": {
+            "bedrock": {
+              "signature": "abc123signature",
+            },
+          },
+          "text": "",
           "type": "reasoning",
+        },
+        {
+          "type": "reasoning-part-finish",
         },
         {
           "text": "Based on my reasoning, the answer is 42.",
@@ -1184,9 +1189,16 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "data": "redacted-reasoning-data",
-          "reasoningType": "redacted",
+          "providerMetadata": {
+            "bedrock": {
+              "redactedData": "redacted-reasoning-data",
+            },
+          },
+          "text": "",
           "type": "reasoning",
+        },
+        {
+          "type": "reasoning-part-finish",
         },
         {
           "text": "Here is my answer.",
@@ -1639,13 +1651,12 @@ describe('doGenerate', () => {
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
-          "reasoningType": "text",
+          "providerMetadata": {
+            "bedrock": {
+              "signature": "abc123signature",
+            },
+          },
           "text": "I need to think about this problem carefully...",
-          "type": "reasoning",
-        },
-        {
-          "reasoningType": "signature",
-          "signature": "abc123signature",
           "type": "reasoning",
         },
         {
@@ -1680,7 +1691,6 @@ describe('doGenerate', () => {
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
-          "reasoningType": "text",
           "text": "I need to think about this problem carefully...",
           "type": "reasoning",
         },
@@ -1714,8 +1724,12 @@ describe('doGenerate', () => {
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
-          "data": "redacted-reasoning-data",
-          "reasoningType": "redacted",
+          "providerMetadata": {
+            "bedrock": {
+              "redactedData": "redacted-reasoning-data",
+            },
+          },
+          "text": "",
           "type": "reasoning",
         },
         {
@@ -1756,18 +1770,21 @@ describe('doGenerate', () => {
     expect(result.content).toMatchInlineSnapshot(`
       [
         {
-          "reasoningType": "text",
+          "providerMetadata": {
+            "bedrock": {
+              "signature": "sig1",
+            },
+          },
           "text": "First reasoning block",
           "type": "reasoning",
         },
         {
-          "reasoningType": "signature",
-          "signature": "sig1",
-          "type": "reasoning",
-        },
-        {
-          "data": "redacted-data",
-          "reasoningType": "redacted",
+          "providerMetadata": {
+            "bedrock": {
+              "redactedData": "redacted-data",
+            },
+          },
+          "text": "",
           "type": "reasoning",
         },
         {
