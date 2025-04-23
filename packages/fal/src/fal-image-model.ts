@@ -173,8 +173,6 @@ const falErrorSchema = z.union([falValidationErrorSchema, falHttpErrorSchema]);
 
 const falImageSchema = z.object({
   url: z.string(),
-  width: z.number(),
-  height: z.number(),
   content_type: z.string(),
 });
 
