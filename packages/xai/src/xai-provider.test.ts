@@ -99,7 +99,7 @@ describe('xAIProvider', () => {
         OpenAICompatibleChatLanguageModelMock.mock.calls[0];
 
       expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[2].includeUsage).toBe(true);
+      expect(constructorCall[1].includeUsage).toBe(true);
     });
   });
 
