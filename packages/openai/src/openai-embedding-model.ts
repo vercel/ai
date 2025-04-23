@@ -65,11 +65,11 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
 
     // Parse provider options
     const openaiOptions =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
         schema: openaiEmbeddingProviderOptions,
-      }) ?? {};
+      })) ?? {};
 
     const {
       responseHeaders,
