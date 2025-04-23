@@ -98,7 +98,6 @@ describe('getMessageParts', () => {
       {
         type: 'reasoning',
         reasoning: 'Test reasoning',
-        details: [{ type: 'text', text: 'Test reasoning' }],
       },
       { type: 'text', text: 'Test content' },
     ]);
