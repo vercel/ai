@@ -10,6 +10,9 @@ export type LanguageModelV2StreamPart =
   // Content (similar to doGenerate):
   | LanguageModelV2Content
 
+  // Reasoning part end marker:
+  | { type: 'reasoning-part-finish' }
+
   // Tool calls delta:
   | LanguageModelV2ToolCallDelta
 
@@ -26,9 +29,9 @@ export type LanguageModelV2StreamPart =
   // metadata that is available after the stream is finished:
   | {
       type: 'finish';
+      usage: LanguageModelV2Usage;
       finishReason: LanguageModelV2FinishReason;
       providerMetadata?: SharedV2ProviderMetadata;
-      usage: LanguageModelV2Usage;
     }
 
   // error parts are streamed, allowing for multiple errors
