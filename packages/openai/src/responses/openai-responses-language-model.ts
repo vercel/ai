@@ -277,7 +277,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
         case 'reasoning': {
           content.push({
             type: 'reasoning',
-            reasoningType: 'text',
             text: part.summary.map(summary => summary.text).join(),
           });
           break;
@@ -449,7 +448,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
               controller.enqueue({
                 type: 'reasoning',
-                reasoningType: 'text',
                 text: value.delta,
               });
             } else if (

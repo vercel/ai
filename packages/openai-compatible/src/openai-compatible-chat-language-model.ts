@@ -237,7 +237,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     if (reasoning != null && reasoning.length > 0) {
       content.push({
         type: 'reasoning',
-        reasoningType: 'text',
         text: reasoning,
       });
     }
@@ -459,7 +458,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             if (delta.reasoning_content != null) {
               controller.enqueue({
                 type: 'reasoning',
-                reasoningType: 'text',
                 text: delta.reasoning_content,
               });
             }
