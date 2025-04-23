@@ -418,7 +418,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     let cachedPromptTokens: number | null = null;
     let reasoningTokens: number | null = null;
     let responseId: string | null = null;
-
     const ongoingToolCalls: Record<
       number,
       { toolName: string; toolCallId: string } | undefined
@@ -646,25 +645,6 @@ const responseReasoningSummaryTextDeltaSchema = z.object({
   delta: z.string(),
 });
 
-const responseReasoningSummaryTextDoneSchema = z.object({
-  type: z.literal('response.reasoning_summary_text.done'),
-  item_id: z.string(),
-  output_index: z.number(),
-  summary_index: z.number(),
-  text: z.string(),
-});
-
-const responseReasoningSummaryPartDoneSchema = z.object({
-  type: z.literal('response.reasoning_summary_part.done'),
-  item_id: z.string(),
-  output_index: z.number(),
-  summary_index: z.number(),
-  part: z.object({
-    type: z.literal('summary_text'),
-    text: z.string(),
-  }),
-});
-
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
@@ -674,8 +654,6 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
-  responseReasoningSummaryTextDoneSchema,
-  responseReasoningSummaryPartDoneSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -727,18 +705,6 @@ function isResponseReasoningSummaryTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
   return chunk.type === 'response.reasoning_summary_text.delta';
-}
-
-function isResponseReasoningSummaryTextDoneChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryTextDoneSchema> {
-  return chunk.type === 'response.reasoning_summary_text.done';
-}
-
-function isResponseReasoningSummaryPartDoneChunk(
-  chunk: z.infer<typeof openaiResponsesChunkSchema>,
-): chunk is z.infer<typeof responseReasoningSummaryPartDoneSchema> {
-  return chunk.type === 'response.reasoning_summary_part.done';
 }
 
 type ResponsesModelConfig = {
