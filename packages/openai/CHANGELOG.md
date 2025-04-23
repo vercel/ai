@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.17
+
+### Patch Changes
+
+- ca7bce3: feat (providers/openai): add support for reasoning summaries
+
 ## 1.3.16
 
 ### Patch Changes
