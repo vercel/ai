@@ -1,13 +1,10 @@
-import {
-  TranscriptionModelV2,
-  ProviderV2,
-  NoSuchModelError,
-} from '@ai-sdk/provider';
+import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
 import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 
-export interface AssemblyAIProvider extends ProviderV2 {
+export interface AssemblyAIProvider
+  extends Pick<ProviderV1, 'transcriptionModel'> {
   (
     modelId: 'best',
     settings?: {},
@@ -18,7 +15,7 @@ export interface AssemblyAIProvider extends ProviderV2 {
   /**
 Creates a model for transcription.
    */
-  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV2;
+  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV1;
 }
 
 export interface AssemblyAIProviderSettings {
@@ -70,30 +67,6 @@ export function createAssemblyAI(
 
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
-
-  provider.languageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'languageModel',
-      message: 'AssemblyAI does not provide language models',
-    });
-  };
-
-  provider.textEmbeddingModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'textEmbeddingModel',
-      message: 'AssemblyAI does not provide text embedding models',
-    });
-  };
-
-  provider.imageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'imageModel',
-      message: 'AssemblyAI does not provide image models',
-    });
-  };
 
   return provider as AssemblyAIProvider;
 }

@@ -1,6 +1,6 @@
 import {
-  TranscriptionModelV2,
-  TranscriptionModelV2CallWarning,
+  TranscriptionModelV1,
+  TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -9,7 +9,7 @@ import {
   postJsonToApi,
   postToApi,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from 'zod';
 import { AssemblyAIConfig } from './assemblyai-config';
 import { assemblyaiFailedResponseHandler } from './assemblyai-error';
 import { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
@@ -177,8 +177,8 @@ interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
   };
 }
 
-export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
-  readonly specificationVersion = 'v2';
+export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
+  readonly specificationVersion = 'v1';
 
   get provider(): string {
     return this.config.provider;
@@ -191,11 +191,11 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV2['doGenerate']>[0]) {
-    const warnings: TranscriptionModelV2CallWarning[] = [];
+  }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
+    const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const assemblyaiOptions = await parseProviderOptions({
+    const assemblyaiOptions = parseProviderOptions({
       provider: 'assemblyai',
       providerOptions,
       schema: assemblyaiProviderOptionsSchema,
@@ -263,8 +263,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV2 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV2['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV2['doGenerate']>>> {
+    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const { value: uploadResponse } = await postToApi({

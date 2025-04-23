@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/assemblyai",
-  "version": "1.0.0-beta.3",
+  "version": "0.0.0",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -11,11 +11,11 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch --tsconfig tsconfig.build.json",
-    "clean": "rm -rf dist *.tsbuildinfo",
+    "build": "tsup",
+    "build:watch": "tsup --watch",
+    "clean": "rm -rf dist",
     "lint": "eslint \"./**/*.ts*\"",
-    "type-check": "tsc --build",
+    "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "pnpm test:node && pnpm test:edge",
     "test:edge": "vitest --config vitest.edge.config.js --run",
@@ -31,18 +31,18 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "@ai-sdk/provider": "1.1.2",
+    "@ai-sdk/provider-utils": "2.2.6"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsup": "^8",
     "typescript": "5.6.3",
-    "zod": "3.25.49"
+    "zod": "3.23.8"
   },
   "peerDependencies": {
-    "zod": "^3.25.49 || ^4"
+    "zod": "^3.0.0"
   },
   "engines": {
     "node": ">=18"
@@ -50,7 +50,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://ai-sdk.dev/docs",
+  "homepage": "https://sdk.vercel.ai/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"
