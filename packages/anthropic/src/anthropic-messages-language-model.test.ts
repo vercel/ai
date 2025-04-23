@@ -664,10 +664,10 @@ describe('AnthropicMessagesLanguageModel', () => {
           {
             "providerMetadata": {
               "anthropic": {
-                "isRedacted": true,
+                "redactedData": "redacted-thinking-data",
               },
             },
-            "text": "redacted-thinking-data",
+            "text": "",
             "type": "reasoning",
           },
           {
