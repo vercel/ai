@@ -366,7 +366,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
             response.usage.input_tokens_details?.cached_tokens ?? null,
           reasoningTokens:
             response.usage.output_tokens_details?.reasoning_tokens ?? null,
-          reasoningSummaryText: null,
+          reasoningSummary: null,
         },
       },
       warnings,
@@ -404,7 +404,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     let cachedPromptTokens: number | null = null;
     let reasoningTokens: number | null = null;
     let responseId: string | null = null;
-    let reasoningSummaryText = '';
+    let reasoningSummary: Array<{ type: string; text: string }> = [];
+    let currentSummaryIndex = -1;
+    let currentSummaryText = '';
+
     const ongoingToolCalls: Record<
       number,
       { toolName: string; toolCallId: string } | undefined
@@ -468,7 +471,49 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 textDelta: value.delta,
               });
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
-              reasoningSummaryText += value.delta;
+              if (currentSummaryIndex !== value.summary_index) {
+                if (currentSummaryIndex >= 0 && currentSummaryText) {
+                  reasoningSummary[currentSummaryIndex] = {
+                    type: 'summary_text',
+                    text: currentSummaryText,
+                  };
+                }
+                currentSummaryIndex = value.summary_index;
+                currentSummaryText = '';
+
+                while (reasoningSummary.length <= currentSummaryIndex) {
+                  reasoningSummary.push({ type: 'summary_text', text: '' });
+                }
+              }
+
+              currentSummaryText += value.delta;
+              reasoningSummary[currentSummaryIndex].text = currentSummaryText;
+
+              controller.enqueue({
+                type: 'reasoning',
+                textDelta: value.delta,
+              });
+            } else if (
+              isResponseReasoningSummaryTextDoneChunk(value) ||
+              isResponseReasoningSummaryPartDoneChunk(value)
+            ) {
+              const summaryIndex = value.summary_index;
+              const summaryText = isResponseReasoningSummaryTextDoneChunk(value)
+                ? value.text
+                : value.part.text;
+
+              while (reasoningSummary.length <= summaryIndex) {
+                reasoningSummary.push({ type: 'summary_text', text: '' });
+              }
+
+              reasoningSummary[summaryIndex] = {
+                type: 'summary_text',
+                text: summaryText,
+              };
+
+              if (currentSummaryIndex === summaryIndex) {
+                currentSummaryText = summaryText;
+              }
             } else if (
               isResponseOutputItemDoneChunk(value) &&
               value.item.type === 'function_call'
@@ -509,21 +554,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
+            if (currentSummaryIndex >= 0 && currentSummaryText) {
+              reasoningSummary[currentSummaryIndex] = {
+                type: 'summary_text',
+                text: currentSummaryText,
+              };
+            }
+
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage: { promptTokens, completionTokens },
               ...((cachedPromptTokens != null ||
                 reasoningTokens != null ||
-                reasoningSummaryText !== '') && {
+                reasoningSummary.length > 0) && {
                 providerMetadata: {
                   openai: {
                     responseId,
                     cachedPromptTokens,
                     reasoningTokens,
-                    ...(reasoningSummaryText !== '' && {
-                      reasoningSummaryText,
-                    }),
+                    ...(reasoningSummary.length > 0 && { reasoningSummary }),
                   },
                 },
               }),
@@ -634,6 +684,25 @@ const responseReasoningSummaryTextDeltaSchema = z.object({
   delta: z.string(),
 });
 
+const responseReasoningSummaryTextDoneSchema = z.object({
+  type: z.literal('response.reasoning_summary_text.done'),
+  item_id: z.string(),
+  output_index: z.number(),
+  summary_index: z.number(),
+  text: z.string(),
+});
+
+const responseReasoningSummaryPartDoneSchema = z.object({
+  type: z.literal('response.reasoning_summary_part.done'),
+  item_id: z.string(),
+  output_index: z.number(),
+  summary_index: z.number(),
+  part: z.object({
+    type: z.literal('summary_text'),
+    text: z.string(),
+  }),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
@@ -643,6 +712,8 @@ const openaiResponsesChunkSchema = z.union([
   responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
   responseReasoningSummaryTextDeltaSchema,
+  responseReasoningSummaryTextDoneSchema,
+  responseReasoningSummaryPartDoneSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -694,6 +765,18 @@ function isResponseReasoningSummaryTextDeltaChunk(
   chunk: z.infer<typeof openaiResponsesChunkSchema>,
 ): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
   return chunk.type === 'response.reasoning_summary_text.delta';
+}
+
+function isResponseReasoningSummaryTextDoneChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseReasoningSummaryTextDoneSchema> {
+  return chunk.type === 'response.reasoning_summary_text.done';
+}
+
+function isResponseReasoningSummaryPartDoneChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseReasoningSummaryPartDoneSchema> {
+  return chunk.type === 'response.reasoning_summary_part.done';
 }
 
 type ResponsesModelConfig = {

@@ -4,19 +4,32 @@ import { streamText } from 'ai';
 
 async function main() {
   const result = streamText({
+    // supported: o4-mini, o3, o3-mini and o1
     model: openai.responses('o3-mini'),
     system: 'You are a helpful assistant.',
-    prompt: 'Invent a new holiday and describe its traditions.',
+    prompt:
+      'Tell me about the debate over Taqueria La Cumbre and El Farolito and who created the San Francisco Mission-style burrito.',
     providerOptions: {
       openai: {
-        reasoningSummary: 'auto',
+        // https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries
+        reasoningSummary: 'auto', // 'detailed'
       },
     },
   });
 
+  // TODO: 'summary' reasoning isn't demarcated as different from regular
+  // 'reasoning' currently due to no specific or extensible stream part type.
   for await (const part of result.fullStream) {
-    console.log(part);
+    if (part.type === 'reasoning') {
+      process.stdout.write('\x1b[34m' + part.textDelta + '\x1b[0m');
+    } else if (part.type === 'text-delta') {
+      process.stdout.write(part.textDelta);
+    }
   }
+
+  // for await (const part of result.fullStream) {
+  //   console.log(part);
+  // }
 
   // for await (const textPart of result.textStream) {
   //   process.stdout.write(textPart);
