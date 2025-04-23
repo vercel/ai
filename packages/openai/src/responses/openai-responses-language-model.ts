@@ -418,9 +418,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
     let cachedPromptTokens: number | null = null;
     let reasoningTokens: number | null = null;
     let responseId: string | null = null;
-    let reasoningSummary: Array<{ type: string; text: string }> = [];
-    let currentSummaryIndex = -1;
-    let currentSummaryText = '';
 
     const ongoingToolCalls: Record<
       number,
@@ -485,49 +482,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
                 textDelta: value.delta,
               });
             } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
-              if (currentSummaryIndex !== value.summary_index) {
-                if (currentSummaryIndex >= 0 && currentSummaryText) {
-                  reasoningSummary[currentSummaryIndex] = {
-                    type: 'summary_text',
-                    text: currentSummaryText,
-                  };
-                }
-                currentSummaryIndex = value.summary_index;
-                currentSummaryText = '';
-
-                while (reasoningSummary.length <= currentSummaryIndex) {
-                  reasoningSummary.push({ type: 'summary_text', text: '' });
-                }
-              }
-
-              currentSummaryText += value.delta;
-              reasoningSummary[currentSummaryIndex].text = currentSummaryText;
-
               controller.enqueue({
                 type: 'reasoning',
                 textDelta: value.delta,
               });
-            } else if (
-              isResponseReasoningSummaryTextDoneChunk(value) ||
-              isResponseReasoningSummaryPartDoneChunk(value)
-            ) {
-              const summaryIndex = value.summary_index;
-              const summaryText = isResponseReasoningSummaryTextDoneChunk(value)
-                ? value.text
-                : value.part.text;
-
-              while (reasoningSummary.length <= summaryIndex) {
-                reasoningSummary.push({ type: 'summary_text', text: '' });
-              }
-
-              reasoningSummary[summaryIndex] = {
-                type: 'summary_text',
-                text: summaryText,
-              };
-
-              if (currentSummaryIndex === summaryIndex) {
-                currentSummaryText = summaryText;
-              }
             } else if (
               isResponseOutputItemDoneChunk(value) &&
               value.item.type === 'function_call'
@@ -568,38 +526,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV1 {
           },
 
           flush(controller) {
-            if (currentSummaryIndex >= 0 && currentSummaryText) {
-              reasoningSummary[currentSummaryIndex] = {
-                type: 'summary_text',
-                text: currentSummaryText,
-              };
-            }
-
-            const reasoning =
-              reasoningSummary.length > 0
-                ? reasoningSummary.map(summary => ({
-                    type: 'text' as const,
-                    text: summary.text,
-                  }))
-                : undefined;
-
             controller.enqueue({
               type: 'finish',
               finishReason,
               usage: { promptTokens, completionTokens },
-              ...((cachedPromptTokens != null ||
-                reasoningTokens != null ||
-                reasoningSummary.length > 0) && {
+              ...((cachedPromptTokens != null || reasoningTokens != null) && {
                 providerMetadata: {
                   openai: {
                     responseId,
                     cachedPromptTokens,
                     reasoningTokens,
-                    ...(reasoningSummary.length > 0 && { reasoningSummary }),
                   },
                 },
               }),
-              ...(reasoning && { reasoning }),
             });
           },
         }),
