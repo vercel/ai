@@ -654,25 +654,28 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
-    it('should respect the includeUsage option', async () => {
+    it('should respect the reasoningEffort provider option', async () => {
       prepareJsonResponse({ content: '{"value":"test"}' });
 
       const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
         provider: 'test-provider',
         url: () => 'https://my.api.com/v1/chat/completions',
         headers: () => ({}),
-        includeUsage: true,
       });
 
-      await model.doStream({
+      await model.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          'openai-compatible': {
+            reasoningEffort: 'low',
+          },
+        },
       });
 
       const body = await server.calls[0].requestBody;
 
-      expect(body.stream).toBe(true);
-      expect(body.stream_options).toStrictEqual({ include_usage: true });
+      expect(body.reasoning_effort).toBe('low');
     });
 
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
@@ -919,6 +922,30 @@ describe('doStream', () => {
       ],
     };
   }
+
+  it('should respect the includeUsage option', async () => {
+    prepareStreamResponse({
+      content: ['Hello', ', ', 'World!'],
+      finish_reason: 'stop',
+    });
+
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+      provider: 'test-provider',
+      url: () => 'https://my.api.com/v1/chat/completions',
+      headers: () => ({}),
+      includeUsage: true,
+    });
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBody;
+
+    expect(body.stream).toBe(true);
+    expect(body.stream_options).toStrictEqual({ include_usage: true });
+  });
 
   it('should stream text deltas', async () => {
     prepareStreamResponse({
@@ -1739,6 +1766,7 @@ describe('doStream', () => {
           ],
           "model": "grok-beta",
           "presence_penalty": undefined,
+          "reasoning_effort": undefined,
           "response_format": undefined,
           "seed": undefined,
           "stop": undefined,
