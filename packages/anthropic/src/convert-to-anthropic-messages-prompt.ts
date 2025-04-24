@@ -14,7 +14,7 @@ import {
 import { convertToBase64, parseProviderOptions } from '@ai-sdk/provider-utils';
 import { anthropicReasoningMetadataSchema } from './anthropic-messages-language-model';
 
-export function convertToAnthropicMessagesPrompt({
+export async function convertToAnthropicMessagesPrompt({
   prompt,
   sendReasoning,
   warnings,
@@ -22,10 +22,10 @@ export function convertToAnthropicMessagesPrompt({
   prompt: LanguageModelV2Prompt;
   sendReasoning: boolean;
   warnings: LanguageModelV2CallWarning[];
-}): {
+}): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
-} {
+}> {
   const betas = new Set<string>();
   const blocks = groupIntoBlocks(prompt);
 
@@ -255,7 +255,7 @@ export function convertToAnthropicMessagesPrompt({
 
               case 'reasoning': {
                 if (sendReasoning) {
-                  const reasoningMetadata = parseProviderOptions({
+                  const reasoningMetadata = await parseProviderOptions({
                     provider: 'anthropic',
                     providerOptions: part.providerOptions,
                     schema: anthropicReasoningMetadataSchema,
