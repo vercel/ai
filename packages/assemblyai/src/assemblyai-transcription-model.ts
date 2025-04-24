@@ -195,7 +195,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV1 {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const assemblyaiOptions = parseProviderOptions({
+    const assemblyaiOptions = await parseProviderOptions({
       provider: 'assemblyai',
       providerOptions,
       schema: assemblyaiProviderOptionsSchema,
