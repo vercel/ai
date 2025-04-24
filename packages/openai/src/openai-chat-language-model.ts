@@ -958,6 +958,12 @@ const reasoningModels = {
   'o1-preview-2024-09-12': {
     systemMessageMode: 'remove',
   },
+  'o3': {
+    systemMessageMode: 'developer',
+  },
+  'o3-2025-04-16': {
+    systemMessageMode: 'developer',
+  },
   'o3-mini': {
     systemMessageMode: 'developer',
   },
