@@ -12,7 +12,7 @@ import {
 import { z } from 'zod';
 import { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
-import { DeepgramTranscriptionModelId } from './deepgram-transcription-settings';
+import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 import { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
 
 // https://developers.deepgram.com/docs/pre-recorded-audio#results

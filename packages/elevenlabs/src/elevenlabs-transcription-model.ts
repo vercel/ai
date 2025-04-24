@@ -13,7 +13,7 @@ import {
 import { z } from 'zod';
 import { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
+import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 import { ElevenLabsTranscriptionAPITypes } from './elevenlabs-api-types';
 
 // https://elevenlabs.io/docs/api-reference/speech-to-text/convert

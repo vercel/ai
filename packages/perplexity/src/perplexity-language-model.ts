@@ -18,7 +18,7 @@ import {
 import { z } from 'zod';
 import { convertToPerplexityMessages } from './convert-to-perplexity-messages';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
-import { PerplexityLanguageModelId } from './perplexity-language-model-settings';
+import { PerplexityLanguageModelId } from './perplexity-language-model-options';
 
 type PerplexityChatConfig = {
   baseURL: string;

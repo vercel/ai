@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/elevenlabs",
-  "version": "1.0.0-canary.3",
+  "version": "1.0.0-canary.4",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,7 +8,6 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "internal/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {

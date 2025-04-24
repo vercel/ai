@@ -8,7 +8,7 @@ import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
 import { FalImageModelId, FalImageSettings } from './fal-image-settings';
-import { FalTranscriptionModelId } from './fal-transcription-settings';
+import { FalTranscriptionModelId } from './fal-transcription-options';
 import { FalTranscriptionModel } from './fal-transcription-model';
 
 export interface FalProviderSettings {

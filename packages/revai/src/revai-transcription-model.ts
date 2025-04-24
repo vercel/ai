@@ -15,7 +15,7 @@ import {
 import { z } from 'zod';
 import { RevaiConfig } from './revai-config';
 import { revaiFailedResponseHandler } from './revai-error';
-import { RevaiTranscriptionModelId } from './revai-transcription-settings';
+import { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { RevaiTranscriptionAPITypes } from './revai-api-types';
 
 // https://docs.rev.ai/api/asynchronous/reference/#operation/SubmitTranscriptionJob

@@ -8,7 +8,7 @@ import {
 import { z } from 'zod';
 import { LMNTConfig } from './lmnt-config';
 import { lmntFailedResponseHandler } from './lmnt-error';
-import { LMNTSpeechModelId } from './lmnt-speech-settings';
+import { LMNTSpeechModelId } from './lmnt-speech-options';
 import { LMNTSpeechAPITypes } from './lmnt-api-types';
 
 // https://docs.lmnt.com/api-reference/speech/synthesize-speech-bytes

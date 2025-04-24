@@ -1,7 +1,7 @@
 import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { RevaiTranscriptionModel } from './revai-transcription-model';
-import { RevaiTranscriptionModelId } from './revai-transcription-settings';
+import { RevaiTranscriptionModelId } from './revai-transcription-options';
 
 export interface RevaiProvider extends Pick<ProviderV1, 'transcriptionModel'> {
   (

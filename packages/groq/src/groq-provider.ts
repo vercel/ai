@@ -11,7 +11,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { GroqChatLanguageModel } from './groq-chat-language-model';
 import { GroqChatModelId } from './groq-chat-options';
-import { GroqTranscriptionModelId } from './groq-transcription-settings';
+import { GroqTranscriptionModelId } from './groq-transcription-options';
 import { GroqTranscriptionModel } from './groq-transcription-model';
 
 export interface GroqProvider extends ProviderV2 {

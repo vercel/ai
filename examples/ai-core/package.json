@@ -5,6 +5,7 @@
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "workspace:*",
     "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/assemblyai": "workspace:*",
     "@ai-sdk/azure": "workspace:*",
     "@ai-sdk/cerebras": "workspace:*",
     "@ai-sdk/cohere": "workspace:*",

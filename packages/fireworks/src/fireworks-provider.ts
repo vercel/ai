@@ -16,12 +16,9 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { FireworksChatModelId } from './fireworks-chat-settings';
-import { FireworksCompletionModelId } from './fireworks-completion-settings';
-import {
-  FireworksEmbeddingModelId,
-  FireworksEmbeddingProviderOptions,
-} from './fireworks-embedding-options';
+import { FireworksChatModelId } from './fireworks-chat-options';
+import { FireworksCompletionModelId } from './fireworks-completion-options';
+import { FireworksEmbeddingModelId } from './fireworks-embedding-options';
 import { FireworksImageModel } from './fireworks-image-model';
 import {
   FireworksImageModelId,

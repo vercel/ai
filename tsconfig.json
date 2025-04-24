@@ -40,6 +40,9 @@
       "path": "packages/google-vertex"
     },
     {
+      "path": "packages/assemblyai"
+    },
+    {
       "path": "packages/google"
     },
     {

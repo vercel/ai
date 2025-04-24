@@ -1,5 +1,16 @@
 # @ai-sdk/replicate
 
+## 1.0.0-canary.11
+
+### Patch Changes
+
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- Updated dependencies [66962ed]
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+  - @ai-sdk/provider-utils@3.0.0-canary.11
+  - @ai-sdk/provider@2.0.0-canary.10
+
 ## 1.0.0-canary.10
 
 ### Patch Changes

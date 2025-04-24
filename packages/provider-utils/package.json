@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "3.0.0-canary.10",
+  "version": "3.0.0-canary.11",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,7 +8,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "test.d.ts"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",

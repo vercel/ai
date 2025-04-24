@@ -1,5 +1,19 @@
 # @ai-sdk/openai
 
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- db72adc: chore(providers/openai): update completion model to use providerOptions
+- 66962ed: fix(packages): export node10 compatible types
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- 7df7a25: feat (providers/openai): support gpt-image-1 image generation
+- Updated dependencies [66962ed]
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+  - @ai-sdk/provider-utils@3.0.0-canary.11
+  - @ai-sdk/provider@2.0.0-canary.10
+
 ## 2.0.0-canary.11
 
 ### Patch Changes

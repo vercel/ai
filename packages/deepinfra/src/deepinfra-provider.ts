@@ -14,9 +14,9 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { DeepInfraChatModelId } from './deepinfra-chat-settings';
-import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-settings';
-import { DeepInfraCompletionModelId } from './deepinfra-completion-settings';
+import { DeepInfraChatModelId } from './deepinfra-chat-options';
+import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';
+import { DeepInfraCompletionModelId } from './deepinfra-completion-options';
 import {
   DeepInfraImageModelId,
   DeepInfraImageSettings,

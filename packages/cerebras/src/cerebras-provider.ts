@@ -9,7 +9,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { CerebrasChatModelId } from './cerebras-chat-settings';
+import { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod';
 import { ProviderErrorStructure } from '@ai-sdk/openai-compatible';
 

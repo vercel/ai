@@ -1,7 +1,7 @@
 import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
-import { DeepgramTranscriptionModelId } from './deepgram-transcription-settings';
+import { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 
 export interface DeepgramProvider
   extends Pick<ProviderV1, 'transcriptionModel'> {
