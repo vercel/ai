@@ -200,7 +200,7 @@ function useObject<RESULT, INPUT = any>({
               latestObject = currentObject;
 
               mutate(currentObject);
-              
+
               if (onChunk) {
                 onChunk(currentObject);
               }
