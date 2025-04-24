@@ -3,7 +3,7 @@ import { createTestServer } from '@ai-sdk/provider-utils/test';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
 import { z } from 'zod';
 import { ProviderErrorStructure } from './openai-compatible-error';
-import { ImageModelV1CallOptions } from '@ai-sdk/provider';
+import { ImageModelV2CallOptions } from '@ai-sdk/provider';
 
 const prompt = 'A photorealistic astronaut riding a horse';
 
@@ -32,7 +32,7 @@ function createBasicModel({
   });
 }
 
-function createDefaultGenerateParams(overrides = {}): ImageModelV1CallOptions {
+function createDefaultGenerateParams(overrides = {}): ImageModelV2CallOptions {
   return {
     prompt: 'A photorealistic astronaut riding a horse',
     n: 1,

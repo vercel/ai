@@ -45,7 +45,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  private getArgs({
+  private async getArgs({
     maxOutputTokens,
     temperature,
     stopSequences,
@@ -97,7 +97,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     warnings.push(...messageWarnings);
 
-    const openaiOptions = parseProviderOptions({
+    const openaiOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
@@ -198,7 +198,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args: body, warnings } = this.getArgs(options);
+    const { args: body, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -350,7 +350,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args: body, warnings } = this.getArgs(options);
+    const { args: body, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({

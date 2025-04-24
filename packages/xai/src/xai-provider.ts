@@ -4,7 +4,7 @@ import {
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  ImageModelV1,
+  ImageModelV2,
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
@@ -42,7 +42,7 @@ Creates an Xai chat model for text generation.
   /**
 Creates an Xai image model for image generation.
    */
-  image(modelId: XaiImageModelId, settings?: XaiImageSettings): ImageModelV1;
+  image(modelId: XaiImageModelId, settings?: XaiImageSettings): ImageModelV2;
 
   /**
 Creates an Xai image model for image generation.
@@ -50,7 +50,7 @@ Creates an Xai image model for image generation.
   imageModel(
     modelId: XaiImageModelId,
     settings?: XaiImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 }
 
 export interface XaiProviderSettings {

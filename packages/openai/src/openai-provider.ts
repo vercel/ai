@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV2,
-  ImageModelV1,
+  ImageModelV2,
   LanguageModelV2,
   ProviderV2,
   TranscriptionModelV1,
@@ -108,7 +108,7 @@ Creates a model for image generation.
   image(
     modelId: OpenAIImageModelId,
     settings?: OpenAIImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 Creates a model for image generation.
@@ -116,7 +116,7 @@ Creates a model for image generation.
   imageModel(
     modelId: OpenAIImageModelId,
     settings?: OpenAIImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 Creates a model for transcription.

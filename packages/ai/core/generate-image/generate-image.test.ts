@@ -1,5 +1,5 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
-import { MockImageModelV1 } from '../test/mock-image-model-v1';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import { MockImageModelV2 } from '../test/mock-image-model-v1';
 import { generateImage } from './generate-image';
 import {
   convertBase64ToUint8Array,
@@ -17,7 +17,7 @@ const gifBase64 = 'R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='; // 1x1 tra
 
 const createMockResponse = (options: {
   images: string[] | Uint8Array[];
-  warnings?: ImageModelV1CallWarning[];
+  warnings?: ImageModelV2CallWarning[];
   timestamp?: Date;
   modelId?: string;
   headers?: Record<string, string>;
@@ -36,10 +36,10 @@ describe('generateImage', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<ImageModelV1['doGenerate']>[0];
+    let capturedArgs!: Parameters<ImageModelV2['doGenerate']>[0];
 
     await generateImage({
-      model: new MockImageModelV1({
+      model: new MockImageModelV2({
         doGenerate: async args => {
           capturedArgs = args;
           return createMockResponse({
@@ -70,7 +70,7 @@ describe('generateImage', () => {
 
   it('should return warnings', async () => {
     const result = await generateImage({
-      model: new MockImageModelV1({
+      model: new MockImageModelV2({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],
@@ -96,7 +96,7 @@ describe('generateImage', () => {
   describe('base64 image data', () => {
     it('should return generated images with correct mime types', async () => {
       const result = await generateImage({
-        model: new MockImageModelV1({
+        model: new MockImageModelV2({
           doGenerate: async () =>
             createMockResponse({
               images: [pngBase64, jpegBase64],
@@ -127,7 +127,7 @@ describe('generateImage', () => {
 
     it('should return the first image with correct mime type', async () => {
       const result = await generateImage({
-        model: new MockImageModelV1({
+        model: new MockImageModelV2({
           doGenerate: async () =>
             createMockResponse({
               images: [pngBase64, jpegBase64],
@@ -156,7 +156,7 @@ describe('generateImage', () => {
       ];
 
       const result = await generateImage({
-        model: new MockImageModelV1({
+        model: new MockImageModelV2({
           doGenerate: async () =>
             createMockResponse({
               images: uint8ArrayImages,
@@ -190,7 +190,7 @@ describe('generateImage', () => {
       let callCount = 0;
 
       const result = await generateImage({
-        model: new MockImageModelV1({
+        model: new MockImageModelV2({
           maxImagesPerCall: 2,
           doGenerate: async options => {
             switch (callCount++) {
@@ -247,7 +247,7 @@ describe('generateImage', () => {
       let callCount = 0;
 
       const result = await generateImage({
-        model: new MockImageModelV1({
+        model: new MockImageModelV2({
           maxImagesPerCall: 2,
           doGenerate: async options => {
             switch (callCount++) {
@@ -306,7 +306,7 @@ describe('generateImage', () => {
     it('should throw NoImageGeneratedError when no images are returned', async () => {
       await expect(
         generateImage({
-          model: new MockImageModelV1({
+          model: new MockImageModelV2({
             doGenerate: async () =>
               createMockResponse({
                 images: [],
@@ -330,7 +330,7 @@ describe('generateImage', () => {
     it('should include response headers in error when no images generated', async () => {
       await expect(
         generateImage({
-          model: new MockImageModelV1({
+          model: new MockImageModelV2({
             doGenerate: async () =>
               createMockResponse({
                 images: [],
@@ -362,7 +362,7 @@ describe('generateImage', () => {
     const testHeaders = { 'x-test': 'value' };
 
     const result = await generateImage({
-      model: new MockImageModelV1({
+      model: new MockImageModelV2({
         doGenerate: async () =>
           createMockResponse({
             images: [pngBase64],

@@ -71,7 +71,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     };
   }
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -90,11 +90,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
     // Parse provider options
     const openaiOptions =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
         schema: openaiProviderOptions,
-      }) ?? {};
+      })) ?? {};
 
     if (topK != null) {
       warnings.push({
@@ -257,7 +257,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args: body, warnings } = this.getArgs(options);
+    const { args: body, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -340,7 +340,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const body = {
       ...args,

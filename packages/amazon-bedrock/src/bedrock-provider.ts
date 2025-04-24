@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV2,
-  ImageModelV1,
+  ImageModelV2,
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
@@ -88,12 +88,12 @@ export interface AmazonBedrockProvider extends ProviderV2 {
   image(
     modelId: BedrockImageModelId,
     settings?: BedrockImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   imageModel(
     modelId: BedrockImageModelId,
     settings?: BedrockImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 }
 
 /**

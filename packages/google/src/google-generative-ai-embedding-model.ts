@@ -61,7 +61,7 @@ export class GoogleGenerativeAIEmbeddingModel
     Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
     // Parse provider options
-    const googleOptions = parseProviderOptions({
+    const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions,
       schema: googleGenerativeAIEmbeddingProviderOptions,

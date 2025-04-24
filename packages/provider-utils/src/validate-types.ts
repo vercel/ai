@@ -9,16 +9,16 @@ import { Validator, asValidator } from './validator';
  * @template T - The type of the object to validate.
  * @param {string} options.value - The object to validate.
  * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
- * @returns {T} - The typed object.
+ * @returns {Promise<T>} - The typed object.
  */
-export function validateTypes<T>({
+export async function validateTypes<T>({
   value,
   schema: inputSchema,
 }: {
   value: unknown;
   schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
-}): T {
-  const result = safeValidateTypes({ value, schema: inputSchema });
+}): Promise<T> {
+  const result = await safeValidateTypes({ value, schema: inputSchema });
 
   if (!result.success) {
     throw TypeValidationError.wrap({ value, cause: result.error });
@@ -36,15 +36,15 @@ export function validateTypes<T>({
  * @param {Validator<T>} options.schema - The schema to use for validating the JSON.
  * @returns An object with either a `success` flag and the parsed and typed data, or a `success` flag and an error object.
  */
-export function safeValidateTypes<T>({
+export async function safeValidateTypes<T>({
   value,
   schema,
 }: {
   value: unknown;
   schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
-}):
-  | { success: true; value: T }
-  | { success: false; error: TypeValidationError } {
+}): Promise<
+  { success: true; value: T } | { success: false; error: TypeValidationError }
+> {
   const validator = asValidator(schema);
 
   try {

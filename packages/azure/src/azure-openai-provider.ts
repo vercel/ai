@@ -14,7 +14,7 @@ import {
   EmbeddingModelV2,
   LanguageModelV2,
   ProviderV2,
-  ImageModelV1,
+  ImageModelV2,
   TranscriptionModelV1,
 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
@@ -60,7 +60,7 @@ Creates an Azure OpenAI completion model for text generation.
    * Creates an Azure OpenAI DALL-E model for image generation.
    * @deprecated Use `imageModel` instead.
    */
-  image(deploymentId: string, settings?: OpenAIImageSettings): ImageModelV1;
+  image(deploymentId: string, settings?: OpenAIImageSettings): ImageModelV2;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
@@ -68,7 +68,7 @@ Creates an Azure OpenAI completion model for text generation.
   imageModel(
     deploymentId: string,
     settings?: OpenAIImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel` instead.
