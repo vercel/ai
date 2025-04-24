@@ -168,7 +168,7 @@ export function createAzure(
     settings: OpenAIChatSettings = {},
   ) =>
     new OpenAIChatLanguageModel(deploymentName, settings, {
-      provider: 'azure-openai.chat',
+      provider: 'azure.chat',
       url,
       headers: getHeaders,
       compatibility: 'strict',
@@ -177,7 +177,7 @@ export function createAzure(
 
   const createCompletionModel = (modelId: string) =>
     new OpenAICompletionLanguageModel(modelId, {
-      provider: 'azure-openai.completion',
+      provider: 'azure.completion',
       url,
       compatibility: 'strict',
       headers: getHeaders,
@@ -189,7 +189,7 @@ export function createAzure(
     settings: OpenAIEmbeddingSettings = {},
   ) =>
     new OpenAIEmbeddingModel(modelId, settings, {
-      provider: 'azure-openai.embeddings',
+      provider: 'azure.embeddings',
       headers: getHeaders,
       url,
       fetch: options.fetch,
@@ -197,7 +197,7 @@ export function createAzure(
 
   const createResponsesModel = (modelId: string) =>
     new OpenAIResponsesLanguageModel(modelId, {
-      provider: 'azure-openai.responses',
+      provider: 'azure.responses',
       url,
       headers: getHeaders,
       fetch: options.fetch,
@@ -208,7 +208,7 @@ export function createAzure(
     settings: OpenAIImageSettings = {},
   ) =>
     new OpenAIImageModel(modelId, settings, {
-      provider: 'azure-openai.image',
+      provider: 'azure.image',
       url,
       headers: getHeaders,
       fetch: options.fetch,
@@ -216,7 +216,7 @@ export function createAzure(
 
   const createTranscriptionModel = (modelId: string) =>
     new OpenAITranscriptionModel(modelId, {
-      provider: 'azure-openai.transcription',
+      provider: 'azure.transcription',
       url,
       headers: getHeaders,
       fetch: options.fetch,
