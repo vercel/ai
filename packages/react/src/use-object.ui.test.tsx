@@ -14,8 +14,11 @@ const server = createTestServer({
 
 describe('text stream', () => {
   let onErrorResult: Error | undefined;
-  let onFinishCalls: Array<any> = [];
-  let onChunkCalls: Array<any> = [];
+  let onFinishCalls: Array<{
+    object: { content: string } | undefined;
+    error: Error | undefined;
+  }> = [];
+  let onChunkCalls: Array<{ content: string }> = [];
 
   const TestComponent = ({
     headers,
