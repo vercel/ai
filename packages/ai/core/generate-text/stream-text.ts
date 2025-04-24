@@ -649,11 +649,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
         if (part.type === 'reasoning') {
           if (activeReasoningPart == null) {
-            activeReasoningPart = { type: 'reasoning', text: part.text };
+            activeReasoningPart = {
+              type: 'reasoning',
+              text: part.text,
+              providerOptions: part.providerMetadata,
+            };
             stepReasoning.push(activeReasoningPart);
           } else {
             activeReasoningPart.text += part.text;
+            activeReasoningPart.providerOptions = part.providerMetadata;
           }
+        }
+
+        if (part.type === 'reasoning-part-finish') {
+          activeReasoningPart = undefined;
         }
 
         if (part.type === 'file') {

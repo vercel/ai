@@ -3,6 +3,7 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import {
@@ -145,16 +146,16 @@ const modelWithReasoning = new MockLanguageModelV2({
       {
         type: 'reasoning',
         text: '',
-        providerOptions: {
+        providerMetadata: {
           testProvider: { signature: '1234567890' },
-        },
+        } as SharedV2ProviderMetadata,
       },
       { type: 'reasoning-part-finish' },
       {
         type: 'reasoning',
-        text: 'redacted-reasoning-data',
-        providerOptions: {
-          testProvider: { isRedacted: true },
+        text: '',
+        providerMetadata: {
+          testProvider: { redactedData: 'redacted-reasoning-data' },
         },
       },
       { type: 'reasoning-part-finish' },
@@ -169,7 +170,7 @@ const modelWithReasoning = new MockLanguageModelV2({
       {
         type: 'reasoning',
         text: '',
-        providerOptions: {
+        providerMetadata: {
           testProvider: { signature: '1234567890' },
         },
       },
@@ -1745,7 +1746,47 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect((await result.response).messages).toMatchSnapshot();
+      expect((await result.response).messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "I will open the conversation with witty banter. ",
+                "type": "reasoning",
+              },
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "redactedData": "redacted-reasoning-data",
+                  },
+                },
+                "text": "",
+                "type": "reasoning",
+              },
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "Once the user has relaxed, I will pry for valuable information.",
+                "type": "reasoning",
+              },
+              {
+                "text": "Hi there!",
+                "type": "text",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+        ]
+      `);
     });
   });
 
