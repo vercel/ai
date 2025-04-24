@@ -8,10 +8,10 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "edge/dist/**/*",
-    "anthropic/dist/**/*",
-    "anthropic/edge/dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "edge.d.ts",
+    "anthropic/edge.d.ts",
+    "anthropic/index.d.ts"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",

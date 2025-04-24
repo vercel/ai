@@ -9,7 +9,10 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts"
+    "tsup.config.ts",
+    "edge.d.ts",
+    "anthropic/edge.d.ts",
+    "anthropic/index.d.ts"
   ],
   "references": [
     {
