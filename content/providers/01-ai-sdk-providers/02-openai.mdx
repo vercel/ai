@@ -749,18 +749,24 @@ OpenAI completion models support also some model specific settings that are not 
 You can pass them as an options argument:
 
 ```ts
-const model = openai.completion('gpt-3.5-turbo-instruct', {
-  echo: true, // optional, echo the prompt in addition to the completion
-  logitBias: {
-    // optional likelihood for specific tokens
-    '50256': -100,
+const model = openai.completion('gpt-3.5-turbo-instruct');
+
+await model.doGenerate({
+  providerOptions: {
+    openai: {
+      echo: true, // optional, echo the prompt in addition to the completion
+      logitBias: {
+        // optional likelihood for specific tokens
+        '50256': -100,
+      },
+      suffix: 'some text', // optional suffix that comes after a completion of inserted text
+      user: 'test-user', // optional unique user identifier
+    },
   },
-  suffix: 'some text', // optional suffix that comes after a completion of inserted text
-  user: 'test-user', // optional unique user identifier
 });
 ```
 
-The following optional settings are available for OpenAI completion models:
+The following optional provider options are available for OpenAI completion models:
 
 - **echo**: _boolean_
 
@@ -891,10 +897,23 @@ const model = openai.image('dall-e-3');
 
 ### Model Capabilities
 
-| Model      | Sizes                           |
-| ---------- | ------------------------------- |
-| `dall-e-3` | 1024x1024, 1792x1024, 1024x1792 |
-| `dall-e-2` | 256x256, 512x512, 1024x1024     |
+| Model         | Sizes                           |
+| ------------- | ------------------------------- |
+| `gpt-image-1` | 1024x1024, 1536x1024, 1024x1536 |
+| `dall-e-3`    | 1024x1024, 1792x1024, 1024x1792 |
+| `dall-e-2`    | 256x256, 512x512, 1024x1024     |
+
+You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and aremodel dependent. For example, the `gpt-image-1` model supports the `quality` option:
+
+```ts
+const model = openai.image('gpt-image-1', {
+  providerOptions: {
+    openai: { quality: 'high' },
+  },
+});
+```
+
+For more information on the available options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
 
 ## Transcription Models
 

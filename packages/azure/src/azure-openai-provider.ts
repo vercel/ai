@@ -2,7 +2,6 @@ import {
   OpenAIChatLanguageModel,
   OpenAIChatSettings,
   OpenAICompletionLanguageModel,
-  OpenAICompletionSettings,
   OpenAIEmbeddingModel,
   OpenAIEmbeddingSettings,
   OpenAIImageModel,
@@ -43,10 +42,7 @@ Creates an Azure OpenAI responses API model for text generation.
   /**
 Creates an Azure OpenAI completion model for text generation.
    */
-  completion(
-    deploymentId: string,
-    settings?: OpenAICompletionSettings,
-  ): LanguageModelV2;
+  completion(deploymentId: string): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel` instead.
@@ -172,19 +168,16 @@ export function createAzure(
     settings: OpenAIChatSettings = {},
   ) =>
     new OpenAIChatLanguageModel(deploymentName, settings, {
-      provider: 'azure-openai.chat',
+      provider: 'azure.chat',
       url,
       headers: getHeaders,
       compatibility: 'strict',
       fetch: options.fetch,
     });
 
-  const createCompletionModel = (
-    modelId: string,
-    settings: OpenAICompletionSettings = {},
-  ) =>
-    new OpenAICompletionLanguageModel(modelId, settings, {
-      provider: 'azure-openai.completion',
+  const createCompletionModel = (modelId: string) =>
+    new OpenAICompletionLanguageModel(modelId, {
+      provider: 'azure.completion',
       url,
       compatibility: 'strict',
       headers: getHeaders,
@@ -196,7 +189,7 @@ export function createAzure(
     settings: OpenAIEmbeddingSettings = {},
   ) =>
     new OpenAIEmbeddingModel(modelId, settings, {
-      provider: 'azure-openai.embeddings',
+      provider: 'azure.embeddings',
       headers: getHeaders,
       url,
       fetch: options.fetch,
@@ -204,7 +197,7 @@ export function createAzure(
 
   const createResponsesModel = (modelId: string) =>
     new OpenAIResponsesLanguageModel(modelId, {
-      provider: 'azure-openai.responses',
+      provider: 'azure.responses',
       url,
       headers: getHeaders,
       fetch: options.fetch,
@@ -215,7 +208,7 @@ export function createAzure(
     settings: OpenAIImageSettings = {},
   ) =>
     new OpenAIImageModel(modelId, settings, {
-      provider: 'azure-openai.image',
+      provider: 'azure.image',
       url,
       headers: getHeaders,
       fetch: options.fetch,
@@ -223,7 +216,7 @@ export function createAzure(
 
   const createTranscriptionModel = (modelId: string) =>
     new OpenAITranscriptionModel(modelId, {
-      provider: 'azure-openai.transcription',
+      provider: 'azure.transcription',
       url,
       headers: getHeaders,
       fetch: options.fetch,
@@ -231,7 +224,7 @@ export function createAzure(
 
   const provider = function (
     deploymentId: string,
-    settings?: OpenAIChatSettings | OpenAICompletionSettings,
+    settings?: OpenAIChatSettings,
   ) {
     if (new.target) {
       throw new Error(

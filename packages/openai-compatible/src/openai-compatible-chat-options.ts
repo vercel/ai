@@ -8,6 +8,11 @@ export const openaiCompatibleProviderOptions = z.object({
    * monitor and detect abuse.
    */
   user: z.string().optional(),
+
+  /**
+   * Reasoning effort for reasoning models. Defaults to `medium`.
+   */
+  reasoningEffort: z.enum(['low', 'medium', 'high']).optional(),
 });
 
 export type OpenAICompatibleProviderOptions = z.infer<

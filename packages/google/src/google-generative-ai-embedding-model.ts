@@ -61,12 +61,11 @@ export class GoogleGenerativeAIEmbeddingModel
     Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
     // Parse provider options
-    const googleOptions =
-      (await parseProviderOptions({
-        provider: 'google',
-        providerOptions,
-        schema: googleGenerativeAIEmbeddingProviderOptions,
-      })) ?? {};
+    const googleOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions,
+      schema: googleGenerativeAIEmbeddingProviderOptions,
+    });
 
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
@@ -93,7 +92,8 @@ export class GoogleGenerativeAIEmbeddingModel
         requests: values.map(value => ({
           model: `models/${this.modelId}`,
           content: { role: 'user', parts: [{ text: value }] },
-          outputDimensionality: googleOptions.outputDimensionality,
+          outputDimensionality: googleOptions?.outputDimensionality,
+          taskType: googleOptions?.taskType,
         })),
       },
       failedResponseHandler: googleFailedResponseHandler,
