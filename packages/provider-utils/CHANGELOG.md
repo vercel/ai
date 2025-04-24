@@ -1,5 +1,14 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-canary.11
+
+### Patch Changes
+
+- 66962ed: fix(packages): export node10 compatible types
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+  - @ai-sdk/provider@2.0.0-canary.10
+
 ## 3.0.0-canary.10
 
 ### Patch Changes

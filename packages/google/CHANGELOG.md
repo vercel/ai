@@ -1,5 +1,17 @@
 # @ai-sdk/google
 
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- 888b750: feat(providers/google): Add taskType support for Text Embedding Models
+- 66962ed: fix(packages): export node10 compatible types
+- Updated dependencies [66962ed]
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+  - @ai-sdk/provider-utils@3.0.0-canary.11
+  - @ai-sdk/provider@2.0.0-canary.10
+
 ## 2.0.0-canary.11
 
 ### Patch Changes
