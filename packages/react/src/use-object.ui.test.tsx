@@ -14,10 +14,8 @@ const server = createTestServer({
 
 describe('text stream', () => {
   let onErrorResult: Error | undefined;
-  let onFinishCalls: Array<{
-    object: { content: string } | undefined;
-    error: Error | undefined;
-  }> = [];
+  let onFinishCalls: Array<any> = [];
+  let onChunkCalls: Array<any> = [];
 
   const TestComponent = ({
     headers,
@@ -34,6 +32,9 @@ describe('text stream', () => {
       },
       onFinish(event) {
         onFinishCalls.push(event);
+      },
+      onChunk(currentObject) {
+        onChunkCalls.push(currentObject);
       },
       headers,
       credentials,
@@ -60,6 +61,7 @@ describe('text stream', () => {
   beforeEach(() => {
     onErrorResult = undefined;
     onFinishCalls = [];
+    onChunkCalls = [];
   });
 
   afterEach(() => {
@@ -67,6 +69,7 @@ describe('text stream', () => {
     cleanup();
     onErrorResult = undefined;
     onFinishCalls = [];
+    onChunkCalls = [];
   });
 
   describe('basic component', () => {
@@ -246,5 +249,94 @@ describe('text stream', () => {
     render(<TestComponent credentials="include" />);
     await userEvent.click(screen.getByTestId('submit-button'));
     expect(server.calls[0].requestCredentials).toBe('include');
+  });
+
+  describe('onChunk', () => {
+    it('should be called for each chunk that updates the object', async () => {
+      const controller = new TestResponseController();
+      server.urls['/api/use-object'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      render(<TestComponent />);
+
+      controller.write('{"content": "H');
+      await userEvent.click(screen.getByTestId('submit-button'));
+
+      // Wait for the first chunk to be processed
+      await waitFor(() => {
+        expect(onChunkCalls.length).toBe(1);
+        expect(onChunkCalls[0]).toHaveProperty('content', 'H');
+      });
+
+      controller.write('ello');
+
+      // Wait for the second chunk to be processed
+      await waitFor(() => {
+        expect(onChunkCalls.length).toBe(2);
+        expect(onChunkCalls[1]).toHaveProperty('content', 'Hello');
+      });
+
+      controller.write(', world!"}');
+
+      // Wait for the final chunk to be processed
+      await waitFor(() => {
+        expect(onChunkCalls.length).toBe(3);
+        expect(onChunkCalls[2]).toHaveProperty('content', 'Hello, world!');
+      });
+
+      controller.close();
+    });
+
+    it('should not be called for chunks that do not update the object', async () => {
+      // Clear onChunkCalls before the test
+      onChunkCalls = [];
+
+      server.urls['/api/use-object'].response = {
+        type: 'stream-chunks',
+        // Use complete JSON format to ensure it's processed at once
+        chunks: ['{"content": "Hello, world!"}'],
+      };
+
+      render(<TestComponent />);
+      await userEvent.click(screen.getByTestId('submit-button'));
+
+      // Only one call should be made since all chunks are processed together
+      await waitFor(() => {
+        expect(onChunkCalls.length).toBe(1);
+        expect(onChunkCalls[0]).toHaveProperty('content', 'Hello, world!');
+      });
+    });
+
+    it('should not be called after stopping the stream', async () => {
+      const controller = new TestResponseController();
+      server.urls['/api/use-object'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      render(<TestComponent />);
+
+      controller.write('{"content": "H');
+      await userEvent.click(screen.getByTestId('submit-button'));
+
+      // Wait for the first chunk to be processed
+      await waitFor(() => {
+        expect(onChunkCalls.length).toBe(1);
+      });
+
+      // Stop the stream
+      await userEvent.click(screen.getByTestId('stop-button'));
+
+      // Send more data that should not be processed
+      controller.write('ello, world!"}');
+      controller.close();
+
+      // onChunk should not be called again
+      await waitFor(() => {
+        expect(onChunkCalls.length).toBe(1);
+      });
+    });
   });
 });
