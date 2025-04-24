@@ -45,6 +45,9 @@
     },
     {
       "path": "../../packages/react"
+    },
+    {
+      "path": "../../packages/langchain"
     }
   ]
 }
