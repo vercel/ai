@@ -19,10 +19,12 @@ interface ChatStoreSubscriber {
   // onChatRemoved?
 }
 
-enum ChatStoreEvent {
+export enum ChatStoreEvent {
   ChatMessagesChanged = 'chat-messages-changed',
   ChatStatusChanged = 'chat-status-changed',
   ChatErrorChanged = 'chat-error-changed',
+  // ChatAdded = 'chat-added',
+  // ChatRemoved = 'chat-removed',
 }
 
 const ChatStoreEventMap = {
@@ -31,8 +33,17 @@ const ChatStoreEventMap = {
   [ChatStoreEvent.ChatErrorChanged]: 'onChatErrorChanged',
 } as const;
 
-interface ChatStoreInitialization {
+export interface ChatStoreInitialization {
   chats?: Record<string, Pick<ChatState, 'messages'>>;
+  onChatStoreChange?: ({
+    event,
+    chatId,
+    state,
+  }: {
+    event: ChatStoreEvent;
+    chatId: string;
+    state: ChatState;
+  }) => void;
 }
 
 export interface ChatState {
@@ -57,8 +68,9 @@ export interface ChatState {
 export class ChatStore {
   private chats: Map<string, ChatState>;
   private subscribers: Set<ChatStoreSubscriber>;
+  private onChatStoreChange?: ChatStoreInitialization['onChatStoreChange'];
 
-  constructor({ chats = {} }: ChatStoreInitialization = {}) {
+  constructor({ chats = {}, onChatStoreChange }: ChatStoreInitialization = {}) {
     this.chats = new Map(
       Object.entries(chats).map(([id, state]) => [
         id,
@@ -72,16 +84,54 @@ export class ChatStore {
       ]),
     );
     this.subscribers = new Set();
+    this.onChatStoreChange = onChatStoreChange;
   }
 
   get totalChats() {
     return this.chats.size;
   }
 
+  getStatus(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    return chat.status;
+  }
+
+  setStatus({ id, status }: { id: string; status: ChatState['status'] }) {
+    const chat = this.chats.get(id);
+    if (!chat || chat.status === status) return;
+    chat.status = status;
+    this.emitEvent({ id, event: ChatStoreEvent.ChatStatusChanged });
+  }
+
+  getError(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    return chat.error;
+  }
+
+  setError({ id, error }: { id: string; error: ChatState['error'] }) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    chat.error = error;
+    this.emitEvent({ id, event: ChatStoreEvent.ChatErrorChanged });
+  }
+
   private emitEvent({ id, event }: { id: string; event: ChatStoreEvent }) {
     for (const subscriber of this.subscribers) {
       const handler = ChatStoreEventMap[event];
       subscriber[handler](id);
+    }
+
+    if (this.onChatStoreChange) {
+      const state = this.chats.get(id);
+      if (state) {
+        this.onChatStoreChange({
+          event,
+          chatId: id,
+          state,
+        });
+      }
     }
   }
 

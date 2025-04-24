@@ -3,6 +3,7 @@ import {
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
 import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
+import { ChatState, ChatStoreEvent } from '../util/chat-store';
 import { LanguageModelUsage } from './duplicated/usage';
 
 export type IdGenerator = () => string;
@@ -300,9 +301,21 @@ Keeps the last message when an error happens. Defaults to `true`.
   id?: string;
 
   /**
-   * Initial messages of the chat. Useful to load an existing chat history.
+   * Optional initialization object for the chat store.
    */
-  initialMessages?: Message[];
+  chats?: Record<string, Pick<ChatState, 'messages'>>;
+  /**
+   * Optional callback function that is called when chat store changes.
+   */
+  onChatStoreChange?: ({
+    event,
+    chatId,
+    state,
+  }: {
+    event: ChatStoreEvent;
+    chatId: string;
+    state: ChatState;
+  }) => void;
 
   /**
    * Initial input of the chat.
