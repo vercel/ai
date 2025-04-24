@@ -903,17 +903,21 @@ const model = openai.image('dall-e-3');
 | `dall-e-3`    | 1024x1024, 1792x1024, 1024x1792 |
 | `dall-e-2`    | 256x256, 512x512, 1024x1024     |
 
-You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and aremodel dependent. For example, the `gpt-image-1` model supports the `quality` option:
+You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
 
 ```ts
-const model = openai.image('gpt-image-1', {
+const { image } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
     openai: { quality: 'high' },
   },
 });
 ```
 
-For more information on the available options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
+For more on `generateImage()` see [Image Generation](/docs/ai-sdk-core/image-generation).
+
+For more information on the available OpenAI image model options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
 
 ## Transcription Models
 
