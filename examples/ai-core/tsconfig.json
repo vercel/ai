@@ -68,6 +68,9 @@
       "path": "../../packages/fal"
     },
     {
+      "path": "../../packages/assemblyai"
+    },
+    {
       "path": "../../packages/fireworks"
     },
     {
