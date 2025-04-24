@@ -1,8 +1,20 @@
-import { anthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
+import { createAnthropic, AnthropicProviderOptions } from '@ai-sdk/anthropic';
 import { CoreMessage, generateText } from 'ai';
 import 'dotenv/config';
 import * as readline from 'node:readline/promises';
 import { weatherTool } from '../tools/weather-tool';
+
+const anthropic = createAnthropic({
+  // example fetch wrapper that logs the input to the API call:
+  fetch: async (url, options) => {
+    console.log('URL', url);
+    console.log('Headers', JSON.stringify(options!.headers, null, 2));
+    console.log(
+      `Body ${JSON.stringify(JSON.parse(options!.body! as string), null, 2)}`,
+    );
+    return await fetch(url, options);
+  },
+});
 
 const terminal = readline.createInterface({
   input: process.stdin,
