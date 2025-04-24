@@ -80,7 +80,7 @@ export function createVertexAnthropic(
     `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
 
   const createChatModel = (modelId: GoogleVertexAnthropicMessagesModelId) =>
-    new AnthropicMessagesLanguageModel(modelId as AnthropicMessagesModelId, {
+    new AnthropicMessagesLanguageModel(modelId, {
       provider: 'vertex.anthropic.messages',
       baseURL,
       headers: options.headers ?? {},
