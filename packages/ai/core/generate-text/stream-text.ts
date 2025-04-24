@@ -1171,6 +1171,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'reasoning-part-finish': {
+                      activeReasoningPart = undefined;
                       controller.enqueue(chunk);
                       break;
                     }
