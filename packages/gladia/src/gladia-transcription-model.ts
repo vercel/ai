@@ -350,7 +350,7 @@ export class GladiaTranscriptionModel implements TranscriptionModelV1 {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const gladiaOptions = parseProviderOptions({
+    const gladiaOptions = await parseProviderOptions({
       provider: 'gladia',
       providerOptions,
       schema: gladiaProviderOptionsSchema,

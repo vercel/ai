@@ -118,7 +118,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     private readonly config: OpenAITranscriptionModelConfig,
   ) {}
 
-  private getArgs({
+  private async getArgs({
     audio,
     mediaType,
     providerOptions,
@@ -126,7 +126,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const openAIOptions = parseProviderOptions({
+    const openAIOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
       schema: openAIProviderOptionsSchema,
@@ -174,7 +174,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     options: OpenAITranscriptionCallOptions,
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { formData, warnings } = this.getArgs(options);
+    const { formData, warnings } = await this.getArgs(options);
 
     const {
       value: response,

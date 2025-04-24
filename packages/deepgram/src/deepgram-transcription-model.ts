@@ -75,13 +75,13 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV1 {
     private readonly config: DeepgramTranscriptionModelConfig,
   ) {}
 
-  private getArgs({
+  private async getArgs({
     providerOptions,
   }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const deepgramOptions = parseProviderOptions({
+    const deepgramOptions = await parseProviderOptions({
       provider: 'deepgram',
       providerOptions,
       schema: deepgramProviderOptionsSchema,
@@ -129,7 +129,7 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV1 {
     options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { queryParams, warnings } = this.getArgs(options);
+    const { queryParams, warnings } = await this.getArgs(options);
 
     const {
       value: response,

@@ -62,11 +62,11 @@ export class GoogleGenerativeAIEmbeddingModel
   > {
     // Parse provider options
     const googleOptions =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'google',
         providerOptions,
         schema: googleGenerativeAIEmbeddingProviderOptions,
-      }) ?? {};
+      })) ?? {};
 
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({

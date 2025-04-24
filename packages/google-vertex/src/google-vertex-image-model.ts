@@ -66,7 +66,7 @@ export class GoogleVertexImageModel implements ImageModelV2 {
       });
     }
 
-    const vertexImageOptions = parseProviderOptions({
+    const vertexImageOptions = await parseProviderOptions({
       provider: 'vertex',
       providerOptions,
       schema: vertexImageProviderOptionsSchema,
