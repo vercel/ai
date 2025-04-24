@@ -1,11 +1,13 @@
+import { z } from 'zod';
+
 // https://platform.openai.com/docs/models
 export type OpenAICompletionModelId = 'gpt-3.5-turbo-instruct' | (string & {});
 
-export interface OpenAICompletionSettings {
+export const openaiCompletionProviderOptions = z.object({
   /**
 Echo back the prompt in addition to the completion.
    */
-  echo?: boolean;
+  echo: z.boolean().optional(),
 
   /**
 Modify the likelihood of specified tokens appearing in the completion.
@@ -20,17 +22,21 @@ should result in a ban or exclusive selection of the relevant token.
 
 As an example, you can pass {"50256": -100} to prevent the <|endoftext|>
 token from being generated.
-   */
-  logitBias?: Record<number, number>;
+ */
+  logitBias: z.record(z.string(), z.number()).optional(),
 
   /**
 The suffix that comes after a completion of inserted text.
-   */
-  suffix?: string;
+ */
+  suffix: z.string().optional(),
 
   /**
 A unique identifier representing your end-user, which can help OpenAI to
 monitor and detect abuse. Learn more.
-   */
-  user?: string;
-}
+ */
+  user: z.string().optional(),
+});
+
+export type OpenAICompletionProviderOptions = z.infer<
+  typeof openaiCompletionProviderOptions
+>;

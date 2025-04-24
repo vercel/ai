@@ -14,7 +14,7 @@ export const openaiCompatibleCompletionProviderOptions = z.object({
    * Accepts a JSON object that maps tokens (specified by their token ID in
    * the GPT tokenizer) to an associated bias value from -100 to 100.
    */
-  logitBias: z.record(z.number(), z.number()).optional(),
+  logitBias: z.record(z.string(), z.number()).optional(),
 
   /**
    * The suffix that comes after a completion of inserted text.
