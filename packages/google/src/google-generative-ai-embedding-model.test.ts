@@ -99,9 +99,10 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   it('should pass the taskType setting', async () => {
     prepareJsonResponse();
 
-    await provider
-      .embedding('text-embedding-004', { taskType: 'SEMANTIC_SIMILARITY' })
-      .doEmbed({ values: testValues });
+    await provider.embedding('text-embedding-004').doEmbed({
+      values: testValues,
+      providerOptions: { google: { taskType: 'SEMANTIC_SIMILARITY' } },
+    });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
       requests: testValues.map(value => ({
