@@ -83,18 +83,18 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     const warnings: LanguageModelV2CallWarning[] = [];
 
     // Parse provider options
-    const openaiOptions = Object.assign(
-      parseProviderOptions({
+    const openaiOptions = {
+      ...parseProviderOptions({
         provider: 'openai',
         providerOptions,
         schema: openaiCompletionProviderOptions,
-      }) ?? {},
-      parseProviderOptions({
+      }),
+      ...parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
         schema: openaiCompletionProviderOptions,
-      }) ?? {},
-    );
+      }),
+    };
 
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
