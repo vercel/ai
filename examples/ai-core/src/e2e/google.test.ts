@@ -1,6 +1,6 @@
 import { GoogleErrorData, google as provider } from '@ai-sdk/google';
 import { LanguageModelV2 } from '@ai-sdk/provider';
-import { APICallError } from 'ai';
+import { APICallError, defaultSettingsMiddleware, wrapLanguageModel } from 'ai';
 import 'dotenv/config';
 import { expect } from 'vitest';
 import {
@@ -19,9 +19,16 @@ const createChatModel = (
 const createSearchGroundedModel = (
   modelId: string,
 ): ModelWithCapabilities<LanguageModelV2> => {
-  const model = provider.chat(modelId, { useSearchGrounding: true });
+  const model = provider.chat(modelId);
   return {
-    model,
+    model: wrapLanguageModel({
+      model,
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: { google: { useSearchGrounding: true } },
+        },
+      }),
+    }),
     capabilities: [...defaultChatModelCapabilities, 'searchGrounding'],
   };
 };

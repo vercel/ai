@@ -245,14 +245,24 @@ of the [standard call settings](/docs/ai-sdk-core/settings). You can pass them a
 an options argument:
 
 ```ts
-const model = vertex('gemini-1.5-pro', {
-  safetySettings: [
-    { category: 'HARM_CATEGORY_UNSPECIFIED', threshold: 'BLOCK_LOW_AND_ABOVE' },
-  ],
+const model = vertex('gemini-1.5-pro');
+
+await generateText({
+  model,
+  providerOptions: {
+    google: {
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_UNSPECIFIED',
+          threshold: 'BLOCK_LOW_AND_ABOVE',
+        },
+      ],
+    },
+  },
 });
 ```
 
-The following optional settings are available for Google Vertex models:
+The following optional provider options are available for Google Vertex models:
 
 - **structuredOutputs** _boolean_
 
@@ -365,9 +375,12 @@ import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, providerMetadata } = await generateText({
-  model: vertex('gemini-1.5-pro', {
-    useSearchGrounding: true,
-  }),
+  model: vertex('gemini-1.5-pro'),
+  providerOptions: {
+    google: {
+      useSearchGrounding: true,
+    },
+  },
   prompt:
     'List the top 5 San Francisco news from the past week.' +
     'You must include the date of each article.',
@@ -443,7 +456,12 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { sources } = await generateText({
-  model: vertex('gemini-1.5-pro', { useSearchGrounding: true }),
+  model: vertex('gemini-1.5-pro'),
+  providerOptions: {
+    google: {
+      useSearchGrounding: true,
+    },
+  },
   prompt: 'List the top 5 San Francisco news from the past week.',
 });
 ```
@@ -508,9 +526,12 @@ You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"
 const result = await generateObject({
-  model: vertex('gemini-1.5-pro', {
-    structuredOutputs: false,
-  }),
+  model: vertex('gemini-1.5-pro'),
+  providerOptions: {
+    google: {
+      structuredOutputs: false,
+    },
+  },
   schema: z.object({
     name: z.string(),
     age: z.number(),

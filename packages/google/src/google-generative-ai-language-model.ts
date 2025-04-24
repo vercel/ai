@@ -27,8 +27,8 @@ import { googleFailedResponseHandler } from './google-error';
 import { GoogleGenerativeAIContentPart } from './google-generative-ai-prompt';
 import {
   GoogleGenerativeAIModelId,
-  InternalGoogleGenerativeAISettings,
-} from './google-generative-ai-settings';
+  googleGenerativeAIProviderOptions,
+} from './google-generative-ai-options';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
 
@@ -49,17 +49,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
   readonly modelId: GoogleGenerativeAIModelId;
-  readonly settings: InternalGoogleGenerativeAISettings;
 
   private readonly config: GoogleGenerativeAIConfig;
 
   constructor(
     modelId: GoogleGenerativeAIModelId,
-    settings: InternalGoogleGenerativeAISettings,
     config: GoogleGenerativeAIConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -91,7 +88,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const googleOptions = await parseProviderOptions({
       provider: 'google',
       providerOptions,
-      schema: googleGenerativeAIProviderOptionsSchema,
+      schema: googleGenerativeAIProviderOptions,
     });
 
     const { contents, systemInstruction } =
@@ -104,8 +101,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     } = prepareTools({
       tools,
       toolChoice,
-      useSearchGrounding: this.settings.useSearchGrounding ?? false,
-      dynamicRetrievalConfig: this.settings.dynamicRetrievalConfig,
+      useSearchGrounding: googleOptions?.useSearchGrounding ?? false,
+      dynamicRetrievalConfig: googleOptions?.dynamicRetrievalConfig,
       modelId: this.modelId,
     });
 
@@ -131,11 +128,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             // Google GenAI does not support all OpenAPI Schema features,
             // so this is needed as an escape hatch:
             // TODO convert into provider option
-            (this.settings.structuredOutputs ?? true)
+            (googleOptions?.structuredOutputs ?? true)
               ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
               : undefined,
-          ...(this.settings.audioTimestamp && {
-            audioTimestamp: this.settings.audioTimestamp,
+          ...(googleOptions?.audioTimestamp && {
+            audioTimestamp: googleOptions.audioTimestamp,
           }),
 
           // provider options:
@@ -144,10 +141,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         },
         contents,
         systemInstruction,
-        safetySettings: this.settings.safetySettings,
+        safetySettings: googleOptions?.safetySettings,
         tools: googleTools,
         toolConfig: googleToolConfig,
-        cachedContent: this.settings.cachedContent,
+        cachedContent: googleOptions?.cachedContent,
       },
       warnings: [...warnings, ...toolWarnings],
     };
@@ -589,15 +586,3 @@ const chunkSchema = z.object({
     })
     .nullish(),
 });
-
-const googleGenerativeAIProviderOptionsSchema = z.object({
-  responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).nullish(),
-  thinkingConfig: z
-    .object({
-      thinkingBudget: z.number().nullish(),
-    })
-    .nullish(),
-});
-export type GoogleGenerativeAIProviderOptions = z.infer<
-  typeof googleGenerativeAIProviderOptionsSchema
->;

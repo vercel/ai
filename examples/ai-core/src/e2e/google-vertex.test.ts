@@ -12,6 +12,8 @@ import {
   defaultChatModelCapabilities,
   ModelWithCapabilities,
 } from './feature-test-suite';
+import { wrapLanguageModel } from 'ai';
+import { defaultSettingsMiddleware } from 'ai';
 
 const RUNTIME_VARIANTS = {
   edge: {
@@ -37,8 +39,17 @@ const createSearchGroundedModel = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
 ): ModelWithCapabilities<LanguageModelV2> => ({
-  model: vertex(modelId, {
-    useSearchGrounding: true,
+  model: wrapLanguageModel({
+    model: vertex(modelId),
+    middleware: defaultSettingsMiddleware({
+      settings: {
+        providerOptions: {
+          google: {
+            useSearchGrounding: true,
+          },
+        },
+      },
+    }),
   }),
   capabilities: [...defaultChatModelCapabilities, 'searchGrounding'],
 });

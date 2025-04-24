@@ -84,14 +84,25 @@ Google Generative AI also supports some model specific settings that are not par
 You can pass them as an options argument:
 
 ```ts
-const model = google('gemini-1.5-pro-latest', {
-  safetySettings: [
-    { category: 'HARM_CATEGORY_UNSPECIFIED', threshold: 'BLOCK_LOW_AND_ABOVE' },
-  ],
+const model = google('gemini-1.5-pro-latest');
+
+await generateText({
+  model,
+  providerOptions: {
+    google: {
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_UNSPECIFIED',
+          threshold: 'BLOCK_LOW_AND_ABOVE',
+        },
+      ],
+      responseModalities: ['TEXT', 'IMAGE'],
+    },
+  },
 });
 ```
 
-The following optional settings are available for Google Generative AI models:
+The following optional provider options are available for Google Generative AI models:
 
 - **cachedContent** _string_
 
@@ -131,46 +142,6 @@ The following optional settings are available for Google Generative AI models:
     - `BLOCK_MEDIUM_AND_ABOVE`
     - `BLOCK_ONLY_HIGH`
     - `BLOCK_NONE`
-
-Further configuration can be done using Google Generative AI provider options. You can validate the provider options using the `GoogleGenerativeAIProviderOptions` type.
-
-```ts
-import { google } from '@ai-sdk/google';
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: google('gemini-1.5-pro-latest'),
-  providerOptions: {
-    google: {
-      responseModalities: ['TEXT', 'IMAGE'],
-    } satisfies GoogleGenerativeAIProviderOptions,
-  },
-  // ...
-});
-```
-
-Another example showing the use of provider options to specify the thinking budget for a Google Generative AI thinking model:
-
-```ts
-import { google } from '@ai-sdk/google';
-import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: google('gemini-2.5-flash-preview-04-17'),
-  providerOptions: {
-    google: {
-      thinkingConfig: {
-        thinkingBudget: 2048,
-      },
-    } satisfies GoogleGenerativeAIProviderOptions,
-  },
-  // ...
-});
-```
-
-The following provider options are available:
 
 - **responseModalities** _string[]_
   The modalities to use for the response. The following modalities are supported: `TEXT`, `IMAGE`. When not defined or empty, the model defaults to returning only text.
@@ -270,13 +241,23 @@ const { name: cachedContent } = await cacheManager.create({
 });
 
 const { text: veggieLasangaRecipe } = await generateText({
-  model: google(model, { cachedContent }),
+  model: google(model),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    google: {
+      cachedContent,
+    },
+  },
 });
 
 const { text: meatLasangaRecipe } = await generateText({
-  model: google(model, { cachedContent }),
+  model: google(model),
   prompt: 'Write a meat lasagna recipe for 12 people.',
+  providerOptions: {
+    google: {
+      cachedContent,
+    },
+  },
 });
 ```
 
@@ -292,9 +273,12 @@ import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, providerMetadata } = await generateText({
-  model: google('gemini-1.5-pro', {
-    useSearchGrounding: true,
-  }),
+  model: google('gemini-1.5-pro'),
+  providerOptions: {
+    google: {
+      useSearchGrounding: true,
+    },
+  },
   prompt:
     'List the top 5 San Francisco news from the past week.' +
     'You must include the date of each article.',
@@ -364,13 +348,16 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, providerMetadata } = await generateText({
-  model: google('gemini-1.5-flash', {
-    useSearchGrounding: true,
-    dynamicRetrievalConfig: {
-      mode: 'MODE_DYNAMIC',
-      dynamicThreshold: 0.8,
+  model: google('gemini-1.5-flash'),
+  providerOptions: {
+    google: {
+      useSearchGrounding: true,
+      dynamicRetrievalConfig: {
+        mode: 'MODE_DYNAMIC',
+        dynamicThreshold: 0.8,
+      },
     },
-  }),
+  },
   prompt: 'Who won the latest F1 grand prix?',
 });
 ```
@@ -399,7 +386,12 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { sources } = await generateText({
-  model: google('gemini-2.0-flash-exp', { useSearchGrounding: true }),
+  model: google('gemini-2.0-flash-exp'),
+  providerOptions: {
+    google: {
+      useSearchGrounding: true,
+    },
+  },
   prompt: 'List the top 5 San Francisco news from the past week.',
 });
 ```
@@ -486,9 +478,12 @@ You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"
 const result = await generateObject({
-  model: google('gemini-1.5-pro-latest', {
-    structuredOutputs: false,
-  }),
+  model: google('gemini-1.5-pro-latest'),
+  providerOptions: {
+    google: {
+      structuredOutputs: false,
+    },
+  },
   schema: z.object({
     name: z.string(),
     age: z.number(),

@@ -5,7 +5,12 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: google('gemini-2.0-flash', { structuredOutputs: true }),
+    model: google('gemini-2.0-flash'),
+    providerOptions: {
+      google: {
+        structuredOutputs: true,
+      },
+    },
     schema: z.object({
       name: z.string(),
 

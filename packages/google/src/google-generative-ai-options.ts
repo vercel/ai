@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 export type GoogleGenerativeAIModelId =
   // Stable models
   // https://ai.google.dev/gemini-api/docs/models/gemini
@@ -25,25 +27,36 @@ export type GoogleGenerativeAIModelId =
   | 'learnlm-1.5-pro-experimental'
   | (string & {});
 
-export interface DynamicRetrievalConfig {
+const dynamicRetrievalConfig = z.object({
   /**
    * The mode of the predictor to be used in dynamic retrieval.
    */
-  mode?: 'MODE_UNSPECIFIED' | 'MODE_DYNAMIC';
+  mode: z.enum(['MODE_UNSPECIFIED', 'MODE_DYNAMIC']).optional(),
+
   /**
    * The threshold to be used in dynamic retrieval. If not set, a system default
    * value is used.
    */
-  dynamicThreshold?: number;
-}
+  dynamicThreshold: z.number().optional(),
+});
 
-export interface GoogleGenerativeAISettings {
+export type DynamicRetrievalConfig = z.infer<typeof dynamicRetrievalConfig>;
+
+export const googleGenerativeAIProviderOptions = z.object({
+  responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).optional(),
+
+  thinkingConfig: z
+    .object({
+      thinkingBudget: z.number().optional(),
+    })
+    .optional(),
+
   /**
 Optional.
 The name of the cached content used as context to serve the prediction.
 Format: cachedContents/{cachedContent}
    */
-  cachedContent?: string;
+  cachedContent: z.string().optional(),
 
   /**
    * Optional. Enable structured output. Default is true.
@@ -53,41 +66,58 @@ Format: cachedContents/{cachedContent}
    * Google Generative AI uses. You can use this to disable
    * structured outputs if you need to.
    */
-  structuredOutputs?: boolean;
+  structuredOutputs: z.boolean().optional(),
 
   /**
 Optional. A list of unique safety settings for blocking unsafe content.
-   */
-  safetySettings?: Array<{
-    category:
-      | 'HARM_CATEGORY_UNSPECIFIED'
-      | 'HARM_CATEGORY_HATE_SPEECH'
-      | 'HARM_CATEGORY_DANGEROUS_CONTENT'
-      | 'HARM_CATEGORY_HARASSMENT'
-      | 'HARM_CATEGORY_SEXUALLY_EXPLICIT'
-      | 'HARM_CATEGORY_CIVIC_INTEGRITY';
+ */
+  safetySettings: z
+    .array(
+      z.object({
+        category: z.enum([
+          'HARM_CATEGORY_UNSPECIFIED',
+          'HARM_CATEGORY_HATE_SPEECH',
+          'HARM_CATEGORY_DANGEROUS_CONTENT',
+          'HARM_CATEGORY_HARASSMENT',
+          'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+          'HARM_CATEGORY_CIVIC_INTEGRITY',
+        ]),
+        threshold: z.enum([
+          'HARM_BLOCK_THRESHOLD_UNSPECIFIED',
+          'BLOCK_LOW_AND_ABOVE',
+          'BLOCK_MEDIUM_AND_ABOVE',
+          'BLOCK_ONLY_HIGH',
+          'BLOCK_NONE',
+          'OFF',
+        ]),
+      }),
+    )
+    .optional(),
 
-    threshold:
-      | 'HARM_BLOCK_THRESHOLD_UNSPECIFIED'
-      | 'BLOCK_LOW_AND_ABOVE'
-      | 'BLOCK_MEDIUM_AND_ABOVE'
-      | 'BLOCK_ONLY_HIGH'
-      | 'BLOCK_NONE'
-      | 'OFF';
-  }>;
+  threshold: z
+    .enum([
+      'HARM_BLOCK_THRESHOLD_UNSPECIFIED',
+      'BLOCK_LOW_AND_ABOVE',
+      'BLOCK_MEDIUM_AND_ABOVE',
+      'BLOCK_ONLY_HIGH',
+      'BLOCK_NONE',
+      'OFF',
+    ])
+    .optional(),
+
   /**
    * Optional. Enables timestamp understanding for audio-only files.
    *
    * https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/audio-understanding
    */
-  audioTimestamp?: boolean;
+  audioTimestamp: z.boolean().optional(),
 
   /**
 Optional. When enabled, the model will use Google search to ground the response.
 
 @see https://cloud.google.com/vertex-ai/generative-ai/docs/grounding/overview
-   */
-  useSearchGrounding?: boolean;
+ */
+  useSearchGrounding: z.boolean().optional(),
 
   /**
 Optional. Specifies the dynamic retrieval configuration.
@@ -95,9 +125,10 @@ Optional. Specifies the dynamic retrieval configuration.
 @note Dynamic retrieval is only compatible with Gemini 1.5 Flash.
 
 @see https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/ground-with-google-search#dynamic-retrieval
-   */
-  dynamicRetrievalConfig?: DynamicRetrievalConfig;
-}
+ */
+  dynamicRetrievalConfig: dynamicRetrievalConfig.optional(),
+});
 
-export interface InternalGoogleGenerativeAISettings
-  extends GoogleGenerativeAISettings {}
+export type GoogleGenerativeAIProviderOptions = z.infer<
+  typeof googleGenerativeAIProviderOptions
+>;

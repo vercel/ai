@@ -7,7 +7,7 @@ import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-opena
 import {
   DynamicRetrievalConfig,
   GoogleGenerativeAIModelId,
-} from './google-generative-ai-settings';
+} from './google-generative-ai-options';
 
 export function prepareTools({
   tools,

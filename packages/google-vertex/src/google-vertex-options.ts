@@ -1,5 +1,3 @@
-import type { InternalGoogleGenerativeAISettings } from '@ai-sdk/google/internal';
-
 // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/inference#supported-models
 // Note preview and experimental models may only be detailed in AI Studio:
 // https://console.cloud.google.com/vertex-ai/studio/
@@ -23,6 +21,3 @@ export type GoogleVertexModelId =
   | 'gemini-2.0-pro-exp-02-05'
   | 'gemini-2.0-flash-exp'
   | (string & {});
-
-export interface GoogleVertexSettings
-  extends InternalGoogleGenerativeAISettings {}
