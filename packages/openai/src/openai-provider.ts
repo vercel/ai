@@ -27,7 +27,7 @@ import {
 } from './openai-image-settings';
 import { openaiTools } from './openai-tools';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
-import { OpenAITranscriptionModelId } from './openai-transcription-settings';
+import { OpenAITranscriptionModelId } from './openai-transcription-options';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
 import { OpenAISpeechModel } from './openai-speech-model';

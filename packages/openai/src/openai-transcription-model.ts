@@ -15,27 +15,16 @@ import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
 import {
   OpenAITranscriptionModelId,
-  OpenAITranscriptionModelOptions,
-} from './openai-transcription-settings';
-
-// https://platform.openai.com/docs/api-reference/audio/createTranscription
-const openAIProviderOptionsSchema = z.object({
-  include: z.array(z.string()).nullish(),
-  language: z.string().nullish(),
-  prompt: z.string().nullish(),
-  temperature: z.number().min(0).max(1).nullish().default(0),
-  timestampGranularities: z
-    .array(z.enum(['word', 'segment']))
-    .nullish()
-    .default(['segment']),
-});
+  openAITranscriptionProviderOptions,
+  OpenAITranscriptionProviderOptions,
+} from './openai-transcription-options';
 
 export type OpenAITranscriptionCallOptions = Omit<
   TranscriptionModelV1CallOptions,
   'providerOptions'
 > & {
   providerOptions?: {
-    openai?: z.infer<typeof openAIProviderOptionsSchema>;
+    openai?: OpenAITranscriptionProviderOptions;
   };
 };
 
@@ -129,7 +118,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
     const openAIOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
-      schema: openAIProviderOptionsSchema,
+      schema: openAITranscriptionProviderOptions,
     });
 
     // Create form data with base fields
@@ -144,21 +133,16 @@ export class OpenAITranscriptionModel implements TranscriptionModelV1 {
 
     // Add provider-specific options
     if (openAIOptions) {
-      const transcriptionModelOptions: OpenAITranscriptionModelOptions = {
-        include: openAIOptions.include ?? undefined,
-        language: openAIOptions.language ?? undefined,
-        prompt: openAIOptions.prompt ?? undefined,
-        temperature: openAIOptions.temperature ?? undefined,
-        timestamp_granularities:
-          openAIOptions.timestampGranularities ?? undefined,
+      const transcriptionModelOptions = {
+        include: openAIOptions.include,
+        language: openAIOptions.language,
+        prompt: openAIOptions.prompt,
+        temperature: openAIOptions.temperature,
+        timestamp_granularities: openAIOptions.timestampGranularities,
       };
 
-      for (const key in transcriptionModelOptions) {
-        const value =
-          transcriptionModelOptions[
-            key as keyof OpenAITranscriptionModelOptions
-          ];
-        if (value !== undefined) {
+      for (const [key, value] of Object.entries(transcriptionModelOptions)) {
+        if (value != null) {
           formData.append(key, String(value));
         }
       }
