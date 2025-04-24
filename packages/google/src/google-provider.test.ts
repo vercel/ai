@@ -31,7 +31,6 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
-      {},
       expect.objectContaining({
         provider: 'google.generative-ai',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta',
@@ -76,13 +75,12 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       expect.anything(),
-      expect.anything(),
       expect.objectContaining({
         headers: expect.any(Function),
       }),
     );
 
-    const options = (GoogleGenerativeAILanguageModel as any).mock.calls[0][2];
+    const options = (GoogleGenerativeAILanguageModel as any).mock.calls[0][1];
     const headers = options.headers();
     expect(headers).toEqual({
       'x-goog-api-key': 'test-api-key',
@@ -100,7 +98,6 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       expect.anything(),
-      expect.anything(),
       expect.objectContaining({
         generateId: customGenerateId,
       }),
@@ -111,11 +108,10 @@ describe('google-provider', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
     });
-    provider.chat('gemini-pro', { cachedContent: 'test-name' });
+    provider.chat('gemini-pro');
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
-      { cachedContent: 'test-name' },
       expect.any(Object),
     );
   });
@@ -130,7 +126,6 @@ describe('google-provider', () => {
 
     expect(GoogleGenerativeAILanguageModel).toHaveBeenCalledWith(
       'gemini-pro',
-      {},
       expect.objectContaining({
         baseURL: customBaseURL,
       }),

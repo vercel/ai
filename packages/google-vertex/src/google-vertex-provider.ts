@@ -15,24 +15,15 @@ import {
   GoogleVertexImageModelId,
   GoogleVertexImageSettings,
 } from './google-vertex-image-settings';
-import {
-  GoogleVertexModelId,
-  GoogleVertexSettings,
-} from './google-vertex-settings';
+import { GoogleVertexModelId } from './google-vertex-options';
 
 export interface GoogleVertexProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
    */
-  (
-    modelId: GoogleVertexModelId,
-    settings?: GoogleVertexSettings,
-  ): LanguageModelV2;
+  (modelId: GoogleVertexModelId): LanguageModelV2;
 
-  languageModel: (
-    modelId: GoogleVertexModelId,
-    settings?: GoogleVertexSettings,
-  ) => LanguageModelV2;
+  languageModel: (modelId: GoogleVertexModelId) => LanguageModelV2;
 
   /**
    * Creates a model for image generation.
@@ -126,11 +117,8 @@ export function createVertex(
     };
   };
 
-  const createChatModel = (
-    modelId: GoogleVertexModelId,
-    settings: GoogleVertexSettings = {},
-  ) => {
-    return new GoogleGenerativeAILanguageModel(modelId, settings, {
+  const createChatModel = (modelId: GoogleVertexModelId) => {
+    return new GoogleGenerativeAILanguageModel(modelId, {
       ...createConfig('chat'),
       generateId: options.generateId ?? generateId,
       getSupportedUrls: async () => ({
@@ -152,17 +140,14 @@ export function createVertex(
     settings: GoogleVertexImageSettings = {},
   ) => new GoogleVertexImageModel(modelId, settings, createConfig('image'));
 
-  const provider = function (
-    modelId: GoogleVertexModelId,
-    settings?: GoogleVertexSettings,
-  ) {
+  const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {
       throw new Error(
         'The Google Vertex AI model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;
