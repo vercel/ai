@@ -9,7 +9,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { DeepSeekChatModelId } from './deepseek-chat-settings';
+import { DeepSeekChatModelId } from './deepseek-chat-options';
 import { deepSeekMetadataExtractor } from './deepseek-metadata-extractor';
 
 export interface DeepSeekProviderSettings {

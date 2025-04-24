@@ -14,7 +14,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { XaiChatModelId, supportsStructuredOutputs } from './xai-chat-settings';
+import { XaiChatModelId, supportsStructuredOutputs } from './xai-chat-options';
 import { XaiErrorData, xaiErrorSchema } from './xai-error';
 import { XaiImageModelId, XaiImageSettings } from './xai-image-settings';
 
