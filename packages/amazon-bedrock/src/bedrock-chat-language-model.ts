@@ -52,7 +52,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     private readonly config: BedrockChatConfig,
   ) {}
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -66,17 +66,17 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV2['doGenerate']>[0]): {
+  }: Parameters<LanguageModelV2['doGenerate']>[0]): Promise<{
     command: BedrockConverseInput;
     warnings: LanguageModelV2CallWarning[];
-  } {
+  }> {
     // Parse provider options
     const bedrockOptions =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'bedrock',
         providerOptions,
         schema: bedrockProviderOptions,
-      }) ?? {};
+      })) ?? {};
 
     const warnings: LanguageModelV2CallWarning[] = [];
 
@@ -192,7 +192,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { command: args, warnings } = this.getArgs(options);
+    const { command: args, warnings } = await this.getArgs(options);
 
     const url = `${this.getUrl(this.modelId)}/converse`;
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -306,7 +306,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { command: args, warnings } = this.getArgs(options);
+    const { command: args, warnings } = await this.getArgs(options);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({

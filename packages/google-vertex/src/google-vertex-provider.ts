@@ -1,5 +1,5 @@
 import { GoogleGenerativeAILanguageModel } from '@ai-sdk/google/internal';
-import { ImageModelV1, LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
+import { ImageModelV2, LanguageModelV2, ProviderV2 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   generateId,
@@ -40,7 +40,7 @@ Creates a model for text generation.
   image(
     modelId: GoogleVertexImageModelId,
     settings?: GoogleVertexImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 Creates a model for image generation.
@@ -48,7 +48,7 @@ Creates a model for image generation.
   imageModel(
     modelId: GoogleVertexImageModelId,
     settings?: GoogleVertexImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 }
 
 export interface GoogleVertexProviderSettings {

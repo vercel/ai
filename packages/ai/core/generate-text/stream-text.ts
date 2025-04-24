@@ -426,7 +426,7 @@ function createOutputTransformStream<
     TextStreamPart<TOOLS>,
     EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
   >({
-    transform(chunk, controller) {
+    async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
       if (chunk.type === 'step-finish') {
         publishTextChunk({ controller });
@@ -441,7 +441,7 @@ function createOutputTransformStream<
       textChunk += chunk.text;
 
       // only publish if partial json can be parsed:
-      const result = output.parsePartial({ text });
+      const result = await output.parsePartial({ text });
       if (result != null) {
         // only send new json if it has changed:
         const currentJson = JSON.stringify(result.partial);
@@ -880,11 +880,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       settings: { ...callSettings, maxRetries },
     });
 
-    const initialPrompt = standardizePrompt({
-      prompt: { system, prompt, messages },
-      tools,
-    });
-
     const self = this;
 
     recordSpan({
@@ -923,6 +918,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           hasLeadingWhitespace: boolean;
           messageId: string;
         }) {
+          const initialPrompt = await standardizePrompt({
+            prompt: { system, prompt, messages },
+            tools,
+          });
+
           // after the 1st step, we need to switch to messages format:
           const promptFormat =
             responseMessages.length === 0 ? initialPrompt.type : 'messages';

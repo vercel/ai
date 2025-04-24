@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV2,
-  ImageModelV1,
+  ImageModelV2,
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
@@ -27,7 +27,7 @@ export interface OpenAICompatibleProvider<
 
   textEmbeddingModel(modelId: EMBEDDING_MODEL_IDS): EmbeddingModelV2<string>;
 
-  imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV1;
+  imageModel(modelId: IMAGE_MODEL_IDS): ImageModelV2;
 }
 
 export interface OpenAICompatibleProviderSettings {

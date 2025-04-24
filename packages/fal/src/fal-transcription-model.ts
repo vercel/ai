@@ -85,7 +85,7 @@ export class FalTranscriptionModel implements TranscriptionModelV1 {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const falOptions = parseProviderOptions({
+    const falOptions = await parseProviderOptions({
       provider: 'fal',
       providerOptions,
       schema: falProviderOptionsSchema,

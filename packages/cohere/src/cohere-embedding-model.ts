@@ -49,7 +49,7 @@ export class CohereEmbeddingModel implements EmbeddingModelV2<string> {
   }: Parameters<EmbeddingModelV2<string>['doEmbed']>[0]): Promise<
     Awaited<ReturnType<EmbeddingModelV2<string>['doEmbed']>>
   > {
-    const embeddingOptions = parseProviderOptions({
+    const embeddingOptions = await parseProviderOptions({
       provider: 'cohere',
       providerOptions,
       schema: cohereEmbeddingOptions,
