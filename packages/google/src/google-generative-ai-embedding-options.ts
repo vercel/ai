@@ -23,16 +23,18 @@ export const googleGenerativeAIEmbeddingProviderOptions = z.object({
    * - FACT_VERIFICATION: Optimized for verifying factual information.
    * - CODE_RETRIEVAL_QUERY: Optimized for retrieving code blocks based on natural language queries.
    */
-  taskType: z.enum([
-    'SEMANTIC_SIMILARITY',
-    'CLASSIFICATION',
-    'CLUSTERING',
-    'RETRIEVAL_DOCUMENT',
-    'RETRIEVAL_QUERY',
-    'QUESTION_ANSWERING',
-    'FACT_VERIFICATION',
-    'CODE_RETRIEVAL_QUERY',
-  ]),
+  taskType: z
+    .enum([
+      'SEMANTIC_SIMILARITY',
+      'CLASSIFICATION',
+      'CLUSTERING',
+      'RETRIEVAL_DOCUMENT',
+      'RETRIEVAL_QUERY',
+      'QUESTION_ANSWERING',
+      'FACT_VERIFICATION',
+      'CODE_RETRIEVAL_QUERY',
+    ])
+    .optional(),
 });
 
 export type GoogleGenerativeAIEmbeddingProviderOptions = z.infer<
