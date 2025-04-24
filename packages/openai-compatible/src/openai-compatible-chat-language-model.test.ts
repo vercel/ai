@@ -1769,7 +1769,6 @@ describe('doStream', () => {
           ],
           "model": "grok-beta",
           "presence_penalty": undefined,
-          "response_format": undefined,
           "seed": undefined,
           "stop": undefined,
           "stream": true,
