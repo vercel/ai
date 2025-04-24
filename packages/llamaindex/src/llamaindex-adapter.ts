@@ -1,13 +1,11 @@
 import { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
-import { formatDataStreamPart } from '../core';
-import { DataStreamWriter } from '../core/data-stream/data-stream-writer';
-import { mergeStreams } from '../core/util/merge-streams';
-import { prepareResponseHeaders } from '../core/util/prepare-response-headers';
+import { formatDataStreamPart, DataStreamWriter, StreamData } from 'ai';
 import {
+  mergeStreams,
+  prepareResponseHeaders,
   createCallbacksTransformer,
   StreamCallbacks,
-} from './stream-callbacks';
-import { StreamData } from './stream-data';
+} from 'ai/internal';
 
 type EngineResponse = {
   delta: string;

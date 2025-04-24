@@ -55,7 +55,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     };
   }
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -73,11 +73,11 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     const warnings: LanguageModelV2CallWarning[] = [];
 
     const options =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'mistral',
         providerOptions,
         schema: mistralProviderOptions,
-      }) ?? {};
+      })) ?? {};
 
     if (topK != null) {
       warnings.push({
@@ -166,7 +166,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args: body, warnings } = this.getArgs(options);
+    const { args: body, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -238,7 +238,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({

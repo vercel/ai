@@ -104,7 +104,7 @@ export class LMNTSpeechModel implements SpeechModelV1 {
     private readonly config: LMNTSpeechModelConfig,
   ) {}
 
-  private getArgs({
+  private async getArgs({
     text,
     voice = 'ava',
     outputFormat = 'mp3',
@@ -114,7 +114,7 @@ export class LMNTSpeechModel implements SpeechModelV1 {
     const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
-    const lmntOptions = parseProviderOptions({
+    const lmntOptions = await parseProviderOptions({
       provider: 'lmnt',
       providerOptions,
       schema: lmntSpeechCallOptionsSchema,
@@ -174,7 +174,7 @@ export class LMNTSpeechModel implements SpeechModelV1 {
     options: Parameters<SpeechModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestBody, warnings } = this.getArgs(options);
+    const { requestBody, warnings } = await this.getArgs(options);
 
     const {
       value: audio,

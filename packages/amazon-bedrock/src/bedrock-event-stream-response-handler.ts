@@ -30,7 +30,7 @@ export const createBedrockEventStreamResponseHandler =
       responseHeaders,
       value: response.body.pipeThrough(
         new TransformStream<Uint8Array, ParseResult<T>>({
-          transform(chunk, controller) {
+          async transform(chunk, controller) {
             // Append new chunk to buffer.
             const newBuffer = new Uint8Array(buffer.length + chunk.length);
             newBuffer.set(buffer);
@@ -64,7 +64,7 @@ export const createBedrockEventStreamResponseHandler =
                   const data = textDecoder.decode(decoded.body);
 
                   // Wrap the data in the `:event-type` field to match the expected schema.
-                  const parsedDataResult = safeParseJSON({ text: data });
+                  const parsedDataResult = await safeParseJSON({ text: data });
                   if (!parsedDataResult.success) {
                     controller.enqueue(parsedDataResult);
                     break;
@@ -78,7 +78,7 @@ export const createBedrockEventStreamResponseHandler =
                   };
 
                   // Re-validate with the expected schema.
-                  const validatedWrappedData = safeValidateTypes({
+                  const validatedWrappedData = await safeValidateTypes({
                     value: wrappedData,
                     schema: chunkSchema,
                   });

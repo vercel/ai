@@ -1,4 +1,4 @@
-import { ImageModelV1, NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
+import { ImageModelV2, NoSuchModelError, ProviderV2 } from '@ai-sdk/provider';
 import {
   FetchFunction,
   loadApiKey,
@@ -32,7 +32,7 @@ export interface LumaProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
   */
-  image(modelId: LumaImageModelId, settings?: LumaImageSettings): ImageModelV1;
+  image(modelId: LumaImageModelId, settings?: LumaImageSettings): ImageModelV2;
 
   /**
 Creates a model for image generation.
@@ -40,7 +40,7 @@ Creates a model for image generation.
   imageModel(
     modelId: LumaImageModelId,
     settings?: LumaImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 }
 
 const defaultBaseURL = 'https://api.lumalabs.ai';

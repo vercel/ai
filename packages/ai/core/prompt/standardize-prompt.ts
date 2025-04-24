@@ -26,13 +26,13 @@ export type StandardizedPrompt = {
   messages: CoreMessage[];
 };
 
-export function standardizePrompt<TOOLS extends ToolSet>({
+export async function standardizePrompt<TOOLS extends ToolSet>({
   prompt,
   tools,
 }: {
   prompt: Prompt;
   tools: undefined | TOOLS;
-}): StandardizedPrompt {
+}): Promise<StandardizedPrompt> {
   if (prompt.prompt == null && prompt.messages == null) {
     throw new InvalidPromptError({
       prompt,
@@ -102,7 +102,7 @@ export function standardizePrompt<TOOLS extends ToolSet>({
       });
     }
 
-    const validationResult = safeValidateTypes({
+    const validationResult = await safeValidateTypes({
       value: messages,
       schema: z.array(coreMessageSchema),
     });

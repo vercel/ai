@@ -49,7 +49,7 @@ export const createJsonErrorResponseHandler =
 
     // resilient parsing in case the response is not JSON or does not match the schema:
     try {
-      const parsedError = parseJSON({
+      const parsedError = await parseJSON({
         text: responseBody,
         schema: errorSchema,
       });
@@ -101,14 +101,14 @@ export const createEventSourceResponseHandler =
         .pipeThrough(createEventSourceParserStream())
         .pipeThrough(
           new TransformStream<EventSourceChunk, ParseResult<T>>({
-            transform({ data }, controller) {
+            async transform({ data }, controller) {
               // ignore the 'DONE' event that e.g. OpenAI sends:
               if (data === '[DONE]') {
                 return;
               }
 
               controller.enqueue(
-                safeParseJSON({
+                await safeParseJSON({
                   text: data,
                   schema: chunkSchema,
                 }),
@@ -136,10 +136,10 @@ export const createJsonStreamResponseHandler =
       responseHeaders,
       value: response.body.pipeThrough(new TextDecoderStream()).pipeThrough(
         new TransformStream<string, ParseResult<T>>({
-          transform(chunkText, controller) {
+          async transform(chunkText, controller) {
             if (chunkText.endsWith('\n')) {
               controller.enqueue(
-                safeParseJSON({
+                await safeParseJSON({
                   text: buffer + chunkText,
                   schema: chunkSchema,
                 }),
@@ -159,7 +159,7 @@ export const createJsonResponseHandler =
   async ({ response, url, requestBodyValues }) => {
     const responseBody = await response.text();
 
-    const parsedResult = safeParseJSON({
+    const parsedResult = await safeParseJSON({
       text: responseBody,
       schema: responseSchema,
     });

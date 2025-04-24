@@ -231,7 +231,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     private readonly config: RevaiTranscriptionModelConfig,
   ) {}
 
-  private getArgs({
+  private async getArgs({
     audio,
     mediaType,
     providerOptions,
@@ -239,7 +239,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     const warnings: TranscriptionModelV1CallWarning[] = [];
 
     // Parse provider options
-    const revaiOptions = parseProviderOptions({
+    const revaiOptions = await parseProviderOptions({
       provider: 'revai',
       providerOptions,
       schema: revaiProviderOptionsSchema,
@@ -311,7 +311,7 @@ export class RevaiTranscriptionModel implements TranscriptionModelV1 {
     options: Parameters<TranscriptionModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { formData, warnings } = this.getArgs(options);
+    const { formData, warnings } = await this.getArgs(options);
 
     const { value: submissionResponse } = await postFormDataToApi({
       url: this.config.url({
