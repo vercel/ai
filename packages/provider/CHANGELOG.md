@@ -1,5 +1,15 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.10
+
+### Major Changes
+
+- a3f768e: chore: restructure reasoning support
+
+### Patch Changes
+
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+
 ## 2.0.0-canary.9
 
 ### Major Changes
