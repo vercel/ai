@@ -8,7 +8,6 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "internal/dist/**/*",
     "CHANGELOG.md"
   ],
   "scripts": {
