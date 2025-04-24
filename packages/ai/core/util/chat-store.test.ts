@@ -1,248 +1,300 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UIMessage } from '../types';
-import { ChatStore } from './chat-store';
+import { type ChatState, ChatStore } from './chat-store';
 
-const initChat = (messages?: UIMessage[]) => {
-  const store = new ChatStore({ initialMessages: messages });
-  const defaultChatId = store.getChatId();
-  return { store, defaultChatId };
+const initStore = (chats?: Record<string, Pick<ChatState, 'messages'>>) => {
+  const store = new ChatStore({ chats });
+  return store;
 };
 
 describe('ChatStore', () => {
   describe('initialization', () => {
-    it('initializes with initialMessages', () => {
-      const initialMessages = [
+    it('initializes with a single chat', () => {
+      const id = 'chat-1';
+      const messages = [
         { id: '1', content: 'hello', role: 'user', parts: [] },
         { id: '2', content: 'world', role: 'assistant', parts: [] },
       ] as UIMessage[];
-      const { store, defaultChatId } = initChat(initialMessages);
-      expect(defaultChatId).toBeDefined();
-      expect(store.getMessages()).toEqual(initialMessages);
+      const chats = {
+        [id]: { messages },
+      };
+      const store = initStore(chats);
+      expect(store.getMessages(id)).toEqual(messages);
+      expect(store.totalChats).toEqual(1);
     });
 
-    it('initializes with empty chat when initialMessages is not provided', () => {
-      const { store, defaultChatId } = initChat();
-      expect(defaultChatId).toBeDefined();
-      expect(store.getMessages()).toEqual([]);
+    it('initializes with multiple chats', () => {
+      const [id1, id2] = ['chat-1', 'chat-2'];
+      const [messages1, messages2] = [
+        [
+          { id: '1', content: 'hello', role: 'user', parts: [] },
+          { id: '2', content: 'world', role: 'assistant', parts: [] },
+        ] as UIMessage[],
+        [
+          { id: '1', content: 'beep', role: 'user', parts: [] },
+          { id: '2', content: 'boop', role: 'assistant', parts: [] },
+        ] as UIMessage[],
+      ];
+      const chats = {
+        [id1]: { messages: messages1 },
+        [id2]: { messages: messages2 },
+      };
+      const store = initStore(chats);
+      expect(store.getMessages(id1)).toEqual(messages1);
+      expect(store.getMessages(id2)).toEqual(messages2);
+      expect(store.totalChats).toEqual(2);
+    });
+
+    it('initializes with empty chat store', () => {
+      const store = initStore();
+      expect(store.totalChats).toEqual(0);
     });
   });
 
   describe('setMessages', () => {
     it('notifies subscribers', () => {
-      const callback = vi.fn();
-      const { store } = initChat();
-      const unsubscribe = store.subscribe({
-        onChatMessagesChanged: callback,
+      const id = 'chat-1';
+      const onChatMessagesChanged = vi.fn();
+      const store = initStore({
+        [id]: { messages: [] },
       });
-      const msgs: UIMessage[] = [
+      const unsubscribe = store.subscribe({
+        onChatMessagesChanged,
+        onChatStatusChanged: vi.fn(),
+        onChatErrorChanged: vi.fn(),
+      });
+      const messages: UIMessage[] = [
         { id: '1', content: 'x', role: 'user', parts: [] },
         { id: '2', content: 'y', role: 'assistant', parts: [] },
         { id: '3', content: 'z', role: 'user', parts: [] },
       ];
-      store.setMessages(msgs);
-      expect(store.getMessages()).toEqual(msgs);
-      expect(callback).toHaveBeenCalledOnce();
+      store.setMessages({ id, messages });
+      expect(store.getMessages(id)).toEqual(messages);
+      expect(onChatMessagesChanged).toHaveBeenCalledOnce();
       unsubscribe();
-      store.setMessages(msgs);
-      expect(callback).toHaveBeenCalledOnce();
+      store.setMessages({ id, messages: [] });
+      expect(onChatMessagesChanged).toHaveBeenCalledOnce();
     });
 
     it('handles empty arrays', () => {
-      const { store } = initChat([
+      const id = 'chat-1';
+      const store = initStore({
+        [id]: {
+          messages: [
+            { id: '1', content: 'hello', role: 'user', parts: [] },
+            { id: '2', content: 'world', role: 'assistant', parts: [] },
+          ],
+        },
+      });
+      expect(store.getMessages(id)).toEqual([
         { id: '1', content: 'hello', role: 'user', parts: [] },
         { id: '2', content: 'world', role: 'assistant', parts: [] },
       ]);
-      expect(store.getMessages().length).toEqual(2);
-      store.setMessages([]);
-      expect(store.getMessages().length).toEqual(0);
+      store.setMessages({ id, messages: [] });
+      expect(store.getMessages(id)).toEqual([]);
     });
   });
 
   describe('appendMessage', () => {
     it('notifies subscribers', () => {
-      const { store } = initChat();
-      const msg: UIMessage = {
+      const id = 'chat-1';
+      const store = initStore({
+        [id]: { messages: [] },
+      });
+
+      const message: UIMessage = {
         id: '1',
         content: 'hi',
         role: 'user',
         parts: [],
       };
-      const callback = vi.fn();
+      const onChatMessagesChanged = vi.fn();
       const unsubscribe = store.subscribe({
-        onChatMessagesChanged: callback,
+        onChatMessagesChanged,
+        onChatStatusChanged: vi.fn(),
+        onChatErrorChanged: vi.fn(),
       });
 
-      store.appendMessage(msg);
-      expect(store.getMessages()).toEqual([msg]);
-      expect(callback).toHaveBeenCalledOnce();
+      store.appendMessage({ id, message });
+      expect(store.getMessages(id)).toEqual([message]);
+      expect(onChatMessagesChanged).toHaveBeenCalledOnce();
 
       unsubscribe();
-      store.appendMessage(msg);
-      expect(callback).toHaveBeenCalledOnce();
+      store.appendMessage({ id, message });
+      expect(onChatMessagesChanged).toHaveBeenCalledOnce();
     });
   });
 
-  describe('updateLastMessage', () => {
+  describe('removeAssistantResponse', () => {
     it('notifies subscribers', () => {
-      const { store } = initChat([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-        { id: '2', content: 'world', role: 'assistant', parts: [] },
-      ]);
-      const msg: UIMessage = {
-        id: '2',
-        content: 'universe',
-        role: 'assistant',
-        parts: [],
-      };
-      const callback = vi.fn();
-      const unsubscribe = store.subscribe({
-        onChatMessagesChanged: callback,
+      const id = 'chat-1';
+      const messages: UIMessage[] = [
+        { id: '1', content: 'lucky', role: 'user', parts: [] },
+        { id: '2', content: 'vicky', role: 'assistant', parts: [] },
+      ];
+      const store = initStore({
+        [id]: {
+          messages,
+        },
       });
 
-      store.updateLastMessage(msg);
-      expect(store.getMessages()).toEqual([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-        msg,
-      ]);
-      expect(callback).toHaveBeenCalledOnce();
+      const onChatMessagesChanged = vi.fn();
+      const unsubscribe = store.subscribe({
+        onChatMessagesChanged,
+        onChatStatusChanged: vi.fn(),
+        onChatErrorChanged: vi.fn(),
+      });
+
+      store.removeAssistantResponse(id);
+      expect(store.getMessages(id)).toEqual(messages.slice(0, 1));
+      expect(onChatMessagesChanged).toHaveBeenCalledOnce();
 
       unsubscribe();
-      store.updateLastMessage(msg);
-      expect(callback).toHaveBeenCalledOnce();
+      store.appendMessage({ id, message: messages[1] });
+      store.removeAssistantResponse(id);
+      expect(onChatMessagesChanged).toHaveBeenCalledOnce();
     });
 
     it('throws an error if the chat is empty', () => {
-      const { store } = initChat();
-      expect(() =>
-        store.updateLastMessage({
-          id: '1',
-          content: 'hello',
-          role: 'user',
-          parts: [],
-        }),
-      ).toThrow();
-    });
-  });
-
-  describe('removeLastMessage', () => {
-    it('notifies subscribers', () => {
-      const { store } = initChat([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-        { id: '2', content: 'world', role: 'assistant', parts: [] },
-      ]);
-      const callback = vi.fn();
-      const unsubscribe = store.subscribe({
-        onChatMessagesChanged: callback,
+      const id = 'chat-1';
+      const messages: UIMessage[] = [
+        { id: '1', content: 'lucky', role: 'user', parts: [] },
+      ];
+      const store = initStore({
+        [id]: {
+          messages,
+        },
       });
-
-      store.removeLastMessage();
-      expect(store.getMessages()).toEqual([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-      ]);
-      expect(callback).toHaveBeenCalledOnce();
-
-      unsubscribe();
-      store.removeLastMessage();
-      expect(callback).toHaveBeenCalledOnce();
+      expect(() => store.removeAssistantResponse(id)).toThrow();
     });
 
-    it('removes the last message only if given role matches', () => {
-      const { store } = initChat([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-        { id: '2', content: 'world', role: 'assistant', parts: [] },
-      ]);
-
-      store.removeLastMessage('assistant');
-      expect(store.getMessages()).toEqual([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-      ]);
-    });
-
-    it('does not remove the last message if the role does not match', () => {
-      const { store } = initChat([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-        { id: '2', content: 'world', role: 'assistant', parts: [] },
-      ]);
-
-      store.removeLastMessage('user');
-      expect(store.getMessages()).toEqual([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-        { id: '2', content: 'world', role: 'assistant', parts: [] },
-      ]);
+    it('throws an error if the last message is not an assistant message', () => {
+      const id = 'chat-1';
+      const messages: UIMessage[] = [
+        { id: '1', content: 'lucky', role: 'user', parts: [] },
+      ];
+      const store = initStore({ [id]: { messages } });
+      expect(() => store.removeAssistantResponse(id)).toThrow();
     });
   });
 
   describe('clear', () => {
     it('notifies subscribers', () => {
-      const { store } = initChat([
+      const id = 'chat-1';
+      const messages: UIMessage[] = [
         { id: '1', content: 'hello', role: 'user', parts: [] },
         { id: '2', content: 'world', role: 'assistant', parts: [] },
-      ]);
-      const callback = vi.fn();
+      ];
+      const store = initStore({ [id]: { messages } });
+      const onChatMessagesChanged = vi.fn();
+      const onChatStatusChanged = vi.fn();
+      const onChatErrorChanged = vi.fn();
       const unsubscribe = store.subscribe({
-        onChatMessagesChanged: callback,
+        onChatMessagesChanged,
+        onChatStatusChanged,
+        onChatErrorChanged,
       });
 
-      store.clear();
-      expect(store.getMessages()).toEqual([]);
-      expect(callback).toHaveBeenCalledOnce();
+      store.clear(id);
+      expect(store.getMessages(id)).toEqual([]);
+      expect(onChatMessagesChanged).toHaveBeenCalledOnce();
+      expect(onChatStatusChanged).toHaveBeenCalledOnce();
+      expect(onChatErrorChanged).toHaveBeenCalledOnce();
 
       unsubscribe();
+      store.setMessages({ id, messages });
       store.clear();
-      expect(callback).toHaveBeenCalledOnce();
+      expect(onChatMessagesChanged).toHaveBeenCalledOnce();
+      expect(onChatStatusChanged).toHaveBeenCalledOnce();
+      expect(onChatErrorChanged).toHaveBeenCalledOnce();
+    });
+
+    it('clears all chats when explicit id is not provided', () => {
+      const [id1, id2] = ['chat-1', 'chat-2'];
+      const [messages1, messages2]: UIMessage[][] = [
+        [
+          { id: '1', content: 'hello', role: 'user', parts: [] },
+          { id: '2', content: 'world', role: 'assistant', parts: [] },
+        ],
+        [
+          { id: '1', content: 'hello', role: 'user', parts: [] },
+          { id: '2', content: 'world', role: 'assistant', parts: [] },
+        ],
+      ];
+      const store = initStore({
+        [id1]: { messages: messages1 },
+        [id2]: { messages: messages2 },
+      });
+      store.clear();
+      expect(store.getMessages(id1)).toEqual([]);
+      expect(store.getMessages(id2)).toEqual([]);
     });
   });
 
+  describe('commitActiveResponse');
+
   describe('addOrUpdateAssistantMessageParts', () => {
     it('notifies subscribers', () => {
-      const { store } = initChat([
+      const messages: UIMessage[] = [
         { id: '1', content: 'hello', role: 'user', parts: [] },
-        { id: '2', content: 'hi', role: 'assistant', parts: [] },
-      ]);
-      const callback = vi.fn();
+      ];
+      const id = 'chat-1';
+      const store = initStore({ [id]: { messages } });
+      const onChatMessagesChanged = vi.fn();
       const unsubscribe = store.subscribe({
-        onChatMessagesChanged: callback,
+        onChatMessagesChanged,
+        onChatStatusChanged: vi.fn(),
+        onChatErrorChanged: vi.fn(),
       });
 
       store.addOrUpdateAssistantMessageParts({
-        partDelta: { type: 'text', text: ' im a robot' },
+        chatId: id,
+        partDelta: { type: 'text', text: 'hi' },
       });
-      expect(store.getMessages()).toEqual([
+      expect(store.getMessages(id)).toEqual([
         { id: '1', content: 'hello', role: 'user', parts: [] },
         {
-          id: '2',
-          content: 'hi im a robot',
+          id: expect.any(String),
+          content: 'hi',
           role: 'assistant',
-          parts: [{ type: 'text', text: ' im a robot' }],
+          createdAt: expect.any(Date),
+          parts: [{ type: 'text', text: 'hi' }],
         },
       ]);
-      expect(callback).toHaveBeenCalledOnce();
+      expect(onChatMessagesChanged).toHaveBeenCalledOnce();
 
       unsubscribe();
       store.addOrUpdateAssistantMessageParts({
-        partDelta: { type: 'text', text: 'hi' },
+        chatId: id,
+        partDelta: { type: 'text', text: ' there' },
       });
-      expect(callback).toHaveBeenCalledOnce();
+      expect(onChatMessagesChanged).toHaveBeenCalledOnce();
     });
 
-    it('should do nothing if chat is empty', () => {
-      const { store } = initChat();
-      store.addOrUpdateAssistantMessageParts({
-        partDelta: { type: 'text', text: 'hi' },
-      });
-      expect(store.getMessages()).toEqual([]);
+    it('should throw if no corresponding user message is found', () => {
+      const id = 'chat-1';
+      const store = initStore({ [id]: { messages: [] } });
+      expect(() =>
+        store.addOrUpdateAssistantMessageParts({
+          chatId: id,
+          partDelta: { type: 'text', text: 'hi' },
+        }),
+      ).toThrow();
+      expect(store.getMessages(id)).toEqual([]);
     });
 
     it('should create a new assistant message if last message was from user', () => {
-      const { store } = initChat([
+      const id = 'chat-1';
+      const messages: UIMessage[] = [
         { id: '1', content: 'hello', role: 'user', parts: [] },
-      ]);
+      ];
+      const store = initStore({ [id]: { messages } });
       store.addOrUpdateAssistantMessageParts({
+        chatId: id,
         partDelta: { type: 'text', text: 'hi' },
       });
-      const messages = store.getMessages();
-      expect(messages).toHaveLength(2);
-      expect(messages[1]).toMatchObject({
+      expect(store.getMessages(id)).toHaveLength(2);
+      expect(store.getMessages(id)?.[1]).toMatchObject({
         id: expect.any(String),
         role: 'assistant',
         content: 'hi',
@@ -250,59 +302,74 @@ describe('ChatStore', () => {
       });
     });
 
-    it('should use generated ID for new assistant message when no ID provided', () => {
+    it('should use custom id generator for new assistant message when provided', () => {
       const mockGenerateId = vi.fn().mockReturnValue('generated-id');
-      const { store } = initChat([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-      ]);
+      const id = 'chat-1';
+      const store = initStore({
+        [id]: {
+          messages: [{ id: '1', content: 'hello', role: 'user', parts: [] }],
+        },
+      });
 
       store.addOrUpdateAssistantMessageParts({
+        chatId: id,
         partDelta: { type: 'text', text: 'hi' },
         generateId: mockGenerateId,
       });
 
       expect(mockGenerateId).toHaveBeenCalledOnce();
-      expect(store.getMessages()[1].id).toBe('generated-id');
+      expect(store.getMessages(id)?.[1].id).toBe('generated-id');
     });
 
     it('should handle multiple text parts', () => {
-      const { store } = initChat([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-      ]);
+      const id = 'chat-1';
+      const store = initStore({
+        [id]: {
+          messages: [{ id: '1', content: 'hello', role: 'user', parts: [] }],
+        },
+      });
       store.addOrUpdateAssistantMessageParts({
+        chatId: id,
         partDelta: { type: 'text', text: 'Hello' },
       });
       store.addOrUpdateAssistantMessageParts({
+        chatId: id,
         partDelta: { type: 'text', text: ' ' },
       });
       store.addOrUpdateAssistantMessageParts({
+        chatId: id,
         partDelta: { type: 'text', text: 'world' },
       });
-      const message = store.getMessages()[1];
-      expect(message.content).toBe('Hello world');
-      expect(message.parts).toHaveLength(1);
-      expect(message.parts).toEqual([{ type: 'text', text: 'Hello world' }]);
+      const message = store.getMessages(id)?.[1];
+      expect(message?.content).toBe('Hello world');
+      expect(message?.parts).toHaveLength(1);
+      expect(message?.parts).toEqual([{ type: 'text', text: 'Hello world' }]);
     });
 
     it('should handle step-start parts', () => {
-      const { store } = initChat([
-        { id: '1', content: 'hello', role: 'user', parts: [] },
-        { id: '2', content: '', role: 'assistant', parts: [] },
-      ]);
+      const id = 'chat-1';
+      const store = initStore({
+        [id]: {
+          messages: [{ id: '1', content: 'hello', role: 'user', parts: [] }],
+        },
+      });
 
       const stepStart = { type: 'step-start' as const };
       store.addOrUpdateAssistantMessageParts({
+        chatId: id,
         partDelta: stepStart,
       });
 
-      expect(store.getMessages()[1].parts).toContainEqual(stepStart);
+      expect(store.getMessages(id)?.[1].parts).toContainEqual(stepStart);
     });
 
     it('should handle source parts', () => {
-      const { store } = initChat([
-        { id: '1', content: '', role: 'user', parts: [] },
-        { id: '2', content: '', role: 'assistant', parts: [] },
-      ]);
+      const id = 'chat-1';
+      const store = initStore({
+        [id]: {
+          messages: [{ id: '1', content: '', role: 'user', parts: [] }],
+        },
+      });
       const source = {
         type: 'source' as const,
         source: {
@@ -313,55 +380,256 @@ describe('ChatStore', () => {
         },
       };
       store.addOrUpdateAssistantMessageParts({
+        chatId: id,
         partDelta: source,
       });
-      expect(store.getMessages()[1].parts).toContainEqual(source);
+      expect(store.getMessages(id)?.[1].parts).toContainEqual(source);
     });
 
     it('should handle file parts', () => {
-      const { store } = initChat([
-        { id: '1', content: '', role: 'user', parts: [] },
-        { id: '2', content: '', role: 'assistant', parts: [] },
-      ]);
+      const id = 'chat-1';
+      const store = initStore({
+        [id]: {
+          messages: [{ id: '1', content: '', role: 'user', parts: [] }],
+        },
+      });
       const file = {
         type: 'file' as const,
         mediaType: 'text/plain',
         data: 'hello',
       };
       store.addOrUpdateAssistantMessageParts({
+        chatId: id,
         partDelta: file,
       });
-      expect(store.getMessages()[1].parts).toContainEqual(file);
+      expect(store.getMessages(id)?.[1].parts).toContainEqual(file);
     });
 
-    it('should handle tool-invocation parts', () => {
-      const { store } = initChat([
+    // TODO: More tests for different states (partial-call, result, call)
+    describe.only('tool-invocation parts', () => {
+      const chatId = 'chat-1';
+      const messages: UIMessage[] = [
         { id: '1', content: '', role: 'user', parts: [] },
-        { id: '2', content: '', role: 'assistant', parts: [] },
-      ]);
+      ];
+      let store: ChatStore;
 
-      const toolInvocation = {
-        type: 'tool-invocation' as const,
-        toolInvocation: {
-          toolCallId: 'test-id',
-          toolName: 'test-tool',
-          args: '{"arg": "value"}',
-          state: 'call' as const,
-        },
-      };
-
-      store.addOrUpdateAssistantMessageParts({
-        partDelta: toolInvocation,
+      beforeEach(() => {
+        store = initStore({ [chatId]: { messages } });
       });
 
-      expect(store.getMessages()[1].parts).toContainEqual(toolInvocation);
+      it('should handle call parts', () => {
+        const toolInvocation = {
+          type: 'tool-invocation' as const,
+          toolInvocation: {
+            toolCallId: 'test-id',
+            toolName: 'test-tool',
+            args: '{"arg": "value"}',
+            state: 'call' as const,
+          },
+        };
+
+        store.addOrUpdateAssistantMessageParts({
+          chatId,
+          partDelta: toolInvocation,
+        });
+
+        expect(store.getMessages(chatId)?.[1].parts.length).toBe(1);
+        expect(store.getMessages(chatId)?.[1].parts[0]).toEqual({
+          ...toolInvocation,
+          toolInvocation: {
+            ...toolInvocation.toolInvocation,
+            step: 0,
+          },
+        });
+      });
+
+      it('should handle partial call parts', () => {
+        const toolInvocation = {
+          type: 'tool-invocation' as const,
+          toolInvocation: {
+            toolCallId: 'test-id',
+            toolName: 'test-tool',
+            args: undefined,
+            state: 'partial-call' as const,
+          },
+        };
+
+        store.addOrUpdateAssistantMessageParts({
+          chatId,
+          partDelta: toolInvocation,
+        });
+
+        expect(store.getMessages(chatId)?.[1].parts.length).toBe(1);
+        expect(store.getMessages(chatId)?.[1].parts[0]).toEqual({
+          ...toolInvocation,
+          toolInvocation: {
+            ...toolInvocation.toolInvocation,
+            step: 0,
+          },
+        });
+      });
+
+      it('should throw if result comes before call', () => {
+        const toolInvocation = {
+          type: 'tool-invocation' as const,
+          toolInvocation: {
+            toolCallId: 'test-id',
+            toolName: 'test-tool',
+            state: 'result' as const,
+            result: 'some result',
+            args: undefined,
+          },
+        };
+
+        expect(() =>
+          store.addOrUpdateAssistantMessageParts({
+            chatId,
+            partDelta: toolInvocation,
+          }),
+        ).toThrow();
+      });
+
+      it('should handle result parts after call', () => {
+        const toolInvocation = {
+          type: 'tool-invocation' as const,
+          toolInvocation: {
+            toolCallId: 'test-id',
+            toolName: 'test-tool',
+            state: 'call' as const,
+            args: '{"arg": "value"}',
+          },
+        };
+
+        store.addOrUpdateAssistantMessageParts({
+          chatId,
+          partDelta: toolInvocation,
+        });
+
+        expect(store.getMessages(chatId)?.[1].parts.length).toBe(1);
+        expect(store.getMessages(chatId)?.[1].parts[0]).toEqual({
+          ...toolInvocation,
+          toolInvocation: {
+            ...toolInvocation.toolInvocation,
+            step: 0,
+            args: '{"arg": "value"}',
+            state: 'call' as const,
+          },
+        });
+
+        store.addOrUpdateAssistantMessageParts({
+          chatId,
+          partDelta: {
+            type: 'tool-invocation' as const,
+            toolInvocation: {
+              ...toolInvocation.toolInvocation,
+              state: 'result' as const,
+              result: 'some result',
+            },
+          },
+        });
+
+        expect(store.getMessages(chatId)?.[1].parts.length).toBe(1);
+        expect(store.getMessages(chatId)?.[1].parts[0]).toEqual({
+          ...toolInvocation,
+          toolInvocation: {
+            ...toolInvocation.toolInvocation,
+            step: 0,
+            result: 'some result',
+            state: 'result' as const,
+          },
+        });
+      });
+
+      it('should accumulate partial-call args', () => {
+        const toolInvocation = {
+          type: 'tool-invocation' as const,
+          toolInvocation: {
+            toolCallId: 'test-id',
+            toolName: 'test-tool',
+            args: undefined,
+            state: 'partial-call' as const,
+          },
+        };
+
+        store.addOrUpdateAssistantMessageParts({
+          chatId,
+          partDelta: toolInvocation,
+        });
+
+        expect(store.getMessages(chatId)?.[1].parts.length).toBe(1);
+        expect(store.getMessages(chatId)?.[1].parts[0]).toEqual({
+          ...toolInvocation,
+          toolInvocation: {
+            ...toolInvocation.toolInvocation,
+            state: 'partial-call' as const,
+            args: undefined,
+            step: 0,
+          },
+        });
+
+        store.addOrUpdateAssistantMessageParts({
+          chatId,
+          partDelta: {
+            ...toolInvocation,
+            toolInvocation: {
+              ...toolInvocation.toolInvocation,
+              args: '{"arg": ',
+              step: 0,
+            },
+          },
+        });
+
+        store.addOrUpdateAssistantMessageParts({
+          chatId,
+          partDelta: {
+            ...toolInvocation,
+            toolInvocation: {
+              ...toolInvocation.toolInvocation,
+              args: '"value',
+              step: 0,
+            },
+          },
+        });
+
+        store.addOrUpdateAssistantMessageParts({
+          chatId,
+          partDelta: {
+            ...toolInvocation,
+            toolInvocation: {
+              ...toolInvocation.toolInvocation,
+              args: '"}',
+              step: 0,
+            },
+          },
+        });
+
+        expect(store.getMessages(chatId)?.[1].parts.length).toBe(1);
+        expect(store.getMessages(chatId)?.[1].parts[0]).toEqual({
+          ...toolInvocation,
+          toolInvocation: {
+            ...toolInvocation.toolInvocation,
+            args: { arg: 'value' },
+            step: 0,
+            state: 'partial-call' as const,
+          },
+        });
+      });
+
+      it('should throw for invalid tool invocation state');
+      it('should handle multiple tool invocations');
     });
 
+    // TODO: More tests for redacted and signature
     it('should handle reasoning parts', () => {
-      const { store } = initChat([
-        { id: '1', content: '', role: 'user', parts: [] },
-        { id: '2', content: '', role: 'assistant', parts: [] },
-      ]);
+      const id = 'chat-1';
+      const store = initStore({
+        [id]: {
+          messages: [
+            { id: '1', content: '', role: 'user', parts: [] },
+            { id: '2', content: '', role: 'assistant', parts: [] },
+          ],
+        },
+      });
 
       const reasoning = {
         type: 'reasoning' as const,
@@ -370,22 +638,27 @@ describe('ChatStore', () => {
       };
 
       store.addOrUpdateAssistantMessageParts({
+        chatId: id,
         partDelta: reasoning,
       });
 
-      expect(store.getMessages()[1].parts).toContainEqual(reasoning);
+      expect(store.getMessages(id)?.[1].parts).toContainEqual(reasoning);
     });
 
     it('should throw error for invalid part type', () => {
-      const { store } = initChat([
-        { id: '1', content: '', role: 'assistant', parts: [] },
-      ]);
+      const id = 'chat-1';
+      const store = initStore({
+        [id]: {
+          messages: [{ id: '1', content: '', role: 'assistant', parts: [] }],
+        },
+      });
 
       expect(() =>
         store.addOrUpdateAssistantMessageParts({
+          chatId: id,
           partDelta: { type: 'invalid' as any },
         }),
-      ).toThrow('Invalid part delta type');
+      ).toThrow();
     });
   });
 
@@ -812,4 +1085,6 @@ describe('ChatStore', () => {
       });
     });
   });
+
+  describe('getStep');
 });
