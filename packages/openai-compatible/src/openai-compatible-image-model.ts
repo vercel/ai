@@ -1,4 +1,4 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -27,7 +27,7 @@ export type OpenAICompatibleImageModelConfig = {
   };
 };
 
-export class OpenAICompatibleImageModel implements ImageModelV1 {
+export class OpenAICompatibleImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v1';
 
   get maxImagesPerCall(): number {
@@ -53,10 +53,10 @@ export class OpenAICompatibleImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     if (aspectRatio != null) {
       warnings.push({

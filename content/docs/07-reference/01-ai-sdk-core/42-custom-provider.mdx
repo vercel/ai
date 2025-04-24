@@ -56,10 +56,10 @@ export const myOpenAI = customProvider({
     },
     {
       name: 'imageModels',
-      type: 'Record<string, ImageModelV1>',
+      type: 'Record<string, ImageModelV2>',
       isOptional: true,
       description:
-        'A record of image models, where keys are model IDs and values are ImageModelV1 instances.',
+        'A record of image models, where keys are model IDs and values are ImageModelV2 instances.',
     },
     {
       name: 'fallbackProvider',
