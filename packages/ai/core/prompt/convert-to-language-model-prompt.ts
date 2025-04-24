@@ -123,14 +123,6 @@ export function convertToLanguageModelMessage(
                 return {
                   type: 'reasoning',
                   text: part.text,
-                  signature: part.signature,
-                  providerOptions,
-                };
-              }
-              case 'redacted-reasoning': {
-                return {
-                  type: 'redacted-reasoning',
-                  data: part.data,
                   providerOptions,
                 };
               }

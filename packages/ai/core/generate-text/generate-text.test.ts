@@ -68,18 +68,21 @@ const modelWithReasoning = new MockLanguageModelV2({
     content: [
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: 'I will open the conversation with witty banter.',
+        providerMetadata: {
+          testProvider: {
+            signature: 'signature',
+          },
+        },
       },
       {
         type: 'reasoning',
-        reasoningType: 'signature',
-        signature: 'signature',
-      },
-      {
-        type: 'reasoning',
-        reasoningType: 'redacted',
-        data: 'redacted-reasoning-data',
+        text: '',
+        providerMetadata: {
+          testProvider: {
+            redactedData: 'redacted-reasoning-data',
+          },
+        },
       },
       { type: 'text', text: 'Hello, world!' },
     ],

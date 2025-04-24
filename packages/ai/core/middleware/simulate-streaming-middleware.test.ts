@@ -82,18 +82,20 @@ describe('simulateStreamingMiddleware', () => {
             { type: 'text', text: 'This is a test response' },
             {
               type: 'reasoning',
-              reasoningType: 'text',
               text: 'First reasoning step',
             },
             {
               type: 'reasoning',
-              reasoningType: 'text',
               text: 'Second reasoning step',
             },
             {
               type: 'reasoning',
-              reasoningType: 'signature',
-              signature: 'abc',
+              text: '',
+              providerMetadata: {
+                testProvider: {
+                  signature: 'abc',
+                },
+              },
             },
           ],
           finishReason: 'stop',
@@ -123,13 +125,14 @@ describe('simulateStreamingMiddleware', () => {
           content: [
             {
               type: 'reasoning',
-              reasoningType: 'text',
               text: 'First reasoning step',
             },
             {
               type: 'reasoning',
-              reasoningType: 'redacted',
-              data: 'data',
+              text: 'data',
+              providerMetadata: {
+                testProvider: { isRedacted: true },
+              },
             },
             {
               type: 'text',
@@ -161,13 +164,16 @@ describe('simulateStreamingMiddleware', () => {
             "warnings": [],
           },
           {
-            "reasoningType": "text",
             "text": "First reasoning step",
             "type": "reasoning",
           },
           {
-            "data": "data",
-            "reasoningType": "redacted",
+            "providerMetadata": {
+              "testProvider": {
+                "isRedacted": true,
+              },
+            },
+            "text": "data",
             "type": "reasoning",
           },
           {

@@ -153,13 +153,12 @@ describe('AnthropicMessagesLanguageModel', () => {
       expect(content).toMatchInlineSnapshot(`
         [
           {
-            "reasoningType": "text",
+            "providerMetadata": {
+              "anthropic": {
+                "signature": "1234567890",
+              },
+            },
             "text": "I am thinking...",
-            "type": "reasoning",
-          },
-          {
-            "reasoningType": "signature",
-            "signature": "1234567890",
             "type": "reasoning",
           },
           {
@@ -590,19 +589,24 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "reasoningType": "text",
             "text": "I am",
             "type": "reasoning",
           },
           {
-            "reasoningType": "text",
             "text": "thinking...",
             "type": "reasoning",
           },
           {
-            "reasoningType": "signature",
-            "signature": "1234567890",
+            "providerMetadata": {
+              "anthropic": {
+                "signature": "1234567890",
+              },
+            },
+            "text": "",
             "type": "reasoning",
+          },
+          {
+            "type": "reasoning-part-finish",
           },
           {
             "text": "Hello, World!",
@@ -658,9 +662,16 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "data": "redacted-thinking-data",
-            "reasoningType": "redacted",
+            "providerMetadata": {
+              "anthropic": {
+                "redactedData": "redacted-thinking-data",
+              },
+            },
+            "text": "",
             "type": "reasoning",
+          },
+          {
+            "type": "reasoning-part-finish",
           },
           {
             "text": "Hello, World!",

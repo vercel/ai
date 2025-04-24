@@ -42,13 +42,21 @@ describe('appendResponseMessages', () => {
           {
             role: 'assistant',
             content: [
-              { type: 'reasoning', text: 'reasoning part', signature: 'sig-1' },
-              { type: 'redacted-reasoning', data: 'redacted part' },
+              {
+                type: 'reasoning',
+                text: 'reasoning part',
+                providerOptions: { testProvider: { signature: 'sig-1' } },
+              },
+              {
+                type: 'reasoning',
+                text: 'redacted part',
+                providerOptions: { testProvider: { isRedacted: true } },
+              },
               { type: 'text', text: 'text response' },
               {
                 type: 'reasoning',
                 text: 'reasoning part 2',
-                signature: 'sig-2',
+                providerOptions: { testProvider: { signature: 'sig-2' } },
               },
               { type: 'text', text: 'text response 2' },
             ],
@@ -458,13 +466,24 @@ describe('appendResponseMessages', () => {
           {
             role: 'assistant',
             content: [
-              { type: 'reasoning', text: 'reasoning part', signature: 'sig-1' },
-              { type: 'redacted-reasoning', data: 'redacted part' },
+              {
+                type: 'reasoning',
+                text: 'reasoning part',
+                providerOptions: {
+                  testProvider: {
+                    signature: 'sig-1',
+                  },
+                },
+              },
               { type: 'text', text: 'text response' },
               {
                 type: 'reasoning',
                 text: 'reasoning part 2',
-                signature: 'sig-2',
+                providerOptions: {
+                  testProvider: {
+                    signature: 'sig-2',
+                  },
+                },
               },
               { type: 'text', text: 'text response 2' },
             ],

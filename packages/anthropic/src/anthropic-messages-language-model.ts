@@ -116,7 +116,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     }
 
     const { prompt: messagesPrompt, betas: messagesBetas } =
-      convertToAnthropicMessagesPrompt({
+      await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: this.settings.sendReasoning ?? true,
         warnings,
@@ -266,21 +266,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         case 'thinking': {
           content.push({
             type: 'reasoning',
-            reasoningType: 'text',
             text: part.thinking,
-          });
-          content.push({
-            type: 'reasoning',
-            reasoningType: 'signature',
-            signature: part.signature,
+            providerMetadata: {
+              anthropic: {
+                signature: part.signature,
+              } satisfies AnthropicReasoningMetadata,
+            },
           });
           break;
         }
         case 'redacted_thinking': {
           content.push({
             type: 'reasoning',
-            reasoningType: 'redacted',
-            data: part.data,
+            text: '',
+            providerMetadata: {
+              anthropic: {
+                redactedData: part.data,
+              } satisfies AnthropicReasoningMetadata,
+            },
           });
           break;
         }
@@ -401,9 +404,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'redacted_thinking': {
                     controller.enqueue({
                       type: 'reasoning',
-                      reasoningType: 'redacted',
-                      data: value.content_block.data,
+                      text: '',
+                      providerMetadata: {
+                        anthropic: {
+                          redactedData: value.content_block.data,
+                        } satisfies AnthropicReasoningMetadata,
+                      },
                     });
+                    controller.enqueue({ type: 'reasoning-part-finish' });
                     return;
                   }
 
@@ -461,7 +469,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'thinking_delta': {
                     controller.enqueue({
                       type: 'reasoning',
-                      reasoningType: 'text',
                       text: value.delta.thinking,
                     });
 
@@ -473,9 +480,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     if (blockType === 'thinking') {
                       controller.enqueue({
                         type: 'reasoning',
-                        reasoningType: 'signature',
-                        signature: value.delta.signature,
+                        text: '',
+                        providerMetadata: {
+                          anthropic: {
+                            signature: value.delta.signature,
+                          } satisfies AnthropicReasoningMetadata,
+                        },
                       });
+                      controller.enqueue({ type: 'reasoning-part-finish' });
                     }
 
                     return;
@@ -697,4 +709,13 @@ const anthropicProviderOptionsSchema = z.object({
 
 export type AnthropicProviderOptions = z.infer<
   typeof anthropicProviderOptionsSchema
+>;
+
+export const anthropicReasoningMetadataSchema = z.object({
+  signature: z.string().optional(),
+  redactedData: z.string().optional(),
+});
+
+export type AnthropicReasoningMetadata = z.infer<
+  typeof anthropicReasoningMetadataSchema
 >;

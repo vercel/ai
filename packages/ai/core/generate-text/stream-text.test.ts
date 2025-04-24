@@ -3,6 +3,7 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import {
@@ -136,39 +137,44 @@ const modelWithReasoning = new MockLanguageModelV2({
       },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: 'I will open the conversation',
       },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: ' with witty banter. ',
       },
       {
         type: 'reasoning',
-        reasoningType: 'signature',
-        signature: '1234567890',
+        text: '',
+        providerMetadata: {
+          testProvider: { signature: '1234567890' },
+        } as SharedV2ProviderMetadata,
       },
+      { type: 'reasoning-part-finish' },
       {
         type: 'reasoning',
-        reasoningType: 'redacted',
-        data: 'redacted-reasoning-data',
+        text: '',
+        providerMetadata: {
+          testProvider: { redactedData: 'redacted-reasoning-data' },
+        },
       },
+      { type: 'reasoning-part-finish' },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: 'Once the user has relaxed,',
       },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: ' I will pry for valuable information.',
       },
       {
         type: 'reasoning',
-        reasoningType: 'signature',
-        signature: '1234567890',
+        text: '',
+        providerMetadata: {
+          testProvider: { signature: '1234567890' },
+        },
       },
+      { type: 'reasoning-part-finish' },
       { type: 'text', text: 'Hi' },
       { type: 'text', text: ' there!' },
       {
@@ -1740,7 +1746,47 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect((await result.response).messages).toMatchSnapshot();
+      expect((await result.response).messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "I will open the conversation with witty banter. ",
+                "type": "reasoning",
+              },
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "redactedData": "redacted-reasoning-data",
+                  },
+                },
+                "text": "",
+                "type": "reasoning",
+              },
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "Once the user has relaxed, I will pry for valuable information.",
+                "type": "reasoning",
+              },
+              {
+                "text": "Hi there!",
+                "type": "text",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+        ]
+      `);
     });
   });
 
@@ -2381,7 +2427,6 @@ describe('streamText', () => {
                           type: 'reasoning',
                           text: 'thinking',
                           providerOptions: undefined,
-                          signature: undefined,
                         },
                         {
                           type: 'tool-call',

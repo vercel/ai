@@ -1,8 +1,9 @@
+import { BedrockReasoningMetadata } from './bedrock-chat-language-model';
 import { convertToBedrockChatMessages } from './convert-to-bedrock-chat-messages';
 
 describe('system messages', () => {
   it('should combine multiple leading system messages into a single system message', async () => {
-    const { system } = convertToBedrockChatMessages([
+    const { system } = await convertToBedrockChatMessages([
       { role: 'system', content: 'Hello' },
       { role: 'system', content: 'World' },
     ]);
@@ -11,16 +12,16 @@ describe('system messages', () => {
   });
 
   it('should throw an error if a system message is provided after a non-system message', async () => {
-    expect(() =>
+    await expect(
       convertToBedrockChatMessages([
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
         { role: 'system', content: 'World' },
       ]),
-    ).toThrowError();
+    ).rejects.toThrowError();
   });
 
   it('should set isSystemCachePoint when system message has cache point', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'system',
         content: 'Hello',
@@ -39,7 +40,7 @@ describe('user messages', () => {
   it('should convert messages with image parts', async () => {
     const imageData = new Uint8Array([0, 1, 2, 3]);
 
-    const { messages } = convertToBedrockChatMessages([
+    const { messages } = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [
@@ -72,7 +73,7 @@ describe('user messages', () => {
   it('should convert messages with document parts', async () => {
     const fileData = new Uint8Array([0, 1, 2, 3]);
 
-    const { messages } = convertToBedrockChatMessages([
+    const { messages } = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [
@@ -106,7 +107,7 @@ describe('user messages', () => {
   });
 
   it('should extract the system message', async () => {
-    const { system } = convertToBedrockChatMessages([
+    const { system } = await convertToBedrockChatMessages([
       {
         role: 'system',
         content: 'Hello',
@@ -117,7 +118,7 @@ describe('user messages', () => {
   });
 
   it('should add cache point to user message content when specified', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Hello' }],
@@ -139,7 +140,7 @@ describe('user messages', () => {
 
 describe('assistant messages', () => {
   it('should remove trailing whitespace from last assistant message when there is no further user message', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'user content' }],
@@ -166,7 +167,7 @@ describe('assistant messages', () => {
   });
 
   it('should remove trailing whitespace from last assistant message with multi-part content when there is no further user message', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'user content' }],
@@ -196,7 +197,7 @@ describe('assistant messages', () => {
   });
 
   it('should keep trailing whitespace from assistant message when there is a further user message', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'user content' }],
@@ -231,7 +232,7 @@ describe('assistant messages', () => {
   });
 
   it('should combine multiple sequential assistant messages into a single message', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       { role: 'user', content: [{ type: 'text', text: 'Hi!' }] },
       { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
       { role: 'assistant', content: [{ type: 'text', text: 'World' }] },
@@ -251,7 +252,7 @@ describe('assistant messages', () => {
   });
 
   it('should add cache point to assistant message content when specified', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'assistant',
         content: [{ type: 'text', text: 'Hello' }],
@@ -271,7 +272,7 @@ describe('assistant messages', () => {
   });
 
   it('should properly convert reasoning content type', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
@@ -282,7 +283,11 @@ describe('assistant messages', () => {
           {
             type: 'reasoning',
             text: 'This is my step-by-step reasoning process',
-            signature: 'test-signature',
+            providerOptions: {
+              bedrock: {
+                signature: 'test-signature',
+              } satisfies BedrockReasoningMetadata,
+            },
           },
         ],
       },
@@ -314,7 +319,7 @@ describe('assistant messages', () => {
 
   it('should properly convert redacted-reasoning content type', async () => {
     const reasoningData = 'Redacted reasoning information';
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
@@ -323,8 +328,9 @@ describe('assistant messages', () => {
         role: 'assistant',
         content: [
           {
-            type: 'redacted-reasoning',
-            data: reasoningData,
+            type: 'reasoning',
+            text: '',
+            providerOptions: { bedrock: { redactedData: reasoningData } },
           },
         ],
       },
@@ -354,7 +360,7 @@ describe('assistant messages', () => {
   });
 
   it('should trim trailing whitespace from reasoning content when it is the last part', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
@@ -365,7 +371,11 @@ describe('assistant messages', () => {
           {
             type: 'reasoning',
             text: 'This is my reasoning with trailing space    ',
-            signature: 'test-signature',
+            providerOptions: {
+              bedrock: {
+                signature: 'test-signature',
+              } satisfies BedrockReasoningMetadata,
+            },
           },
         ],
       },
@@ -396,7 +406,7 @@ describe('assistant messages', () => {
   });
 
   it('should handle a mix of text and reasoning content types', async () => {
-    const result = convertToBedrockChatMessages([
+    const result = await convertToBedrockChatMessages([
       {
         role: 'user',
         content: [{ type: 'text', text: 'Explain your reasoning' }],
@@ -408,7 +418,11 @@ describe('assistant messages', () => {
           {
             type: 'reasoning',
             text: 'I calculated this by analyzing the meaning of life',
-            signature: 'reasoning-process',
+            providerOptions: {
+              bedrock: {
+                signature: 'reasoning-process',
+              } satisfies BedrockReasoningMetadata,
+            },
           },
         ],
       },
@@ -441,8 +455,8 @@ describe('assistant messages', () => {
 });
 
 describe('tool messages', () => {
-  it('should convert tool result with content array containing text', () => {
-    const result = convertToBedrockChatMessages([
+  it('should convert tool result with content array containing text', async () => {
+    const result = await convertToBedrockChatMessages([
       {
         role: 'tool',
         content: [
@@ -470,8 +484,8 @@ describe('tool messages', () => {
     });
   });
 
-  it('should convert tool result with content array containing image', () => {
-    const result = convertToBedrockChatMessages([
+  it('should convert tool result with content array containing image', async () => {
+    const result = await convertToBedrockChatMessages([
       {
         role: 'tool',
         content: [
@@ -512,8 +526,8 @@ describe('tool messages', () => {
     });
   });
 
-  it('should throw error for unsupported image format in tool result content', () => {
-    expect(() =>
+  it('should throw error for unsupported image format in tool result content', async () => {
+    await expect(
       convertToBedrockChatMessages([
         {
           role: 'tool',
@@ -534,11 +548,11 @@ describe('tool messages', () => {
           ],
         },
       ]),
-    ).toThrow('Unsupported image format: webp');
+    ).rejects.toThrow('Unsupported image format: webp');
   });
 
-  it('should throw error for missing mime type in tool result image content', () => {
-    expect(() =>
+  it('should throw error for missing mime type in tool result image content', async () => {
+    await expect(
       convertToBedrockChatMessages([
         {
           role: 'tool',
@@ -559,11 +573,13 @@ describe('tool messages', () => {
           ],
         },
       ]),
-    ).toThrow('Image mime type is required in tool result part content');
+    ).rejects.toThrow(
+      'Image mime type is required in tool result part content',
+    );
   });
 
-  it('should fallback to stringified result when content is undefined', () => {
-    const result = convertToBedrockChatMessages([
+  it('should fallback to stringified result when content is undefined', async () => {
+    const result = await convertToBedrockChatMessages([
       {
         role: 'tool',
         content: [

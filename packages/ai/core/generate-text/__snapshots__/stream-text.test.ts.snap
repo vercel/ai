@@ -97,6 +97,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       {
         "content": [
           {
+            "providerOptions": undefined,
             "text": "thinking",
             "type": "reasoning",
           },
@@ -147,8 +148,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "providerMetadata": undefined,
       "reasoning": [
         {
+          "providerOptions": undefined,
           "text": "thinking",
-          "type": "text",
+          "type": "reasoning",
         },
       ],
       "reasoningText": "thinking",
@@ -162,6 +164,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "thinking",
                 "type": "reasoning",
               },
@@ -241,6 +244,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "thinking",
                 "type": "reasoning",
               },
@@ -316,8 +320,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "providerMetadata": undefined,
     "reasoning": [
       {
+        "providerOptions": undefined,
         "text": "thinking",
-        "type": "text",
+        "type": "reasoning",
       },
     ],
     "reasoningText": "thinking",
@@ -331,6 +336,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "thinking",
               "type": "reasoning",
             },
@@ -410,6 +416,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "thinking",
               "type": "reasoning",
             },
@@ -714,6 +721,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
   {
     "content": [
       {
+        "providerOptions": undefined,
         "text": "thinking",
         "type": "reasoning",
       },
@@ -763,8 +771,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "providerMetadata": undefined,
     "reasoning": [
       {
+        "providerOptions": undefined,
         "text": "thinking",
-        "type": "text",
+        "type": "reasoning",
       },
     ],
     "reasoningText": "thinking",
@@ -778,6 +787,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "thinking",
               "type": "reasoning",
             },
@@ -857,6 +867,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         {
           "content": [
             {
+              "providerOptions": undefined,
               "text": "thinking",
               "type": "reasoning",
             },
@@ -3375,39 +3386,56 @@ exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
     "warnings": [],
   },
   {
-    "reasoningType": "text",
     "text": "I will open the conversation",
     "type": "reasoning",
   },
   {
-    "reasoningType": "text",
     "text": " with witty banter. ",
     "type": "reasoning",
   },
   {
-    "reasoningType": "signature",
-    "signature": "1234567890",
+    "providerMetadata": {
+      "testProvider": {
+        "signature": "1234567890",
+      },
+    },
+    "text": "",
     "type": "reasoning",
   },
   {
-    "data": "redacted-reasoning-data",
-    "reasoningType": "redacted",
+    "type": "reasoning-part-finish",
+  },
+  {
+    "providerMetadata": {
+      "testProvider": {
+        "redactedData": "redacted-reasoning-data",
+      },
+    },
+    "text": "",
     "type": "reasoning",
   },
   {
-    "reasoningType": "text",
+    "type": "reasoning-part-finish",
+  },
+  {
     "text": "Once the user has relaxed,",
     "type": "reasoning",
   },
   {
-    "reasoningType": "text",
     "text": " I will pry for valuable information.",
     "type": "reasoning",
   },
   {
-    "reasoningType": "signature",
-    "signature": "1234567890",
+    "providerMetadata": {
+      "testProvider": {
+        "signature": "1234567890",
+      },
+    },
+    "text": "",
     "type": "reasoning",
+  },
+  {
+    "type": "reasoning-part-finish",
   },
   {
     "text": "Hi",
@@ -4024,19 +4052,25 @@ exports[`streamText > result.pipeDataStreamToResponse > should write reasoning c
 [
   "f:{"messageId":"msg-0"}
 ",
-  "g:"I will open the conversation"
+  "g:{"type":"reasoning","text":"I will open the conversation"}
 ",
-  "g:" with witty banter. "
+  "g:{"type":"reasoning","text":" with witty banter. "}
 ",
-  "j:{"signature":"1234567890"}
+  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
 ",
-  "i:{"data":"redacted-reasoning-data"}
+  "l:{}
 ",
-  "g:"Once the user has relaxed,"
+  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
 ",
-  "g:" I will pry for valuable information."
+  "l:{}
 ",
-  "j:{"signature":"1234567890"}
+  "g:{"type":"reasoning","text":"Once the user has relaxed,"}
+",
+  "g:{"type":"reasoning","text":" I will pry for valuable information."}
+",
+  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+",
+  "l:{}
 ",
   "0:"Hi"
 ",
@@ -4069,18 +4103,31 @@ exports[`streamText > result.pipeDataStreamToResponse > should write source cont
 exports[`streamText > result.reasoning > should contain reasoning from model response 1`] = `
 [
   {
-    "signature": "1234567890",
+    "providerOptions": {
+      "testProvider": {
+        "signature": "1234567890",
+      },
+    },
     "text": "I will open the conversation with witty banter. ",
-    "type": "text",
+    "type": "reasoning",
   },
   {
-    "data": "redacted-reasoning-data",
-    "type": "redacted",
+    "providerOptions": {
+      "testProvider": {
+        "redactedData": "redacted-reasoning-data",
+      },
+    },
+    "text": "",
+    "type": "reasoning",
   },
   {
-    "signature": "1234567890",
+    "providerOptions": {
+      "testProvider": {
+        "signature": "1234567890",
+      },
+    },
     "text": "Once the user has relaxed, I will pry for valuable information.",
-    "type": "text",
+    "type": "reasoning",
   },
 ]
 `;
@@ -4108,35 +4155,6 @@ exports[`streamText > result.response > should resolve with response information
   "modelId": "mock-model-id",
   "timestamp": 1970-01-01T00:00:00.000Z,
 }
-`;
-
-exports[`streamText > result.response.messages > should contain reasoning 1`] = `
-[
-  {
-    "content": [
-      {
-        "signature": "1234567890",
-        "text": "I will open the conversation with witty banter. ",
-        "type": "reasoning",
-      },
-      {
-        "data": "redacted-reasoning-data",
-        "type": "redacted-reasoning",
-      },
-      {
-        "signature": "1234567890",
-        "text": "Once the user has relaxed, I will pry for valuable information.",
-        "type": "reasoning",
-      },
-      {
-        "text": "Hi there!",
-        "type": "text",
-      },
-    ],
-    "id": "msg-0",
-    "role": "assistant",
-  },
-]
 `;
 
 exports[`streamText > result.responseMessages > should contain assistant response message and tool message when there are tool calls with results 1`] = `
@@ -4293,18 +4311,31 @@ exports[`streamText > result.steps > should add the reasoning from the model res
     "providerMetadata": undefined,
     "reasoning": [
       {
-        "signature": "1234567890",
+        "providerOptions": {
+          "testProvider": {
+            "signature": "1234567890",
+          },
+        },
         "text": "I will open the conversation with witty banter. ",
-        "type": "text",
+        "type": "reasoning",
       },
       {
-        "data": "redacted-reasoning-data",
-        "type": "redacted",
+        "providerOptions": {
+          "testProvider": {
+            "redactedData": "redacted-reasoning-data",
+          },
+        },
+        "text": "",
+        "type": "reasoning",
       },
       {
-        "signature": "1234567890",
+        "providerOptions": {
+          "testProvider": {
+            "signature": "1234567890",
+          },
+        },
         "text": "Once the user has relaxed, I will pry for valuable information.",
-        "type": "text",
+        "type": "reasoning",
       },
     ],
     "reasoningText": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
@@ -4316,16 +4347,29 @@ exports[`streamText > result.steps > should add the reasoning from the model res
         {
           "content": [
             {
-              "signature": "1234567890",
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
               "text": "I will open the conversation with witty banter. ",
               "type": "reasoning",
             },
             {
-              "data": "redacted-reasoning-data",
-              "type": "redacted-reasoning",
+              "providerOptions": {
+                "testProvider": {
+                  "redactedData": "redacted-reasoning-data",
+                },
+              },
+              "text": "",
+              "type": "reasoning",
             },
             {
-              "signature": "1234567890",
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "1234567890",
+                },
+              },
               "text": "Once the user has relaxed, I will pry for valuable information.",
               "type": "reasoning",
             },
@@ -4505,19 +4549,25 @@ exports[`streamText > result.toDataStream > should send reasoning content when s
 [
   "f:{"messageId":"msg-0"}
 ",
-  "g:"I will open the conversation"
+  "g:{"type":"reasoning","text":"I will open the conversation"}
 ",
-  "g:" with witty banter. "
+  "g:{"type":"reasoning","text":" with witty banter. "}
 ",
-  "j:{"signature":"1234567890"}
+  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
 ",
-  "i:{"data":"redacted-reasoning-data"}
+  "l:{}
 ",
-  "g:"Once the user has relaxed,"
+  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
 ",
-  "g:" I will pry for valuable information."
+  "l:{}
 ",
-  "j:{"signature":"1234567890"}
+  "g:{"type":"reasoning","text":"Once the user has relaxed,"}
+",
+  "g:{"type":"reasoning","text":" I will pry for valuable information."}
+",
+  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+",
+  "l:{}
 ",
   "0:"Hi"
 ",

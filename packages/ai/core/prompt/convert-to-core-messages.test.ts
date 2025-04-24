@@ -239,22 +239,18 @@ describe('convertToCoreMessages', () => {
             {
               type: 'reasoning',
               reasoning: 'Thinking...',
-              details: [
-                {
-                  type: 'text',
-                  text: 'Thinking',
+              providerMetadata: {
+                testProvider: {
                   signature: '1234567890',
                 },
-                {
-                  type: 'redacted',
-                  data: 'redacted-data',
-                },
-                {
-                  type: 'text',
-                  text: '...',
-                  signature: 'abc123',
-                },
-              ],
+              },
+            },
+            {
+              type: 'reasoning',
+              reasoning: 'redacted-data',
+              providerMetadata: {
+                testProvider: { isRedacted: true },
+              },
             },
             { type: 'text', text: 'Hello, human!' },
           ],
@@ -265,9 +261,16 @@ describe('convertToCoreMessages', () => {
         {
           role: 'assistant',
           content: [
-            { type: 'reasoning', text: 'Thinking', signature: '1234567890' },
-            { type: 'redacted-reasoning', data: 'redacted-data' },
-            { type: 'reasoning', text: '...', signature: 'abc123' },
+            {
+              type: 'reasoning',
+              text: 'Thinking...',
+              providerOptions: { testProvider: { signature: '1234567890' } },
+            },
+            {
+              type: 'reasoning',
+              text: 'redacted-data',
+              providerOptions: { testProvider: { isRedacted: true } },
+            },
             { type: 'text', text: 'Hello, human!' },
           ],
         },

@@ -156,10 +156,10 @@ export type ReasoningUIPart = {
   // TODO: v5 rename to `text`
   reasoning: string;
 
-  details: Array<
-    | { type: 'text'; text: string; signature?: string }
-    | { type: 'redacted'; data: string }
-  >;
+  /**
+   * The provider metadata.
+   */
+  providerMetadata?: Record<string, any>;
 };
 
 /**

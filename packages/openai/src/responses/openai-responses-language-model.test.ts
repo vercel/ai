@@ -790,7 +790,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.content).toMatchInlineSnapshot(`
           [
             {
-              "reasoningType": "text",
               "text": "**Exploring burrito origins**
 
           The user is curious about the debate regarding Taqueria La Cumbre and El Farolito.,**Investigating burrito origins**
@@ -1547,19 +1546,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "reasoningType": "text",
             "text": "**Exploring burrito origins**
 
         The user is",
             "type": "reasoning",
           },
           {
-            "reasoningType": "text",
             "text": " curious about the debate regarding Taqueria La Cumbre and El Farolito.",
             "type": "reasoning",
           },
           {
-            "reasoningType": "text",
             "text": "**Investigating burrito origins**
 
         There's a fascinating debate about who created the Mission burrito.",

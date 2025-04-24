@@ -1002,13 +1002,22 @@ exports[`result.response.messages > should contain reasoning 1`] = `
   {
     "content": [
       {
-        "signature": "signature",
+        "providerOptions": {
+          "testProvider": {
+            "signature": "signature",
+          },
+        },
         "text": "I will open the conversation with witty banter.",
         "type": "reasoning",
       },
       {
-        "data": "redacted-reasoning-data",
-        "type": "redacted-reasoning",
+        "providerOptions": {
+          "testProvider": {
+            "redactedData": "redacted-reasoning-data",
+          },
+        },
+        "text": "",
+        "type": "reasoning",
       },
       {
         "text": "Hello, world!",
@@ -1059,13 +1068,22 @@ exports[`result.steps > should add the reasoning from the model response to the 
     "providerMetadata": undefined,
     "reasoning": [
       {
-        "signature": "signature",
+        "providerOptions": {
+          "testProvider": {
+            "signature": "signature",
+          },
+        },
         "text": "I will open the conversation with witty banter.",
-        "type": "text",
+        "type": "reasoning",
       },
       {
-        "data": "redacted-reasoning-data",
-        "type": "redacted",
+        "providerOptions": {
+          "testProvider": {
+            "redactedData": "redacted-reasoning-data",
+          },
+        },
+        "text": "",
+        "type": "reasoning",
       },
     ],
     "reasoningText": "I will open the conversation with witty banter.",
@@ -1078,13 +1096,22 @@ exports[`result.steps > should add the reasoning from the model response to the 
         {
           "content": [
             {
-              "signature": "signature",
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "signature",
+                },
+              },
               "text": "I will open the conversation with witty banter.",
               "type": "reasoning",
             },
             {
-              "data": "redacted-reasoning-data",
-              "type": "redacted-reasoning",
+              "providerOptions": {
+                "testProvider": {
+                  "redactedData": "redacted-reasoning-data",
+                },
+              },
+              "text": "",
+              "type": "reasoning",
             },
             {
               "text": "Hello, world!",

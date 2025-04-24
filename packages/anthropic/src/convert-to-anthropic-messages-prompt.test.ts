@@ -3,7 +3,7 @@ import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-message
 
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [{ role: 'system', content: 'This is a system message' }],
       sendReasoning: true,
       warnings: [],
@@ -19,7 +19,7 @@ describe('system messages', () => {
   });
 
   it('should convert multiple system messages into an anthropic system message', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         { role: 'system', content: 'This is a system message' },
         { role: 'system', content: 'This is another system message' },
@@ -43,7 +43,7 @@ describe('system messages', () => {
 
 describe('user messages', () => {
   it('should add image parts for UInt8Array images', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'user',
@@ -84,7 +84,7 @@ describe('user messages', () => {
   });
 
   it('should add image parts for URL images', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'user',
@@ -124,7 +124,7 @@ describe('user messages', () => {
   });
 
   it('should add PDF file parts for base64 PDFs', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'user',
@@ -165,7 +165,7 @@ describe('user messages', () => {
   });
 
   it('should add PDF file parts for URL PDFs', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'user',
@@ -205,7 +205,7 @@ describe('user messages', () => {
   });
 
   it('should throw error for non-PDF file types', async () => {
-    expect(() =>
+    await expect(
       convertToAnthropicMessagesPrompt({
         prompt: [
           {
@@ -222,13 +222,13 @@ describe('user messages', () => {
         sendReasoning: true,
         warnings: [],
       }),
-    ).toThrow('media type: text/plain');
+    ).rejects.toThrow('media type: text/plain');
   });
 });
 
 describe('tool messages', () => {
   it('should convert a single tool result into an anthropic user message', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'tool',
@@ -268,7 +268,7 @@ describe('tool messages', () => {
   });
 
   it('should convert multiple tool results into an anthropic user message', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'tool',
@@ -320,7 +320,7 @@ describe('tool messages', () => {
   });
 
   it('should combine user and tool messages', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'tool',
@@ -365,7 +365,7 @@ describe('tool messages', () => {
   });
 
   it('should handle tool result with content parts', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'tool',
@@ -427,7 +427,7 @@ describe('tool messages', () => {
 
 describe('assistant messages', () => {
   it('should remove trailing whitespace from last assistant message when there is no further user message', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'user',
@@ -460,7 +460,7 @@ describe('assistant messages', () => {
   });
 
   it('should remove trailing whitespace from last assistant message with multi-part content when there is no further user message', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'user',
@@ -499,7 +499,7 @@ describe('assistant messages', () => {
   });
 
   it('should keep trailing whitespace from assistant message when there is a further user message', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'user',
@@ -540,7 +540,7 @@ describe('assistant messages', () => {
   });
 
   it('should combine multiple sequential assistant messages into a single message', async () => {
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         { role: 'user', content: [{ type: 'text', text: 'Hi!' }] },
         { role: 'assistant', content: [{ type: 'text', text: 'Hello' }] },
@@ -571,7 +571,7 @@ describe('assistant messages', () => {
 
   it('should convert assistant message reasoning parts with signature into thinking parts when sendReasoning is true', async () => {
     const warnings: LanguageModelV2CallWarning[] = [];
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'assistant',
@@ -579,7 +579,11 @@ describe('assistant messages', () => {
             {
               type: 'reasoning',
               text: 'I need to count the number of "r"s in the word "strawberry".',
-              signature: 'test-signature',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature',
+                },
+              },
             },
             {
               type: 'text',
@@ -617,9 +621,9 @@ describe('assistant messages', () => {
     expect(warnings).toEqual([]);
   });
 
-  it('should convert reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
+  it('should ignore reasoning parts without signature into thinking parts when sendReasoning is true', async () => {
     const warnings: LanguageModelV2CallWarning[] = [];
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'assistant',
@@ -639,33 +643,39 @@ describe('assistant messages', () => {
       warnings,
     });
 
-    expect(result).toEqual({
-      prompt: {
-        messages: [
-          {
-            role: 'assistant',
-            content: [
-              {
-                type: 'thinking',
-                thinking:
-                  'I need to count the number of "r"s in the word "strawberry".',
-              },
-              {
-                type: 'text',
-                text: 'The word "strawberry" has 2 "r"s.',
-              },
-            ],
-          },
-        ],
-      },
-      betas: new Set(),
-    });
-    expect(warnings).toEqual([]);
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "betas": Set {},
+        "prompt": {
+          "messages": [
+            {
+              "content": [
+                {
+                  "cache_control": undefined,
+                  "text": "The word "strawberry" has 2 "r"s.",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          ],
+          "system": undefined,
+        },
+      }
+    `);
+    expect(warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "message": "unsupported reasoning metadata",
+          "type": "other",
+        },
+      ]
+    `);
   });
 
   it('should omit assistant message reasoning parts with signature when sendReasoning is false', async () => {
     const warnings: LanguageModelV2CallWarning[] = [];
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'assistant',
@@ -673,7 +683,11 @@ describe('assistant messages', () => {
             {
               type: 'reasoning',
               text: 'I need to count the number of "r"s in the word "strawberry".',
-              signature: 'test-signature',
+              providerOptions: {
+                anthropic: {
+                  signature: 'test-signature',
+                },
+              },
             },
             {
               type: 'text',
@@ -712,7 +726,7 @@ describe('assistant messages', () => {
 
   it('should omit reasoning parts without signature when sendReasoning is false', async () => {
     const warnings: LanguageModelV2CallWarning[] = [];
-    const result = convertToAnthropicMessagesPrompt({
+    const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         {
           role: 'assistant',
@@ -760,7 +774,7 @@ describe('assistant messages', () => {
 describe('cache control', () => {
   describe('system message', () => {
     it('should set cache_control on system message with message cache control', async () => {
-      const result = convertToAnthropicMessagesPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'system',
@@ -792,7 +806,7 @@ describe('cache control', () => {
 
   describe('user message', () => {
     it('should set cache_control on user message part with part cache control', async () => {
-      const result = convertToAnthropicMessagesPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'user',
@@ -833,7 +847,7 @@ describe('cache control', () => {
     });
 
     it('should set cache_control on last user message part with message cache control', async () => {
-      const result = convertToAnthropicMessagesPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'user',
@@ -879,7 +893,7 @@ describe('cache control', () => {
 
   describe('assistant message', () => {
     it('should set cache_control on assistant message text part with part cache control', async () => {
-      const result = convertToAnthropicMessagesPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
           {
@@ -922,7 +936,7 @@ describe('cache control', () => {
     });
 
     it('should set cache_control on assistant tool call part with part cache control', async () => {
-      const result = convertToAnthropicMessagesPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
           {
@@ -969,7 +983,7 @@ describe('cache control', () => {
     });
 
     it('should set cache_control on last assistant message part with message cache control', async () => {
-      const result = convertToAnthropicMessagesPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           { role: 'user', content: [{ type: 'text', text: 'user-content' }] },
           {
@@ -1017,7 +1031,7 @@ describe('cache control', () => {
 
   describe('tool message', () => {
     it('should set cache_control on tool result message part with part cache control', async () => {
-      const result = convertToAnthropicMessagesPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'tool',
@@ -1062,7 +1076,7 @@ describe('cache control', () => {
     });
 
     it('should set cache_control on last tool result message part with message cache control', async () => {
-      const result = convertToAnthropicMessagesPrompt({
+      const result = await convertToAnthropicMessagesPrompt({
         prompt: [
           {
             role: 'tool',

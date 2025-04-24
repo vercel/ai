@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { ProviderMetadata } from '../types';
 import {
   providerMetadataSchema,
   ProviderOptions,
@@ -11,8 +10,6 @@ import {
   imagePartSchema,
   ReasoningPart,
   reasoningPartSchema,
-  RedactedReasoningPart,
-  redactedReasoningPartSchema,
   TextPart,
   textPartSchema,
   ToolCallPart,
@@ -100,7 +97,6 @@ export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
           textPartSchema,
           filePartSchema,
           reasoningPartSchema,
-          redactedReasoningPartSchema,
           toolCallPartSchema,
         ]),
       ),
@@ -114,9 +110,7 @@ It can be a string or an array of text, image, reasoning, redacted reasoning, an
  */
 export type AssistantContent =
   | string
-  | Array<
-      TextPart | FilePart | ReasoningPart | RedactedReasoningPart | ToolCallPart
-    >;
+  | Array<TextPart | FilePart | ReasoningPart | ToolCallPart>;
 
 /**
 A tool message. It contains the result of one or more tool calls.

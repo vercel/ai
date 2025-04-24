@@ -347,14 +347,38 @@ const startStepStreamPart: DataStreamPart<
   },
 };
 
-const reasoningStreamPart: DataStreamPart<'g', 'reasoning', string> = {
+const reasoningStreamPart: DataStreamPart<
+  'g',
+  'reasoning',
+  {
+    text: string;
+    providerMetadata?: Record<string, any> | undefined;
+  }
+> = {
   code: 'g',
   name: 'reasoning',
   parse: (value: JSONValue) => {
-    if (typeof value !== 'string') {
-      throw new Error('"reasoning" parts expect a string value.');
+    if (
+      value == null ||
+      typeof value !== 'object' ||
+      !('text' in value) ||
+      typeof value.text !== 'string' ||
+      ('providerMetadata' in value &&
+        typeof value.providerMetadata !== 'object')
+    ) {
+      throw new Error(
+        '"reasoning" parts expect an object with a "text" property.',
+      );
     }
-    return { type: 'reasoning', value };
+    return {
+      type: 'reasoning',
+      value: {
+        text: value.text,
+        providerMetadata: value.providerMetadata as
+          | Record<string, any>
+          | undefined,
+      },
+    };
   },
 };
 
@@ -369,53 +393,6 @@ const sourcePart: DataStreamPart<'h', 'source', LanguageModelV2Source> = {
     return {
       type: 'source',
       value: value as LanguageModelV2Source,
-    };
-  },
-};
-
-const redactedReasoningStreamPart: DataStreamPart<
-  'i',
-  'redacted_reasoning',
-  { data: string }
-> = {
-  code: 'i',
-  name: 'redacted_reasoning',
-  parse: (value: JSONValue) => {
-    if (
-      value == null ||
-      typeof value !== 'object' ||
-      !('data' in value) ||
-      typeof value.data !== 'string'
-    ) {
-      throw new Error(
-        '"redacted_reasoning" parts expect an object with a "data" property.',
-      );
-    }
-    return { type: 'redacted_reasoning', value: { data: value.data } };
-  },
-};
-
-const reasoningSignatureStreamPart: DataStreamPart<
-  'j',
-  'reasoning_signature',
-  { signature: string }
-> = {
-  code: 'j',
-  name: 'reasoning_signature',
-  parse: (value: JSONValue) => {
-    if (
-      value == null ||
-      typeof value !== 'object' ||
-      !('signature' in value) ||
-      typeof value.signature !== 'string'
-    ) {
-      throw new Error(
-        '"reasoning_signature" parts expect an object with a "signature" property.',
-      );
-    }
-    return {
-      type: 'reasoning_signature',
-      value: { signature: value.signature },
     };
   },
 };
@@ -447,6 +424,21 @@ const fileStreamPart: DataStreamPart<
   },
 };
 
+const reasoningPartFinishStreamPart: DataStreamPart<
+  'l',
+  'reasoning_part_finish',
+  {}
+> = {
+  code: 'l',
+  name: 'reasoning_part_finish',
+  parse: () => {
+    return {
+      type: 'reasoning_part_finish',
+      value: {},
+    };
+  },
+};
+
 const dataStreamParts = [
   textStreamPart,
   dataStreamPart,
@@ -461,8 +453,7 @@ const dataStreamParts = [
   startStepStreamPart,
   reasoningStreamPart,
   sourcePart,
-  redactedReasoningStreamPart,
-  reasoningSignatureStreamPart,
+  reasoningPartFinishStreamPart,
   fileStreamPart,
 ] as const;
 
