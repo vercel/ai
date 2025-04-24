@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { convertArrayToReadableStream } from '../../test/index';
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { smoothStream } from './smooth-stream';
 
 describe('smoothStream', () => {
