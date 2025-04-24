@@ -1,4 +1,8 @@
-export type OpenAIImageModelId = 'gpt-image-1' | 'dall-e-3' | 'dall-e-2' | (string & {});
+export type OpenAIImageModelId =
+  | 'gpt-image-1'
+  | 'dall-e-3'
+  | 'dall-e-2'
+  | (string & {});
 
 // https://platform.openai.com/docs/guides/images
 export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
