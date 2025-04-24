@@ -29,6 +29,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - name: Verify changesets
+        if: steps.changeset-files.outputs.changed-files != ''
         working-directory: .github/workflows/actions/verify-changesets
         run: |
           node index.js

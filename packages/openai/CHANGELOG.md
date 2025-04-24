@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.18
+
+### Patch Changes
+
+- 74cd391: feat (providers/openai): support gpt-image-1 image generation
+
 ## 1.3.17
 
 ### Patch Changes
