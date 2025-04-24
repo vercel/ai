@@ -14,26 +14,17 @@ import {
   AnthropicMessagesLanguageModel,
   AnthropicMessagesModelId,
 } from '@ai-sdk/anthropic/internal';
-import {
-  GoogleVertexAnthropicMessagesModelId,
-  GoogleVertexAnthropicMessagesSettings,
-} from './google-vertex-anthropic-messages-settings';
+import { GoogleVertexAnthropicMessagesModelId } from './google-vertex-anthropic-messages-options';
 export interface GoogleVertexAnthropicProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
-  (
-    modelId: GoogleVertexAnthropicMessagesModelId,
-    settings?: GoogleVertexAnthropicMessagesSettings,
-  ): LanguageModelV2;
+  (modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV2;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(
-    modelId: GoogleVertexAnthropicMessagesModelId,
-    settings?: GoogleVertexAnthropicMessagesSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: GoogleVertexAnthropicMessagesModelId): LanguageModelV2;
 
   /**
 Anthropic-specific computer use tool.
@@ -88,45 +79,35 @@ export function createVertexAnthropic(
     withoutTrailingSlash(options.baseURL) ??
     `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
 
-  const createChatModel = (
-    modelId: GoogleVertexAnthropicMessagesModelId,
-    settings: GoogleVertexAnthropicMessagesSettings = {},
-  ) =>
-    new AnthropicMessagesLanguageModel(
-      modelId as AnthropicMessagesModelId,
-      settings,
-      {
-        provider: 'vertex.anthropic.messages',
-        baseURL,
-        headers: options.headers ?? {},
-        fetch: options.fetch,
+  const createChatModel = (modelId: GoogleVertexAnthropicMessagesModelId) =>
+    new AnthropicMessagesLanguageModel(modelId as AnthropicMessagesModelId, {
+      provider: 'vertex.anthropic.messages',
+      baseURL,
+      headers: options.headers ?? {},
+      fetch: options.fetch,
 
-        buildRequestUrl: (baseURL, isStreaming) =>
-          `${baseURL}/${modelId}:${
-            isStreaming ? 'streamRawPredict' : 'rawPredict'
-          }`,
-        transformRequestBody: args => {
-          // Remove model from args and add anthropic version
-          const { model, ...rest } = args;
-          return {
-            ...rest,
-            anthropic_version: 'vertex-2023-10-16',
-          };
-        },
+      buildRequestUrl: (baseURL, isStreaming) =>
+        `${baseURL}/${modelId}:${
+          isStreaming ? 'streamRawPredict' : 'rawPredict'
+        }`,
+      transformRequestBody: args => {
+        // Remove model from args and add anthropic version
+        const { model, ...rest } = args;
+        return {
+          ...rest,
+          anthropic_version: 'vertex-2023-10-16',
+        };
       },
-    );
+    });
 
-  const provider = function (
-    modelId: GoogleVertexAnthropicMessagesModelId,
-    settings?: GoogleVertexAnthropicMessagesSettings,
-  ) {
+  const provider = function (modelId: GoogleVertexAnthropicMessagesModelId) {
     if (new.target) {
       throw new Error(
         'The Anthropic model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;

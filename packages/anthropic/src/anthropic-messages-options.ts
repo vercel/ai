@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 // https://docs.anthropic.com/claude/docs/models-overview
 export type AnthropicMessagesModelId =
   | 'claude-3-7-sonnet-20250219'
@@ -12,21 +14,20 @@ export type AnthropicMessagesModelId =
   | 'claude-3-haiku-20240307'
   | (string & {});
 
-export interface AnthropicMessagesSettings {
-  /**
-Enable Anthropic cache control. This will allow you to use provider-specific
-`cacheControl` metadata.
-
-@deprecated cache control is now enabled by default (meaning you are able to
-optionally mark content for caching) and this setting is no longer needed.
-*/
-  cacheControl?: boolean;
-
+export const anthropicProviderOptions = z.object({
   /**
 Include reasoning content in requests sent to the model. Defaults to `true`.
 
 If you are experiencing issues with the model handling requests involving
-reasoning content, you can set this to `false` to omit them from the request.
   */
-  sendReasoning?: boolean;
-}
+  sendReasoning: z.boolean().optional(),
+
+  thinking: z
+    .object({
+      type: z.union([z.literal('enabled'), z.literal('disabled')]),
+      budgetTokens: z.number().optional(),
+    })
+    .optional(),
+});
+
+export type AnthropicProviderOptions = z.infer<typeof anthropicProviderOptions>;

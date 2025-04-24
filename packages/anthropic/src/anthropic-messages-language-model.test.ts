@@ -3,7 +3,7 @@ import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { AnthropicProviderOptions } from './anthropic-messages-language-model';
+import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [

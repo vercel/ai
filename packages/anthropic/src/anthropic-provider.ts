@@ -9,44 +9,29 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { AnthropicMessagesLanguageModel } from './anthropic-messages-language-model';
-import {
-  AnthropicMessagesModelId,
-  AnthropicMessagesSettings,
-} from './anthropic-messages-settings';
+import { AnthropicMessagesModelId } from './anthropic-messages-options';
 import { anthropicTools } from './anthropic-tools';
 
 export interface AnthropicProvider extends ProviderV2 {
   /**
 Creates a model for text generation.
 */
-  (
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ): LanguageModelV2;
+  (modelId: AnthropicMessagesModelId): LanguageModelV2;
 
   /**
 Creates a model for text generation.
 */
-  languageModel(
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: AnthropicMessagesModelId): LanguageModelV2;
 
   /**
 @deprecated Use `.languageModel()` instead.
 */
-  chat(
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ): LanguageModelV2;
+  chat(modelId: AnthropicMessagesModelId): LanguageModelV2;
 
   /**
 @deprecated Use `.languageModel()` instead.
    */
-  messages(
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ): LanguageModelV2;
+  messages(modelId: AnthropicMessagesModelId): LanguageModelV2;
 
   /**
 Anthropic-specific computer use tool.
@@ -100,11 +85,8 @@ export function createAnthropic(
     ...options.headers,
   });
 
-  const createChatModel = (
-    modelId: AnthropicMessagesModelId,
-    settings: AnthropicMessagesSettings = {},
-  ) =>
-    new AnthropicMessagesLanguageModel(modelId, settings, {
+  const createChatModel = (modelId: AnthropicMessagesModelId) =>
+    new AnthropicMessagesLanguageModel(modelId, {
       provider: 'anthropic.messages',
       baseURL,
       headers: getHeaders,
@@ -114,17 +96,14 @@ export function createAnthropic(
       }),
     });
 
-  const provider = function (
-    modelId: AnthropicMessagesModelId,
-    settings?: AnthropicMessagesSettings,
-  ) {
+  const provider = function (modelId: AnthropicMessagesModelId) {
     if (new.target) {
       throw new Error(
         'The Anthropic model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;
