@@ -520,6 +520,9 @@ importers:
 
   examples/next-langchain:
     dependencies:
+      '@ai-sdk/langchain':
+        specifier: workspace:*
+        version: link:../../packages/langchain
       '@ai-sdk/react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -1669,6 +1672,28 @@ importers:
       zod:
         specifier: 3.23.8
         version: 3.23.8
+
+  packages/langchain:
+    dependencies:
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+      ai:
+        specifier: workspace:*
+        version: link:../ai
+    devDependencies:
+      '@types/node':
+        specifier: 20.17.24
+        version: 20.17.24
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsup:
+        specifier: ^8
+        version: 8.3.0(jiti@2.4.0)(postcss@8.5.3)(tsx@4.19.2)(typescript@5.8.3)(yaml@2.7.0)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
 
   packages/llamaindex:
     dependencies:
@@ -30090,11 +30115,11 @@ snapshots:
       cac: 6.7.14
       chokidar: 3.6.0
       consola: 3.2.3
-      debug: 4.3.7
+      debug: 4.4.0(supports-color@9.4.0)
       esbuild: 0.23.1
       execa: 5.1.1
       joycon: 3.1.1
-      picocolors: 1.1.0
+      picocolors: 1.1.1
       postcss-load-config: 6.0.1(jiti@2.4.0)(postcss@8.5.3)(tsx@4.19.2)(yaml@2.7.0)
       resolve-from: 5.0.0
       rollup: 4.34.9
@@ -30117,11 +30142,11 @@ snapshots:
       cac: 6.7.14
       chokidar: 3.6.0
       consola: 3.2.3
-      debug: 4.3.7
+      debug: 4.4.0(supports-color@9.4.0)
       esbuild: 0.23.1
       execa: 5.1.1
       joycon: 3.1.1
-      picocolors: 1.1.0
+      picocolors: 1.1.1
       postcss-load-config: 6.0.1(jiti@2.4.0)(postcss@8.5.3)(tsx@4.19.2)(yaml@2.7.0)
       resolve-from: 5.0.0
       rollup: 4.34.9
