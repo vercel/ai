@@ -7,7 +7,7 @@ export * from '../openai-embedding-options';
 export * from '../openai-image-model';
 export * from '../openai-image-settings';
 export * from '../openai-transcription-model';
-export * from '../openai-transcription-settings';
+export * from '../openai-transcription-options';
 export * from '../openai-speech-model';
 export * from '../openai-speech-options';
 export * from '../responses/openai-responses-language-model';
