@@ -68,7 +68,11 @@ async function main() {
     }
     process.stdout.write('\n\n');
 
-    messages.push(...(await result.response).messages);
+    const newMessages = (await result.response).messages;
+
+    console.log('New messages:', JSON.stringify(newMessages, null, 2));
+
+    messages.push(...newMessages);
   }
 }
 
