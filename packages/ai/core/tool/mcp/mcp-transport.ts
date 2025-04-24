@@ -3,6 +3,25 @@ import { JSONRPCMessage } from './json-rpc-message';
 import { SseMCPTransport } from './mcp-sse-transport';
 
 /**
+ * Options for sending a JSON-RPC message.
+ */
+export type TransportSendOptions = {
+  /**
+   * The resumption token used to continue long-running requests that were interrupted.
+   *
+   * This allows clients to reconnect and continue from where they left off, if supported by the transport.
+   */
+  resumptionToken?: string;
+
+  /**
+   * A callback that is invoked when the resumption token changes, if supported by the transport.
+   *
+   * This allows clients to persist the latest token for potential reconnection.
+   */
+  onresumptiontoken?: (token: string) => void;
+}
+
+/**
  * Transport interface for MCP (Model Context Protocol) communication.
  * Maps to the `Transport` interface in the MCP spec.
  */
@@ -16,7 +35,7 @@ export interface MCPTransport {
    * Send a JSON-RPC message through the transport
    * @param message The JSON-RPC message to send
    */
-  send(message: JSONRPCMessage): Promise<void>;
+  send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void>;
 
   /**
    * Clean up and close the transport
@@ -37,6 +56,11 @@ export interface MCPTransport {
    * Event handler for received messages
    */
   onmessage?: (message: JSONRPCMessage) => void;
+
+  /**
+   * The session ID generated for this connection
+   */
+  sessionId?: string;
 }
 
 export type MCPTransportConfig = {

@@ -5,6 +5,7 @@ import {
   ToolExecutionOptions,
   ToolParameters,
 } from '../tool';
+import { TransportSendOptions } from './mcp-transport';
 
 export const LATEST_PROTOCOL_VERSION = '2024-11-05';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
@@ -64,7 +65,7 @@ export type RequestOptions = {
   signal?: AbortSignal;
   timeout?: number;
   maxTotalTimeout?: number;
-};
+} & TransportSendOptions;
 
 export type Notification = z.infer<typeof RequestSchema>;
 

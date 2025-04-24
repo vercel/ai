@@ -119,6 +119,11 @@ class MCPClient {
       await this.transport.start();
       this.isClosed = false;
 
+      if (this.transport.sessionId) {
+        // We do not need to re-initialize if sessionId is already set:
+        return this;
+      }
+
       const result = await this.request({
         request: {
           method: 'initialize',
@@ -166,12 +171,14 @@ class MCPClient {
   private async request<T extends ZodType<object>>({
     request,
     resultSchema,
-    options,
+    options = {},
   }: {
     request: Request;
     resultSchema: T;
     options?: RequestOptions;
   }): Promise<z.infer<T>> {
+    const { relatedRequestId, resumptionToken, onresumptiontoken } = options;
+
     return new Promise((resolve, reject) => {
       if (this.isClosed) {
         return reject(
@@ -221,10 +228,16 @@ class MCPClient {
         }
       });
 
-      this.transport.send(jsonrpcRequest).catch(error => {
-        cleanup();
-        reject(error);
-      });
+      this.transport
+        .send(jsonrpcRequest, {
+          relatedRequestId,
+          resumptionToken,
+          onresumptiontoken,
+        })
+        .catch(error => {
+          cleanup();
+          reject(error);
+        });
     });
   }
 
