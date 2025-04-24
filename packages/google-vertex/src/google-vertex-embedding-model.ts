@@ -54,11 +54,11 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
   > {
     // Parse provider options
     const googleOptions =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'google',
         providerOptions,
         schema: googleVertexEmbeddingProviderOptions,
-      }) ?? {};
+      })) ?? {};
 
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({

@@ -1,5 +1,5 @@
 import {
-  ImageModelV1,
+  ImageModelV2,
   NoSuchModelError,
   ProviderV2,
   TranscriptionModelV1,
@@ -40,7 +40,7 @@ export interface FalProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
    */
-  image(modelId: FalImageModelId, settings?: FalImageSettings): ImageModelV1;
+  image(modelId: FalImageModelId, settings?: FalImageSettings): ImageModelV2;
 
   /**
 Creates a model for image generation.
@@ -48,7 +48,7 @@ Creates a model for image generation.
   imageModel(
     modelId: FalImageModelId,
     settings?: FalImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 Creates a model for transcription.

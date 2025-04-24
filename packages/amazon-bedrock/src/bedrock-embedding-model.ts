@@ -50,11 +50,11 @@ export class BedrockEmbeddingModel implements EmbeddingModelV2<string> {
   >[0]): Promise<DoEmbedResponse> {
     // Parse provider options
     const bedrockOptions =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'bedrock',
         providerOptions,
         schema: bedrockEmbeddingProviderOptions,
-      }) ?? {};
+      })) ?? {};
 
     const embedSingleText = async (inputText: string) => {
       // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html

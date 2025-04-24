@@ -1,4 +1,4 @@
-import type { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import type { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import type { Resolvable } from '@ai-sdk/provider-utils';
 import {
   FetchFunction,
@@ -28,7 +28,7 @@ interface FalImageModelConfig {
   };
 }
 
-export class FalImageModel implements ImageModelV1 {
+export class FalImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v1';
 
   get provider(): string {
@@ -54,10 +54,10 @@ export class FalImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     let imageSize: FalImageSize | undefined;
     if (size) {

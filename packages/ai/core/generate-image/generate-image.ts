@@ -1,4 +1,4 @@
-import { AISDKError, ImageModelV1, JSONValue } from '@ai-sdk/provider';
+import { AISDKError, ImageModelV2, JSONValue } from '@ai-sdk/provider';
 import { NoImageGeneratedError } from '../../errors/no-image-generated-error';
 import {
   DefaultGeneratedFile,
@@ -45,7 +45,7 @@ export async function generateImage({
   /**
 The image model to use.
      */
-  model: ImageModelV1;
+  model: ImageModelV2;
 
   /**
 The prompt that should be used to generate the image.

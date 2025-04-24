@@ -102,7 +102,7 @@ export class HumeSpeechModel implements SpeechModelV1 {
     private readonly config: HumeSpeechModelConfig,
   ) {}
 
-  private getArgs({
+  private async getArgs({
     text,
     voice = 'd8ab67c6-953d-4bd8-9370-8fa53a0f1453',
     outputFormat = 'mp3',
@@ -113,7 +113,7 @@ export class HumeSpeechModel implements SpeechModelV1 {
     const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
-    const humeOptions = parseProviderOptions({
+    const humeOptions = await parseProviderOptions({
       provider: 'hume',
       providerOptions,
       schema: humeSpeechCallOptionsSchema,
@@ -193,7 +193,7 @@ export class HumeSpeechModel implements SpeechModelV1 {
     options: Parameters<SpeechModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestBody, warnings } = this.getArgs(options);
+    const { requestBody, warnings } = await this.getArgs(options);
 
     const {
       value: audio,
