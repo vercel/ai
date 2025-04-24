@@ -9,12 +9,7 @@ import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import {
-  FinishReason,
-  LanguageModelUsage,
-  LogProbs,
-  ProviderMetadata,
-} from '../types';
+import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { calculateLanguageModelUsage } from '../types/usage';
 import { generateId } from '../util';
@@ -57,7 +52,6 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
   | {
       type: 'finish';
       finishReason: FinishReason;
-      logprobs?: LogProbs;
       usage: LanguageModelUsage;
       providerMetadata?: ProviderMetadata;
     }
@@ -289,7 +283,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
           finishChunk = {
             type: 'finish',
             finishReason: chunk.finishReason,
-            logprobs: chunk.logprobs,
             usage: calculateLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           };

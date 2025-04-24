@@ -3,11 +3,10 @@ import {
   InvalidResponseDataError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
-  LanguageModelV2FinishReason,
-  LanguageModelV2ObjectGenerationMode,
-  SharedV2ProviderMetadata,
-  LanguageModelV2StreamPart,
   LanguageModelV2Content,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,8 +16,8 @@ import {
   FetchFunction,
   generateId,
   isParsableJson,
-  ParseResult,
   parseProviderOptions,
+  ParseResult,
   postJsonToApi,
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
@@ -34,28 +33,27 @@ import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
 } from './openai-compatible-error';
-import { prepareTools } from './openai-compatible-prepare-tools';
 import { MetadataExtractor } from './openai-compatible-metadata-extractor';
+import { prepareTools } from './openai-compatible-prepare-tools';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  includeUsage?: boolean;
   errorStructure?: ProviderErrorStructure<any>;
   metadataExtractor?: MetadataExtractor;
-
-  /**
-Default object generation mode that should be used with this model when
-no mode is specified. Should be the mode with the best results for this
-model. `undefined` can be specified if object generation is not supported.
-  */
-  defaultObjectGenerationMode?: LanguageModelV2ObjectGenerationMode;
 
   /**
    * Whether the model supports structured outputs.
    */
   supportsStructuredOutputs?: boolean;
+
+  /**
+   * The supported URLs for the model.
+   */
+  getSupportedUrls?: () => Promise<Record<string, RegExp[]>>;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
@@ -86,16 +84,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     this.supportsStructuredOutputs = config.supportsStructuredOutputs ?? false;
   }
 
-  get defaultObjectGenerationMode(): 'json' | 'tool' | undefined {
-    return this.config.defaultObjectGenerationMode;
-  }
-
   get provider(): string {
     return this.config.provider;
   }
 
   private get providerOptionsName(): string {
     return this.config.provider.split('.')[0].trim();
+  }
+
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return this.config.getSupportedUrls?.() ?? {};
   }
 
   private getArgs({
@@ -307,7 +305,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
     const { args, warnings } = this.getArgs({ ...options });
 
-    const body = JSON.stringify({ ...args, stream: true });
+    const body = {
+      ...args,
+      stream: true,
+
+      // only include stream_options when in strict compatibility mode:
+      stream_options: this.config.includeUsage
+        ? { include_usage: true }
+        : undefined,
+    };
+
     const metadataExtractor =
       this.config.metadataExtractor?.createStreamExtractor();
 
@@ -317,10 +324,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-      },
+      body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         this.chunkSchema,

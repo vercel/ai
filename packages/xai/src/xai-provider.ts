@@ -1,23 +1,22 @@
 import {
+  OpenAICompatibleChatLanguageModel,
+  OpenAICompatibleImageModel,
+  ProviderErrorStructure,
+} from '@ai-sdk/openai-compatible';
+import {
   ImageModelV1,
   LanguageModelV2,
   NoSuchModelError,
   ProviderV2,
 } from '@ai-sdk/provider';
 import {
-  OpenAICompatibleChatLanguageModel,
-  OpenAICompatibleImageModel,
-  ProviderErrorStructure,
-} from '@ai-sdk/openai-compatible';
-import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { XaiChatModelId, supportsStructuredOutputs } from './xai-chat-settings';
-import { XaiImageSettings } from './xai-image-settings';
-import { XaiImageModelId } from './xai-image-settings';
 import { XaiErrorData, xaiErrorSchema } from './xai-error';
+import { XaiImageModelId, XaiImageSettings } from './xai-image-settings';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorSchema,
@@ -97,9 +96,9 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      defaultObjectGenerationMode: structuredOutputs ? 'json' : 'tool',
       errorStructure: xaiErrorStructure,
       supportsStructuredOutputs: structuredOutputs,
+      includeUsage: true,
     });
   };
 

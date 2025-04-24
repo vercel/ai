@@ -1,5 +1,26 @@
 # @ai-sdk/xai
 
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- cf8280e: fix(providers/xai): return actual usage when streaming instead of NaN
+- Updated dependencies [cf8280e]
+- Updated dependencies [e86be6f]
+  - @ai-sdk/openai-compatible@1.0.0-canary.10
+  - @ai-sdk/provider@2.0.0-canary.9
+  - @ai-sdk/provider-utils@3.0.0-canary.10
+
+## 2.0.0-canary.9
+
+### Patch Changes
+
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/openai-compatible@1.0.0-canary.9
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
 ## 2.0.0-canary.8
 
 ### Patch Changes

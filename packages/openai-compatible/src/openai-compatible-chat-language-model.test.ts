@@ -655,6 +655,27 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
+    it('should respect the includeUsage option', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        includeUsage: true,
+      });
+
+      await model.doStream({
+        inputFormat: 'prompt',
+        prompt: TEST_PROMPT,
+      });
+
+      const body = await server.calls[0].requestBody;
+
+      expect(body.stream).toBe(true);
+      expect(body.stream_options).toStrictEqual({ include_usage: true });
+    });
+
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
@@ -1708,9 +1729,32 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}],"stream":true}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "frequency_penalty": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-beta",
+          "presence_penalty": undefined,
+          "response_format": undefined,
+          "seed": undefined,
+          "stop": undefined,
+          "stream": true,
+          "stream_options": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   describe('usage details in streaming', () => {

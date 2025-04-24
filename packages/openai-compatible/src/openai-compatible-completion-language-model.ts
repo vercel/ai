@@ -33,17 +33,22 @@ import {
 
 type OpenAICompatibleCompletionConfig = {
   provider: string;
+  includeUsage?: boolean;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
+
+  /**
+   * The supported URLs for the model.
+   */
+  getSupportedUrls?: () => Promise<Record<string, RegExp[]>>;
 };
 
 export class OpenAICompatibleCompletionLanguageModel
   implements LanguageModelV2
 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = undefined;
 
   readonly modelId: OpenAICompatibleCompletionModelId;
   private readonly config: OpenAICompatibleCompletionConfig;
@@ -72,6 +77,10 @@ export class OpenAICompatibleCompletionLanguageModel
 
   private get providerOptionsName(): string {
     return this.config.provider.split('.')[0].trim();
+  }
+
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return this.config.getSupportedUrls?.() ?? {};
   }
 
   private getArgs({
@@ -212,6 +221,11 @@ export class OpenAICompatibleCompletionLanguageModel
     const body = {
       ...args,
       stream: true,
+
+      // only include stream_options when in strict compatibility mode:
+      stream_options: this.config.includeUsage
+        ? { include_usage: true }
+        : undefined,
     };
 
     const { responseHeaders, value: response } = await postJsonToApi({

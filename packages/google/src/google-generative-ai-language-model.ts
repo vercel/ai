@@ -38,17 +38,15 @@ type GoogleGenerativeAIConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
-  isSupportedUrl: (url: URL) => boolean;
+
+  /**
+   * The supported URLs for the model.
+   */
+  getSupportedUrls?: LanguageModelV2['getSupportedUrls'];
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'json';
-  readonly supportsImageUrls = false;
-
-  get supportsStructuredOutputs() {
-    return this.settings.structuredOutputs ?? true;
-  }
 
   readonly modelId: GoogleGenerativeAIModelId;
   readonly settings: InternalGoogleGenerativeAISettings;
@@ -67,6 +65,10 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return this.config.getSupportedUrls?.() ?? {};
   }
 
   private async getArgs({
@@ -128,7 +130,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             responseFormat.schema != null &&
             // Google GenAI does not support all OpenAPI Schema features,
             // so this is needed as an escape hatch:
-            this.supportsStructuredOutputs
+            // TODO convert into provider option
+            (this.settings.structuredOutputs ?? true)
               ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
               : undefined,
           ...(this.settings.audioTimestamp && {
@@ -137,6 +140,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
           // provider options:
           responseModalities: googleOptions?.responseModalities,
+          thinkingConfig: googleOptions?.thinkingConfig,
         },
         contents,
         systemInstruction,
@@ -147,10 +151,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       },
       warnings: [...warnings, ...toolWarnings],
     };
-  }
-
-  supportsUrl(url: URL): boolean {
-    return this.config.isSupportedUrl(url);
   }
 
   async doGenerate(
@@ -592,6 +592,11 @@ const chunkSchema = z.object({
 
 const googleGenerativeAIProviderOptionsSchema = z.object({
   responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).nullish(),
+  thinkingConfig: z
+    .object({
+      thinkingBudget: z.number().nullish(),
+    })
+    .nullish(),
 });
 export type GoogleGenerativeAIProviderOptions = z.infer<
   typeof googleGenerativeAIProviderOptionsSchema

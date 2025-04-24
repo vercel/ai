@@ -6,7 +6,6 @@ import { z } from 'zod';
 async function main() {
   const { object, usage } = await generateObject({
     model: new MockLanguageModelV2({
-      defaultObjectGenerationMode: 'json',
       doGenerate: async () => ({
         content: [{ type: 'text', text: `{"content":"Hello, world!"}` }],
         finishReason: 'stop',

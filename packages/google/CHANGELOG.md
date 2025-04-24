@@ -1,5 +1,24 @@
 # @ai-sdk/google
 
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- Updated dependencies [e86be6f]
+  - @ai-sdk/provider@2.0.0-canary.9
+  - @ai-sdk/provider-utils@3.0.0-canary.10
+
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- 3259565: feat (providers/google): add thinking config to provider options
+- fd98925: chore(providers/google): update embedding model to use providerOptions
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
 ## 2.0.0-canary.9
 
 ### Patch Changes

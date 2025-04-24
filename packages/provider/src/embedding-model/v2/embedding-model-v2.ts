@@ -1,4 +1,4 @@
-import { SharedV2ProviderOptions } from '../../shared';
+import { SharedV2Headers, SharedV2ProviderOptions } from '../../shared';
 import { EmbeddingModelV2Embedding } from './embedding-model-v2-embedding';
 
 /**
@@ -86,7 +86,7 @@ Optional response information for debugging purposes.
       /**
 Response headers.
        */
-      headers?: Record<string, string>;
+      headers?: SharedV2Headers;
 
       /**
       The response body.

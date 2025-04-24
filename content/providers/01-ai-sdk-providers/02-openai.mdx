@@ -204,13 +204,6 @@ And the following optional settings:
 
   When enabled, tool calls and object generation will be strict and follow the provided schema.
 
-- **downloadImages** _boolean_
-
-  Automatically download images and pass the image as data to the model.
-  OpenAI supports image URLs for public models, so this is only needed for
-  private models or when the images are not publicly accessible.
-  Defaults to `false`.
-
 #### Reasoning
 
 OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
@@ -570,6 +563,9 @@ The following provider options are available:
 - **reasoningEffort** _'low' | 'medium' | 'high'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
+- **reasoningSummary** _'auto' | 'detailed'_
+  Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
+
 - **strictSchemas** _boolean_
   Whether to use strict JSON schemas in tools and when generating JSON outputs. Defaults to `true`.
 
@@ -622,6 +618,53 @@ const result = await generateText({
 // URL sources
 const sources = result.sources;
 ```
+
+#### Reasoning Summaries
+
+For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process:
+
+```ts highlight="8-9,16"
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai.responses('o3-mini'),
+  prompt: 'Tell me about the Mission burrito debate in San Francisco.',
+  providerOptions: {
+    openai: {
+      reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'reasoning') {
+    console.log(`Reasoning: ${part.textDelta}`);
+  } else if (part.type === 'text-delta') {
+    process.stdout.write(part.textDelta);
+  }
+}
+```
+
+For non-streaming calls with `generateText`, the reasoning summaries are available in the `reasoning` field of the response:
+
+```ts highlight="8-9,13"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('o3-mini'),
+  prompt: 'Tell me about the Mission burrito debate in San Francisco.',
+  providerOptions: {
+    openai: {
+      reasoningSummary: 'detailed',
+    },
+  },
+});
+console.log('Reasoning:', result.reasoning);
+```
+
+Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
 
 #### PDF support
 
@@ -802,17 +845,23 @@ using the `.embedding()` factory method.
 const model = openai.embedding('text-embedding-3-large');
 ```
 
-OpenAI embedding models support several additional settings.
+OpenAI embedding models support several additional provider options.
 You can pass them as an options argument:
 
 ```ts
-const model = openai.embedding('text-embedding-3-large', {
-  dimensions: 512 // optional, number of dimensions for the embedding
-  user: 'test-user' // optional unique user identifier
-})
+const model = openai.embedding('text-embedding-3-large');
+
+await model.doEmbed({
+  providerOptions: {
+    openai: {
+      dimensions: 512 // optional, number of dimensions for the embedding
+      user: 'test-user' // optional unique user identifier
+    }
+  }
+});
 ```
 
-The following optional settings are available for OpenAI embedding models:
+The following optional provider options are available for OpenAI embedding models:
 
 - **dimensions**: _number_
 

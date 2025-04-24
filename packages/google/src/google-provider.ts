@@ -11,16 +11,12 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
-import {
-  GoogleGenerativeAIEmbeddingModelId,
-  GoogleGenerativeAIEmbeddingSettings,
-} from './google-generative-ai-embedding-settings';
+import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
 import {
   GoogleGenerativeAIModelId,
   GoogleGenerativeAISettings,
 } from './google-generative-ai-settings';
-import { isSupportedFileUrl } from './google-supported-file-url';
 
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
   (
@@ -51,7 +47,6 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
    */
   embedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 
   /**
@@ -59,12 +54,10 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
  */
   textEmbedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 }
 
@@ -126,15 +119,17 @@ export function createGoogleGenerativeAI(
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
-      isSupportedUrl: isSupportedFileUrl,
+      getSupportedUrls: async () => ({
+        '*': [
+          // HTTP URLs:
+          /^https?:\/\/.*$/,
+        ],
+      }),
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings: GoogleGenerativeAIEmbeddingSettings = {},
-  ) =>
-    new GoogleGenerativeAIEmbeddingModel(modelId, settings, {
+  const createEmbeddingModel = (modelId: GoogleGenerativeAIEmbeddingModelId) =>
+    new GoogleGenerativeAIEmbeddingModel(modelId, {
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,

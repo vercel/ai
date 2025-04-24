@@ -10,6 +10,7 @@ export type { IDGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
 export * from './is-abort-error';
+export { isUrlSupported } from './is-url-supported';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';

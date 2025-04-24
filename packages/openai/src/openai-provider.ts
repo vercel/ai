@@ -19,7 +19,7 @@ import { OpenAIEmbeddingModel } from './openai-embedding-model';
 import {
   OpenAIEmbeddingModelId,
   OpenAIEmbeddingSettings,
-} from './openai-embedding-settings';
+} from './openai-embedding-options';
 import { OpenAIImageModel } from './openai-image-model';
 import {
   OpenAIImageModelId,

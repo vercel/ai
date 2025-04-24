@@ -80,7 +80,6 @@ import { z } from 'zod';
 
 const result = await generateObject({
   model: new MockLanguageModelV1({
-    defaultObjectGenerationMode: 'json',
     doGenerate: async () => ({
       finishReason: 'stop',
       usage: { inputTokens: 10, outputTokens: 20 },
@@ -101,7 +100,6 @@ import { z } from 'zod';
 
 const result = streamObject({
   model: new MockLanguageModelV1({
-    defaultObjectGenerationMode: 'json',
     doStream: async () => ({
       stream: simulateReadableStream({
         chunks: [

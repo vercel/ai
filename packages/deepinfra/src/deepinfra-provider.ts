@@ -118,10 +118,10 @@ export function createDeepInfra(
   });
 
   const createChatModel = (modelId: DeepInfraChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, {
-      ...getCommonModelConfig('chat'),
-      defaultObjectGenerationMode: 'json',
-    });
+    return new OpenAICompatibleChatLanguageModel(
+      modelId,
+      getCommonModelConfig('chat'),
+    );
   };
 
   const createCompletionModel = (modelId: DeepInfraCompletionModelId) =>

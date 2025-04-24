@@ -38,15 +38,11 @@ describe('doEmbed', () => {
     },
   });
 
-  const model = new BedrockEmbeddingModel(
-    'amazon.titan-embed-text-v2:0',
-    {},
-    {
-      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
-      headers: mockConfigHeaders,
-      fetch: fakeFetchWithAuth,
-    },
-  );
+  const model = new BedrockEmbeddingModel('amazon.titan-embed-text-v2:0', {
+    baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+    headers: mockConfigHeaders,
+    fetch: fakeFetchWithAuth,
+  });
 
   let callCount = 0;
 
@@ -106,7 +102,6 @@ describe('doEmbed', () => {
 
     const modelWithHeaders = new BedrockEmbeddingModel(
       'amazon.titan-embed-text-v2:0',
-      {},
       {
         baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
         headers: {
@@ -136,7 +131,6 @@ describe('doEmbed', () => {
   it('should work with partial headers', async () => {
     const modelWithPartialHeaders = new BedrockEmbeddingModel(
       'amazon.titan-embed-text-v2:0',
-      {},
       {
         baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
         headers: {

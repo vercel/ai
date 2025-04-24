@@ -8,8 +8,6 @@ describe('wrapLanguageModel', () => {
       model: new MockLanguageModelV2({
         provider: 'test-provider',
         modelId: 'test-model',
-        defaultObjectGenerationMode: 'json',
-        supportsStructuredOutputs: true,
       }),
       middleware: {
         middlewareVersion: 'v2',
@@ -18,8 +16,6 @@ describe('wrapLanguageModel', () => {
 
     expect(wrappedModel.provider).toBe('test-provider');
     expect(wrappedModel.modelId).toBe('test-model');
-    expect(wrappedModel.defaultObjectGenerationMode).toBe('json');
-    expect(wrappedModel.supportsStructuredOutputs).toBe(true);
   });
 
   it('should override provider and modelId if provided', () => {
@@ -166,72 +162,52 @@ describe('wrapLanguageModel', () => {
     });
   });
 
-  it('should pass through empty supportsUrl', async () => {
-    const mockModel = new MockLanguageModelV2({
-      doGenerate: vi.fn().mockResolvedValue('mock result'),
-    });
+  it('should pass through getSupportedUrls', async () => {
+    const supportedUrls = {
+      'image/*': [/^https:\/\/.*$/],
+    };
 
     const wrappedModel = wrapLanguageModel({
-      model: mockModel,
+      model: new MockLanguageModelV2({ getSupportedUrls: supportedUrls }),
       middleware: {
         middlewareVersion: 'v2',
       },
     });
 
-    expect(wrappedModel.supportsUrl).toBeUndefined();
+    expect(await wrappedModel.getSupportedUrls()).toStrictEqual(supportedUrls);
   });
 
-  it('should pass through supportsUrl when it is defined on the model', async () => {
-    const mockModel = new MockLanguageModelV2({
-      doGenerate: vi.fn().mockResolvedValue('mock result'),
-      supportsUrl: vi.fn().mockReturnValue(true),
-    });
-
-    const wrappedModel = wrapLanguageModel({
-      model: mockModel,
-      middleware: {
-        middlewareVersion: 'v2',
-      },
-    });
-
-    expect(
-      wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
-    ).toBe(true);
-  });
-
-  it('should support models that use "this" context in supportsUrl', async () => {
-    let supportsUrlCalled = false;
+  it('should support models that use "this" context in getSupportedUrls', async () => {
+    let getSupportedUrlsCalled = false;
 
     class MockLanguageModelWithImageSupport implements LanguageModelV2 {
       readonly specificationVersion = 'v2';
       readonly provider = 'test-provider';
       readonly modelId = 'test-model';
-      readonly defaultObjectGenerationMode = 'json';
-      readonly supportsImageUrls = false;
 
       readonly doGenerate: LanguageModelV2['doGenerate'] = vi.fn();
       readonly doStream: LanguageModelV2['doStream'] = vi.fn();
 
-      private readonly value = true;
+      readonly value = {
+        'image/*': [/^https:\/\/.*$/],
+      };
 
-      supportsUrl(url: URL) {
-        supportsUrlCalled = true;
+      async getSupportedUrls() {
+        getSupportedUrlsCalled = true;
         // Reference 'this' to verify context
         return this.value;
       }
     }
 
+    const model = new MockLanguageModelWithImageSupport();
+
     const wrappedModel = wrapLanguageModel({
-      model: new MockLanguageModelWithImageSupport(),
-      middleware: {
-        middlewareVersion: 'v2',
-      },
+      model,
+      middleware: { middlewareVersion: 'v2' },
     });
 
-    expect(
-      wrappedModel.supportsUrl?.(new URL('https://example.com/test.jpg')),
-    ).toBe(true);
-    expect(supportsUrlCalled).toBe(true);
+    expect(await wrappedModel.getSupportedUrls()).toStrictEqual(model.value);
+    expect(getSupportedUrlsCalled).toBe(true);
   });
 
   describe('wrapLanguageModel with multiple middlewares', () => {

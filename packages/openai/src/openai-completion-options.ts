@@ -26,19 +26,6 @@ token from being generated.
   logitBias: z.record(z.string(), z.number()).optional(),
 
   /**
-Return the log probabilities of the tokens. Including logprobs will increase
-the response size and can slow down response times. However, it can
-be useful to better understand how the model is behaving.
-
-Setting to true will return the log probabilities of the tokens that
-were generated.
-
-Setting to a number will return the log probabilities of the top n
-tokens that were generated.
- */
-  logprobs: z.union([z.boolean(), z.number()]).optional(),
-
-  /**
 The suffix that comes after a completion of inserted text.
  */
   suffix: z.string().optional(),

@@ -6,7 +6,6 @@ import { z } from 'zod';
 async function main() {
   const result = streamObject({
     model: new MockLanguageModelV2({
-      defaultObjectGenerationMode: 'json',
       doStream: async () => ({
         stream: convertArrayToReadableStream([
           { type: 'text', text: '{ ' },

@@ -35,8 +35,6 @@ type MistralChatConfig = {
 
 export class MistralChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'json';
-  readonly supportsImageUrls = false;
 
   readonly modelId: MistralChatModelId;
 
@@ -51,8 +49,10 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  supportsUrl(url: URL): boolean {
-    return url.protocol === 'https:';
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      'application/pdf': [/^https:\/\/.*$/],
+    };
   }
 
   private getArgs({
