@@ -11,6 +11,7 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
@@ -19,8 +20,8 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAICompletionModelId,
-  OpenAICompletionSettings,
-} from './openai-completion-settings';
+  openaiCompletionProviderOptions,
+} from './openai-completion-options';
 import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
@@ -38,17 +39,18 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAICompletionModelId;
-  readonly settings: OpenAICompletionSettings;
 
   private readonly config: OpenAICompletionConfig;
 
+  private get providerOptionsName(): string {
+    return this.config.provider.split('.')[0].trim();
+  }
+
   constructor(
     modelId: OpenAICompletionModelId,
-    settings: OpenAICompletionSettings,
     config: OpenAICompletionConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -62,7 +64,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     };
   }
 
-  private getArgs({
+  private async getArgs({
     inputFormat,
     prompt,
     maxOutputTokens,
@@ -76,8 +78,23 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     seed,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const openaiOptions = {
+      ...(await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiCompletionProviderOptions,
+      })),
+      ...(await parseProviderOptions({
+        provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompletionProviderOptions,
+      })),
+    };
 
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
@@ -110,10 +127,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         model: this.modelId,
 
         // model specific settings:
-        echo: this.settings.echo,
-        logit_bias: this.settings.logitBias,
-        suffix: this.settings.suffix,
-        user: this.settings.user,
+        echo: openaiOptions.echo,
+        logit_bias: openaiOptions.logitBias,
+        suffix: openaiOptions.suffix,
+        user: openaiOptions.user,
 
         // standardized settings:
         max_tokens: maxOutputTokens,
@@ -136,7 +153,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -179,7 +196,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const body = {
       ...args,
