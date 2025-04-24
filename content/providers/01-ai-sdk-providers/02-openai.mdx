@@ -897,10 +897,23 @@ const model = openai.image('dall-e-3');
 
 ### Model Capabilities
 
-| Model      | Sizes                           |
-| ---------- | ------------------------------- |
-| `dall-e-3` | 1024x1024, 1792x1024, 1024x1792 |
-| `dall-e-2` | 256x256, 512x512, 1024x1024     |
+| Model         | Sizes                           |
+| ------------- | ------------------------------- |
+| `gpt-image-1` | 1024x1024, 1536x1024, 1024x1536 |
+| `dall-e-3`    | 1024x1024, 1792x1024, 1024x1792 |
+| `dall-e-2`    | 256x256, 512x512, 1024x1024     |
+
+You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and aremodel dependent. For example, the `gpt-image-1` model supports the `quality` option:
+
+```ts
+const model = openai.image('gpt-image-1', {
+  providerOptions: {
+    openai: { quality: 'high' },
+  },
+});
+```
+
+For more information on the available options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
 
 ## Transcription Models
 
