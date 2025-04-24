@@ -14,9 +14,9 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { TogetherAIChatModelId } from './togetherai-chat-settings';
-import { TogetherAIEmbeddingModelId } from './togetherai-embedding-settings';
-import { TogetherAICompletionModelId } from './togetherai-completion-settings';
+import { TogetherAIChatModelId } from './togetherai-chat-options';
+import { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
+import { TogetherAICompletionModelId } from './togetherai-completion-options';
 import { TogetherAIImageModel } from './togetherai-image-model';
 import {
   TogetherAIImageModelId,

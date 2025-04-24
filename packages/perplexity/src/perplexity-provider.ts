@@ -10,7 +10,7 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { PerplexityLanguageModel } from './perplexity-language-model';
-import { PerplexityLanguageModelId } from './perplexity-language-model-settings';
+import { PerplexityLanguageModelId } from './perplexity-language-model-options';
 
 export interface PerplexityProvider extends ProviderV2 {
   /**

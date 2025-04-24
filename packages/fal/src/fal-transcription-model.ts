@@ -16,7 +16,7 @@ import {
 import { z } from 'zod';
 import { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
-import { FalTranscriptionModelId } from './fal-transcription-settings';
+import { FalTranscriptionModelId } from './fal-transcription-options';
 import { FalTranscriptionAPITypes } from './fal-api-types';
 
 // https://fal.ai/models/fal-ai/whisper/api?platform=http

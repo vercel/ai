@@ -12,7 +12,7 @@ import {
 import { z } from 'zod';
 import { GroqConfig } from './groq-config';
 import { groqFailedResponseHandler } from './groq-error';
-import { GroqTranscriptionModelId } from './groq-transcription-settings';
+import { GroqTranscriptionModelId } from './groq-transcription-options';
 import { GroqTranscriptionAPITypes } from './groq-api-types';
 
 // https://console.groq.com/docs/speech-to-text

@@ -1,7 +1,7 @@
 import { TranscriptionModelV1, ProviderV1 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
-import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-settings';
+import { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
 
 export interface ElevenLabsProvider
   extends Pick<ProviderV1, 'transcriptionModel'> {
