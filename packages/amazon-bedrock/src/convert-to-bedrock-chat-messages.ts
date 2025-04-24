@@ -30,10 +30,12 @@ function getCachePoint(
   return providerMetadata?.bedrock?.cachePoint as BedrockCachePoint | undefined;
 }
 
-export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
+export async function convertToBedrockChatMessages(
+  prompt: LanguageModelV2Prompt,
+): Promise<{
   system: BedrockSystemMessages;
   messages: BedrockMessages;
-} {
+}> {
   const blocks = groupIntoBlocks(prompt);
 
   let system: BedrockSystemMessages = [];
@@ -212,7 +214,7 @@ export function convertToBedrockChatMessages(prompt: LanguageModelV2Prompt): {
               }
 
               case 'reasoning': {
-                const reasoningMetadata = parseProviderOptions({
+                const reasoningMetadata = await parseProviderOptions({
                   provider: 'bedrock',
                   providerOptions: part.providerOptions,
                   schema: bedrockReasoningMetadataSchema,

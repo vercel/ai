@@ -116,7 +116,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const { system, messages } = convertToBedrockChatMessages(prompt);
+    const { system, messages } = await convertToBedrockChatMessages(prompt);
 
     const isThinking = bedrockOptions.reasoningConfig?.type === 'enabled';
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
