@@ -38,7 +38,6 @@ describe('google-vertex-anthropic-provider', () => {
     // Assert that the model constructor was called with the correct arguments
     expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
-      {},
       expect.objectContaining({
         baseURL: expect.stringContaining(
           '/projects/test-project/locations/test-location/publishers/anthropic/models',
@@ -70,7 +69,6 @@ describe('google-vertex-anthropic-provider', () => {
     // Assert that the constructor was called with the correct baseURL
     expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
       expect.anything(), // modelId
-      expect.anything(), // settings
       expect.objectContaining({
         baseURL: customBaseURL,
       }),
@@ -102,7 +100,6 @@ describe('google-vertex-anthropic-provider', () => {
     // Assert that the model constructor was called with the correct headers
     expect(AnthropicMessagesLanguageModel).toHaveBeenCalledWith(
       expect.anything(), // modelId
-      expect.anything(), // settings
       expect.objectContaining({
         headers: customHeaders,
       }),

@@ -23,8 +23,8 @@ import { z } from 'zod';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
   AnthropicMessagesModelId,
-  AnthropicMessagesSettings,
-} from './anthropic-messages-settings';
+  anthropicProviderOptions,
+} from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
@@ -43,17 +43,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
   readonly modelId: AnthropicMessagesModelId;
-  readonly settings: AnthropicMessagesSettings;
 
   private readonly config: AnthropicMessagesConfig;
 
   constructor(
     modelId: AnthropicMessagesModelId,
-    settings: AnthropicMessagesSettings,
     config: AnthropicMessagesConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -115,18 +112,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const { prompt: messagesPrompt, betas: messagesBetas } =
-      await convertToAnthropicMessagesPrompt({
-        prompt,
-        sendReasoning: this.settings.sendReasoning ?? true,
-        warnings,
-      });
-
     const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
       providerOptions,
-      schema: anthropicProviderOptionsSchema,
+      schema: anthropicProviderOptions,
     });
+
+    const { prompt: messagesPrompt, betas: messagesBetas } =
+      await convertToAnthropicMessagesPrompt({
+        prompt,
+        sendReasoning: anthropicOptions?.sendReasoning ?? true,
+        warnings,
+      });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
@@ -697,19 +694,6 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
     type: z.literal('ping'),
   }),
 ]);
-
-const anthropicProviderOptionsSchema = z.object({
-  thinking: z
-    .object({
-      type: z.union([z.literal('enabled'), z.literal('disabled')]),
-      budgetTokens: z.number().optional(),
-    })
-    .optional(),
-});
-
-export type AnthropicProviderOptions = z.infer<
-  typeof anthropicProviderOptionsSchema
->;
 
 export const anthropicReasoningMetadataSchema = z.object({
   signature: z.string().optional(),

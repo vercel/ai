@@ -9,9 +9,7 @@ This is a test file.
   `;
 
   const result = await generateText({
-    model: anthropic('claude-3-5-sonnet-20241022', {
-      cacheControl: true,
-    }),
+    model: anthropic('claude-3-5-sonnet-20241022'),
     tools: {
       str_replace_editor: anthropic.tools.textEditor_20241022({
         async execute({ command, path, old_str, new_str }) {

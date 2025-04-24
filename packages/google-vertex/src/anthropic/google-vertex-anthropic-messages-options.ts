@@ -1,5 +1,3 @@
-import { AnthropicMessagesSettings } from '@ai-sdk/anthropic/internal';
-
 // https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/use-claude
 export type GoogleVertexAnthropicMessagesModelId =
   | 'claude-3-7-sonnet@20250219'
@@ -10,6 +8,3 @@ export type GoogleVertexAnthropicMessagesModelId =
   | 'claude-3-sonnet@20240229'
   | 'claude-3-opus@20240229'
   | (string & {});
-
-export interface GoogleVertexAnthropicMessagesSettings
-  extends AnthropicMessagesSettings {}
