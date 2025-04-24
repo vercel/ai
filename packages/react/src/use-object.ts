@@ -68,6 +68,11 @@ Optional error object. This is e.g. a TypeValidationError when the final object 
   onError?: (error: Error) => void;
 
   /**
+   * Callback function to be called when a new chunk is received and the object is updated.
+   */
+  onChunk?: (currentObject: DeepPartial<RESULT>) => void;
+
+  /**
    * Additional HTTP headers to be included in the request.
    */
   headers?: Record<string, string> | Headers;
@@ -115,6 +120,7 @@ function useObject<RESULT, INPUT = any>({
   fetch,
   onError,
   onFinish,
+  onChunk,
   headers,
   credentials,
 }: Experimental_UseObjectOptions<RESULT>): Experimental_UseObjectHelpers<
@@ -194,6 +200,10 @@ function useObject<RESULT, INPUT = any>({
               latestObject = currentObject;
 
               mutate(currentObject);
+              
+              if (onChunk) {
+                onChunk(currentObject);
+              }
             }
           },
 
