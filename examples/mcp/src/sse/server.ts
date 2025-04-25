@@ -14,6 +14,7 @@ mcpServer.tool(
   'check-product-stock',
   'Check if a product is available',
   {
+    // @ts-ignore
     productName: z.string(),
   },
   async ({ productName }) => {

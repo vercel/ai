@@ -13,6 +13,7 @@ server.tool(
   'get-pokemon',
   'Get Pokemon details by name',
   {
+    // @ts-ignore
     name: z.string(),
   },
   async ({ name }) => {

@@ -195,14 +195,12 @@ class MCPClient {
   private async request<T extends ZodType<object>>({
     request,
     resultSchema,
-    options = {},
+    options,
   }: {
     request: Request;
     resultSchema: T;
     options?: RequestOptions;
   }): Promise<z.infer<T>> {
-    const { resumptionToken, onresumptiontoken } = options;
-
     return new Promise((resolve, reject) => {
       if (this.isClosed) {
         return reject(
@@ -256,15 +254,10 @@ class MCPClient {
         }
       });
 
-      this.transport
-        .send(jsonrpcRequest, {
-          resumptionToken,
-          onresumptiontoken,
-        })
-        .catch(error => {
-          cleanup();
-          reject(error);
-        });
+      this.transport.send(jsonrpcRequest).catch(error => {
+        cleanup();
+        reject(error);
+      });
     });
   }
 
