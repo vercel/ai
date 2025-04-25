@@ -6,18 +6,6 @@ export type OpenAIEmbeddingModelId =
   | 'text-embedding-ada-002'
   | (string & {});
 
-export interface OpenAIEmbeddingSettings {
-  /**
-Override the maximum number of embeddings per call.
-   */
-  maxEmbeddingsPerCall?: number;
-
-  /**
-Override the parallelism of embedding calls.
-    */
-  supportsParallelCalls?: boolean;
-}
-
 export const openaiEmbeddingProviderOptions = z.object({
   /**
 The number of dimensions the resulting output embeddings should have.
