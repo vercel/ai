@@ -1,14 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": [
-    "CI",
-    "PORT"
-  ],
+  "globalEnv": ["CI", "PORT"],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "env": [
         "ANTHROPIC_API_KEY",
         "ASSISTANT_ID",
@@ -59,32 +54,19 @@
       ]
     },
     "lint": {
-      "dependsOn": [
-        "^lint"
-      ]
+      "dependsOn": ["^lint"]
     },
     "type-check": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ]
+      "dependsOn": ["^build", "build"]
     },
     "test": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ]
+      "dependsOn": ["^build", "build"]
     },
     "publint": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ]
+      "dependsOn": ["^build", "build"]
     },
     "clean": {
-      "dependsOn": [
-        "^clean"
-      ]
+      "dependsOn": ["^clean"]
     },
     "dev": {
       "cache": false,
@@ -92,10 +74,7 @@
     },
     "prettier-check": {},
     "integration-test": {
-      "dependsOn": [
-        "^build",
-        "build"
-      ]
+      "dependsOn": ["^build", "build"]
     }
   }
 }
