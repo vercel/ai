@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.19
+
+### Patch Changes
+
+- 3cabda9: feat (providers/openai): add gpt-image-1 model id to image settings
+
 ## 1.3.18
 
 ### Patch Changes
