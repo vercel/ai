@@ -1,5 +1,4 @@
 import {
-  LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
