@@ -2,7 +2,8 @@
   "private": true,
   "name": "ai-repo",
   "scripts": {
-    "build": "turbo build",
+    "build": "turbo build --concurrency 16",
+    "build:examples": "turbo build --filter=@example/*",
     "changeset": "changeset",
     "clean": "turbo clean",
     "dev": "turbo dev --no-cache --concurrency 16 --continue",
