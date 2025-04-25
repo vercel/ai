@@ -19,12 +19,6 @@ import { createResumableStreamContext } from 'resumable-stream';
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-const redisUrl = process.env.KV_URL;
-
-if (!redisUrl) {
-  throw new Error('KV_URL environment variable is not set');
-}
-
 const streamContext = createResumableStreamContext({
   waitUntil: after,
 });
