@@ -4441,7 +4441,6 @@ describe('streamText', () => {
             },
             "seed": undefined,
             "stopSequences": undefined,
-            "structuredOutputs": undefined,
             "temperature": 0,
             "toolChoice": undefined,
             "tools": undefined,
