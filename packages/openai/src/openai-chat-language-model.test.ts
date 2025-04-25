@@ -99,7 +99,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -120,7 +119,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -131,7 +129,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     const { request } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -176,7 +173,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -222,7 +218,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -236,7 +231,6 @@ describe('doGenerate', () => {
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -250,7 +244,6 @@ describe('doGenerate', () => {
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -263,7 +256,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -280,7 +272,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -294,7 +285,6 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await provider.chat('gpt-3.5-turbo').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -329,7 +319,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1-mini');
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: { reasoningEffort: 'low' },
@@ -349,7 +338,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1-mini');
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: { reasoningEffort: 'high' },
@@ -367,7 +355,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -426,7 +413,6 @@ describe('doGenerate', () => {
     });
 
     await provider.chat('gpt-3.5-turbo').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -458,7 +444,6 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -499,7 +484,6 @@ describe('doGenerate', () => {
       const model = provider.chat('gpt-4o-2024-08-06');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: { type: 'text' },
       });
@@ -516,7 +500,6 @@ describe('doGenerate', () => {
       const model = provider.chat('gpt-4o-2024-08-06');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: { type: 'json' },
       });
@@ -536,7 +519,6 @@ describe('doGenerate', () => {
       });
 
       const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -574,7 +556,6 @@ describe('doGenerate', () => {
       });
 
       const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -618,7 +599,6 @@ describe('doGenerate', () => {
       });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           schema: {
@@ -660,7 +640,6 @@ describe('doGenerate', () => {
       });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           name: 'test-name',
@@ -705,7 +684,6 @@ describe('doGenerate', () => {
       });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           name: 'test-name',
@@ -742,7 +720,6 @@ describe('doGenerate', () => {
       });
 
       const result = await model.doGenerate({
-        inputFormat: 'prompt',
         tools: [
           {
             type: 'function',
@@ -817,7 +794,6 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -888,7 +864,6 @@ describe('doGenerate', () => {
     const model = provider.chat('gpt-4o-mini');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -915,7 +890,6 @@ describe('doGenerate', () => {
     const model = provider.chat('gpt-4o-mini');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -934,7 +908,6 @@ describe('doGenerate', () => {
       const model = provider.chat('o1-preview');
 
       const result = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         temperature: 0.5,
         topP: 0.7,
@@ -977,7 +950,6 @@ describe('doGenerate', () => {
       const model = provider.chat('o1-preview');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         maxOutputTokens: 1000,
       });
@@ -996,7 +968,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1-preview');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -1022,7 +993,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -1055,7 +1025,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1-preview');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1072,7 +1041,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1-preview');
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1092,7 +1060,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1118,7 +1085,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1138,7 +1104,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1164,7 +1129,6 @@ describe('doGenerate', () => {
     const model = provider.chat('gpt-4o-search-preview');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       temperature: 0.7,
     });
@@ -1187,7 +1151,6 @@ describe('doGenerate', () => {
     const model = provider.chat('gpt-4o-mini-search-preview');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       temperature: 0.7,
     });
@@ -1210,7 +1173,6 @@ describe('doGenerate', () => {
     const model = provider.chat('gpt-4o-mini-search-preview-2025-03-11');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       temperature: 0.7,
     });
@@ -1293,7 +1255,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1378,7 +1339,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1516,7 +1476,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1667,7 +1626,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1774,7 +1732,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1843,7 +1800,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1886,7 +1842,6 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -1921,7 +1876,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1968,7 +1922,6 @@ describe('doStream', () => {
     });
 
     const { response } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1987,7 +1940,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -2012,7 +1964,6 @@ describe('doStream', () => {
     });
 
     await provider.chat('gpt-3.5-turbo').doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -2043,7 +1994,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -2087,7 +2037,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -2121,7 +2070,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -2143,7 +2091,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -2175,7 +2122,6 @@ describe('doStream', () => {
       const model = provider.chat('o1-preview');
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -2231,7 +2177,6 @@ describe('doStream', () => {
       const model = provider.chat('o1-preview');
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 

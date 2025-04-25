@@ -68,7 +68,6 @@ describe('chat', () => {
       prepareJsonResponse();
 
       await provider('test-deployment').doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -81,7 +80,6 @@ describe('chat', () => {
       prepareJsonResponse();
 
       await providerApiVersionChanged('test-deployment').doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -102,7 +100,6 @@ describe('chat', () => {
       });
 
       await provider('test-deployment').doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -126,7 +123,6 @@ describe('chat', () => {
       });
 
       await provider('test-deployment').doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
       expect(server.calls[0].requestUrl).toStrictEqual(
@@ -180,7 +176,6 @@ describe('completion', () => {
       prepareJsonCompletionResponse({ content: 'Hello World!' });
 
       await provider.completion('gpt-35-turbo-instruct').doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
       expect(
@@ -200,7 +195,6 @@ describe('completion', () => {
       });
 
       await provider.completion('gpt-35-turbo-instruct').doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -496,7 +490,6 @@ describe('responses', () => {
       prepareJsonResponse();
 
       await provider.responses('test-deployment').doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -517,7 +510,6 @@ describe('responses', () => {
       });
 
       await provider.responses('test-deployment').doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -541,7 +533,6 @@ describe('responses', () => {
       });
 
       await provider.responses('test-deployment').doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 

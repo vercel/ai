@@ -286,9 +286,6 @@ export async function generateObject<SCHEMA, RESULT>({
                 telemetry,
               }),
               ...baseTelemetryAttributes,
-              'ai.prompt.format': {
-                input: () => standardizedPrompt.type,
-              },
               'ai.prompt.messages': {
                 input: () => JSON.stringify(promptMessages),
               },
@@ -314,7 +311,6 @@ export async function generateObject<SCHEMA, RESULT>({
                 description: schemaDescription,
               },
               ...prepareCallSettings(settings),
-              inputFormat: standardizedPrompt.type,
               prompt: promptMessages,
               providerOptions,
               abortSignal,

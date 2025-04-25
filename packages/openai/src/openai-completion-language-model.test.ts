@@ -71,7 +71,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -92,7 +91,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -103,7 +101,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     const { request } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -136,7 +133,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -160,7 +156,6 @@ describe('doGenerate', () => {
     const { finishReason } = await provider
       .completion('gpt-3.5-turbo-instruct')
       .doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -176,7 +171,6 @@ describe('doGenerate', () => {
     const { finishReason } = await provider
       .completion('gpt-3.5-turbo-instruct')
       .doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -191,7 +185,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -208,7 +201,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -231,7 +223,6 @@ describe('doGenerate', () => {
     });
 
     await provider.completion('gpt-3.5-turbo-instruct').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -302,7 +293,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -357,7 +347,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -397,7 +386,6 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -429,7 +417,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -464,7 +451,6 @@ describe('doStream', () => {
     });
 
     const { response } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -483,7 +469,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -508,7 +493,6 @@ describe('doStream', () => {
     });
 
     await provider.completion('gpt-3.5-turbo-instruct').doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',

@@ -7,14 +7,6 @@ import { LanguageModelV2ToolChoice } from './language-model-v2-tool-choice';
 
 export type LanguageModelV2CallOptions = {
   /**
-Whether the user provided the input as messages or as
-a prompt. This can help guide non-chat models in the
-expansion, bc different expansions can be needed for
-chat/non-chat use cases.
-   */
-  inputFormat: 'messages' | 'prompt';
-
-  /**
 A language mode prompt is a standardized prompt type.
 
 Note: This is **not** the user-facing prompt. The AI SDK methods will map the
