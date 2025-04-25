@@ -12,6 +12,7 @@ import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
+import { ProviderOptions } from '../types/provider-metadata';
 
 /**
 Generates images using an image model.
@@ -86,7 +87,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
      */
-  providerOptions?: Record<string, Record<string, JSONValue>>;
+  providerOptions?: ProviderOptions;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.
