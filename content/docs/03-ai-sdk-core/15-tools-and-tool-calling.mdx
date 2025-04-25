@@ -486,7 +486,7 @@ const result = await generateText({
     const tool = tools[toolCall.toolName as keyof typeof tools];
 
     const { object: repairedArgs } = await generateObject({
-      model: openai('gpt-4o', { structuredOutputs: true }),
+      model: openai('gpt-4o'),
       schema: tool.parameters,
       prompt: [
         `The model tried to call the tool "${toolCall.toolName}"` +

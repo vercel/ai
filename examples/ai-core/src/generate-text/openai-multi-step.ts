@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const { text, usage } = await generateText({
-    model: openai('gpt-4o-2024-08-06', { structuredOutputs: true }),
+    model: openai('gpt-4o-2024-08-06'),
     tools: {
       currentLocation: tool({
         description: 'Get the current location.',
