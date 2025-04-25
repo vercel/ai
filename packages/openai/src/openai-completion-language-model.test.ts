@@ -113,9 +113,16 @@ describe('doGenerate', () => {
           "max_tokens": undefined,
           "model": "gpt-3.5-turbo-instruct",
           "presence_penalty": undefined,
-          "prompt": "Hello",
+          "prompt": "user:
+      Hello
+
+      assistant:
+      ",
           "seed": undefined,
-          "stop": undefined,
+          "stop": [
+            "
+      user:",
+          ],
           "suffix": undefined,
           "temperature": undefined,
           "top_p": undefined,
@@ -429,9 +436,16 @@ describe('doStream', () => {
           "max_tokens": undefined,
           "model": "gpt-3.5-turbo-instruct",
           "presence_penalty": undefined,
-          "prompt": "Hello",
+          "prompt": "user:
+      Hello
+
+      assistant:
+      ",
           "seed": undefined,
-          "stop": undefined,
+          "stop": [
+            "
+      user:",
+          ],
           "stream": true,
           "stream_options": {
             "include_usage": true,
