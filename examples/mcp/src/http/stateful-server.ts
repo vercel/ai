@@ -47,7 +47,6 @@ app.post('/mcp', async (req, res) => {
       'get-user-info',
       'Get user info',
       {
-        // @ts-ignore
         userId: z.string(),
       },
       async ({ userId }) => {

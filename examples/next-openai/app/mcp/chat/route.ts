@@ -3,7 +3,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { experimental_createMCPClient, streamText } from 'ai';
 
 export async function POST(req: Request) {
-  const url = new URL('http://localhost:3000/mcp');
+  const url = new URL('http://localhost:3000/mcp/server');
   const transport = new StreamableHTTPClientTransport(url);
 
   const [client, { messages }] = await Promise.all([
@@ -28,9 +28,10 @@ export async function POST(req: Request) {
       onFinish: async () => {
         await client.close();
       },
-      onError: async error => {
-        await client.close();
-      },
+      // Optional, enables immediate clean up of resources but connection will not be retained for retries:
+      // onError: async error => {
+      //   await client.close();
+      // },
     });
 
     return result.toDataStreamResponse();

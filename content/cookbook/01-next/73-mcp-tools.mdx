@@ -66,6 +66,9 @@ export async function POST(req: Request) {
         await sseClient.close();
         await customClient.close();
       },
+      // Closing clients onError is optional
+      // - Closing: Immediately frees resources, prevents hanging connections
+      // - Not closing: Keeps connection open for retries
       onError: async error => {
         await stdioClient.close();
         await sseClient.close();
