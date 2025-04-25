@@ -34,12 +34,12 @@ Limit of how many embeddings can be generated in a single API call.
 
 Use Infinity for models that do not have a limit.
    */
-  readonly maxEmbeddingsPerCall: number | null | undefined;
+  readonly maxEmbeddingsPerCall: PromiseLike<number | undefined> | number | undefined;
 
   /**
 True if the model can handle multiple embedding calls in parallel.
    */
-  readonly supportsParallelCalls: boolean | 'disabled-by-default';
+  readonly supportsParallelCalls: PromiseLike<boolean> | boolean;
 
   /**
 Generates a list of embeddings for the given input text.

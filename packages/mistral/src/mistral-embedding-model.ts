@@ -23,9 +23,7 @@ export class MistralEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = 'v2';
   readonly modelId: MistralEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 32;
-  // Parallel calls are technically possible,
-  // but I have been hitting rate limits and disable them for now.
-  readonly supportsParallelCalls = 'disabled-by-default';
+  readonly supportsParallelCalls = false;
 
   private readonly config: MistralEmbeddingConfig;
 
