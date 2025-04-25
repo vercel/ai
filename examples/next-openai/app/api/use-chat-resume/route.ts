@@ -19,11 +19,11 @@ import { createResumableStreamContext } from 'resumable-stream';
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-const streamContext = createResumableStreamContext({
-  waitUntil: after,
-});
-
 export async function POST(req: Request) {
+  const streamContext = createResumableStreamContext({
+    waitUntil: after,
+  });
+
   const { id, messages }: { id: string; messages: Message[] } =
     await req.json();
 
@@ -67,6 +67,10 @@ export async function POST(req: Request) {
 }
 
 export async function GET(request: Request) {
+  const streamContext = createResumableStreamContext({
+    waitUntil: after,
+  });
+
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get('chatId');
 
