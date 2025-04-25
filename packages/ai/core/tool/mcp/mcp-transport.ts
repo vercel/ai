@@ -19,7 +19,7 @@ export type TransportSendOptions = {
    * This allows clients to persist the latest token for potential reconnection.
    */
   onresumptiontoken?: (token: string) => void;
-}
+};
 
 /**
  * Transport interface for MCP (Model Context Protocol) communication.
