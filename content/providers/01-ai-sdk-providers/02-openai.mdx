@@ -635,14 +635,14 @@ const sources = result.sources;
 
 #### Reasoning Summaries
 
-For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process:
+For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
 
 ```ts highlight="8-9,16"
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: openai.responses('o3-mini'),
+  model: openai.responses('o4-mini'),
   prompt: 'Tell me about the Mission burrito debate in San Francisco.',
   providerOptions: {
     openai: {
@@ -671,7 +671,7 @@ const result = await generateText({
   prompt: 'Tell me about the Mission burrito debate in San Francisco.',
   providerOptions: {
     openai: {
-      reasoningSummary: 'detailed',
+      reasoningSummary: 'auto',
     },
   },
 });

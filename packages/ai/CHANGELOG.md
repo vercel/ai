@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.10
+
+### Patch Changes
+
+- 0432959: feat (ai): add experimental prepareStep callback to generateText
+
 ## 4.3.9
 
 ### Patch Changes

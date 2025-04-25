@@ -11,7 +11,7 @@ async function main() {
     providerOptions: {
       openai: {
         // https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries
-        reasoningSummary: 'auto', // 'detailed'
+        reasoningSummary: 'auto', // auto gives you the best available summary (detailed > auto > None)
       } satisfies OpenAIResponsesProviderOptions,
     },
   });
