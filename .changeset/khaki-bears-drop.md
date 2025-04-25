@@ -5,4 +5,4 @@
 'ai': patch
 ---
 
-chore(providers/openai): move to structuredOutputs provider option
+chore(providers/openai): enable structuredOutputs by default & switch to provider option
