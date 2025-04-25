@@ -1,4 +1,5 @@
 import { GeneratedFile } from '../generate-text';
+import { ProviderMetadata } from '../types';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 
@@ -26,4 +27,10 @@ Warnings for the call, e.g. unsupported settings.
 Response metadata from the provider. There may be multiple responses if we made multiple calls to the model.
    */
   readonly responses: Array<ImageModelResponseMetadata>;
+
+  /**
+   * Provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific
+   * results that can be fully encapsulated in the provider.
+   */
+  readonly providerMetadata: Array<ProviderMetadata | undefined>;
 }

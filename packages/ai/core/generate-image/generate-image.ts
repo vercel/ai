@@ -5,6 +5,7 @@ import {
   GeneratedFile,
 } from '../generate-text/generated-file';
 import { prepareRetries } from '../prompt/prepare-retries';
+import { ProviderMetadata } from '../types';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { GenerateImageResult } from './generate-image-result';
@@ -143,6 +144,7 @@ Only applicable for HTTP-based providers.
   const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
+  const providerMetadata: Array<ProviderMetadata | undefined> = [];
   for (const result of results) {
     images.push(
       ...result.images.map(
@@ -159,28 +161,32 @@ Only applicable for HTTP-based providers.
     );
     warnings.push(...result.warnings);
     responses.push(result.response);
+    providerMetadata.push(result.providerMetadata);
   }
 
   if (!images.length) {
     throw new NoImageGeneratedError({ responses });
   }
 
-  return new DefaultGenerateImageResult({ images, warnings, responses });
+  return new DefaultGenerateImageResult({ images, warnings, responses, providerMetadata });
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
   readonly warnings: Array<ImageGenerationWarning>;
   readonly responses: Array<ImageModelResponseMetadata>;
+  readonly providerMetadata: Array<ProviderMetadata | undefined>;
 
   constructor(options: {
     images: Array<GeneratedFile>;
     warnings: Array<ImageGenerationWarning>;
     responses: Array<ImageModelResponseMetadata>;
+    providerMetadata: Array<ProviderMetadata | undefined>
   }) {
     this.images = options.images;
     this.warnings = options.warnings;
     this.responses = options.responses;
+    this.providerMetadata = options.providerMetadata;
   }
 
   get image() {
