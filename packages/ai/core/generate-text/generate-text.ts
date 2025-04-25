@@ -125,6 +125,7 @@ export async function generateText<
   experimental_providerMetadata,
   providerOptions = experimental_providerMetadata,
   experimental_activeTools: activeTools,
+  experimental_prepareStep: prepareStep,
   experimental_repairToolCall: repairToolCall,
   _internal: {
     generateId = originalGenerateId,
@@ -198,6 +199,20 @@ Optional specification for parsing structured outputs from the LLM response.
      */
     experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
 
+    experimental_prepareStep?: (options: {
+      steps: Array<StepResult<TOOLS>>;
+      stepNumber: number;
+      // TODO default settings, messages, system, model
+    }) => PromiseLike<
+      | {
+          model?: LanguageModel;
+          toolChoice?: ToolChoice<TOOLS>;
+          experimental_activeTools?: Array<keyof TOOLS>;
+          // TODO settings, messages
+        }
+      | undefined
+    >;
+
     /**
 A function that attempts to repair a tool call that failed to parse.
      */
@@ -263,11 +278,6 @@ A function that attempts to repair a tool call that failed to parse.
     }),
     tracer,
     fn: async span => {
-      const mode = {
-        type: 'regular' as const,
-        ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
-      };
-
       const callSettings = prepareCallSettings(settings);
 
       let currentModelResponse: Awaited<
@@ -307,6 +317,21 @@ A function that attempts to repair a tool call that failed to parse.
           modelSupportsImageUrls: model.supportsImageUrls,
           modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
         });
+
+        const prepareStepResult = await prepareStep?.({
+          steps,
+          stepNumber: stepCount,
+        });
+
+        const mode = {
+          type: 'regular' as const,
+          ...prepareToolsAndToolChoice({
+            tools,
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            activeTools:
+              prepareStepResult?.experimental_activeTools ?? activeTools,
+          }),
+        };
 
         currentModelResponse = await retry(() =>
           recordSpan({
