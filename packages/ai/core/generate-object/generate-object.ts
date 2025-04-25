@@ -262,9 +262,6 @@ Default and recommended: 'auto' (best mode for the model).
                 telemetry,
               }),
               ...baseTelemetryAttributes,
-              'ai.prompt.format': {
-                input: () => standardizedPrompt.type,
-              },
               'ai.prompt.messages': {
                 input: () => JSON.stringify(promptMessages),
               },
@@ -290,7 +287,6 @@ Default and recommended: 'auto' (best mode for the model).
                 description: schemaDescription,
               },
               ...prepareCallSettings(settings),
-              inputFormat: standardizedPrompt.type,
               prompt: promptMessages,
               providerOptions,
               abortSignal,

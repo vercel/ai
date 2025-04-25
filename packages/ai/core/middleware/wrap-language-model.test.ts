@@ -50,7 +50,6 @@ describe('wrapLanguageModel', () => {
     });
 
     const params: LanguageModelV2CallOptions = {
-      inputFormat: 'messages',
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
@@ -84,7 +83,6 @@ describe('wrapLanguageModel', () => {
     });
 
     const params: LanguageModelV2CallOptions = {
-      inputFormat: 'messages',
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
@@ -117,7 +115,6 @@ describe('wrapLanguageModel', () => {
     });
 
     const params: LanguageModelV2CallOptions = {
-      inputFormat: 'messages',
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
@@ -148,7 +145,6 @@ describe('wrapLanguageModel', () => {
     });
 
     const params: LanguageModelV2CallOptions = {
-      inputFormat: 'messages',
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
     };
 
@@ -240,7 +236,6 @@ describe('wrapLanguageModel', () => {
       });
 
       const params: LanguageModelV2CallOptions = {
-        inputFormat: 'messages',
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 
@@ -293,7 +288,6 @@ describe('wrapLanguageModel', () => {
       });
 
       const params: LanguageModelV2CallOptions = {
-        inputFormat: 'messages',
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 
@@ -348,7 +342,6 @@ describe('wrapLanguageModel', () => {
       });
 
       const params: LanguageModelV2CallOptions = {
-        inputFormat: 'messages',
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 
@@ -395,7 +388,6 @@ describe('wrapLanguageModel', () => {
       });
 
       const params: LanguageModelV2CallOptions = {
-        inputFormat: 'messages',
         prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
       };
 

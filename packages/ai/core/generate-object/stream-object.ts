@@ -402,7 +402,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
             description: schemaDescription,
           },
           ...prepareCallSettings(settings),
-          inputFormat: standardizedPrompt.type,
           prompt: await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
             supportedUrls: await model.getSupportedUrls(),
@@ -445,9 +444,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
-                'ai.prompt.format': {
-                  input: () => callOptions.inputFormat,
-                },
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(callOptions.prompt),
                 },

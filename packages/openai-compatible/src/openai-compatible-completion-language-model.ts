@@ -84,7 +84,6 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 
   private async getArgs({
-    inputFormat,
     prompt,
     maxOutputTokens,
     temperature,
@@ -130,7 +129,7 @@ export class OpenAICompatibleCompletionLanguageModel
     }
 
     const { prompt: completionPrompt, stopSequences } =
-      convertToOpenAICompatibleCompletionPrompt({ prompt, inputFormat });
+      convertToOpenAICompatibleCompletionPrompt({ prompt });
 
     const stop = [...(stopSequences ?? []), ...(userStopSequences ?? [])];
 

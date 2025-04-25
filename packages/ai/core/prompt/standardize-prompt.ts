@@ -10,12 +10,6 @@ import { Prompt } from './prompt';
 
 export type StandardizedPrompt = {
   /**
-   * Original prompt type. This is forwarded to the providers and can be used
-   * to write send raw text to providers that support it.
-   */
-  type: 'prompt' | 'messages';
-
-  /**
    * System message.
    */
   system?: string;
@@ -66,7 +60,6 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
     }
 
     return {
-      type: 'prompt',
       system: prompt.system,
       messages: [
         {
@@ -116,7 +109,6 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
     }
 
     return {
-      type: 'messages',
       messages,
       system: prompt.system,
     };

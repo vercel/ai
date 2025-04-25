@@ -69,7 +69,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ text: 'Hello, World!' });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -99,7 +98,6 @@ describe('doGenerate', () => {
     });
 
     const { content, finishReason } = await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -140,7 +138,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -153,7 +150,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -198,7 +194,6 @@ describe('doGenerate', () => {
     });
 
     const { finishReason } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -211,7 +206,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -229,7 +223,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -247,7 +240,6 @@ describe('doGenerate', () => {
       prepareJsonResponse({});
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         toolChoice: { type: 'none' },
         tools: [
           {
@@ -309,7 +301,6 @@ describe('doGenerate', () => {
     });
 
     await provider('command-r-plus').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -328,7 +319,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       responseFormat: {
         type: 'json',
@@ -365,7 +355,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ text: '' });
 
     const { request } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -414,7 +403,6 @@ describe('doGenerate', () => {
     });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -496,7 +484,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -557,7 +544,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       tools: [
         {
@@ -702,7 +688,6 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -737,7 +722,6 @@ describe('doStream', () => {
     });
 
     const { response } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -756,7 +740,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -787,7 +770,6 @@ describe('doStream', () => {
     });
 
     await provider('command-r-plus').doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -806,7 +788,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -854,7 +835,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       tools: [
         {

@@ -5,7 +5,6 @@ const BASE_PARAMS: LanguageModelV2CallOptions = {
   prompt: [
     { role: 'user', content: [{ type: 'text', text: 'Hello, world!' }] },
   ],
-  inputFormat: 'prompt',
 };
 
 describe('defaultSettingsMiddleware', () => {

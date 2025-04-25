@@ -4407,7 +4407,6 @@ describe('streamText', () => {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
             "headers": undefined,
-            "inputFormat": "prompt",
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,
             "prompt": [
