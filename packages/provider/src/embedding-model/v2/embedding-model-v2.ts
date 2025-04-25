@@ -34,7 +34,10 @@ Limit of how many embeddings can be generated in a single API call.
 
 Use Infinity for models that do not have a limit.
    */
-  readonly maxEmbeddingsPerCall: PromiseLike<number | undefined> | number | undefined;
+  readonly maxEmbeddingsPerCall:
+    | PromiseLike<number | undefined>
+    | number
+    | undefined;
 
   /**
 True if the model can handle multiple embedding calls in parallel.
