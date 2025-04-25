@@ -26,7 +26,6 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAIChatModelId,
-  OpenAIChatSettings,
   openaiProviderOptions,
 } from './openai-chat-options';
 import {
@@ -47,17 +46,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAIChatModelId;
-  readonly settings: OpenAIChatSettings;
 
   private readonly config: OpenAIChatConfig;
 
-  constructor(
-    modelId: OpenAIChatModelId,
-    settings: OpenAIChatSettings,
-    config: OpenAIChatConfig,
-  ) {
+  constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -96,6 +89,16 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         schema: openaiProviderOptions,
       })) ?? {};
 
+    const structuredToolCalls =
+      (typeof openaiOptions.structuredOutputs === 'boolean'
+        ? openaiOptions.structuredOutputs
+        : openaiOptions.structuredOutputs?.tools) ?? false;
+
+    const structuredResponse =
+      (typeof openaiOptions.structuredOutputs === 'boolean'
+        ? openaiOptions.structuredOutputs
+        : openaiOptions.structuredOutputs?.response) ?? false;
+
     if (topK != null) {
       warnings.push({
         type: 'unsupported-setting',
@@ -106,7 +109,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !this.settings.structuredOutputs
+      !structuredResponse
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -143,7 +146,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       response_format:
         responseFormat?.type === 'json'
           ? // TODO convert into provider option
-            this.settings.structuredOutputs && responseFormat.schema != null
+            structuredResponse && responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -241,7 +244,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     } = prepareTools({
       tools,
       toolChoice,
-      structuredOutputs: this.settings.structuredOutputs ?? false,
+      structuredOutputs: structuredToolCalls,
     });
 
     return {

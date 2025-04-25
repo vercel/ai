@@ -1,6 +1,5 @@
 import {
   OpenAIChatLanguageModel,
-  OpenAIChatSettings,
   OpenAICompletionLanguageModel,
   OpenAIEmbeddingModel,
   OpenAIEmbeddingSettings,
@@ -19,20 +18,17 @@ import {
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
 export interface AzureOpenAIProvider extends ProviderV2 {
-  (deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV2;
+  (deploymentId: string): LanguageModelV2;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  languageModel(
-    deploymentId: string,
-    settings?: OpenAIChatSettings,
-  ): LanguageModelV2;
+  languageModel(deploymentId: string): LanguageModelV2;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  chat(deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV2;
+  chat(deploymentId: string): LanguageModelV2;
 
   /**
 Creates an Azure OpenAI responses API model for text generation.
@@ -163,11 +159,8 @@ export function createAzure(
       : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${apiVersion}`;
   };
 
-  const createChatModel = (
-    deploymentName: string,
-    settings: OpenAIChatSettings = {},
-  ) =>
-    new OpenAIChatLanguageModel(deploymentName, settings, {
+  const createChatModel = (deploymentName: string) =>
+    new OpenAIChatLanguageModel(deploymentName, {
       provider: 'azure.chat',
       url,
       headers: getHeaders,
@@ -222,17 +215,14 @@ export function createAzure(
       fetch: options.fetch,
     });
 
-  const provider = function (
-    deploymentId: string,
-    settings?: OpenAIChatSettings,
-  ) {
+  const provider = function (deploymentId: string) {
     if (new.target) {
       throw new Error(
         'The Azure OpenAI model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(deploymentId, settings as OpenAIChatSettings);
+    return createChatModel(deploymentId);
   };
 
   provider.languageModel = createChatModel;

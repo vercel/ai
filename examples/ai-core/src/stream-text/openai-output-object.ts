@@ -5,7 +5,12 @@ import { z } from 'zod';
 
 async function main() {
   const { experimental_partialOutputStream: partialOutputStream } = streamText({
-    model: openai('gpt-4o-mini', { structuredOutputs: true }),
+    model: openai('gpt-4o-mini'),
+    providerOptions: {
+      openai: {
+        structuredOutputs: true,
+      },
+    },
     tools: {
       weather: tool({
         description: 'Get the weather in a location',

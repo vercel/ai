@@ -92,15 +92,21 @@ export const openaiProviderOptions = z.object({
    * Parameters for prediction mode.
    */
   prediction: z.record(z.any()).optional(),
+
+  /**
+   * Whether to use structured outputs.
+   *
+   * @default false
+   */
+  structuredOutputs: z
+    .union([
+      z.boolean(),
+      z.object({
+        tools: z.boolean().optional(),
+        response: z.boolean().optional(),
+      }),
+    ])
+    .optional(),
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;
-
-export interface OpenAIChatSettings {
-  /**
-Whether to use structured outputs. Defaults to false.
-
-When enabled, tool calls and object generation will be strict and follow the provided schema.
-*/
-  structuredOutputs?: boolean;
-}

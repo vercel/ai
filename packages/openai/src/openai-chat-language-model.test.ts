@@ -531,9 +531,7 @@ describe('doGenerate', () => {
     it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: false,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       const { warnings } = await model.doGenerate({
         inputFormat: 'prompt',
@@ -569,9 +567,7 @@ describe('doGenerate', () => {
     it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       const { warnings } = await model.doGenerate({
         inputFormat: 'prompt',
@@ -584,6 +580,11 @@ describe('doGenerate', () => {
             required: ['value'],
             additionalProperties: false,
             $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        providerOptions: {
+          openai: {
+            structuredOutputs: true,
           },
         },
       });
@@ -613,9 +614,7 @@ describe('doGenerate', () => {
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       await model.doGenerate({
         inputFormat: 'prompt',
@@ -627,6 +626,11 @@ describe('doGenerate', () => {
             required: ['value'],
             additionalProperties: false,
             $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        providerOptions: {
+          openai: {
+            structuredOutputs: true,
           },
         },
         prompt: TEST_PROMPT,
@@ -655,9 +659,7 @@ describe('doGenerate', () => {
     it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       await model.doGenerate({
         inputFormat: 'prompt',
@@ -671,6 +673,11 @@ describe('doGenerate', () => {
             required: ['value'],
             additionalProperties: false,
             $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+        providerOptions: {
+          openai: {
+            structuredOutputs: true,
           },
         },
         prompt: TEST_PROMPT,
@@ -700,9 +707,7 @@ describe('doGenerate', () => {
     it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       await model.doGenerate({
         inputFormat: 'prompt',
@@ -710,6 +715,11 @@ describe('doGenerate', () => {
           type: 'json',
           name: 'test-name',
           description: 'test description',
+        },
+        providerOptions: {
+          openai: {
+            structuredOutputs: true,
+          },
         },
         prompt: TEST_PROMPT,
       });
@@ -737,9 +747,7 @@ describe('doGenerate', () => {
         ],
       });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       const result = await model.doGenerate({
         inputFormat: 'prompt',
@@ -757,6 +765,11 @@ describe('doGenerate', () => {
             },
           },
         ],
+        providerOptions: {
+          openai: {
+            structuredOutputs: true,
+          },
+        },
         toolChoice: { type: 'required' },
         prompt: TEST_PROMPT,
       });
@@ -812,9 +825,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    });
+    const model = provider.chat('gpt-4o-2024-08-06');
 
     const result = await model.doGenerate({
       inputFormat: 'prompt',
@@ -831,6 +842,11 @@ describe('doGenerate', () => {
           },
         },
       ],
+      providerOptions: {
+        openai: {
+          structuredOutputs: true,
+        },
+      },
       toolChoice: {
         type: 'tool',
         toolName: 'test-tool',

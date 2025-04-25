@@ -5,7 +5,12 @@ import { z } from 'zod';
 
 async function main() {
   const result = streamObject({
-    model: openai('gpt-4o-mini', { structuredOutputs: true }),
+    model: openai('gpt-4o-mini'),
+    providerOptions: {
+      openai: {
+        structuredOutputs: true,
+      },
+    },
     schema: z.object({
       characters: z.array(
         z.object({

@@ -5,7 +5,12 @@ import { z } from 'zod';
 
 async function main() {
   const { request } = await generateObject({
-    model: openai('gpt-4o-mini', { structuredOutputs: true }),
+    model: openai('gpt-4o-mini'),
+    providerOptions: {
+      openai: {
+        structuredOutputs: true,
+      },
+    },
     schema: z.object({
       recipe: z.object({
         name: z.string(),

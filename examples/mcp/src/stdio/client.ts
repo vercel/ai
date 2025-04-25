@@ -23,7 +23,12 @@ async function main() {
     });
 
     const { text: answer } = await generateText({
-      model: openai('gpt-4o-mini', { structuredOutputs: true }),
+      model: openai('gpt-4o-mini'),
+      providerOptions: {
+        openai: {
+          structuredOutputs: true,
+        },
+      },
       tools: await mcpClient.tools({
         schemas: {
           'get-pokemon': {

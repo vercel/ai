@@ -6,7 +6,12 @@ import { mistral } from '@ai-sdk/mistral';
 import { openai } from '@ai-sdk/openai';
 import { replicate } from '@ai-sdk/replicate';
 import { xai } from '@ai-sdk/xai';
-import { createProviderRegistry, customProvider } from 'ai';
+import {
+  createProviderRegistry,
+  customProvider,
+  defaultSettingsMiddleware,
+  wrapLanguageModel,
+} from 'ai';
 import 'dotenv/config';
 
 // custom provider with alias names:
@@ -23,9 +28,31 @@ const myAnthropic = customProvider({
 const myOpenAI = customProvider({
   languageModels: {
     // replacement model with custom settings:
-    'gpt-4': openai('gpt-4', { structuredOutputs: true }),
+    'gpt-4': wrapLanguageModel({
+      model: openai('gpt-4'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              structuredOutputs: true,
+            },
+          },
+        },
+      }),
+    }),
     // alias model with custom settings:
-    'gpt-4o-structured': openai('gpt-4o', { structuredOutputs: true }),
+    'gpt-4o-structured': wrapLanguageModel({
+      model: openai('gpt-4o'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              structuredOutputs: true,
+            },
+          },
+        },
+      }),
+    }),
   },
   fallbackProvider: openai,
 });

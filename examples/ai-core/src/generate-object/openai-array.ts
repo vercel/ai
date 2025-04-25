@@ -5,10 +5,13 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: openai('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    }),
+    model: openai('gpt-4o-2024-08-06'),
     output: 'array',
+    providerOptions: {
+      openai: {
+        structuredOutputs: true,
+      },
+    },
     schema: z.object({
       name: z.string(),
       class: z

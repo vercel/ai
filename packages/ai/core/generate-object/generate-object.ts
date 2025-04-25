@@ -188,6 +188,7 @@ export async function generateObject<SCHEMA, RESULT>({
      */
     output?: 'object' | 'array' | 'enum' | 'no-schema';
 
+    structuredOutputs?: boolean;
     model: LanguageModel;
     enum?: Array<SCHEMA>;
     schema?: z.Schema<SCHEMA> | Schema<SCHEMA>;
