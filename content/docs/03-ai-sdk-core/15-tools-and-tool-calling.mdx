@@ -142,6 +142,40 @@ const result = await generateText({
 });
 ```
 
+### `experimental_prepareStep` callback
+
+<Note type="warning">
+  The `experimental_prepareStep` callback is experimental and may change in the
+  future.
+</Note>
+
+The `experimental_prepareStep` callback is called before a step is started.
+It is called with the current model, the step number, and the steps that have been executed so far.
+
+You can use it to provide different settings for a step.
+
+```tsx highlight="5-7"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  // ...
+  experimental_prepareStep: async ({ model, stepNumber, steps }) => {
+    if (stepNumber === 0) {
+      return {
+        // use a different model for this step:
+        model: modelForThisParticularStep,
+        // force a tool choice for this step:
+        toolChoice: { type: 'tool', toolName: 'tool1' },
+        // limit the tools that are available for this step:
+        experimental_activeTools: ['tool1'],
+      };
+    }
+
+    // when nothing is returned, the default settings are used
+  },
+});
+```
+
 ## Response Messages
 
 Adding the generated assistant and tool messages to your conversation history is a common task,
