@@ -213,4 +213,44 @@ describe('doGenerate', () => {
     );
     expect(result.response.modelId).toBe('dall-e-3');
   });
+
+  it('should not include response_format for gpt-image-1', async () => {
+    prepareJsonResponse();
+
+    const gptImageModel = provider.image('gpt-image-1');
+    await gptImageModel.doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody = await server.calls[server.calls.length - 1].requestBody;
+    expect(requestBody).toStrictEqual({
+      model: 'gpt-image-1',
+      prompt,
+      n: 1,
+      size: '1024x1024',
+    });
+
+    expect(requestBody).not.toHaveProperty('response_format');
+  });
+
+  it('should include response_format for dall-e-3', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    const requestBody = await server.calls[server.calls.length - 1].requestBody;
+    expect(requestBody).toHaveProperty('response_format', 'b64_json');
+  });
 });

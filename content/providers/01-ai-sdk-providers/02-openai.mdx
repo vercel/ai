@@ -220,8 +220,8 @@ The following optional settings are available for OpenAI chat models:
 
 #### Reasoning
 
-OpenAI has introduced the `o1` and `o3` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
-Currently, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available.
+OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
+Currently, `o4-mini`, `o3`, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available.
 
 Reasoning models currently only generate text, have several limitations, and are only supported using `generateText` and `streamText`.
 
@@ -398,7 +398,7 @@ const rejectedPredictionTokens = openaiMetadata?.rejectedPredictionTokens;
 
 #### Image Detail
 
-You can use the `openai` provider option to set the [image generation detail](https://platform.openai.com/docs/guides/vision/low-or-high-fidelity-image-understanding) to `high`, `low`, or `auto`:
+You can use the `openai` provider option to set the [image input detail](https://platform.openai.com/docs/guides/images-vision?api-mode=responses#specify-image-input-detail-level) to `high`, `low`, or `auto`:
 
 ```ts highlight="13-16"
 const result = await generateText({
@@ -577,6 +577,9 @@ The following provider options are available:
 - **reasoningEffort** _'low' | 'medium' | 'high'_
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
+- **reasoningSummary** _'auto' | 'detailed'_
+  Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
+
 - **strictSchemas** _boolean_
   Whether to use strict JSON schemas in tools and when generating JSON outputs. Defaults to `true`.
 
@@ -630,6 +633,53 @@ const result = await generateText({
 const sources = result.sources;
 ```
 
+#### Reasoning Summaries
+
+For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
+
+```ts highlight="8-9,16"
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: openai.responses('o4-mini'),
+  prompt: 'Tell me about the Mission burrito debate in San Francisco.',
+  providerOptions: {
+    openai: {
+      reasoningSummary: 'detailed', // 'auto' for condensed or 'detailed' for comprehensive
+    },
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'reasoning') {
+    console.log(`Reasoning: ${part.textDelta}`);
+  } else if (part.type === 'text-delta') {
+    process.stdout.write(part.textDelta);
+  }
+}
+```
+
+For non-streaming calls with `generateText`, the reasoning summaries are available in the `reasoning` field of the response:
+
+```ts highlight="8-9,13"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('o3-mini'),
+  prompt: 'Tell me about the Mission burrito debate in San Francisco.',
+  providerOptions: {
+    openai: {
+      reasoningSummary: 'auto',
+    },
+  },
+});
+console.log('Reasoning:', result.reasoning);
+```
+
+Learn more about reasoning summaries in the [OpenAI documentation](https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries).
+
 #### PDF support
 
 The OpenAI Responses API supports reading PDF files.
@@ -662,6 +712,42 @@ The model will have access to the contents of the PDF file and
 respond to questions about it.
 The PDF file should be passed using the `data` field,
 and the `mimeType` should be set to `'application/pdf'`.
+
+#### Structured Outputs
+
+The OpenAI Responses API supports structured outputs. You can enforce structured outputs using `generateObject` or `streamObject`, which expose a `schema` option. Additionally, you can pass a Zod or JSON Schema object to the `experimental_output` option when using `generateText` or `streamText`.
+
+```ts
+// Using generateObject
+const result = await generateObject({
+  model: openai.responses('gpt-4.1'),
+  schema: z.object({
+    recipe: z.object({
+      name: z.string(),
+      ingredients: z.array(
+        z.object({
+          name: z.string(),
+          amount: z.string(),
+        }),
+      ),
+      steps: z.array(z.string()),
+    }),
+  }),
+  prompt: 'Generate a lasagna recipe.',
+});
+
+// Using generateText
+const result = await generateText({
+  model: openai.responses('gpt-4.1'),
+  prompt: 'How do I make a pizza?',
+  experimental_output: Output.object({
+    schema: z.object({
+      ingredients: z.array(z.string()),
+      steps: z.array(z.string()),
+    }),
+  }),
+});
+```
 
 ### Completion Models
 
@@ -734,6 +820,9 @@ The following optional settings are available for OpenAI completion models:
 
 | Model                  | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
 | ---------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-4.1`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-mini`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4.1-nano`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-audio-preview` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -744,6 +833,8 @@ The following optional settings are available for OpenAI completion models:
 | `o1-mini`              | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `o1-preview`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `o3-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `o3`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `o4-mini`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `chatgpt-4o-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
@@ -808,10 +899,27 @@ const model = openai.image('dall-e-3');
 
 ### Model Capabilities
 
-| Model      | Sizes                           |
-| ---------- | ------------------------------- |
-| `dall-e-3` | 1024x1024, 1792x1024, 1024x1792 |
-| `dall-e-2` | 256x256, 512x512, 1024x1024     |
+| Model         | Sizes                           |
+| ------------- | ------------------------------- |
+| `gpt-image-1` | 1024x1024, 1536x1024, 1024x1536 |
+| `dall-e-3`    | 1024x1024, 1792x1024, 1024x1792 |
+| `dall-e-2`    | 256x256, 512x512, 1024x1024     |
+
+You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
+
+```ts
+const { image } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
+  providerOptions: {
+    openai: { quality: 'high' },
+  },
+});
+```
+
+For more on `generateImage()` see [Image Generation](/docs/ai-sdk-core/image-generation).
+
+For more information on the available OpenAI image model options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
 
 ## Transcription Models
 

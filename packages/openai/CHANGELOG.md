@@ -1,5 +1,62 @@
 # @ai-sdk/openai
 
+## 1.3.19
+
+### Patch Changes
+
+- 3cabda9: feat (providers/openai): add gpt-image-1 model id to image settings
+
+## 1.3.18
+
+### Patch Changes
+
+- 74cd391: feat (providers/openai): support gpt-image-1 image generation
+
+## 1.3.17
+
+### Patch Changes
+
+- ca7bce3: feat (providers/openai): add support for reasoning summaries
+
+## 1.3.16
+
+### Patch Changes
+
+- bd6e457: feat (provider/openai): o4 updates for responses api
+
+## 1.3.15
+
+### Patch Changes
+
+- 98d954e: feat (providers/openai): add o3 and o4-mini models
+
+## 1.3.14
+
+### Patch Changes
+
+- 980141c: fix (openai): structure output for responses model
+
+## 1.3.13
+
+### Patch Changes
+
+- 75b9849: adding support for gpt-4o-search-preview and handling unsupported parameters
+
+## 1.3.12
+
+### Patch Changes
+
+- 575339f: feat (providers/openai): add gpt-4.1 models
+
+## 1.3.11
+
+### Patch Changes
+
+- beef951: feat: add speech with experimental_generateSpeech
+- Updated dependencies [beef951]
+  - @ai-sdk/provider@1.1.3
+  - @ai-sdk/provider-utils@2.2.7
+
 ## 1.3.10
 
 ### Patch Changes

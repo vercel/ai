@@ -646,6 +646,35 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
+    it('should respect the reasoningEffort provider option', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel(
+        'gpt-4o-2024-08-06',
+        {},
+        {
+          provider: 'test-provider',
+          url: () => 'https://my.api.com/v1/chat/completions',
+          headers: () => ({}),
+        },
+      );
+
+      await model.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        providerMetadata: {
+          'openai-compatible': {
+            reasoningEffort: 'low',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBody;
+
+      expect(body.reasoning_effort).toBe('low');
+    });
+
     it('should use json_schema & strict in object-json mode when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
@@ -983,6 +1012,37 @@ describe('doStream', () => {
       ],
     };
   }
+
+  it('should respect the includeUsage option', async () => {
+    prepareStreamResponse({
+      content: ['Hello', ', ', 'World!'],
+      finish_reason: 'stop',
+    });
+
+    const model = new OpenAICompatibleChatLanguageModel(
+      'gpt-4o-2024-08-06',
+      {},
+      {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+        includeUsage: true,
+      },
+    );
+
+    const { warnings } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBody;
+
+    expect(body.stream).toBe(true);
+    expect(body.stream_options).toStrictEqual({ include_usage: true });
+
+    expect(warnings).toEqual([]);
+  });
 
   it('should stream text deltas', async () => {
     prepareStreamResponse({
