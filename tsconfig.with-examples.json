@@ -25,6 +25,9 @@
       "path": "examples/nest"
     },
     {
+      "path": "examples/next-openai"
+    },
+    {
       "path": "examples/next-fastapi"
     },
     {
@@ -32,6 +35,9 @@
     },
     {
       "path": "examples/next-langchain"
+    },
+    {
+      "path": "examples/next-openai"
     },
     {
       "path": "examples/next-openai-kasada-bot-protection"
