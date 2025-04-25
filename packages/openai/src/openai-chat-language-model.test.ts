@@ -388,29 +388,45 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "gpt-3.5-turbo",
+        "tool_choice": {
+          "function": {
+            "name": "test-tool",
+          },
+          "type": "function",
         },
-      ],
-      tool_choice: {
-        type: 'function',
-        function: { name: 'test-tool' },
-      },
-    });
+        "tools": [
+          {
+            "function": {
+              "name": "test-tool",
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": true,
+            },
+            "type": "function",
+          },
+        ],
+      }
+    `)
   });
 
   it('should pass headers', async () => {
@@ -536,6 +552,11 @@ describe('doGenerate', () => {
       const { warnings } = await model.doGenerate({
         inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            structuredOutputs: false,
+          },
+        },
         responseFormat: {
           type: 'json',
           schema: {
@@ -548,11 +569,20 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: { type: 'json_object' },
-      });
+      expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "type": "json_object",
+          },
+        }
+      `);
 
       expect(warnings).toEqual([
         {
