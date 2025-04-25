@@ -100,7 +100,7 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const maxEmbeddingsPerCall = model.maxEmbeddingsPerCall;
+      const maxEmbeddingsPerCall = await model.maxEmbeddingsPerCall;
 
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
