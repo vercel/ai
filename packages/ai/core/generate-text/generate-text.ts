@@ -202,7 +202,8 @@ Optional specification for parsing structured outputs from the LLM response.
     experimental_prepareStep?: (options: {
       steps: Array<StepResult<TOOLS>>;
       stepNumber: number;
-      // TODO default settings, messages, system, model
+      model: LanguageModel;
+      // TODO default settings, messages, system
     }) => PromiseLike<
       | {
           model?: LanguageModel;
@@ -269,6 +270,9 @@ A function that attempts to repair a tool call that failed to parse.
           telemetry,
         }),
         ...baseTelemetryAttributes,
+        // model:
+        'ai.model.provider': model.provider,
+        'ai.model.id': model.modelId,
         // specific settings that only make sense on the outer level:
         'ai.prompt': {
           input: () => JSON.stringify({ system, prompt, messages }),
@@ -308,28 +312,33 @@ A function that attempts to repair a tool call that failed to parse.
           ...responseMessages,
         ];
 
+        const prepareStepResult = await prepareStep?.({
+          model,
+          steps,
+          stepNumber: stepCount,
+        });
+
+        const stepToolChoice = prepareStepResult?.toolChoice ?? toolChoice;
+        const stepActiveTools =
+          prepareStepResult?.experimental_activeTools ?? activeTools;
+        const stepModel = prepareStepResult?.model ?? model;
+
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
             type: promptFormat,
             system: initialPrompt.system,
             messages: stepInputMessages,
           },
-          modelSupportsImageUrls: model.supportsImageUrls,
-          modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
-        });
-
-        const prepareStepResult = await prepareStep?.({
-          steps,
-          stepNumber: stepCount,
+          modelSupportsImageUrls: stepModel.supportsImageUrls,
+          modelSupportsUrl: stepModel.supportsUrl?.bind(stepModel), // support 'this' context
         });
 
         const mode = {
           type: 'regular' as const,
           ...prepareToolsAndToolChoice({
             tools,
-            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-            activeTools:
-              prepareStepResult?.experimental_activeTools ?? activeTools,
+            toolChoice: stepToolChoice,
+            activeTools: stepActiveTools,
           }),
         };
 
@@ -344,6 +353,10 @@ A function that attempts to repair a tool call that failed to parse.
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
+                // model:
+                'ai.model.provider': stepModel.provider,
+                'ai.model.id': stepModel.modelId,
+                // prompt:
                 'ai.prompt.format': { input: () => promptFormat },
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
@@ -360,8 +373,8 @@ A function that attempts to repair a tool call that failed to parse.
                 },
 
                 // standardized gen-ai llm span attributes:
-                'gen_ai.system': model.provider,
-                'gen_ai.request.model': model.modelId,
+                'gen_ai.system': stepModel.provider,
+                'gen_ai.request.model': stepModel.modelId,
                 'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
                 'gen_ai.request.max_tokens': settings.maxTokens,
                 'gen_ai.request.presence_penalty': settings.presencePenalty,
@@ -373,7 +386,7 @@ A function that attempts to repair a tool call that failed to parse.
             }),
             tracer,
             fn: async span => {
-              const result = await model.doGenerate({
+              const result = await stepModel.doGenerate({
                 mode,
                 ...callSettings,
                 inputFormat: promptFormat,
@@ -388,7 +401,7 @@ A function that attempts to repair a tool call that failed to parse.
               const responseData = {
                 id: result.response?.id ?? generateId(),
                 timestamp: result.response?.timestamp ?? currentDate(),
-                modelId: result.response?.modelId ?? model.modelId,
+                modelId: result.response?.modelId ?? stepModel.modelId,
               };
 
               // Add response information to the span:
