@@ -1855,3 +1855,53 @@ describe('initialMessages', () => {
     });
   });
 });
+
+describe('resume ongoing stream and return assistant message', () => {
+  setupTestComponent(
+    () => {
+      const { messages, status, experimental_resume } = useChat({
+        id: '123',
+        initialMessages: [{ id: 'msg_123', role: 'user', content: 'hi' }],
+      });
+
+      useEffect(() => {
+        experimental_resume();
+      }, []);
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))}
+
+          <div data-testid="status">{status}</div>
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        server.urls['/api/chat'].response = [
+          {
+            type: 'stream-chunks',
+            chunks: ['0:"Hello"\n', '0:"," \n', '0:" world"\n', '0:"."\n'],
+          },
+        ];
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  it('construct messages from resumed stream', async () => {
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+  });
+});

@@ -634,6 +634,77 @@ messages.map(message => (
 ));
 ```
 
+## Resumable Streams (Experimental)
+
+The `useChat` hook has experimental support for resuming an ongoing chat generation stream by any client, either after a network disconnect or reloading the chat. This can be useful for building applications that involve long-running conversations or for ensuring that messages are not lost in case of network failures.
+
+The following are the pre-requisities for your chat application to support resumable streams:
+
+- Installing the [`resumable-stream`](https://www.npmjs.com/package/resumable-stream) package that helps create and manage the publisher/subscriber mechanism of the streams.
+- A [Redis](https://vercel.com/marketplace/redis) instance to store the stream state.
+- A table that tracks the stream IDs associated with a chat.
+
+To resume a chat stream, you can use the `experimental_resume` function returned by the `useChat` hook. You will typically call this function during the initial mount of the hook.
+
+```
+'use client'
+
+export function Chat() {
+  const { experimental_resume } = useChat({id});
+
+  useEffect(() => {
+    experimental_resume();
+
+    // we use an empty dependency array to
+    // ensure this effect runs only once
+  }, [])
+
+  return (
+    <div>
+      <Messages>
+      <Input/>
+    </div>
+  )
+}
+```
+
+The `experimental_resume` function makes a `GET` request to the api endpoint you've initialized the hook with (or `/api/chat` by default) and streams the contents of the stream if it is active or fails silently if it has ended.
+
+The `GET` request automatically appends the `chatId` query parameter to the URL to help identify the chat the request belongs to. Using the `chatId`, you can look up the most recent stream ID from the database and resume the stream. As a result, it is important to specify the `id` parameter in the `useChat` hook.
+
+Earlier, you must've implemented the `POST` method for `/api/chat` route to create new chat generations. When using `experimental_resume`, you must also implement the `GET` method for `/api/chat` route to resume a stream if it is active or fails silently if it has ended.
+
+```
+export async function GET() {
+  const { searchParams } = new URL(request.url);
+  const chatId = searchParams.get('chatId');
+
+  if (!chatId) {
+    return new Response('id is required', { status: 400 });
+  }
+
+  const streamIds = await loadStreams(chatId);
+
+  if (!streamIds.length) {
+    return new Response('No streams found', { status: 404 });
+  }
+
+  const recentStreamId = streamIds.at(-1);
+
+  if (!recentStreamId) {
+    return new Response('No recent stream found', { status: 404 });
+  }
+
+  const emptyDataStream = createDataStream({
+    execute: () => {},
+  });
+
+  return new Response(
+    await streamContext.resumableStream(recentStreamId, () => emptyDataStream),
+  );
+}
+```
+
 ## Attachments (Experimental)
 
 The `useChat` hook supports sending attachments along with a message as well as rendering them on the client. This can be useful for building applications that involve sending images, files, or other media content to the AI provider.

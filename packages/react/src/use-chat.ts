@@ -9,6 +9,7 @@ import type {
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
+  resumeChatApi,
   extractMaxToolInvocationStep,
   fillMessageParts,
   generateId as generateIdFunc,
@@ -52,6 +53,12 @@ export type UseChatHelpers = {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop: () => void;
+
+  /**
+   * Resume an ongoing chat generation stream. This does not resume an aborted generation.
+   */
+  experimental_resume: () => Promise<string | null | undefined>;
+
   /**
    * Update the `messages` state locally. This is useful when you want to
    * edit the messages on the client, and then trigger the `reload` method
@@ -400,6 +407,100 @@ By default, it's set to 1, which means that only a single LLM call is made.
     ],
   );
 
+  const triggerResumeRequest = useCallback(async () => {
+    const body = {
+      id: chatId,
+      messages: messagesRef.current,
+    };
+
+    try {
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      const throttledMutate = throttle(mutate, throttleWaitMs);
+      const throttledMutateStreamData = throttle(
+        mutateStreamData,
+        throttleWaitMs,
+      );
+
+      const previousMessages = messagesRef.current;
+      const chatMessages = fillMessageParts(previousMessages);
+
+      const existingData = streamDataRef.current;
+
+      await resumeChatApi({
+        api,
+        body,
+        fetch,
+        onResponse,
+        restoreMessagesOnFailure() {
+          if (!keepLastMessageOnError) {
+            throttledMutate(previousMessages, false);
+          }
+        },
+        streamProtocol,
+        onUpdate({ message, data, replaceLastMessage }) {
+          mutateStatus('streaming');
+
+          throttledMutate(
+            [
+              ...(replaceLastMessage
+                ? chatMessages.slice(0, chatMessages.length - 1)
+                : chatMessages),
+              message,
+            ],
+            false,
+          );
+
+          if (data?.length) {
+            throttledMutateStreamData(
+              [...(existingData ?? []), ...data],
+              false,
+            );
+          }
+        },
+        onFinish,
+        onToolCall,
+        generateId,
+        lastMessage: chatMessages[chatMessages.length - 1],
+      });
+
+      abortControllerRef.current = null;
+
+      mutateStatus('ready');
+    } catch (error) {
+      // Ignore abort errors as they are expected.
+      if ((error as any).name === 'AbortError') {
+        abortControllerRef.current = null;
+        mutateStatus('ready');
+        return null;
+      }
+
+      if (onError && error instanceof Error) {
+        onError(error);
+      }
+
+      setError(error as Error);
+      mutateStatus('error');
+    }
+  }, [
+    api,
+    chatId,
+    fetch,
+    generateId,
+    keepLastMessageOnError,
+    mutate,
+    mutateStatus,
+    mutateStreamData,
+    onFinish,
+    onResponse,
+    onToolCall,
+    streamProtocol,
+    throttleWaitMs,
+    onError,
+    setError,
+  ]);
+
   const append = useCallback(
     async (
       message: Message | CreateMessage,
@@ -455,6 +556,10 @@ By default, it's set to 1, which means that only a single LLM call is made.
       abortControllerRef.current = null;
     }
   }, []);
+
+  const experimental_resume = useCallback(async () => {
+    return triggerResumeRequest();
+  }, [triggerResumeRequest]);
 
   const setMessages = useCallback(
     (messages: Message[] | ((messages: Message[]) => Message[])) => {
@@ -581,6 +686,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     append,
     reload,
     stop,
+    experimental_resume,
     input,
     setInput,
     handleInputChange,
