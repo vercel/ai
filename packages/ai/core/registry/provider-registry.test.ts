@@ -3,7 +3,7 @@ import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { NoSuchProviderError } from './no-such-provider-error';
 import { createProviderRegistry } from './provider-registry';
-import { MockImageModelV2 } from '../test/mock-image-model-v1';
+import { MockImageModelV2 } from '../test/mock-image-model-v2';
 
 describe('languageModel', () => {
   it('should return language model from provider', () => {

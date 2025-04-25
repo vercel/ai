@@ -31,7 +31,7 @@ interface LumaImageModelConfig {
 }
 
 export class LumaImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
 
   private readonly pollIntervalMillis: number;
   private readonly maxPollAttempts: number;

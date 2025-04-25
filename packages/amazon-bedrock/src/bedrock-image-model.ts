@@ -26,7 +26,7 @@ type BedrockImageModelConfig = {
 };
 
 export class BedrockImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
   readonly provider = 'amazon-bedrock';
 
   get maxImagesPerCall(): number {

@@ -1,5 +1,5 @@
 import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
-import { MockImageModelV2 } from '../test/mock-image-model-v1';
+import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import { generateImage } from './generate-image';
 import {
   convertBase64ToUint8Array,
