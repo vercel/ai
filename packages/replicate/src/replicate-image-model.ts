@@ -27,7 +27,7 @@ interface ReplicateImageModelConfig {
 }
 
 export class ReplicateImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
 
   get provider(): string {
     return this.config.provider;

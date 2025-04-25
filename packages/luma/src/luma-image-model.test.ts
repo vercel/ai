@@ -270,7 +270,7 @@ describe('LumaImageModel', () => {
 
       expect(model.provider).toBe('luma');
       expect(model.modelId).toBe('test-model');
-      expect(model.specificationVersion).toBe('v1');
+      expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(1);
     });
 

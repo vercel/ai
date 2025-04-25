@@ -26,7 +26,7 @@ interface GoogleVertexImageModelConfig {
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
 export class GoogleVertexImageModel implements ImageModelV2 {
-  readonly specificationVersion = 'v1';
+  readonly specificationVersion = 'v2';
 
   get provider(): string {
     return this.config.provider;
