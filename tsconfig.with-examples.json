@@ -25,9 +25,6 @@
       "path": "examples/nest"
     },
     {
-      "path": "examples/next-openai"
-    },
-    {
       "path": "examples/next-fastapi"
     },
     {
