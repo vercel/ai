@@ -28,6 +28,7 @@ export function Chat({
     id: chatId,
     api: '/api/use-chat-resume',
     initialMessages,
+    sendExtraMessageFields: true,
     onError: error => {
       console.error('Error streaming text:', error);
     },
@@ -45,16 +46,22 @@ export function Chat({
         Chat Id: {chatId}
       </Link>
 
+      <div>Status: {status}</div>
+
       {messages.map(message => (
-        <div key={message.id} className="whitespace-pre-wrap">
-          {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.parts
-            .filter(part => part.type !== 'source')
-            .map((part, index) => {
-              if (part.type === 'text') {
-                return <div key={index}>{part.text}</div>;
-              }
-            })}
+        <div key={message.id} className="whitespace-pre-wrap flex flex-row">
+          <div className="min-w-12">{message.role === 'user' ? 'User: ' : 'AI: '}</div>
+
+          <div>
+            <div className="text-sm text-zinc-500">{message.id}</div>
+            {message.parts
+              .filter(part => part.type !== 'source')
+              .map((part, partIndex) => {
+                if (part.type === 'text') {
+                  return <div key={`${message.id}-${partIndex}`}>{part.text}</div>;
+                }
+              })}
+          </div>
         </div>
       ))}
 

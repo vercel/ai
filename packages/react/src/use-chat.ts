@@ -414,6 +414,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
     };
 
     try {
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       const throttledMutate = throttle(mutate, throttleWaitMs);
       const throttledMutateStreamData = throttle(
         mutateStreamData,
@@ -461,9 +464,24 @@ By default, it's set to 1, which means that only a single LLM call is made.
         generateId,
         lastMessage: chatMessages[chatMessages.length - 1],
       });
+
+      abortControllerRef.current = null;
+
+      mutateStatus('ready')
     } catch (error) {
-      console.error('Error resuming chat:', error);
-      return null;
+      // Ignore abort errors as they are expected.
+      if ((error as any).name === 'AbortError') {
+        abortControllerRef.current = null;
+        mutateStatus('ready');
+        return null;
+      }
+
+      if (onError && error instanceof Error) {
+        onError(error);
+      }
+
+      setError(error as Error);
+      mutateStatus('error');
     }
   }, [
     api,
@@ -479,6 +497,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
     onToolCall,
     streamProtocol,
     throttleWaitMs,
+    onError,
+    setError,
   ]);
 
   const append = useCallback(
