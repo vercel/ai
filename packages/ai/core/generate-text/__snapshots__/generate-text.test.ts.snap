@@ -336,14 +336,12 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
 exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
 [
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
-    "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -409,17 +407,15 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
       "promptTokens": 10,
       "totalTokens": 15,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
-    "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -478,7 +474,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
       "promptTokens": 10,
       "totalTokens": 30,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;
@@ -527,14 +523,12 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
 exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > result.steps should contain all steps 1`] = `
 [
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
-    "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -600,17 +594,15 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
       "promptTokens": 10,
       "totalTokens": 15,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
   {
-    "experimental_providerMetadata": undefined,
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
-    "logprobs": undefined,
     "providerMetadata": undefined,
-    "reasoning": undefined,
-    "reasoningDetails": [],
+    "reasoning": [],
+    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -669,7 +661,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
       "promptTokens": 10,
       "totalTokens": 30,
     },
-    "warnings": undefined,
+    "warnings": [],
   },
 ]
 `;

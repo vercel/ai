@@ -674,41 +674,42 @@ describe('options.maxSteps', () => {
 
       let responseCount = 0;
 
-      const trueModel = new MockLanguageModelV1({
-        doGenerate: async ({ prompt, mode }) => {
+      const trueModel = new MockLanguageModelV2({
+        doGenerate: async ({ prompt, tools, toolChoice }) => {
           switch (responseCount++) {
             case 0:
-              expect(mode).toStrictEqual({
-                type: 'regular',
-                toolChoice: { type: 'tool', toolName: 'tool1' },
-                tools: [
-                  {
-                    type: 'function',
-                    name: 'tool1',
-                    description: undefined,
-                    parameters: {
-                      $schema: 'http://json-schema.org/draft-07/schema#',
-                      additionalProperties: false,
-                      properties: { value: { type: 'string' } },
-                      required: ['value'],
-                      type: 'object',
-                    },
-                  },
-                ],
+              expect(toolChoice).toStrictEqual({
+                type: 'tool',
+                toolName: 'tool1',
               });
+              expect(tools).toStrictEqual([
+                {
+                  type: 'function',
+                  name: 'tool1',
+                  description: undefined,
+                  parameters: {
+                    $schema: 'http://json-schema.org/draft-07/schema#',
+                    additionalProperties: false,
+                    properties: { value: { type: 'string' } },
+                    required: ['value'],
+                    type: 'object',
+                  },
+                },
+              ]);
 
               expect(prompt).toStrictEqual([
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'test-input' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
 
               return {
                 ...dummyResponseValues,
-                toolCalls: [
+                content: [
                   {
+                    type: 'tool-call',
                     toolCallType: 'function',
                     toolCallId: 'call-1',
                     toolName: 'tool1',
@@ -724,7 +725,7 @@ describe('options.maxSteps', () => {
                   },
                 ],
                 finishReason: 'tool-calls',
-                usage: { completionTokens: 5, promptTokens: 10 },
+                usage: { inputTokens: 10, outputTokens: 5 },
                 response: {
                   id: 'test-id-1-from-model',
                   timestamp: new Date(0),
@@ -732,17 +733,14 @@ describe('options.maxSteps', () => {
                 },
               };
             case 1:
-              expect(mode).toStrictEqual({
-                type: 'regular',
-                toolChoice: { type: 'auto' },
-                tools: [],
-              });
+              expect(tools).toStrictEqual([]);
+              expect(toolChoice).toStrictEqual({ type: 'auto' });
 
               expect(prompt).toStrictEqual([
                 {
                   role: 'user',
                   content: [{ type: 'text', text: 'test-input' }],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
                 {
                   role: 'assistant',
@@ -752,10 +750,10 @@ describe('options.maxSteps', () => {
                       toolCallId: 'call-1',
                       toolName: 'tool1',
                       args: { value: 'value' },
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
                 {
                   role: 'tool',
@@ -767,21 +765,19 @@ describe('options.maxSteps', () => {
                       result: 'result1',
                       content: undefined,
                       isError: undefined,
-                      providerMetadata: undefined,
+                      providerOptions: undefined,
                     },
                   ],
-                  providerMetadata: undefined,
+                  providerOptions: undefined,
                 },
               ]);
               return {
                 ...dummyResponseValues,
-                text: 'Hello, world!',
+                content: [{ type: 'text', text: 'Hello, world!' }],
                 response: {
                   id: 'test-id-2-from-model',
                   timestamp: new Date(10000),
                   modelId: 'test-response-model-id',
-                },
-                rawResponse: {
                   headers: {
                     'custom-response-header': 'response-header-value',
                   },
@@ -852,11 +848,13 @@ describe('options.maxSteps', () => {
     });
 
     it('result.usage should sum token usage', () => {
-      assert.deepStrictEqual(result.usage, {
-        completionTokens: 25,
-        promptTokens: 20,
-        totalTokens: 45,
-      });
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "completionTokens": 25,
+          "promptTokens": 20,
+          "totalTokens": 45,
+        }
+      `);
     });
 
     it('result.steps should contain all steps', () => {

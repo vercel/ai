@@ -327,11 +327,6 @@ A function that attempts to repair a tool call that failed to parse.
           stepNumber: stepCount,
         });
 
-        const stepToolChoice = prepareStepResult?.toolChoice ?? toolChoice;
-        const stepActiveTools =
-          prepareStepResult?.experimental_activeTools ?? activeTools;
-        const stepModel = prepareStepResult?.model ?? model;
-
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
             type: promptFormat,
@@ -341,11 +336,14 @@ A function that attempts to repair a tool call that failed to parse.
           supportedUrls: await model.getSupportedUrls(),
         });
 
-        const toolsAndToolChoice = prepareToolsAndToolChoice({
-          tools,
-          toolChoice: stepToolChoice,
-          activeTools: stepActiveTools,
-        });
+        const stepModel = prepareStepResult?.model ?? model;
+        const { toolChoice: stepToolChoice, tools: stepTools } =
+          prepareToolsAndToolChoice({
+            tools,
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            activeTools:
+              prepareStepResult?.experimental_activeTools ?? activeTools,
+          });
 
         currentModelResponse = await retry(() =>
           recordSpan({
@@ -368,13 +366,12 @@ A function that attempts to repair a tool call that failed to parse.
                 },
                 'ai.prompt.tools': {
                   // convert the language model level tools:
-                  input: () =>
-                    toolsAndToolChoice.tools?.map(tool => JSON.stringify(tool)),
+                  input: () => stepTools?.map(tool => JSON.stringify(tool)),
                 },
                 'ai.prompt.toolChoice': {
                   input: () =>
-                    toolsAndToolChoice.toolChoice != null
-                      ? JSON.stringify(toolsAndToolChoice.toolChoice)
+                    stepToolChoice != null
+                      ? JSON.stringify(stepToolChoice)
                       : undefined,
                 },
 
@@ -392,9 +389,10 @@ A function that attempts to repair a tool call that failed to parse.
             }),
             tracer,
             fn: async span => {
-              const result = await model.doGenerate({
+              const result = await stepModel.doGenerate({
                 ...callSettings,
-                ...toolsAndToolChoice,
+                tools: stepTools,
+                toolChoice: stepToolChoice,
                 inputFormat: promptFormat,
                 responseFormat: output?.responseFormat,
                 prompt: promptMessages,
