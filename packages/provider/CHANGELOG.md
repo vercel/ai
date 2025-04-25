@@ -1,5 +1,16 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.11
+
+### Major Changes
+
+- e030615: chore (provider): remove prompt type from language model v2 spec
+
+### Patch Changes
+
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- 4617fab: chore(embedding-models): remove remaining settings
+
 ## 2.0.0-canary.10
 
 ### Major Changes
