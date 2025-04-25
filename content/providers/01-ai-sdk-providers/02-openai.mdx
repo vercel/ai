@@ -635,14 +635,14 @@ const sources = result.sources;
 
 #### Reasoning Summaries
 
-For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process:
+For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
 
 ```ts highlight="8-9,16"
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: openai.responses('o3-mini'),
+  model: openai.responses('o4-mini'),
   prompt: 'Tell me about the Mission burrito debate in San Francisco.',
   providerOptions: {
     openai: {
@@ -671,7 +671,7 @@ const result = await generateText({
   prompt: 'Tell me about the Mission burrito debate in San Francisco.',
   providerOptions: {
     openai: {
-      reasoningSummary: 'detailed',
+      reasoningSummary: 'auto',
     },
   },
 });
@@ -905,17 +905,21 @@ const model = openai.image('dall-e-3');
 | `dall-e-3`    | 1024x1024, 1792x1024, 1024x1792 |
 | `dall-e-2`    | 256x256, 512x512, 1024x1024     |
 
-You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and aremodel dependent. For example, the `gpt-image-1` model supports the `quality` option:
+You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
 
 ```ts
-const model = openai.image('gpt-image-1', {
+const { image } = await generateImage({
+  model: openai.image('gpt-image-1'),
+  prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
     openai: { quality: 'high' },
   },
 });
 ```
 
-For more information on the available options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
+For more on `generateImage()` see [Image Generation](/docs/ai-sdk-core/image-generation).
+
+For more information on the available OpenAI image model options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
 
 ## Transcription Models
 
