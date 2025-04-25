@@ -29,21 +29,14 @@ export class GoogleGenerativeAIEmbeddingModel
 {
   readonly specificationVersion = 'v2';
   readonly modelId: GoogleGenerativeAIEmbeddingModelId;
+  readonly maxEmbeddingsPerCall = 2048;
+  readonly supportsParallelCalls = true;
 
   private readonly config: GoogleGenerativeAIEmbeddingConfig;
 
   get provider(): string {
     return this.config.provider;
   }
-
-  get maxEmbeddingsPerCall(): number {
-    return 2048;
-  }
-
-  get supportsParallelCalls(): boolean {
-    return true;
-  }
-
   constructor(
     modelId: GoogleGenerativeAIEmbeddingModelId,
     config: GoogleGenerativeAIEmbeddingConfig,
