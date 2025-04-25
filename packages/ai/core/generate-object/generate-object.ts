@@ -353,9 +353,7 @@ Default and recommended: 'auto' (best mode for the model).
       request = generateResult.request ?? {};
       response = generateResult.responseData;
 
-      async function processResult(
-        result: string,
-      ): Promise<TYPE> {
+      async function processResult(result: string): Promise<TYPE> {
         const parseResult = await safeParseJSON({ text: result });
 
         if (!parseResult.success) {

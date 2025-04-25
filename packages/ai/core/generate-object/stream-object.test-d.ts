@@ -12,7 +12,9 @@ describe('streamObject', () => {
       model: undefined!,
     });
 
-    expectTypeOf<typeof result.object>().toEqualTypeOf<Promise<{ number: number }>>();
+    expectTypeOf<typeof result.object>().toEqualTypeOf<
+      Promise<{ number: number }>
+    >();
   });
 
   it('should support no-schema output mode', async () => {
@@ -31,7 +33,9 @@ describe('streamObject', () => {
       model: undefined!,
     });
 
-    expectTypeOf<typeof result.partialObjectStream>().toEqualTypeOf<AsyncIterableStream<number[]>>();
+    expectTypeOf<typeof result.partialObjectStream>().toEqualTypeOf<
+      AsyncIterableStream<number[]>
+    >();
     expectTypeOf<typeof result.object>().toEqualTypeOf<Promise<number[]>>();
   });
 });
