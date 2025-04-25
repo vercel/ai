@@ -12,7 +12,7 @@ export const mcpApiHandler = initializeMcpApiHandler({
       'calculateSum',
       'Returns the sum of N numbers',
       {
-        // @ts-ignore: Type definition mismatch in SDK
+        // @ts-ignore: MCP Typescript SDK regression
         values: z.array(z.number()),
       },
       async ({ values }: { values: number[] }) => ({

@@ -679,7 +679,7 @@ Create an MCP client using either:
 
 - `SSE` (Server-Sent Events): Uses HTTP-based real-time communication, better suited for remote servers that need to send data over the network
 - `stdio`: Uses standard input and output streams for communication, ideal for local tool servers running on the same machine (like CLI tools or local services)
-- Custom transport: Bring your own transport by implementing the `MCPTransport` interface
+- Custom transport: Bring your own transport by implementing the `MCPTransport` interface, ideal when implementing transports from MCP's official Typescript SDK (e.g. `StreamableHTTPClientTransport`)
 
 #### SSE Transport
 
@@ -719,14 +719,16 @@ const mcpClient = await createMCPClient({
 
 #### Custom Transport
 
-You can also bring your own transport by implementing the `MCPTransport` interface:
+You can also bring your own transport, as long as it implements the `MCPTransport` interface. Below is an example of using the new `StreamableHTTPClientTransport` from MCP's official Typescript SDK:
 
 ```typescript
 import { MCPTransport, createMCPClient } from 'ai';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
 
+const url = new URL('http://localhost:3000/mcp');
 const mcpClient = await createMCPClient({
-  transport: new MyCustomTransport({
-    // ...
+  transport: new StreamableHTTPClientTransport(url, {
+    sessionId: 'session_123',
   }),
 });
 ```

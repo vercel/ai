@@ -15,7 +15,6 @@ export async function POST(req: Request) {
 
   try {
     const tools = await client.tools();
-    console.log('tools', tools);
 
     const result = streamText({
       model: openai('gpt-4o-mini'),
@@ -30,7 +29,6 @@ export async function POST(req: Request) {
         await client.close();
       },
       onError: async error => {
-        console.error(error);
         await client.close();
       },
     });
