@@ -35,6 +35,12 @@ import { GenerateObjectResult } from './generate-object-result';
 import { injectJsonInstruction } from './inject-json-instruction';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import {
+  GenerateObjectArrayOptions,
+  GenerateObjectEnumOptions,
+  GenerateObjectNoSchemaOptions,
+  GenerateObjectObjectOptions,
+} from './generate-object-options';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -58,81 +64,7 @@ This function does not stream the output. If you want to stream the output, use 
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<OBJECT>(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output?: 'object' | undefined;
-
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
-The schema of the object that the model should generate.
-     */
-      schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT>;
-
-      /**
-Optional name of the output that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema name.
-     */
-      schemaName?: string;
-
-      /**
-Optional description of the output that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema description.
-     */
-      schemaDescription?: string;
-
-      /**
-The mode to use for object generation.
-
-The schema is converted into a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-     */
-      mode?: 'auto' | 'json' | 'tool';
-
-      /**
-A function that attempts to repair the raw output of the mode
-to enable JSON parsing.
-     */
-      experimental_repairText?: RepairTextFunction;
-
-      /**
-Optional telemetry configuration (experimental).
-       */
-
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-      };
-    },
+  options: GenerateObjectObjectOptions<OBJECT>,
 ): Promise<GenerateObjectResult<OBJECT>>;
 /**
 Generate an array with structured, typed elements for a given prompt and element schema using a language model.
@@ -143,80 +75,7 @@ This function does not stream the output. If you want to stream the output, use 
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<ELEMENT>(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output: 'array';
-
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
-The element schema of the array that the model should generate.
- */
-      schema: z.Schema<ELEMENT, z.ZodTypeDef, any> | Schema<ELEMENT>;
-
-      /**
-Optional name of the array that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema name.
-     */
-      schemaName?: string;
-
-      /**
-Optional description of the array that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema description.
- */
-      schemaDescription?: string;
-
-      /**
-The mode to use for object generation.
-
-The schema is converted into a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-     */
-      mode?: 'auto' | 'json' | 'tool';
-
-      /**
-A function that attempts to repair the raw output of the mode
-to enable JSON parsing.
-     */
-      experimental_repairText?: RepairTextFunction;
-
-      /**
-Optional telemetry configuration (experimental).
-     */
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-      };
-    },
+  options: GenerateObjectArrayOptions<ELEMENT>,
 ): Promise<GenerateObjectResult<Array<ELEMENT>>>;
 /**
 Generate a value from an enum (limited list of string values) using a language model.
@@ -227,66 +86,7 @@ This function does not stream the output.
 A result object that contains the generated value, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<ENUM extends string>(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output: 'enum';
-
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
-The enum values that the model should use.
-     */
-      enum: Array<ENUM>;
-
-      /**
-The mode to use for object generation.
-
-The schema is converted into a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-     */
-      mode?: 'auto' | 'json' | 'tool';
-
-      /**
-A function that attempts to repair the raw output of the mode
-to enable JSON parsing.
-     */
-      experimental_repairText?: RepairTextFunction;
-
-      /**
-Optional telemetry configuration (experimental).
-     */
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-      };
-    },
+  options: GenerateObjectEnumOptions<ENUM>,
 ): Promise<GenerateObjectResult<ENUM>>;
 /**
 Generate JSON with any schema for a given prompt using a language model.
@@ -297,51 +97,7 @@ This function does not stream the output. If you want to stream the output, use 
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output: 'no-schema';
-
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
-The mode to use for object generation. Must be "json" for no-schema output.
-     */
-      mode?: 'json';
-
-      /**
-A function that attempts to repair the raw output of the mode
-to enable JSON parsing.
-     */
-      experimental_repairText?: RepairTextFunction;
-
-      /**
-Optional telemetry configuration (experimental).
-       */
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-@deprecated Use `providerOptions` instead.
-*/
-      experimental_providerMetadata?: ProviderMetadata;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-      };
-    },
+  options: GenerateObjectNoSchemaOptions,
 ): Promise<GenerateObjectResult<JSONValue>>;
 export async function generateObject<SCHEMA, RESULT>({
   model,
