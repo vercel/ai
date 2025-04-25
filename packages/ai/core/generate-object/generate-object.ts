@@ -4,31 +4,24 @@ import {
   TypeValidationError,
 } from '@ai-sdk/provider';
 import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
-import { Schema } from '@ai-sdk/ui-utils';
-import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
-import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareRetries } from '../prompt/prepare-retries';
-import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
-import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   CallWarning,
   FinishReason,
-  LanguageModel,
   LogProbs,
   ProviderMetadata,
 } from '../types';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderOptions } from '../types/provider-metadata';
 import { calculateLanguageModelUsage } from '../types/usage';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
@@ -40,20 +33,10 @@ import {
   GenerateObjectEnumOptions,
   GenerateObjectNoSchemaOptions,
   GenerateObjectObjectOptions,
+  GenerateObjectOptions,
 } from './generate-object-options';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
-
-/**
-A function that attempts to repair the raw output of the mode
-to enable JSON parsing.
-
-Should return the repaired text or null if the text cannot be repaired.
-     */
-export type RepairTextFunction = (options: {
-  text: string;
-  error: JSONParseError | TypeValidationError;
-}) => Promise<string | null>;
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
@@ -99,7 +82,7 @@ A result object that contains the generated object, the finish reason, the token
 export async function generateObject(
   options: GenerateObjectNoSchemaOptions,
 ): Promise<GenerateObjectResult<JSONValue>>;
-export async function generateObject<SCHEMA, RESULT>({
+export async function generateObject<RESULT>({
   model,
   enum: enumValues, // rename bc enum is reserved by typescript
   schema: inputSchema,
@@ -122,38 +105,12 @@ export async function generateObject<SCHEMA, RESULT>({
     currentDate = () => new Date(),
   } = {},
   ...settings
-}: Omit<CallSettings, 'stopSequences'> &
-  Prompt & {
-    /**
-     * The expected structure of the output.
-     *
-     * - 'object': Generate a single object that conforms to the schema.
-     * - 'array': Generate an array of objects that conform to the schema.
-     * - 'no-schema': Generate any JSON object. No schema is specified.
-     *
-     * Default is 'object' if not specified.
-     */
-    output?: 'object' | 'array' | 'enum' | 'no-schema';
-
-    model: LanguageModel;
-    enum?: Array<SCHEMA>;
-    schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
-    schemaName?: string;
-    schemaDescription?: string;
-    mode?: 'auto' | 'json' | 'tool';
-    experimental_repairText?: RepairTextFunction;
-    experimental_telemetry?: TelemetrySettings;
-    experimental_providerMetadata?: ProviderMetadata;
-    providerOptions?: ProviderOptions;
-
-    /**
-     * Internal. For test use only. May change without notice.
-     */
-    _internal?: {
-      generateId?: () => string;
-      currentDate?: () => Date;
-    };
-  }): Promise<GenerateObjectResult<RESULT>> {
+}: GenerateObjectOptions & {
+  enum?: Array<string>;
+  schema?: any;
+  schemaName?: string;
+  schemaDescription?: string;
+}): Promise<GenerateObjectResult<RESULT>> {
   validateObjectGenerationInput({
     output,
     mode,

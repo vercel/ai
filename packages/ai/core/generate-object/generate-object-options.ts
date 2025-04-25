@@ -5,8 +5,20 @@ import { Prompt } from '../prompt/prompt';
 import { LanguageModel } from '../types/language-model';
 import { ProviderMetadata } from '../types/provider-metadata';
 import { ProviderOptions } from '../types/provider-metadata';
-import { RepairTextFunction } from './generate-object';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { TypeValidationError } from '@ai-sdk/provider';
+import { JSONParseError } from '@ai-sdk/provider';
+
+/**
+A function that attempts to repair the raw output of the mode
+to enable JSON parsing.
+
+Should return the repaired text or null if the text cannot be repaired.
+     */
+export type RepairTextFunction = (options: {
+  text: string;
+  error: JSONParseError | TypeValidationError;
+}) => Promise<string | null>;
 
 export type GenerateObjectBaseOptions = Omit<CallSettings, 'stopSequences'> &
   Prompt & {
@@ -127,7 +139,7 @@ The enum values that the model should use.
   };
 
 export type GenerateObjectObjectOptions<OBJECT> = GenerateObjectBaseOptions & {
-  output: 'object' | undefined;
+  output?: 'object' | undefined;
   /**
 The schema of the object that the model should generate.
      */
