@@ -2,7 +2,7 @@ import { ImageModelV2CallOptions } from './image-model-v2-call-options';
 import { ImageModelV2CallWarning } from './image-model-v2-call-warning';
 
 /**
-Image generation model specification version 1.
+Image generation model specification version 2.
  */
 export type ImageModelV2 = {
   /**
@@ -12,7 +12,7 @@ model interface and retain backwards compatibility. The different
 implementation versions can be handled as a discriminated union
 on our side.
    */
-  readonly specificationVersion: 'v1';
+  readonly specificationVersion: 'v2';
 
   /**
 Name of the provider for logging purposes.
