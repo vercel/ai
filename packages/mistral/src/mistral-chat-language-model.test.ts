@@ -69,7 +69,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -87,7 +86,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: 'prefix and more content' });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'messages',
       prompt: [
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
         {
@@ -140,7 +138,6 @@ describe('doGenerate', () => {
     };
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -164,7 +161,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -179,7 +175,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -200,7 +195,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -218,7 +212,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -232,7 +225,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -286,7 +278,6 @@ describe('doGenerate', () => {
     });
 
     await provider.chat('mistral-small-latest').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -307,7 +298,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     const { request } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -371,7 +361,6 @@ describe('doGenerate', () => {
     };
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -421,7 +410,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -473,7 +461,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: ['prefix', ' and', ' more content'] });
 
     const { stream } = await model.doStream({
-      inputFormat: 'messages',
       prompt: [
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
         {
@@ -542,7 +529,6 @@ describe('doStream', () => {
     })
       .chat('mistral-large-latest')
       .doStream({
-        inputFormat: 'prompt',
         tools: [
           {
             type: 'function',
@@ -608,7 +594,6 @@ describe('doStream', () => {
     });
 
     const { response } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -627,7 +612,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [''] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -649,7 +633,6 @@ describe('doStream', () => {
     });
 
     await provider.chat('mistral-small-latest').doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -668,7 +651,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -717,7 +699,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 

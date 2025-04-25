@@ -312,9 +312,6 @@ A function that attempts to repair a tool call that failed to parse.
       let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';
 
       do {
-        // after the 1st step, we need to switch to messages format:
-        const promptFormat = stepCount === 0 ? initialPrompt.type : 'messages';
-
         const stepInputMessages = [
           ...initialPrompt.messages,
           ...responseMessages,
@@ -329,7 +326,6 @@ A function that attempts to repair a tool call that failed to parse.
 
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
-            type: promptFormat,
             system: initialPrompt.system,
             messages: stepInputMessages,
           },
@@ -360,7 +356,6 @@ A function that attempts to repair a tool call that failed to parse.
                 'ai.model.provider': stepModel.provider,
                 'ai.model.id': stepModel.modelId,
                 // prompt:
-                'ai.prompt.format': { input: () => promptFormat },
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
                 },
@@ -393,7 +388,6 @@ A function that attempts to repair a tool call that failed to parse.
                 ...callSettings,
                 tools: stepTools,
                 toolChoice: stepToolChoice,
-                inputFormat: promptFormat,
                 responseFormat: output?.responseFormat,
                 prompt: promptMessages,
                 providerOptions,

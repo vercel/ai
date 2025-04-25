@@ -1636,7 +1636,6 @@ describe('options.output', () => {
       expect(callOptions!).toEqual({
         temperature: 0,
         responseFormat: { type: 'text' },
-        inputFormat: 'prompt',
         prompt: [
           {
             content: [{ text: 'prompt', type: 'text' }],
@@ -1687,7 +1686,6 @@ describe('options.output', () => {
 
       expect(callOptions!).toEqual({
         temperature: 0,
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           schema: {
