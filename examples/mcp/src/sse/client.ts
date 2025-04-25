@@ -17,11 +17,6 @@ async function main() {
 
   const { text: answer } = await generateText({
     model: openai('gpt-4o-mini'),
-    providerOptions: {
-      openai: {
-        structuredOutputs: true,
-      },
-    },
     tools,
     maxSteps: 10,
     onStepFinish: async ({ toolResults }) => {

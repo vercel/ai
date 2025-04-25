@@ -96,17 +96,9 @@ export const openaiProviderOptions = z.object({
   /**
    * Whether to use structured outputs.
    *
-   * @default false
+   * @default true
    */
-  structuredOutputs: z
-    .union([
-      z.boolean(),
-      z.object({
-        tools: z.boolean().optional(),
-        response: z.boolean().optional(),
-      }),
-    ])
-    .optional(),
+  structuredOutputs: z.boolean().optional(),
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;

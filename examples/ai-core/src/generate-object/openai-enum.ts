@@ -5,11 +5,6 @@ import 'dotenv/config';
 async function main() {
   const result = await generateObject({
     model: openai('gpt-4o-mini'),
-    providerOptions: {
-      openai: {
-        structuredOutputs: true,
-      },
-    },
     output: 'enum',
     enum: ['action', 'comedy', 'drama', 'horror', 'sci-fi'],
     prompt:

@@ -22,9 +22,31 @@ import { customProvider } from 'ai';
 export const myOpenAI = customProvider({
   languageModels: {
     // replacement model with custom settings:
-    'gpt-4': openai('gpt-4', { structuredOutputs: true }),
+    'gpt-4': wrapLanguageModel({
+      model: openai('gpt-4'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
+    }),
     // alias model with custom settings:
-    'gpt-4o-structured': openai('gpt-4o', { structuredOutputs: true }),
+    'gpt-4o-reasoning-high': wrapLanguageModel({
+      model: openai('gpt-4o'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
+    }),
   },
   fallbackProvider: openai,
 });

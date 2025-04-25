@@ -8,22 +8,22 @@ async function main() {
     model: openai('gpt-4o-2024-08-06'),
     providerOptions: {
       openai: {
-        structuredOutputs: true,
+        structuredOutputs: false,
       },
     },
-    schemaName: 'recipe',
-    schemaDescription: 'A recipe for lasagna.',
     schema: z.object({
-      name: z.string(),
-      ingredients: z.array(
+      characters: z.array(
         z.object({
           name: z.string(),
-          amount: z.string(),
+          class: z
+            .string()
+            .describe('Character class, e.g. warrior, mage, or thief.'),
+          description: z.string(),
         }),
       ),
-      steps: z.array(z.string()),
     }),
-    prompt: 'Generate a lasagna recipe.',
+    prompt:
+      'Generate 3 character descriptions for a fantasy role playing game.',
   });
 
   for await (const partialObject of result.partialObjectStream) {

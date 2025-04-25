@@ -582,11 +582,6 @@ describe('doGenerate', () => {
             $schema: 'http://json-schema.org/draft-07/schema#',
           },
         },
-        providerOptions: {
-          openai: {
-            structuredOutputs: true,
-          },
-        },
       });
 
       expect(await server.calls[0].requestBody).toStrictEqual({
@@ -626,11 +621,6 @@ describe('doGenerate', () => {
             required: ['value'],
             additionalProperties: false,
             $schema: 'http://json-schema.org/draft-07/schema#',
-          },
-        },
-        providerOptions: {
-          openai: {
-            structuredOutputs: true,
           },
         },
         prompt: TEST_PROMPT,
@@ -675,11 +665,6 @@ describe('doGenerate', () => {
             $schema: 'http://json-schema.org/draft-07/schema#',
           },
         },
-        providerOptions: {
-          openai: {
-            structuredOutputs: true,
-          },
-        },
         prompt: TEST_PROMPT,
       });
 
@@ -715,11 +700,6 @@ describe('doGenerate', () => {
           type: 'json',
           name: 'test-name',
           description: 'test description',
-        },
-        providerOptions: {
-          openai: {
-            structuredOutputs: true,
-          },
         },
         prompt: TEST_PROMPT,
       });
@@ -765,11 +745,6 @@ describe('doGenerate', () => {
             },
           },
         ],
-        providerOptions: {
-          openai: {
-            structuredOutputs: true,
-          },
-        },
         toolChoice: { type: 'required' },
         prompt: TEST_PROMPT,
       });
@@ -842,11 +817,6 @@ describe('doGenerate', () => {
           },
         },
       ],
-      providerOptions: {
-        openai: {
-          structuredOutputs: true,
-        },
-      },
       toolChoice: {
         type: 'tool',
         toolName: 'test-tool',

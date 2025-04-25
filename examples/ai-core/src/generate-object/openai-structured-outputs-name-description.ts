@@ -6,11 +6,6 @@ import { z } from 'zod';
 async function main() {
   const result = await generateObject({
     model: openai('gpt-4o-2024-08-06'),
-    providerOptions: {
-      openai: {
-        structuredOutputs: true,
-      },
-    },
     schemaName: 'recipe',
     schemaDescription: 'A recipe for lasagna.',
     schema: z.object({

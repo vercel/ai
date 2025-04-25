@@ -22,7 +22,6 @@ async function main() {
     providerOptions: {
       openai: {
         store: true,
-        structuredOutputs: true,
         metadata: {
           custom: 'value',
         },

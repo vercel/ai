@@ -45,11 +45,6 @@ async function main() {
       // example approach: use a model with structured outputs for repair:
       const { object: repairedArgs } = await generateObject({
         model: openai('gpt-4o'),
-        providerOptions: {
-          openai: {
-            structuredOutputs: true,
-          },
-        },
         schema: tool.parameters,
         prompt: [
           `The model tried to call the tool "${

@@ -27,27 +27,27 @@ const myAnthropic = customProvider({
 // custom provider with different model settings:
 const myOpenAI = customProvider({
   languageModels: {
-    // replacement model with custom settings:
+    // replacement model with custom provider options:
     'gpt-4': wrapLanguageModel({
       model: openai('gpt-4'),
       middleware: defaultSettingsMiddleware({
         settings: {
           providerOptions: {
             openai: {
-              structuredOutputs: true,
+              reasoningEffort: 'high',
             },
           },
         },
       }),
     }),
-    // alias model with custom settings:
-    'gpt-4o-structured': wrapLanguageModel({
+    // alias model with custom provider options:
+    'gpt-4o-high-reasoning': wrapLanguageModel({
       model: openai('gpt-4o'),
       middleware: defaultSettingsMiddleware({
         settings: {
           providerOptions: {
             openai: {
-              structuredOutputs: true,
+              reasoningEffort: 'high',
             },
           },
         },

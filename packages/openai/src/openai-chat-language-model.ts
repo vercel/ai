@@ -89,15 +89,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         schema: openaiProviderOptions,
       })) ?? {};
 
-    const structuredToolCalls =
-      (typeof openaiOptions.structuredOutputs === 'boolean'
-        ? openaiOptions.structuredOutputs
-        : openaiOptions.structuredOutputs?.tools) ?? false;
-
-    const structuredResponse =
-      (typeof openaiOptions.structuredOutputs === 'boolean'
-        ? openaiOptions.structuredOutputs
-        : openaiOptions.structuredOutputs?.response) ?? false;
+    const structuredOutputs = openaiOptions.structuredOutputs ?? true;
 
     if (topK != null) {
       warnings.push({
@@ -109,7 +101,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !structuredResponse
+      !structuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -146,7 +138,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       response_format:
         responseFormat?.type === 'json'
           ? // TODO convert into provider option
-            structuredResponse && responseFormat.schema != null
+            structuredOutputs && responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -244,7 +236,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     } = prepareTools({
       tools,
       toolChoice,
-      structuredOutputs: structuredToolCalls,
+      structuredOutputs,
     });
 
     return {
