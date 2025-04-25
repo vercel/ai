@@ -42,6 +42,8 @@ interface MCPClientConfig {
   onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   name?: string;
+  /** Enforce strict mode, defaults to false. Strict mode will throw errors for requests that the remote side has not indicated that they can handle, through their advertised capabilities */
+  enforceStrictMode?: boolean;
 }
 
 export async function createMCPClient(
