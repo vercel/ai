@@ -76,13 +76,16 @@ class MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private isClosed = true;
+  private enforceStrictMode = false;
 
   constructor({
     transport: transportConfig,
     name = 'ai-sdk-mcp-client',
     onUncaughtError,
+    enforceStrictMode = false,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
+    this.enforceStrictMode = enforceStrictMode;
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
@@ -168,6 +171,25 @@ class MCPClient {
     this.onClose();
   }
 
+  protected assertCapability(method: string): void {
+    switch (method) {
+      case 'initialize':
+        break;
+      case 'tools/list':
+      case 'tools/call':
+        if (!this.serverCapabilities.tools) {
+          throw new MCPClientError({
+            message: `Server does not support tools`,
+          });
+        }
+        break;
+      default:
+        throw new MCPClientError({
+          message: `Unsupported method: ${method}`,
+        });
+    }
+  }
+
   private async request<T extends ZodType<object>>({
     request,
     resultSchema,
@@ -177,7 +199,7 @@ class MCPClient {
     resultSchema: T;
     options?: RequestOptions;
   }): Promise<z.infer<T>> {
-    const { relatedRequestId, resumptionToken, onresumptiontoken } = options;
+    const { resumptionToken, onresumptiontoken } = options;
 
     return new Promise((resolve, reject) => {
       if (this.isClosed) {
@@ -186,6 +208,10 @@ class MCPClient {
             message: 'Attempted to send a request from a closed client',
           }),
         );
+      }
+
+      if (this.enforceStrictMode) {
+        this.assertCapability(request.method);
       }
 
       const signal = options?.signal;
@@ -221,7 +247,7 @@ class MCPClient {
           resolve(result);
         } catch (error) {
           const parseError = new MCPClientError({
-            message: 'Failed to parse server initialization result',
+            message: 'Failed to parse server response',
             cause: error,
           });
           reject(parseError);
@@ -230,7 +256,6 @@ class MCPClient {
 
       this.transport
         .send(jsonrpcRequest, {
-          relatedRequestId,
           resumptionToken,
           onresumptiontoken,
         })
@@ -248,12 +273,6 @@ class MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListToolsResult> {
-    if (!this.serverCapabilities.tools) {
-      throw new MCPClientError({
-        message: `Server does not support tools`,
-      });
-    }
-
     try {
       return this.request({
         request: { method: 'tools/list', params },
@@ -274,12 +293,6 @@ class MCPClient {
     args: Record<string, unknown>;
     options?: ToolExecutionOptions;
   }): Promise<CallToolResult> {
-    if (!this.serverCapabilities.tools) {
-      throw new MCPClientError({
-        message: `Server does not support tools`,
-      });
-    }
-
     try {
       return this.request({
         request: { method: 'tools/call', params: { name, arguments: args } },
