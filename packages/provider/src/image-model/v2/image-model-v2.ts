@@ -1,3 +1,4 @@
+import { SharedV2ProviderMetadata } from '../../shared';
 import { ImageModelV2CallOptions } from './image-model-v2-call-options';
 import { ImageModelV2CallWarning } from './image-model-v2-call-warning';
 
@@ -47,6 +48,13 @@ be returned as binary data.
 Warnings for the call, e.g. unsupported settings.
      */
     warnings: Array<ImageModelV2CallWarning>;
+
+    /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+      */
+    providerMetadata?: SharedV2ProviderMetadata;
 
     /**
 Response information for telemetry and debugging purposes.
