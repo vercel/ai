@@ -146,11 +146,17 @@ const result = await generateText({
 
 <Note type="warning">
   The `experimental_prepareStep` callback is experimental and may change in the
-  future.
+  future. It is only available in the `generateText` function.
 </Note>
 
 The `experimental_prepareStep` callback is called before a step is started.
-It is called with the current model, the step number, and the steps that have been executed so far.
+
+It is called with the following parameters:
+
+- `model`: The model that was passed into `generateText`.
+- `maxSteps`: The maximum number of steps that was passed into `generateText`.
+- `stepNumber`: The number of the step that is being executed.
+- `steps`: The steps that have been executed so far.
 
 You can use it to provide different settings for a step.
 
