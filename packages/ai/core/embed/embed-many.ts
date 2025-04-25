@@ -100,11 +100,11 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const maxEmbeddingsPerCall = model.maxEmbeddingsPerCall;
+      const maxEmbeddingsPerCall = await model.maxEmbeddingsPerCall;
 
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
-      if (maxEmbeddingsPerCall == null) {
+      if (maxEmbeddingsPerCall == null || maxEmbeddingsPerCall === Infinity) {
         const { embeddings, usage, response } = await retry(() => {
           // nested spans to align with the embedMany telemetry data:
           return recordSpan({

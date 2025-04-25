@@ -1,4 +1,4 @@
-import { AISDKError, ImageModelV2, JSONValue } from '@ai-sdk/provider';
+import { ImageModelV2, JSONValue } from '@ai-sdk/provider';
 import { NoImageGeneratedError } from '../../errors/no-image-generated-error';
 import {
   DefaultGeneratedFile,

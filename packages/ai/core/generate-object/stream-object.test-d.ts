@@ -1,0 +1,41 @@
+import { expectTypeOf } from 'vitest';
+import { generateObject } from './generate-object';
+import { z } from 'zod';
+import { JSONValue } from '@ai-sdk/provider';
+import { streamObject } from './stream-object';
+import { AsyncIterableStream } from '../util/async-iterable-stream';
+
+describe('streamObject', () => {
+  it('should support schema types', async () => {
+    const result = streamObject({
+      schema: z.object({ number: z.number() }),
+      model: undefined!,
+    });
+
+    expectTypeOf<typeof result.object>().toEqualTypeOf<
+      Promise<{ number: number }>
+    >();
+  });
+
+  it('should support no-schema output mode', async () => {
+    const result = streamObject({
+      output: 'no-schema',
+      model: undefined!,
+    });
+
+    expectTypeOf<typeof result.object>().toEqualTypeOf<Promise<JSONValue>>();
+  });
+
+  it('should support array output mode', async () => {
+    const result = streamObject({
+      output: 'array',
+      schema: z.number(),
+      model: undefined!,
+    });
+
+    expectTypeOf<typeof result.partialObjectStream>().toEqualTypeOf<
+      AsyncIterableStream<number[]>
+    >();
+    expectTypeOf<typeof result.object>().toEqualTypeOf<Promise<number[]>>();
+  });
+});

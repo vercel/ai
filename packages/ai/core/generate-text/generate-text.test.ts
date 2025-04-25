@@ -665,6 +665,207 @@ describe('options.maxSteps', () => {
     });
   });
 
+  describe('2 steps: initial, tool-result with prepareStep', () => {
+    let result: GenerateTextResult<any, any>;
+    let onStepFinishResults: StepResult<any>[];
+
+    beforeEach(async () => {
+      onStepFinishResults = [];
+
+      let responseCount = 0;
+
+      const trueModel = new MockLanguageModelV2({
+        doGenerate: async ({ prompt, tools, toolChoice }) => {
+          switch (responseCount++) {
+            case 0:
+              expect(toolChoice).toStrictEqual({
+                type: 'tool',
+                toolName: 'tool1',
+              });
+              expect(tools).toStrictEqual([
+                {
+                  type: 'function',
+                  name: 'tool1',
+                  description: undefined,
+                  parameters: {
+                    $schema: 'http://json-schema.org/draft-07/schema#',
+                    additionalProperties: false,
+                    properties: { value: { type: 'string' } },
+                    required: ['value'],
+                    type: 'object',
+                  },
+                },
+              ]);
+
+              expect(prompt).toStrictEqual([
+                {
+                  role: 'user',
+                  content: [{ type: 'text', text: 'test-input' }],
+                  providerOptions: undefined,
+                },
+              ]);
+
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    args: `{ "value": "value" }`,
+                  },
+                ],
+                toolResults: [
+                  {
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    args: { value: 'value' },
+                    result: 'result1',
+                  },
+                ],
+                finishReason: 'tool-calls',
+                usage: { inputTokens: 10, outputTokens: 5 },
+                response: {
+                  id: 'test-id-1-from-model',
+                  timestamp: new Date(0),
+                  modelId: 'test-response-model-id',
+                },
+              };
+            case 1:
+              expect(tools).toStrictEqual([]);
+              expect(toolChoice).toStrictEqual({ type: 'auto' });
+
+              expect(prompt).toStrictEqual([
+                {
+                  role: 'user',
+                  content: [{ type: 'text', text: 'test-input' }],
+                  providerOptions: undefined,
+                },
+                {
+                  role: 'assistant',
+                  content: [
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      args: { value: 'value' },
+                      providerOptions: undefined,
+                    },
+                  ],
+                  providerOptions: undefined,
+                },
+                {
+                  role: 'tool',
+                  content: [
+                    {
+                      type: 'tool-result',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      result: 'result1',
+                      content: undefined,
+                      isError: undefined,
+                      providerOptions: undefined,
+                    },
+                  ],
+                  providerOptions: undefined,
+                },
+              ]);
+              return {
+                ...dummyResponseValues,
+                content: [{ type: 'text', text: 'Hello, world!' }],
+                response: {
+                  id: 'test-id-2-from-model',
+                  timestamp: new Date(10000),
+                  modelId: 'test-response-model-id',
+                  headers: {
+                    'custom-response-header': 'response-header-value',
+                  },
+                },
+              };
+            default:
+              throw new Error(`Unexpected response count: ${responseCount}`);
+          }
+        },
+      });
+
+      result = await generateText({
+        model: modelWithFiles,
+        tools: {
+          tool1: tool({
+            parameters: z.object({ value: z.string() }),
+            execute: async (args, options) => {
+              expect(args).toStrictEqual({ value: 'value' });
+              expect(options.messages).toStrictEqual([
+                { role: 'user', content: 'test-input' },
+              ]);
+              return 'result1';
+            },
+          }),
+        },
+        prompt: 'test-input',
+        maxSteps: 3,
+        onStepFinish: async event => {
+          onStepFinishResults.push(event);
+        },
+        experimental_prepareStep: async ({ model, stepNumber, steps }) => {
+          expect(model).toStrictEqual(modelWithFiles);
+
+          if (stepNumber === 0) {
+            expect(steps).toStrictEqual([]);
+            return {
+              model: trueModel,
+              toolChoice: {
+                type: 'tool',
+                toolName: 'tool1' as const,
+              },
+            };
+          }
+
+          if (stepNumber === 1) {
+            expect(steps.length).toStrictEqual(1);
+            return { model: trueModel, experimental_activeTools: [] };
+          }
+        },
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+    });
+
+    it('result.text should return text from last step', async () => {
+      assert.deepStrictEqual(result.text, 'Hello, world!');
+    });
+
+    it('result.toolCalls should return empty tool calls from last step', async () => {
+      assert.deepStrictEqual(result.toolCalls, []);
+    });
+
+    it('result.toolResults should return empty tool results from last step', async () => {
+      assert.deepStrictEqual(result.toolResults, []);
+    });
+
+    it('result.response.messages should contain response messages from all steps', () => {
+      expect(result.response.messages).toMatchSnapshot();
+    });
+
+    it('result.usage should sum token usage', () => {
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "completionTokens": 25,
+          "promptTokens": 20,
+          "totalTokens": 45,
+        }
+      `);
+    });
+
+    it('result.steps should contain all steps', () => {
+      expect(result.steps).toMatchSnapshot();
+    });
+
+    it('onStepFinish should be called for each step', () => {
+      expect(onStepFinishResults).toMatchSnapshot();
+    });
+  });
+
   describe('4 steps: initial, continue, continue, continue', () => {
     let result: GenerateTextResult<any, any>;
     let onStepFinishResults: StepResult<any>[];
@@ -1435,7 +1636,6 @@ describe('options.output', () => {
       expect(callOptions!).toEqual({
         temperature: 0,
         responseFormat: { type: 'text' },
-        inputFormat: 'prompt',
         prompt: [
           {
             content: [{ text: 'prompt', type: 'text' }],
@@ -1486,7 +1686,6 @@ describe('options.output', () => {
 
       expect(callOptions!).toEqual({
         temperature: 0,
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           schema: {

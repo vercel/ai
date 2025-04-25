@@ -26,7 +26,6 @@ import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAIChatModelId,
-  OpenAIChatSettings,
   openaiProviderOptions,
 } from './openai-chat-options';
 import {
@@ -47,17 +46,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAIChatModelId;
-  readonly settings: OpenAIChatSettings;
 
   private readonly config: OpenAIChatConfig;
 
-  constructor(
-    modelId: OpenAIChatModelId,
-    settings: OpenAIChatSettings,
-    config: OpenAIChatConfig,
-  ) {
+  constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -96,6 +89,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         schema: openaiProviderOptions,
       })) ?? {};
 
+    const structuredOutputs = openaiOptions.structuredOutputs ?? true;
+
     if (topK != null) {
       warnings.push({
         type: 'unsupported-setting',
@@ -106,7 +101,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !this.settings.structuredOutputs
+      !structuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -143,7 +138,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       response_format:
         responseFormat?.type === 'json'
           ? // TODO convert into provider option
-            this.settings.structuredOutputs && responseFormat.schema != null
+            structuredOutputs && responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -241,7 +236,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     } = prepareTools({
       tools,
       toolChoice,
-      structuredOutputs: this.settings.structuredOutputs ?? false,
+      structuredOutputs,
     });
 
     return {
@@ -723,10 +718,22 @@ const reasoningModels = {
   'o1-preview-2024-09-12': {
     systemMessageMode: 'remove',
   },
+  o3: {
+    systemMessageMode: 'developer',
+  },
+  'o3-2025-04-16': {
+    systemMessageMode: 'developer',
+  },
   'o3-mini': {
     systemMessageMode: 'developer',
   },
   'o3-mini-2025-01-31': {
+    systemMessageMode: 'developer',
+  },
+  'o4-mini': {
+    systemMessageMode: 'developer',
+  },
+  'o4-mini-2025-04-16': {
     systemMessageMode: 'developer',
   },
 } as const;

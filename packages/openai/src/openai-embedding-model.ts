@@ -13,36 +13,23 @@ import { OpenAIConfig } from './openai-config';
 import {
   OpenAIEmbeddingModelId,
   openaiEmbeddingProviderOptions,
-  OpenAIEmbeddingSettings,
 } from './openai-embedding-options';
 import { openaiFailedResponseHandler } from './openai-error';
 
 export class OpenAIEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = 'v2';
   readonly modelId: OpenAIEmbeddingModelId;
+  readonly maxEmbeddingsPerCall = 2048;
+  readonly supportsParallelCalls = true;
 
   private readonly config: OpenAIConfig;
-  private readonly settings: OpenAIEmbeddingSettings;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxEmbeddingsPerCall(): number {
-    return this.settings.maxEmbeddingsPerCall ?? 2048;
-  }
-
-  get supportsParallelCalls(): boolean {
-    return this.settings.supportsParallelCalls ?? true;
-  }
-
-  constructor(
-    modelId: OpenAIEmbeddingModelId,
-    settings: OpenAIEmbeddingSettings,
-    config: OpenAIConfig,
-  ) {
+  constructor(modelId: OpenAIEmbeddingModelId, config: OpenAIConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 

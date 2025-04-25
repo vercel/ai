@@ -270,7 +270,6 @@ functionality that can be fully encapsulated in the provider.
         toolChoice,
         activeTools: undefined,
       }),
-      inputFormat: validatedPrompt.type,
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
         supportedUrls: await model.getSupportedUrls(),
