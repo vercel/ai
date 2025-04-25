@@ -426,7 +426,7 @@ describe('doGenerate', () => {
           },
         ],
       }
-    `)
+    `);
   });
 
   it('should pass headers', async () => {
