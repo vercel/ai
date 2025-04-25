@@ -101,7 +101,7 @@ functionality that can be fully encapsulated in the provider.
 }) => Promise<void> | void;
 
 export function streamObject<
-  TYPE extends SCHEMA extends z.Schema
+  RESULT extends SCHEMA extends z.Schema
     ? Output extends 'array'
       ? Array<z.infer<SCHEMA>>
       : z.infer<SCHEMA>
@@ -182,7 +182,7 @@ The stream processing will pause until the callback promise is resolved.
       /**
 Callback that is called when the LLM response and the final object validation are finished.
 */
-      onFinish?: StreamObjectOnFinishCallback<TYPE>;
+      onFinish?: StreamObjectOnFinishCallback<RESULT>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -193,11 +193,11 @@ Callback that is called when the LLM response and the final object validation ar
         now?: () => number;
       };
     },
-): DefaultStreamObjectResult<
-  Output extends 'array' ? TYPE : DeepPartial<TYPE>,
-  Output extends 'array' ? TYPE : TYPE,
+): StreamObjectResult<
+  Output extends 'array' ? RESULT : DeepPartial<RESULT>,
+  Output extends 'array' ? RESULT : RESULT,
   Output extends 'array'
-    ? TYPE extends Array<infer U>
+    ? RESULT extends Array<infer U>
       ? AsyncIterableStream<U>
       : never
     : never

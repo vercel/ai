@@ -57,7 +57,7 @@ This function does not stream the output. If you want to stream the output, use 
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<
-  TYPE extends SCHEMA extends z.Schema
+  RESULT extends SCHEMA extends z.Schema
     ? Output extends 'array'
       ? Array<z.infer<SCHEMA>>
       : z.infer<SCHEMA>
@@ -67,9 +67,11 @@ export async function generateObject<
         : T
       : never,
   SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
-  Output extends 'object' | 'array' | 'enum' | 'no-schema' = TYPE extends string
-    ? 'enum'
-    : 'object',
+  Output extends
+    | 'object'
+    | 'array'
+    | 'enum'
+    | 'no-schema' = RESULT extends string ? 'enum' : 'object',
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
@@ -78,7 +80,7 @@ export async function generateObject<
           /**
 The enum values that the model should use.
         */
-          enum: Array<TYPE>;
+          enum: Array<RESULT>;
           mode?: 'json';
           output: 'enum';
         }
@@ -152,7 +154,7 @@ Default and recommended: 'auto' (best mode for the model).
         currentDate?: () => Date;
       };
     },
-): Promise<DefaultGenerateObjectResult<TYPE>> {
+): Promise<GenerateObjectResult<RESULT>> {
   const {
     model,
     output = 'object',
@@ -353,7 +355,7 @@ Default and recommended: 'auto' (best mode for the model).
       request = generateResult.request ?? {};
       response = generateResult.responseData;
 
-      async function processResult(result: string): Promise<TYPE> {
+      async function processResult(result: string): Promise<RESULT> {
         const parseResult = await safeParseJSON({ text: result });
 
         if (!parseResult.success) {
@@ -390,7 +392,7 @@ Default and recommended: 'auto' (best mode for the model).
         return validationResult.value;
       }
 
-      let object: TYPE;
+      let object: RESULT;
       try {
         object = await processResult(result);
       } catch (error) {
