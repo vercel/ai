@@ -2,7 +2,6 @@ import {
   OpenAIChatLanguageModel,
   OpenAICompletionLanguageModel,
   OpenAIEmbeddingModel,
-  OpenAIEmbeddingSettings,
   OpenAIImageModel,
   OpenAIImageSettings,
   OpenAIResponsesLanguageModel,
@@ -43,10 +42,7 @@ Creates an Azure OpenAI completion model for text generation.
   /**
 @deprecated Use `textEmbeddingModel` instead.
    */
-  embedding(
-    deploymentId: string,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  embedding(deploymentId: string): EmbeddingModelV2<string>;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
@@ -65,18 +61,12 @@ Creates an Azure OpenAI completion model for text generation.
   /**
 @deprecated Use `textEmbeddingModel` instead.
    */
-  textEmbedding(
-    deploymentId: string,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  textEmbedding(deploymentId: string): EmbeddingModelV2<string>;
 
   /**
 Creates an Azure OpenAI model for text embeddings.
    */
-  textEmbeddingModel(
-    deploymentId: string,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  textEmbeddingModel(deploymentId: string): EmbeddingModelV2<string>;
 
   /**
    * Creates an Azure OpenAI model for audio transcription.
@@ -177,11 +167,8 @@ export function createAzure(
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: string,
-    settings: OpenAIEmbeddingSettings = {},
-  ) =>
-    new OpenAIEmbeddingModel(modelId, settings, {
+  const createEmbeddingModel = (modelId: string) =>
+    new OpenAIEmbeddingModel(modelId, {
       provider: 'azure.embeddings',
       headers: getHeaders,
       url,
