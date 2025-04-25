@@ -211,10 +211,20 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: 'Hello',
-    });
+    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+        "stop": [
+          "
+      user:",
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -486,12 +496,24 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      stream: true,
-      stream_options: { include_usage: true },
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: 'Hello',
-    });
+    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+        "stop": [
+          "
+      user:",
+        ],
+        "stream": true,
+        "stream_options": {
+          "include_usage": true,
+        },
+      }
+    `);
   });
 
   it('should pass headers', async () => {
