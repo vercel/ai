@@ -100,6 +100,12 @@ functionality that can be fully encapsulated in the provider.
   providerMetadata: ProviderMetadata | undefined;
 }) => Promise<void> | void;
 
+/**
+Generate a structured, typed object for a given prompt and schema using a language model.
+This function streams the output. If you do not want to stream the output, use `generateObject` instead.
+@return
+A result object for accessing the partial object stream and additional information.
+ */
 export function streamObject<
   RESULT extends SCHEMA extends z.Schema
     ? Output extends 'array'
