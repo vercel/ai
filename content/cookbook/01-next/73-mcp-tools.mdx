@@ -12,6 +12,10 @@ The AI SDK supports Model Context Protocol (MCP) tools by offering a lightweight
 
 Let's create a route handler for `/api/completion` that will generate text based on the input prompt and MCP tools that can be called at any time during a generation. The route will call the `streamText` function from the `ai` module, which will then generate text based on the input prompt and stream it to the client.
 
+To use the `StreamableHTTPClientTransport`, you will need to install the official Typescript SDK for Model Context Protocol:
+
+<Snippet text="pnpm install @modelcontextprotocol/sdk" />
+
 ```ts filename="app/api/completion/route.ts"
 import { experimental_createMCPClient, streamText } from 'ai';
 import { Experimental_StdioMCPTransport } from 'ai/mcp-stdio';
