@@ -301,7 +301,7 @@ describe('MCPClient', () => {
   it('should throw if strict mode is enabled and the server does not support tools', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
-      enforceStrictMode: true,
+      strictMode: true,
     });
     // Access private property serverCapabilities:
     (client as any).serverCapabilities = {};

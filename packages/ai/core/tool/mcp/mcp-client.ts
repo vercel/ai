@@ -43,7 +43,7 @@ interface MCPClientConfig {
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   name?: string;
   /** Enforce strict mode, defaults to false. Strict mode will throw errors for requests that the remote side has not indicated that they can handle, through their advertised capabilities */
-  enforceStrictMode?: boolean;
+  strictMode?: boolean;
 }
 
 export async function createMCPClient(
@@ -78,16 +78,16 @@ class MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private isClosed = true;
-  private enforceStrictMode = false;
+  private strictMode = false;
 
   constructor({
     transport: transportConfig,
     name = 'ai-sdk-mcp-client',
     onUncaughtError,
-    enforceStrictMode = false,
+    strictMode = false,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
-    this.enforceStrictMode = enforceStrictMode;
+    this.strictMode = strictMode;
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
@@ -210,7 +210,7 @@ class MCPClient {
         );
       }
 
-      if (this.enforceStrictMode) {
+      if (this.strictMode) {
         this.assertCapability(request.method);
       }
 
