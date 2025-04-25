@@ -1910,10 +1910,10 @@ describe('resume ongoing stream and return assistant message', () => {
     });
 
     controller.write('0:"," \n');
-    controller.write('0:" world"\n')
-    controller.write('0:"."\n')
+    controller.write('0:" world"\n');
+    controller.write('0:"."\n');
 
-    controller.close()
+    controller.close();
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
