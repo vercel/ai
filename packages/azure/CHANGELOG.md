@@ -1,5 +1,20 @@
 # @ai-sdk/azure
 
+## 2.0.0-canary.14
+
+### Patch Changes
+
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- 4617fab: chore(embedding-models): remove remaining settings
+- Updated dependencies [177526b]
+- Updated dependencies [c15dfbf]
+- Updated dependencies [9bf7291]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/openai@2.0.0-canary.13
+  - @ai-sdk/provider@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.12
+
 ## 2.0.0-canary.13
 
 ### Patch Changes

@@ -1,5 +1,21 @@
 # @ai-sdk/google-vertex
 
+## 3.0.0-canary.13
+
+### Patch Changes
+
+- 5c9eec4: chore(providers/anthropic): switch to providerOptions
+- 7378473: chore(providers/google): switch to providerOptions
+- Updated dependencies [5c9eec4]
+- Updated dependencies [9bf7291]
+- Updated dependencies [7378473]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/anthropic@2.0.0-canary.12
+  - @ai-sdk/provider@2.0.0-canary.11
+  - @ai-sdk/google@2.0.0-canary.13
+  - @ai-sdk/provider-utils@3.0.0-canary.12
+
 ## 3.0.0-canary.12
 
 ### Patch Changes
