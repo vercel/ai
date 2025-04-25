@@ -47,6 +47,9 @@
       "path": "../../packages/ai"
     },
     {
+      "path": "../../packages/rsc"
+    },
+    {
       "path": "../../packages/anthropic"
     },
     {
