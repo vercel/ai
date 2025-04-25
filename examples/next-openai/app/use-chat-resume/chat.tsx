@@ -50,7 +50,9 @@ export function Chat({
 
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap flex flex-row">
-          <div className="min-w-12">{message.role === 'user' ? 'User: ' : 'AI: '}</div>
+          <div className="min-w-12">
+            {message.role === 'user' ? 'User: ' : 'AI: '}
+          </div>
 
           <div>
             <div className="text-sm text-zinc-500">{message.id}</div>
@@ -58,7 +60,9 @@ export function Chat({
               .filter(part => part.type !== 'source')
               .map((part, partIndex) => {
                 if (part.type === 'text') {
-                  return <div key={`${message.id}-${partIndex}`}>{part.text}</div>;
+                  return (
+                    <div key={`${message.id}-${partIndex}`}>{part.text}</div>
+                  );
                 }
               })}
           </div>

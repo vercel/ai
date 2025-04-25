@@ -467,7 +467,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
       abortControllerRef.current = null;
 
-      mutateStatus('ready')
+      mutateStatus('ready');
     } catch (error) {
       // Ignore abort errors as they are expected.
       if ((error as any).name === 'AbortError') {
