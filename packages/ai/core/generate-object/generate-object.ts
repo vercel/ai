@@ -152,59 +152,33 @@ Default and recommended: 'auto' (best mode for the model).
         currentDate?: () => Date;
       };
     },
-): Promise<GenerateObjectResult<TYPE>>;
+): Promise<DefaultGenerateObjectResult<TYPE>> {
+  const {
+    model,
+    output = 'object',
+    system,
+    prompt,
+    messages,
+    maxRetries: maxRetriesArg,
+    abortSignal,
+    headers,
+    experimental_repairText: repairText,
+    experimental_telemetry: telemetry,
+    providerOptions,
+    _internal: {
+      generateId = originalGenerateId,
+      currentDate = () => new Date(),
+    } = {},
+    ...settings
+  } = options;
 
-export async function generateObject<SCHEMA, RESULT>({
-  model,
-  enum: enumValues, // rename bc enum is reserved by typescript
-  schema: inputSchema,
-  schemaName,
-  schemaDescription,
-  output = 'object',
-  system,
-  prompt,
-  messages,
-  maxRetries: maxRetriesArg,
-  abortSignal,
-  headers,
-  experimental_repairText: repairText,
-  experimental_telemetry: telemetry,
-  providerOptions,
-  _internal: {
-    generateId = originalGenerateId,
-    currentDate = () => new Date(),
-  } = {},
-  ...settings
-}: Omit<CallSettings, 'stopSequences'> &
-  Prompt & {
-    /**
-     * The expected structure of the output.
-     *
-     * - 'object': Generate a single object that conforms to the schema.
-     * - 'array': Generate an array of objects that conform to the schema.
-     * - 'no-schema': Generate any JSON object. No schema is specified.
-     *
-     * Default is 'object' if not specified.
-     */
-    output?: 'object' | 'array' | 'enum' | 'no-schema';
+  const enumValues = 'enum' in options ? options.enum : undefined;
+  const {
+    schema: inputSchema,
+    schemaDescription,
+    schemaName,
+  } = 'schema' in options ? options : {};
 
-    model: LanguageModel;
-    enum?: Array<SCHEMA>;
-    schema?: z.Schema<SCHEMA> | Schema<SCHEMA>;
-    schemaName?: string;
-    schemaDescription?: string;
-    experimental_repairText?: RepairTextFunction;
-    experimental_telemetry?: TelemetrySettings;
-    providerOptions?: ProviderOptions;
-
-    /**
-     * Internal. For test use only. May change without notice.
-     */
-    _internal?: {
-      generateId?: () => string;
-      currentDate?: () => Date;
-    };
-  }): Promise<GenerateObjectResult<RESULT>> {
   validateObjectGenerationInput({
     output,
     schema: inputSchema,
@@ -379,7 +353,9 @@ export async function generateObject<SCHEMA, RESULT>({
       request = generateResult.request ?? {};
       response = generateResult.responseData;
 
-      async function processResult(result: string): Promise<RESULT> {
+      async function processResult(
+        result: string,
+      ): Promise<TYPE> {
         const parseResult = await safeParseJSON({ text: result });
 
         if (!parseResult.success) {
@@ -416,7 +392,7 @@ export async function generateObject<SCHEMA, RESULT>({
         return validationResult.value;
       }
 
-      let object: RESULT;
+      let object: TYPE;
       try {
         object = await processResult(result);
       } catch (error) {
