@@ -333,6 +333,347 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
 ]
 `;
 
+exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "files": [],
+    "finishReason": "tool-calls",
+    "isContinued": false,
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "reasoning": undefined,
+    "reasoningDetails": [],
+    "request": {},
+    "response": {
+      "body": undefined,
+      "headers": undefined,
+      "id": "test-id-1-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "id": "msg-1",
+          "role": "tool",
+        },
+      ],
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "sources": [],
+    "stepType": "initial",
+    "text": "",
+    "toolCalls": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 10,
+      "totalTokens": 15,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "files": [],
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "reasoning": undefined,
+    "reasoningDetails": [],
+    "request": {},
+    "response": {
+      "body": undefined,
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "id": "msg-1",
+          "role": "tool",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "id": "msg-2",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
+    },
+    "sources": [],
+    "stepType": "tool-result",
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
+exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > result.response.messages should contain response messages from all steps 1`] = `
+[
+  {
+    "content": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "id": "msg-0",
+    "role": "assistant",
+  },
+  {
+    "content": [
+      {
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "id": "msg-1",
+    "role": "tool",
+  },
+  {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "id": "msg-2",
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > result.steps should contain all steps 1`] = `
+[
+  {
+    "experimental_providerMetadata": undefined,
+    "files": [],
+    "finishReason": "tool-calls",
+    "isContinued": false,
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "reasoning": undefined,
+    "reasoningDetails": [],
+    "request": {},
+    "response": {
+      "body": undefined,
+      "headers": undefined,
+      "id": "test-id-1-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "id": "msg-1",
+          "role": "tool",
+        },
+      ],
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:00.000Z,
+    },
+    "sources": [],
+    "stepType": "initial",
+    "text": "",
+    "toolCalls": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+    ],
+    "toolResults": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
+    "usage": {
+      "completionTokens": 5,
+      "promptTokens": 10,
+      "totalTokens": 15,
+    },
+    "warnings": undefined,
+  },
+  {
+    "experimental_providerMetadata": undefined,
+    "files": [],
+    "finishReason": "stop",
+    "isContinued": false,
+    "logprobs": undefined,
+    "providerMetadata": undefined,
+    "reasoning": undefined,
+    "reasoningDetails": [],
+    "request": {},
+    "response": {
+      "body": undefined,
+      "headers": {
+        "custom-response-header": "response-header-value",
+      },
+      "id": "test-id-2-from-model",
+      "messages": [
+        {
+          "content": [
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-0",
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "result": "result1",
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-result",
+            },
+          ],
+          "id": "msg-1",
+          "role": "tool",
+        },
+        {
+          "content": [
+            {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+          ],
+          "id": "msg-2",
+          "role": "assistant",
+        },
+      ],
+      "modelId": "test-response-model-id",
+      "timestamp": 1970-01-01T00:00:10.000Z,
+    },
+    "sources": [],
+    "stepType": "tool-result",
+    "text": "Hello, world!",
+    "toolCalls": [],
+    "toolResults": [],
+    "usage": {
+      "completionTokens": 20,
+      "promptTokens": 10,
+      "totalTokens": 30,
+    },
+    "warnings": undefined,
+  },
+]
+`;
+
 exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onStepFinish should be called for each step 1`] = `
 [
   {
