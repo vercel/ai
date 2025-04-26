@@ -1,5 +1,12 @@
 # @ai-sdk/azure
 
+## 1.3.21
+
+### Patch Changes
+
+- Updated dependencies [dd5450e]
+  - @ai-sdk/openai@1.3.20
+
 ## 1.3.20
 
 ### Patch Changes
