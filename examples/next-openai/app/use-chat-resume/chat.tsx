@@ -38,6 +38,8 @@ export function Chat({
     if (autoResume) {
       experimental_resume();
     }
+    // We want to disable the exhaustive deps rule here because we only want to run this effect once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
