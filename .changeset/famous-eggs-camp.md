@@ -2,4 +2,4 @@
 '@ai-sdk/perplexity': patch
 ---
 
-Add sonar-deep-research to perplexity provider
+feat (provider/perplexity): add sonar-deep-research model
