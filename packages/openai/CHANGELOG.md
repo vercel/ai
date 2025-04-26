@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.20
+
+### Patch Changes
+
+- dd5450e: feat(provider/openai): add o3 & o4-mini with developer systemMessageMode
+
 ## 1.3.19
 
 ### Patch Changes
