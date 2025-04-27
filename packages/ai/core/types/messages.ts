@@ -281,6 +281,11 @@ Additional data to be sent to the API endpoint.
 
 export type UseChatOptions = {
   /**
+   * The initial messages of the chat.
+   */
+  initialMessages?: Message[];
+
+  /**
 Keeps the last message when an error happens. Defaults to `true`.
 
 @deprecated This option will be removed in the next major release.

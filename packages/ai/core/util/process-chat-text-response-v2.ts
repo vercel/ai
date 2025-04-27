@@ -5,12 +5,14 @@ import { ChatStore } from './chat-store';
 import { processTextStream } from './process-text-stream';
 
 export async function processChatTextResponseV2({
+  chatId,
   stream,
   update,
   onFinish,
   generateId = generateIdFunction,
   store,
 }: {
+  chatId: string;
   stream: ReadableStream<Uint8Array>;
   update: (options: { data: JSONValue[] | undefined }) => void;
   onFinish: UseChatOptions['onFinish'];
@@ -22,6 +24,7 @@ export async function processChatTextResponseV2({
     onTextPart: chunk => {
       update({ data: [] }); // Sets status to streaming (SWR)
       store.addOrUpdateAssistantMessageParts({
+        chatId,
         partDelta: { type: 'text', text: chunk },
         generateId,
       });
@@ -29,7 +32,7 @@ export async function processChatTextResponseV2({
   });
 
   // in text mode, we don't have usage information or finish reason:
-  onFinish?.(store.getLastMessage()!, {
+  onFinish?.(store.getLastMessage(chatId)!, {
     usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
     finishReason: 'unknown',
   });

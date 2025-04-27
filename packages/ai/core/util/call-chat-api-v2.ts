@@ -21,6 +21,7 @@ export async function callChatApiV2({
   generateId,
   fetch = getOriginalFetch(),
   store,
+  chatId,
 }: {
   api: string;
   body: Record<string, any>;
@@ -36,6 +37,7 @@ export async function callChatApiV2({
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   store: ChatStore;
+  chatId: string;
 }) {
   const response = await fetch(api, {
     method: 'POST',
@@ -73,6 +75,7 @@ export async function callChatApiV2({
   switch (streamProtocol) {
     case 'text': {
       await processChatTextResponseV2({
+        chatId,
         stream: response.body,
         update: onUpdate,
         onFinish,
@@ -84,6 +87,7 @@ export async function callChatApiV2({
 
     case 'data': {
       await processChatResponseV2({
+        chatId,
         stream: response.body,
         update: onUpdate,
         store,

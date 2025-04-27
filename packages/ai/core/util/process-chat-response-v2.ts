@@ -8,7 +8,14 @@ import {
 import { ChatStore } from './chat-store';
 import { processDataStream } from './process-data-stream';
 
+type LocalState = {
+  messageAnnotations: JSONValue[];
+  usage: LanguageModelUsage;
+  finishReason: LanguageModelV2FinishReason;
+};
+
 export async function processChatResponseV2({
+  chatId,
   stream,
   update,
   onToolCall,
@@ -16,6 +23,7 @@ export async function processChatResponseV2({
   generateId = generateIdFunction,
   store,
 }: {
+  chatId: string;
   stream: ReadableStream<Uint8Array>;
   update: (options: { data: JSONValue[] | undefined }) => void;
   onToolCall?: UseChatOptions['onToolCall'];
@@ -27,27 +35,28 @@ export async function processChatResponseV2({
   generateId?: () => string;
   store: ChatStore;
 }) {
-  const lastMessage = store.getLastMessage();
-  const replaceLastMessage = lastMessage?.role === 'assistant';
-
   const data: JSONValue[] = [];
 
-  // keep list of current message annotations for message
-  let messageAnnotations: JSONValue[] | undefined = replaceLastMessage
-    ? lastMessage?.annotations
-    : undefined;
+  const lastMessage = store.getLastMessage(chatId);
+  const replaceLastMessage = lastMessage?.role === 'assistant';
 
-  let usage: LanguageModelUsage = {
-    completionTokens: NaN,
-    promptTokens: NaN,
-    totalTokens: NaN,
+  const localState: LocalState = {
+    // We keep track of message annotation locally because they may be returned before the active response is created (before native parts are processed):
+    messageAnnotations: replaceLastMessage
+      ? (lastMessage?.annotations ?? [])
+      : [],
+    usage: {
+      completionTokens: NaN,
+      promptTokens: NaN,
+      totalTokens: NaN,
+    },
+    finishReason: 'unknown',
   };
 
-  let finishReason: LanguageModelV2FinishReason = 'unknown';
-
   const updateMessageStore = (partDelta: UIMessage['parts'][number]) => {
-    update({ data: [] }); // Sets status to streaming (SWR)
+    update({ data: [] }); // TODO: Sets status to streaming (SWR), we should separate data updates from status updates
     store.addOrUpdateAssistantMessageParts({
+      chatId,
       partDelta,
       generateId,
     });
@@ -137,7 +146,7 @@ export async function processChatResponseV2({
         },
       });
 
-      // invoke the onToolCall callback if it exists. This is blocking.
+      // Invoke onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
       // requires additional state management for error handling etc.
       if (onToolCall) {
@@ -173,48 +182,50 @@ export async function processChatResponseV2({
       });
     },
     onMessageAnnotationsPart(value) {
-      if (messageAnnotations == null) {
-        messageAnnotations = [...value];
-      } else {
-        messageAnnotations.push(...value);
-      }
+      localState.messageAnnotations.push(...value);
 
       // If annotations precede message creation, we do a final check in onFinishMessagePart to ensure annotations are added:
-      const lastMessage = store.getLastMessage();
+      const lastMessage = store.getLastMessage(chatId);
       if (lastMessage != null && lastMessage.role === 'assistant') {
-        store.updateLastMessage({
-          ...lastMessage,
-          annotations: messageAnnotations,
+        store.updateActiveResponse({
+          chatId,
+          message: {
+            annotations: [...localState.messageAnnotations],
+          },
         });
       }
     },
     onFinishStepPart(value) {
-      store.incrementStep();
-      store.resetTempParts({ isContinued: value.isContinued });
+      console.log('onFinishStepPart', value);
+      store.incrementStep(chatId);
+      store.resetTempParts({ id: chatId, isContinued: value.isContinued });
     },
     onStartStepPart(value) {
-      // add a step boundary part to the message
+      // Add a step boundary part to the message
       store.addOrUpdateAssistantMessageParts({
+        chatId,
         partDelta: {
           type: 'step-start',
         },
-        // keep message id stable when we are updating an existing message:
-        id: !replaceLastMessage ? value.messageId : undefined,
+        // Keep message id stable when we are updating an existing message:
+        messageId: !replaceLastMessage ? value.messageId : undefined,
       });
     },
     onFinishMessagePart(value) {
-      finishReason = value.finishReason;
+      localState.finishReason = value.finishReason;
       if (value.usage != null) {
-        usage = calculateLanguageModelUsage(value.usage);
+        localState.usage = calculateLanguageModelUsage(value.usage);
       }
 
       // Check if we need to add annotations:
-      if (messageAnnotations != null) {
-        const lastMessage = store.getLastMessage();
-        if (!lastMessage?.annotations && lastMessage?.role === 'assistant') {
-          store.updateLastMessage({
-            ...lastMessage,
-            annotations: messageAnnotations,
+      if (localState.messageAnnotations.length > 0) {
+        const lastMessage = store.getLastMessage(chatId);
+        if (lastMessage?.role === 'assistant' && !lastMessage?.annotations) {
+          store.updateActiveResponse({
+            chatId,
+            message: {
+              annotations: [...localState.messageAnnotations],
+            },
           });
         }
       }
@@ -224,5 +235,9 @@ export async function processChatResponseV2({
     },
   });
 
-  onFinish?.({ message: store.getLastMessage(), finishReason, usage });
+  onFinish?.({
+    message: store.getLastMessage(chatId),
+    finishReason: localState.finishReason,
+    usage: localState.usage,
+  });
 }

@@ -12,9 +12,9 @@ import type {
 } from '../types';
 
 interface ChatStoreSubscriber {
-  onChatMessagesChanged(id: string): void;
-  onChatStatusChanged(id: string): void;
-  onChatErrorChanged(id: string): void;
+  onChatMessagesChanged?: (id: string) => void;
+  onChatStatusChanged?: (id: string) => void;
+  onChatErrorChanged?: (id: string) => void;
   // onChatAdded?
   // onChatRemoved?
 }
@@ -117,10 +117,13 @@ export class ChatStore {
     this.emitEvent({ id, event: ChatStoreEvent.ChatErrorChanged });
   }
 
+  // TODO: Re-evaluate subscribe strategy
   private emitEvent({ id, event }: { id: string; event: ChatStoreEvent }) {
     for (const subscriber of this.subscribers) {
       const handler = ChatStoreEventMap[event];
-      subscriber[handler](id);
+      if (handler) {
+        subscriber[handler]?.(id);
+      }
     }
 
     if (this.onChatStoreChange) {
@@ -164,9 +167,9 @@ export class ChatStore {
 
     const activeResponse = chat?.activeResponse;
 
-    if (activeResponse?.role === 'assistant') {
+    if (activeResponse?.message.role === 'assistant') {
       chat.step =
-        activeResponse.parts?.reduce((max, part) => {
+        activeResponse.message.parts?.reduce((max, part) => {
           if (part.type === 'tool-invocation') {
             return Math.max(max, part.toolInvocation.step ?? 0) ?? 0;
           }
@@ -181,14 +184,19 @@ export class ChatStore {
     const chat = this.chats.get(id);
     if (!chat) return;
     chat.step = (chat.step ?? 0) + 1;
+    console.log('incrementStep', chat.step, this.getStep(id));
   }
 
   getMessages(id: string) {
     const chat = this.chats.get(id);
     if (!chat) return;
-    return chat.activeResponse
-      ? [...chat.messages, { ...chat.activeResponse.message }]
-      : chat.messages;
+    return chat.messages;
+  }
+
+  getLastMessage(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+    return chat.messages[chat.messages.length - 1];
   }
 
   removeAssistantResponse(id: string) {
@@ -222,6 +230,10 @@ export class ChatStore {
     const chat = this.chats.get(id);
     if (!chat) return;
 
+    if (message.role === 'user') {
+      this.resetActiveResponseState(id);
+    }
+
     chat.messages = [...chat.messages, { ...message }];
     this.emitEvent({ id, event: ChatStoreEvent.ChatMessagesChanged });
   }
@@ -248,20 +260,15 @@ export class ChatStore {
       },
       partialState: {},
     };
+    chat.messages.push(chat.activeResponse.message);
   }
 
-  commitActiveResponse({ id }: { id: string }) {
-    const chat = this.chats.get(id);
-    if (!chat || !chat.activeResponse) return;
-
-    const message = { ...chat.activeResponse.message };
-    this.resetActiveResponseState(id);
-    this.setMessages({
-      id,
-      messages: [...chat.messages, message],
-    });
-  }
-
+  /**
+   * Main method for updating active response based on native
+   * UIMessage['parts'] (e.g. text, reasoning, tool-invocation, step-start, source, file)
+   *
+   * Misc. updates should use updateActiveResponse method
+   */
   addOrUpdateAssistantMessageParts({
     chatId,
     generateId = generateIdFunction,
@@ -330,6 +337,29 @@ export class ChatStore {
       }
     }
 
+    chat.messages[chat.messages.length - 1] = activeResponse.message;
+    this.emitEvent({ id: chatId, event: ChatStoreEvent.ChatMessagesChanged });
+  }
+
+  updateActiveResponse({
+    chatId,
+    message,
+  }: {
+    chatId: string;
+    message: Partial<UIMessage>;
+  }) {
+    const chat = this.chats.get(chatId);
+    if (!chat) return;
+
+    if (!chat.activeResponse) {
+      throw new Error('Invalid state: no active response found');
+    }
+
+    chat.activeResponse.message = {
+      ...chat.activeResponse.message,
+      ...message,
+    };
+
     this.emitEvent({ id: chatId, event: ChatStoreEvent.ChatMessagesChanged });
   }
 
@@ -355,7 +385,12 @@ export class ChatStore {
     } else {
       chat.activeResponse = {
         ...chat.activeResponse,
-        partialState: {},
+        partialState: {
+          ...chat.activeResponse?.partialState,
+          textPart: undefined,
+          reasoningPart: undefined,
+          reasoningTextDetail: undefined,
+        },
       } as ChatState['activeResponse'];
     }
   }
@@ -388,6 +423,7 @@ export class ChatStore {
       maybeExistingCallState?.toolName ||
       toolInvocation.toolName;
 
+    console.log('toolInvocation', step, this.getStep(chatId));
     const updatedToolInvocation = {
       toolName,
       step,
@@ -411,8 +447,6 @@ export class ChatStore {
           break;
         }
         case 'call': {
-          // To validate: do either of these need to be parse/stringified?
-          console.log('TOOL CALL:', typeof toolInvocation.args);
           maybeExistingCallState.text = toolInvocation.args;
           updatedToolInvocation.args = toolInvocation.args;
           break;
