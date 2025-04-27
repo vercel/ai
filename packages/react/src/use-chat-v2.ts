@@ -92,7 +92,7 @@ export type UseChatHelpers = {
    * - `ready`: The full response has been received and processed; a new user message can be submitted.
    * - `error`: An error occurred during the API request, preventing successful completion.
    */
-  status: 'submitted' | 'streaming' | 'ready' | 'error';
+  status: Status;
 
   /** Additional data added on the server via StreamData. */
   data?: JSONValue[];
@@ -108,6 +108,8 @@ export type UseChatHelpers = {
   /** The active chat id */
   id: string;
 };
+
+type Status = 'submitted' | 'streaming' | 'ready' | 'error';
 
 export function useChat({
   api = '/api/chat',
@@ -190,27 +192,35 @@ By default, it's set to 1, which means that only a single LLM call is made.
     [stableInitialMessages],
   );
 
-  const messagesStore = useMemo(
-    () => new ChatStore({ chats, onChatStoreChange }),
-    [chats, onChatStoreChange],
+  const initialChats = useMemo(
+    () => ({
+      ...chats,
+      [activeChatId]: {
+        messages: processedInitialMessages,
+        status: 'ready',
+        error: undefined,
+      },
+    }),
+    [chats, activeChatId, processedInitialMessages],
   );
-  const { messages, status, error } = useSyncExternalStore(
-    callback =>
-      messagesStore.subscribe({
-        onChatMessagesChanged: callback,
-        onChatStatusChanged: callback,
-        onChatErrorChanged: callback,
-      }),
-    () => ({
-      messages: messagesStore.getMessages(activeChatId),
-      status: messagesStore.getStatus(activeChatId) ?? 'ready',
-      error: messagesStore.getError(activeChatId),
-    }),
-    () => ({
-      messages: processedInitialMessages,
-      status: 'ready' as const,
-      error: undefined,
-    }),
+  const messagesStore = useMemo(
+    () => new ChatStore({ chats: initialChats, onChatStoreChange }),
+    [initialChats, onChatStoreChange],
+  );
+  const messages = useSyncExternalStore(
+    cb => messagesStore.subscribe({ onChatMessagesChanged: cb }),
+    () => messagesStore.getMessages(activeChatId) ?? [],
+    () => processedInitialMessages,
+  );
+  const status: Status = useSyncExternalStore(
+    cb => messagesStore.subscribe({ onChatStatusChanged: cb }),
+    () => messagesStore.getStatus(activeChatId) ?? 'ready',
+    () => 'ready',
+  );
+  const error = useSyncExternalStore(
+    cb => messagesStore.subscribe({ onChatErrorChanged: cb }),
+    () => messagesStore.getError(activeChatId),
+    () => undefined,
   );
 
   // Stream data
@@ -312,10 +322,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           abortController: () => abortControllerRef.current,
           restoreMessagesOnFailure() {
             if (!keepLastMessageOnError) {
-              messagesStore.setMessages({
-                id: activeChatId,
-                messages: previousMessages,
-              });
+              messagesStore.removeAssistantResponse(activeChatId);
             }
           },
           onResponse,
@@ -331,6 +338,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           generateId,
           fetch,
           store: messagesStore,
+          chatId: activeChatId,
         });
 
         abortControllerRef.current = null;
@@ -355,12 +363,21 @@ By default, it's set to 1, which means that only a single LLM call is made.
       // Auto-submit when all tool calls in
       // the last assistant message have results
       // and assistant has not answered yet
+      const messages = messagesStore.getMessages(activeChatId) ?? [];
+      console.log(
+        shouldResubmitMessages({
+          originalMaxToolInvocationStep: maxStep,
+          originalMessageCount: messageCount,
+          maxSteps,
+          messages,
+        }),
+      );
       if (
         shouldResubmitMessages({
           originalMaxToolInvocationStep: maxStep,
           originalMessageCount: messageCount,
           maxSteps,
-          messages: messagesStore.getMessages(activeChatId) ?? [],
+          messages,
         })
       ) {
         await triggerRequest();
@@ -546,8 +563,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       }
 
       // Auto-submit when all tool calls in the last assistant message have results:
-      const currentMessages = messagesStore.getMessages(activeChatId) ?? [];
-      const lastMessage = currentMessages[currentMessages.length - 1];
+      const lastMessage = messagesStore.getLastMessage(activeChatId);
       if (
         lastMessage &&
         isAssistantMessageWithCompletedToolCalls(lastMessage)
