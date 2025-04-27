@@ -17,23 +17,21 @@ import {
 } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
+import { isUrlSupported } from '@ai-sdk/provider-utils';
 
 export async function convertToLanguageModelPrompt({
   prompt,
-  modelSupportsImageUrls = true,
-  modelSupportsUrl = () => false,
+  supportedUrls,
   downloadImplementation = download,
 }: {
   prompt: StandardizedPrompt;
-  modelSupportsImageUrls: boolean | undefined;
-  modelSupportsUrl: undefined | ((url: URL) => boolean);
+  supportedUrls: Record<string, RegExp[]>;
   downloadImplementation?: typeof download;
 }): Promise<LanguageModelV2Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
     downloadImplementation,
-    modelSupportsImageUrls,
-    modelSupportsUrl,
+    supportedUrls,
   );
 
   return [
@@ -125,14 +123,6 @@ export function convertToLanguageModelMessage(
                 return {
                   type: 'reasoning',
                   text: part.text,
-                  signature: part.signature,
-                  providerOptions,
-                };
-              }
-              case 'redacted-reasoning': {
-                return {
-                  type: 'redacted-reasoning',
-                  data: part.data,
                   providerOptions,
                 };
               }
@@ -187,8 +177,7 @@ export function convertToLanguageModelMessage(
 async function downloadAssets(
   messages: CoreMessage[],
   downloadImplementation: typeof download,
-  modelSupportsImageUrls: boolean | undefined,
-  modelSupportsUrl: (url: URL) => boolean,
+  supportedUrls: Record<string, RegExp[]>,
 ): Promise<
   Record<string, { mediaType: string | undefined; data: Uint8Array }>
 > {
@@ -203,27 +192,35 @@ async function downloadAssets(
       (part): part is ImagePart | FilePart =>
         part.type === 'image' || part.type === 'file',
     )
-    /**
-     * Filter out image parts if the model supports image URLs, before letting it
-     * decide if it supports a particular URL.
-     */
-    .filter(
-      (part): part is ImagePart | FilePart =>
-        !(part.type === 'image' && modelSupportsImageUrls === true),
-    )
-    .map(part => (part.type === 'image' ? part.image : part.data))
-    .map(part =>
-      // support string urls:
-      typeof part === 'string' &&
-      (part.startsWith('http:') || part.startsWith('https:'))
-        ? new URL(part)
-        : part,
-    )
-    .filter((image): image is URL => image instanceof URL)
+    .map(part => {
+      const mediaType =
+        part.mediaType ??
+        part.mimeType ??
+        (part.type === 'image' ? 'image/*' : undefined);
+
+      let data = part.type === 'image' ? part.image : part.data;
+      if (typeof data === 'string') {
+        try {
+          data = new URL(data);
+        } catch (ignored) {}
+      }
+
+      return { mediaType, data };
+    })
     /**
      * Filter out URLs that the model supports natively, so we don't download them.
      */
-    .filter(url => !modelSupportsUrl(url));
+    .filter(
+      (part): part is { mediaType: string; data: URL } =>
+        part.data instanceof URL &&
+        part.mediaType != null &&
+        !isUrlSupported({
+          url: part.data.toString(),
+          mediaType: part.mediaType,
+          supportedUrls,
+        }),
+    )
+    .map(part => part.data);
 
   // download in parallel:
   const downloadedImages = await Promise.all(

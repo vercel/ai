@@ -9,7 +9,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { DeepSeekChatModelId } from './deepseek-chat-settings';
+import { DeepSeekChatModelId } from './deepseek-chat-options';
 import { deepSeekMetadataExtractor } from './deepseek-metadata-extractor';
 
 export interface DeepSeekProviderSettings {
@@ -70,7 +70,6 @@ export function createDeepSeek(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      defaultObjectGenerationMode: 'json',
       metadataExtractor: deepSeekMetadataExtractor,
     });
   };

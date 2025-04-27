@@ -11,7 +11,6 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
   {
     "finishReason": "stop",
     "isContinued": false,
-    "logprobs": undefined,
     "messageId": "msg-6",
     "providerMetadata": undefined,
     "request": {},
@@ -31,7 +30,6 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
   },
   {
     "finishReason": "stop",
-    "logprobs": undefined,
     "providerMetadata": undefined,
     "response": {
       "headers": undefined,
@@ -74,7 +72,6 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
   {
     "finishReason": "stop",
     "isContinued": false,
-    "logprobs": undefined,
     "messageId": "msg-5",
     "providerMetadata": {
       "custom": {
@@ -98,7 +95,6 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
   },
   {
     "finishReason": "stop",
-    "logprobs": undefined,
     "providerMetadata": {
       "custom": {
         "key": "value",
@@ -133,24 +129,25 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
     "type": "text",
   },
   {
-    "reasoningType": "text",
     "text": "First reasoning step",
     "type": "reasoning",
   },
   {
-    "reasoningType": "text",
     "text": "Second reasoning step",
     "type": "reasoning",
   },
   {
-    "reasoningType": "signature",
-    "signature": "abc",
+    "providerMetadata": {
+      "testProvider": {
+        "signature": "abc",
+      },
+    },
+    "text": "",
     "type": "reasoning",
   },
   {
     "finishReason": "stop",
     "isContinued": false,
-    "logprobs": undefined,
     "messageId": "msg-2",
     "providerMetadata": undefined,
     "request": {},
@@ -170,7 +167,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
   },
   {
     "finishReason": "stop",
-    "logprobs": undefined,
     "providerMetadata": undefined,
     "response": {
       "headers": undefined,
@@ -208,7 +204,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
   {
     "finishReason": "stop",
     "isContinued": false,
-    "logprobs": undefined,
     "messageId": "msg-1",
     "providerMetadata": undefined,
     "request": {},
@@ -228,7 +223,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
   },
   {
     "finishReason": "stop",
-    "logprobs": undefined,
     "providerMetadata": undefined,
     "response": {
       "headers": undefined,
@@ -261,7 +255,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with text respo
   {
     "finishReason": "stop",
     "isContinued": false,
-    "logprobs": undefined,
     "messageId": "msg-0",
     "providerMetadata": undefined,
     "request": {},
@@ -281,7 +274,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with text respo
   },
   {
     "finishReason": "stop",
-    "logprobs": undefined,
     "providerMetadata": undefined,
     "response": {
       "headers": undefined,
@@ -322,7 +314,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
   {
     "finishReason": "tool-calls",
     "isContinued": false,
-    "logprobs": undefined,
     "messageId": "msg-4",
     "providerMetadata": undefined,
     "request": {},
@@ -342,7 +333,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
   },
   {
     "finishReason": "tool-calls",
-    "logprobs": undefined,
     "providerMetadata": undefined,
     "response": {
       "headers": undefined,

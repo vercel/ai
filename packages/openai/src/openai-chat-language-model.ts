@@ -3,12 +3,11 @@ import {
   LanguageModelV2,
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  LanguageModelV2LogProbs,
-  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  LanguageModelV2Content,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -18,23 +17,21 @@ import {
   createJsonResponseHandler,
   generateId,
   isParsableJson,
-  postJsonToApi,
   parseProviderOptions,
+  postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
-import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
+import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAIChatModelId,
-  OpenAIChatSettings,
   openaiProviderOptions,
 } from './openai-chat-options';
 import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
 } from './openai-error';
-import { getResponseMetadata } from './get-response-metadata';
 import { prepareTools } from './openai-prepare-tools';
 
 type OpenAIChatConfig = {
@@ -49,46 +46,25 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAIChatModelId;
-  readonly settings: OpenAIChatSettings;
 
   private readonly config: OpenAIChatConfig;
 
-  constructor(
-    modelId: OpenAIChatModelId,
-    settings: OpenAIChatSettings,
-    config: OpenAIChatConfig,
-  ) {
+  constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
-  }
-
-  get supportsStructuredOutputs(): boolean {
-    // enable structured outputs for reasoning models by default:
-    // TODO in the next major version, remove this and always use json mode for models
-    // that support structured outputs (blacklist other models)
-    return this.settings.structuredOutputs ?? isReasoningModel(this.modelId);
-  }
-
-  get defaultObjectGenerationMode() {
-    // audio models don't support structured outputs:
-    if (isAudioModel(this.modelId)) {
-      return 'tool';
-    }
-
-    return this.supportsStructuredOutputs ? 'json' : 'tool';
   }
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get supportsImageUrls(): boolean {
-    // image urls can be sent if downloadImages is disabled (default):
-    return !this.settings.downloadImages;
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      'image/*': [/^https?:\/\/.*$/],
+    };
   }
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -107,11 +83,13 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
     // Parse provider options
     const openaiOptions =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'openai',
         providerOptions,
         schema: openaiProviderOptions,
-      }) ?? {};
+      })) ?? {};
+
+    const structuredOutputs = openaiOptions.structuredOutputs ?? true;
 
     if (topK != null) {
       warnings.push({
@@ -123,7 +101,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !this.supportsStructuredOutputs
+      !structuredOutputs
     ) {
       warnings.push({
         type: 'unsupported-setting',
@@ -148,19 +126,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
       // model specific settings:
       logit_bias: openaiOptions.logitBias,
-      logprobs:
-        openaiOptions.logprobs === true ||
-        typeof openaiOptions.logprobs === 'number'
-          ? true
-          : undefined,
-      top_logprobs:
-        typeof openaiOptions.logprobs === 'number'
-          ? openaiOptions.logprobs
-          : typeof openaiOptions.logprobs === 'boolean'
-            ? openaiOptions.logprobs
-              ? 0
-              : undefined
-            : undefined,
       user: openaiOptions.user,
       parallel_tool_calls: openaiOptions.parallelToolCalls,
 
@@ -170,10 +135,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
-      // TODO improve below:
       response_format:
         responseFormat?.type === 'json'
-          ? this.supportsStructuredOutputs && responseFormat.schema != null
+          ? // TODO convert into provider option
+            structuredOutputs && responseFormat.schema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
@@ -242,20 +207,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
           message: 'logitBias is not supported for reasoning models',
         });
       }
-      if (baseArgs.logprobs != null) {
-        baseArgs.logprobs = undefined;
-        warnings.push({
-          type: 'other',
-          message: 'logprobs is not supported for reasoning models',
-        });
-      }
-      if (baseArgs.top_logprobs != null) {
-        baseArgs.top_logprobs = undefined;
-        warnings.push({
-          type: 'other',
-          message: 'topLogprobs is not supported for reasoning models',
-        });
-      }
 
       // reasoning models use max_completion_tokens instead of max_tokens:
       if (baseArgs.max_tokens != null) {
@@ -264,14 +215,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         }
         baseArgs.max_tokens = undefined;
       }
-    } else if (this.modelId.startsWith('gpt-4o-search-preview')) {
+    } else if (
+      this.modelId.startsWith('gpt-4o-search-preview') ||
+      this.modelId.startsWith('gpt-4o-mini-search-preview')
+    ) {
       if (baseArgs.temperature != null) {
         baseArgs.temperature = undefined;
         warnings.push({
           type: 'unsupported-setting',
           setting: 'temperature',
           details:
-            'temperature is not supported for the gpt-4o-search-preview model and has been removed.',
+            'temperature is not supported for the search preview models and has been removed.',
         });
       }
     }
@@ -282,7 +236,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     } = prepareTools({
       tools,
       toolChoice,
-      structuredOutputs: this.supportsStructuredOutputs,
+      structuredOutputs,
     });
 
     return {
@@ -298,7 +252,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args: body, warnings } = this.getArgs(options);
+    const { args: body, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -374,7 +328,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
         body: rawResponse,
       },
       warnings,
-      logprobs: mapOpenAIChatLogProbsOutput(choice.logprobs),
       providerMetadata,
     };
   }
@@ -382,7 +335,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const body = {
       ...args,
@@ -427,7 +380,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
     };
-    let logprobs: LanguageModelV2LogProbs;
     let isFirstChunk = true;
 
     const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
@@ -518,14 +470,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 type: 'text',
                 text: delta.content,
               });
-            }
-
-            const mappedLogprobs = mapOpenAIChatLogProbsOutput(
-              choice?.logprobs,
-            );
-            if (mappedLogprobs?.length) {
-              if (logprobs === undefined) logprobs = [];
-              logprobs.push(...mappedLogprobs);
             }
 
             if (delta.tool_calls != null) {
@@ -643,7 +587,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              logprobs,
               usage,
               ...(providerMetadata != null ? { providerMetadata } : {}),
             });
@@ -700,24 +643,6 @@ const openaiChatResponseSchema = z.object({
           .nullish(),
       }),
       index: z.number(),
-      logprobs: z
-        .object({
-          content: z
-            .array(
-              z.object({
-                token: z.string(),
-                logprob: z.number(),
-                top_logprobs: z.array(
-                  z.object({
-                    token: z.string(),
-                    logprob: z.number(),
-                  }),
-                ),
-              }),
-            )
-            .nullable(),
-        })
-        .nullish(),
       finish_reason: z.string().nullish(),
     }),
   ),
@@ -752,24 +677,6 @@ const openaiChatChunkSchema = z.union([
               .nullish(),
           })
           .nullish(),
-        logprobs: z
-          .object({
-            content: z
-              .array(
-                z.object({
-                  token: z.string(),
-                  logprob: z.number(),
-                  top_logprobs: z.array(
-                    z.object({
-                      token: z.string(),
-                      logprob: z.number(),
-                    }),
-                  ),
-                }),
-              )
-              .nullable(),
-          })
-          .nullish(),
         finish_reason: z.string().nullable().optional(),
         index: z.number(),
       }),
@@ -780,12 +687,7 @@ const openaiChatChunkSchema = z.union([
 ]);
 
 function isReasoningModel(modelId: string) {
-  return (
-    modelId === 'o1' ||
-    modelId.startsWith('o1-') ||
-    modelId === 'o3' ||
-    modelId.startsWith('o3-')
-  );
+  return modelId.startsWith('o');
 }
 
 function isAudioModel(modelId: string) {
@@ -816,10 +718,22 @@ const reasoningModels = {
   'o1-preview-2024-09-12': {
     systemMessageMode: 'remove',
   },
+  o3: {
+    systemMessageMode: 'developer',
+  },
+  'o3-2025-04-16': {
+    systemMessageMode: 'developer',
+  },
   'o3-mini': {
     systemMessageMode: 'developer',
   },
   'o3-mini-2025-01-31': {
+    systemMessageMode: 'developer',
+  },
+  'o4-mini': {
+    systemMessageMode: 'developer',
+  },
+  'o4-mini-2025-04-16': {
     systemMessageMode: 'developer',
   },
 } as const;

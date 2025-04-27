@@ -1,4 +1,4 @@
-import { AISDKError, ImageModelV1, JSONValue } from '@ai-sdk/provider';
+import { ImageModelV2, JSONValue } from '@ai-sdk/provider';
 import { NoImageGeneratedError } from '../../errors/no-image-generated-error';
 import {
   DefaultGeneratedFile,
@@ -12,6 +12,7 @@ import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
+import { ProviderOptions } from '../types/provider-metadata';
 
 /**
 Generates images using an image model.
@@ -45,7 +46,7 @@ export async function generateImage({
   /**
 The image model to use.
      */
-  model: ImageModelV1;
+  model: ImageModelV2;
 
   /**
 The prompt that should be used to generate the image.
@@ -86,7 +87,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
      */
-  providerOptions?: Record<string, Record<string, JSONValue>>;
+  providerOptions?: ProviderOptions;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.

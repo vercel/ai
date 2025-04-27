@@ -182,7 +182,7 @@ describe('FalImageModel', () => {
 
       expect(model.provider).toBe('fal');
       expect(model.modelId).toBe('stable-diffusion-xl');
-      expect(model.specificationVersion).toBe('v1');
+      expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(1);
     });
 

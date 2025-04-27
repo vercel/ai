@@ -94,34 +94,13 @@ Internal. For test use only. May change without notice.
                   reasoningPart = {
                     type: 'reasoning' as const,
                     reasoning: '',
-                    details: [],
                   };
                   parts.push(reasoningPart);
                 }
 
                 reasoningTextContent = (reasoningTextContent ?? '') + part.text;
                 reasoningPart.reasoning += part.text;
-                reasoningPart.details.push({
-                  type: 'text' as const,
-                  text: part.text,
-                  signature: part.signature,
-                });
-                break;
-              }
-              case 'redacted-reasoning': {
-                if (reasoningPart == null) {
-                  reasoningPart = {
-                    type: 'reasoning' as const,
-                    reasoning: '',
-                    details: [],
-                  };
-                  parts.push(reasoningPart);
-                }
-
-                reasoningPart.details.push({
-                  type: 'redacted' as const,
-                  data: part.data,
-                });
+                reasoningPart.providerMetadata = part.providerOptions;
                 break;
               }
               case 'tool-call':

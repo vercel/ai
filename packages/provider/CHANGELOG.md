@@ -1,5 +1,39 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.11
+
+### Major Changes
+
+- e030615: chore (provider): remove prompt type from language model v2 spec
+
+### Patch Changes
+
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- 4617fab: chore(embedding-models): remove remaining settings
+
+## 2.0.0-canary.10
+
+### Major Changes
+
+- a3f768e: chore: restructure reasoning support
+
+### Patch Changes
+
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+
+## 2.0.0-canary.9
+
+### Major Changes
+
+- e86be6f: chore: remove logprobs
+
+## 2.0.0-canary.8
+
+### Major Changes
+
+- 95857aa: chore: restructure language model supported urls
+- 7ea4132: chore: remove object generation mode
+
 ## 2.0.0-canary.7
 
 ### Major Changes

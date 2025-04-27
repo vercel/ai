@@ -1,16 +1,15 @@
+import { ReasoningPart } from '../prompt/content-part';
 import { CoreAssistantMessage, CoreToolMessage } from '../prompt/message';
 import {
   CallWarning,
   FinishReason,
   LanguageModelRequestMetadata,
   LanguageModelResponseMetadata,
-  LogProbs,
   ProviderMetadata,
 } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelUsage } from '../types/usage';
 import { GeneratedFile } from './generated-file';
-import { Reasoning } from './reasoning';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
@@ -38,7 +37,7 @@ The generated text.
   /**
 The reasoning that was generated during the generation.
 */
-  readonly reasoning: Array<Reasoning>;
+  readonly reasoning: Array<ReasoningPart>;
 
   /**
 The reasoning text that was generated during the generation.
@@ -79,12 +78,6 @@ The token usage of the generated text.
 Warnings from the model provider (e.g. unsupported settings).
 */
   readonly warnings: CallWarning[] | undefined;
-
-  /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if was not enabled.
-*/
-  readonly logprobs: LogProbs | undefined;
 
   /**
 Additional request information.

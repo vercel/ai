@@ -1,12 +1,10 @@
 import {
   JSONValue,
-  LanguageModelV2CallOptions,
+  LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
-  LanguageModelV2LogProbs,
-  SharedV2ProviderMetadata,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
-  LanguageModelV2CallWarning,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
@@ -48,7 +46,6 @@ import { now as originalNow } from '../util/now';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { writeToServerResponse } from '../util/write-to-server-response';
-import { injectJsonInstruction } from './inject-json-instruction';
 import { OutputStrategy, getOutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
@@ -105,42 +102,48 @@ functionality that can be fully encapsulated in the provider.
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
-
 This function streams the output. If you do not want to stream the output, use `generateObject` instead.
-
 @return
 A result object for accessing the partial object stream and additional information.
  */
-export function streamObject<OBJECT>(
+export function streamObject<
+  RESULT extends SCHEMA extends z.Schema
+    ? Output extends 'array'
+      ? Array<z.infer<SCHEMA>>
+      : z.infer<SCHEMA>
+    : SCHEMA extends Schema<infer T>
+      ? Output extends 'array'
+        ? Array<T>
+        : T
+      : never,
+  SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
+  Output extends 'object' | 'array' | 'no-schema' = 'object',
+>(
   options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output?: 'object' | undefined;
-
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
+    Prompt &
+    (Output extends 'no-schema'
+      ? {}
+      : {
+          /**
 The schema of the object that the model should generate.
- */
-      schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT>;
+      */
+          schema: SCHEMA;
 
-      /**
+          /**
 Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
-     */
-      schemaName?: string;
+      */
+          schemaName?: string;
 
-      /**
+          /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
- */
-      schemaDescription?: string;
+      */
+          schemaDescription?: string;
 
-      /**
+          /**
 The mode to use for object generation.
 
 The schema is converted into a JSON schema and used in one of the following ways
@@ -152,55 +155,10 @@ The schema is converted into a JSON schema and used in one of the following ways
 Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
-     */
-      mode?: 'auto' | 'json' | 'tool';
-
-      /**
-Optional telemetry configuration (experimental).
-     */
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-Callback that is invoked when an error occurs during streaming.
-You can use it to log errors.
-The stream processing will pause until the callback promise is resolved.
-     */
-      onError?: StreamObjectOnErrorCallback;
-
-      /**
-Callback that is called when the LLM response and the final object validation are finished.
-     */
-      onFinish?: StreamObjectOnFinishCallback<OBJECT>;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-        now?: () => number;
-      };
-    },
-): StreamObjectResult<DeepPartial<OBJECT>, OBJECT, never>;
-/**
-Generate an array with structured, typed elements for a given prompt and element schema using a language model.
-
-This function streams the output. If you do not want to stream the output, use `generateObject` instead.
-
-@return
-A result object for accessing the partial object stream and additional information.
- */
-export function streamObject<ELEMENT>(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output: 'array';
+      */
+          mode?: 'auto' | 'json' | 'tool';
+        }) & {
+      output?: Output;
 
       /**
 The language model to use.
@@ -208,42 +166,9 @@ The language model to use.
       model: LanguageModel;
 
       /**
-The element schema of the array that the model should generate.
- */
-      schema: z.Schema<ELEMENT, z.ZodTypeDef, any> | Schema<ELEMENT>;
-
-      /**
-Optional name of the array that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema name.
-     */
-      schemaName?: string;
-
-      /**
-Optional description of the array that should be generated.
-Used by some providers for additional LLM guidance, e.g.
-via tool or schema description.
- */
-      schemaDescription?: string;
-
-      /**
-The mode to use for object generation.
-
-The schema is converted into a JSON schema and used in one of the following ways
-
-- 'auto': The provider will choose the best mode for the model.
-- 'tool': A tool with the JSON schema as parameters is provided and the provider is instructed to use it.
-- 'json': The JSON schema and an instruction are injected into the prompt. If the provider supports JSON mode, it is enabled. If the provider supports JSON grammars, the grammar is used.
-
-Please note that most providers do not support all modes.
-
-Default and recommended: 'auto' (best mode for the model).
-     */
-      mode?: 'auto' | 'json' | 'tool';
-
-      /**
 Optional telemetry configuration (experimental).
-     */
+       */
+
       experimental_telemetry?: TelemetrySettings;
 
       /**
@@ -262,8 +187,8 @@ The stream processing will pause until the callback promise is resolved.
 
       /**
 Callback that is called when the LLM response and the final object validation are finished.
-     */
-      onFinish?: StreamObjectOnFinishCallback<Array<ELEMENT>>;
+*/
+      onFinish?: StreamObjectOnFinishCallback<RESULT>;
 
       /**
        * Internal. For test use only. May change without notice.
@@ -275,132 +200,49 @@ Callback that is called when the LLM response and the final object validation ar
       };
     },
 ): StreamObjectResult<
-  Array<ELEMENT>,
-  Array<ELEMENT>,
-  AsyncIterableStream<ELEMENT>
->;
-/**
-Generate JSON with any schema for a given prompt using a language model.
+  Output extends 'array' ? RESULT : DeepPartial<RESULT>,
+  Output extends 'array' ? RESULT : RESULT,
+  Output extends 'array'
+    ? RESULT extends Array<infer U>
+      ? AsyncIterableStream<U>
+      : never
+    : never
+> {
+  const {
+    model,
+    output = 'object',
+    system,
+    prompt,
+    messages,
+    maxRetries,
+    abortSignal,
+    headers,
+    experimental_telemetry: telemetry,
+    providerOptions,
+    onError,
+    onFinish,
+    _internal: {
+      generateId = originalGenerateId,
+      currentDate = () => new Date(),
+      now = originalNow,
+    } = {},
+    ...settings
+  } = options;
 
-This function streams the output. If you do not want to stream the output, use `generateObject` instead.
+  const {
+    schema: inputSchema,
+    schemaDescription,
+    schemaName,
+  } = 'schema' in options ? options : {};
 
-@return
-A result object for accessing the partial object stream and additional information.
- */
-export function streamObject(
-  options: Omit<CallSettings, 'stopSequences'> &
-    Prompt & {
-      output: 'no-schema';
-
-      /**
-The language model to use.
-     */
-      model: LanguageModel;
-
-      /**
-The mode to use for object generation. Must be "json" for no-schema output.
-     */
-      mode?: 'json';
-
-      /**
-Optional telemetry configuration (experimental).
-     */
-      experimental_telemetry?: TelemetrySettings;
-
-      /**
-Additional provider-specific options. They are passed through
-to the provider from the AI SDK and enable provider-specific
-functionality that can be fully encapsulated in the provider.
- */
-      providerOptions?: ProviderOptions;
-
-      /**
-Callback that is invoked when an error occurs during streaming.
-You can use it to log errors.
-The stream processing will pause until the callback promise is resolved.
-     */
-      onError?: StreamObjectOnErrorCallback;
-
-      /**
-Callback that is called when the LLM response and the final object validation are finished.
-     */
-      onFinish?: StreamObjectOnFinishCallback<JSONValue>;
-
-      /**
-       * Internal. For test use only. May change without notice.
-       */
-      _internal?: {
-        generateId?: () => string;
-        currentDate?: () => Date;
-        now?: () => number;
-      };
-    },
-): StreamObjectResult<JSONValue, JSONValue, never>;
-export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
-  model,
-  schema: inputSchema,
-  schemaName,
-  schemaDescription,
-  mode,
-  output = 'object',
-  system,
-  prompt,
-  messages,
-  maxRetries,
-  abortSignal,
-  headers,
-  experimental_telemetry: telemetry,
-  providerOptions,
-  onError,
-  onFinish,
-  _internal: {
-    generateId = originalGenerateId,
-    currentDate = () => new Date(),
-    now = originalNow,
-  } = {},
-  ...settings
-}: Omit<CallSettings, 'stopSequences'> &
-  Prompt & {
-    /**
-     * The expected structure of the output.
-     *
-     * - 'object': Generate a single object that conforms to the schema.
-     * - 'array': Generate an array of objects that conform to the schema.
-     * - 'no-schema': Generate any JSON object. No schema is specified.
-     *
-     * Default is 'object' if not specified.
-     */
-    output?: 'object' | 'array' | 'no-schema';
-
-    model: LanguageModel;
-    schema?: z.Schema<SCHEMA, z.ZodTypeDef, any> | Schema<SCHEMA>;
-    schemaName?: string;
-    schemaDescription?: string;
-    mode?: 'auto' | 'json' | 'tool';
-    experimental_telemetry?: TelemetrySettings;
-    providerOptions?: ProviderOptions;
-    onError?: StreamObjectOnErrorCallback;
-    onFinish?: StreamObjectOnFinishCallback<RESULT>;
-    _internal?: {
-      generateId?: () => string;
-      currentDate?: () => Date;
-      now?: () => number;
-    };
-  }): StreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM> {
   validateObjectGenerationInput({
     output,
-    mode,
     schema: inputSchema,
     schemaName,
     schemaDescription,
   });
 
   const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
-
-  // automatically set mode to 'json' for no-schema output
-  if (outputStrategy.type === 'no-schema' && mode === undefined) {
-    mode = 'json';
-  }
 
   return new DefaultStreamObjectResult({
     model,
@@ -416,7 +258,6 @@ export function streamObject<SCHEMA, PARTIAL, RESULT, ELEMENT_STREAM>({
     schemaName,
     schemaDescription,
     providerOptions,
-    mode,
     onError,
     onFinish,
     generateId,
@@ -463,7 +304,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName,
     schemaDescription,
     providerOptions,
-    mode,
     onError,
     onFinish,
     generateId,
@@ -483,7 +323,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     schemaName: string | undefined;
     schemaDescription: string | undefined;
     providerOptions: ProviderOptions | undefined;
-    mode: 'auto' | 'json' | 'tool' | undefined;
     onError: StreamObjectOnErrorCallback | undefined;
     onFinish: StreamObjectOnFinishCallback<RESULT> | undefined;
     generateId: () => string;
@@ -494,11 +333,13 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       maxRetries: maxRetriesArg,
     });
 
+    const callSettings = prepareCallSettings(settings);
+
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model,
       telemetry,
       headers,
-      settings: { ...settings, maxRetries },
+      settings: { ...callSettings, maxRetries },
     });
 
     const tracer = getTracer(telemetry);
@@ -543,137 +384,50 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           'ai.schema.name': schemaName,
           'ai.schema.description': schemaDescription,
           'ai.settings.output': outputStrategy.type,
-          'ai.settings.mode': mode,
         },
       }),
       tracer,
       endWhenDone: false,
       fn: async rootSpan => {
-        // use the default provider mode when the mode is set to 'auto' or unspecified
-        if (mode === 'auto' || mode == null) {
-          mode = model.defaultObjectGenerationMode;
-        }
+        const standardizedPrompt = await standardizePrompt({
+          prompt: { system, prompt, messages },
+          tools: undefined,
+        });
 
-        let callOptions: LanguageModelV2CallOptions;
-        let transformer: Transformer<
+        const callOptions = {
+          responseFormat: {
+            type: 'json' as const,
+            schema: outputStrategy.jsonSchema,
+            name: schemaName,
+            description: schemaDescription,
+          },
+          ...prepareCallSettings(settings),
+          prompt: await convertToLanguageModelPrompt({
+            prompt: standardizedPrompt,
+            supportedUrls: await model.getSupportedUrls(),
+          }),
+          providerOptions,
+          abortSignal,
+          headers,
+        };
+
+        const transformer: Transformer<
           LanguageModelV2StreamPart,
           ObjectStreamInputPart
-        >;
-
-        switch (mode) {
-          case 'json': {
-            const standardizedPrompt = standardizePrompt({
-              prompt: {
-                system:
-                  outputStrategy.jsonSchema == null
-                    ? injectJsonInstruction({ prompt: system })
-                    : model.supportsStructuredOutputs
-                      ? system
-                      : injectJsonInstruction({
-                          prompt: system,
-                          schema: outputStrategy.jsonSchema,
-                        }),
-                prompt,
-                messages,
-              },
-              tools: undefined,
-            });
-
-            callOptions = {
-              responseFormat: {
-                type: 'json',
-                schema: outputStrategy.jsonSchema,
-                name: schemaName,
-                description: schemaDescription,
-              },
-              ...prepareCallSettings(settings),
-              inputFormat: standardizedPrompt.type,
-              prompt: await convertToLanguageModelPrompt({
-                prompt: standardizedPrompt,
-                modelSupportsImageUrls: model.supportsImageUrls,
-                modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
-              }),
-              providerOptions,
-              abortSignal,
-              headers,
-            };
-
-            transformer = {
-              transform: (chunk, controller) => {
-                switch (chunk.type) {
-                  case 'text':
-                    controller.enqueue(chunk.text);
-                    break;
-                  case 'response-metadata':
-                  case 'finish':
-                  case 'error':
-                    controller.enqueue(chunk);
-                    break;
-                }
-              },
-            };
-
-            break;
-          }
-
-          case 'tool': {
-            const standardizedPrompt = standardizePrompt({
-              prompt: { system, prompt, messages },
-              tools: undefined,
-            });
-
-            callOptions = {
-              tools: [
-                {
-                  type: 'function',
-                  name: schemaName ?? 'json',
-                  description:
-                    schemaDescription ?? 'Respond with a JSON object.',
-                  parameters: outputStrategy.jsonSchema!,
-                },
-              ],
-              toolChoice: { type: 'required' },
-              ...prepareCallSettings(settings),
-              inputFormat: standardizedPrompt.type,
-              prompt: await convertToLanguageModelPrompt({
-                prompt: standardizedPrompt,
-                modelSupportsImageUrls: model.supportsImageUrls,
-                modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context,
-              }),
-              providerOptions,
-              abortSignal,
-              headers,
-            };
-
-            transformer = {
-              transform(chunk, controller) {
-                switch (chunk.type) {
-                  case 'tool-call-delta':
-                    controller.enqueue(chunk.argsTextDelta);
-                    break;
-                  case 'response-metadata':
-                  case 'finish':
-                  case 'error':
-                    controller.enqueue(chunk);
-                    break;
-                }
-              },
-            };
-
-            break;
-          }
-
-          case undefined: {
-            throw new Error(
-              'Model does not have a default object generation mode.',
-            );
-          }
-
-          default: {
-            const _exhaustiveCheck: never = mode;
-            throw new Error(`Unsupported mode: ${_exhaustiveCheck}`);
-          }
-        }
+        > = {
+          transform: (chunk, controller) => {
+            switch (chunk.type) {
+              case 'text':
+                controller.enqueue(chunk.text);
+                break;
+              case 'response-metadata':
+              case 'finish':
+              case 'error':
+                controller.enqueue(chunk);
+                break;
+            }
+          },
+        };
 
         const {
           result: { stream, response, request },
@@ -690,23 +444,20 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
-                'ai.prompt.format': {
-                  input: () => callOptions.inputFormat,
-                },
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(callOptions.prompt),
                 },
-                'ai.settings.mode': mode,
 
                 // standardized gen-ai llm span attributes:
                 'gen_ai.system': model.provider,
                 'gen_ai.request.model': model.modelId,
-                'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                'gen_ai.request.presence_penalty': settings.presencePenalty,
-                'gen_ai.request.temperature': settings.temperature,
-                'gen_ai.request.top_k': settings.topK,
-                'gen_ai.request.top_p': settings.topP,
+                'gen_ai.request.frequency_penalty':
+                  callSettings.frequencyPenalty,
+                'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+                'gen_ai.request.presence_penalty': callSettings.presencePenalty,
+                'gen_ai.request.temperature': callSettings.temperature,
+                'gen_ai.request.top_k': callSettings.topK,
+                'gen_ai.request.top_p': callSettings.topP,
               },
             }),
             tracer,
@@ -786,14 +537,14 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                   textDelta += chunk;
 
                   const { value: currentObjectJson, state: parseState } =
-                    parsePartialJson(accumulatedText);
+                    await parsePartialJson(accumulatedText);
 
                   if (
                     currentObjectJson !== undefined &&
                     !isDeepEqualData(latestObjectJson, currentObjectJson)
                   ) {
                     const validationResult =
-                      outputStrategy.validatePartialResult({
+                      await outputStrategy.validatePartialResult({
                         value: currentObjectJson,
                         textDelta,
                         latestObject,
@@ -868,14 +619,15 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     });
 
                     // resolve the object promise with the latest object:
-                    const validationResult = outputStrategy.validateFinalResult(
-                      latestObjectJson,
-                      {
-                        text: accumulatedText,
-                        response: fullResponse,
-                        usage,
-                      },
-                    );
+                    const validationResult =
+                      await outputStrategy.validateFinalResult(
+                        latestObjectJson,
+                        {
+                          text: accumulatedText,
+                          response: fullResponse,
+                          usage,
+                        },
+                      );
 
                     if (validationResult.success) {
                       object = validationResult.value;
@@ -1125,7 +877,6 @@ export type ObjectStreamInputPart =
   | {
       type: 'finish';
       finishReason: LanguageModelV2FinishReason;
-      logprobs?: LanguageModelV2LogProbs;
       usage: LanguageModelV2Usage;
       providerMetadata?: SharedV2ProviderMetadata;
     };

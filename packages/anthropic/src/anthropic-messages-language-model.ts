@@ -3,9 +3,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  LanguageModelV2Reasoning,
   LanguageModelV2StreamPart,
-  LanguageModelV2ToolCall,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
   UnsupportedFunctionalityError,
@@ -25,8 +23,8 @@ import { z } from 'zod';
 import { anthropicFailedResponseHandler } from './anthropic-error';
 import {
   AnthropicMessagesModelId,
-  AnthropicMessagesSettings,
-} from './anthropic-messages-settings';
+  anthropicProviderOptions,
+} from './anthropic-messages-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
@@ -35,28 +33,24 @@ type AnthropicMessagesConfig = {
   provider: string;
   baseURL: string;
   headers: Resolvable<Record<string, string | undefined>>;
-  supportsImageUrls: boolean;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  getSupportedUrls?: LanguageModelV2['getSupportedUrls'];
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'tool';
 
   readonly modelId: AnthropicMessagesModelId;
-  readonly settings: AnthropicMessagesSettings;
 
   private readonly config: AnthropicMessagesConfig;
 
   constructor(
     modelId: AnthropicMessagesModelId,
-    settings: AnthropicMessagesSettings,
     config: AnthropicMessagesConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -68,8 +62,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  get supportsImageUrls(): boolean {
-    return this.config.supportsImageUrls;
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return this.config.getSupportedUrls?.() ?? {};
   }
 
   private async getArgs({
@@ -118,18 +112,18 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const { prompt: messagesPrompt, betas: messagesBetas } =
-      convertToAnthropicMessagesPrompt({
-        prompt,
-        sendReasoning: this.settings.sendReasoning ?? true,
-        warnings,
-      });
-
-    const anthropicOptions = parseProviderOptions({
+    const anthropicOptions = await parseProviderOptions({
       provider: 'anthropic',
       providerOptions,
-      schema: anthropicProviderOptionsSchema,
+      schema: anthropicProviderOptions,
     });
+
+    const { prompt: messagesPrompt, betas: messagesBetas } =
+      await convertToAnthropicMessagesPrompt({
+        prompt,
+        sendReasoning: anthropicOptions?.sendReasoning ?? true,
+        warnings,
+      });
 
     const isThinking = anthropicOptions?.thinking?.type === 'enabled';
     const thinkingBudget = anthropicOptions?.thinking?.budgetTokens;
@@ -269,21 +263,24 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         case 'thinking': {
           content.push({
             type: 'reasoning',
-            reasoningType: 'text',
             text: part.thinking,
-          });
-          content.push({
-            type: 'reasoning',
-            reasoningType: 'signature',
-            signature: part.signature,
+            providerMetadata: {
+              anthropic: {
+                signature: part.signature,
+              } satisfies AnthropicReasoningMetadata,
+            },
           });
           break;
         }
         case 'redacted_thinking': {
           content.push({
             type: 'reasoning',
-            reasoningType: 'redacted',
-            data: part.data,
+            text: '',
+            providerMetadata: {
+              anthropic: {
+                redactedData: part.data,
+              } satisfies AnthropicReasoningMetadata,
+            },
           });
           break;
         }
@@ -404,9 +401,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'redacted_thinking': {
                     controller.enqueue({
                       type: 'reasoning',
-                      reasoningType: 'redacted',
-                      data: value.content_block.data,
+                      text: '',
+                      providerMetadata: {
+                        anthropic: {
+                          redactedData: value.content_block.data,
+                        } satisfies AnthropicReasoningMetadata,
+                      },
                     });
+                    controller.enqueue({ type: 'reasoning-part-finish' });
                     return;
                   }
 
@@ -464,7 +466,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   case 'thinking_delta': {
                     controller.enqueue({
                       type: 'reasoning',
-                      reasoningType: 'text',
                       text: value.delta.thinking,
                     });
 
@@ -476,9 +477,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     if (blockType === 'thinking') {
                       controller.enqueue({
                         type: 'reasoning',
-                        reasoningType: 'signature',
-                        signature: value.delta.signature,
+                        text: '',
+                        providerMetadata: {
+                          anthropic: {
+                            signature: value.delta.signature,
+                          } satisfies AnthropicReasoningMetadata,
+                        },
                       });
+                      controller.enqueue({ type: 'reasoning-part-finish' });
                     }
 
                     return;
@@ -689,15 +695,11 @@ const anthropicMessagesChunkSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
-const anthropicProviderOptionsSchema = z.object({
-  thinking: z
-    .object({
-      type: z.union([z.literal('enabled'), z.literal('disabled')]),
-      budgetTokens: z.number().optional(),
-    })
-    .optional(),
+export const anthropicReasoningMetadataSchema = z.object({
+  signature: z.string().optional(),
+  redactedData: z.string().optional(),
 });
 
-export type AnthropicProviderOptions = z.infer<
-  typeof anthropicProviderOptionsSchema
+export type AnthropicReasoningMetadata = z.infer<
+  typeof anthropicReasoningMetadataSchema
 >;

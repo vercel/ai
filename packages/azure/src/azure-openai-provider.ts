@@ -1,10 +1,7 @@
 import {
   OpenAIChatLanguageModel,
-  OpenAIChatSettings,
   OpenAICompletionLanguageModel,
-  OpenAICompletionSettings,
   OpenAIEmbeddingModel,
-  OpenAIEmbeddingSettings,
   OpenAIImageModel,
   OpenAIImageSettings,
   OpenAIResponsesLanguageModel,
@@ -14,26 +11,23 @@ import {
   EmbeddingModelV2,
   LanguageModelV2,
   ProviderV2,
-  ImageModelV1,
+  ImageModelV2,
   TranscriptionModelV1,
 } from '@ai-sdk/provider';
 import { FetchFunction, loadApiKey, loadSetting } from '@ai-sdk/provider-utils';
 
 export interface AzureOpenAIProvider extends ProviderV2 {
-  (deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV2;
+  (deploymentId: string): LanguageModelV2;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  languageModel(
-    deploymentId: string,
-    settings?: OpenAIChatSettings,
-  ): LanguageModelV2;
+  languageModel(deploymentId: string): LanguageModelV2;
 
   /**
 Creates an Azure OpenAI chat model for text generation.
    */
-  chat(deploymentId: string, settings?: OpenAIChatSettings): LanguageModelV2;
+  chat(deploymentId: string): LanguageModelV2;
 
   /**
 Creates an Azure OpenAI responses API model for text generation.
@@ -43,24 +37,18 @@ Creates an Azure OpenAI responses API model for text generation.
   /**
 Creates an Azure OpenAI completion model for text generation.
    */
-  completion(
-    deploymentId: string,
-    settings?: OpenAICompletionSettings,
-  ): LanguageModelV2;
+  completion(deploymentId: string): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel` instead.
    */
-  embedding(
-    deploymentId: string,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  embedding(deploymentId: string): EmbeddingModelV2<string>;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    * @deprecated Use `imageModel` instead.
    */
-  image(deploymentId: string, settings?: OpenAIImageSettings): ImageModelV1;
+  image(deploymentId: string, settings?: OpenAIImageSettings): ImageModelV2;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
@@ -68,23 +56,17 @@ Creates an Azure OpenAI completion model for text generation.
   imageModel(
     deploymentId: string,
     settings?: OpenAIImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel` instead.
    */
-  textEmbedding(
-    deploymentId: string,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  textEmbedding(deploymentId: string): EmbeddingModelV2<string>;
 
   /**
 Creates an Azure OpenAI model for text embeddings.
    */
-  textEmbeddingModel(
-    deploymentId: string,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  textEmbeddingModel(deploymentId: string): EmbeddingModelV2<string>;
 
   /**
    * Creates an Azure OpenAI model for audio transcription.
@@ -167,36 +149,27 @@ export function createAzure(
       : `https://${getResourceName()}.openai.azure.com/openai/deployments/${modelId}${path}?api-version=${apiVersion}`;
   };
 
-  const createChatModel = (
-    deploymentName: string,
-    settings: OpenAIChatSettings = {},
-  ) =>
-    new OpenAIChatLanguageModel(deploymentName, settings, {
-      provider: 'azure-openai.chat',
+  const createChatModel = (deploymentName: string) =>
+    new OpenAIChatLanguageModel(deploymentName, {
+      provider: 'azure.chat',
       url,
       headers: getHeaders,
       compatibility: 'strict',
       fetch: options.fetch,
     });
 
-  const createCompletionModel = (
-    modelId: string,
-    settings: OpenAICompletionSettings = {},
-  ) =>
-    new OpenAICompletionLanguageModel(modelId, settings, {
-      provider: 'azure-openai.completion',
+  const createCompletionModel = (modelId: string) =>
+    new OpenAICompletionLanguageModel(modelId, {
+      provider: 'azure.completion',
       url,
       compatibility: 'strict',
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: string,
-    settings: OpenAIEmbeddingSettings = {},
-  ) =>
-    new OpenAIEmbeddingModel(modelId, settings, {
-      provider: 'azure-openai.embeddings',
+  const createEmbeddingModel = (modelId: string) =>
+    new OpenAIEmbeddingModel(modelId, {
+      provider: 'azure.embeddings',
       headers: getHeaders,
       url,
       fetch: options.fetch,
@@ -204,7 +177,7 @@ export function createAzure(
 
   const createResponsesModel = (modelId: string) =>
     new OpenAIResponsesLanguageModel(modelId, {
-      provider: 'azure-openai.responses',
+      provider: 'azure.responses',
       url,
       headers: getHeaders,
       fetch: options.fetch,
@@ -215,7 +188,7 @@ export function createAzure(
     settings: OpenAIImageSettings = {},
   ) =>
     new OpenAIImageModel(modelId, settings, {
-      provider: 'azure-openai.image',
+      provider: 'azure.image',
       url,
       headers: getHeaders,
       fetch: options.fetch,
@@ -223,23 +196,20 @@ export function createAzure(
 
   const createTranscriptionModel = (modelId: string) =>
     new OpenAITranscriptionModel(modelId, {
-      provider: 'azure-openai.transcription',
+      provider: 'azure.transcription',
       url,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const provider = function (
-    deploymentId: string,
-    settings?: OpenAIChatSettings | OpenAICompletionSettings,
-  ) {
+  const provider = function (deploymentId: string) {
     if (new.target) {
       throw new Error(
         'The Azure OpenAI model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(deploymentId, settings as OpenAIChatSettings);
+    return createChatModel(deploymentId);
   };
 
   provider.languageModel = createChatModel;

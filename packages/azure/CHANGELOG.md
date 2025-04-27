@@ -1,5 +1,66 @@
 # @ai-sdk/azure
 
+## 2.0.0-canary.14
+
+### Patch Changes
+
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- 4617fab: chore(embedding-models): remove remaining settings
+- Updated dependencies [177526b]
+- Updated dependencies [c15dfbf]
+- Updated dependencies [9bf7291]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/openai@2.0.0-canary.13
+  - @ai-sdk/provider@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.12
+
+## 2.0.0-canary.13
+
+### Patch Changes
+
+- db72adc: chore(providers/openai): update completion model to use providerOptions
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- Updated dependencies [db72adc]
+- Updated dependencies [66962ed]
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+- Updated dependencies [7df7a25]
+  - @ai-sdk/openai@2.0.0-canary.12
+  - @ai-sdk/provider-utils@3.0.0-canary.11
+  - @ai-sdk/provider@2.0.0-canary.10
+
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- Updated dependencies [e86be6f]
+- Updated dependencies [8493141]
+  - @ai-sdk/provider@2.0.0-canary.9
+  - @ai-sdk/openai@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.10
+
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- Updated dependencies [95857aa]
+- Updated dependencies [3bd3c0b]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/openai@2.0.0-canary.10
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- Updated dependencies [d63bcbc]
+- Updated dependencies [d2af019]
+- Updated dependencies [870c5c0]
+- Updated dependencies [06bac05]
+  - @ai-sdk/openai@2.0.0-canary.9
+
 ## 2.0.0-canary.9
 
 ### Patch Changes

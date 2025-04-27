@@ -1,23 +1,22 @@
 import {
-  ImageModelV1,
-  LanguageModelV2,
-  NoSuchModelError,
-  ProviderV2,
-} from '@ai-sdk/provider';
-import {
   OpenAICompatibleChatLanguageModel,
   OpenAICompatibleImageModel,
   ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
+  ImageModelV2,
+  LanguageModelV2,
+  NoSuchModelError,
+  ProviderV2,
+} from '@ai-sdk/provider';
+import {
   FetchFunction,
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { XaiChatModelId, supportsStructuredOutputs } from './xai-chat-settings';
-import { XaiImageSettings } from './xai-image-settings';
-import { XaiImageModelId } from './xai-image-settings';
+import { XaiChatModelId, supportsStructuredOutputs } from './xai-chat-options';
 import { XaiErrorData, xaiErrorSchema } from './xai-error';
+import { XaiImageModelId, XaiImageSettings } from './xai-image-settings';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorSchema,
@@ -43,7 +42,7 @@ Creates an Xai chat model for text generation.
   /**
 Creates an Xai image model for image generation.
    */
-  image(modelId: XaiImageModelId, settings?: XaiImageSettings): ImageModelV1;
+  image(modelId: XaiImageModelId, settings?: XaiImageSettings): ImageModelV2;
 
   /**
 Creates an Xai image model for image generation.
@@ -51,7 +50,7 @@ Creates an Xai image model for image generation.
   imageModel(
     modelId: XaiImageModelId,
     settings?: XaiImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 }
 
 export interface XaiProviderSettings {
@@ -97,9 +96,9 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
-      defaultObjectGenerationMode: structuredOutputs ? 'json' : 'tool',
       errorStructure: xaiErrorStructure,
       supportsStructuredOutputs: structuredOutputs,
+      includeUsage: true,
     });
   };
 

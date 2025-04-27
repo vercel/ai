@@ -11,47 +11,27 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
-import {
-  GoogleGenerativeAIEmbeddingModelId,
-  GoogleGenerativeAIEmbeddingSettings,
-} from './google-generative-ai-embedding-settings';
+import { GoogleGenerativeAIEmbeddingModelId } from './google-generative-ai-embedding-options';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
-import {
-  GoogleGenerativeAIModelId,
-  GoogleGenerativeAISettings,
-} from './google-generative-ai-settings';
-import { isSupportedFileUrl } from './google-supported-file-url';
+import { GoogleGenerativeAIModelId } from './google-generative-ai-options';
 
 export interface GoogleGenerativeAIProvider extends ProviderV2 {
-  (
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV2;
+  (modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
-  languageModel(
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV2;
+  languageModel(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
-  chat(
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV2;
+  chat(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
   /**
    * @deprecated Use `chat()` instead.
    */
-  generativeAI(
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ): LanguageModelV2;
+  generativeAI(modelId: GoogleGenerativeAIModelId): LanguageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel()` instead.
    */
   embedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 
   /**
@@ -59,12 +39,10 @@ export interface GoogleGenerativeAIProvider extends ProviderV2 {
  */
   textEmbedding(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 
   textEmbeddingModel(
     modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings?: GoogleGenerativeAIEmbeddingSettings,
   ): EmbeddingModelV2<string>;
 }
 
@@ -117,41 +95,37 @@ export function createGoogleGenerativeAI(
     ...options.headers,
   });
 
-  const createChatModel = (
-    modelId: GoogleGenerativeAIModelId,
-    settings: GoogleGenerativeAISettings = {},
-  ) =>
-    new GoogleGenerativeAILanguageModel(modelId, settings, {
+  const createChatModel = (modelId: GoogleGenerativeAIModelId) =>
+    new GoogleGenerativeAILanguageModel(modelId, {
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
-      isSupportedUrl: isSupportedFileUrl,
+      getSupportedUrls: async () => ({
+        '*': [
+          // HTTP URLs:
+          /^https?:\/\/.*$/,
+        ],
+      }),
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: GoogleGenerativeAIEmbeddingModelId,
-    settings: GoogleGenerativeAIEmbeddingSettings = {},
-  ) =>
-    new GoogleGenerativeAIEmbeddingModel(modelId, settings, {
+  const createEmbeddingModel = (modelId: GoogleGenerativeAIEmbeddingModelId) =>
+    new GoogleGenerativeAIEmbeddingModel(modelId, {
       provider: 'google.generative-ai',
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
     });
 
-  const provider = function (
-    modelId: GoogleGenerativeAIModelId,
-    settings?: GoogleGenerativeAISettings,
-  ) {
+  const provider = function (modelId: GoogleGenerativeAIModelId) {
     if (new.target) {
       throw new Error(
         'The Google Generative AI model function cannot be called with the new keyword.',
       );
     }
 
-    return createChatModel(modelId, settings);
+    return createChatModel(modelId);
   };
 
   provider.languageModel = createChatModel;

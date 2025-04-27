@@ -4,107 +4,11 @@ import {
   createTestServer,
   isNodeVersion,
 } from '@ai-sdk/provider-utils/test';
-import { mapOpenAIChatLogProbsOutput } from './map-openai-chat-logprobs';
 import { createOpenAI } from './openai-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
-
-const TEST_LOGPROBS = {
-  content: [
-    {
-      token: 'Hello',
-      logprob: -0.0009994634,
-      top_logprobs: [
-        {
-          token: 'Hello',
-          logprob: -0.0009994634,
-        },
-      ],
-    },
-    {
-      token: '!',
-      logprob: -0.13410144,
-      top_logprobs: [
-        {
-          token: '!',
-          logprob: -0.13410144,
-        },
-      ],
-    },
-    {
-      token: ' How',
-      logprob: -0.0009250381,
-      top_logprobs: [
-        {
-          token: ' How',
-          logprob: -0.0009250381,
-        },
-      ],
-    },
-    {
-      token: ' can',
-      logprob: -0.047709424,
-      top_logprobs: [
-        {
-          token: ' can',
-          logprob: -0.047709424,
-        },
-      ],
-    },
-    {
-      token: ' I',
-      logprob: -0.000009014684,
-      top_logprobs: [
-        {
-          token: ' I',
-          logprob: -0.000009014684,
-        },
-      ],
-    },
-    {
-      token: ' assist',
-      logprob: -0.009125131,
-      top_logprobs: [
-        {
-          token: ' assist',
-          logprob: -0.009125131,
-        },
-      ],
-    },
-    {
-      token: ' you',
-      logprob: -0.0000066306106,
-      top_logprobs: [
-        {
-          token: ' you',
-          logprob: -0.0000066306106,
-        },
-      ],
-    },
-    {
-      token: ' today',
-      logprob: -0.00011093382,
-      top_logprobs: [
-        {
-          token: ' today',
-          logprob: -0.00011093382,
-        },
-      ],
-    },
-    {
-      token: '?',
-      logprob: -0.00004596782,
-      top_logprobs: [
-        {
-          token: '?',
-          logprob: -0.00004596782,
-        },
-      ],
-    },
-  ],
-};
 
 const provider = createOpenAI({
   apiKey: 'test-api-key',
@@ -117,27 +21,6 @@ const server = createTestServer({
   'https://api.openai.com/v1/chat/completions': {},
 });
 
-describe('settings', () => {
-  it('should set supportsImageUrls to true by default', () => {
-    const defaultModel = provider.chat('gpt-3.5-turbo');
-    expect(defaultModel.supportsImageUrls).toBe(true);
-  });
-
-  it('should set supportsImageUrls to false when downloadImages is true', () => {
-    const modelWithDownloadImages = provider.chat('gpt-3.5-turbo', {
-      downloadImages: true,
-    });
-    expect(modelWithDownloadImages.supportsImageUrls).toBe(false);
-  });
-
-  it('should set supportsImageUrls to true when downloadImages is false', () => {
-    const modelWithoutDownloadImages = provider.chat('gpt-3.5-turbo', {
-      downloadImages: false,
-    });
-    expect(modelWithoutDownloadImages.supportsImageUrls).toBe(true);
-  });
-});
-
 describe('doGenerate', () => {
   function prepareJsonResponse({
     content = '',
@@ -148,7 +31,6 @@ describe('doGenerate', () => {
       total_tokens: 34,
       completion_tokens: 30,
     },
-    logprobs = null,
     finish_reason = 'stop',
     id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
     created = 1711115037,
@@ -181,15 +63,6 @@ describe('doGenerate', () => {
         cached_tokens?: number;
       };
     };
-    logprobs?: {
-      content:
-        | {
-            token: string;
-            logprob: number;
-            top_logprobs: { token: string; logprob: number }[];
-          }[]
-        | null;
-    } | null;
     finish_reason?: string;
     created?: number;
     id?: string;
@@ -213,7 +86,6 @@ describe('doGenerate', () => {
               tool_calls,
               function_call,
             },
-            logprobs,
             finish_reason,
           },
         ],
@@ -227,7 +99,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -248,7 +119,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -259,7 +129,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     const { request } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -268,7 +137,6 @@ describe('doGenerate', () => {
         "body": {
           "frequency_penalty": undefined,
           "logit_bias": undefined,
-          "logprobs": undefined,
           "max_completion_tokens": undefined,
           "max_tokens": undefined,
           "messages": [
@@ -290,7 +158,6 @@ describe('doGenerate', () => {
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
-          "top_logprobs": undefined,
           "top_p": undefined,
           "user": undefined,
         },
@@ -306,7 +173,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -317,7 +183,6 @@ describe('doGenerate', () => {
             {
               "finish_reason": "stop",
               "index": 0,
-              "logprobs": null,
               "message": {
                 "content": "",
                 "role": "assistant",
@@ -336,7 +201,7 @@ describe('doGenerate', () => {
           },
         },
         "headers": {
-          "content-length": "291",
+          "content-length": "275",
           "content-type": "application/json",
         },
         "id": "test-id",
@@ -353,30 +218,10 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
     expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: undefined });
-  });
-
-  it('should extract logprobs', async () => {
-    prepareJsonResponse({
-      logprobs: TEST_LOGPROBS,
-    });
-
-    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
-      inputFormat: 'prompt',
-      prompt: TEST_PROMPT,
-      providerOptions: {
-        openai: {
-          logprobs: 1,
-        },
-      },
-    });
-    expect(response.logprobs).toStrictEqual(
-      mapOpenAIChatLogProbsOutput(TEST_LOGPROBS),
-    );
   });
 
   it('should extract finish reason', async () => {
@@ -386,7 +231,6 @@ describe('doGenerate', () => {
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -400,7 +244,6 @@ describe('doGenerate', () => {
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -413,25 +256,22 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(response?.headers).toStrictEqual({
-      // default headers:
-      'content-length': '337',
-      'content-type': 'application/json',
-
-      // custom header
-      'test-header': 'test-value',
-    });
+    expect(response?.headers).toMatchInlineSnapshot(`
+      {
+        "content-length": "321",
+        "content-type": "application/json",
+        "test-header": "test-value",
+      }
+    `);
   });
 
   it('should pass the model and the messages', async () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -445,27 +285,32 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await provider.chat('gpt-3.5-turbo').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
           logitBias: { 50256: -100 },
-          logprobs: 2,
           parallelToolCalls: false,
           user: 'test-user-id',
         },
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: 'Hello' }],
-      logprobs: true,
-      top_logprobs: 2,
-      logit_bias: { 50256: -100 },
-      parallel_tool_calls: false,
-      user: 'test-user-id',
-    });
+    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      {
+        "logit_bias": {
+          "50256": -100,
+        },
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
+          },
+        ],
+        "model": "gpt-3.5-turbo",
+        "parallel_tool_calls": false,
+        "user": "test-user-id",
+      }
+    `);
   });
 
   it('should pass reasoningEffort setting from provider metadata', async () => {
@@ -474,7 +319,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1-mini');
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: { reasoningEffort: 'low' },
@@ -494,7 +338,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1-mini');
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: { reasoningEffort: 'high' },
@@ -512,7 +355,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -533,29 +375,45 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: 'Hello' }],
-      tools: [
-        {
-          type: 'function',
-          function: {
-            name: 'test-tool',
-            parameters: {
-              type: 'object',
-              properties: { value: { type: 'string' } },
-              required: ['value'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
+    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      {
+        "messages": [
+          {
+            "content": "Hello",
+            "role": "user",
           },
+        ],
+        "model": "gpt-3.5-turbo",
+        "tool_choice": {
+          "function": {
+            "name": "test-tool",
+          },
+          "type": "function",
         },
-      ],
-      tool_choice: {
-        type: 'function',
-        function: { name: 'test-tool' },
-      },
-    });
+        "tools": [
+          {
+            "function": {
+              "name": "test-tool",
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "strict": true,
+            },
+            "type": "function",
+          },
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -571,7 +429,6 @@ describe('doGenerate', () => {
     });
 
     await provider.chat('gpt-3.5-turbo').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -603,7 +460,6 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -644,7 +500,6 @@ describe('doGenerate', () => {
       const model = provider.chat('gpt-4o-2024-08-06');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: { type: 'text' },
       });
@@ -661,7 +516,6 @@ describe('doGenerate', () => {
       const model = provider.chat('gpt-4o-2024-08-06');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: { type: 'json' },
       });
@@ -676,13 +530,15 @@ describe('doGenerate', () => {
     it('should forward json response format as "json_object" and omit schema when structuredOutputs are disabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: false,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            structuredOutputs: false,
+          },
+        },
         responseFormat: {
           type: 'json',
           schema: {
@@ -695,11 +551,20 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        model: 'gpt-4o-2024-08-06',
-        messages: [{ role: 'user', content: 'Hello' }],
-        response_format: { type: 'json_object' },
-      });
+      expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+        {
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "gpt-4o-2024-08-06",
+          "response_format": {
+            "type": "json_object",
+          },
+        }
+      `);
 
       expect(warnings).toEqual([
         {
@@ -714,12 +579,9 @@ describe('doGenerate', () => {
     it('should forward json response format as "json_object" and include schema when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -758,12 +620,9 @@ describe('doGenerate', () => {
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           schema: {
@@ -800,12 +659,9 @@ describe('doGenerate', () => {
     it('should set name & description with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           name: 'test-name',
@@ -845,12 +701,9 @@ describe('doGenerate', () => {
     it('should allow for undefined schema with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           name: 'test-name',
@@ -882,12 +735,9 @@ describe('doGenerate', () => {
         ],
       });
 
-      const model = provider.chat('gpt-4o-2024-08-06', {
-        structuredOutputs: true,
-      });
+      const model = provider.chat('gpt-4o-2024-08-06');
 
       const result = await model.doGenerate({
-        inputFormat: 'prompt',
         tools: [
           {
             type: 'function',
@@ -957,12 +807,9 @@ describe('doGenerate', () => {
       ],
     });
 
-    const model = provider.chat('gpt-4o-2024-08-06', {
-      structuredOutputs: true,
-    });
+    const model = provider.chat('gpt-4o-2024-08-06');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1033,7 +880,6 @@ describe('doGenerate', () => {
     const model = provider.chat('gpt-4o-mini');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1060,7 +906,6 @@ describe('doGenerate', () => {
     const model = provider.chat('gpt-4o-mini');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1079,7 +924,6 @@ describe('doGenerate', () => {
       const model = provider.chat('o1-preview');
 
       const result = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         temperature: 0.5,
         topP: 0.7,
@@ -1122,7 +966,6 @@ describe('doGenerate', () => {
       const model = provider.chat('o1-preview');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         maxOutputTokens: 1000,
       });
@@ -1141,7 +984,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1-preview');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -1167,7 +1009,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: [
         { role: 'system', content: 'You are a helpful assistant.' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -1200,7 +1041,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1-preview');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1217,7 +1057,6 @@ describe('doGenerate', () => {
     const model = provider.chat('o1-preview');
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1237,7 +1076,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1263,7 +1101,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1283,7 +1120,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -1309,7 +1145,6 @@ describe('doGenerate', () => {
     const model = provider.chat('gpt-4o-search-preview');
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       temperature: 0.7,
     });
@@ -1322,7 +1157,51 @@ describe('doGenerate', () => {
       type: 'unsupported-setting',
       setting: 'temperature',
       details:
-        'temperature is not supported for the gpt-4o-search-preview model and has been removed.',
+        'temperature is not supported for the search preview models and has been removed.',
+    });
+  });
+
+  it('should remove temperature setting for gpt-4o-mini-search-preview and add warning', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o-mini-search-preview');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 0.7,
+    });
+
+    const requestBody = await server.calls[0].requestBody;
+    expect(requestBody.model).toBe('gpt-4o-mini-search-preview');
+    expect(requestBody.temperature).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'temperature',
+      details:
+        'temperature is not supported for the search preview models and has been removed.',
+    });
+  });
+
+  it('should remove temperature setting for gpt-4o-mini-search-preview-2025-03-11 and add warning', async () => {
+    prepareJsonResponse();
+
+    const model = provider.chat('gpt-4o-mini-search-preview-2025-03-11');
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 0.7,
+    });
+
+    const requestBody = await server.calls[0].requestBody;
+    expect(requestBody.model).toBe('gpt-4o-mini-search-preview-2025-03-11');
+    expect(requestBody.temperature).toBeUndefined();
+
+    expect(result.warnings).toContainEqual({
+      type: 'unsupported-setting',
+      setting: 'temperature',
+      details:
+        'temperature is not supported for the search preview models and has been removed.',
     });
   });
 });
@@ -1335,7 +1214,6 @@ describe('doStream', () => {
       total_tokens: 244,
       completion_tokens: 227,
     },
-    logprobs = null,
     finish_reason = 'stop',
     model = 'gpt-3.5-turbo-0613',
     headers,
@@ -1354,15 +1232,6 @@ describe('doStream', () => {
         rejected_prediction_tokens?: number;
       };
     };
-    logprobs?: {
-      content:
-        | {
-            token: string;
-            logprob: number;
-            top_logprobs: { token: string; logprob: number }[];
-          }[]
-        | null;
-    } | null;
     finish_reason?: string;
     model?: string;
     headers?: Record<string, string>;
@@ -1380,9 +1249,7 @@ describe('doStream', () => {
           );
         }),
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":${JSON.stringify(
-            logprobs,
-          )}}]}\n\n`,
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":null}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":${JSON.stringify(
             usage,
@@ -1401,11 +1268,9 @@ describe('doStream', () => {
         total_tokens: 244,
         completion_tokens: 227,
       },
-      logprobs: TEST_LOGPROBS,
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1439,98 +1304,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "stop",
-          "logprobs": [
-            {
-              "logprob": -0.0009994634,
-              "token": "Hello",
-              "topLogprobs": [
-                {
-                  "logprob": -0.0009994634,
-                  "token": "Hello",
-                },
-              ],
-            },
-            {
-              "logprob": -0.13410144,
-              "token": "!",
-              "topLogprobs": [
-                {
-                  "logprob": -0.13410144,
-                  "token": "!",
-                },
-              ],
-            },
-            {
-              "logprob": -0.0009250381,
-              "token": " How",
-              "topLogprobs": [
-                {
-                  "logprob": -0.0009250381,
-                  "token": " How",
-                },
-              ],
-            },
-            {
-              "logprob": -0.047709424,
-              "token": " can",
-              "topLogprobs": [
-                {
-                  "logprob": -0.047709424,
-                  "token": " can",
-                },
-              ],
-            },
-            {
-              "logprob": -0.000009014684,
-              "token": " I",
-              "topLogprobs": [
-                {
-                  "logprob": -0.000009014684,
-                  "token": " I",
-                },
-              ],
-            },
-            {
-              "logprob": -0.009125131,
-              "token": " assist",
-              "topLogprobs": [
-                {
-                  "logprob": -0.009125131,
-                  "token": " assist",
-                },
-              ],
-            },
-            {
-              "logprob": -0.0000066306106,
-              "token": " you",
-              "topLogprobs": [
-                {
-                  "logprob": -0.0000066306106,
-                  "token": " you",
-                },
-              ],
-            },
-            {
-              "logprob": -0.00011093382,
-              "token": " today",
-              "topLogprobs": [
-                {
-                  "logprob": -0.00011093382,
-                  "token": " today",
-                },
-              ],
-            },
-            {
-              "logprob": -0.00004596782,
-              "token": "?",
-              "topLogprobs": [
-                {
-                  "logprob": -0.00004596782,
-                  "token": "?",
-                },
-              ],
-            },
-          ],
           "providerMetadata": {
             "openai": {},
           },
@@ -1582,7 +1355,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1669,7 +1441,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "tool-calls",
-          "logprobs": undefined,
           "providerMetadata": {
             "openai": {},
           },
@@ -1721,7 +1492,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1815,7 +1585,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "tool-calls",
-          "logprobs": undefined,
           "providerMetadata": {
             "openai": {},
           },
@@ -1873,7 +1642,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1950,7 +1718,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "tool-calls",
-          "logprobs": undefined,
           "providerMetadata": {
             "openai": {},
           },
@@ -1981,7 +1748,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -2026,7 +1792,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "tool-calls",
-          "logprobs": undefined,
           "providerMetadata": {
             "openai": {},
           },
@@ -2051,7 +1816,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -2072,7 +1836,6 @@ describe('doStream', () => {
         },
         {
           "finishReason": "error",
-          "logprobs": undefined,
           "providerMetadata": {
             "openai": {},
           },
@@ -2095,7 +1858,6 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -2112,7 +1874,6 @@ describe('doStream', () => {
           },
           {
             "finishReason": "error",
-            "logprobs": undefined,
             "providerMetadata": {
               "openai": {},
             },
@@ -2131,7 +1892,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -2140,7 +1900,6 @@ describe('doStream', () => {
         "body": {
           "frequency_penalty": undefined,
           "logit_bias": undefined,
-          "logprobs": undefined,
           "max_completion_tokens": undefined,
           "max_tokens": undefined,
           "messages": [
@@ -2166,7 +1925,6 @@ describe('doStream', () => {
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
-          "top_logprobs": undefined,
           "top_p": undefined,
           "user": undefined,
         },
@@ -2180,7 +1938,6 @@ describe('doStream', () => {
     });
 
     const { response } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -2199,7 +1956,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -2224,7 +1980,6 @@ describe('doStream', () => {
     });
 
     await provider.chat('gpt-3.5-turbo').doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -2255,7 +2010,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -2266,15 +2020,22 @@ describe('doStream', () => {
       messages: [{ role: 'user', content: 'Hello' }],
     });
 
-    expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual({
-      type: 'finish',
-      finishReason: 'stop',
-      logprobs: undefined,
-      usage: { inputTokens: 15, outputTokens: 20 },
-      providerMetadata: {
-        openai: { cachedPromptTokens: 1152 },
-      },
-    });
+    expect((await convertReadableStreamToArray(stream)).at(-1))
+      .toMatchInlineSnapshot(`
+      {
+        "finishReason": "stop",
+        "providerMetadata": {
+          "openai": {
+            "cachedPromptTokens": 1152,
+          },
+        },
+        "type": "finish",
+        "usage": {
+          "inputTokens": 15,
+          "outputTokens": 20,
+        },
+      }
+    `);
   });
 
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in providerMetadata', async () => {
@@ -2292,7 +2053,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -2303,25 +2063,29 @@ describe('doStream', () => {
       messages: [{ role: 'user', content: 'Hello' }],
     });
 
-    expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual({
-      type: 'finish',
-      finishReason: 'stop',
-      logprobs: undefined,
-      usage: { inputTokens: 15, outputTokens: 20 },
-      providerMetadata: {
-        openai: {
-          acceptedPredictionTokens: 123,
-          rejectedPredictionTokens: 456,
+    expect((await convertReadableStreamToArray(stream)).at(-1))
+      .toMatchInlineSnapshot(`
+      {
+        "finishReason": "stop",
+        "providerMetadata": {
+          "openai": {
+            "acceptedPredictionTokens": 123,
+            "rejectedPredictionTokens": 456,
+          },
         },
-      },
-    });
+        "type": "finish",
+        "usage": {
+          "inputTokens": 15,
+          "outputTokens": 20,
+        },
+      }
+    `);
   });
 
   it('should send store extension setting', async () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -2343,7 +2107,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         openai: {
@@ -2375,7 +2138,6 @@ describe('doStream', () => {
       const model = provider.chat('o1-preview');
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -2401,7 +2163,6 @@ describe('doStream', () => {
           },
           {
             "finishReason": "stop",
-            "logprobs": undefined,
             "providerMetadata": {
               "openai": {},
             },
@@ -2432,7 +2193,6 @@ describe('doStream', () => {
       const model = provider.chat('o1-preview');
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -2458,7 +2218,6 @@ describe('doStream', () => {
           },
           {
             "finishReason": "stop",
-            "logprobs": undefined,
             "providerMetadata": {
               "openai": {
                 "reasoningTokens": 10,

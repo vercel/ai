@@ -3,11 +3,10 @@ import {
   InvalidResponseDataError,
   LanguageModelV2,
   LanguageModelV2CallWarning,
-  LanguageModelV2FinishReason,
-  LanguageModelV2ObjectGenerationMode,
-  SharedV2ProviderMetadata,
-  LanguageModelV2StreamPart,
   LanguageModelV2Content,
+  LanguageModelV2FinishReason,
+  LanguageModelV2StreamPart,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,8 +16,8 @@ import {
   FetchFunction,
   generateId,
   isParsableJson,
-  ParseResult,
   parseProviderOptions,
+  ParseResult,
   postJsonToApi,
   ResponseHandler,
 } from '@ai-sdk/provider-utils';
@@ -34,28 +33,27 @@ import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
 } from './openai-compatible-error';
-import { prepareTools } from './openai-compatible-prepare-tools';
 import { MetadataExtractor } from './openai-compatible-metadata-extractor';
+import { prepareTools } from './openai-compatible-prepare-tools';
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
+  includeUsage?: boolean;
   errorStructure?: ProviderErrorStructure<any>;
   metadataExtractor?: MetadataExtractor;
-
-  /**
-Default object generation mode that should be used with this model when
-no mode is specified. Should be the mode with the best results for this
-model. `undefined` can be specified if object generation is not supported.
-  */
-  defaultObjectGenerationMode?: LanguageModelV2ObjectGenerationMode;
 
   /**
    * Whether the model supports structured outputs.
    */
   supportsStructuredOutputs?: boolean;
+
+  /**
+   * The supported URLs for the model.
+   */
+  getSupportedUrls?: () => Promise<Record<string, RegExp[]>>;
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
@@ -86,10 +84,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     this.supportsStructuredOutputs = config.supportsStructuredOutputs ?? false;
   }
 
-  get defaultObjectGenerationMode(): 'json' | 'tool' | undefined {
-    return this.config.defaultObjectGenerationMode;
-  }
-
   get provider(): string {
     return this.config.provider;
   }
@@ -98,7 +92,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     return this.config.provider.split('.')[0].trim();
   }
 
-  private getArgs({
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return this.config.getSupportedUrls?.() ?? {};
+  }
+
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -117,16 +115,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
     // Parse provider options
     const compatibleOptions = Object.assign(
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'openai-compatible',
         providerOptions,
         schema: openaiCompatibleProviderOptions,
-      }) ?? {},
-      parseProviderOptions({
+      })) ?? {},
+      (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
         schema: openaiCompatibleProviderOptions,
-      }) ?? {},
+      })) ?? {},
     );
 
     if (topK != null) {
@@ -188,6 +186,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         seed,
         ...providerOptions?.[this.providerOptionsName],
 
+        reasoning_effort: compatibleOptions.reasoningEffort,
+
         // messages:
         messages: convertToOpenAICompatibleChatMessages(prompt),
 
@@ -202,7 +202,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs({ ...options });
+    const { args, warnings } = await this.getArgs({ ...options });
 
     const body = JSON.stringify(args);
 
@@ -239,7 +239,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     if (reasoning != null && reasoning.length > 0) {
       content.push({
         type: 'reasoning',
-        reasoningType: 'text',
         text: reasoning,
       });
     }
@@ -260,9 +259,9 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     // provider metadata:
     const providerMetadata: SharedV2ProviderMetadata = {
       [this.providerOptionsName]: {},
-      ...this.config.metadataExtractor?.extractMetadata?.({
+      ...(await this.config.metadataExtractor?.extractMetadata?.({
         parsedBody: rawResponse,
-      }),
+      })),
     };
     const completionTokenDetails =
       responseBody.usage?.completion_tokens_details;
@@ -305,9 +304,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs({ ...options });
+    const { args, warnings } = await this.getArgs({ ...options });
 
-    const body = JSON.stringify({ ...args, stream: true });
+    const body = {
+      ...args,
+      stream: true,
+
+      // only include stream_options when in strict compatibility mode:
+      stream_options: this.config.includeUsage
+        ? { include_usage: true }
+        : undefined,
+    };
+
     const metadataExtractor =
       this.config.metadataExtractor?.createStreamExtractor();
 
@@ -317,10 +325,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body: {
-        ...args,
-        stream: true,
-      },
+      body,
       failedResponseHandler: this.failedResponseHandler,
       successfulResponseHandler: createEventSourceResponseHandler(
         this.chunkSchema,
@@ -455,7 +460,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             if (delta.reasoning_content != null) {
               controller.enqueue({
                 type: 'reasoning',
-                reasoningType: 'text',
                 text: delta.reasoning_content,
               });
             }

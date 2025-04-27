@@ -1,5 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { createDataStreamResponse, streamText, tool } from 'ai';
+import {
+  convertToCoreMessages,
+  createDataStreamResponse,
+  streamText,
+  tool,
+} from 'ai';
 import { z } from 'zod';
 
 export async function POST(req: Request) {
@@ -9,7 +14,7 @@ export async function POST(req: Request) {
     execute: async dataStream => {
       // step 1 example: forced tool call
       const result1 = streamText({
-        model: openai('gpt-4o-mini', { structuredOutputs: true }),
+        model: openai('gpt-4o-mini'),
         system: 'Extract the user goal from the conversation.',
         messages,
         toolChoice: 'required', // force the model to call a tool
@@ -36,7 +41,10 @@ export async function POST(req: Request) {
         system:
           'You are a helpful assistant with a different system prompt. Repeat the extract user goal in your answer.',
         // continue the workflow stream with the messages from the previous step:
-        messages: [...messages, ...(await result1.response).messages],
+        messages: [
+          ...convertToCoreMessages(messages),
+          ...(await result1.response).messages,
+        ],
       });
 
       // forward the 2nd result to the client (incl. the finish event):

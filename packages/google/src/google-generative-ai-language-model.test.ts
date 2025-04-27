@@ -39,30 +39,6 @@ const provider = createGoogleGenerativeAI({
 });
 const model = provider.chat('gemini-pro');
 
-describe('supportsUrl', () => {
-  it('should use the isSupportedUrl function from config', () => {
-    const customModel = new GoogleGenerativeAILanguageModel(
-      'gemini-pro',
-      {},
-      {
-        provider: 'google.generative-ai',
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-        headers: {},
-        generateId: () => 'test-id',
-        isSupportedUrl: url => url.hostname === 'custom.example.com',
-      },
-    );
-
-    expect(
-      customModel.supportsUrl(new URL('https://custom.example.com/test')),
-    ).toStrictEqual(true);
-
-    expect(
-      customModel.supportsUrl(new URL('https://other.example.com/test')),
-    ).toStrictEqual(false);
-  });
-});
-
 describe('groundingMetadataSchema', () => {
   it('validates complete grounding metadata with web search results', () => {
     const metadata = {
@@ -244,7 +220,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -268,7 +243,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -300,7 +274,6 @@ describe('doGenerate', () => {
     };
 
     const { content, finishReason } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -335,7 +308,6 @@ describe('doGenerate', () => {
     };
 
     const { content, finishReason } = await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -370,7 +342,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ headers: { 'test-header': 'test-value' } });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -388,7 +359,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: [
         { role: 'system', content: 'test system instruction' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -416,7 +386,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: [
         { role: 'system', content: 'test system instruction' },
         { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -448,7 +417,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -498,7 +466,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       responseFormat: {
         type: 'json',
         schema: {
@@ -534,7 +501,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await provider.languageModel('gemini-pro').doGenerate({
-      inputFormat: 'prompt',
       responseFormat: {
         type: 'json',
         schema: {
@@ -569,24 +535,26 @@ describe('doGenerate', () => {
   it('should not pass specification with responseFormat and structuredOutputs = false', async () => {
     prepareJsonResponse({});
 
-    await provider
-      .languageModel('gemini-pro', { structuredOutputs: false })
-      .doGenerate({
-        inputFormat: 'prompt',
-        responseFormat: {
-          type: 'json',
-          schema: {
-            type: 'object',
-            properties: {
-              property1: { type: 'string' },
-              property2: { type: 'number' },
-            },
-            required: ['property1', 'property2'],
-            additionalProperties: false,
-          },
+    await provider.languageModel('gemini-pro').doGenerate({
+      providerOptions: {
+        google: {
+          structuredOutputs: false,
         },
-        prompt: TEST_PROMPT,
-      });
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            property1: { type: 'string' },
+            property2: { type: 'number' },
+          },
+          required: ['property1', 'property2'],
+          additionalProperties: false,
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
 
     expect(await server.calls[0].requestBody).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
@@ -600,7 +568,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await provider.languageModel('gemini-pro').doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           name: 'test-tool',
@@ -654,7 +621,6 @@ describe('doGenerate', () => {
     });
 
     await provider.chat('gemini-pro').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -675,7 +641,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       responseFormat: {
         type: 'json',
@@ -708,7 +673,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -738,7 +702,6 @@ describe('doGenerate', () => {
     });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -784,23 +747,20 @@ describe('doGenerate', () => {
         },
       };
 
-      const model = new GoogleGenerativeAILanguageModel(
-        'gemini-pro',
-        {},
-        {
-          provider: 'google.generative-ai',
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: async () => ({
-            'X-Async-Config': 'async-config-value',
-            'X-Common': 'config-value',
-          }),
-          generateId: () => 'test-id',
-          isSupportedUrl: () => true,
-        },
-      );
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: async () => ({
+          'X-Async-Config': 'async-config-value',
+          'X-Common': 'config-value',
+        }),
+        generateId: () => 'test-id',
+        getSupportedUrls: async () => ({
+          '*': [/^https?:\/\/.*$/],
+        }),
+      });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         headers: {
           'X-Sync-Request': 'sync-request-value',
@@ -840,22 +800,16 @@ describe('doGenerate', () => {
         },
       };
 
-      const model = new GoogleGenerativeAILanguageModel(
-        'gemini-pro',
-        {},
-        {
-          provider: 'google.generative-ai',
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: async () => ({
-            'X-Promise-Header': 'promise-value',
-          }),
-          generateId: () => 'test-id',
-          isSupportedUrl: () => true,
-        },
-      );
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: async () => ({
+          'X-Promise-Header': 'promise-value',
+        }),
+        generateId: () => 'test-id',
+      });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -867,22 +821,16 @@ describe('doGenerate', () => {
 
     it('handles async function headers from config', async () => {
       prepareJsonResponse({});
-      const model = new GoogleGenerativeAILanguageModel(
-        'gemini-pro',
-        {},
-        {
-          provider: 'google.generative-ai',
-          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-          headers: async () => ({
-            'X-Async-Header': 'async-value',
-          }),
-          generateId: () => 'test-id',
-          isSupportedUrl: () => true,
-        },
-      );
+      const model = new GoogleGenerativeAILanguageModel('gemini-pro', {
+        provider: 'google.generative-ai',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: async () => ({
+          'X-Async-Header': 'async-value',
+        }),
+        generateId: () => 'test-id',
+      });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -922,7 +870,6 @@ describe('doGenerate', () => {
     };
 
     const { providerMetadata } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -972,7 +919,6 @@ describe('doGenerate', () => {
     });
 
     const { providerMetadata } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1017,12 +963,14 @@ describe('doGenerate', () => {
         url: TEST_URL_GEMINI_2_0_PRO,
       });
 
-      const gemini2Pro = provider.languageModel('gemini-2.0-pro', {
-        useSearchGrounding: true,
-      });
+      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
       await gemini2Pro.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            useSearchGrounding: true,
+          },
+        },
       });
 
       expect(await server.calls[0].requestBody).toMatchObject({
@@ -1035,12 +983,14 @@ describe('doGenerate', () => {
         url: TEST_URL_GEMINI_2_0_FLASH_EXP,
       });
 
-      const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp', {
-        useSearchGrounding: true,
-      });
+      const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp');
       await gemini2Flash.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            useSearchGrounding: true,
+          },
+        },
       });
 
       expect(await server.calls[0].requestBody).toMatchObject({
@@ -1053,12 +1003,14 @@ describe('doGenerate', () => {
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
-      const geminiPro = provider.languageModel('gemini-1.0-pro', {
-        useSearchGrounding: true,
-      });
+      const geminiPro = provider.languageModel('gemini-1.0-pro');
       await geminiPro.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            useSearchGrounding: true,
+          },
+        },
       });
 
       expect(await server.calls[0].requestBody).toMatchObject({
@@ -1071,17 +1023,19 @@ describe('doGenerate', () => {
         url: TEST_URL_GEMINI_1_5_FLASH,
       });
 
-      const geminiPro = provider.languageModel('gemini-1.5-flash', {
-        useSearchGrounding: true,
-        dynamicRetrievalConfig: {
-          mode: 'MODE_DYNAMIC',
-          dynamicThreshold: 1,
-        },
-      });
+      const geminiPro = provider.languageModel('gemini-1.5-flash');
 
       await geminiPro.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            useSearchGrounding: true,
+            dynamicRetrievalConfig: {
+              mode: 'MODE_DYNAMIC',
+              dynamicThreshold: 1,
+            },
+          },
+        },
       });
 
       expect(await server.calls[0].requestBody).toMatchObject({
@@ -1137,7 +1091,6 @@ describe('doGenerate', () => {
     };
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1203,7 +1156,6 @@ describe('doGenerate', () => {
     };
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1227,7 +1179,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         google: {
@@ -1277,7 +1228,6 @@ describe('doGenerate', () => {
     };
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1404,7 +1354,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1448,7 +1397,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1512,7 +1460,6 @@ describe('doStream', () => {
     });
 
     const { response } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1530,7 +1477,6 @@ describe('doStream', () => {
   it('should pass the messages', async () => {
     prepareStreamResponse({ content: [''] });
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1548,7 +1494,6 @@ describe('doStream', () => {
   it('should set streaming mode search param', async () => {
     prepareStreamResponse({ content: [''] });
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1566,7 +1511,6 @@ describe('doStream', () => {
     });
 
     await provider.chat('gemini-pro').doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -1585,7 +1529,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [''] });
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1610,7 +1553,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1671,7 +1613,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1705,12 +1646,14 @@ describe('doStream', () => {
         url: TEST_URL_GEMINI_2_0_PRO,
       });
 
-      const gemini2Pro = provider.languageModel('gemini-2.0-pro', {
-        useSearchGrounding: true,
-      });
+      const gemini2Pro = provider.languageModel('gemini-2.0-pro');
       await gemini2Pro.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            useSearchGrounding: true,
+          },
+        },
       });
 
       expect(await server.calls[0].requestBody).toMatchObject({
@@ -1724,12 +1667,15 @@ describe('doStream', () => {
         url: TEST_URL_GEMINI_2_0_FLASH_EXP,
       });
 
-      const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp', {
-        useSearchGrounding: true,
-      });
+      const gemini2Flash = provider.languageModel('gemini-2.0-flash-exp');
+
       await gemini2Flash.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            useSearchGrounding: true,
+          },
+        },
       });
 
       expect(await server.calls[0].requestBody).toMatchObject({
@@ -1743,12 +1689,14 @@ describe('doStream', () => {
         url: TEST_URL_GEMINI_1_0_PRO,
       });
 
-      const geminiPro = provider.languageModel('gemini-1.0-pro', {
-        useSearchGrounding: true,
-      });
+      const geminiPro = provider.languageModel('gemini-1.0-pro');
       await geminiPro.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            useSearchGrounding: true,
+          },
+        },
       });
 
       expect(await server.calls[0].requestBody).toMatchObject({
@@ -1762,17 +1710,19 @@ describe('doStream', () => {
         url: TEST_URL_GEMINI_1_5_FLASH,
       });
 
-      const geminiPro = provider.languageModel('gemini-1.5-flash', {
-        useSearchGrounding: true,
-        dynamicRetrievalConfig: {
-          mode: 'MODE_DYNAMIC',
-          dynamicThreshold: 1,
-        },
-      });
+      const geminiPro = provider.languageModel('gemini-1.5-flash');
 
       await geminiPro.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            useSearchGrounding: true,
+            dynamicRetrievalConfig: {
+              mode: 'MODE_DYNAMIC',
+              dynamicThreshold: 1,
+            },
+          },
+        },
       });
 
       expect(await server.calls[0].requestBody).toMatchObject({
@@ -1804,7 +1754,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1839,7 +1788,6 @@ describe('doStream', () => {
       ],
     };
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1935,7 +1883,6 @@ describe('doStream', () => {
       ],
     };
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1964,7 +1911,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [''] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         google: { foo: 'bar', responseModalities: ['TEXT', 'IMAGE'] },

@@ -14,7 +14,7 @@ import type {
   ToolInvocationUIPart,
   UIMessage,
   UseChatOptions,
-} from '../types';
+} from '../types/ui-messages';
 
 export async function processChatResponse({
   stream,
@@ -62,9 +62,6 @@ export async function processChatResponse({
 
   let currentTextPart: TextUIPart | undefined = undefined;
   let currentReasoningPart: ReasoningUIPart | undefined = undefined;
-  let currentReasoningTextDetail:
-    | { type: 'text'; text: string; signature?: string }
-    | undefined = undefined;
 
   function updateToolInvocationPart(
     toolCallId: string,
@@ -152,53 +149,26 @@ export async function processChatResponse({
       execUpdate();
     },
     onReasoningPart(value) {
-      if (currentReasoningTextDetail == null) {
-        currentReasoningTextDetail = { type: 'text', text: value };
-        if (currentReasoningPart != null) {
-          currentReasoningPart.details.push(currentReasoningTextDetail);
-        }
-      } else {
-        currentReasoningTextDetail.text += value;
-      }
-
       if (currentReasoningPart == null) {
         currentReasoningPart = {
           type: 'reasoning',
-          reasoning: value,
-          details: [currentReasoningTextDetail],
+          reasoning: value.text,
+          providerMetadata: value.providerMetadata,
         };
         message.parts.push(currentReasoningPart);
       } else {
-        currentReasoningPart.reasoning += value;
+        currentReasoningPart.reasoning += value.text;
+        currentReasoningPart.providerMetadata = value.providerMetadata;
       }
 
-      message.reasoning = (message.reasoning ?? '') + value;
+      message.reasoning = (message.reasoning ?? '') + value.text;
 
       execUpdate();
     },
-    onReasoningSignaturePart(value) {
-      if (currentReasoningTextDetail != null) {
-        currentReasoningTextDetail.signature = value.signature;
+    onReasoningPartFinish(value) {
+      if (currentReasoningPart != null) {
+        currentReasoningPart = undefined;
       }
-    },
-    onRedactedReasoningPart(value) {
-      if (currentReasoningPart == null) {
-        currentReasoningPart = {
-          type: 'reasoning',
-          reasoning: '',
-          details: [],
-        };
-        message.parts.push(currentReasoningPart);
-      }
-
-      currentReasoningPart.details.push({
-        type: 'redacted',
-        data: value.data,
-      });
-
-      currentReasoningTextDetail = undefined;
-
-      execUpdate();
     },
     onFilePart(value) {
       message.parts.push({
@@ -244,12 +214,14 @@ export async function processChatResponse({
 
       execUpdate();
     },
-    onToolCallDeltaPart(value) {
+    async onToolCallDeltaPart(value) {
       const partialToolCall = partialToolCalls[value.toolCallId];
 
       partialToolCall.text += value.argsTextDelta;
 
-      const { value: partialArgs } = parsePartialJson(partialToolCall.text);
+      const { value: partialArgs } = await parsePartialJson(
+        partialToolCall.text,
+      );
 
       const invocation = {
         state: 'partial-call',
@@ -361,7 +333,6 @@ export async function processChatResponse({
       // reset the current text and reasoning parts
       currentTextPart = value.isContinued ? currentTextPart : undefined;
       currentReasoningPart = undefined;
-      currentReasoningTextDetail = undefined;
     },
     onStartStepPart(value) {
       // keep message id stable when we are updating an existing message:

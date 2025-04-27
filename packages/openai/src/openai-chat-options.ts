@@ -10,6 +10,16 @@ export type OpenAIChatModelId =
   | 'o1-preview-2024-09-12'
   | 'o3-mini'
   | 'o3-mini-2025-01-31'
+  | 'o3'
+  | 'o3-2025-04-16'
+  | 'o4-mini'
+  | 'o4-mini-2025-04-16'
+  | 'gpt-4.1'
+  | 'gpt-4.1-2025-04-14'
+  | 'gpt-4.1-mini'
+  | 'gpt-4.1-mini-2025-04-14'
+  | 'gpt-4.1-nano'
+  | 'gpt-4.1-nano-2025-04-14'
   | 'gpt-4o'
   | 'gpt-4o-2024-05-13'
   | 'gpt-4o-2024-08-06'
@@ -19,6 +29,8 @@ export type OpenAIChatModelId =
   | 'gpt-4o-audio-preview-2024-12-17'
   | 'gpt-4o-search-preview'
   | 'gpt-4o-search-preview-2025-03-11'
+  | 'gpt-4o-mini-search-preview'
+  | 'gpt-4o-mini-search-preview-2025-03-11'
   | 'gpt-4o-mini'
   | 'gpt-4o-mini-2024-07-18'
   | 'gpt-4-turbo'
@@ -44,17 +56,6 @@ export const openaiProviderOptions = z.object({
    * the GPT tokenizer) to an associated bias value from -100 to 100.
    */
   logitBias: z.record(z.coerce.number(), z.number()).optional(),
-
-  /**
-   * Return the log probabilities of the tokens.
-   *
-   * Setting to true will return the log probabilities of the tokens that
-   * were generated.
-   *
-   * Setting to a number will return the log probabilities of the top n
-   * tokens that were generated.
-   */
-  logprobs: z.union([z.boolean(), z.number()]).optional(),
 
   /**
    * Whether to enable parallel function calling during tool use. Default to true.
@@ -91,24 +92,13 @@ export const openaiProviderOptions = z.object({
    * Parameters for prediction mode.
    */
   prediction: z.record(z.any()).optional(),
+
+  /**
+   * Whether to use structured outputs.
+   *
+   * @default true
+   */
+  structuredOutputs: z.boolean().optional(),
 });
 
 export type OpenAIProviderOptions = z.infer<typeof openaiProviderOptions>;
-
-export interface OpenAIChatSettings {
-  /**
-Whether to use structured outputs. Defaults to false.
-
-When enabled, tool calls and object generation will be strict and follow the provided schema.
-*/
-  structuredOutputs?: boolean;
-
-  /**
-Automatically download images and pass the image as data to the model.
-OpenAI supports image URLs for public models, so this is only needed for
-private models or when the images are not publicly accessible.
-
-Defaults to `false`.
-   */
-  downloadImages?: boolean;
-}

@@ -105,7 +105,6 @@ describe('DeepInfraProvider', () => {
         modelId,
         expect.objectContaining({
           provider: 'deepinfra.chat',
-          defaultObjectGenerationMode: 'json',
         }),
       );
     });

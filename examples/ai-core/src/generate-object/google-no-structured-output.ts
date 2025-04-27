@@ -5,9 +5,12 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: google('gemini-1.5-pro-latest', {
-      structuredOutputs: false,
-    }),
+    model: google('gemini-1.5-pro-latest'),
+    providerOptions: {
+      google: {
+        structuredOutputs: false,
+      },
+    },
     schema: z.object({
       name: z.string(),
       age: z.number(),

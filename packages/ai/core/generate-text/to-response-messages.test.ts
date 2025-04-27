@@ -140,9 +140,13 @@ describe('toResponseMessages', () => {
       files: [],
       reasoning: [
         {
-          type: 'text',
+          type: 'reasoning',
           text: 'Thinking text',
-          signature: 'sig',
+          providerOptions: {
+            testProvider: {
+              signature: 'sig',
+            },
+          },
         },
       ],
       tools: {},
@@ -152,15 +156,25 @@ describe('toResponseMessages', () => {
       generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: [
-          { type: 'reasoning', text: 'Thinking text', signature: 'sig' },
-        ],
-        id: 'msg-123',
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "sig",
+                },
+              },
+              "text": "Thinking text",
+              "type": "reasoning",
+            },
+          ],
+          "id": "msg-123",
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should include reasoning array with redacted reasoning in the assistant message', () => {
@@ -168,8 +182,20 @@ describe('toResponseMessages', () => {
       text: 'Final text',
       files: [],
       reasoning: [
-        { type: 'redacted', data: 'redacted-data' },
-        { type: 'text', text: 'Thinking text', signature: 'sig' },
+        {
+          type: 'reasoning',
+          text: 'redacted-data',
+          providerOptions: {
+            testProvider: { isRedacted: true },
+          },
+        },
+        {
+          type: 'reasoning',
+          text: 'Thinking text',
+          providerOptions: {
+            testProvider: { signature: 'sig' },
+          },
+        },
       ],
       tools: {},
       toolCalls: [],
@@ -178,17 +204,38 @@ describe('toResponseMessages', () => {
       generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        id: 'msg-123',
-        content: [
-          { type: 'redacted-reasoning', data: 'redacted-data' },
-          { type: 'reasoning', text: 'Thinking text', signature: 'sig' },
-          { type: 'text', text: 'Final text' },
-        ],
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "providerOptions": {
+                "testProvider": {
+                  "isRedacted": true,
+                },
+              },
+              "text": "redacted-data",
+              "type": "reasoning",
+            },
+            {
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "sig",
+                },
+              },
+              "text": "Thinking text",
+              "type": "reasoning",
+            },
+            {
+              "text": "Final text",
+              "type": "text",
+            },
+          ],
+          "id": "msg-123",
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should handle multipart tool results', () => {
@@ -366,7 +413,13 @@ describe('toResponseMessages', () => {
     const result = toResponseMessages({
       text: 'Combined response',
       files: [pngFile],
-      reasoning: [{ type: 'text', text: 'Thinking text', signature: 'sig' }],
+      reasoning: [
+        {
+          type: 'reasoning',
+          text: 'Thinking text',
+          providerOptions: { testProvider: { signature: 'sig' } },
+        },
+      ],
       tools: {
         testTool: {
           description: 'A test tool',
@@ -386,23 +439,40 @@ describe('toResponseMessages', () => {
       generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        id: 'msg-123',
-        content: [
-          { type: 'reasoning', text: 'Thinking text', signature: 'sig' },
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
-          { type: 'text', text: 'Combined response' },
-          {
-            type: 'tool-call',
-            toolCallId: '123',
-            toolName: 'testTool',
-            args: {},
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "providerOptions": {
+                "testProvider": {
+                  "signature": "sig",
+                },
+              },
+              "text": "Thinking text",
+              "type": "reasoning",
+            },
+            {
+              "data": "iVBORw0KGgo=",
+              "mediaType": "image/png",
+              "type": "file",
+            },
+            {
+              "text": "Combined response",
+              "type": "text",
+            },
+            {
+              "args": {},
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "id": "msg-123",
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should not append text parts if text is empty string', () => {

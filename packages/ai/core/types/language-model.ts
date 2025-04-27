@@ -2,7 +2,6 @@ import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
-  LanguageModelV2LogProbs,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
 
@@ -23,13 +22,6 @@ Can be one of the following:
 - `other`: model stopped for other reasons
 */
 export type FinishReason = LanguageModelV2FinishReason;
-
-/**
-Log probabilities for each token and its top log probabilities.
-
-@deprecated Will become a provider extension in the future.
- */
-export type LogProbs = LanguageModelV2LogProbs;
 
 /**
 Warning from the model provider for this call. The call will proceed, but e.g.

@@ -4,7 +4,6 @@ import { Schema } from '../util';
 
 export function validateObjectGenerationInput({
   output,
-  mode,
   schema,
   schemaName,
   schemaDescription,
@@ -15,7 +14,6 @@ export function validateObjectGenerationInput({
   schemaName?: string;
   schemaDescription?: string;
   enumValues?: Array<unknown>;
-  mode?: 'auto' | 'json' | 'tool';
 }) {
   if (
     output != null &&
@@ -32,14 +30,6 @@ export function validateObjectGenerationInput({
   }
 
   if (output === 'no-schema') {
-    if (mode === 'auto' || mode === 'tool') {
-      throw new InvalidArgumentError({
-        parameter: 'mode',
-        value: mode,
-        message: 'Mode must be "json" for no-schema output.',
-      });
-    }
-
     if (schema != null) {
       throw new InvalidArgumentError({
         parameter: 'schema',

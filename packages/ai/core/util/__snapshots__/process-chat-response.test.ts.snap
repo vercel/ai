@@ -611,23 +611,12 @@ exports[`scenario: server provides reasoning > should call the onFinish function
           "type": "step-start",
         },
         {
-          "details": [
-            {
-              "signature": "1234567890",
-              "text": "I will open the conversation with witty banter. ",
-              "type": "text",
-            },
-            {
-              "data": "redacted-data",
-              "type": "redacted",
-            },
-            {
+          "providerMetadata": {
+            "testProvider": {
               "signature": "abc123",
-              "text": "Once the user has relaxed, I will pry for valuable information.",
-              "type": "text",
             },
-          ],
-          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+          },
+          "reasoning": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
           "type": "reasoning",
         },
         {
@@ -635,7 +624,7 @@ exports[`scenario: server provides reasoning > should call the onFinish function
           "type": "text",
         },
       ],
-      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+      "reasoning": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
       "role": "assistant",
     },
     "usage": {
@@ -676,12 +665,7 @@ exports[`scenario: server provides reasoning > should call the update function w
           "type": "step-start",
         },
         {
-          "details": [
-            {
-              "text": "I will open the conversation",
-              "type": "text",
-            },
-          ],
+          "providerMetadata": undefined,
           "reasoning": "I will open the conversation",
           "type": "reasoning",
         },
@@ -703,12 +687,11 @@ exports[`scenario: server provides reasoning > should call the update function w
           "type": "step-start",
         },
         {
-          "details": [
-            {
-              "text": "I will open the conversation with witty banter. ",
-              "type": "text",
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "1234567890",
             },
-          ],
+          },
           "reasoning": "I will open the conversation with witty banter. ",
           "type": "reasoning",
         },
@@ -730,22 +713,16 @@ exports[`scenario: server provides reasoning > should call the update function w
           "type": "step-start",
         },
         {
-          "details": [
-            {
-              "signature": "1234567890",
-              "text": "I will open the conversation with witty banter. ",
-              "type": "text",
+          "providerMetadata": {
+            "testProvider": {
+              "isRedacted": true,
             },
-            {
-              "data": "redacted-data",
-              "type": "redacted",
-            },
-          ],
-          "reasoning": "I will open the conversation with witty banter. ",
+          },
+          "reasoning": "I will open the conversation with witty banter. redacted-data",
           "type": "reasoning",
         },
       ],
-      "reasoning": "I will open the conversation with witty banter. ",
+      "reasoning": "I will open the conversation with witty banter. redacted-data",
       "revisionId": "id-4",
       "role": "assistant",
     },
@@ -762,26 +739,12 @@ exports[`scenario: server provides reasoning > should call the update function w
           "type": "step-start",
         },
         {
-          "details": [
-            {
-              "signature": "1234567890",
-              "text": "I will open the conversation with witty banter. ",
-              "type": "text",
-            },
-            {
-              "data": "redacted-data",
-              "type": "redacted",
-            },
-            {
-              "text": "Once the user has relaxed,",
-              "type": "text",
-            },
-          ],
-          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed,",
+          "providerMetadata": undefined,
+          "reasoning": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed,",
           "type": "reasoning",
         },
       ],
-      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed,",
+      "reasoning": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed,",
       "revisionId": "id-5",
       "role": "assistant",
     },
@@ -798,26 +761,16 @@ exports[`scenario: server provides reasoning > should call the update function w
           "type": "step-start",
         },
         {
-          "details": [
-            {
-              "signature": "1234567890",
-              "text": "I will open the conversation with witty banter. ",
-              "type": "text",
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "abc123",
             },
-            {
-              "data": "redacted-data",
-              "type": "redacted",
-            },
-            {
-              "text": "Once the user has relaxed, I will pry for valuable information.",
-              "type": "text",
-            },
-          ],
-          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+          },
+          "reasoning": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
           "type": "reasoning",
         },
       ],
-      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+      "reasoning": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
       "revisionId": "id-6",
       "role": "assistant",
     },
@@ -834,23 +787,12 @@ exports[`scenario: server provides reasoning > should call the update function w
           "type": "step-start",
         },
         {
-          "details": [
-            {
-              "signature": "1234567890",
-              "text": "I will open the conversation with witty banter. ",
-              "type": "text",
-            },
-            {
-              "data": "redacted-data",
-              "type": "redacted",
-            },
-            {
+          "providerMetadata": {
+            "testProvider": {
               "signature": "abc123",
-              "text": "Once the user has relaxed, I will pry for valuable information.",
-              "type": "text",
             },
-          ],
-          "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+          },
+          "reasoning": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
           "type": "reasoning",
         },
         {
@@ -858,7 +800,7 @@ exports[`scenario: server provides reasoning > should call the update function w
           "type": "text",
         },
       ],
-      "reasoning": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
+      "reasoning": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
       "revisionId": "id-7",
       "role": "assistant",
     },
@@ -1536,13 +1478,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "details": [
-            {
+          "providerMetadata": {
+            "testProvider": {
               "signature": "1234567890",
-              "text": "I will use a tool to get the weather in London.",
-              "type": "text",
             },
-          ],
+          },
           "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
@@ -1562,13 +1502,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
-          "details": [
-            {
+          "providerMetadata": {
+            "testProvider": {
               "signature": "abc123",
-              "text": "I know know the weather in London.",
-              "type": "text",
             },
-          ],
+          },
           "reasoning": "I know know the weather in London.",
           "type": "reasoning",
         },
@@ -1613,12 +1551,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "details": [
-            {
-              "text": "I will ",
-              "type": "text",
-            },
-          ],
+          "providerMetadata": undefined,
           "reasoning": "I will ",
           "type": "reasoning",
         },
@@ -1637,12 +1570,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "details": [
-            {
-              "text": "I will use a tool to get the weather in London.",
-              "type": "text",
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "1234567890",
             },
-          ],
+          },
           "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
@@ -1661,13 +1593,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "details": [
-            {
+          "providerMetadata": {
+            "testProvider": {
               "signature": "1234567890",
-              "text": "I will use a tool to get the weather in London.",
-              "type": "text",
             },
-          ],
+          },
           "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
@@ -1709,13 +1639,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "details": [
-            {
+          "providerMetadata": {
+            "testProvider": {
               "signature": "1234567890",
-              "text": "I will use a tool to get the weather in London.",
-              "type": "text",
             },
-          ],
+          },
           "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
@@ -1763,13 +1691,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "details": [
-            {
+          "providerMetadata": {
+            "testProvider": {
               "signature": "1234567890",
-              "text": "I will use a tool to get the weather in London.",
-              "type": "text",
             },
-          ],
+          },
           "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
@@ -1789,12 +1715,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
-          "details": [
-            {
-              "text": "I know know the weather in London.",
-              "type": "text",
+          "providerMetadata": {
+            "testProvider": {
+              "signature": "abc123",
             },
-          ],
+          },
           "reasoning": "I know know the weather in London.",
           "type": "reasoning",
         },
@@ -1827,13 +1752,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "id": "id-0",
       "parts": [
         {
-          "details": [
-            {
+          "providerMetadata": {
+            "testProvider": {
               "signature": "1234567890",
-              "text": "I will use a tool to get the weather in London.",
-              "type": "text",
             },
-          ],
+          },
           "reasoning": "I will use a tool to get the weather in London.",
           "type": "reasoning",
         },
@@ -1853,13 +1776,11 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
           "type": "tool-invocation",
         },
         {
-          "details": [
-            {
+          "providerMetadata": {
+            "testProvider": {
               "signature": "abc123",
-              "text": "I know know the weather in London.",
-              "type": "text",
             },
-          ],
+          },
           "reasoning": "I know know the weather in London.",
           "type": "reasoning",
         },

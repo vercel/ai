@@ -7,27 +7,25 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
   readonly provider: LanguageModelV2['provider'];
   readonly modelId: LanguageModelV2['modelId'];
 
-  supportsUrl: LanguageModelV2['supportsUrl'];
+  getSupportedUrls: LanguageModelV2['getSupportedUrls'];
   doGenerate: LanguageModelV2['doGenerate'];
   doStream: LanguageModelV2['doStream'];
 
   doGenerateCalls: Parameters<LanguageModelV2['doGenerate']>[0][] = [];
   doStreamCalls: Parameters<LanguageModelV2['doStream']>[0][] = [];
 
-  readonly defaultObjectGenerationMode: LanguageModelV2['defaultObjectGenerationMode'];
-  readonly supportsStructuredOutputs: LanguageModelV2['supportsStructuredOutputs'];
   constructor({
     provider = 'mock-provider',
     modelId = 'mock-model-id',
-    supportsUrl = undefined,
+    getSupportedUrls = {},
     doGenerate = notImplemented,
     doStream = notImplemented,
-    defaultObjectGenerationMode = undefined,
-    supportsStructuredOutputs = undefined,
   }: {
     provider?: LanguageModelV2['provider'];
     modelId?: LanguageModelV2['modelId'];
-    supportsUrl?: LanguageModelV2['supportsUrl'];
+    getSupportedUrls?:
+      | LanguageModelV2['getSupportedUrls']
+      | Awaited<ReturnType<LanguageModelV2['getSupportedUrls']>>;
     doGenerate?:
       | LanguageModelV2['doGenerate']
       | Awaited<ReturnType<LanguageModelV2['doGenerate']>>
@@ -36,8 +34,6 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
       | LanguageModelV2['doStream']
       | Awaited<ReturnType<LanguageModelV2['doStream']>>
       | Awaited<ReturnType<LanguageModelV2['doStream']>>[];
-    defaultObjectGenerationMode?: LanguageModelV2['defaultObjectGenerationMode'];
-    supportsStructuredOutputs?: LanguageModelV2['supportsStructuredOutputs'];
   } = {}) {
     this.provider = provider;
     this.modelId = modelId;
@@ -63,9 +59,9 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
         return doStream;
       }
     };
-    this.supportsUrl = supportsUrl;
-
-    this.defaultObjectGenerationMode = defaultObjectGenerationMode;
-    this.supportsStructuredOutputs = supportsStructuredOutputs;
+    this.getSupportedUrls =
+      typeof getSupportedUrls === 'function'
+        ? getSupportedUrls
+        : async () => getSupportedUrls;
   }
 }

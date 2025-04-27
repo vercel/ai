@@ -8,7 +8,7 @@ import {
 import { z } from 'zod';
 import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
-import { OpenAISpeechModelId } from './openai-speech-settings';
+import { OpenAISpeechModelId } from './openai-speech-options';
 import { OpenAISpeechAPITypes } from './openai-api-types';
 
 // https://platform.openai.com/docs/api-reference/audio/createSpeech
@@ -39,7 +39,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     private readonly config: OpenAISpeechModelConfig,
   ) {}
 
-  private getArgs({
+  private async getArgs({
     text,
     voice = 'alloy',
     outputFormat = 'mp3',
@@ -50,7 +50,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     const warnings: SpeechModelV1CallWarning[] = [];
 
     // Parse provider options
-    const openAIOptions = parseProviderOptions({
+    const openAIOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
       schema: OpenAIProviderOptionsSchema,
@@ -100,7 +100,7 @@ export class OpenAISpeechModel implements SpeechModelV1 {
     options: Parameters<SpeechModelV1['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV1['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestBody, warnings } = this.getArgs(options);
+    const { requestBody, warnings } = await this.getArgs(options);
 
     const {
       value: audio,

@@ -9,7 +9,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download images for user image parts with URLs when model does not support image URLs', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -22,8 +21,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
@@ -50,7 +48,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download images for user image parts with string URLs when model does not support image URLs', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -63,8 +60,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/image.png'));
             return {
@@ -93,7 +89,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should pass through URLs when the model supports a particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -107,8 +102,9 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: true,
-          modelSupportsUrl: () => true,
+          supportedUrls: {
+            '*': [/^https:\/\/.*$/],
+          },
         });
 
         expect(result).toEqual([
@@ -128,7 +124,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download the URL as an asset when the model does not support a URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -142,8 +137,10 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: true,
-          modelSupportsUrl: () => false,
+          supportedUrls: {
+            // PDF is not supported, but image/* is
+            'image/*': [/^https:\/\/.*$/],
+          },
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -171,7 +168,6 @@ describe('convertToLanguageModelPrompt', () => {
         const base64Data = 'SGVsbG8sIFdvcmxkIQ=='; // "Hello, World!" in base64
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -185,8 +181,9 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: true,
-          modelSupportsUrl: undefined,
+          supportedUrls: {
+            'image/*': [/^https:\/\/.*$/],
+          },
         });
 
         expect(result).toEqual([
@@ -207,7 +204,6 @@ describe('convertToLanguageModelPrompt', () => {
         const uint8Data = new Uint8Array([72, 101, 108, 108, 111]); // "Hello" in ASCII
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -221,8 +217,9 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: true,
-          modelSupportsUrl: undefined,
+          supportedUrls: {
+            'image/*': [/^https:\/\/.*$/],
+          },
         });
 
         expect(result).toEqual([
@@ -242,7 +239,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with URL objects when model does not support downloads', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -256,8 +252,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -284,7 +279,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with string URLs when model does not support downloads', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -298,8 +292,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -326,7 +319,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with string URLs when model does not support the particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -340,9 +332,12 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: url =>
-            url.toString() !== 'https://example.com/document.pdf',
+          supportedUrls: {
+            'application/pdf': [
+              // everything except https://example.com/document.pdf
+              /^(?!https:\/\/example\.com\/document\.pdf$).*$/,
+            ],
+          },
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -369,7 +364,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('does not download URLs for user file parts for URL objects when model does support the URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -383,9 +377,12 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: url =>
-            url.toString() === 'https://example.com/document.pdf',
+          supportedUrls: {
+            'application/pdf': [
+              // match exactly https://example.com/document.pdf
+              /^https:\/\/example\.com\/document\.pdf$/,
+            ],
+          },
         });
 
         expect(result).toEqual([
@@ -405,7 +402,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('it should default to downloading the URL when the model does not provider a supportsUrl function', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -419,8 +415,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -447,7 +442,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should handle file parts with filename', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -462,8 +456,9 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: true,
-          modelSupportsUrl: undefined,
+          supportedUrls: {
+            'image/*': [/^https:\/\/.*$/],
+          },
         });
 
         expect(result).toEqual([
@@ -484,7 +479,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should preserve filename when downloading file from URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -499,8 +493,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: false,
-          modelSupportsUrl: () => false,
+          supportedUrls: {},
           downloadImplementation: async ({ url }) => {
             expect(url).toEqual(new URL('https://example.com/document.pdf'));
             return {
@@ -530,7 +523,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should add provider options to messages', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -549,8 +541,7 @@ describe('convertToLanguageModelPrompt', () => {
               },
             ],
           },
-          modelSupportsImageUrls: undefined,
-          modelSupportsUrl: undefined,
+          supportedUrls: {},
         });
 
         expect(result).toEqual([
@@ -829,8 +820,11 @@ describe('convertToLanguageModelMessage', () => {
                 text: `I'm thinking`,
               },
               {
-                type: 'redacted-reasoning',
-                data: 'redacted-reasoning-data',
+                type: 'reasoning',
+                text: 'redacted-reasoning-data',
+                providerOptions: {
+                  'test-provider': { redacted: true },
+                },
               },
               {
                 type: 'reasoning',
@@ -853,8 +847,11 @@ describe('convertToLanguageModelMessage', () => {
               text: `I'm thinking`,
             },
             {
-              type: 'redacted-reasoning',
-              data: 'redacted-reasoning-data',
+              type: 'reasoning',
+              text: 'redacted-reasoning-data',
+              providerOptions: {
+                'test-provider': { redacted: true },
+              },
             },
             {
               type: 'reasoning',

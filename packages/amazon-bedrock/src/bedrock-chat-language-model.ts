@@ -4,6 +4,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Content,
   LanguageModelV2FinishReason,
+  LanguageModelV2Reasoning,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
@@ -45,15 +46,13 @@ type BedrockChatConfig = {
 export class BedrockChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
   readonly provider = 'amazon-bedrock';
-  readonly defaultObjectGenerationMode = 'tool';
-  readonly supportsImageUrls = false;
 
   constructor(
     readonly modelId: BedrockChatModelId,
     private readonly config: BedrockChatConfig,
   ) {}
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -67,17 +66,17 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     providerOptions,
-  }: Parameters<LanguageModelV2['doGenerate']>[0]): {
+  }: Parameters<LanguageModelV2['doGenerate']>[0]): Promise<{
     command: BedrockConverseInput;
     warnings: LanguageModelV2CallWarning[];
-  } {
+  }> {
     // Parse provider options
     const bedrockOptions =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: 'bedrock',
         providerOptions,
         schema: bedrockProviderOptions,
-      }) ?? {};
+      })) ?? {};
 
     const warnings: LanguageModelV2CallWarning[] = [];
 
@@ -117,7 +116,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const { system, messages } = convertToBedrockChatMessages(prompt);
+    const { system, messages } = await convertToBedrockChatMessages(prompt);
 
     const isThinking = bedrockOptions.reasoningConfig?.type === 'enabled';
     const thinkingBudget = bedrockOptions.reasoningConfig?.budgetTokens;
@@ -184,10 +183,16 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     };
   }
 
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      // no supported urls for bedrock
+    };
+  }
+
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { command: args, warnings } = this.getArgs(options);
+    const { command: args, warnings } = await this.getArgs(options);
 
     const url = `${this.getUrl(this.modelId)}/converse`;
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -220,23 +225,30 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       // reasoning
       if (part.reasoningContent) {
         if ('reasoningText' in part.reasoningContent) {
-          content.push({
+          const reasoning: LanguageModelV2Reasoning = {
             type: 'reasoning',
-            reasoningType: 'text',
             text: part.reasoningContent.reasoningText.text,
-          });
+          };
+
           if (part.reasoningContent.reasoningText.signature) {
-            content.push({
-              type: 'reasoning',
-              reasoningType: 'signature',
-              signature: part.reasoningContent.reasoningText.signature,
-            });
+            reasoning.providerMetadata = {
+              bedrock: {
+                signature: part.reasoningContent.reasoningText.signature,
+              } satisfies BedrockReasoningMetadata,
+            };
           }
+
+          content.push(reasoning);
         } else if ('redactedReasoning' in part.reasoningContent) {
           content.push({
             type: 'reasoning',
-            reasoningType: 'redacted',
-            data: part.reasoningContent.redactedReasoning.data ?? '',
+            text: '',
+            providerMetadata: {
+              bedrock: {
+                redactedData:
+                  part.reasoningContent.redactedReasoning.data ?? '',
+              } satisfies BedrockReasoningMetadata,
+            },
           });
         }
       }
@@ -294,7 +306,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { command: args, warnings } = this.getArgs(options);
+    const { command: args, warnings } = await this.getArgs(options);
     const url = `${this.getUrl(this.modelId)}/converse-stream`;
 
     const { value: response, responseHeaders } = await postJsonToApi({
@@ -436,7 +448,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               if ('text' in reasoningContent && reasoningContent.text) {
                 controller.enqueue({
                   type: 'reasoning',
-                  reasoningType: 'text',
                   text: reasoningContent.text,
                 });
               } else if (
@@ -445,15 +456,25 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               ) {
                 controller.enqueue({
                   type: 'reasoning',
-                  reasoningType: 'signature',
-                  signature: reasoningContent.signature,
+                  text: '',
+                  providerMetadata: {
+                    bedrock: {
+                      signature: reasoningContent.signature,
+                    } satisfies BedrockReasoningMetadata,
+                  },
                 });
+                controller.enqueue({ type: 'reasoning-part-finish' });
               } else if ('data' in reasoningContent && reasoningContent.data) {
                 controller.enqueue({
                   type: 'reasoning',
-                  reasoningType: 'redacted',
-                  data: reasoningContent.data,
+                  text: '',
+                  providerMetadata: {
+                    bedrock: {
+                      redactedData: reasoningContent.data,
+                    } satisfies BedrockReasoningMetadata,
+                  },
                 });
+                controller.enqueue({ type: 'reasoning-part-finish' });
               }
             }
 
@@ -652,3 +673,12 @@ const BedrockStreamSchema = z.object({
   throttlingException: z.record(z.unknown()).nullish(),
   validationException: z.record(z.unknown()).nullish(),
 });
+
+export const bedrockReasoningMetadataSchema = z.object({
+  signature: z.string().optional(),
+  redactedData: z.string().optional(),
+});
+
+export type BedrockReasoningMetadata = z.infer<
+  typeof bedrockReasoningMetadataSchema
+>;

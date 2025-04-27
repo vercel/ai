@@ -1,5 +1,44 @@
 # @ai-sdk/anthropic
 
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- 5c9eec4: chore(providers/anthropic): switch to providerOptions
+- Updated dependencies [9bf7291]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/provider@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.12
+
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- 66962ed: fix(packages): export node10 compatible types
+- Updated dependencies [66962ed]
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+  - @ai-sdk/provider-utils@3.0.0-canary.11
+  - @ai-sdk/provider@2.0.0-canary.10
+
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- Updated dependencies [e86be6f]
+  - @ai-sdk/provider@2.0.0-canary.9
+  - @ai-sdk/provider-utils@3.0.0-canary.10
+
+## 2.0.0-canary.9
+
+### Patch Changes
+
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
 ## 2.0.0-canary.8
 
 ### Patch Changes

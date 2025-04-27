@@ -25,7 +25,6 @@ import { OpenAIResponsesModelId } from './openai-responses-settings';
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = 'json';
 
   readonly modelId: OpenAIResponsesModelId;
 
@@ -36,11 +35,17 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     this.config = config;
   }
 
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      'image/*': [/^https?:\/\/.*$/],
+    };
+  }
+
   get provider(): string {
     return this.config.provider;
   }
 
-  private getArgs({
+  private async getArgs({
     maxOutputTokens,
     temperature,
     stopSequences,
@@ -92,7 +97,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     warnings.push(...messageWarnings);
 
-    const openaiOptions = parseProviderOptions({
+    const openaiOptions = await parseProviderOptions({
       provider: 'openai',
       providerOptions,
       schema: openaiResponsesProviderOptionsSchema,
@@ -132,8 +137,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
       // model-specific settings:
       ...(modelConfig.isReasoningModel &&
-        openaiOptions?.reasoningEffort != null && {
-          reasoning: { effort: openaiOptions?.reasoningEffort },
+        (openaiOptions?.reasoningEffort != null ||
+          openaiOptions?.reasoningSummary != null) && {
+          reasoning: {
+            ...(openaiOptions?.reasoningEffort != null && {
+              effort: openaiOptions.reasoningEffort,
+            }),
+            ...(openaiOptions?.reasoningSummary != null && {
+              summary: openaiOptions.reasoningSummary,
+            }),
+          },
         }),
       ...(modelConfig.requiredAutoTruncation && {
         truncation: 'auto',
@@ -185,7 +198,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args: body, warnings } = this.getArgs(options);
+    const { args: body, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -239,6 +252,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               }),
               z.object({
                 type: z.literal('reasoning'),
+                summary: z.array(
+                  z.object({
+                    type: z.literal('summary_text'),
+                    text: z.string(),
+                  }),
+                ),
               }),
             ]),
           ),
@@ -255,6 +274,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     // map response content to content array
     for (const part of response.output) {
       switch (part.type) {
+        case 'reasoning': {
+          content.push({
+            type: 'reasoning',
+            text: part.summary.map(summary => summary.text).join(),
+          });
+          break;
+        }
+
         case 'message': {
           for (const contentPart of part.content) {
             content.push({
@@ -322,7 +349,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args: body, warnings } = this.getArgs(options);
+    const { args: body, warnings } = await this.getArgs(options);
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: this.config.url({
@@ -416,6 +443,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             } else if (isTextDeltaChunk(value)) {
               controller.enqueue({
                 type: 'text',
+                text: value.delta,
+              });
+            } else if (isResponseReasoningSummaryTextDeltaChunk(value)) {
+              controller.enqueue({
+                type: 'reasoning',
                 text: value.delta,
               });
             } else if (
@@ -563,6 +595,14 @@ const responseAnnotationAddedSchema = z.object({
   }),
 });
 
+const responseReasoningSummaryTextDeltaSchema = z.object({
+  type: z.literal('response.reasoning_summary_text.delta'),
+  item_id: z.string(),
+  output_index: z.number(),
+  summary_index: z.number(),
+  delta: z.string(),
+});
+
 const openaiResponsesChunkSchema = z.union([
   textDeltaChunkSchema,
   responseFinishedChunkSchema,
@@ -571,6 +611,7 @@ const openaiResponsesChunkSchema = z.union([
   responseFunctionCallArgumentsDeltaSchema,
   responseOutputItemAddedSchema,
   responseAnnotationAddedSchema,
+  responseReasoningSummaryTextDeltaSchema,
   z.object({ type: z.string() }).passthrough(), // fallback for unknown chunks
 ]);
 
@@ -618,6 +659,12 @@ function isResponseAnnotationAddedChunk(
   return chunk.type === 'response.output_text.annotation.added';
 }
 
+function isResponseReasoningSummaryTextDeltaChunk(
+  chunk: z.infer<typeof openaiResponsesChunkSchema>,
+): chunk is z.infer<typeof responseReasoningSummaryTextDeltaSchema> {
+  return chunk.type === 'response.reasoning_summary_text.delta';
+}
+
 type ResponsesModelConfig = {
   isReasoningModel: boolean;
   systemMessageMode: 'remove' | 'system' | 'developer';
@@ -659,6 +706,7 @@ const openaiResponsesProviderOptionsSchema = z.object({
   reasoningEffort: z.string().nullish(),
   strictSchemas: z.boolean().nullish(),
   instructions: z.string().nullish(),
+  reasoningSummary: z.string().nullish(),
 });
 
 export type OpenAIResponsesProviderOptions = z.infer<

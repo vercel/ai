@@ -12,15 +12,18 @@ import { weatherTool } from '../tools/weather-tool';
 async function main() {
   const result = streamText({
     model: wrapLanguageModel({
-      model: anthropic('claude-3-opus-20240229', {
+      model: anthropic('claude-3-opus-20240229'),
+      middleware: [extractReasoningMiddleware({ tagName: 'thinking' })],
+    }),
+    providerOptions: {
+      anthropic: {
         // Anthropic produces 'thinking' tags for this model and example
         // configuration.  These will never include signature content and so
         // will fail the provider-side signature check if included in subsequent
         // request messages, so we disable sending reasoning content.
         sendReasoning: false,
-      }),
-      middleware: [extractReasoningMiddleware({ tagName: 'thinking' })],
-    }),
+      },
+    },
     tools: {
       weather: weatherTool,
     },
@@ -36,13 +39,11 @@ async function main() {
   for await (const part of result.fullStream) {
     switch (part.type) {
       case 'reasoning': {
-        if (part.reasoningType === 'text') {
-          if (!enteredReasoning) {
-            enteredReasoning = true;
-            console.log('\nREASONING:\n');
-          }
-          process.stdout.write(part.text);
+        if (!enteredReasoning) {
+          enteredReasoning = true;
+          console.log('\nREASONING:\n');
         }
+        process.stdout.write(part.text);
         break;
       }
 

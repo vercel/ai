@@ -197,7 +197,6 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
@@ -224,14 +223,15 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "reasoningType": "text",
               "text": "ana",
               "type": "reasoning",
             },
             {
-              "reasoningType": "text",
               "text": "lyzing the request",
               "type": "reasoning",
+            },
+            {
+              "type": "reasoning-part-finish",
             },
             {
               "text": "Here",
@@ -244,7 +244,6 @@ describe('extractReasoningMiddleware', () => {
             {
               "finishReason": "stop",
               "isContinued": false,
-              "logprobs": undefined,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},
@@ -264,7 +263,6 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "logprobs": undefined,
               "providerMetadata": undefined,
               "response": {
                 "headers": undefined,
@@ -301,7 +299,6 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
@@ -328,19 +325,23 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "reasoningType": "text",
               "text": "analyzing the request",
               "type": "reasoning",
+            },
+            {
+              "type": "reasoning-part-finish",
             },
             {
               "text": "Here is the response",
               "type": "text",
             },
             {
-              "reasoningType": "text",
               "text": "
           thinking about the response",
               "type": "reasoning",
+            },
+            {
+              "type": "reasoning-part-finish",
             },
             {
               "text": "
@@ -350,7 +351,6 @@ describe('extractReasoningMiddleware', () => {
             {
               "finishReason": "stop",
               "isContinued": false,
-              "logprobs": undefined,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},
@@ -370,7 +370,6 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "logprobs": undefined,
               "providerMetadata": undefined,
               "response": {
                 "headers": undefined,
@@ -407,7 +406,6 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
@@ -434,20 +432,20 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "reasoningType": "text",
               "text": "ana",
               "type": "reasoning",
             },
             {
-              "reasoningType": "text",
               "text": "lyzing the request
           ",
               "type": "reasoning",
             },
             {
+              "type": "reasoning-part-finish",
+            },
+            {
               "finishReason": "stop",
               "isContinued": false,
-              "logprobs": undefined,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},
@@ -467,7 +465,6 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "logprobs": undefined,
               "providerMetadata": undefined,
               "response": {
                 "headers": undefined,
@@ -504,7 +501,6 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
@@ -543,15 +539,16 @@ describe('extractReasoningMiddleware', () => {
               "warnings": [],
             },
             {
-              "reasoningType": "text",
               "text": "ana",
               "type": "reasoning",
             },
             {
-              "reasoningType": "text",
               "text": "lyzing the request
           ",
               "type": "reasoning",
+            },
+            {
+              "type": "reasoning-part-finish",
             },
             {
               "text": "this is the response",
@@ -560,7 +557,6 @@ describe('extractReasoningMiddleware', () => {
             {
               "finishReason": "stop",
               "isContinued": false,
-              "logprobs": undefined,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},
@@ -580,7 +576,6 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "logprobs": undefined,
               "providerMetadata": undefined,
               "response": {
                 "headers": undefined,
@@ -627,7 +622,6 @@ describe('extractReasoningMiddleware', () => {
             {
               "finishReason": "stop",
               "isContinued": false,
-              "logprobs": undefined,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},
@@ -647,7 +641,6 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "logprobs": undefined,
               "providerMetadata": undefined,
               "response": {
                 "headers": undefined,

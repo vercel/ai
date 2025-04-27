@@ -184,10 +184,10 @@ function useObject<RESULT, INPUT = any>({
 
       await response.body.pipeThrough(new TextDecoderStream()).pipeTo(
         new WritableStream<string>({
-          write(chunk) {
+          async write(chunk) {
             accumulatedText += chunk;
 
-            const { value } = parsePartialJson(accumulatedText);
+            const { value } = await parsePartialJson(accumulatedText);
             const currentObject = value as DeepPartial<RESULT>;
 
             if (!isDeepEqualData(latestObject, currentObject)) {
@@ -197,12 +197,12 @@ function useObject<RESULT, INPUT = any>({
             }
           },
 
-          close() {
+          async close() {
             setIsLoading(false);
             abortControllerRef.current = null;
 
             if (onFinish != null) {
-              const validationResult = safeValidateTypes({
+              const validationResult = await safeValidateTypes({
                 value: latestObject,
                 schema: asSchema(schema),
               });

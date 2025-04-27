@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV2,
-  ImageModelV1,
+  ImageModelV2,
   LanguageModelV2,
   ProviderV2,
   TranscriptionModelV1,
@@ -12,17 +12,11 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './openai-chat-language-model';
-import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-options';
+import { OpenAIChatModelId } from './openai-chat-options';
 import { OpenAICompletionLanguageModel } from './openai-completion-language-model';
-import {
-  OpenAICompletionModelId,
-  OpenAICompletionSettings,
-} from './openai-completion-settings';
+import { OpenAICompletionModelId } from './openai-completion-options';
 import { OpenAIEmbeddingModel } from './openai-embedding-model';
-import {
-  OpenAIEmbeddingModelId,
-  OpenAIEmbeddingSettings,
-} from './openai-embedding-settings';
+import { OpenAIEmbeddingModelId } from './openai-embedding-options';
 import { OpenAIImageModel } from './openai-image-model';
 import {
   OpenAIImageModelId,
@@ -30,38 +24,28 @@ import {
 } from './openai-image-settings';
 import { openaiTools } from './openai-tools';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
-import { OpenAITranscriptionModelId } from './openai-transcription-settings';
+import { OpenAITranscriptionModelId } from './openai-transcription-options';
 import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
 import { OpenAIResponsesModelId } from './responses/openai-responses-settings';
 import { OpenAISpeechModel } from './openai-speech-model';
-import { OpenAISpeechModelId } from './openai-speech-settings';
+import { OpenAISpeechModelId } from './openai-speech-options';
 
 export interface OpenAIProvider extends ProviderV2 {
-  (
-    modelId: 'gpt-3.5-turbo-instruct',
-    settings?: OpenAICompletionSettings,
-  ): OpenAICompletionLanguageModel;
-  (modelId: OpenAIChatModelId, settings?: OpenAIChatSettings): LanguageModelV2;
+  (modelId: 'gpt-3.5-turbo-instruct'): OpenAICompletionLanguageModel;
+  (modelId: OpenAIChatModelId): LanguageModelV2;
 
   /**
 Creates an OpenAI model for text generation.
    */
   languageModel(
     modelId: 'gpt-3.5-turbo-instruct',
-    settings?: OpenAICompletionSettings,
   ): OpenAICompletionLanguageModel;
-  languageModel(
-    modelId: OpenAIChatModelId,
-    settings?: OpenAIChatSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: OpenAIChatModelId): LanguageModelV2;
 
   /**
 Creates an OpenAI chat model for text generation.
    */
-  chat(
-    modelId: OpenAIChatModelId,
-    settings?: OpenAIChatSettings,
-  ): LanguageModelV2;
+  chat(modelId: OpenAIChatModelId): LanguageModelV2;
 
   /**
 Creates an OpenAI responses API model for text generation.
@@ -71,36 +55,24 @@ Creates an OpenAI responses API model for text generation.
   /**
 Creates an OpenAI completion model for text generation.
    */
-  completion(
-    modelId: OpenAICompletionModelId,
-    settings?: OpenAICompletionSettings,
-  ): LanguageModelV2;
+  completion(modelId: OpenAICompletionModelId): LanguageModelV2;
 
   /**
 Creates a model for text embeddings.
    */
-  embedding(
-    modelId: OpenAIEmbeddingModelId,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
 
   /**
 Creates a model for text embeddings.
 
 @deprecated Use `textEmbeddingModel` instead.
    */
-  textEmbedding(
-    modelId: OpenAIEmbeddingModelId,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
 
   /**
 Creates a model for text embeddings.
    */
-  textEmbeddingModel(
-    modelId: OpenAIEmbeddingModelId,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
 
   /**
 Creates a model for image generation.
@@ -108,7 +80,7 @@ Creates a model for image generation.
   image(
     modelId: OpenAIImageModelId,
     settings?: OpenAIImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 Creates a model for image generation.
@@ -116,7 +88,7 @@ Creates a model for image generation.
   imageModel(
     modelId: OpenAIImageModelId,
     settings?: OpenAIImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 Creates a model for transcription.
@@ -204,11 +176,8 @@ export function createOpenAI(
     ...options.headers,
   });
 
-  const createChatModel = (
-    modelId: OpenAIChatModelId,
-    settings: OpenAIChatSettings = {},
-  ) =>
-    new OpenAIChatLanguageModel(modelId, settings, {
+  const createChatModel = (modelId: OpenAIChatModelId) =>
+    new OpenAIChatLanguageModel(modelId, {
       provider: `${providerName}.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -216,11 +185,8 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createCompletionModel = (
-    modelId: OpenAICompletionModelId,
-    settings: OpenAICompletionSettings = {},
-  ) =>
-    new OpenAICompletionLanguageModel(modelId, settings, {
+  const createCompletionModel = (modelId: OpenAICompletionModelId) =>
+    new OpenAICompletionLanguageModel(modelId, {
       provider: `${providerName}.completion`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -228,11 +194,8 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: OpenAIEmbeddingModelId,
-    settings: OpenAIEmbeddingSettings = {},
-  ) =>
-    new OpenAIEmbeddingModel(modelId, settings, {
+  const createEmbeddingModel = (modelId: OpenAIEmbeddingModelId) =>
+    new OpenAIEmbeddingModel(modelId, {
       provider: `${providerName}.embedding`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -268,7 +231,6 @@ export function createOpenAI(
 
   const createLanguageModel = (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
-    settings?: OpenAIChatSettings | OpenAICompletionSettings,
   ) => {
     if (new.target) {
       throw new Error(
@@ -277,13 +239,10 @@ export function createOpenAI(
     }
 
     if (modelId === 'gpt-3.5-turbo-instruct') {
-      return createCompletionModel(
-        modelId,
-        settings as OpenAICompletionSettings,
-      );
+      return createCompletionModel(modelId);
     }
 
-    return createChatModel(modelId, settings as OpenAIChatSettings);
+    return createChatModel(modelId);
   };
 
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
@@ -297,9 +256,8 @@ export function createOpenAI(
 
   const provider = function (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
-    settings?: OpenAIChatSettings | OpenAICompletionSettings,
   ) {
-    return createLanguageModel(modelId, settings);
+    return createLanguageModel(modelId);
   };
 
   provider.languageModel = createLanguageModel;

@@ -95,7 +95,6 @@ const result = await generateText({
 
   - `operation.name`: `ai.generateText.doGenerate` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.generateText.doGenerate"`
-  - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined`.
     Function tools have a `name`, `description` (optional), and `parameters` (JSON schema).
@@ -129,7 +128,6 @@ const result = await generateText({
 
   - `operation.name`: `ai.streamText.doStream` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.streamText.doStream"`
-  - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.prompt.tools`: array of stringified tool definitions. The tools can be of type `function` or `provider-defined`.
     Function tools have a `name`, `description` (optional), and `parameters` (JSON schema).
@@ -167,7 +165,6 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.schema.name`: the name of the schema that was passed into the `generateObject` function
   - `ai.schema.description`: the description of the schema that was passed into the `generateObject` function
   - `ai.response.object`: the object that was generated (stringified JSON)
-  - `ai.settings.mode`: the object generation mode, e.g. `json`
   - `ai.settings.output`: the output type that was used, e.g. `object` or `no-schema`
 
 - `ai.generateObject.doGenerate` (span): a provider doGenerate call.
@@ -175,10 +172,8 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
 
   - `operation.name`: `ai.generateObject.doGenerate` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.generateObject.doGenerate"`
-  - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
   - `ai.response.object`: the object that was generated (stringified JSON)
-  - `ai.settings.mode`: the object generation mode
   - `ai.response.finishReason`: the reason why the generation finished
 
 ### streamObject function
@@ -195,7 +190,6 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
   - `ai.schema.name`: the name of the schema that was passed into the `streamObject` function
   - `ai.schema.description`: the description of the schema that was passed into the `streamObject` function
   - `ai.response.object`: the object that was generated (stringified JSON)
-  - `ai.settings.mode`: the object generation mode, e.g. `json`
   - `ai.settings.output`: the output type that was used, e.g. `object` or `no-schema`
 
 - `ai.streamObject.doStream` (span): a provider doStream call.
@@ -204,9 +198,7 @@ It also records a `ai.stream.firstChunk` event when the first chunk of the strea
 
   - `operation.name`: `ai.streamObject.doStream` and the functionId that was set through `telemetry.functionId`
   - `ai.operationId`: `"ai.streamObject.doStream"`
-  - `ai.prompt.format`: the format of the prompt
   - `ai.prompt.messages`: the messages that were passed into the provider
-  - `ai.settings.mode`: the object generation mode
   - `ai.response.object`: the object that was generated (stringified JSON)
   - `ai.response.msToFirstChunk`: the time it took to receive the first chunk
   - `ai.response.finishReason`: the reason why the generation finished

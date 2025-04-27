@@ -1,5 +1,61 @@
 # @ai-sdk/openai
 
+## 2.0.0-canary.13
+
+### Patch Changes
+
+- 177526b: chore(providers/openai-transcription): switch to providerOptions
+- c15dfbf: feat (providers/openai): add gpt-image-1 model id to image settings
+- 9bf7291: chore(providers/openai): enable structuredOutputs by default & switch to provider option
+- 4617fab: chore(embedding-models): remove remaining settings
+- Updated dependencies [9bf7291]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/provider@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.12
+
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- db72adc: chore(providers/openai): update completion model to use providerOptions
+- 66962ed: fix(packages): export node10 compatible types
+- 9301f86: refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
+- 7df7a25: feat (providers/openai): support gpt-image-1 image generation
+- Updated dependencies [66962ed]
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+  - @ai-sdk/provider-utils@3.0.0-canary.11
+  - @ai-sdk/provider@2.0.0-canary.10
+
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- 8493141: feat (providers/openai): add support for reasoning summaries
+- Updated dependencies [e86be6f]
+  - @ai-sdk/provider@2.0.0-canary.9
+  - @ai-sdk/provider-utils@3.0.0-canary.10
+
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- 3bd3c0b: chore(providers/openai): update embedding model to use providerOptions
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
+## 2.0.0-canary.9
+
+### Patch Changes
+
+- d63bcbc: feat (provider/openai): o4 updates for responses api
+- d2af019: feat (providers/openai): add gpt-4.1 models
+- 870c5c0: feat (providers/openai): add o3 and o4-mini models
+- 06bac05: fix (openai): structure output for responses model
+
 ## 2.0.0-canary.8
 
 ### Patch Changes

@@ -258,7 +258,7 @@ functionality that can be fully encapsulated in the provider.
 
   const { retry } = prepareRetries({ maxRetries });
 
-  const validatedPrompt = standardizePrompt({
+  const validatedPrompt = await standardizePrompt({
     prompt: { system, prompt, messages },
     tools: undefined, // streamUI tools don't support multi-modal tool result conversion
   });
@@ -270,11 +270,9 @@ functionality that can be fully encapsulated in the provider.
         toolChoice,
         activeTools: undefined,
       }),
-      inputFormat: validatedPrompt.type,
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
-        modelSupportsImageUrls: model.supportsImageUrls,
-        modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
+        supportedUrls: await model.getSupportedUrls(),
       }),
       providerOptions,
       abortSignal,
@@ -332,7 +330,7 @@ functionality that can be fully encapsulated in the provider.
             }
 
             hasToolCall = true;
-            const parseResult = safeParseJSON({
+            const parseResult = await safeParseJSON({
               text: value.args,
               schema: tool.parameters,
             });

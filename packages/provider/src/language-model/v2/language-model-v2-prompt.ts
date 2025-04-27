@@ -31,7 +31,6 @@ export type LanguageModelV2Message =
           | LanguageModelV2TextPart
           | LanguageModelV2FilePart
           | LanguageModelV2ReasoningPart
-          | LanguageModelV2RedactedReasoningPart
           | LanguageModelV2ToolCallPart
         >;
       }
@@ -77,30 +76,6 @@ export interface LanguageModelV2ReasoningPart {
 The reasoning text.
    */
   text: string;
-
-  /**
-An optional signature for verifying that the reasoning originated from the model.
-   */
-  signature?: string;
-
-  /**
-   * Additional provider-specific options. They are passed through
-   * to the provider from the AI SDK and enable provider-specific
-   * functionality that can be fully encapsulated in the provider.
-   */
-  providerOptions?: SharedV2ProviderOptions;
-}
-
-/**
-Redacted reasoning content part of a prompt.
- */
-export interface LanguageModelV2RedactedReasoningPart {
-  type: 'redacted-reasoning';
-
-  /**
-Redacted reasoning data.
-   */
-  data: string;
 
   /**
    * Additional provider-specific options. They are passed through

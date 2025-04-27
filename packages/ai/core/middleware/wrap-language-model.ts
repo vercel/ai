@@ -62,10 +62,10 @@ const doWrap = ({
     provider: providerId ?? model.provider,
     modelId: modelId ?? model.modelId,
 
-    defaultObjectGenerationMode: model.defaultObjectGenerationMode,
-    supportsImageUrls: model.supportsImageUrls,
-    supportsUrl: model.supportsUrl?.bind(model),
-    supportsStructuredOutputs: model.supportsStructuredOutputs,
+    // TODO middleware should be able to modify the supported urls
+    async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+      return model.getSupportedUrls();
+    },
 
     async doGenerate(
       params: LanguageModelV2CallOptions,

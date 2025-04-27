@@ -2,7 +2,7 @@ import {
   LanguageModelV2,
   EmbeddingModelV2,
   ProviderV2,
-  ImageModelV1,
+  ImageModelV2,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleChatLanguageModel,
@@ -14,9 +14,9 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { DeepInfraChatModelId } from './deepinfra-chat-settings';
-import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-settings';
-import { DeepInfraCompletionModelId } from './deepinfra-completion-settings';
+import { DeepInfraChatModelId } from './deepinfra-chat-options';
+import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';
+import { DeepInfraCompletionModelId } from './deepinfra-completion-options';
 import {
   DeepInfraImageModelId,
   DeepInfraImageSettings,
@@ -60,7 +60,7 @@ Creates a model for image generation.
   image(
     modelId: DeepInfraImageModelId,
     settings?: DeepInfraImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 Creates a model for image generation.
@@ -68,7 +68,7 @@ Creates a model for image generation.
   imageModel(
     modelId: DeepInfraImageModelId,
     settings?: DeepInfraImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 Creates a chat model for text generation.
@@ -118,10 +118,10 @@ export function createDeepInfra(
   });
 
   const createChatModel = (modelId: DeepInfraChatModelId) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, {
-      ...getCommonModelConfig('chat'),
-      defaultObjectGenerationMode: 'json',
-    });
+    return new OpenAICompatibleChatLanguageModel(
+      modelId,
+      getCommonModelConfig('chat'),
+    );
   };
 
   const createCompletionModel = (modelId: DeepInfraCompletionModelId) =>

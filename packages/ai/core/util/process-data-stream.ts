@@ -20,8 +20,7 @@ export async function processDataStream({
   stream,
   onTextPart,
   onReasoningPart,
-  onReasoningSignaturePart,
-  onRedactedReasoningPart,
+  onReasoningPartFinish,
   onSourcePart,
   onFilePart,
   onDataPart,
@@ -42,11 +41,10 @@ export async function processDataStream({
   onReasoningPart?: (
     streamPart: (DataStreamPartType & { type: 'reasoning' })['value'],
   ) => Promise<void> | void;
-  onReasoningSignaturePart?: (
-    streamPart: (DataStreamPartType & { type: 'reasoning_signature' })['value'],
-  ) => Promise<void> | void;
-  onRedactedReasoningPart?: (
-    streamPart: (DataStreamPartType & { type: 'redacted_reasoning' })['value'],
+  onReasoningPartFinish?: (
+    streamPart: (DataStreamPartType & {
+      type: 'reasoning_part_finish';
+    })['value'],
   ) => Promise<void> | void;
   onFilePart?: (
     streamPart: (DataStreamPartType & { type: 'file' })['value'],
@@ -130,11 +128,8 @@ export async function processDataStream({
         case 'reasoning':
           await onReasoningPart?.(value);
           break;
-        case 'reasoning_signature':
-          await onReasoningSignaturePart?.(value);
-          break;
-        case 'redacted_reasoning':
-          await onRedactedReasoningPart?.(value);
+        case 'reasoning_part_finish':
+          await onReasoningPartFinish?.(value);
           break;
         case 'file':
           await onFilePart?.(value);

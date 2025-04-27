@@ -177,13 +177,13 @@ export class StructuredObject<RESULT, INPUT = unknown> {
 
       await response.body.pipeThrough(new TextDecoderStream()).pipeTo(
         new WritableStream<string>({
-          write: chunk => {
+          write: async chunk => {
             if (abortController?.signal.aborted) {
               throw new DOMException('Stream aborted', 'AbortError');
             }
             accumulatedText += chunk;
 
-            const { value } = parsePartialJson(accumulatedText);
+            const { value } = await parsePartialJson(accumulatedText);
             const currentObject = value as DeepPartial<RESULT>;
 
             if (!isDeepEqualData(latestObject, currentObject)) {
@@ -193,12 +193,12 @@ export class StructuredObject<RESULT, INPUT = unknown> {
             }
           },
 
-          close: () => {
+          close: async () => {
             this.#store.loading = false;
             this.#abortController = undefined;
 
             if (this.#options.onFinish != null) {
-              const validationResult = safeValidateTypes({
+              const validationResult = await safeValidateTypes({
                 value: latestObject,
                 schema: asSchema(this.#options.schema),
               });

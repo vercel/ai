@@ -3,6 +3,7 @@ import {
   LanguageModelV2CallOptions,
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import { delay } from '@ai-sdk/provider-utils';
 import {
@@ -14,7 +15,6 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { ToolExecutionError } from '../../errors/tool-execution-error';
 import { StreamData } from '../../streams/stream-data';
 import { createDataStream } from '../data-stream/create-data-stream';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
@@ -58,7 +58,6 @@ function createTestModel({
     {
       type: 'finish',
       finishReason: 'stop',
-      logprobs: undefined,
       usage: { inputTokens: 3, outputTokens: 10 },
     },
   ]),
@@ -98,7 +97,6 @@ const modelWithSources = new MockLanguageModelV2({
       {
         type: 'finish',
         finishReason: 'stop',
-        logprobs: undefined,
         usage: { inputTokens: 3, outputTokens: 10 },
       },
     ]),
@@ -122,7 +120,6 @@ const modelWithFiles = new MockLanguageModelV2({
       {
         type: 'finish',
         finishReason: 'stop',
-        logprobs: undefined,
         usage: { inputTokens: 3, outputTokens: 10 },
       },
     ]),
@@ -140,45 +137,49 @@ const modelWithReasoning = new MockLanguageModelV2({
       },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: 'I will open the conversation',
       },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: ' with witty banter. ',
       },
       {
         type: 'reasoning',
-        reasoningType: 'signature',
-        signature: '1234567890',
+        text: '',
+        providerMetadata: {
+          testProvider: { signature: '1234567890' },
+        } as SharedV2ProviderMetadata,
       },
+      { type: 'reasoning-part-finish' },
       {
         type: 'reasoning',
-        reasoningType: 'redacted',
-        data: 'redacted-reasoning-data',
+        text: '',
+        providerMetadata: {
+          testProvider: { redactedData: 'redacted-reasoning-data' },
+        },
       },
+      { type: 'reasoning-part-finish' },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: 'Once the user has relaxed,',
       },
       {
         type: 'reasoning',
-        reasoningType: 'text',
         text: ' I will pry for valuable information.',
       },
       {
         type: 'reasoning',
-        reasoningType: 'signature',
-        signature: '1234567890',
+        text: '',
+        providerMetadata: {
+          testProvider: { signature: '1234567890' },
+        },
       },
+      { type: 'reasoning-part-finish' },
       { type: 'text', text: 'Hi' },
       { type: 'text', text: ' there!' },
       {
         type: 'finish',
         finishReason: 'stop',
-        logprobs: undefined,
         usage: { inputTokens: 3, outputTokens: 10 },
       },
     ]),
@@ -207,7 +208,6 @@ describe('streamText', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   usage: { inputTokens: 3, outputTokens: 10 },
                 },
               ]),
@@ -236,7 +236,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -303,7 +302,6 @@ describe('streamText', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   usage: { inputTokens: 3, outputTokens: 10 },
                 },
               ]),
@@ -372,7 +370,6 @@ describe('streamText', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   usage: { inputTokens: 3, outputTokens: 10 },
                 },
               ]),
@@ -439,7 +436,6 @@ describe('streamText', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   usage: { inputTokens: 3, outputTokens: 10 },
                 },
               ]),
@@ -557,7 +553,6 @@ describe('streamText', () => {
                 {
                   type: 'finish',
                   finishReason: 'tool-calls',
-                  logprobs: undefined,
                   usage: { inputTokens: 53, outputTokens: 17 },
                 },
               ]),
@@ -649,7 +644,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'tool-calls',
-              logprobs: undefined,
               usage: { inputTokens: 53, outputTokens: 17 },
             },
           ]),
@@ -689,7 +683,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -735,7 +728,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -778,7 +770,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -1146,7 +1137,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -1195,7 +1185,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -1638,7 +1627,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -1683,7 +1671,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -1710,7 +1697,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -1733,7 +1719,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
               providerMetadata: {
                 testProvider: { testKey: 'testValue' },
@@ -1761,7 +1746,47 @@ describe('streamText', () => {
 
       result.consumeStream();
 
-      expect((await result.response).messages).toMatchSnapshot();
+      expect((await result.response).messages).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "I will open the conversation with witty banter. ",
+                "type": "reasoning",
+              },
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "redactedData": "redacted-reasoning-data",
+                  },
+                },
+                "text": "",
+                "type": "reasoning",
+              },
+              {
+                "providerOptions": {
+                  "testProvider": {
+                    "signature": "1234567890",
+                  },
+                },
+                "text": "Once the user has relaxed, I will pry for valuable information.",
+                "type": "reasoning",
+              },
+              {
+                "text": "Hi there!",
+                "type": "text",
+              },
+            ],
+            "id": "msg-0",
+            "role": "assistant",
+          },
+        ]
+      `);
     });
   });
 
@@ -1780,7 +1805,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -1812,7 +1836,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -1942,7 +1965,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -1983,7 +2005,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -2155,7 +2176,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
               providerMetadata: {
                 testProvider: { testKey: 'testValue' },
@@ -2370,7 +2390,6 @@ describe('streamText', () => {
                       {
                         type: 'finish',
                         finishReason: 'tool-calls',
-                        logprobs: undefined,
                         usage: { inputTokens: 3, outputTokens: 10 },
                       },
                     ]),
@@ -2408,7 +2427,6 @@ describe('streamText', () => {
                           type: 'reasoning',
                           text: 'thinking',
                           providerOptions: undefined,
-                          signature: undefined,
                         },
                         {
                           type: 'tool-call',
@@ -2450,7 +2468,6 @@ describe('streamText', () => {
                       {
                         type: 'finish',
                         finishReason: 'stop',
-                        logprobs: undefined,
                         usage: { inputTokens: 1, outputTokens: 5 },
                       },
                     ]),
@@ -2581,7 +2598,6 @@ describe('streamText', () => {
                       {
                         type: 'finish',
                         finishReason: 'length',
-                        logprobs: undefined,
                         usage: { inputTokens: 10, outputTokens: 20 },
                       },
                     ]),
@@ -2629,7 +2645,6 @@ describe('streamText', () => {
                       {
                         type: 'finish',
                         finishReason: 'length',
-                        logprobs: undefined,
                         usage: { inputTokens: 30, outputTokens: 5 },
                       },
                     ]),
@@ -2689,7 +2704,6 @@ describe('streamText', () => {
                       {
                         type: 'finish',
                         finishReason: 'length',
-                        logprobs: undefined,
                         usage: { inputTokens: 3, outputTokens: 2 },
                       },
                     ]),
@@ -2747,7 +2761,6 @@ describe('streamText', () => {
                       {
                         type: 'finish',
                         finishReason: 'stop',
-                        logprobs: undefined,
                         usage: { inputTokens: 3, outputTokens: 2 },
                       },
                     ]),
@@ -2882,7 +2895,6 @@ describe('streamText', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   usage: { inputTokens: 3, outputTokens: 10 },
                 },
               ]),
@@ -2915,7 +2927,6 @@ describe('streamText', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   usage: { inputTokens: 3, outputTokens: 10 },
                 },
               ]),
@@ -3054,7 +3065,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 10, outputTokens: 20 },
             },
           ]),
@@ -3095,7 +3105,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 10, outputTokens: 20 },
             },
           ]),
@@ -3168,7 +3177,6 @@ describe('streamText', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   usage: { inputTokens: 3, outputTokens: 10 },
                 },
               ]),
@@ -3253,7 +3261,6 @@ describe('streamText', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   usage: { inputTokens: 3, outputTokens: 10 },
                 },
               ]),
@@ -3286,17 +3293,20 @@ describe('streamText', () => {
       ).toStrictEqual(['Hello']);
     });
 
-    it('should support models that use "this" context in supportsUrl', async () => {
-      let supportsUrlCalled = false;
+    it('should support models that use "this" context in getSupportedUrls', async () => {
+      let getSupportedUrlsCalled = false;
       class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
-        readonly supportsImageUrls = false;
-
         constructor() {
           super({
-            supportsUrl(url: URL) {
-              supportsUrlCalled = true;
+            async getSupportedUrls() {
+              getSupportedUrlsCalled = true;
               // Reference 'this' to verify context
-              return this.modelId === 'mock-model-id';
+              return this.modelId === 'mock-model-id'
+                ? ({ 'image/*': [/^https:\/\/.*$/] } as Record<
+                    string,
+                    RegExp[]
+                  >)
+                : {};
             },
             doStream: async () => ({
               stream: convertArrayToReadableStream([
@@ -3322,7 +3332,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(supportsUrlCalled).toBe(true);
+      expect(getSupportedUrlsCalled).toBe(true);
       expect(await result.text).toBe('Hello, world!');
     });
   });
@@ -3348,7 +3358,6 @@ describe('streamText', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              logprobs: undefined,
               usage: { inputTokens: 3, outputTokens: 10 },
             },
           ]),
@@ -3361,74 +3370,68 @@ describe('streamText', () => {
             },
           }),
         },
-        prompt: 'test-input',
+        ...defaultSettings(),
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.fullStream),
-      ).toStrictEqual([
-        {
-          type: 'step-start',
-          request: {},
-          warnings: [],
-          messageId: expect.any(String),
-        },
-        {
-          type: 'tool-call',
-          args: {
-            value: 'value',
-          },
-          toolCallId: 'call-1',
-          toolName: 'tool1',
-        },
-        {
-          type: 'error',
-          error: new ToolExecutionError({
-            toolName: 'tool1',
-            toolCallId: 'call-1',
-            toolArgs: { value: 'value' },
-            cause: new Error('test error'),
-          }),
-        },
-        {
-          type: 'step-finish',
-          messageId: expect.any(String),
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          isContinued: false,
-          logprobs: undefined,
-          request: {},
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-            headers: undefined,
-          },
-          warnings: undefined,
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-        },
-        {
-          type: 'finish',
-          providerMetadata: undefined,
-          finishReason: 'stop',
-          logprobs: undefined,
-          response: {
-            id: 'id-0',
-            modelId: 'mock-model-id',
-            timestamp: new Date(0),
-            headers: undefined,
-          },
-          usage: {
-            completionTokens: 10,
-            promptTokens: 3,
-            totalTokens: 13,
-          },
-        },
-      ]);
+      expect(await convertAsyncIterableToArray(result.fullStream))
+        .toMatchInlineSnapshot(`
+          [
+            {
+              "messageId": "msg-0",
+              "request": {},
+              "type": "step-start",
+              "warnings": [],
+            },
+            {
+              "args": {
+                "value": "value",
+              },
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
+            },
+            {
+              "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
+              "type": "error",
+            },
+            {
+              "finishReason": "stop",
+              "isContinued": false,
+              "messageId": "msg-0",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "step-finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+              "warnings": undefined,
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "headers": undefined,
+                "id": "id-0",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish",
+              "usage": {
+                "completionTokens": 10,
+                "promptTokens": 3,
+                "totalTokens": 13,
+              },
+            },
+          ]
+        `);
     });
   });
 
@@ -3545,7 +3548,6 @@ describe('streamText', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 5, outputTokens: 20 },
               },
             ]),
@@ -3583,7 +3585,6 @@ describe('streamText', () => {
               {
                 type: 'finish',
                 finishReason: 'length',
-                logprobs: undefined,
                 usage: { inputTokens: 5, outputTokens: 20 },
               },
             ]),
@@ -3746,7 +3747,6 @@ describe('streamText', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
@@ -3777,7 +3777,6 @@ describe('streamText', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
                 providerMetadata: {
                   testProvider: {
@@ -3830,7 +3829,6 @@ describe('streamText', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
                 providerMetadata: {
                   testProvider: { testKey: 'testValue' },
@@ -3885,7 +3883,6 @@ describe('streamText', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
                 providerMetadata: {
                   testProvider: { testKey: 'testValue' },
@@ -3938,7 +3935,6 @@ describe('streamText', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
                 providerMetadata: {
                   testProvider: { testKey: 'testValue' },
@@ -4174,7 +4170,6 @@ describe('streamText', () => {
                   type: 'step-finish',
                   messageId: 'msg-transformed-123',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   providerMetadata: undefined,
                   usage: {
                     completionTokens: NaN,
@@ -4194,7 +4189,6 @@ describe('streamText', () => {
                 controller.enqueue({
                   type: 'finish',
                   finishReason: 'stop',
-                  logprobs: undefined,
                   providerMetadata: undefined,
                   usage: {
                     completionTokens: NaN,
@@ -4225,7 +4219,6 @@ describe('streamText', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: undefined, outputTokens: undefined },
               },
             ]),
@@ -4235,53 +4228,55 @@ describe('streamText', () => {
           experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
-        expect(
-          await convertAsyncIterableToArray(result.fullStream),
-        ).toStrictEqual([
-          {
-            type: 'step-start',
-            messageId: 'msg-0',
-            request: {},
-            warnings: [],
-          },
-          { type: 'text', text: 'Hello, ' },
-          {
-            type: 'step-finish',
-            providerMetadata: undefined,
-            messageId: 'msg-transformed-123',
-            finishReason: 'stop',
-            logprobs: undefined,
-            usage: {
-              completionTokens: NaN,
-              promptTokens: NaN,
-              totalTokens: NaN,
+        expect(await convertAsyncIterableToArray(result.fullStream))
+          .toMatchInlineSnapshot(`
+          [
+            {
+              "messageId": "msg-0",
+              "request": {},
+              "type": "step-start",
+              "warnings": [],
             },
-            request: {},
-            response: {
-              id: 'response-id',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
+            {
+              "text": "Hello, ",
+              "type": "text",
             },
-            warnings: [],
-            isContinued: false,
-          },
-          {
-            type: 'finish',
-            providerMetadata: undefined,
-            finishReason: 'stop',
-            logprobs: undefined,
-            usage: {
-              completionTokens: NaN,
-              promptTokens: NaN,
-              totalTokens: NaN,
+            {
+              "finishReason": "stop",
+              "isContinued": false,
+              "messageId": "msg-transformed-123",
+              "providerMetadata": undefined,
+              "request": {},
+              "response": {
+                "id": "response-id",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "step-finish",
+              "usage": {
+                "completionTokens": NaN,
+                "promptTokens": NaN,
+                "totalTokens": NaN,
+              },
+              "warnings": [],
             },
-            response: {
-              id: 'response-id',
-              modelId: 'mock-model-id',
-              timestamp: new Date(0),
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "id": "response-id",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
+              },
+              "type": "finish",
+              "usage": {
+                "completionTokens": NaN,
+                "promptTokens": NaN,
+                "totalTokens": NaN,
+              },
             },
-          },
-        ]);
+          ]
+        `);
       });
 
       it('options.onStepFinish should be called', async () => {
@@ -4298,7 +4293,6 @@ describe('streamText', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { outputTokens: 10, inputTokens: 3 },
               },
             ]),
@@ -4381,7 +4375,6 @@ describe('streamText', () => {
 
         const result = streamText({
           model: new MockLanguageModelV2({
-            supportsStructuredOutputs: false,
             doStream: async args => {
               callOptions = args;
               return {
@@ -4409,25 +4402,51 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(callOptions).toEqual({
-          temperature: 0,
-          inputFormat: 'prompt',
-          responseFormat: { type: 'json', schema: undefined },
-          prompt: [
-            {
-              content:
-                'JSON schema:\n' +
-                '{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}\n' +
-                'You MUST answer with a JSON object that matches the JSON schema above.',
-              role: 'system',
+        expect(callOptions).toMatchInlineSnapshot(`
+          {
+            "abortSignal": undefined,
+            "frequencyPenalty": undefined,
+            "headers": undefined,
+            "maxOutputTokens": undefined,
+            "presencePenalty": undefined,
+            "prompt": [
+              {
+                "content": [
+                  {
+                    "text": "prompt",
+                    "type": "text",
+                  },
+                ],
+                "providerOptions": undefined,
+                "role": "user",
+              },
+            ],
+            "providerOptions": undefined,
+            "responseFormat": {
+              "schema": {
+                "$schema": "http://json-schema.org/draft-07/schema#",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "value",
+                ],
+                "type": "object",
+              },
+              "type": "json",
             },
-            {
-              content: [{ text: 'prompt', type: 'text' }],
-              providerOptions: undefined,
-              role: 'user',
-            },
-          ],
-        });
+            "seed": undefined,
+            "stopSequences": undefined,
+            "temperature": 0,
+            "toolChoice": undefined,
+            "tools": undefined,
+            "topK": undefined,
+            "topP": undefined,
+          }
+        `);
       });
 
       it('should send valid partial text fragments', async () => {

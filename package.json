@@ -2,7 +2,8 @@
   "private": true,
   "name": "ai-repo",
   "scripts": {
-    "build": "turbo build",
+    "build": "turbo build --concurrency 16",
+    "build:examples": "turbo build --filter=@example/*",
     "changeset": "changeset",
     "clean": "turbo clean",
     "dev": "turbo dev --no-cache --concurrency 16 --continue",
@@ -14,8 +15,8 @@
     "type-check:full": "tsc --build tsconfig.with-examples.json",
     "prettier-fix": "prettier --write \"**/*.{js,ts,tsx,md,mdx,svelte}\"",
     "publint": "turbo publint",
-    "test": "turbo test --concurrency 16",
-    "test:update": "turbo test:update",
+    "test": "turbo test --concurrency 16 --filter=!@example/*",
+    "test:update": "turbo test:update --concurrency 16 --filter=!@example/*",
     "ci:release": "turbo clean && turbo build && changeset publish",
     "ci:version": "changeset version && node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile",
     "clean-examples": "node .github/scripts/cleanup-examples-changesets.mjs && pnpm install --no-frozen-lockfile"

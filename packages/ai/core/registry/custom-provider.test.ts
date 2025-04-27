@@ -1,7 +1,7 @@
 import { NoSuchModelError } from '@ai-sdk/provider';
 import { describe, expect, it, vi } from 'vitest';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
-import { MockImageModelV1 } from '../test/mock-image-model-v1';
+import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { customProvider } from './custom-provider';
 
@@ -75,7 +75,7 @@ describe('textEmbeddingModel', () => {
 });
 
 describe('imageModel', () => {
-  const mockImageModel = new MockImageModelV1();
+  const mockImageModel = new MockImageModelV2();
 
   it('should return the image model if it exists', () => {
     const provider = customProvider({

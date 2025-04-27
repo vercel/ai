@@ -1,5 +1,5 @@
 import { EmbeddingModelV2 } from '../../embedding-model/v2/embedding-model-v2';
-import { ImageModelV1 } from '../../image-model/v1/image-model-v1';
+import { ImageModelV2 } from '../../image-model/v2/image-model-v2';
 import { LanguageModelV1 } from '../../language-model/v1/language-model-v1';
 import { TranscriptionModelV1 } from '../../transcription-model/v1/transcription-model-v1';
 import { SpeechModelV1 } from '../../speech-model/v1/speech-model-v1';
@@ -39,7 +39,7 @@ The model id is then passed to the provider function to get the model.
 
 @returns {ImageModel} The image model associated with the id
 */
-  readonly imageModel?: (modelId: string) => ImageModelV1;
+  readonly imageModel?: (modelId: string) => ImageModelV2;
 
   /**
 Returns the transcription model with the given id.

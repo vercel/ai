@@ -1,5 +1,5 @@
 {
-  "name": "next-langchain",
+  "name": "@example/next-langchain",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -9,10 +9,11 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ai-sdk/react": "2.0.0-canary.8",
+    "@ai-sdk/react": "workspace:*",
+    "@ai-sdk/langchain": "workspace:*",
     "@langchain/openai": "0.0.28",
     "@langchain/core": "0.1.63",
-    "ai": "5.0.0-canary.9",
+    "ai": "workspace:*",
     "langchain": "0.1.36",
     "next": "latest",
     "react": "^18",

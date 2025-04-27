@@ -1,6 +1,6 @@
 import {
   EmbeddingModelV2,
-  ImageModelV1,
+  ImageModelV2,
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
@@ -14,10 +14,7 @@ import {
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
 import { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
-import {
-  BedrockEmbeddingModelId,
-  BedrockEmbeddingSettings,
-} from './bedrock-embedding-settings';
+import { BedrockEmbeddingModelId } from './bedrock-embedding-options';
 import { BedrockImageModel } from './bedrock-image-model';
 import {
   BedrockImageModelId,
@@ -86,20 +83,17 @@ export interface AmazonBedrockProvider extends ProviderV2 {
 
   languageModel(modelId: BedrockChatModelId): LanguageModelV2;
 
-  embedding(
-    modelId: BedrockEmbeddingModelId,
-    settings?: BedrockEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV2<string>;
 
   image(
     modelId: BedrockImageModelId,
     settings?: BedrockImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   imageModel(
     modelId: BedrockImageModelId,
     settings?: BedrockImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 }
 
 /**
@@ -172,11 +166,8 @@ export function createAmazonBedrock(
     return createChatModel(modelId);
   };
 
-  const createEmbeddingModel = (
-    modelId: BedrockEmbeddingModelId,
-    settings: BedrockEmbeddingSettings = {},
-  ) =>
-    new BedrockEmbeddingModel(modelId, settings, {
+  const createEmbeddingModel = (modelId: BedrockEmbeddingModelId) =>
+    new BedrockEmbeddingModel(modelId, {
       baseUrl: getBaseUrl,
       headers: options.headers ?? {},
       fetch: sigv4Fetch,

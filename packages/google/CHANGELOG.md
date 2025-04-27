@@ -1,5 +1,47 @@
 # @ai-sdk/google
 
+## 2.0.0-canary.13
+
+### Patch Changes
+
+- 7378473: chore(providers/google): switch to providerOptions
+- Updated dependencies [9bf7291]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/provider@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.12
+
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- 888b750: feat(providers/google): Add taskType support for Text Embedding Models
+- 66962ed: fix(packages): export node10 compatible types
+- Updated dependencies [66962ed]
+- Updated dependencies [9301f86]
+- Updated dependencies [a3f768e]
+  - @ai-sdk/provider-utils@3.0.0-canary.11
+  - @ai-sdk/provider@2.0.0-canary.10
+
+## 2.0.0-canary.11
+
+### Patch Changes
+
+- Updated dependencies [e86be6f]
+  - @ai-sdk/provider@2.0.0-canary.9
+  - @ai-sdk/provider-utils@3.0.0-canary.10
+
+## 2.0.0-canary.10
+
+### Patch Changes
+
+- 3259565: feat (providers/google): add thinking config to provider options
+- fd98925: chore(providers/google): update embedding model to use providerOptions
+- Updated dependencies [95857aa]
+- Updated dependencies [7ea4132]
+  - @ai-sdk/provider@2.0.0-canary.8
+  - @ai-sdk/provider-utils@3.0.0-canary.9
+
 ## 2.0.0-canary.9
 
 ### Patch Changes

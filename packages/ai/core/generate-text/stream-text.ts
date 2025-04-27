@@ -1,5 +1,4 @@
 import {
-  AISDKError,
   LanguageModelV2CallWarning,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
@@ -7,7 +6,6 @@ import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
-import { InvalidStreamPartError } from '../../errors/invalid-stream-part-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { StreamData } from '../../streams/stream-data';
 import { asArray } from '../../util/as-array';
@@ -15,6 +13,7 @@ import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
+import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { CoreAssistantMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -31,7 +30,6 @@ import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import {
   FinishReason,
   LanguageModel,
-  LogProbs,
   ToolChoice,
 } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
@@ -51,7 +49,7 @@ import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { writeToServerResponse } from '../util/write-to-server-response';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
-import { asReasoningText, Reasoning } from './reasoning';
+import { asReasoningText } from './reasoning';
 import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
@@ -428,7 +426,7 @@ function createOutputTransformStream<
     TextStreamPart<TOOLS>,
     EnrichedStreamPart<TOOLS, PARTIAL_OUTPUT>
   >({
-    transform(chunk, controller) {
+    async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
       if (chunk.type === 'step-finish') {
         publishTextChunk({ controller });
@@ -443,7 +441,7 @@ function createOutputTransformStream<
       textChunk += chunk.text;
 
       // only publish if partial json can be parsed:
-      const result = output.parsePartial({ text });
+      const result = await output.parsePartial({ text });
       if (result != null) {
         // only send new json if it has changed:
         const currentJson = JSON.stringify(result.partial);
@@ -595,10 +593,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedContinuationText = '';
     let recordedFullText = '';
 
-    let stepReasoning: Array<Reasoning> = [];
+    let stepReasoning: Array<ReasoningPart> = [];
     let stepFiles: Array<GeneratedFile> = [];
-    let activeReasoningText: undefined | (Reasoning & { type: 'text' }) =
-      undefined;
+    let activeReasoningPart: undefined | ReasoningPart = undefined;
 
     let recordedStepSources: LanguageModelV2Source[] = [];
     const recordedSources: LanguageModelV2Source[] = [];
@@ -651,26 +648,21 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'reasoning') {
-          if (part.reasoningType === 'text') {
-            if (activeReasoningText == null) {
-              activeReasoningText = { type: 'text', text: part.text };
-              stepReasoning.push(activeReasoningText);
-            } else {
-              activeReasoningText.text += part.text;
-            }
-          } else if (part.reasoningType === 'signature') {
-            if (activeReasoningText == null) {
-              throw new AISDKError({
-                name: 'InvalidStreamPart',
-                message: 'reasoning-signature without reasoning',
-              });
-            }
-
-            activeReasoningText.signature = part.signature;
-            activeReasoningText = undefined; // signature concludes reasoning part
-          } else if (part.reasoningType === 'redacted') {
-            stepReasoning.push({ type: 'redacted', data: part.data });
+          if (activeReasoningPart == null) {
+            activeReasoningPart = {
+              type: 'reasoning',
+              text: part.text,
+              providerOptions: part.providerMetadata,
+            };
+            stepReasoning.push(activeReasoningPart);
+          } else {
+            activeReasoningPart.text += part.text;
+            activeReasoningPart.providerOptions = part.providerMetadata;
           }
+        }
+
+        if (part.type === 'reasoning-part-finish') {
+          activeReasoningPart = undefined;
         }
 
         if (part.type === 'file') {
@@ -736,7 +728,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             finishReason: part.finishReason,
             usage: part.usage,
             warnings: part.warnings,
-            logprobs: part.logprobs,
             request: part.request,
             response: {
               ...part.response,
@@ -756,7 +747,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedStepSources = [];
           stepReasoning = [];
           stepFiles = [];
-          activeReasoningText = undefined;
+          activeReasoningPart = undefined;
 
           if (nextStepType !== 'done') {
             stepType = nextStepType;
@@ -817,7 +808,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // call onFinish callback:
           await onFinish?.({
             finishReason,
-            logprobs: undefined,
             usage,
             text: recordedFullText,
             reasoningText: lastStep.reasoningText,
@@ -890,20 +880,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     const tracer = getTracer(telemetry);
 
+    const callSettings = prepareCallSettings(settings);
+
     const baseTelemetryAttributes = getBaseTelemetryAttributes({
       model,
       telemetry,
       headers,
-      settings: { ...settings, maxRetries },
-    });
-
-    const initialPrompt = standardizePrompt({
-      prompt: {
-        system: output?.injectIntoSystemPrompt({ system, model }) ?? system,
-        prompt,
-        messages,
-      },
-      tools,
+      settings: { ...callSettings, maxRetries },
     });
 
     const self = this;
@@ -944,9 +927,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           hasLeadingWhitespace: boolean;
           messageId: string;
         }) {
-          // after the 1st step, we need to switch to messages format:
-          const promptFormat =
-            responseMessages.length === 0 ? initialPrompt.type : 'messages';
+          const initialPrompt = await standardizePrompt({
+            prompt: { system, prompt, messages },
+            tools,
+          });
 
           const stepInputMessages = [
             ...initialPrompt.messages,
@@ -955,12 +939,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
-              type: promptFormat,
               system: initialPrompt.system,
               messages: stepInputMessages,
             },
-            modelSupportsImageUrls: model.supportsImageUrls,
-            modelSupportsUrl: model.supportsUrl?.bind(model), // support 'this' context
+            supportedUrls: await model.getSupportedUrls(),
           });
 
           const toolsAndToolChoice = {
@@ -982,9 +964,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     telemetry,
                   }),
                   ...baseTelemetryAttributes,
-                  'ai.prompt.format': {
-                    input: () => promptFormat,
-                  },
                   'ai.prompt.messages': {
                     input: () => JSON.stringify(promptMessages),
                   },
@@ -1005,31 +984,34 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   // standardized gen-ai llm span attributes:
                   'gen_ai.system': model.provider,
                   'gen_ai.request.model': model.modelId,
-                  'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
-                  'gen_ai.request.max_tokens': settings.maxOutputTokens,
-                  'gen_ai.request.presence_penalty': settings.presencePenalty,
-                  'gen_ai.request.stop_sequences': settings.stopSequences,
-                  'gen_ai.request.temperature': settings.temperature,
-                  'gen_ai.request.top_k': settings.topK,
-                  'gen_ai.request.top_p': settings.topP,
+                  'gen_ai.request.frequency_penalty':
+                    callSettings.frequencyPenalty,
+                  'gen_ai.request.max_tokens': callSettings.maxOutputTokens,
+                  'gen_ai.request.presence_penalty':
+                    callSettings.presencePenalty,
+                  'gen_ai.request.stop_sequences': callSettings.stopSequences,
+                  'gen_ai.request.temperature': callSettings.temperature,
+                  'gen_ai.request.top_k': callSettings.topK,
+                  'gen_ai.request.top_p': callSettings.topP,
                 },
               }),
               tracer,
               endWhenDone: false,
-              fn: async doStreamSpan => ({
-                startTimestampMs: now(), // get before the call
-                doStreamSpan,
-                result: await model.doStream({
-                  ...prepareCallSettings(settings),
-                  ...toolsAndToolChoice,
-                  inputFormat: promptFormat,
-                  responseFormat: output?.responseFormat({ model }),
-                  prompt: promptMessages,
-                  providerOptions,
-                  abortSignal,
-                  headers,
-                }),
-              }),
+              fn: async doStreamSpan => {
+                return {
+                  startTimestampMs: now(), // get before the call
+                  doStreamSpan,
+                  result: await model.doStream({
+                    ...callSettings,
+                    ...toolsAndToolChoice,
+                    responseFormat: output?.responseFormat,
+                    prompt: promptMessages,
+                    providerOptions,
+                    abortSignal,
+                    headers,
+                  }),
+                };
+              },
             }),
           );
 
@@ -1050,10 +1032,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepToolResults: ToolResultUnion<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
 
-          const stepReasoning: Array<Reasoning> = [];
+          const stepReasoning: Array<ReasoningPart> = [];
           const stepFiles: Array<GeneratedFile> = [];
-          let activeReasoningText: undefined | (Reasoning & { type: 'text' }) =
-            undefined;
+          let activeReasoningPart: undefined | ReasoningPart = undefined;
 
           let stepFinishReason: FinishReason = 'unknown';
           let stepUsage: LanguageModelUsage = {
@@ -1065,7 +1046,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let stepFirstChunk = true;
           let stepText = '';
           let fullStepText = stepType === 'continue' ? previousStepText : '';
-          let stepLogProbs: LogProbs | undefined;
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: currentDate(),
@@ -1174,33 +1154,25 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     case 'reasoning': {
                       controller.enqueue(chunk);
 
-                      if (chunk.reasoningType === 'text') {
-                        if (activeReasoningText == null) {
-                          activeReasoningText = {
-                            type: 'text',
-                            text: chunk.text,
-                          };
-                          stepReasoning.push(activeReasoningText);
-                        } else {
-                          activeReasoningText.text += chunk.text;
-                        }
-                      } else if (chunk.reasoningType === 'signature') {
-                        if (activeReasoningText == null) {
-                          throw new InvalidStreamPartError({
-                            chunk,
-                            message: 'reasoning-signature without reasoning',
-                          });
-                        }
-
-                        activeReasoningText.signature = chunk.signature;
-                        activeReasoningText = undefined; // signature concludes reasoning part
-                      } else if (chunk.reasoningType === 'redacted') {
-                        stepReasoning.push({
-                          type: 'redacted',
-                          data: chunk.data,
-                        });
+                      if (activeReasoningPart == null) {
+                        activeReasoningPart = {
+                          type: 'reasoning',
+                          text: chunk.text,
+                          providerOptions: chunk.providerMetadata,
+                        };
+                        stepReasoning.push(activeReasoningPart);
+                      } else {
+                        activeReasoningPart.text += chunk.text;
+                        activeReasoningPart.providerOptions =
+                          chunk.providerMetadata;
                       }
 
+                      break;
+                    }
+
+                    case 'reasoning-part-finish': {
+                      activeReasoningPart = undefined;
+                      controller.enqueue(chunk);
                       break;
                     }
 
@@ -1233,7 +1205,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       stepUsage = chunk.usage;
                       stepFinishReason = chunk.finishReason;
                       stepProviderMetadata = chunk.providerMetadata;
-                      stepLogProbs = chunk.logprobs;
 
                       // Telemetry for finish event timing
                       // (since tool executions can take longer and distort calculations)
@@ -1360,7 +1331,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     finishReason: stepFinishReason,
                     usage: stepUsage,
                     providerMetadata: stepProviderMetadata,
-                    logprobs: stepLogProbs,
                     request: stepRequest,
                     response: {
                       ...stepResponse,
@@ -1379,7 +1349,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       finishReason: stepFinishReason,
                       usage: combinedUsage,
                       providerMetadata: stepProviderMetadata,
-                      logprobs: stepLogProbs,
                       response: {
                         ...stepResponse,
                         headers: response?.headers,
@@ -1625,23 +1594,16 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'reasoning': {
               if (sendReasoning) {
-                if (chunk.reasoningType === 'text') {
-                  controller.enqueue(
-                    formatDataStreamPart('reasoning', chunk.text),
-                  );
-                } else if (chunk.reasoningType === 'signature') {
-                  controller.enqueue(
-                    formatDataStreamPart('reasoning_signature', {
-                      signature: chunk.signature,
-                    }),
-                  );
-                } else if (chunk.reasoningType === 'redacted') {
-                  controller.enqueue(
-                    formatDataStreamPart('redacted_reasoning', {
-                      data: chunk.data,
-                    }),
-                  );
-                }
+                controller.enqueue(formatDataStreamPart('reasoning', chunk));
+              }
+              break;
+            }
+
+            case 'reasoning-part-finish': {
+              if (sendReasoning) {
+                controller.enqueue(
+                  formatDataStreamPart('reasoning_part_finish', {}),
+                );
               }
               break;
             }

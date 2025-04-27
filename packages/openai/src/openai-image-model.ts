@@ -1,4 +1,4 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -11,6 +11,7 @@ import {
   OpenAIImageModelId,
   OpenAIImageSettings,
   modelMaxImagesPerCall,
+  hasDefaultResponseFormat,
 } from './openai-image-settings';
 
 interface OpenAIImageModelConfig extends OpenAIConfig {
@@ -19,8 +20,8 @@ interface OpenAIImageModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAIImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
+export class OpenAIImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
 
   get maxImagesPerCall(): number {
     return (
@@ -47,10 +48,10 @@ export class OpenAIImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
 
     if (aspectRatio != null) {
       warnings.push({
@@ -78,7 +79,9 @@ export class OpenAIImageModel implements ImageModelV1 {
         n,
         size,
         ...(providerOptions.openai ?? {}),
-        response_format: 'b64_json',
+        ...(!hasDefaultResponseFormat.has(this.modelId)
+          ? { response_format: 'b64_json' }
+          : {}),
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

@@ -63,7 +63,6 @@ const mockTextModel = new MockLanguageModelV2({
         {
           type: 'finish',
           finishReason: 'stop',
-          logprobs: undefined,
           usage: { inputTokens: 3, outputTokens: 10 },
         },
       ]),
@@ -85,7 +84,6 @@ const mockToolModel = new MockLanguageModelV2({
         {
           type: 'finish',
           finishReason: 'stop',
-          logprobs: undefined,
           usage: { inputTokens: 3, outputTokens: 10 },
         },
       ]),
@@ -247,7 +245,6 @@ describe('options.headers', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
@@ -280,7 +277,6 @@ describe('options.providerMetadata', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                logprobs: undefined,
                 usage: { inputTokens: 3, outputTokens: 10 },
               },
             ]),
@@ -294,54 +290,5 @@ describe('options.providerMetadata', () => {
     });
 
     expect(await simulateFlightServerRender(result.value)).toMatchSnapshot();
-  });
-});
-
-describe('model.supportsUrl binding', () => {
-  it('should support models that use "this" context in supportsUrl', async () => {
-    let supportsUrlCalled = false;
-
-    class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
-      readonly supportsImageUrls = false;
-
-      constructor() {
-        super({
-          supportsUrl(url: URL) {
-            supportsUrlCalled = true;
-            // Reference 'this' to verify context
-            return this.modelId === 'mock-model-id';
-          },
-          doStream: async () => ({
-            stream: convertArrayToReadableStream([
-              { type: 'text', text: 'Hello' },
-              { type: 'text', text: ', ' },
-              { type: 'text', text: 'world!' },
-              {
-                type: 'finish',
-                finishReason: 'stop',
-                logprobs: undefined,
-                usage: { inputTokens: 3, outputTokens: 10 },
-              },
-            ]),
-          }),
-        });
-      }
-    }
-
-    const model = new MockLanguageModelWithImageSupport();
-    const result = await streamUI({
-      model,
-      messages: [
-        {
-          role: 'user',
-          content: [{ type: 'image', image: 'https://example.com/test.jpg' }],
-        },
-      ],
-    });
-
-    // Consume the stream to ensure all processing happens
-    await simulateFlightServerRender(result.value);
-
-    expect(supportsUrlCalled).toBe(true);
   });
 });

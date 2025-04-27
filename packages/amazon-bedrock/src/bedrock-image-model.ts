@@ -1,4 +1,4 @@
-import { ImageModelV1, ImageModelV1CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   FetchFunction,
   Resolvable,
@@ -25,8 +25,8 @@ type BedrockImageModelConfig = {
   };
 };
 
-export class BedrockImageModel implements ImageModelV1 {
-  readonly specificationVersion = 'v1';
+export class BedrockImageModel implements ImageModelV2 {
+  readonly specificationVersion = 'v2';
   readonly provider = 'amazon-bedrock';
 
   get maxImagesPerCall(): number {
@@ -55,10 +55,10 @@ export class BedrockImageModel implements ImageModelV1 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV1['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV1['doGenerate']>>
+  }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
+    Awaited<ReturnType<ImageModelV2['doGenerate']>>
   > {
-    const warnings: Array<ImageModelV1CallWarning> = [];
+    const warnings: Array<ImageModelV2CallWarning> = [];
     const [width, height] = size ? size.split('x').map(Number) : [];
     const args = {
       taskType: 'TEXT_IMAGE',

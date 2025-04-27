@@ -22,11 +22,7 @@ import {
 import { z } from 'zod';
 import { convertToGroqChatMessages } from './convert-to-groq-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
-import {
-  GroqChatModelId,
-  GroqChatSettings,
-  groqProviderOptions,
-} from './groq-chat-options';
+import { GroqChatModelId, groqProviderOptions } from './groq-chat-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
 import { mapGroqFinishReason } from './map-groq-finish-reason';
@@ -41,21 +37,12 @@ type GroqChatConfig = {
 export class GroqChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
-  readonly supportsStructuredOutputs = false;
-  readonly defaultObjectGenerationMode = 'json';
-
   readonly modelId: GroqChatModelId;
-  readonly settings: GroqChatSettings;
 
   private readonly config: GroqChatConfig;
 
-  constructor(
-    modelId: GroqChatModelId,
-    settings: GroqChatSettings,
-    config: GroqChatConfig,
-  ) {
+  constructor(modelId: GroqChatModelId, config: GroqChatConfig) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -63,12 +50,13 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  get supportsImageUrls(): boolean {
-    // image urls can be sent if downloadImages is disabled (default):
-    return !this.settings.downloadImages;
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      'image/*': [/^https:\/\/.*$/],
+    };
   }
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -107,7 +95,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const groqOptions = parseProviderOptions({
+    const groqOptions = await parseProviderOptions({
       provider: 'groq',
       providerOptions,
       schema: groqProviderOptions,
@@ -161,7 +149,10 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs({ ...options, stream: false });
+    const { args, warnings } = await this.getArgs({
+      ...options,
+      stream: false,
+    });
 
     const body = JSON.stringify(args);
 
@@ -198,7 +189,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     if (reasoning != null && reasoning.length > 0) {
       content.push({
         type: 'reasoning',
-        reasoningType: 'text',
         text: reasoning,
       });
     }
@@ -236,7 +226,7 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs({ ...options, stream: true });
+    const { args, warnings } = await this.getArgs({ ...options, stream: true });
 
     const body = JSON.stringify({ ...args, stream: true });
 
@@ -332,7 +322,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
             if (delta.reasoning != null && delta.reasoning.length > 0) {
               controller.enqueue({
                 type: 'reasoning',
-                reasoningType: 'text',
                 text: delta.reasoning,
               });
             }

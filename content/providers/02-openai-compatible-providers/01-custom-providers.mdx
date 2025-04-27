@@ -118,7 +118,7 @@ Creates an image model for image generation.
   imageModel(
     modelId: ExampleImageModelId,
     settings?: ExampleImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 }
 
 export function createExample(
@@ -160,10 +160,11 @@ export function createExample(
     modelId: ExampleChatModelId,
     settings: ExampleChatSettings = {},
   ) => {
-    return new OpenAICompatibleChatLanguageModel(modelId, settings, {
-      ...getCommonModelConfig('chat'),
-      defaultObjectGenerationMode: 'tool',
-    });
+    return new OpenAICompatibleChatLanguageModel(
+      modelId,
+      settings,
+      getCommonModelConfig('chat'),
+    );
   };
 
   const createCompletionModel = (

@@ -8,7 +8,6 @@ export type {
   CallWarning,
   FinishReason,
   LanguageModel,
-  LogProbs,
   ToolChoice,
 } from './language-model';
 export type { LanguageModelRequestMetadata } from './language-model-request-metadata';
@@ -16,7 +15,7 @@ export type { LanguageModelResponseMetadata } from './language-model-response-me
 export type { Provider } from './provider';
 export type { ProviderOptions, ProviderMetadata } from './provider-metadata';
 export type { EmbeddingModelUsage, LanguageModelUsage } from './usage';
-export * from './messages';
+export * from './ui-messages';
 export type {
   TranscriptionModel,
   TranscriptionWarning,

@@ -2,7 +2,6 @@ import {
   LanguageModelV2,
   LanguageModelV2CallWarning,
   LanguageModelV2FinishReason,
-  LanguageModelV2LogProbs,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
@@ -12,17 +11,17 @@ import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
+  parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
-import { mapOpenAICompletionLogProbs } from './map-openai-completion-logprobs';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
 import {
   OpenAICompletionModelId,
-  OpenAICompletionSettings,
-} from './openai-completion-settings';
+  openaiCompletionProviderOptions,
+} from './openai-completion-options';
 import {
   openaiErrorDataSchema,
   openaiFailedResponseHandler,
@@ -38,20 +37,20 @@ type OpenAICompletionConfig = {
 
 export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = undefined;
 
   readonly modelId: OpenAICompletionModelId;
-  readonly settings: OpenAICompletionSettings;
 
   private readonly config: OpenAICompletionConfig;
 
+  private get providerOptionsName(): string {
+    return this.config.provider.split('.')[0].trim();
+  }
+
   constructor(
     modelId: OpenAICompletionModelId,
-    settings: OpenAICompletionSettings,
     config: OpenAICompletionConfig,
   ) {
     this.modelId = modelId;
-    this.settings = settings;
     this.config = config;
   }
 
@@ -59,8 +58,13 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  private getArgs({
-    inputFormat,
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return {
+      // no supported urls for completion models
+    };
+  }
+
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -73,8 +77,23 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     tools,
     toolChoice,
     seed,
+    providerOptions,
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
+
+    // Parse provider options
+    const openaiOptions = {
+      ...(await parseProviderOptions({
+        provider: 'openai',
+        providerOptions,
+        schema: openaiCompletionProviderOptions,
+      })),
+      ...(await parseProviderOptions({
+        provider: this.providerOptionsName,
+        providerOptions,
+        schema: openaiCompletionProviderOptions,
+      })),
+    };
 
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
@@ -97,7 +116,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     }
 
     const { prompt: completionPrompt, stopSequences } =
-      convertToOpenAICompletionPrompt({ prompt, inputFormat });
+      convertToOpenAICompletionPrompt({ prompt });
 
     const stop = [...(stopSequences ?? []), ...(userStopSequences ?? [])];
 
@@ -107,18 +126,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         model: this.modelId,
 
         // model specific settings:
-        echo: this.settings.echo,
-        logit_bias: this.settings.logitBias,
-        logprobs:
-          typeof this.settings.logprobs === 'number'
-            ? this.settings.logprobs
-            : typeof this.settings.logprobs === 'boolean'
-              ? this.settings.logprobs
-                ? 0
-                : undefined
-              : undefined,
-        suffix: this.settings.suffix,
-        user: this.settings.user,
+        echo: openaiOptions.echo,
+        logit_bias: openaiOptions.logitBias,
+        suffix: openaiOptions.suffix,
+        user: openaiOptions.user,
 
         // standardized settings:
         max_tokens: maxOutputTokens,
@@ -141,7 +152,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -171,7 +182,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         outputTokens: response.usage.completion_tokens,
       },
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
-      logprobs: mapOpenAICompletionLogProbs(choice.logprobs),
       request: { body: args },
       response: {
         ...getResponseMetadata(response),
@@ -185,7 +195,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const body = {
       ...args,
@@ -218,7 +228,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
     };
-    let logprobs: LanguageModelV2LogProbs;
     let isFirstChunk = true;
 
     return {
@@ -274,21 +283,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
                 text: choice.text,
               });
             }
-
-            const mappedLogprobs = mapOpenAICompletionLogProbs(
-              choice?.logprobs,
-            );
-            if (mappedLogprobs?.length) {
-              if (logprobs === undefined) logprobs = [];
-              logprobs.push(...mappedLogprobs);
-            }
           },
 
           flush(controller) {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              logprobs,
               usage,
             });
           },
@@ -310,13 +310,6 @@ const openaiCompletionResponseSchema = z.object({
     z.object({
       text: z.string(),
       finish_reason: z.string(),
-      logprobs: z
-        .object({
-          tokens: z.array(z.string()),
-          token_logprobs: z.array(z.number()),
-          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
-        })
-        .nullish(),
     }),
   ),
   usage: z.object({
@@ -337,13 +330,6 @@ const openaiCompletionChunkSchema = z.union([
         text: z.string(),
         finish_reason: z.string().nullish(),
         index: z.number(),
-        logprobs: z
-          .object({
-            tokens: z.array(z.string()),
-            token_logprobs: z.array(z.number()),
-            top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
-          })
-          .nullish(),
       }),
     ),
     usage: z

@@ -138,7 +138,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: 'Hello, World!' });
     const modelWithUser = provider('grok-beta');
     await modelWithUser.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         xai: {
@@ -163,7 +162,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -184,7 +182,6 @@ describe('doGenerate', () => {
     });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -195,7 +192,6 @@ describe('doGenerate', () => {
           "type": "text",
         },
         {
-          "reasoningType": "text",
           "text": "This is the reasoning behind the response",
           "type": "reasoning",
         },
@@ -210,7 +206,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -225,7 +220,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -272,7 +266,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -286,7 +279,6 @@ describe('doGenerate', () => {
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -300,7 +292,6 @@ describe('doGenerate', () => {
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -313,7 +304,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -331,7 +321,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -345,7 +334,6 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await provider('grok-beta').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         'openai-compatible': {
@@ -365,7 +353,6 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await provider('grok-beta').doGenerate({
-      inputFormat: 'prompt',
       providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
@@ -385,7 +372,6 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await provider('grok-beta').doGenerate({
-      inputFormat: 'prompt',
       providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
@@ -404,7 +390,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -463,7 +448,6 @@ describe('doGenerate', () => {
     });
 
     await provider('grok-beta').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -493,7 +477,6 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -539,7 +522,6 @@ describe('doGenerate', () => {
       });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: { type: 'text' },
       });
@@ -556,7 +538,6 @@ describe('doGenerate', () => {
       const model = provider('gpt-4o-2024-08-06');
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: { type: 'json' },
       });
@@ -579,7 +560,6 @@ describe('doGenerate', () => {
       });
 
       const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -620,7 +600,6 @@ describe('doGenerate', () => {
       });
 
       const { warnings } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         responseFormat: {
           type: 'json',
@@ -655,6 +634,29 @@ describe('doGenerate', () => {
       expect(warnings).toEqual([]);
     });
 
+    it('should respect the reasoningEffort provider option', async () => {
+      prepareJsonResponse({ content: '{"value":"test"}' });
+
+      const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+        provider: 'test-provider',
+        url: () => 'https://my.api.com/v1/chat/completions',
+        headers: () => ({}),
+      });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          'openai-compatible': {
+            reasoningEffort: 'low',
+          },
+        },
+      });
+
+      const body = await server.calls[0].requestBody;
+
+      expect(body.reasoning_effort).toBe('low');
+    });
+
     it('should use json_schema & strict with responseFormat json when structuredOutputs are enabled', async () => {
       prepareJsonResponse({ content: '{"value":"Spark"}' });
 
@@ -666,7 +668,6 @@ describe('doGenerate', () => {
       });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           schema: {
@@ -710,7 +711,6 @@ describe('doGenerate', () => {
       });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           name: 'test-name',
@@ -757,7 +757,6 @@ describe('doGenerate', () => {
       });
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         responseFormat: {
           type: 'json',
           name: 'test-name',
@@ -780,7 +779,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     const { request } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -808,7 +806,6 @@ describe('doGenerate', () => {
       });
 
       const result = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -831,7 +828,6 @@ describe('doGenerate', () => {
       });
 
       const result = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -855,7 +851,6 @@ describe('doGenerate', () => {
       });
 
       const result = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -900,6 +895,29 @@ describe('doStream', () => {
     };
   }
 
+  it('should respect the includeUsage option', async () => {
+    prepareStreamResponse({
+      content: ['Hello', ', ', 'World!'],
+      finish_reason: 'stop',
+    });
+
+    const model = new OpenAICompatibleChatLanguageModel('gpt-4o-2024-08-06', {
+      provider: 'test-provider',
+      url: () => 'https://my.api.com/v1/chat/completions',
+      headers: () => ({}),
+      includeUsage: true,
+    });
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const body = await server.calls[0].requestBody;
+
+    expect(body.stream).toBe(true);
+    expect(body.stream_options).toStrictEqual({ include_usage: true });
+  });
+
   it('should stream text deltas', async () => {
     prepareStreamResponse({
       content: ['Hello', ', ', 'World!'],
@@ -907,7 +925,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -975,7 +992,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -992,12 +1008,10 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "reasoningType": "text",
           "text": "Let me think",
           "type": "reasoning",
         },
         {
-          "reasoningType": "text",
           "text": " about this",
           "type": "reasoning",
         },
@@ -1062,7 +1076,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1200,7 +1213,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1351,7 +1363,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1458,7 +1469,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1526,7 +1536,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1564,7 +1573,6 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -1601,7 +1609,6 @@ describe('doStream', () => {
     });
 
     const { response } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1620,7 +1627,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1644,7 +1650,6 @@ describe('doStream', () => {
     });
 
     await provider('grok-beta').doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -1663,7 +1668,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await provider('grok-beta').doStream({
-      inputFormat: 'prompt',
       providerOptions: {
         'test-provider': {
           someCustomOption: 'test-value',
@@ -1684,7 +1688,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await provider('grok-beta').doStream({
-      inputFormat: 'prompt',
       providerOptions: {
         notThisProviderName: {
           someCustomOption: 'test-value',
@@ -1704,13 +1707,36 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(request).toStrictEqual({
-      body: '{"model":"grok-beta","messages":[{"role":"user","content":"Hello"}],"stream":true}',
-    });
+    expect(request).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "frequency_penalty": undefined,
+          "max_tokens": undefined,
+          "messages": [
+            {
+              "content": "Hello",
+              "role": "user",
+            },
+          ],
+          "model": "grok-beta",
+          "presence_penalty": undefined,
+          "reasoning_effort": undefined,
+          "response_format": undefined,
+          "seed": undefined,
+          "stop": undefined,
+          "stream": true,
+          "stream_options": undefined,
+          "temperature": undefined,
+          "tool_choice": undefined,
+          "tools": undefined,
+          "top_p": undefined,
+          "user": undefined,
+        },
+      }
+    `);
   });
 
   describe('usage details in streaming', () => {
@@ -1731,7 +1757,6 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -1758,7 +1783,6 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -1782,7 +1806,6 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -1799,7 +1822,7 @@ describe('doStream', () => {
 
 describe('metadata extraction', () => {
   const testMetadataExtractor = {
-    extractMetadata: ({ parsedBody }: { parsedBody: unknown }) => {
+    extractMetadata: async ({ parsedBody }: { parsedBody: unknown }) => {
       if (
         typeof parsedBody !== 'object' ||
         !parsedBody ||
@@ -1871,7 +1894,6 @@ describe('metadata extraction', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1905,7 +1927,6 @@ describe('metadata extraction', () => {
     });
 
     const result = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 

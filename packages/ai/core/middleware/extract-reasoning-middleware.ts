@@ -66,7 +66,6 @@ export function extractReasoningMiddleware({
 
         transformedContent.push({
           type: 'reasoning',
-          reasoningType: 'text',
           text: reasoningText,
         });
 
@@ -114,7 +113,6 @@ export function extractReasoningMiddleware({
                     isReasoning
                       ? {
                           type: 'reasoning',
-                          reasoningType: 'text',
                           text: prefix + text,
                         }
                       : {
@@ -151,6 +149,12 @@ export function extractReasoningMiddleware({
 
                 if (foundFullMatch) {
                   buffer = buffer.slice(startIndex + nextTag.length);
+
+                  // reasoning part finished:
+                  if (isReasoning) {
+                    controller.enqueue({ type: 'reasoning-part-finish' });
+                  }
+
                   isReasoning = !isReasoning;
                   afterSwitch = true;
                 } else {

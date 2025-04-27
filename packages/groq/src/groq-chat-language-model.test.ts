@@ -10,32 +10,8 @@ const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-const provider = createGroq({
-  apiKey: 'test-api-key',
-});
-
+const provider = createGroq({ apiKey: 'test-api-key' });
 const model = provider('gemma2-9b-it');
-
-describe('settings', () => {
-  it('should set supportsImageUrls to true by default', () => {
-    const defaultModel = provider('gemma2-9b-it');
-    expect(defaultModel.supportsImageUrls).toBe(true);
-  });
-
-  it('should set supportsImageUrls to false when downloadImages is true', () => {
-    const modelWithDownloadImages = provider('gemma2-9b-it', {
-      downloadImages: true,
-    });
-    expect(modelWithDownloadImages.supportsImageUrls).toBe(false);
-  });
-
-  it('should set supportsImageUrls to true when downloadImages is false', () => {
-    const modelWithoutDownloadImages = provider('gemma2-9b-it', {
-      downloadImages: false,
-    });
-    expect(modelWithoutDownloadImages.supportsImageUrls).toBe(true);
-  });
-});
 
 const server = createTestServer({
   'https://api.groq.com/openai/v1/chat/completions': {},
@@ -114,7 +90,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -134,14 +109,12 @@ describe('doGenerate', () => {
     });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
     expect(content).toMatchInlineSnapshot(`
       [
         {
-          "reasoningType": "text",
           "text": "This is a test reasoning",
           "type": "reasoning",
         },
@@ -156,7 +129,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -171,7 +143,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -193,7 +164,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -207,7 +177,6 @@ describe('doGenerate', () => {
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -221,7 +190,6 @@ describe('doGenerate', () => {
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -236,7 +204,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -254,7 +221,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -268,7 +234,6 @@ describe('doGenerate', () => {
     prepareJsonResponse();
 
     await provider('gemma2-9b-it').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         groq: {
@@ -292,7 +257,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -349,7 +313,6 @@ describe('doGenerate', () => {
     });
 
     await provider('gemma2-9b-it').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -379,7 +342,6 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -419,7 +381,6 @@ describe('doGenerate', () => {
     const model = provider('gemma2-9b-it');
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       responseFormat: {
         type: 'json',
         name: 'test-name',
@@ -448,7 +409,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     const { request } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -498,7 +458,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -562,7 +521,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -579,12 +537,10 @@ describe('doStream', () => {
           "type": "response-metadata",
         },
         {
-          "reasoningType": "text",
           "text": "I think,",
           "type": "reasoning",
         },
         {
-          "reasoningType": "text",
           "text": "therefore I am.",
           "type": "reasoning",
         },
@@ -642,7 +598,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -777,7 +732,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -925,7 +879,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1025,7 +978,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1090,7 +1042,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1129,7 +1080,6 @@ describe('doStream', () => {
         };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -1165,7 +1115,6 @@ describe('doStream', () => {
     });
 
     const { response } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1184,7 +1133,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1206,7 +1154,6 @@ describe('doStream', () => {
     });
 
     await provider('gemma2-9b-it').doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -1225,7 +1172,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 

@@ -3,7 +3,7 @@ import {
   convertReadableStreamToArray,
   createTestServer,
 } from '@ai-sdk/provider-utils/test';
-import { AnthropicProviderOptions } from './anthropic-messages-language-model';
+import { AnthropicProviderOptions } from './anthropic-messages-options';
 import { createAnthropic } from './anthropic-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -69,7 +69,6 @@ describe('AnthropicMessagesLanguageModel', () => {
         });
 
         const result = await model.doGenerate({
-          inputFormat: 'prompt',
           prompt: TEST_PROMPT,
           temperature: 0.5,
           topP: 0.7,
@@ -119,7 +118,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       const { content } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -146,20 +144,18 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       const { content } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
       expect(content).toMatchInlineSnapshot(`
         [
           {
-            "reasoningType": "text",
+            "providerMetadata": {
+              "anthropic": {
+                "signature": "1234567890",
+              },
+            },
             "text": "I am thinking...",
-            "type": "reasoning",
-          },
-          {
-            "reasoningType": "signature",
-            "signature": "1234567890",
             "type": "reasoning",
           },
           {
@@ -185,7 +181,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       const { content, finishReason } = await model.doGenerate({
-        inputFormat: 'prompt',
         tools: [
           {
             type: 'function',
@@ -228,7 +223,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       const { usage } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -242,7 +236,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       const { response } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -284,7 +277,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       const { response } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -302,7 +294,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       prepareJsonResponse({});
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         temperature: 0.5,
         maxOutputTokens: 100,
@@ -329,7 +320,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       prepareJsonResponse({});
 
       await model.doGenerate({
-        inputFormat: 'prompt',
         tools: [
           {
             type: 'function',
@@ -386,8 +376,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       await provider('claude-3-haiku-20240307').doGenerate({
-        inputFormat: 'prompt',
-
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -416,7 +404,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       const model = provider('claude-3-haiku-20240307');
 
       const result = await model.doGenerate({
-        inputFormat: 'messages',
         prompt: [
           {
             role: 'user',
@@ -459,7 +446,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       prepareJsonResponse({ content: [] });
 
       const { request } = await model.doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -510,7 +496,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -574,7 +559,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -590,19 +574,24 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "reasoningType": "text",
             "text": "I am",
             "type": "reasoning",
           },
           {
-            "reasoningType": "text",
             "text": "thinking...",
             "type": "reasoning",
           },
           {
-            "reasoningType": "signature",
-            "signature": "1234567890",
+            "providerMetadata": {
+              "anthropic": {
+                "signature": "1234567890",
+              },
+            },
+            "text": "",
             "type": "reasoning",
+          },
+          {
+            "type": "reasoning-part-finish",
           },
           {
             "text": "Hello, World!",
@@ -642,7 +631,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -658,9 +646,16 @@ describe('AnthropicMessagesLanguageModel', () => {
             "type": "response-metadata",
           },
           {
-            "data": "redacted-thinking-data",
-            "reasoningType": "redacted",
+            "providerMetadata": {
+              "anthropic": {
+                "redactedData": "redacted-thinking-data",
+              },
+            },
+            "text": "",
             "type": "reasoning",
+          },
+          {
+            "type": "reasoning-part-finish",
           },
           {
             "text": "Hello, World!",
@@ -699,7 +694,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -760,7 +754,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         tools: [
           {
             type: 'function',
@@ -875,7 +868,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -916,7 +908,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       const { response } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -946,7 +937,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -982,7 +972,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       });
 
       await provider('claude-3-haiku-20240307').doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
         headers: {
           'Custom-Request-Header': 'request-header-value',
@@ -1018,7 +1007,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       const model = provider('claude-3-haiku-20240307');
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -1070,7 +1058,6 @@ describe('AnthropicMessagesLanguageModel', () => {
       };
 
       const { request } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 

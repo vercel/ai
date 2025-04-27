@@ -6,7 +6,7 @@ import {
 } from '@ai-sdk/openai-compatible';
 import {
   EmbeddingModelV2,
-  ImageModelV1,
+  ImageModelV2,
   LanguageModelV2,
   ProviderV2,
 } from '@ai-sdk/provider';
@@ -16,12 +16,9 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { FireworksChatModelId } from './fireworks-chat-settings';
-import { FireworksCompletionModelId } from './fireworks-completion-settings';
-import {
-  FireworksEmbeddingModelId,
-  FireworksEmbeddingProviderOptions,
-} from './fireworks-embedding-options';
+import { FireworksChatModelId } from './fireworks-chat-options';
+import { FireworksCompletionModelId } from './fireworks-completion-options';
+import { FireworksEmbeddingModelId } from './fireworks-embedding-options';
 import { FireworksImageModel } from './fireworks-image-model';
 import {
   FireworksImageModelId,
@@ -94,7 +91,7 @@ Creates a model for image generation.
   image(
     modelId: FireworksImageModelId,
     settings?: FireworksImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 
   /**
 Creates a model for image generation.
@@ -102,7 +99,7 @@ Creates a model for image generation.
   imageModel(
     modelId: FireworksImageModelId,
     settings?: FireworksImageSettings,
-  ): ImageModelV1;
+  ): ImageModelV2;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
@@ -138,7 +135,6 @@ export function createFireworks(
     return new OpenAICompatibleChatLanguageModel(modelId, {
       ...getCommonModelConfig('chat'),
       errorStructure: fireworksErrorStructure,
-      defaultObjectGenerationMode: 'json',
     });
   };
 

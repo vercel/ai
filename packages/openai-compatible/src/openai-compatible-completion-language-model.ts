@@ -33,17 +33,22 @@ import {
 
 type OpenAICompatibleCompletionConfig = {
   provider: string;
+  includeUsage?: boolean;
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
   errorStructure?: ProviderErrorStructure<any>;
+
+  /**
+   * The supported URLs for the model.
+   */
+  getSupportedUrls?: () => Promise<Record<string, RegExp[]>>;
 };
 
 export class OpenAICompatibleCompletionLanguageModel
   implements LanguageModelV2
 {
   readonly specificationVersion = 'v2';
-  readonly defaultObjectGenerationMode = undefined;
 
   readonly modelId: OpenAICompatibleCompletionModelId;
   private readonly config: OpenAICompatibleCompletionConfig;
@@ -74,8 +79,11 @@ export class OpenAICompatibleCompletionLanguageModel
     return this.config.provider.split('.')[0].trim();
   }
 
-  private getArgs({
-    inputFormat,
+  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
+    return this.config.getSupportedUrls?.() ?? {};
+  }
+
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -94,11 +102,11 @@ export class OpenAICompatibleCompletionLanguageModel
 
     // Parse provider options
     const completionOptions =
-      parseProviderOptions({
+      (await parseProviderOptions({
         provider: this.providerOptionsName,
         providerOptions,
         schema: openaiCompatibleCompletionProviderOptions,
-      }) ?? {};
+      })) ?? {};
 
     if (topK != null) {
       warnings.push({ type: 'unsupported-setting', setting: 'topK' });
@@ -121,7 +129,7 @@ export class OpenAICompatibleCompletionLanguageModel
     }
 
     const { prompt: completionPrompt, stopSequences } =
-      convertToOpenAICompatibleCompletionPrompt({ prompt, inputFormat });
+      convertToOpenAICompatibleCompletionPrompt({ prompt });
 
     const stop = [...(stopSequences ?? []), ...(userStopSequences ?? [])];
 
@@ -158,7 +166,7 @@ export class OpenAICompatibleCompletionLanguageModel
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const {
       responseHeaders,
@@ -207,11 +215,16 @@ export class OpenAICompatibleCompletionLanguageModel
   async doStream(
     options: Parameters<LanguageModelV2['doStream']>[0],
   ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
-    const { args, warnings } = this.getArgs(options);
+    const { args, warnings } = await this.getArgs(options);
 
     const body = {
       ...args,
       stream: true,
+
+      // only include stream_options when in strict compatibility mode:
+      stream_options: this.config.includeUsage
+        ? { include_usage: true }
+        : undefined,
     };
 
     const { responseHeaders, value: response } = await postJsonToApi({

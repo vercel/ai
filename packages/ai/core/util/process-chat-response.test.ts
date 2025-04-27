@@ -266,14 +266,16 @@ describe('scenario: server-side tool roundtrip with multiple assistant texts', (
 describe('scenario: server-side tool roundtrip with multiple assistant reasoning', () => {
   beforeEach(async () => {
     const stream = createDataProtocolStream([
-      formatDataStreamPart('reasoning', 'I will '),
-      formatDataStreamPart(
-        'reasoning',
-        'use a tool to get the weather in London.',
-      ),
-      formatDataStreamPart('reasoning_signature', {
-        signature: '1234567890',
+      formatDataStreamPart('reasoning', {
+        text: 'I will ',
       }),
+      formatDataStreamPart('reasoning', {
+        text: 'use a tool to get the weather in London.',
+        providerMetadata: {
+          testProvider: { signature: '1234567890' },
+        },
+      }),
+      formatDataStreamPart('reasoning_part_finish', {}),
       formatDataStreamPart('tool_call', {
         toolCallId: 'tool-call-id',
         toolName: 'tool-name',
@@ -288,10 +290,13 @@ describe('scenario: server-side tool roundtrip with multiple assistant reasoning
         usage: { completionTokens: 5, promptTokens: 10 },
         isContinued: false,
       }),
-      formatDataStreamPart('reasoning', 'I know know the weather in London.'),
-      formatDataStreamPart('reasoning_signature', {
-        signature: 'abc123',
+      formatDataStreamPart('reasoning', {
+        text: 'I know know the weather in London.',
+        providerMetadata: {
+          testProvider: { signature: 'abc123' },
+        },
       }),
+      formatDataStreamPart('reasoning_part_finish', {}),
       formatDataStreamPart('text', 'The weather in London is sunny.'),
       formatDataStreamPart('finish_step', {
         finishReason: 'stop',
@@ -576,22 +581,31 @@ describe('scenario: server provides reasoning', () => {
   beforeEach(async () => {
     const stream = createDataProtocolStream([
       formatDataStreamPart('start_step', { messageId: 'step_123' }),
-      formatDataStreamPart('reasoning', 'I will open the conversation'),
-      formatDataStreamPart('reasoning', ' with witty banter. '),
-      formatDataStreamPart('reasoning_signature', {
-        signature: '1234567890',
+      formatDataStreamPart('reasoning', {
+        text: 'I will open the conversation',
       }),
-      formatDataStreamPart('redacted_reasoning', {
-        data: 'redacted-data',
+      formatDataStreamPart('reasoning', {
+        text: ' with witty banter. ',
+        providerMetadata: {
+          testProvider: { signature: '1234567890' },
+        },
       }),
-      formatDataStreamPart('reasoning', 'Once the user has relaxed,'),
-      formatDataStreamPart(
-        'reasoning',
-        ' I will pry for valuable information.',
-      ),
-      formatDataStreamPart('reasoning_signature', {
-        signature: 'abc123',
+      formatDataStreamPart('reasoning', {
+        text: 'redacted-data',
+        providerMetadata: {
+          testProvider: { isRedacted: true },
+        },
       }),
+      formatDataStreamPart('reasoning', {
+        text: 'Once the user has relaxed,',
+      }),
+      formatDataStreamPart('reasoning', {
+        text: ' I will pry for valuable information.',
+        providerMetadata: {
+          testProvider: { signature: 'abc123' },
+        },
+      }),
+      formatDataStreamPart('reasoning_part_finish', {}),
       formatDataStreamPart('text', 'Hi there!'),
       formatDataStreamPart('finish_step', {
         finishReason: 'stop',

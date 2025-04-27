@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google-vertex",
-  "version": "3.0.0-canary.9",
+  "version": "3.0.0-canary.13",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -8,10 +8,10 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
-    "edge/dist/**/*",
-    "anthropic/dist/**/*",
-    "anthropic/edge/dist/**/*",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "edge.d.ts",
+    "anthropic/edge.d.ts",
+    "anthropic/index.d.ts"
   ],
   "scripts": {
     "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
@@ -50,10 +50,10 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "2.0.0-canary.8",
-    "@ai-sdk/google": "2.0.0-canary.9",
-    "@ai-sdk/provider": "2.0.0-canary.7",
-    "@ai-sdk/provider-utils": "3.0.0-canary.8",
+    "@ai-sdk/anthropic": "workspace:*",
+    "@ai-sdk/google": "workspace:*",
+    "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*",
     "google-auth-library": "^9.15.0"
   },
   "devDependencies": {

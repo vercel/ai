@@ -1,15 +1,10 @@
-import {
-  CallWarning,
-  FinishReason,
-  LogProbs,
-  ProviderMetadata,
-} from '../types';
+import { ReasoningPart } from '../prompt/content-part';
+import { CallWarning, FinishReason, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { GeneratedFile } from './generated-file';
-import { Reasoning } from './reasoning';
 import { ResponseMessage, StepResult } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
@@ -28,7 +23,7 @@ The generated text.
   /**
 The full reasoning that the model has generated.
    */
-  readonly reasoning: Array<Reasoning>;
+  readonly reasoning: Array<ReasoningPart>;
 
   /**
 The reasoning text that the model has generated. Can be undefined if the model
@@ -108,14 +103,6 @@ Response body (available only for providers that use HTTP requests).
      */
     body?: unknown;
   };
-
-  /**
-Logprobs for the completion.
-`undefined` if the mode does not support logprobs or if it was not enabled.
-
-@deprecated Will become a provider extension in the future.
-     */
-  readonly logprobs: LogProbs | undefined;
 
   /**
 Additional provider-specific metadata. They are passed through

@@ -16,7 +16,6 @@ async function main() {
       }),
     }),
     schema: z.object({ content: z.string() }),
-    mode: 'json',
     prompt: 'What are the tourist attractions in San Francisco?',
     experimental_repairText: async ({ text, error }) => {
       if (error instanceof JSONParseError) {

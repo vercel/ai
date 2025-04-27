@@ -10,12 +10,6 @@ import { Prompt } from './prompt';
 
 export type StandardizedPrompt = {
   /**
-   * Original prompt type. This is forwarded to the providers and can be used
-   * to write send raw text to providers that support it.
-   */
-  type: 'prompt' | 'messages';
-
-  /**
    * System message.
    */
   system?: string;
@@ -26,13 +20,13 @@ export type StandardizedPrompt = {
   messages: CoreMessage[];
 };
 
-export function standardizePrompt<TOOLS extends ToolSet>({
+export async function standardizePrompt<TOOLS extends ToolSet>({
   prompt,
   tools,
 }: {
   prompt: Prompt;
   tools: undefined | TOOLS;
-}): StandardizedPrompt {
+}): Promise<StandardizedPrompt> {
   if (prompt.prompt == null && prompt.messages == null) {
     throw new InvalidPromptError({
       prompt,
@@ -66,7 +60,6 @@ export function standardizePrompt<TOOLS extends ToolSet>({
     }
 
     return {
-      type: 'prompt',
       system: prompt.system,
       messages: [
         {
@@ -102,7 +95,7 @@ export function standardizePrompt<TOOLS extends ToolSet>({
       });
     }
 
-    const validationResult = safeValidateTypes({
+    const validationResult = await safeValidateTypes({
       value: messages,
       schema: z.array(coreMessageSchema),
     });
@@ -116,7 +109,6 @@ export function standardizePrompt<TOOLS extends ToolSet>({
     }
 
     return {
-      type: 'messages',
       messages,
       system: prompt.system,
     };
