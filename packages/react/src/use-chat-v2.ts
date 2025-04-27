@@ -364,14 +364,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
       // the last assistant message have results
       // and assistant has not answered yet
       const messages = messagesStore.getMessages(activeChatId) ?? [];
-      console.log(
-        shouldResubmitMessages({
-          originalMaxToolInvocationStep: maxStep,
-          originalMessageCount: messageCount,
-          maxSteps,
-          messages,
-        }),
-      );
       if (
         shouldResubmitMessages({
           originalMaxToolInvocationStep: maxStep,

@@ -184,7 +184,6 @@ export class ChatStore {
     const chat = this.chats.get(id);
     if (!chat) return;
     chat.step = (chat.step ?? -1) + 1;
-    console.log('incrementStep', chat.step, this.getStep(id));
   }
 
   getMessages(id: string) {
@@ -337,7 +336,7 @@ export class ChatStore {
       }
     }
 
-    chat.messages[chat.messages.length - 1] = activeResponse.message;
+    chat.messages = [...chat.messages.slice(0, -1), activeResponse.message];
     this.emitEvent({ id: chatId, event: ChatStoreEvent.ChatMessagesChanged });
   }
 
@@ -423,7 +422,6 @@ export class ChatStore {
       maybeExistingCallState?.toolName ||
       toolInvocation.toolName;
 
-    console.log('toolInvocation', step, this.getStep(chatId));
     const updatedToolInvocation = {
       toolName,
       step,
