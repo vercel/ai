@@ -196,11 +196,11 @@ export async function processChatResponseV2({
       }
     },
     onFinishStepPart(value) {
-      console.log('onFinishStepPart', value);
-      store.incrementStep(chatId);
       store.resetTempParts({ id: chatId, isContinued: value.isContinued });
     },
     onStartStepPart(value) {
+      store.incrementStep(chatId);
+
       // Add a step boundary part to the message
       store.addOrUpdateAssistantMessageParts({
         chatId,

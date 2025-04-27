@@ -153,7 +153,7 @@ export class ChatStore {
     const chat = this.chats.get(id);
     if (!chat) return;
 
-    chat.step = 0;
+    chat.step = -1;
     chat.activeResponse = undefined;
     chat.error = undefined;
     chat.status = 'ready';
@@ -174,16 +174,16 @@ export class ChatStore {
             return Math.max(max, part.toolInvocation.step ?? 0) ?? 0;
           }
           return max;
-        }, 0) ?? 0;
+        }, 0) ?? -1;
     } else {
-      chat.step = 0;
+      chat.step = -1;
     }
   }
 
   incrementStep(id: string) {
     const chat = this.chats.get(id);
     if (!chat) return;
-    chat.step = (chat.step ?? 0) + 1;
+    chat.step = (chat.step ?? -1) + 1;
     console.log('incrementStep', chat.step, this.getStep(id));
   }
 
