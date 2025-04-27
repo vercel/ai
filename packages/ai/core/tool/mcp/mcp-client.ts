@@ -63,6 +63,8 @@ export async function createMCPClient(
  * Tool parameters are automatically inferred from the server's JSON schema
  * if not explicitly provided in the tools configuration
  *
+ * This client is meant to be used to communicate with a single server. To communicate and fetch tools across multiple servers, it's recommended to create a new client instance per server.
+ *
  * Not supported:
  * - Client options (e.g. sampling, roots) as they are not needed for tool conversion
  * - Accepting notifications
@@ -78,7 +80,7 @@ class MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private isClosed = true;
-  private strictMode = false;
+  private strictMode: boolean;
 
   constructor({
     transport: transportConfig,

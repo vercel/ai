@@ -299,12 +299,27 @@ describe('MCPClient', () => {
   });
 
   it('should throw if strict mode is enabled and the server does not support tools', async () => {
+    const mockTransport = new MockMCPTransport({
+      overrideTools: [],
+    });
     client = await createMCPClient({
-      transport: { type: 'sse', url: 'https://example.com/sse' },
+      transport: mockTransport,
       strictMode: true,
     });
-    // Access private property serverCapabilities:
-    (client as any).serverCapabilities = {};
     await expect(client.tools()).rejects.toThrow(MCPClientError);
+  });
+
+  it('should skip initialization if session id is provided', async () => {
+    const mockTransportWithSessionId = new MockMCPTransport({
+      sessionId: 'session_123',
+    });
+    const startSpy = vi.spyOn(mockTransportWithSessionId, 'start');
+    const sendSpy = vi.spyOn(mockTransportWithSessionId, 'send');
+    client = await createMCPClient({
+      transport: mockTransportWithSessionId,
+    });
+    expect(startSpy).toHaveBeenCalledOnce(); // Transport is started
+    expect(mockTransportWithSessionId.sessionId).toBe('session_123');
+    expect(sendSpy).not.toHaveBeenCalled(); // But initialization request is skipped
   });
 });

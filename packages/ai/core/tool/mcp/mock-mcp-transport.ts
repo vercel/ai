@@ -28,6 +28,7 @@ export class MockMCPTransport implements MCPTransport {
   private failOnInvalidToolParams;
   private initializeResult;
   private sendError;
+  public sessionId;
 
   onmessage?: (message: JSONRPCMessage) => void;
   onclose?: () => void;
@@ -38,16 +39,19 @@ export class MockMCPTransport implements MCPTransport {
     failOnInvalidToolParams = false,
     initializeResult,
     sendError = false,
+    sessionId,
   }: {
     overrideTools?: MCPTool[];
     failOnInvalidToolParams?: boolean;
     initializeResult?: Record<string, unknown>;
     sendError?: boolean;
+    sessionId?: string;
   } = {}) {
     this.tools = overrideTools;
     this.failOnInvalidToolParams = failOnInvalidToolParams;
     this.initializeResult = initializeResult;
     this.sendError = sendError;
+    this.sessionId = sessionId;
   }
 
   async start(): Promise<void> {
