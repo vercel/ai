@@ -117,7 +117,11 @@ export function streamObject<
         : T
       : never,
   SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
-  Output extends 'object' | 'array'  | 'enum'| 'no-schema' = RESULT extends string ? 'enum' : 'object',
+  Output extends
+    | 'object'
+    | 'array'
+    | 'enum'
+    | 'no-schema' = RESULT extends string ? 'enum' : 'object',
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
@@ -129,29 +133,30 @@ The enum values that the model should use.
           enum: Array<RESULT>;
           mode?: 'json';
           output: 'enum';
-        } :Output extends 'no-schema'
-      ? {}
-      : {
-          /**
+        }
+      : Output extends 'no-schema'
+        ? {}
+        : {
+            /**
 The schema of the object that the model should generate.
       */
-          schema: SCHEMA;
+            schema: SCHEMA;
 
-          /**
+            /**
 Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
       */
-          schemaName?: string;
+            schemaName?: string;
 
-          /**
+            /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
       */
-          schemaDescription?: string;
+            schemaDescription?: string;
 
-          /**
+            /**
 The mode to use for object generation.
 
 The schema is converted into a JSON schema and used in one of the following ways
@@ -164,8 +169,8 @@ Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
       */
-          mode?: 'auto' | 'json' | 'tool';
-        }) & {
+            mode?: 'auto' | 'json' | 'tool';
+          }) & {
       output?: Output;
 
       /**
@@ -237,7 +242,8 @@ Callback that is called when the LLM response and the final object validation ar
     ...settings
   } = options;
 
-  const enumValues = 'enum' in options && options.enum ? options.enum : undefined;
+  const enumValues =
+    'enum' in options && options.enum ? options.enum : undefined;
 
   const {
     schema: inputSchema,
@@ -253,7 +259,11 @@ Callback that is called when the LLM response and the final object validation ar
     enumValues,
   });
 
-  const outputStrategy = getOutputStrategy({ output, schema: inputSchema, enumValues });
+  const outputStrategy = getOutputStrategy({
+    output,
+    schema: inputSchema,
+    enumValues,
+  });
 
   return new DefaultStreamObjectResult({
     model,

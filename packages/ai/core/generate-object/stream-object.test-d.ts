@@ -5,7 +5,6 @@ import { streamObject } from './stream-object';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 
 describe('streamObject', () => {
-
   it('should support enum types', async () => {
     const result = await streamObject({
       output: 'enum',
@@ -13,7 +12,9 @@ describe('streamObject', () => {
       model: undefined!,
     });
 
-    expectTypeOf<typeof result.object>().toEqualTypeOf<Promise<'a' | 'b' | 'c'>>;
+    expectTypeOf<typeof result.object>().toEqualTypeOf<
+      Promise<'a' | 'b' | 'c'>
+    >;
   });
 
   it('should support schema types', async () => {
