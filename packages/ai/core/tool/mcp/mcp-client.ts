@@ -42,8 +42,6 @@ interface MCPClientConfig {
   onUncaughtError?: (error: unknown) => void;
   /** Optional client name, defaults to 'ai-sdk-mcp-client' */
   name?: string;
-  /** Enforce strict mode, defaults to false. Strict mode will throw errors for requests that the remote side has not indicated that they can handle, through their advertised capabilities */
-  strictMode?: boolean;
 }
 
 export async function createMCPClient(
@@ -68,6 +66,8 @@ export async function createMCPClient(
  * Not supported:
  * - Client options (e.g. sampling, roots) as they are not needed for tool conversion
  * - Accepting notifications
+ * - Session management (when passing a sessionId to an instance of the Streamable HTTP transport)
+ * - Resumable SSE streams
  */
 class MCPClient {
   private transport: MCPTransport;
@@ -80,16 +80,13 @@ class MCPClient {
   > = new Map();
   private serverCapabilities: ServerCapabilities = {};
   private isClosed = true;
-  private strictMode: boolean;
 
   constructor({
     transport: transportConfig,
     name = 'ai-sdk-mcp-client',
     onUncaughtError,
-    strictMode = false,
   }: MCPClientConfig) {
     this.onUncaughtError = onUncaughtError;
-    this.strictMode = strictMode;
 
     if (isCustomMcpTransport(transportConfig)) {
       this.transport = transportConfig;
@@ -125,11 +122,6 @@ class MCPClient {
     try {
       await this.transport.start();
       this.isClosed = false;
-
-      if (this.transport.sessionId) {
-        // We do not need to re-initialize if sessionId is already set:
-        return this;
-      }
 
       const result = await this.request({
         request: {
@@ -212,9 +204,7 @@ class MCPClient {
         );
       }
 
-      if (this.strictMode) {
-        this.assertCapability(request.method);
-      }
+      this.assertCapability(request.method);
 
       const signal = options?.signal;
       signal?.throwIfAborted();

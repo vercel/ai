@@ -46,7 +46,7 @@ Run example:
 pnpm stdio:client
 ```
 
-## SSE Transport
+## SSE Transport (Legacy)
 
 Start server
 

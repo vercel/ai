@@ -76,7 +76,7 @@ function initializeMcpApiHandler({
 
       if (req.method === 'POST') {
         /**
-         * In stateless mode, create a new instance of transport and server for each request to ensure complete isolation. A single instance would cause request ID collisions when multiple clients connect concurrently.
+         * In Stateless Mode, we create a new instance of transport and server for each request to ensure complete isolation. A single instance would cause request ID collisions when multiple clients connect concurrently.
          */
         const server = new McpServer(
           {

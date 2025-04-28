@@ -722,7 +722,10 @@ const mcpClient = await createMCPClient({
 You can also bring your own transport, as long as it implements the `MCPTransport` interface. Below is an example of using the new `StreamableHTTPClientTransport` from MCP's official Typescript SDK:
 
 ```typescript
-import { MCPTransport, createMCPClient } from 'ai';
+import {
+  MCPTransport,
+  experimental_createMCPClient as createMCPClient,
+} from 'ai';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
 
 const url = new URL('http://localhost:3000/mcp');
@@ -732,6 +735,13 @@ const mcpClient = await createMCPClient({
   }),
 });
 ```
+
+<Note>
+  The client returned by the `experimental_createMCPClient` function is a
+  lightweight client intended for use in tool conversion. It currently does not
+  support all features of the full MCP client, such as: authorization, session
+  management, resumable streams, and receiving notifications.
+</Note>
 
 #### Closing the MCP Client
 

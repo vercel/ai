@@ -37,11 +37,6 @@ export interface MCPTransport {
    * Event handler for received messages
    */
   onmessage?: (message: JSONRPCMessage) => void;
-
-  /**
-   * The session ID generated for this connection
-   */
-  sessionId?: string;
 }
 
 export type MCPTransportConfig = {

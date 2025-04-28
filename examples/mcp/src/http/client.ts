@@ -6,11 +6,6 @@ import 'dotenv/config';
 async function main() {
   const transport = new StreamableHTTPClientTransport(
     new URL('http://localhost:3000/mcp'),
-    {
-      // Optional: Session ID for the connection. Used to identify the session on the server.
-      // NOTE: This will not work if MCP client is configured with enforceStrictMode set to `true` because initialization is skipped when resuming a session, and server capabilities will be unknown
-      //   sessionId: '162d0a7d-3aa7-4f55-a33c-94ec1cca96e0',
-    },
   );
 
   const mcpClient = await experimental_createMCPClient({
