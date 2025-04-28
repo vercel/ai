@@ -17,3 +17,4 @@ export {
 } from './rsc-client';
 
 export type { StreamableValue } from './streamable-value/streamable-value';
+export * from './types';
