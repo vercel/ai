@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zodSchema } from './zod-schema';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { safeParseJSON } from './parse-json';
 
 describe('zodSchema', () => {
   describe('json schema conversion', () => {

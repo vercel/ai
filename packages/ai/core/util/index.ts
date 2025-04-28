@@ -1,4 +1,4 @@
-export { generateId } from '@ai-sdk/provider-utils';
+export * from '@ai-sdk/provider-utils';
 
 // Export stream data utilities for custom stream implementations,
 // both on the client and server side.
@@ -17,11 +17,8 @@ export { parsePartialJson } from './parse-partial-json';
 export { prepareAttachmentsForRequest } from './prepare-attachments-for-request';
 export { processDataStream } from './process-data-stream';
 export { processTextStream } from './process-text-stream';
-export { asSchema, jsonSchema } from './schema';
-export type { Schema } from './schema';
+export { updateToolCallResult } from './update-tool-call-result';
 export {
   isAssistantMessageWithCompletedToolCalls,
   shouldResubmitMessages,
 } from './should-resubmit-messages';
-export { updateToolCallResult } from './update-tool-call-result';
-export { zodSchema } from './zod-schema';
