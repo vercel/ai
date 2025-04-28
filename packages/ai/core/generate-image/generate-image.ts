@@ -169,7 +169,12 @@ Only applicable for HTTP-based providers.
     throw new NoImageGeneratedError({ responses });
   }
 
-  return new DefaultGenerateImageResult({ images, warnings, responses, providerMetadata });
+  return new DefaultGenerateImageResult({
+    images,
+    warnings,
+    responses,
+    providerMetadata,
+  });
 }
 
 class DefaultGenerateImageResult implements GenerateImageResult {
@@ -182,7 +187,7 @@ class DefaultGenerateImageResult implements GenerateImageResult {
     images: Array<GeneratedFile>;
     warnings: Array<ImageGenerationWarning>;
     responses: Array<ImageModelResponseMetadata>;
-    providerMetadata: Array<ProviderMetadata | undefined>
+    providerMetadata: Array<ProviderMetadata | undefined>;
   }) {
     this.images = options.images;
     this.warnings = options.warnings;
