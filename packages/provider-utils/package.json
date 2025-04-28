@@ -39,7 +39,8 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/provider": "workspace:*"
+    "@ai-sdk/provider": "workspace:*",
+    "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
