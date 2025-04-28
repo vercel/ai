@@ -1,4 +1,5 @@
 import {
+  JSONValue,
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
@@ -459,15 +460,3 @@ or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
 };
-
-/**
-A JSON value can be a string, number, boolean, object, array, or null.
-JSON values can be serialized and deserialized by the JSON.stringify and JSON.parse methods.
- */
-export type JSONValue =
-  | null
-  | string
-  | number
-  | boolean
-  | { [value: string]: JSONValue }
-  | Array<JSONValue>;
