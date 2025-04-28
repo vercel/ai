@@ -14,7 +14,7 @@ You can use it to [generate structured data](/docs/ai-sdk-core/generating-struct
 (e.g. when using OpenAPI definitions) or for using other validation libraries.
 
 ```ts
-import { jsonSchema } from '@ai-sdk/provider-utils';
+import { jsonSchema } from 'ai';
 
 const mySchema = jsonSchema<{
   recipe: {
@@ -54,10 +54,7 @@ const mySchema = jsonSchema<{
 
 ## Import
 
-<Snippet
-  text={`import { jsonSchema } from "@ai-sdk/provider-utils"`}
-  prompt={false}
-/>
+<Snippet text={`import { jsonSchema } from "ai"`} prompt={false} />
 
 ## API Signature
 

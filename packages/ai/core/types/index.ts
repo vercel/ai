@@ -5,6 +5,7 @@ export type {
 } from './image-model';
 export type { ImageModelResponseMetadata } from './image-model-response-metadata';
 export type { JSONValue } from './json-value';
+export type { JSONSchema7 } from '@ai-sdk/provider';
 export type {
   CallWarning,
   FinishReason,
