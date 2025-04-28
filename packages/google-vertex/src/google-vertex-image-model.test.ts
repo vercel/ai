@@ -4,7 +4,7 @@ import { GoogleVertexImageModel } from './google-vertex-image-model';
 const prompt = 'A cute baby sea otter';
 
 const model = new GoogleVertexImageModel(
-  'imagen-3.0-generate-001',
+  'imagen-3.0-generate-002',
   {},
   {
     provider: 'google-vertex',
@@ -14,7 +14,7 @@ const model = new GoogleVertexImageModel(
 );
 
 const server = createTestServer({
-  'https://api.example.com/models/imagen-3.0-generate-001:predict': {},
+  'https://api.example.com/models/imagen-3.0-generate-002:predict': {},
 });
 
 describe('GoogleVertexImageModel', () => {
@@ -25,7 +25,7 @@ describe('GoogleVertexImageModel', () => {
       headers?: Record<string, string>;
     } = {}) {
       server.urls[
-        'https://api.example.com/models/imagen-3.0-generate-001:predict'
+        'https://api.example.com/models/imagen-3.0-generate-002:predict'
       ].response = {
         type: 'json-value',
         headers,
@@ -42,7 +42,7 @@ describe('GoogleVertexImageModel', () => {
       prepareJsonResponse();
 
       const modelWithHeaders = new GoogleVertexImageModel(
-        'imagen-3.0-generate-001',
+        'imagen-3.0-generate-002',
         {},
         {
           provider: 'google-vertex',
@@ -74,7 +74,7 @@ describe('GoogleVertexImageModel', () => {
 
     it('should respect maxImagesPerCall setting', () => {
       const customModel = new GoogleVertexImageModel(
-        'imagen-3.0-generate-001',
+        'imagen-3.0-generate-002',
         { maxImagesPerCall: 2 },
         {
           provider: 'google-vertex',
@@ -88,7 +88,7 @@ describe('GoogleVertexImageModel', () => {
 
     it('should use default maxImagesPerCall when not specified', () => {
       const defaultModel = new GoogleVertexImageModel(
-        'imagen-3.0-generate-001',
+        'imagen-3.0-generate-002',
         {},
         {
           provider: 'google-vertex',
@@ -238,7 +238,7 @@ describe('GoogleVertexImageModel', () => {
       const testDate = new Date('2024-03-15T12:00:00Z');
 
       const customModel = new GoogleVertexImageModel(
-        'imagen-3.0-generate-001',
+        'imagen-3.0-generate-002',
         {},
         {
           provider: 'google-vertex',
@@ -261,7 +261,7 @@ describe('GoogleVertexImageModel', () => {
 
       expect(result.response).toStrictEqual({
         timestamp: testDate,
-        modelId: 'imagen-3.0-generate-001',
+        modelId: 'imagen-3.0-generate-002',
         headers: {
           'content-length': '97',
           'content-type': 'application/json',
@@ -292,7 +292,7 @@ describe('GoogleVertexImageModel', () => {
       expect(result.response.timestamp.getTime()).toBeLessThanOrEqual(
         afterDate.getTime(),
       );
-      expect(result.response.modelId).toBe('imagen-3.0-generate-001');
+      expect(result.response.modelId).toBe('imagen-3.0-generate-002');
     });
 
     it('should only pass valid provider options', async () => {
