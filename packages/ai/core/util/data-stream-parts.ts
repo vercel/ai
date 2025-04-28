@@ -2,7 +2,7 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
-import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
+import { ToolCall, ToolResult } from '../generate-text';
 import { JSONValue } from '../types';
 
 export type DataStreamString =

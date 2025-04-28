@@ -2,7 +2,8 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
-import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
+import { ToolCall, ToolResult } from '../generate-text';
+import { FetchFunction } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from './duplicated/usage';
 
 export type IdGenerator = () => string;

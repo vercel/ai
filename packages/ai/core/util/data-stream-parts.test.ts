@@ -1,4 +1,4 @@
-import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
+import { ToolCall, ToolResult } from '../generate-text';
 import { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
 
 describe('data-stream-parts', () => {
