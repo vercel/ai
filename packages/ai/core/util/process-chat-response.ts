@@ -161,8 +161,6 @@ export async function processChatResponse({
         currentReasoningPart.providerMetadata = value.providerMetadata;
       }
 
-      message.reasoning = (message.reasoning ?? '') + value.text;
-
       execUpdate();
     },
     onReasoningPartFinish(value) {
