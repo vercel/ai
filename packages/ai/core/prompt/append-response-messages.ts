@@ -130,7 +130,6 @@ Internal. For test use only. May change without notice.
           lastMessage.parts ??= [];
 
           lastMessage.content = textContent;
-          lastMessage.reasoning = reasoningTextContent;
           lastMessage.parts.push(...parts);
 
           lastMessage.toolInvocations = [
@@ -153,7 +152,6 @@ Internal. For test use only. May change without notice.
             id: message.id,
             createdAt: currentDate(), // generate a createdAt date for the message, will be overridden by the client
             content: textContent,
-            reasoning: reasoningTextContent,
             toolInvocations: getToolInvocations(0),
             parts: [
               ...parts,
