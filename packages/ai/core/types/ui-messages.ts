@@ -72,13 +72,6 @@ The 'data' role is deprecated.
   role: 'system' | 'user' | 'assistant' | 'data';
 
   /**
-For data messages.
-
-@deprecated Data messages will be removed.
-   */
-  data?: JSONValue;
-
-  /**
    * Additional message-specific information added on the server via StreamData
    */
   annotations?: JSONValue[] | undefined;
