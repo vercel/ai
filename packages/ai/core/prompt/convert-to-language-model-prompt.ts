@@ -17,7 +17,7 @@ import {
 } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
-import { isUrlSupported } from '@ai-sdk/provider-utils';
+import { isUrlSupported } from '../util/is-url-supported';
 
 export async function convertToLanguageModelPrompt({
   prompt,
