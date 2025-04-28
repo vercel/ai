@@ -62,13 +62,6 @@ Text content of the message. Use parts when possible.
   content: string;
 
   /**
-Reasoning for the message.
-
-@deprecated Use `parts` instead.
-   */
-  reasoning?: string;
-
-  /**
    * Additional attachments to be sent along with the message.
    */
   experimental_attachments?: Attachment[];

@@ -30,14 +30,34 @@ with pre-configured settings.
 import { openai as originalOpenAI } from '@ai-sdk/openai';
 import { customProvider } from 'ai';
 
-// custom provider with different model settings:
+// custom provider with different provider options:
 export const openai = customProvider({
   languageModels: {
-    // replacement model with custom settings:
-    'gpt-4o': originalOpenAI('gpt-4o', { structuredOutputs: true }),
-    // alias model with custom settings:
-    'gpt-4o-mini-structured': originalOpenAI('gpt-4o-mini', {
-      structuredOutputs: true,
+    // replacement model with custom provider options:
+    'gpt-4o': wrapLanguageModel({
+      model: originalOpenAI('gpt-4o'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
+    }),
+    // alias model with custom provider options:
+    'gpt-4o-mini-high-reasoning': wrapLanguageModel({
+      model: originalOpenAI('gpt-4o-mini'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
     }),
   },
   fallbackProvider: originalOpenAI,
@@ -76,8 +96,30 @@ export const myProvider = customProvider({
   languageModels: {
     'text-medium': anthropic('claude-3-5-sonnet-20240620'),
     'text-small': openai('gpt-4o-mini'),
-    'structure-medium': openai('gpt-4o', { structuredOutputs: true }),
-    'structure-fast': openai('gpt-4o-mini', { structuredOutputs: true }),
+    'reasoning-medium': wrapLanguageModel({
+      model: openai('gpt-4o'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
+    }),
+    'reasoning-fast': wrapLanguageModel({
+      model: originalOpenAI('gpt-4o-mini'),
+      middleware: defaultSettingsMiddleware({
+        settings: {
+          providerOptions: {
+            openai: {
+              reasoningEffort: 'high',
+            },
+          },
+        },
+      }),
+    }),
   },
   embeddingModels: {
     emdedding: openai.textEmbeddingModel('text-embedding-3-small'),

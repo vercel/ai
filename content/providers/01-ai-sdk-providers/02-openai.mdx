@@ -195,12 +195,10 @@ The following optional provider options are available for OpenAI chat models:
   `providerOptions` to set the `reasoningEffort` option, this
   model setting will be ignored.
 
-And the following optional settings:
-
 - **structuredOutputs** _boolean_
 
   Whether to use [structured outputs](#structured-outputs).
-  Defaults to `false` for normal models, and `true` for reasoning models.
+  Defaults to `true`.
 
   When enabled, tool calls and object generation will be strict and follow the provided schema.
 
@@ -261,9 +259,8 @@ console.log('Usage:', {
 
 #### Structured Outputs
 
-You can enable [OpenAI structured outputs](https://openai.com/index/introducing-structured-outputs-in-the-api/) by setting the `structuredOutputs` option to `true`.
-Structured outputs are a form of grammar-guided generation.
-The JSON schema is used as a grammar and the outputs will always conform to the schema.
+Structured outputs are enabled by default.
+You can disable them by setting the `structuredOutputs` option to `false`.
 
 ```ts highlight="7"
 import { openai } from '@ai-sdk/openai';
@@ -271,9 +268,12 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 const result = await generateObject({
-  model: openai('gpt-4o-2024-08-06', {
-    structuredOutputs: true,
-  }),
+  model: openai('gpt-4o-2024-08-06'),
+  providerOptions: {
+    openai: {
+      structuredOutputs: false,
+    },
+  },
   schemaName: 'recipe',
   schemaDescription: 'A recipe for lasagna.',
   schema: z.object({
@@ -568,6 +568,9 @@ The following provider options are available:
 
 - **strictSchemas** _boolean_
   Whether to use strict JSON schemas in tools and when generating JSON outputs. Defaults to `true`.
+
+- **parallelToolCalls** _boolean_
+  Whether to enable parallel function calling during tool use. Default to true.
 
 The OpenAI responses provider also returns provider-specific metadata:
 

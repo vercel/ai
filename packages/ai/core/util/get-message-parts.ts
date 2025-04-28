@@ -28,14 +28,6 @@ export function getMessageParts(
             toolInvocation,
           }))
         : []),
-      ...(message.reasoning
-        ? [
-            {
-              type: 'reasoning' as const,
-              reasoning: message.reasoning,
-            },
-          ]
-        : []),
       ...(message.content
         ? [{ type: 'text' as const, text: message.content }]
         : []),

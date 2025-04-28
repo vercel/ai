@@ -49,11 +49,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return {
-      'application/pdf': [/^https:\/\/.*$/],
-    };
-  }
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    'application/pdf': [/^https:\/\/.*$/],
+  };
 
   private async getArgs({
     prompt,

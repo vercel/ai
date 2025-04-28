@@ -91,7 +91,7 @@ export function createAnthropic(
       baseURL,
       headers: getHeaders,
       fetch: options.fetch,
-      getSupportedUrls: async () => ({
+      supportedUrls: () => ({
         'image/*': [/^https?:\/\/.*$/],
       }),
     });

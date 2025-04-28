@@ -231,7 +231,7 @@ describe('DeepInfraImageModel', () => {
 
       expect(model.provider).toBe('deepinfra');
       expect(model.modelId).toBe('stability-ai/sdxl');
-      expect(model.specificationVersion).toBe('v1');
+      expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(1);
     });
 

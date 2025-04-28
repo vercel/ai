@@ -755,7 +755,7 @@ describe('doGenerate', () => {
           'X-Common': 'config-value',
         }),
         generateId: () => 'test-id',
-        getSupportedUrls: async () => ({
+        supportedUrls: () => ({
           '*': [/^https?:\/\/.*$/],
         }),
       });

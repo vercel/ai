@@ -1461,13 +1461,13 @@ describe('streamObject', () => {
       `);
     });
 
-    it('should support models that use "this" context in getSupportedUrls', async () => {
-      let getSupportedUrlsCalled = false;
+    it('should support models that use "this" context in supportedUrls', async () => {
+      let supportedUrlsCalled = false;
       class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
         constructor() {
           super({
-            async getSupportedUrls() {
-              getSupportedUrlsCalled = true;
+            supportedUrls: () => {
+              supportedUrlsCalled = true;
               // Reference 'this' to verify context
               return this.modelId === 'mock-model-id'
                 ? ({ 'image/*': [/^https:\/\/.*$/] } as Record<
@@ -1508,7 +1508,7 @@ describe('streamObject', () => {
 
       const chunks = await convertAsyncIterableToArray(result.textStream);
       expect(chunks.join('')).toBe('{ "content": "Hello, world!" }');
-      expect(getSupportedUrlsCalled).toBe(true);
+      expect(supportedUrlsCalled).toBe(true);
     });
   });
 });

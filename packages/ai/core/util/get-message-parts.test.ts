@@ -44,22 +44,6 @@ describe('getMessageParts', () => {
     ]);
   });
 
-  it('should handle message with reasoning', () => {
-    expect(
-      getMessageParts({
-        role: 'assistant',
-        content: 'Test content',
-        reasoning: 'Test reasoning',
-      }),
-    ).toEqual([
-      {
-        type: 'reasoning',
-        reasoning: 'Test reasoning',
-      },
-      { type: 'text', text: 'Test content' },
-    ]);
-  });
-
   it('should handle message with content', () => {
     expect(
       getMessageParts({
@@ -74,7 +58,6 @@ describe('getMessageParts', () => {
       getMessageParts({
         role: 'assistant',
         content: 'Test content',
-        reasoning: 'Test reasoning',
         toolInvocations: [
           {
             state: 'call',
@@ -93,10 +76,6 @@ describe('getMessageParts', () => {
           toolName: 'test-tool',
           args: { input: 'test-input' },
         },
-      },
-      {
-        type: 'reasoning',
-        reasoning: 'Test reasoning',
       },
       { type: 'text', text: 'Test content' },
     ]);
