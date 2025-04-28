@@ -1,4 +1,4 @@
-import { JSONValue } from '@ai-sdk/provider';
+import { JSONValue as OriginalJSONValue } from '@ai-sdk/provider';
 import { z } from 'zod';
 
 export const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
@@ -11,3 +11,5 @@ export const jsonValueSchema: z.ZodType<JSONValue> = z.lazy(() =>
     z.array(jsonValueSchema),
   ]),
 );
+
+export type JSONValue = OriginalJSONValue;

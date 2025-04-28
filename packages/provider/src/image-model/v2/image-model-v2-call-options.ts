@@ -1,4 +1,4 @@
-import { JSONValue } from '../../json-value/json-value';
+import { SharedV2ProviderOptions } from '../../shared';
 
 export type ImageModelV2CallOptions = {
   /**
@@ -45,7 +45,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
  */
-  providerOptions: Record<string, Record<string, JSONValue>>;
+  providerOptions: SharedV2ProviderOptions;
 
   /**
 Abort signal for cancelling the operation.

@@ -42,7 +42,6 @@ exports[`appendResponseMessages > after assistant message > adds assistant text 
         "type": "text",
       },
     ],
-    "reasoning": undefined,
     "role": "assistant",
     "toolInvocations": [
       {
@@ -112,7 +111,6 @@ exports[`appendResponseMessages > after assistant message > adds assistant tool 
         "type": "tool-invocation",
       },
     ],
-    "reasoning": undefined,
     "role": "assistant",
     "toolInvocations": [
       {
@@ -259,7 +257,6 @@ exports[`appendResponseMessages > after assistant message > appends assistant me
         "type": "text",
       },
     ],
-    "reasoning": "reasoning partreasoning part 2",
     "role": "assistant",
     "toolInvocations": [
       {
@@ -342,7 +339,6 @@ exports[`appendResponseMessages > after user message > adds chain of assistant m
         "type": "text",
       },
     ],
-    "reasoning": undefined,
     "role": "assistant",
     "toolInvocations": [
       {
@@ -402,7 +398,6 @@ exports[`appendResponseMessages > after user message > appends assistant message
         "type": "file",
       },
     ],
-    "reasoning": undefined,
     "role": "assistant",
     "toolInvocations": [],
   },
@@ -458,7 +453,6 @@ exports[`appendResponseMessages > after user message > appends assistant message
         "type": "text",
       },
     ],
-    "reasoning": "reasoning partredacted partreasoning part 2",
     "role": "assistant",
     "toolInvocations": [],
   },
@@ -492,7 +486,6 @@ exports[`appendResponseMessages > after user message > appends assistant message
         "type": "text",
       },
     ],
-    "reasoning": undefined,
     "role": "assistant",
     "toolInvocations": [],
   },
@@ -538,7 +531,6 @@ exports[`appendResponseMessages > after user message > handles tool calls and ma
         "type": "tool-invocation",
       },
     ],
-    "reasoning": undefined,
     "role": "assistant",
     "toolInvocations": [
       {

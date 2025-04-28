@@ -13,7 +13,7 @@ async function main() {
       openai: {
         // https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries
         // reasoningSummary: 'auto', // 'detailed'
-        reasoningSummary: 'detailed',
+        reasoningSummary: 'auto',
       },
     },
   });

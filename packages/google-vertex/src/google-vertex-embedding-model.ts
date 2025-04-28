@@ -21,19 +21,13 @@ import { GoogleVertexConfig } from './google-vertex-config';
 export class GoogleVertexEmbeddingModel implements EmbeddingModelV2<string> {
   readonly specificationVersion = 'v2';
   readonly modelId: GoogleVertexEmbeddingModelId;
+  readonly maxEmbeddingsPerCall = 2048;
+  readonly supportsParallelCalls = true;
 
   private readonly config: GoogleVertexConfig;
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  get maxEmbeddingsPerCall(): number {
-    return 2048;
-  }
-
-  get supportsParallelCalls(): boolean {
-    return true;
   }
 
   constructor(

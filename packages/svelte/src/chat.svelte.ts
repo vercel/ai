@@ -258,7 +258,6 @@ export class Chat {
               role,
               content,
               experimental_attachments,
-              data,
               annotations,
               toolInvocations,
               parts,
@@ -268,7 +267,6 @@ export class Chat {
               ...(experimental_attachments !== undefined && {
                 experimental_attachments,
               }),
-              ...(data !== undefined && { data }),
               ...(annotations !== undefined && { annotations }),
               ...(toolInvocations !== undefined && { toolInvocations }),
               ...(parts !== undefined && { parts }),

@@ -43,11 +43,9 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     this.config = config;
   }
 
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return {
-      // No URLs are supported.
-    };
-  }
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    // No URLs are supported.
+  };
 
   private getArgs({
     prompt,

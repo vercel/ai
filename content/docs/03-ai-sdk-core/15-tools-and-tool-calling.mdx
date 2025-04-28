@@ -142,6 +142,46 @@ const result = await generateText({
 });
 ```
 
+### `experimental_prepareStep` callback
+
+<Note type="warning">
+  The `experimental_prepareStep` callback is experimental and may change in the
+  future. It is only available in the `generateText` function.
+</Note>
+
+The `experimental_prepareStep` callback is called before a step is started.
+
+It is called with the following parameters:
+
+- `model`: The model that was passed into `generateText`.
+- `maxSteps`: The maximum number of steps that was passed into `generateText`.
+- `stepNumber`: The number of the step that is being executed.
+- `steps`: The steps that have been executed so far.
+
+You can use it to provide different settings for a step.
+
+```tsx highlight="5-7"
+import { generateText } from 'ai';
+
+const result = await generateText({
+  // ...
+  experimental_prepareStep: async ({ model, stepNumber, maxSteps, steps }) => {
+    if (stepNumber === 0) {
+      return {
+        // use a different model for this step:
+        model: modelForThisParticularStep,
+        // force a tool choice for this step:
+        toolChoice: { type: 'tool', toolName: 'tool1' },
+        // limit the tools that are available for this step:
+        experimental_activeTools: ['tool1'],
+      };
+    }
+
+    // when nothing is returned, the default settings are used
+  },
+});
+```
+
 ## Response Messages
 
 Adding the generated assistant and tool messages to your conversation history is a common task,
@@ -446,7 +486,7 @@ const result = await generateText({
     const tool = tools[toolCall.toolName as keyof typeof tools];
 
     const { object: repairedArgs } = await generateObject({
-      model: openai('gpt-4o', { structuredOutputs: true }),
+      model: openai('gpt-4o'),
       schema: tool.parameters,
       prompt: [
         `The model tried to call the tool "${toolCall.toolName}"` +

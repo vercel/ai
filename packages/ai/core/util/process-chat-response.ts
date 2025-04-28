@@ -1,4 +1,4 @@
-import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
+import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import {
   calculateLanguageModelUsage,
@@ -7,7 +7,6 @@ import {
 import { parsePartialJson } from './parse-partial-json';
 import { processDataStream } from './process-data-stream';
 import type {
-  JSONValue,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
@@ -160,8 +159,6 @@ export async function processChatResponse({
         currentReasoningPart.reasoning += value.text;
         currentReasoningPart.providerMetadata = value.providerMetadata;
       }
-
-      message.reasoning = (message.reasoning ?? '') + value.text;
 
       execUpdate();
     },

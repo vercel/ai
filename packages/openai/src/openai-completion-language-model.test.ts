@@ -71,7 +71,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
     const { content } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -92,7 +91,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -103,7 +101,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     const { request } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -116,9 +113,16 @@ describe('doGenerate', () => {
           "max_tokens": undefined,
           "model": "gpt-3.5-turbo-instruct",
           "presence_penalty": undefined,
-          "prompt": "Hello",
+          "prompt": "user:
+      Hello
+
+      assistant:
+      ",
           "seed": undefined,
-          "stop": undefined,
+          "stop": [
+            "
+      user:",
+          ],
           "suffix": undefined,
           "temperature": undefined,
           "top_p": undefined,
@@ -136,7 +140,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -160,7 +163,6 @@ describe('doGenerate', () => {
     const { finishReason } = await provider
       .completion('gpt-3.5-turbo-instruct')
       .doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -176,7 +178,6 @@ describe('doGenerate', () => {
     const { finishReason } = await provider
       .completion('gpt-3.5-turbo-instruct')
       .doGenerate({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -191,7 +192,6 @@ describe('doGenerate', () => {
     });
 
     const { response } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -208,14 +208,23 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: '' });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: 'Hello',
-    });
+    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+        "stop": [
+          "
+      user:",
+        ],
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -231,7 +240,6 @@ describe('doGenerate', () => {
     });
 
     await provider.completion('gpt-3.5-turbo-instruct').doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -302,7 +310,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -357,7 +364,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -397,7 +403,6 @@ describe('doStream', () => {
       };
 
       const { stream } = await model.doStream({
-        inputFormat: 'prompt',
         prompt: TEST_PROMPT,
       });
 
@@ -429,7 +434,6 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     const { request } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -442,9 +446,16 @@ describe('doStream', () => {
           "max_tokens": undefined,
           "model": "gpt-3.5-turbo-instruct",
           "presence_penalty": undefined,
-          "prompt": "Hello",
+          "prompt": "user:
+      Hello
+
+      assistant:
+      ",
           "seed": undefined,
-          "stop": undefined,
+          "stop": [
+            "
+      user:",
+          ],
           "stream": true,
           "stream_options": {
             "include_usage": true,
@@ -464,7 +475,6 @@ describe('doStream', () => {
     });
 
     const { response } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -483,16 +493,27 @@ describe('doStream', () => {
     prepareStreamResponse({ content: [] });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      stream: true,
-      stream_options: { include_usage: true },
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: 'Hello',
-    });
+    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "prompt": "user:
+      Hello
+
+      assistant:
+      ",
+        "stop": [
+          "
+      user:",
+        ],
+        "stream": true,
+        "stream_options": {
+          "include_usage": true,
+        },
+      }
+    `);
   });
 
   it('should pass headers', async () => {
@@ -508,7 +529,6 @@ describe('doStream', () => {
     });
 
     await provider.completion('gpt-3.5-turbo-instruct').doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: {
         'Custom-Request-Header': 'request-header-value',

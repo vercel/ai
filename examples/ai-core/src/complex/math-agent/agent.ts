@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 async function main() {
   const { text: answer } = await generateText({
-    model: openai('gpt-4o-2024-08-06', { structuredOutputs: true }),
+    model: openai('gpt-4o-2024-08-06'),
     tools: {
       calculate: tool({
         description:

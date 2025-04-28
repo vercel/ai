@@ -1,5 +1,5 @@
-import { Validator, validatorSymbol } from '@ai-sdk/provider-utils';
-import { JSONSchema7 } from 'json-schema';
+import { Validator, validatorSymbol } from './validator';
+import { JSONSchema7 } from '@ai-sdk/provider';
 import { z } from 'zod';
 import { zodSchema } from './zod-schema';
 

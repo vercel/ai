@@ -12,14 +12,11 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { OpenAIChatLanguageModel } from './openai-chat-language-model';
-import { OpenAIChatModelId, OpenAIChatSettings } from './openai-chat-options';
+import { OpenAIChatModelId } from './openai-chat-options';
 import { OpenAICompletionLanguageModel } from './openai-completion-language-model';
 import { OpenAICompletionModelId } from './openai-completion-options';
 import { OpenAIEmbeddingModel } from './openai-embedding-model';
-import {
-  OpenAIEmbeddingModelId,
-  OpenAIEmbeddingSettings,
-} from './openai-embedding-options';
+import { OpenAIEmbeddingModelId } from './openai-embedding-options';
 import { OpenAIImageModel } from './openai-image-model';
 import {
   OpenAIImageModelId,
@@ -35,7 +32,7 @@ import { OpenAISpeechModelId } from './openai-speech-options';
 
 export interface OpenAIProvider extends ProviderV2 {
   (modelId: 'gpt-3.5-turbo-instruct'): OpenAICompletionLanguageModel;
-  (modelId: OpenAIChatModelId, settings?: OpenAIChatSettings): LanguageModelV2;
+  (modelId: OpenAIChatModelId): LanguageModelV2;
 
   /**
 Creates an OpenAI model for text generation.
@@ -43,18 +40,12 @@ Creates an OpenAI model for text generation.
   languageModel(
     modelId: 'gpt-3.5-turbo-instruct',
   ): OpenAICompletionLanguageModel;
-  languageModel(
-    modelId: OpenAIChatModelId,
-    settings?: OpenAIChatSettings,
-  ): LanguageModelV2;
+  languageModel(modelId: OpenAIChatModelId): LanguageModelV2;
 
   /**
 Creates an OpenAI chat model for text generation.
    */
-  chat(
-    modelId: OpenAIChatModelId,
-    settings?: OpenAIChatSettings,
-  ): LanguageModelV2;
+  chat(modelId: OpenAIChatModelId): LanguageModelV2;
 
   /**
 Creates an OpenAI responses API model for text generation.
@@ -69,28 +60,19 @@ Creates an OpenAI completion model for text generation.
   /**
 Creates a model for text embeddings.
    */
-  embedding(
-    modelId: OpenAIEmbeddingModelId,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
 
   /**
 Creates a model for text embeddings.
 
 @deprecated Use `textEmbeddingModel` instead.
    */
-  textEmbedding(
-    modelId: OpenAIEmbeddingModelId,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
 
   /**
 Creates a model for text embeddings.
    */
-  textEmbeddingModel(
-    modelId: OpenAIEmbeddingModelId,
-    settings?: OpenAIEmbeddingSettings,
-  ): EmbeddingModelV2<string>;
+  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV2<string>;
 
   /**
 Creates a model for image generation.
@@ -194,11 +176,8 @@ export function createOpenAI(
     ...options.headers,
   });
 
-  const createChatModel = (
-    modelId: OpenAIChatModelId,
-    settings: OpenAIChatSettings = {},
-  ) =>
-    new OpenAIChatLanguageModel(modelId, settings, {
+  const createChatModel = (modelId: OpenAIChatModelId) =>
+    new OpenAIChatLanguageModel(modelId, {
       provider: `${providerName}.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -215,11 +194,8 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (
-    modelId: OpenAIEmbeddingModelId,
-    settings: OpenAIEmbeddingSettings = {},
-  ) =>
-    new OpenAIEmbeddingModel(modelId, settings, {
+  const createEmbeddingModel = (modelId: OpenAIEmbeddingModelId) =>
+    new OpenAIEmbeddingModel(modelId, {
       provider: `${providerName}.embedding`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
@@ -255,7 +231,6 @@ export function createOpenAI(
 
   const createLanguageModel = (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
-    settings?: OpenAIChatSettings,
   ) => {
     if (new.target) {
       throw new Error(
@@ -267,7 +242,7 @@ export function createOpenAI(
       return createCompletionModel(modelId);
     }
 
-    return createChatModel(modelId, settings as OpenAIChatSettings);
+    return createChatModel(modelId);
   };
 
   const createResponsesModel = (modelId: OpenAIResponsesModelId) => {
@@ -281,9 +256,8 @@ export function createOpenAI(
 
   const provider = function (
     modelId: OpenAIChatModelId | OpenAICompletionModelId,
-    settings?: OpenAIChatSettings,
   ) {
-    return createLanguageModel(modelId, settings);
+    return createLanguageModel(modelId);
   };
 
   provider.languageModel = createLanguageModel;

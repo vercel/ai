@@ -165,7 +165,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -236,7 +235,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -353,7 +351,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -459,7 +456,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -507,7 +503,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -555,7 +550,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -603,7 +597,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -641,7 +634,6 @@ describe('doStream', () => {
     });
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -677,7 +669,6 @@ describe('doStream', () => {
     };
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -695,7 +686,6 @@ describe('doStream', () => {
     };
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         bedrock: {
@@ -748,7 +738,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -828,7 +817,6 @@ describe('doStream', () => {
     };
 
     const result = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -886,7 +874,6 @@ describe('doStream', () => {
     });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: optionsHeaders,
     });
@@ -915,7 +902,6 @@ describe('doStream', () => {
     });
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -943,7 +929,6 @@ describe('doStream', () => {
     };
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         bedrock: {
@@ -988,7 +973,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1042,7 +1026,6 @@ describe('doStream', () => {
     };
 
     await model.doStream({
-      inputFormat: 'prompt',
       prompt: [
         {
           role: 'system',
@@ -1104,7 +1087,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1178,7 +1160,6 @@ describe('doStream', () => {
     };
 
     const { stream } = await model.doStream({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1278,7 +1259,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1298,7 +1278,6 @@ describe('doGenerate', () => {
     });
 
     const { usage } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1312,7 +1291,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ stopReason: 'stop_sequence' });
 
     const { finishReason } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1323,7 +1301,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ stopReason: 'eos' });
 
     const { finishReason } = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1334,7 +1311,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1348,7 +1324,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       maxOutputTokens: 100,
       temperature: 0.5,
@@ -1368,7 +1343,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         bedrock: {
@@ -1394,7 +1368,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({ trace: mockTrace });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1425,7 +1398,6 @@ describe('doGenerate', () => {
     };
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1441,7 +1413,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       tools: [
         {
           type: 'function',
@@ -1512,7 +1483,6 @@ describe('doGenerate', () => {
     });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       headers: optionsHeaders,
     });
@@ -1542,7 +1512,6 @@ describe('doGenerate', () => {
     });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1558,7 +1527,6 @@ describe('doGenerate', () => {
     });
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
       providerOptions: {
         bedrock: {
@@ -1585,7 +1553,6 @@ describe('doGenerate', () => {
     });
 
     const response = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1607,7 +1574,6 @@ describe('doGenerate', () => {
     prepareJsonResponse({});
 
     await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: [
         {
           role: 'system',
@@ -1644,7 +1610,6 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1684,7 +1649,6 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1717,7 +1681,6 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 
@@ -1763,7 +1726,6 @@ describe('doGenerate', () => {
     });
 
     const result = await model.doGenerate({
-      inputFormat: 'prompt',
       prompt: TEST_PROMPT,
     });
 

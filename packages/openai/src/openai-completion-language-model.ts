@@ -58,14 +58,11 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return {
-      // no supported urls for completion models
-    };
-  }
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    // No URLs are supported for completion models.
+  };
 
   private async getArgs({
-    inputFormat,
     prompt,
     maxOutputTokens,
     temperature,
@@ -117,7 +114,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     }
 
     const { prompt: completionPrompt, stopSequences } =
-      convertToOpenAICompletionPrompt({ prompt, inputFormat });
+      convertToOpenAICompletionPrompt({ prompt });
 
     const stop = [...(stopSequences ?? []), ...(userStopSequences ?? [])];
 

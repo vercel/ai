@@ -1,5 +1,16 @@
 # @ai-sdk/mistral
 
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- 4617fab: chore(embedding-models): remove remaining settings
+- Updated dependencies [9bf7291]
+- Updated dependencies [4617fab]
+- Updated dependencies [e030615]
+  - @ai-sdk/provider@2.0.0-canary.11
+  - @ai-sdk/provider-utils@3.0.0-canary.12
+
 ## 2.0.0-canary.11
 
 ### Patch Changes

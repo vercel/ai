@@ -932,10 +932,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             tools,
           });
 
-          // after the 1st step, we need to switch to messages format:
-          const promptFormat =
-            responseMessages.length === 0 ? initialPrompt.type : 'messages';
-
           const stepInputMessages = [
             ...initialPrompt.messages,
             ...responseMessages,
@@ -943,11 +939,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           const promptMessages = await convertToLanguageModelPrompt({
             prompt: {
-              type: promptFormat,
               system: initialPrompt.system,
               messages: stepInputMessages,
             },
-            supportedUrls: await model.getSupportedUrls(),
+            supportedUrls: await model.supportedUrls,
           });
 
           const toolsAndToolChoice = {
@@ -969,9 +964,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     telemetry,
                   }),
                   ...baseTelemetryAttributes,
-                  'ai.prompt.format': {
-                    input: () => promptFormat,
-                  },
                   'ai.prompt.messages': {
                     input: () => JSON.stringify(promptMessages),
                   },
@@ -1012,7 +1004,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   result: await model.doStream({
                     ...callSettings,
                     ...toolsAndToolChoice,
-                    inputFormat: promptFormat,
                     responseFormat: output?.responseFormat,
                     prompt: promptMessages,
                     providerOptions,

@@ -53,7 +53,7 @@ export type OpenAICompatibleChatConfig = {
   /**
    * The supported URLs for the model.
    */
-  getSupportedUrls?: () => Promise<Record<string, RegExp[]>>;
+  supportedUrls?: () => LanguageModelV2['supportedUrls'];
 };
 
 export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
@@ -92,8 +92,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     return this.config.provider.split('.')[0].trim();
   }
 
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return this.config.getSupportedUrls?.() ?? {};
+  get supportedUrls() {
+    return this.config.supportedUrls?.() ?? {};
   }
 
   private async getArgs({

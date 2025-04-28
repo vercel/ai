@@ -16,7 +16,7 @@ sdk.start();
 
 async function main() {
   const result = streamObject({
-    model: openai('gpt-4o-mini', { structuredOutputs: true }),
+    model: openai('gpt-4o-mini'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

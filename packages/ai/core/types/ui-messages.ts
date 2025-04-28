@@ -1,4 +1,5 @@
 import {
+  JSONValue,
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
@@ -62,13 +63,6 @@ Text content of the message. Use parts when possible.
   content: string;
 
   /**
-Reasoning for the message.
-
-@deprecated Use `parts` instead.
-   */
-  reasoning?: string;
-
-  /**
    * Additional attachments to be sent along with the message.
    */
   experimental_attachments?: Attachment[];
@@ -77,13 +71,6 @@ Reasoning for the message.
 The 'data' role is deprecated.
    */
   role: 'system' | 'user' | 'assistant' | 'data';
-
-  /**
-For data messages.
-
-@deprecated Data messages will be removed.
-   */
-  data?: JSONValue;
 
   /**
    * Additional message-specific information added on the server via StreamData
@@ -473,15 +460,3 @@ or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
 };
-
-/**
-A JSON value can be a string, number, boolean, object, array, or null.
-JSON values can be serialized and deserialized by the JSON.stringify and JSON.parse methods.
- */
-export type JSONValue =
-  | null
-  | string
-  | number
-  | boolean
-  | { [value: string]: JSONValue }
-  | Array<JSONValue>;

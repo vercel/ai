@@ -4,10 +4,11 @@ import { notImplemented } from './not-implemented';
 export class MockLanguageModelV2 implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
 
+  private _supportedUrls: () => LanguageModelV2['supportedUrls'];
+
   readonly provider: LanguageModelV2['provider'];
   readonly modelId: LanguageModelV2['modelId'];
 
-  getSupportedUrls: LanguageModelV2['getSupportedUrls'];
   doGenerate: LanguageModelV2['doGenerate'];
   doStream: LanguageModelV2['doStream'];
 
@@ -17,15 +18,15 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
   constructor({
     provider = 'mock-provider',
     modelId = 'mock-model-id',
-    getSupportedUrls = {},
+    supportedUrls = {},
     doGenerate = notImplemented,
     doStream = notImplemented,
   }: {
     provider?: LanguageModelV2['provider'];
     modelId?: LanguageModelV2['modelId'];
-    getSupportedUrls?:
-      | LanguageModelV2['getSupportedUrls']
-      | Awaited<ReturnType<LanguageModelV2['getSupportedUrls']>>;
+    supportedUrls?:
+      | LanguageModelV2['supportedUrls']
+      | (() => LanguageModelV2['supportedUrls']);
     doGenerate?:
       | LanguageModelV2['doGenerate']
       | Awaited<ReturnType<LanguageModelV2['doGenerate']>>
@@ -59,9 +60,13 @@ export class MockLanguageModelV2 implements LanguageModelV2 {
         return doStream;
       }
     };
-    this.getSupportedUrls =
-      typeof getSupportedUrls === 'function'
-        ? getSupportedUrls
-        : async () => getSupportedUrls;
+    this._supportedUrls =
+      typeof supportedUrls === 'function'
+        ? supportedUrls
+        : async () => supportedUrls;
+  }
+
+  get supportedUrls() {
+    return this._supportedUrls();
   }
 }

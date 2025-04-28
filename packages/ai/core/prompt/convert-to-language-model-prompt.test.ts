@@ -9,7 +9,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download images for user image parts with URLs when model does not support image URLs', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -49,7 +48,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download images for user image parts with string URLs when model does not support image URLs', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -91,7 +89,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should pass through URLs when the model supports a particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -127,7 +124,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download the URL as an asset when the model does not support a URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -172,7 +168,6 @@ describe('convertToLanguageModelPrompt', () => {
         const base64Data = 'SGVsbG8sIFdvcmxkIQ=='; // "Hello, World!" in base64
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -209,7 +204,6 @@ describe('convertToLanguageModelPrompt', () => {
         const uint8Data = new Uint8Array([72, 101, 108, 108, 111]); // "Hello" in ASCII
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -245,7 +239,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with URL objects when model does not support downloads', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -286,7 +279,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with string URLs when model does not support downloads', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -327,7 +319,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should download files for user file parts with string URLs when model does not support the particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -373,7 +364,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('does not download URLs for user file parts for URL objects when model does support the URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -412,7 +402,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('it should default to downloading the URL when the model does not provider a supportsUrl function', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -453,7 +442,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should handle file parts with filename', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -491,7 +479,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should preserve filename when downloading file from URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',
@@ -536,7 +523,6 @@ describe('convertToLanguageModelPrompt', () => {
       it('should add provider options to messages', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {
-            type: 'messages',
             messages: [
               {
                 role: 'user',

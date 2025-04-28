@@ -63,8 +63,8 @@ const doWrap = ({
     modelId: modelId ?? model.modelId,
 
     // TODO middleware should be able to modify the supported urls
-    async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-      return model.getSupportedUrls();
+    get supportedUrls(): LanguageModelV2['supportedUrls'] {
+      return model.supportedUrls;
     },
 
     async doGenerate(

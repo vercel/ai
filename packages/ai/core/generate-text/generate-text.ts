@@ -129,6 +129,7 @@ export async function generateText<
   experimental_telemetry: telemetry,
   providerOptions,
   experimental_activeTools: activeTools,
+  experimental_prepareStep: prepareStep,
   experimental_repairToolCall: repairToolCall,
   _internal: {
     generateId = originalGenerateId,
@@ -198,6 +199,32 @@ Optional specification for parsing structured outputs from the LLM response.
     experimental_output?: Output<OUTPUT, OUTPUT_PARTIAL>;
 
     /**
+Optional function that you can use to provide different settings for a step.
+
+@param options - The options for the step.
+@param options.steps - The steps that have been executed so far.
+@param options.stepNumber - The number of the step that is being executed.
+@param options.maxSteps - The maximum number of steps.
+@param options.model - The model that is being used.
+
+@returns An object that contains the settings for the step.
+If you return undefined (or for undefined settings), the settings from the outer level will be used.
+    */
+    experimental_prepareStep?: (options: {
+      steps: Array<StepResult<TOOLS>>;
+      stepNumber: number;
+      maxSteps: number;
+      model: LanguageModel;
+    }) => PromiseLike<
+      | {
+          model?: LanguageModel;
+          toolChoice?: ToolChoice<TOOLS>;
+          experimental_activeTools?: Array<keyof TOOLS>;
+        }
+      | undefined
+    >;
+
+    /**
 A function that attempts to repair a tool call that failed to parse.
      */
     experimental_repairToolCall?: ToolCallRepairFunction<TOOLS>;
@@ -251,6 +278,9 @@ A function that attempts to repair a tool call that failed to parse.
           telemetry,
         }),
         ...baseTelemetryAttributes,
+        // model:
+        'ai.model.provider': model.provider,
+        'ai.model.id': model.modelId,
         // specific settings that only make sense on the outer level:
         'ai.prompt': {
           input: () => JSON.stringify({ system, prompt, messages }),
@@ -260,9 +290,7 @@ A function that attempts to repair a tool call that failed to parse.
     }),
     tracer,
     fn: async span => {
-      const toolsAndToolChoice = {
-        ...prepareToolsAndToolChoice({ tools, toolChoice, activeTools }),
-      };
+      const callSettings = prepareCallSettings(settings);
 
       let currentModelResponse: Awaited<
         ReturnType<LanguageModel['doGenerate']>
@@ -284,22 +312,34 @@ A function that attempts to repair a tool call that failed to parse.
       let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';
 
       do {
-        // after the 1st step, we need to switch to messages format:
-        const promptFormat = stepCount === 0 ? initialPrompt.type : 'messages';
-
         const stepInputMessages = [
           ...initialPrompt.messages,
           ...responseMessages,
         ];
 
+        const prepareStepResult = await prepareStep?.({
+          model,
+          steps,
+          maxSteps,
+          stepNumber: stepCount,
+        });
+
         const promptMessages = await convertToLanguageModelPrompt({
           prompt: {
-            type: promptFormat,
             system: initialPrompt.system,
             messages: stepInputMessages,
           },
-          supportedUrls: await model.getSupportedUrls(),
+          supportedUrls: await model.supportedUrls,
         });
+
+        const stepModel = prepareStepResult?.model ?? model;
+        const { toolChoice: stepToolChoice, tools: stepTools } =
+          prepareToolsAndToolChoice({
+            tools,
+            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            activeTools:
+              prepareStepResult?.experimental_activeTools ?? activeTools,
+          });
 
         currentModelResponse = await retry(() =>
           recordSpan({
@@ -312,25 +352,27 @@ A function that attempts to repair a tool call that failed to parse.
                   telemetry,
                 }),
                 ...baseTelemetryAttributes,
-                'ai.prompt.format': { input: () => promptFormat },
+                // model:
+                'ai.model.provider': stepModel.provider,
+                'ai.model.id': stepModel.modelId,
+                // prompt:
                 'ai.prompt.messages': {
                   input: () => JSON.stringify(promptMessages),
                 },
                 'ai.prompt.tools': {
                   // convert the language model level tools:
-                  input: () =>
-                    toolsAndToolChoice.tools?.map(tool => JSON.stringify(tool)),
+                  input: () => stepTools?.map(tool => JSON.stringify(tool)),
                 },
                 'ai.prompt.toolChoice': {
                   input: () =>
-                    toolsAndToolChoice.toolChoice != null
-                      ? JSON.stringify(toolsAndToolChoice.toolChoice)
+                    stepToolChoice != null
+                      ? JSON.stringify(stepToolChoice)
                       : undefined,
                 },
 
                 // standardized gen-ai llm span attributes:
-                'gen_ai.system': model.provider,
-                'gen_ai.request.model': model.modelId,
+                'gen_ai.system': stepModel.provider,
+                'gen_ai.request.model': stepModel.modelId,
                 'gen_ai.request.frequency_penalty': settings.frequencyPenalty,
                 'gen_ai.request.max_tokens': settings.maxOutputTokens,
                 'gen_ai.request.presence_penalty': settings.presencePenalty,
@@ -342,10 +384,10 @@ A function that attempts to repair a tool call that failed to parse.
             }),
             tracer,
             fn: async span => {
-              const result = await model.doGenerate({
+              const result = await stepModel.doGenerate({
                 ...callSettings,
-                ...toolsAndToolChoice,
-                inputFormat: promptFormat,
+                tools: stepTools,
+                toolChoice: stepToolChoice,
                 responseFormat: output?.responseFormat,
                 prompt: promptMessages,
                 providerOptions,
@@ -357,7 +399,7 @@ A function that attempts to repair a tool call that failed to parse.
               const responseData = {
                 id: result.response?.id ?? generateId(),
                 timestamp: result.response?.timestamp ?? currentDate(),
-                modelId: result.response?.modelId ?? model.modelId,
+                modelId: result.response?.modelId ?? stepModel.modelId,
                 headers: result.response?.headers,
                 body: result.response?.body,
               };

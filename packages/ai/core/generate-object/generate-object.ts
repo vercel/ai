@@ -57,7 +57,7 @@ This function does not stream the output. If you want to stream the output, use 
 A result object that contains the generated object, the finish reason, the token usage, and additional information.
  */
 export async function generateObject<
-  TYPE extends SCHEMA extends z.Schema
+  RESULT extends SCHEMA extends z.Schema
     ? Output extends 'array'
       ? Array<z.infer<SCHEMA>>
       : z.infer<SCHEMA>
@@ -67,9 +67,11 @@ export async function generateObject<
         : T
       : never,
   SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
-  Output extends 'object' | 'array' | 'enum' | 'no-schema' = TYPE extends string
-    ? 'enum'
-    : 'object',
+  Output extends
+    | 'object'
+    | 'array'
+    | 'enum'
+    | 'no-schema' = RESULT extends string ? 'enum' : 'object',
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
@@ -78,7 +80,7 @@ export async function generateObject<
           /**
 The enum values that the model should use.
         */
-          enum: Array<TYPE>;
+          enum: Array<RESULT>;
           mode?: 'json';
           output: 'enum';
         }
@@ -152,59 +154,33 @@ Default and recommended: 'auto' (best mode for the model).
         currentDate?: () => Date;
       };
     },
-): Promise<GenerateObjectResult<TYPE>>;
+): Promise<GenerateObjectResult<RESULT>> {
+  const {
+    model,
+    output = 'object',
+    system,
+    prompt,
+    messages,
+    maxRetries: maxRetriesArg,
+    abortSignal,
+    headers,
+    experimental_repairText: repairText,
+    experimental_telemetry: telemetry,
+    providerOptions,
+    _internal: {
+      generateId = originalGenerateId,
+      currentDate = () => new Date(),
+    } = {},
+    ...settings
+  } = options;
 
-export async function generateObject<SCHEMA, RESULT>({
-  model,
-  enum: enumValues, // rename bc enum is reserved by typescript
-  schema: inputSchema,
-  schemaName,
-  schemaDescription,
-  output = 'object',
-  system,
-  prompt,
-  messages,
-  maxRetries: maxRetriesArg,
-  abortSignal,
-  headers,
-  experimental_repairText: repairText,
-  experimental_telemetry: telemetry,
-  providerOptions,
-  _internal: {
-    generateId = originalGenerateId,
-    currentDate = () => new Date(),
-  } = {},
-  ...settings
-}: Omit<CallSettings, 'stopSequences'> &
-  Prompt & {
-    /**
-     * The expected structure of the output.
-     *
-     * - 'object': Generate a single object that conforms to the schema.
-     * - 'array': Generate an array of objects that conform to the schema.
-     * - 'no-schema': Generate any JSON object. No schema is specified.
-     *
-     * Default is 'object' if not specified.
-     */
-    output?: 'object' | 'array' | 'enum' | 'no-schema';
+  const enumValues = 'enum' in options ? options.enum : undefined;
+  const {
+    schema: inputSchema,
+    schemaDescription,
+    schemaName,
+  } = 'schema' in options ? options : {};
 
-    model: LanguageModel;
-    enum?: Array<SCHEMA>;
-    schema?: z.Schema<SCHEMA> | Schema<SCHEMA>;
-    schemaName?: string;
-    schemaDescription?: string;
-    experimental_repairText?: RepairTextFunction;
-    experimental_telemetry?: TelemetrySettings;
-    providerOptions?: ProviderOptions;
-
-    /**
-     * Internal. For test use only. May change without notice.
-     */
-    _internal?: {
-      generateId?: () => string;
-      currentDate?: () => Date;
-    };
-  }): Promise<GenerateObjectResult<RESULT>> {
   validateObjectGenerationInput({
     output,
     schema: inputSchema,
@@ -272,7 +248,7 @@ export async function generateObject<SCHEMA, RESULT>({
 
       const promptMessages = await convertToLanguageModelPrompt({
         prompt: standardizedPrompt,
-        supportedUrls: await model.getSupportedUrls(),
+        supportedUrls: await model.supportedUrls,
       });
 
       const generateResult = await retry(() =>
@@ -286,9 +262,6 @@ export async function generateObject<SCHEMA, RESULT>({
                 telemetry,
               }),
               ...baseTelemetryAttributes,
-              'ai.prompt.format': {
-                input: () => standardizedPrompt.type,
-              },
               'ai.prompt.messages': {
                 input: () => JSON.stringify(promptMessages),
               },
@@ -314,7 +287,6 @@ export async function generateObject<SCHEMA, RESULT>({
                 description: schemaDescription,
               },
               ...prepareCallSettings(settings),
-              inputFormat: standardizedPrompt.type,
               prompt: promptMessages,
               providerOptions,
               abortSignal,
