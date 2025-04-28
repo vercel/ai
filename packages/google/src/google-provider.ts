@@ -101,7 +101,7 @@ export function createGoogleGenerativeAI(
       baseURL,
       headers: getHeaders,
       generateId: options.generateId ?? generateId,
-      getSupportedUrls: async () => ({
+      supportedUrls: () => ({
         '*': [
           // HTTP URLs:
           /^https?:\/\/.*$/,

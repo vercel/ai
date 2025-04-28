@@ -942,7 +942,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               system: initialPrompt.system,
               messages: stepInputMessages,
             },
-            supportedUrls: await model.getSupportedUrls(),
+            supportedUrls: await model.supportedUrls,
           });
 
           const toolsAndToolChoice = {

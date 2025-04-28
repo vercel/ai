@@ -183,11 +183,9 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     };
   }
 
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return {
-      // no supported urls for bedrock
-    };
-  }
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    // no supported urls for bedrock
+  };
 
   async doGenerate(
     options: Parameters<LanguageModelV2['doGenerate']>[0],

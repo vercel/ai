@@ -158,23 +158,23 @@ describe('wrapLanguageModel', () => {
     });
   });
 
-  it('should pass through getSupportedUrls', async () => {
+  it('should pass through supportedUrls', async () => {
     const supportedUrls = {
       'image/*': [/^https:\/\/.*$/],
     };
 
     const wrappedModel = wrapLanguageModel({
-      model: new MockLanguageModelV2({ getSupportedUrls: supportedUrls }),
+      model: new MockLanguageModelV2({ supportedUrls }),
       middleware: {
         middlewareVersion: 'v2',
       },
     });
 
-    expect(await wrappedModel.getSupportedUrls()).toStrictEqual(supportedUrls);
+    expect(await wrappedModel.supportedUrls).toStrictEqual(supportedUrls);
   });
 
-  it('should support models that use "this" context in getSupportedUrls', async () => {
-    let getSupportedUrlsCalled = false;
+  it('should support models that use "this" context in supportedUrls', async () => {
+    let supportedUrlsCalled = false;
 
     class MockLanguageModelWithImageSupport implements LanguageModelV2 {
       readonly specificationVersion = 'v2';
@@ -188,8 +188,8 @@ describe('wrapLanguageModel', () => {
         'image/*': [/^https:\/\/.*$/],
       };
 
-      async getSupportedUrls() {
-        getSupportedUrlsCalled = true;
+      get supportedUrls() {
+        supportedUrlsCalled = true;
         // Reference 'this' to verify context
         return this.value;
       }
@@ -202,8 +202,8 @@ describe('wrapLanguageModel', () => {
       middleware: { middlewareVersion: 'v2' },
     });
 
-    expect(await wrappedModel.getSupportedUrls()).toStrictEqual(model.value);
-    expect(getSupportedUrlsCalled).toBe(true);
+    expect(await wrappedModel.supportedUrls).toStrictEqual(model.value);
+    expect(supportedUrlsCalled).toBe(true);
   });
 
   describe('wrapLanguageModel with multiple middlewares', () => {

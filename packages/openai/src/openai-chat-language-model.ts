@@ -47,6 +47,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
   readonly modelId: OpenAIChatModelId;
 
+  readonly supportedUrls = {
+    'image/*': [/^https?:\/\/.*$/],
+  };
+
   private readonly config: OpenAIChatConfig;
 
   constructor(modelId: OpenAIChatModelId, config: OpenAIChatConfig) {
@@ -56,12 +60,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return {
-      'image/*': [/^https?:\/\/.*$/],
-    };
   }
 
   private async getArgs({

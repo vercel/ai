@@ -404,7 +404,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           ...prepareCallSettings(settings),
           prompt: await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
-            supportedUrls: await model.getSupportedUrls(),
+            supportedUrls: await model.supportedUrls,
           }),
           providerOptions,
           abortSignal,
