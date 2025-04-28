@@ -342,6 +342,9 @@ To resume a chat stream, you can use the `experimental_resume` function returned
 
 ```filename="app/components/chat.tsx"
 'use client'
+import { useChat } from "@ai-sdk/react";
+import { Input } from "@/components/input";
+import { Messages } from "@/components/messages";
 
 export function Chat() {
   const { experimental_resume } = useChat({id});
@@ -383,6 +386,19 @@ Add a `GET` method to `/api/chat` that:
 5. Falls back to an empty stream if it’s already closed
 
 ```filename="app/api/chat/route.ts"
+import {
+  loadStreams,
+} from '@/util/chat-store';
+import {
+  createDataStream,
+} from 'ai';
+import { after } from 'next/server';
+import { createResumableStreamContext } from 'resumable-stream';
+
+const streamContext = createResumableStreamContext({
+  waitUntil: after,
+});
+
 export async function GET() {
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get('chatId');
@@ -425,6 +441,16 @@ When you create a brand-new chat completion, you must:
 4. Hand that new stream to `streamContext.resumableStream()`
 
 ```
+import {
+  appendResponseMessages,
+  createDataStream,
+  generateId,
+  streamText,
+} from 'ai';
+import {
+  appendStreamId,
+  saveChat,
+} from '@/util/chat-store';
 import { createResumableStreamContext } from 'resumable-stream';
 
 const streamContext = createResumableStreamContext({

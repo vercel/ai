@@ -1,7 +1,6 @@
 import {
   appendMessageToChat,
   appendStreamId,
-  createChat,
   loadStreams,
   saveChat,
 } from '@/util/chat-store';
