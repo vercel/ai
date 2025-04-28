@@ -42,7 +42,7 @@ type GoogleGenerativeAIConfig = {
   /**
    * The supported URLs for the model.
    */
-  getSupportedUrls?: LanguageModelV2['getSupportedUrls'];
+  supportedUrls?: () => LanguageModelV2['supportedUrls'];
 };
 
 export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
@@ -64,8 +64,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return this.config.getSupportedUrls?.() ?? {};
+  get supportedUrls() {
+    return this.config.supportedUrls?.() ?? {};
   }
 
   private async getArgs({

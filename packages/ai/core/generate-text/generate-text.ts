@@ -329,7 +329,7 @@ A function that attempts to repair a tool call that failed to parse.
             system: initialPrompt.system,
             messages: stepInputMessages,
           },
-          supportedUrls: await model.getSupportedUrls(),
+          supportedUrls: await model.supportedUrls,
         });
 
         const stepModel = prepareStepResult?.model ?? model;

@@ -35,11 +35,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     this.config = config;
   }
 
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return {
-      'image/*': [/^https?:\/\/.*$/],
-    };
-  }
+  readonly supportedUrls: Record<string, RegExp[]> = {
+    'image/*': [/^https?:\/\/.*$/],
+  };
 
   get provider(): string {
     return this.config.provider;

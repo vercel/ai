@@ -121,7 +121,7 @@ export function createVertex(
     return new GoogleGenerativeAILanguageModel(modelId, {
       ...createConfig('chat'),
       generateId: options.generateId ?? generateId,
-      getSupportedUrls: async () => ({
+      supportedUrls: () => ({
         '*': [
           // HTTP URLs:
           /^https?:\/\/.*$/,

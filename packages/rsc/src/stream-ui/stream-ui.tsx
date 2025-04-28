@@ -272,7 +272,7 @@ functionality that can be fully encapsulated in the provider.
       }),
       prompt: await convertToLanguageModelPrompt({
         prompt: validatedPrompt,
-        supportedUrls: await model.getSupportedUrls(),
+        supportedUrls: await model.supportedUrls,
       }),
       providerOptions,
       abortSignal,

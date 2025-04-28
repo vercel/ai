@@ -32,17 +32,15 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
   readonly modelId: CohereChatModelId;
 
+  readonly supportedUrls = {
+    // No URLs are supported.
+  };
+
   private readonly config: CohereChatConfig;
 
   constructor(modelId: CohereChatModelId, config: CohereChatConfig) {
     this.modelId = modelId;
     this.config = config;
-  }
-
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return {
-      // No URLs are supported.
-    };
   }
 
   get provider(): string {
