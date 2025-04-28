@@ -338,7 +338,7 @@ The following are the pre-requisities for your chat application to support resum
 - Creating a [Redis](https://vercel.com/marketplace/redis) instance to store the stream state.
 - Creating a table that tracks the stream IDs associated with a chat.
 
-To resume a chat stream, you can use the `experimental_resume` function returned by the `useChat` hook. You will typically call this function during the initial mount of the hook.
+To resume a chat stream, you will use the `experimental_resume` function returned by the `useChat` hook. You will call this function during the initial mount of the hook inside the main chat component.
 
 ```filename="app/components/chat.tsx"
 'use client'
