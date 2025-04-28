@@ -69,6 +69,18 @@ export function register() {
 
 You can learn more how to [setup OpenTelemetry instrumentation within your Next.js app here](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation).
 
+If you are using Next.js version 14, you need to add the following configuration to your `next.config.js`:
+
+```js
+module.exports = {
+  experimental: {
+    instrumentationHook: true,
+  },
+};
+```
+
+For more information, see the [Next.js documentation on instrumentationHook](https://nextjs.org/docs/14/pages/api-reference/next-config-js/instrumentationHook).
+
 Afterwards, add the `experimental_telemetry` argument to your AI SDK calls that you want to trace. For convenience, we've included the `AISDKExporter.getSettings()` method which appends additional metadata for LangSmith.
 
 ```ts highlight="8"
