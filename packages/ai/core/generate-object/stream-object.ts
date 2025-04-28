@@ -117,11 +117,19 @@ export function streamObject<
         : T
       : never,
   SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
-  Output extends 'object' | 'array' | 'no-schema' = 'object',
+  Output extends 'object' | 'array'  | 'enum'| 'no-schema' = RESULT extends string ? 'enum' : 'object',
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
-    (Output extends 'no-schema'
+    (Output extends 'enum'
+      ? {
+          /**
+The enum values that the model should use.
+        */
+          enum: Array<RESULT>;
+          mode?: 'json';
+          output: 'enum';
+        } :Output extends 'no-schema'
       ? {}
       : {
           /**
@@ -229,6 +237,8 @@ Callback that is called when the LLM response and the final object validation ar
     ...settings
   } = options;
 
+  const enumValues = 'enum' in options && options.enum ? options.enum : undefined;
+
   const {
     schema: inputSchema,
     schemaDescription,
@@ -240,9 +250,10 @@ Callback that is called when the LLM response and the final object validation ar
     schema: inputSchema,
     schemaName,
     schemaDescription,
+    enumValues,
   });
 
-  const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
+  const outputStrategy = getOutputStrategy({ output, schema: inputSchema, enumValues });
 
   return new DefaultStreamObjectResult({
     model,
