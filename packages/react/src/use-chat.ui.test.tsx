@@ -1922,6 +1922,14 @@ describe('resume ongoing stream and return assistant message', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('status')).toHaveTextContent('ready');
+
+      expect(server.calls.length).toBeGreaterThan(0);
+      const { calls } = server;
+      const [mostRecentCall] = calls;
+
+      const { requestMethod, requestUrl } = mostRecentCall;
+      expect(requestMethod).toBe('GET');
+      expect(requestUrl).toBe('http://localhost:3000/api/chat?chatId=123');
     });
   });
 });
