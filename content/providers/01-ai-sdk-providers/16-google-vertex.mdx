@@ -620,7 +620,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-001'),
+  model: vertex.image('imagen-3.0-generate-002'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -634,7 +634,7 @@ import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-001'),
+  model: vertex.image('imagen-3.0-generate-002'),
   providerOptions: {
     vertex: {
       negativePrompt: 'pixelated, blurry, low-quality',
@@ -670,7 +670,7 @@ The following provider options are available:
 
 | Model                          | Aspect Ratios             |
 | ------------------------------ | ------------------------- |
-| `imagen-3.0-generate-001`      | 1:1, 3:4, 4:3, 9:16, 16:9 |
+| `imagen-3.0-generate-002`      | 1:1, 3:4, 4:3, 9:16, 16:9 |
 | `imagen-3.0-fast-generate-001` | 1:1, 3:4, 4:3, 9:16, 16:9 |
 
 ## Google Vertex Anthropic Provider Usage
