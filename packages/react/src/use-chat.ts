@@ -268,7 +268,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
                 role,
                 content,
                 experimental_attachments,
-                data,
                 annotations,
                 toolInvocations,
                 parts,
@@ -278,7 +277,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
                 ...(experimental_attachments !== undefined && {
                   experimental_attachments,
                 }),
-                ...(data !== undefined && { data }),
                 ...(annotations !== undefined && { annotations }),
                 ...(toolInvocations !== undefined && { toolInvocations }),
                 ...(parts !== undefined && { parts }),
