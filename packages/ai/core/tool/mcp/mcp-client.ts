@@ -167,7 +167,7 @@ class MCPClient {
     this.onClose();
   }
 
-  protected assertCapability(method: string): void {
+  private assertCapability(method: string): void {
     switch (method) {
       case 'initialize':
         break;
