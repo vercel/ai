@@ -549,7 +549,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
       mutate(
         [
           ...currentMessages.slice(0, currentMessages.length - 1),
-          { ...currentMessages[currentMessages.length - 1] },
+          {
+            ...currentMessages[currentMessages.length - 1],
+            // @ts-ignore
+            // update the revisionId to trigger a re-render
+            revisionId: generateId(),
+          },
         ],
         false,
       );
@@ -565,7 +570,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         triggerRequest({ messages: currentMessages });
       }
     },
-    [mutate, status, triggerRequest],
+    [mutate, status, triggerRequest, generateId],
   );
 
   return {

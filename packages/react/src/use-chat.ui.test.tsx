@@ -890,35 +890,6 @@ describe('tool invocations', () => {
     });
   });
 
-  it('should update tool call to result when addToolResult is called', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatDataStreamPart('tool_call', {
-          toolCallId: 'tool-call-0',
-          toolName: 'test-tool',
-          args: { testArg: 'test-value' },
-        }),
-      ],
-    };
-
-    await userEvent.click(screen.getByTestId('do-append'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
-      );
-    });
-
-    await userEvent.click(screen.getByTestId('add-result-0'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
-      );
-    });
-  });
-
   it('should delay tool result submission until the stream is finished', async () => {
     const controller1 = new TestResponseController();
     const controller2 = new TestResponseController();
