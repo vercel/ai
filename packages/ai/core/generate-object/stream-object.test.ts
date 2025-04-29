@@ -1231,7 +1231,7 @@ describe('streamObject', () => {
       ).toMatchInlineSnapshot(`[]`);
     });
 
-    it('should not stream ambiguous values', async () => {
+    it('should handle ambiguous values', async () => {
       const mockModel = new MockLanguageModelV2({
         doStream: {
           stream: convertArrayToReadableStream([
@@ -1257,9 +1257,47 @@ describe('streamObject', () => {
         prompt: 'prompt',
       });
 
-      expect(
-        await convertAsyncIterableToArray(result.partialObjectStream),
-      ).toMatchInlineSnapshot(`[]`);
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
+        [
+          "foo",
+          "foobar",
+        ]
+      `);
+    });
+
+    it('should handle non-ambiguous values', async () => {
+      const mockModel = new MockLanguageModelV2({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: '{ ' },
+            { type: 'text', text: '"result": ' },
+            { type: 'text', text: `"foo` },
+            { type: 'text', text: `bar` },
+            { type: 'text', text: `"` },
+            { type: 'text', text: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { inputTokens: 3, outputTokens: 10 },
+            },
+          ]),
+        },
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        output: 'enum',
+        enum: ['foobar', 'barfoo'],
+        prompt: 'prompt',
+      });
+
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
+        [
+          "foobar",
+        ]
+      `);
     });
   });
 

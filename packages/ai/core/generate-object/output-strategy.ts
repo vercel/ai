@@ -362,20 +362,11 @@ const enumOutputStrategy = <ENUM extends string>(
         };
       }
 
-      if (possibleEnumValues.length > 1) {
-        return {
-          success: false,
-          error: new TypeValidationError({
-            value,
-            cause: `ambiguous enum value: ${result}`,
-          }),
-        };
-      }
-
       return {
         success: true,
         value: {
-          partial: possibleEnumValues[0],
+          partial:
+            possibleEnumValues.length > 1 ? result : possibleEnumValues[0],
           textDelta,
         },
       };
