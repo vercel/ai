@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 1.2.10
+
+### Patch Changes
+
+- 77b2097: fix(append): support Message.experimental_attachments alongside ChatRequestOptions
+- Updated dependencies [62181ef]
+  - @ai-sdk/ui-utils@1.2.9
+
 ## 1.2.9
 
 ### Patch Changes

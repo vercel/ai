@@ -141,7 +141,7 @@ importers:
         specifier: 0.2.13
         version: link:../../packages/togetherai
       '@ai-sdk/valibot':
-        specifier: 0.1.22
+        specifier: 0.1.23
         version: link:../../packages/valibot
       '@ai-sdk/xai':
         specifier: 1.2.15
@@ -159,7 +159,7 @@ importers:
         specifier: 1.28.0
         version: 1.28.0(@opentelemetry/api@1.9.0)
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -202,7 +202,7 @@ importers:
         specifier: 1.3.20
         version: link:../../packages/openai
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -230,7 +230,7 @@ importers:
         specifier: 1.3.20
         version: link:../../packages/openai
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -258,7 +258,7 @@ importers:
         specifier: 1.13.7
         version: 1.13.7(hono@4.6.9)
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -286,7 +286,7 @@ importers:
         specifier: 1.10.2
         version: 1.10.2
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -326,7 +326,7 @@ importers:
         specifier: ^10.4.9
         version: 10.4.9(@nestjs/common@10.4.15(reflect-metadata@0.2.2)(rxjs@7.8.1))(@nestjs/core@10.4.2)
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       reflect-metadata:
         specifier: ^0.2.0
@@ -402,13 +402,13 @@ importers:
   examples/next-fastapi:
     dependencies:
       '@ai-sdk/react':
-        specifier: 1.2.9
+        specifier: 1.2.10
         version: link:../../packages/react
       '@ai-sdk/ui-utils':
-        specifier: 1.2.8
+        specifier: 1.2.9
         version: link:../../packages/ui-utils
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -460,7 +460,7 @@ importers:
         specifier: 2.2.18
         version: link:../../packages/google-vertex
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       geist:
         specifier: ^1.3.1
@@ -500,7 +500,7 @@ importers:
   examples/next-langchain:
     dependencies:
       '@ai-sdk/react':
-        specifier: 1.2.9
+        specifier: 1.2.10
         version: link:../../packages/react
       '@langchain/core':
         specifier: 0.1.63
@@ -509,7 +509,7 @@ importers:
         specifier: 0.0.28
         version: 0.0.28
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       langchain:
         specifier: 0.1.36
@@ -576,10 +576,10 @@ importers:
         specifier: 1.1.8
         version: link:../../packages/perplexity
       '@ai-sdk/react':
-        specifier: 1.2.9
+        specifier: 1.2.10
         version: link:../../packages/react
       '@ai-sdk/ui-utils':
-        specifier: 1.2.8
+        specifier: 1.2.9
         version: link:../../packages/ui-utils
       '@modelcontextprotocol/sdk':
         specifier: 1.10.2
@@ -588,7 +588,7 @@ importers:
         specifier: ^0.26.0
         version: 0.26.0
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -643,13 +643,13 @@ importers:
         specifier: 1.3.20
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.2.9
+        specifier: 1.2.10
         version: link:../../packages/react
       '@vercel/functions':
         specifier: latest
         version: 2.0.0(@aws-sdk/credential-provider-web-identity@3.662.0(@aws-sdk/client-sts@3.662.0))
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -698,10 +698,10 @@ importers:
         specifier: 1.3.20
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.2.9
+        specifier: 1.2.10
         version: link:../../packages/react
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -753,7 +753,7 @@ importers:
         specifier: 1.3.20
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.2.9
+        specifier: 1.2.10
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -768,7 +768,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.29.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -820,7 +820,7 @@ importers:
         specifier: 1.3.20
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.2.9
+        specifier: 1.2.10
         version: link:../../packages/react
       '@opentelemetry/api-logs':
         specifier: 0.55.0
@@ -841,7 +841,7 @@ importers:
         specifier: 1.10.0
         version: 1.10.0(@opentelemetry/api-logs@0.55.0)(@opentelemetry/api@1.9.0)(@opentelemetry/instrumentation@0.52.1(@opentelemetry/api@1.9.0))(@opentelemetry/resources@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-logs@0.55.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-metrics@1.29.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.28.0(@opentelemetry/api@1.9.0))
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -893,7 +893,7 @@ importers:
         specifier: 1.3.20
         version: link:../../packages/openai
       '@ai-sdk/react':
-        specifier: 1.2.9
+        specifier: 1.2.10
         version: link:../../packages/react
       '@upstash/ratelimit':
         specifier: ^0.4.3
@@ -902,7 +902,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.4
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       next:
         specifier: latest
@@ -951,7 +951,7 @@ importers:
         specifier: 1.3.20
         version: link:../../packages/openai
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       dotenv:
         specifier: 16.4.5
@@ -979,10 +979,10 @@ importers:
         specifier: 1.3.20
         version: link:../../packages/openai
       '@ai-sdk/vue':
-        specifier: 1.2.8
+        specifier: 1.2.9
         version: link:../../packages/vue
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       zod:
         specifier: 3.23.8
@@ -1034,10 +1034,10 @@ importers:
         specifier: 1.3.20
         version: link:../../packages/openai
       '@ai-sdk/solid':
-        specifier: 1.2.10
+        specifier: 1.2.11
         version: link:../../packages/solid
       '@ai-sdk/ui-utils':
-        specifier: 1.2.8
+        specifier: 1.2.9
         version: link:../../packages/ui-utils
       '@solidjs/meta':
         specifier: 0.29.4
@@ -1049,7 +1049,7 @@ importers:
         specifier: ^1.0.10
         version: 1.0.10(@testing-library/jest-dom@6.6.3)(solid-js@1.9.3)(vinxi@0.4.3(@types/node@22.7.4)(@upstash/redis@1.34.3)(ioredis@5.4.1)(terser@5.31.3)(typescript@5.6.3))(vite@6.0.3(@types/node@22.7.4)(jiti@2.4.0)(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0))
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       solid-js:
         specifier: ^1.9.3
@@ -1080,10 +1080,10 @@ importers:
         specifier: 2.2.7
         version: link:../../packages/provider-utils
       '@ai-sdk/svelte':
-        specifier: 2.1.9
+        specifier: 2.1.10
         version: link:../../packages/svelte
       '@ai-sdk/ui-utils':
-        specifier: 1.2.8
+        specifier: 1.2.9
         version: link:../../packages/ui-utils
       '@eslint/compat':
         specifier: ^1.2.5
@@ -1101,7 +1101,7 @@ importers:
         specifier: ^5.0.0
         version: 5.0.3(svelte@5.22.4)(vite@6.0.3(@types/node@22.7.4)(jiti@2.4.0)(terser@5.31.3)(tsx@4.19.2)(yaml@2.7.0))
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../../packages/ai
       autoprefixer:
         specifier: ^10.4.20
@@ -1164,10 +1164,10 @@ importers:
         specifier: 2.2.7
         version: link:../provider-utils
       '@ai-sdk/react':
-        specifier: 1.2.9
+        specifier: 1.2.10
         version: link:../react
       '@ai-sdk/ui-utils':
-        specifier: 1.2.8
+        specifier: 1.2.9
         version: link:../ui-utils
       '@opentelemetry/api':
         specifier: 1.9.0
@@ -1950,7 +1950,7 @@ importers:
         specifier: 2.2.7
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.2.8
+        specifier: 1.2.9
         version: link:../ui-utils
       react:
         specifier: ^18 || ^19 || ^19.0.0-rc
@@ -2064,7 +2064,7 @@ importers:
         specifier: 2.2.7
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.2.8
+        specifier: 1.2.9
         version: link:../ui-utils
       '@solid-primitives/trigger':
         specifier: ^1.1.0
@@ -2125,7 +2125,7 @@ importers:
         specifier: 2.2.7
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.2.8
+        specifier: 1.2.9
         version: link:../ui-utils
     devDependencies:
       '@eslint/compat':
@@ -2251,7 +2251,7 @@ importers:
         specifier: ^1.0.0-rc.0 || ^1.0.0
         version: 1.0.0-rc.0(valibot@1.0.0-rc.0(typescript@5.6.3))
       ai:
-        specifier: 4.3.10
+        specifier: 4.3.11
         version: link:../ai
     devDependencies:
       '@types/node':
@@ -2276,7 +2276,7 @@ importers:
         specifier: 2.2.7
         version: link:../provider-utils
       '@ai-sdk/ui-utils':
-        specifier: 1.2.8
+        specifier: 1.2.9
         version: link:../ui-utils
       swrv:
         specifier: ^1.0.4
