@@ -15,6 +15,10 @@ describe('streamObject', () => {
     expectTypeOf<typeof result.object>().toEqualTypeOf<
       Promise<'a' | 'b' | 'c'>
     >;
+
+    for await (const text of result.partialObjectStream) {
+      expectTypeOf(text).toEqualTypeOf<'a' | 'b' | 'c' | (string & {})>();
+    }
   });
 
   it('should support schema types', async () => {
