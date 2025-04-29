@@ -1,5 +1,19 @@
 # @ai-sdk/google-vertex
 
+## 3.0.0-canary.14
+
+### Patch Changes
+
+- 8e171f5: feat (provider/google-vertex): add imagen-3.0-generate-002
+- d9209ca: fix (image-model): `specificationVersion: v1` -> `v2`
+- Updated dependencies [f916255]
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [0ff02bb]
+  - @ai-sdk/google@2.0.0-canary.14
+  - @ai-sdk/provider@2.0.0-canary.12
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+  - @ai-sdk/anthropic@2.0.0-canary.13
+
 ## 3.0.0-canary.13
 
 ### Patch Changes

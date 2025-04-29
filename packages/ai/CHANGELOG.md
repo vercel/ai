@@ -1,5 +1,22 @@
 # ai
 
+## 5.0.0-canary.15
+
+### Major Changes
+
+- 4bfe9ec: chore (ai): remove ui message reasoning property
+- 2877a74: chore (ai): remove ui message data property
+
+### Patch Changes
+
+- d9209ca: fix (image-model): `specificationVersion: v1` -> `v2`
+- ea27cc6: chore (ai): use JSONValue definition from provider
+- 0ff02bb: chore(provider-utils): move over jsonSchema
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [0ff02bb]
+  - @ai-sdk/provider@2.0.0-canary.12
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+
 ## 5.0.0-canary.14
 
 ### Patch Changes
