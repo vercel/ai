@@ -1,4 +1,4 @@
-import { ImageModelV2, JSONValue } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
 import { NoImageGeneratedError } from '../../errors/no-image-generated-error';
 import {
   DefaultGeneratedFile,
@@ -145,7 +145,7 @@ Only applicable for HTTP-based providers.
   const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: Array<ProviderMetadata> = [];
+  const providerMetadata: ImageModelV2ProviderMetadata = {};
   for (const result of results) {
     images.push(
       ...result.images.map(
@@ -163,7 +163,14 @@ Only applicable for HTTP-based providers.
     warnings.push(...result.warnings);
 
     if (result.providerMetadata) {
-      providerMetadata.push(...result.providerMetadata);
+      for (const [providerName, metadata] of Object.entries<{
+        images: unknown;
+      }>(result.providerMetadata)) {
+        providerMetadata[providerName] ??= { images: [] };
+        providerMetadata[providerName].images.push(
+          ...result.providerMetadata[providerName].images,
+        );
+      }
     }
 
     responses.push(result.response);
@@ -185,13 +192,13 @@ class DefaultGenerateImageResult implements GenerateImageResult {
   readonly images: Array<GeneratedFile>;
   readonly warnings: Array<ImageGenerationWarning>;
   readonly responses: Array<ImageModelResponseMetadata>;
-  readonly providerMetadata: Array<ProviderMetadata | undefined>;
+  readonly providerMetadata: ImageModelV2ProviderMetadata;
 
   constructor(options: {
     images: Array<GeneratedFile>;
     warnings: Array<ImageGenerationWarning>;
     responses: Array<ImageModelResponseMetadata>;
-    providerMetadata: Array<ProviderMetadata | undefined>;
+    providerMetadata: ImageModelV2ProviderMetadata;
   }) {
     this.images = options.images;
     this.warnings = options.warnings;

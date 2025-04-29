@@ -1,8 +1,4 @@
-import {
-  ImageModelV2,
-  ImageModelV2CallWarning,
-  JSONValue,
-} from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -103,9 +99,13 @@ export class OpenAIImageModel implements ImageModelV2 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-      providerMetadata: response.data.map(item => ({
-        openai: { revisedPrompt: item.revised_prompt },
-      })),
+      providerMetadata: {
+        openai: {
+          images: response.data.map(item => ({
+            revisedPrompt: item.revised_prompt,
+          })),
+        },
+      },
     };
   }
 }

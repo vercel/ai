@@ -10,17 +10,13 @@ async function main() {
     prompt,
   });
 
-  const revisedPrompt = result.providerMetadata[0]?.openai.revisedPrompt;
+  // @ts-expect-error
+  const revisedPrompt = result.providerMetadata.openai.images[0]?.revisedPrompt;
 
-  console.log(`PROMPT`);
-  console.log(prompt);
-
-  if (revisedPrompt) {
-    console.log(`\nREVISED PROMPT`);
-    console.log(revisedPrompt);
-  }
-
-  console.log('');
+  console.log({
+    prompt,
+    revisedPrompt,
+  });
 
   await presentImages([result.image]);
 }

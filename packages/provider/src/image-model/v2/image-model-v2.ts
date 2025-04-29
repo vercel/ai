@@ -1,6 +1,13 @@
-import { SharedV2ProviderMetadata } from '../../shared';
+import { JSONArray, JSONValue } from '../../json-value';
 import { ImageModelV2CallOptions } from './image-model-v2-call-options';
 import { ImageModelV2CallWarning } from './image-model-v2-call-warning';
+
+export type ImageModelV2ProviderMetadata = Record<
+  string,
+  {
+    images: JSONArray;
+  } & JSONValue
+>;
 
 /**
 Image generation model specification version 2.
@@ -55,17 +62,18 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
 
 The outer record is keyed by the provider name, and the inner
-record is an array provider-specific metadata, one per image.
+record is provider-specific metadata. It always includes an
+`images` key with image-specific metadata
 
 ```ts
 {
-  "openai": [{
-    "revisedPrompt": "Revised prompt here."
-  }]
+  "openai": {
+    "images": ["revisedPrompt": "Revised prompt here."]
+  }
 }
 ```
       */
-    providerMetadata?: Array<SharedV2ProviderMetadata>;
+    providerMetadata?: ImageModelV2ProviderMetadata;
 
     /**
 Response information for telemetry and debugging purposes.
