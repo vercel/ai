@@ -3,6 +3,7 @@ import {
   TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
 import {
+  combineHeaders,
   createJsonResponseHandler,
   parseProviderOptions,
   postFormDataToApi,
@@ -28,7 +29,7 @@ const sarvamProviderOptionsSchema = z.object({
    * This is used when with_diarization is set to true.
    * Can be null.
    */
-  num_speakers: z.number().int().min(1).max(32).nullish(),
+  num_speakers: z.number().int().nullish(),
 });
 
 export type SarvamTranscriptionCallOptions = z.infer<
@@ -111,9 +112,7 @@ export class SarvamTranscriptionModel implements TranscriptionModelV1 {
         path: '/speech-to-text',
         modelId: this.modelId,
       }),
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: combineHeaders(this.config.headers(), options.headers),
       formData,
       failedResponseHandler: sarvamFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
@@ -133,7 +132,10 @@ export class SarvamTranscriptionModel implements TranscriptionModelV1 {
           }))
         : [],
       language: response.language_code ? response.language_code : undefined,
-      durationInSeconds: response.timestamps?.end_time_seconds[-1] ?? undefined,
+      durationInSeconds:
+        response.timestamps?.end_time_seconds[
+          response.timestamps.end_time_seconds.length - 1
+        ] ?? undefined,
       warnings,
       response: {
         timestamp: currentDate,
@@ -155,7 +157,7 @@ const sarvamTranscriptionResponseSchema = z.object({
       start_time_seconds: z.array(z.number()),
       words: z.array(z.string()),
     })
-    .nullable(),
+    .optional(),
   diarized_transcript: z
     .object({
       entries: z.array(
@@ -167,5 +169,5 @@ const sarvamTranscriptionResponseSchema = z.object({
         }),
       ),
     })
-    .nullable(),
+    .optional(),
 });
