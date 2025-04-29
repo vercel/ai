@@ -335,11 +335,50 @@ const enumOutputStrategy = <ENUM extends string>(
           };
     },
 
-    validatePartialResult() {
-      // no streaming in enum mode
-      throw new UnsupportedFunctionalityError({
-        functionality: 'partial results in enum mode',
-      });
+    async validatePartialResult({ value, textDelta }) {
+      if (!isJSONObject(value) || typeof value.result !== 'string') {
+        return {
+          success: false,
+          error: new TypeValidationError({
+            value,
+            cause:
+              'value must be an object that contains a string in the "result" property.',
+          }),
+        };
+      }
+
+      const result = value.result as string;
+      const possibleEnumValues = enumValues.filter(enumValue =>
+        enumValue.startsWith(result),
+      );
+
+      if (value.result.length === 0 || possibleEnumValues.length === 0) {
+        return {
+          success: false,
+          error: new TypeValidationError({
+            value,
+            cause: 'value must be a string in the enum',
+          }),
+        };
+      }
+
+      if (possibleEnumValues.length > 1) {
+        return {
+          success: false,
+          error: new TypeValidationError({
+            value,
+            cause: `ambiguous enum value: ${result}`,
+          }),
+        };
+      }
+
+      return {
+        success: true,
+        value: {
+          partial: possibleEnumValues[0],
+          textDelta,
+        },
+      };
     },
 
     createElementStream() {
