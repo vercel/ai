@@ -73,33 +73,15 @@ export async function processChatResponseV2({
     onReasoningPart(value) {
       updateMessageStore({
         type: 'reasoning',
-        reasoning: value,
-        details: [],
+        reasoning: value.text,
+        providerMetadata: value.providerMetadata,
       });
     },
-    onReasoningSignaturePart(value) {
+    onReasoningPartFinish(value) {
       updateMessageStore({
         type: 'reasoning',
         reasoning: '',
-        details: [
-          {
-            type: 'text',
-            text: '',
-            signature: value.signature,
-          },
-        ],
-      });
-    },
-    onRedactedReasoningPart(value) {
-      updateMessageStore({
-        type: 'reasoning',
-        reasoning: '',
-        details: [
-          {
-            type: 'redacted',
-            data: value.data,
-          },
-        ],
+        providerMetadata: undefined,
       });
     },
     onFilePart(value) {

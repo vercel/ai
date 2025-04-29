@@ -1,11 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UIMessage } from '../types';
-import { type ChatState, ChatStore } from './chat-store';
-
-const initStore = (chats?: Record<string, Pick<ChatState, 'messages'>>) => {
-  const store = new ChatStore({ chats });
-  return store;
-};
+import { ChatStore } from './chat-store';
 
 describe('ChatStore', () => {
   describe('initialization', () => {
@@ -18,9 +12,9 @@ describe('ChatStore', () => {
       const chats = {
         [id]: { messages },
       };
-      const store = initStore(chats);
+      const store = new ChatStore({ chats });
       expect(store.getMessages(id)).toEqual(messages);
-      expect(store.totalChats).toEqual(1);
+      expect(store.chatCount).toEqual(1);
     });
 
     it('initializes with multiple chats', () => {
@@ -39,15 +33,15 @@ describe('ChatStore', () => {
         [id1]: { messages: messages1 },
         [id2]: { messages: messages2 },
       };
-      const store = initStore(chats);
+      const store = new ChatStore({ chats });
       expect(store.getMessages(id1)).toEqual(messages1);
       expect(store.getMessages(id2)).toEqual(messages2);
-      expect(store.totalChats).toEqual(2);
+      expect(store.chatCount).toEqual(2);
     });
 
     it('initializes with empty chat store', () => {
-      const store = initStore();
-      expect(store.totalChats).toEqual(0);
+      const store = new ChatStore();
+      expect(store.chatCount).toEqual(0);
     });
   });
 
@@ -55,8 +49,10 @@ describe('ChatStore', () => {
     it('notifies subscribers', () => {
       const id = 'chat-1';
       const onChatMessagesChanged = vi.fn();
-      const store = initStore({
-        [id]: { messages: [] },
+      const store = new ChatStore({
+        chats: {
+          [id]: { messages: [] },
+        },
       });
       const unsubscribe = store.subscribe({
         onChatMessagesChanged,
