@@ -2,4 +2,4 @@
 '@ai-sdk/ui-utils': patch
 ---
 
-fix(react-native): don't use FileList global
+fix(react-native): support experimental_attachments without FileList global
