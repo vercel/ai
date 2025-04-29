@@ -387,12 +387,8 @@ Add a `GET` method to `/api/chat` that:
 5. Falls back to an empty stream if it’s already closed
 
 ```ts filename="app/api/chat/route.ts"
-import {
-  loadStreams,
-} from '@/util/chat-store';
-import {
-  createDataStream,
-} from 'ai';
+import { loadStreams } from '@/util/chat-store';
+import { createDataStream } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
 
@@ -448,10 +444,7 @@ import {
   generateId,
   streamText,
 } from 'ai';
-import {
-  appendStreamId,
-  saveChat,
-} from '@/util/chat-store';
+import { appendStreamId, saveChat } from '@/util/chat-store';
 import { createResumableStreamContext } from 'resumable-stream';
 
 const streamContext = createResumableStreamContext({

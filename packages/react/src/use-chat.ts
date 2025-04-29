@@ -9,7 +9,6 @@ import type {
 } from '@ai-sdk/ui-utils';
 import {
   callChatApi,
-  resumeChatApi,
   extractMaxToolInvocationStep,
   fillMessageParts,
   generateId as generateIdFunc,
@@ -243,7 +242,10 @@ By default, it's set to 1, which means that only a single LLM call is made.
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async (chatRequest: ChatRequest) => {
+    async (
+      chatRequest: ChatRequest,
+      requestType: 'generate' | 'resume' = 'generate',
+    ) => {
       mutateStatus('submitted');
       setError(undefined);
 
@@ -346,6 +348,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           generateId,
           fetch,
           lastMessage: chatMessages[chatMessages.length - 1],
+          requestType,
         });
 
         abortControllerRef.current = null;
@@ -407,100 +410,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
     ],
   );
 
-  const triggerResumeRequest = useCallback(async () => {
-    const body = {
-      id: chatId,
-      messages: messagesRef.current,
-    };
-
-    try {
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-
-      const throttledMutate = throttle(mutate, throttleWaitMs);
-      const throttledMutateStreamData = throttle(
-        mutateStreamData,
-        throttleWaitMs,
-      );
-
-      const previousMessages = messagesRef.current;
-      const chatMessages = fillMessageParts(previousMessages);
-
-      const existingData = streamDataRef.current;
-
-      await resumeChatApi({
-        api,
-        body,
-        fetch,
-        onResponse,
-        restoreMessagesOnFailure() {
-          if (!keepLastMessageOnError) {
-            throttledMutate(previousMessages, false);
-          }
-        },
-        streamProtocol,
-        onUpdate({ message, data, replaceLastMessage }) {
-          mutateStatus('streaming');
-
-          throttledMutate(
-            [
-              ...(replaceLastMessage
-                ? chatMessages.slice(0, chatMessages.length - 1)
-                : chatMessages),
-              message,
-            ],
-            false,
-          );
-
-          if (data?.length) {
-            throttledMutateStreamData(
-              [...(existingData ?? []), ...data],
-              false,
-            );
-          }
-        },
-        onFinish,
-        onToolCall,
-        generateId,
-        lastMessage: chatMessages[chatMessages.length - 1],
-      });
-
-      abortControllerRef.current = null;
-
-      mutateStatus('ready');
-    } catch (error) {
-      // Ignore abort errors as they are expected.
-      if ((error as any).name === 'AbortError') {
-        abortControllerRef.current = null;
-        mutateStatus('ready');
-        return null;
-      }
-
-      if (onError && error instanceof Error) {
-        onError(error);
-      }
-
-      setError(error as Error);
-      mutateStatus('error');
-    }
-  }, [
-    api,
-    chatId,
-    fetch,
-    generateId,
-    keepLastMessageOnError,
-    mutate,
-    mutateStatus,
-    mutateStreamData,
-    onFinish,
-    onResponse,
-    onToolCall,
-    streamProtocol,
-    throttleWaitMs,
-    onError,
-    setError,
-  ]);
-
   const append = useCallback(
     async (
       message: Message | CreateMessage,
@@ -558,8 +467,10 @@ By default, it's set to 1, which means that only a single LLM call is made.
   }, []);
 
   const experimental_resume = useCallback(async () => {
-    return triggerResumeRequest();
-  }, [triggerResumeRequest]);
+    const messages = messagesRef.current;
+
+    return triggerRequest({ messages }, 'resume');
+  }, [triggerRequest]);
 
   const setMessages = useCallback(
     (messages: Message[] | ((messages: Message[]) => Message[])) => {

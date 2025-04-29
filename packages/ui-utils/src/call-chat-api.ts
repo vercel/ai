@@ -20,6 +20,7 @@ export async function callChatApi({
   generateId,
   fetch = getOriginalFetch(),
   lastMessage,
+  requestType = 'generate',
 }: {
   api: string;
   body: Record<string, any>;
@@ -39,107 +40,33 @@ export async function callChatApi({
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   lastMessage: UIMessage | undefined;
+  requestType?: 'generate' | 'resume';
 }) {
-  const response = await fetch(api, {
-    method: 'POST',
-    body: JSON.stringify(body),
-    headers: {
-      'Content-Type': 'application/json',
-      ...headers,
-    },
-    signal: abortController?.()?.signal,
-    credentials,
-  }).catch(err => {
+  const request =
+    requestType === 'resume'
+      ? fetch(`${api}?chatId=${body.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          signal: abortController?.()?.signal,
+          credentials,
+        })
+      : fetch(api, {
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          signal: abortController?.()?.signal,
+          credentials,
+        });
+
+  const response = await request.catch(err => {
     restoreMessagesOnFailure();
     throw err;
-  });
-
-  if (onResponse) {
-    try {
-      await onResponse(response);
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  if (!response.ok) {
-    restoreMessagesOnFailure();
-    throw new Error(
-      (await response.text()) ?? 'Failed to fetch the chat response.',
-    );
-  }
-
-  if (!response.body) {
-    throw new Error('The response body is empty.');
-  }
-
-  switch (streamProtocol) {
-    case 'text': {
-      await processChatTextResponse({
-        stream: response.body,
-        update: onUpdate,
-        onFinish,
-        generateId,
-      });
-      return;
-    }
-
-    case 'data': {
-      await processChatResponse({
-        stream: response.body,
-        update: onUpdate,
-        lastMessage,
-        onToolCall,
-        onFinish({ message, finishReason, usage }) {
-          if (onFinish && message != null) {
-            onFinish(message, { usage, finishReason });
-          }
-        },
-        generateId,
-      });
-      return;
-    }
-
-    default: {
-      const exhaustiveCheck: never = streamProtocol;
-      throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
-    }
-  }
-}
-
-export async function resumeChatApi({
-  api,
-  body,
-  fetch = getOriginalFetch(),
-  onResponse,
-  restoreMessagesOnFailure,
-  streamProtocol = 'data',
-  onUpdate,
-  onFinish,
-  onToolCall,
-  generateId,
-  lastMessage,
-}: {
-  api: string;
-  body: Record<string, any>;
-  fetch: ReturnType<typeof getOriginalFetch> | undefined;
-  onResponse: ((response: Response) => void | Promise<void>) | undefined;
-  restoreMessagesOnFailure: () => void;
-  streamProtocol: 'data' | 'text' | undefined;
-  onUpdate: (options: {
-    message: UIMessage;
-    data: JSONValue[] | undefined;
-    replaceLastMessage: boolean;
-  }) => void;
-  onFinish: UseChatOptions['onFinish'];
-  onToolCall: UseChatOptions['onToolCall'];
-  generateId: IdGenerator;
-  lastMessage: UIMessage | undefined;
-}) {
-  const { id } = body;
-
-  const response = await fetch(`${api}?chatId=${id}`, {
-    method: 'GET',
   });
 
   if (onResponse) {

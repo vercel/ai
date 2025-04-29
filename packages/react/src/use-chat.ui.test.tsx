@@ -1903,7 +1903,7 @@ describe('resume ongoing stream and return assistant message', () => {
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
     await waitFor(() => {
-      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
     });
 
     controller.write('0:"Hello"\n');

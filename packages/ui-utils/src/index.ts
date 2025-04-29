@@ -13,7 +13,7 @@ export type {
   AssistantStreamPart,
   AssistantStreamString,
 } from './assistant-stream-parts';
-export { callChatApi, resumeChatApi } from './call-chat-api';
+export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
 export { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
 export type { DataStreamPart, DataStreamString } from './data-stream-parts';
