@@ -60,11 +60,13 @@ The timestamp of the message.
   /**
 Text content of the message. Use parts when possible.
    */
+  // TODO replace with readonly property that is only available on the client
   content: string;
 
   /**
    * Additional attachments to be sent along with the message.
    */
+  // TODO replace with FileUIParts in user messages
   experimental_attachments?: Attachment[];
 
   /**
@@ -75,6 +77,7 @@ The 'data' role is deprecated.
   /**
    * Additional message-specific information added on the server via StreamData
    */
+  // TODO replace with special part
   annotations?: JSONValue[] | undefined;
 
   /**

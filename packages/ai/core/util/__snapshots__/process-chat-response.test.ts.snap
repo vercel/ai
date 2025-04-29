@@ -280,18 +280,6 @@ exports[`scenario: onToolCall is executed > should call the onFinish function wi
         },
       ],
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": "test-result",
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "usage": {
       "completionTokens": 5,
@@ -326,17 +314,6 @@ exports[`scenario: onToolCall is executed > should call the update function twic
       ],
       "revisionId": "id-1",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "state": "call",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -363,18 +340,6 @@ exports[`scenario: onToolCall is executed > should call the update function twic
       ],
       "revisionId": "id-2",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": "test-result",
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -980,20 +945,6 @@ exports[`scenario: server-side tool roundtrip > should call the onFinish functio
         },
       ],
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "usage": {
       "completionTokens": 7,
@@ -1028,17 +979,6 @@ exports[`scenario: server-side tool roundtrip > should call the update function 
       ],
       "revisionId": "id-1",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "state": "call",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -1067,20 +1007,6 @@ exports[`scenario: server-side tool roundtrip > should call the update function 
       ],
       "revisionId": "id-2",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -1113,20 +1039,6 @@ exports[`scenario: server-side tool roundtrip > should call the update function 
       ],
       "revisionId": "id-3",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -1179,30 +1091,6 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
         },
       ],
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {},
-          "result": {
-            "location": "Berlin",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id-original",
-          "toolName": "tool-name-original",
-        },
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 1,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "usage": {
       "completionTokens": 7,
@@ -1241,18 +1129,6 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
       ],
       "revisionId": "id-0",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {},
-          "result": {
-            "location": "Berlin",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id-original",
-          "toolName": "tool-name-original",
-        },
-      ],
     },
     "replaceLastMessage": true,
   },
@@ -1294,27 +1170,6 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
       ],
       "revisionId": "id-1",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {},
-          "result": {
-            "location": "Berlin",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id-original",
-          "toolName": "tool-name-original",
-        },
-        {
-          "args": {
-            "city": "London",
-          },
-          "state": "call",
-          "step": 1,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": true,
   },
@@ -1359,30 +1214,6 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
       ],
       "revisionId": "id-2",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {},
-          "result": {
-            "location": "Berlin",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id-original",
-          "toolName": "tool-name-original",
-        },
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 1,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": true,
   },
@@ -1431,30 +1262,6 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
       ],
       "revisionId": "id-3",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {},
-          "result": {
-            "location": "Berlin",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id-original",
-          "toolName": "tool-name-original",
-        },
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 1,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": true,
   },
@@ -1509,20 +1316,6 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
         },
       ],
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "usage": {
       "completionTokens": 7,
@@ -1606,17 +1399,6 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       ],
       "revisionId": "id-3",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "state": "call",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -1654,20 +1436,6 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       ],
       "revisionId": "id-4",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -1714,20 +1482,6 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       ],
       "revisionId": "id-5",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -1778,20 +1532,6 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       ],
       "revisionId": "id-6",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -1832,20 +1572,6 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
         },
       ],
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "usage": {
       "completionTokens": 7,
@@ -1918,17 +1644,6 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
       ],
       "revisionId": "id-3",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "state": "call",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -1961,20 +1676,6 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
       ],
       "revisionId": "id-4",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -2011,20 +1712,6 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
       ],
       "revisionId": "id-5",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -2061,20 +1748,6 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
       ],
       "revisionId": "id-6",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "city": "London",
-          },
-          "result": {
-            "weather": "sunny",
-          },
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-id",
-          "toolName": "tool-name",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -2169,18 +1842,6 @@ exports[`scenario: tool call streaming > should call the onFinish function with 
         },
       ],
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "testArg": "test-value",
-          },
-          "result": "test-result",
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-0",
-          "toolName": "test-tool",
-        },
-      ],
     },
     "usage": {
       "completionTokens": 5,
@@ -2213,15 +1874,6 @@ exports[`scenario: tool call streaming > should call the update function with th
       ],
       "revisionId": "id-1",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": undefined,
-          "state": "partial-call",
-          "step": 0,
-          "toolCallId": "tool-call-0",
-          "toolName": "test-tool",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -2247,17 +1899,6 @@ exports[`scenario: tool call streaming > should call the update function with th
       ],
       "revisionId": "id-2",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "testArg": "t",
-          },
-          "state": "partial-call",
-          "step": 0,
-          "toolCallId": "tool-call-0",
-          "toolName": "test-tool",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -2283,17 +1924,6 @@ exports[`scenario: tool call streaming > should call the update function with th
       ],
       "revisionId": "id-3",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "testArg": "test-value",
-          },
-          "state": "partial-call",
-          "step": 0,
-          "toolCallId": "tool-call-0",
-          "toolName": "test-tool",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -2319,17 +1949,6 @@ exports[`scenario: tool call streaming > should call the update function with th
       ],
       "revisionId": "id-4",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "testArg": "test-value",
-          },
-          "state": "call",
-          "step": 0,
-          "toolCallId": "tool-call-0",
-          "toolName": "test-tool",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },
@@ -2356,18 +1975,6 @@ exports[`scenario: tool call streaming > should call the update function with th
       ],
       "revisionId": "id-5",
       "role": "assistant",
-      "toolInvocations": [
-        {
-          "args": {
-            "testArg": "test-value",
-          },
-          "result": "test-result",
-          "state": "result",
-          "step": 0,
-          "toolCallId": "tool-call-0",
-          "toolName": "test-tool",
-        },
-      ],
     },
     "replaceLastMessage": false,
   },

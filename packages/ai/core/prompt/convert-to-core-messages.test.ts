@@ -207,14 +207,6 @@ describe('convertToCoreMessages', () => {
   describe('assistant message', () => {
     it('should convert a simple assistant message', () => {
       const result = convertToCoreMessages([
-        { role: 'assistant', content: 'Hello, human!' },
-      ]);
-
-      expect(result).toEqual([{ role: 'assistant', content: 'Hello, human!' }]);
-    });
-
-    it('should convert a simple assistant message (parts)', () => {
-      const result = convertToCoreMessages([
         {
           role: 'assistant',
           content: '', // empty content
@@ -522,20 +514,6 @@ describe('convertToCoreMessages', () => {
   describe('multiple messages', () => {
     it('should handle a conversation with multiple messages', () => {
       const result = convertToCoreMessages([
-        { role: 'user', content: "What's the weather like?" },
-        { role: 'assistant', content: "I'll check that for you." },
-        { role: 'user', content: 'Thanks!' },
-      ]);
-
-      expect(result).toEqual([
-        { role: 'user', content: "What's the weather like?" },
-        { role: 'assistant', content: "I'll check that for you." },
-        { role: 'user', content: 'Thanks!' },
-      ]);
-    });
-
-    it('should handle a conversation with multiple messages (parts)', () => {
-      const result = convertToCoreMessages([
         {
           role: 'user',
           content: "What's the weather like?",
@@ -553,26 +531,37 @@ describe('convertToCoreMessages', () => {
         },
       ]);
 
-      expect(result).toMatchSnapshot();
-    });
-
-    it('should convert fully typed Message[]', () => {
-      const messages: Message[] = [
-        {
-          id: '1',
-          role: 'user',
-          content: 'What is the weather in Tokyo?',
-        },
-        {
-          id: '2',
-          role: 'assistant',
-          content: 'It is sunny in Tokyo.',
-        },
-      ];
-
-      const result = convertToCoreMessages(messages);
-
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What's the weather like?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "I'll check that for you.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "text": "Thanks!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
     });
 
     it('should handle conversation with multiple tool invocations and user message at the end', () => {
