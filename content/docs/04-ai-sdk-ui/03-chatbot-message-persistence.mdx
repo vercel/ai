@@ -385,7 +385,7 @@ Add a `GET` method to `/api/chat` that:
 4. Returns the latest one to `streamContext.resumableStream()`
 5. Falls back to an empty stream if it’s already closed
 
-```filename="app/api/chat/route.ts"
+```ts filename="app/api/chat/route.ts"
 import {
   loadStreams,
 } from '@/util/chat-store';
@@ -440,7 +440,7 @@ When you create a brand-new chat completion, you must:
 3. Kick off a `createDataStream` that pipes tokens as they arrive
 4. Hand that new stream to `streamContext.resumableStream()`
 
-```
+```ts filename="@/app/api/chat/route.ts"
 import {
   appendResponseMessages,
   createDataStream,

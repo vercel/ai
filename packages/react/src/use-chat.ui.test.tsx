@@ -1868,6 +1868,9 @@ describe('resume ongoing stream and return assistant message', () => {
 
       useEffect(() => {
         experimental_resume();
+
+        // We want to disable the exhaustive deps rule here because we only want to run this effect once
+        // eslint-disable-next-line react-hooks/exhaustive-deps
       }, []);
 
       return (
@@ -1924,8 +1927,7 @@ describe('resume ongoing stream and return assistant message', () => {
       expect(screen.getByTestId('status')).toHaveTextContent('ready');
 
       expect(server.calls.length).toBeGreaterThan(0);
-      const { calls } = server;
-      const [mostRecentCall] = calls;
+      const mostRecentCall = server.calls[0];
 
       const { requestMethod, requestUrl } = mostRecentCall;
       expect(requestMethod).toBe('GET');
