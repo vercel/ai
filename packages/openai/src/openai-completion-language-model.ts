@@ -4,6 +4,7 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -126,6 +127,14 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         // model specific settings:
         echo: openaiOptions.echo,
         logit_bias: openaiOptions.logitBias,
+        logprobs:
+          typeof openaiOptions?.logprobs === 'number'
+            ? openaiOptions.logprobs
+            : typeof openaiOptions?.logprobs === 'boolean'
+              ? openaiOptions.logprobs
+                ? 0
+                : undefined
+              : undefined,
         suffix: openaiOptions.suffix,
         user: openaiOptions.user,
 
@@ -173,6 +182,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
 
     const choice = response.choices[0];
 
+    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+
+    if (choice.logprobs != null) {
+      providerMetadata.openai.logprobs = choice.logprobs;
+    }
+
     return {
       content: [{ type: 'text', text: choice.text }],
       usage: {
@@ -186,6 +201,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         headers: responseHeaders,
         body: rawResponse,
       },
+      providerMetadata,
       warnings,
     };
   }
@@ -308,6 +324,13 @@ const openaiCompletionResponseSchema = z.object({
     z.object({
       text: z.string(),
       finish_reason: z.string(),
+      logprobs: z
+        .object({
+          tokens: z.array(z.string()),
+          token_logprobs: z.array(z.number()),
+          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+        })
+        .nullish(),
     }),
   ),
   usage: z.object({
@@ -328,6 +351,13 @@ const openaiCompletionChunkSchema = z.union([
         text: z.string(),
         finish_reason: z.string().nullish(),
         index: z.number(),
+        logprobs: z
+          .object({
+            tokens: z.array(z.string()),
+            token_logprobs: z.array(z.number()),
+            top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+          })
+          .nullish(),
       }),
     ),
     usage: z
