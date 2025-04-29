@@ -2,7 +2,11 @@ import {
   TranscriptionModelV1,
   TranscriptionModelV1CallWarning,
 } from '@ai-sdk/provider';
-import { parseProviderOptions } from '@ai-sdk/provider-utils';
+import {
+  createJsonResponseHandler,
+  parseProviderOptions,
+  postFormDataToApi,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { SarvamConfig } from './sarvam-config';
 import { SarvamTranscriptionAPITypes } from './sarvam-api-types';
@@ -88,10 +92,80 @@ export class SarvamTranscriptionModel implements TranscriptionModelV1 {
 
     return {
       formData,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
       warnings,
     };
   }
+
+  async doGenerate(
+    options: Parameters<TranscriptionModelV1['doGenerate']>[0],
+  ): Promise<Awaited<ReturnType<TranscriptionModelV1['doGenerate']>>> {
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const { formData, warnings } = this.getArgs(options);
+
+    const {
+      value: response,
+      responseHeaders,
+      rawValue: rawResponse,
+    } = await postFormDataToApi({
+      url: this.config.url({
+        path: '/speech-to-text',
+        modelId: this.modelId,
+      }),
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      formData,
+      failedResponseHandler: sarvamFailedResponseHandler,
+      successfulResponseHandler: createJsonResponseHandler(
+        sarvamTranscriptionResponseSchema,
+      ),
+      abortSignal: options.abortSignal,
+      fetch: this.config.fetch,
+    });
+
+    return {
+      text: response.transcript,
+      segments: response.timestamps
+        ? response.timestamps.words.map((word, index) => ({
+            text: word,
+            startSecond: response.timestamps!.start_time_seconds[index],
+            endSecond: response.timestamps!.end_time_seconds[index],
+          }))
+        : [],
+      language: response.language_code ? response.language_code : undefined,
+      durationInSeconds: response.timestamps?.end_time_seconds[-1] ?? undefined,
+      warnings,
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+        headers: responseHeaders,
+        body: rawResponse,
+      },
+    };
+  }
 }
+
+const sarvamTranscriptionResponseSchema = z.object({
+  request_id: z.string().nullable(),
+  transcript: z.string(),
+  language_code: z.string().nullable(),
+  timestamps: z
+    .object({
+      end_time_seconds: z.array(z.number()),
+      start_time_seconds: z.array(z.number()),
+      words: z.array(z.string()),
+    })
+    .nullable(),
+  diarized_transcript: z
+    .object({
+      entries: z.array(
+        z.object({
+          end_time_seconds: z.array(z.number()),
+          start_time_seconds: z.array(z.number()),
+          transcript: z.string(),
+          speaker_id: z.string(),
+        }),
+      ),
+    })
+    .nullable(),
+});
