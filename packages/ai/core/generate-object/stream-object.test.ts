@@ -1365,13 +1365,16 @@ describe('streamObject', () => {
           {
             role: 'assistant',
             content: '',
-            toolInvocations: [
+            parts: [
               {
-                state: 'result',
-                toolCallId: 'call-1',
-                toolName: 'test-tool',
-                args: { value: 'test-value' },
-                result: 'test result',
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-1',
+                  toolName: 'test-tool',
+                  args: { value: 'test-value' },
+                  result: 'test result',
+                },
               },
             ],
           },

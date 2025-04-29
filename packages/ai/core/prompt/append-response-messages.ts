@@ -6,11 +6,13 @@ import {
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
+  UIMessage,
 } from '../types';
 import { extractMaxToolInvocationStep } from '../util';
 import { ResponseMessage } from '../generate-text/step-result';
 import { convertDataContentToBase64String } from './data-content';
 import { AISDKError } from '@ai-sdk/provider';
+import { getToolInvocations } from '../ui/get-tool-invocations';
 
 /**
  * Appends the ResponseMessage[] from the response to a Message[] (for useChat).
@@ -45,7 +47,7 @@ Internal. For test use only. May change without notice.
 
     switch (role) {
       case 'assistant': {
-        function getToolInvocations(step: number) {
+        function getToolInvocationsForStep(step: number) {
           return (
             typeof message.content === 'string'
               ? []
@@ -124,7 +126,7 @@ Internal. For test use only. May change without notice.
 
         if (isLastMessageAssistant) {
           const maxStep = extractMaxToolInvocationStep(
-            lastMessage.toolInvocations,
+            getToolInvocations(lastMessage as UIMessage), // TODO remove once Message is removed
           );
 
           lastMessage.parts ??= [];
@@ -132,12 +134,7 @@ Internal. For test use only. May change without notice.
           lastMessage.content = textContent;
           lastMessage.parts.push(...parts);
 
-          lastMessage.toolInvocations = [
-            ...(lastMessage.toolInvocations ?? []),
-            ...getToolInvocations(maxStep === undefined ? 0 : maxStep + 1),
-          ];
-
-          getToolInvocations(maxStep === undefined ? 0 : maxStep + 1)
+          getToolInvocationsForStep(maxStep === undefined ? 0 : maxStep + 1)
             .map(call => ({
               type: 'tool-invocation' as const,
               toolInvocation: call,
@@ -152,10 +149,9 @@ Internal. For test use only. May change without notice.
             id: message.id,
             createdAt: currentDate(), // generate a createdAt date for the message, will be overridden by the client
             content: textContent,
-            toolInvocations: getToolInvocations(0),
             parts: [
               ...parts,
-              ...getToolInvocations(0).map(call => ({
+              ...getToolInvocationsForStep(0).map(call => ({
                 type: 'tool-invocation' as const,
                 toolInvocation: call,
               })),
@@ -168,8 +164,6 @@ Internal. For test use only. May change without notice.
 
       case 'tool': {
         // for tool call results, add the result to previous message:
-        lastMessage.toolInvocations ??= []; // ensure the toolInvocations array exists
-
         if (lastMessage.role !== 'assistant') {
           throw new Error(
             `Tool result must follow an assistant message: ${lastMessage.role}`,
@@ -180,9 +174,9 @@ Internal. For test use only. May change without notice.
 
         for (const contentPart of message.content) {
           // find the tool call in the previous message:
-          const toolCall = lastMessage.toolInvocations.find(
-            call => call.toolCallId === contentPart.toolCallId,
-          );
+          const toolCall = getToolInvocations(
+            lastMessage as UIMessage, // TODO remove once Message is removed
+          ).find(call => call.toolCallId === contentPart.toolCallId);
           const toolCallPart: ToolInvocationUIPart | undefined =
             lastMessage.parts.find(
               (part): part is ToolInvocationUIPart =>
