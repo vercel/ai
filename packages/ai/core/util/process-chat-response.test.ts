@@ -176,16 +176,6 @@ describe('scenario: server-side tool roundtrip with existing assistant message',
         id: 'original-id',
         createdAt: new Date('2023-01-02T00:00:00.000Z'),
         content: '',
-        toolInvocations: [
-          {
-            args: {},
-            result: { location: 'Berlin' },
-            state: 'result',
-            step: 0,
-            toolCallId: 'tool-call-id-original',
-            toolName: 'tool-name-original',
-          },
-        ],
         parts: [
           {
             type: 'tool-invocation',

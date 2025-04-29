@@ -250,16 +250,6 @@ describe('appendResponseMessages', () => {
             id: '2',
             content: '',
             createdAt: new Date(456),
-            toolInvocations: [
-              {
-                toolCallId: 'call-1',
-                toolName: 'some-tool',
-                state: 'result',
-                args: { query: 'some query' },
-                result: { answer: 'Tool result data' },
-                step: 0,
-              },
-            ],
             parts: [
               {
                 type: 'tool-invocation',
@@ -305,16 +295,6 @@ describe('appendResponseMessages', () => {
             id: '2',
             content: '',
             createdAt: new Date(456),
-            toolInvocations: [
-              {
-                toolCallId: 'call-1',
-                toolName: 'some-tool',
-                state: 'result',
-                args: { query: 'some query' },
-                result: { answer: 'Tool result data' },
-                step: 0,
-              },
-            ],
             parts: [
               {
                 type: 'tool-invocation',
@@ -367,15 +347,6 @@ describe('appendResponseMessages', () => {
             id: '2',
             content: 'Placeholder text',
             createdAt: new Date(456),
-            toolInvocations: [
-              {
-                toolCallId: 'call-1',
-                toolName: 'some-tool',
-                state: 'call',
-                args: { query: 'some query' },
-                step: 0,
-              },
-            ],
             parts: [
               {
                 type: 'tool-invocation',
@@ -427,15 +398,6 @@ describe('appendResponseMessages', () => {
             id: '2',
             content: 'Placeholder text',
             createdAt: new Date(456),
-            toolInvocations: [
-              {
-                toolCallId: 'call-1',
-                toolName: 'some-tool',
-                state: 'call',
-                args: { query: 'some query' },
-                step: 0,
-              },
-            ],
             parts: [
               {
                 type: 'tool-invocation',

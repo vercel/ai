@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 2.0.0-canary.14
+
+### Patch Changes
+
+- fa758ea: feat(provider/openai): add o3 & o4-mini with developer systemMessageMode
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [0ff02bb]
+  - @ai-sdk/provider@2.0.0-canary.12
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+
 ## 2.0.0-canary.13
 
 ### Patch Changes

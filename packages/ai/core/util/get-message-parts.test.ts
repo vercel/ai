@@ -17,33 +17,6 @@ describe('getMessageParts', () => {
     ]);
   });
 
-  it('should handle message with tool invocations', () => {
-    expect(
-      getMessageParts({
-        role: 'assistant',
-        content: '',
-        toolInvocations: [
-          {
-            state: 'call',
-            toolCallId: 'test-call-id',
-            toolName: 'test-tool',
-            args: { input: 'test-input' },
-          },
-        ],
-      }),
-    ).toEqual([
-      {
-        type: 'tool-invocation',
-        toolInvocation: {
-          state: 'call',
-          toolCallId: 'test-call-id',
-          toolName: 'test-tool',
-          args: { input: 'test-input' },
-        },
-      },
-    ]);
-  });
-
   it('should handle message with content', () => {
     expect(
       getMessageParts({
@@ -51,33 +24,5 @@ describe('getMessageParts', () => {
         role: 'assistant',
       }),
     ).toEqual([{ type: 'text', text: 'Test content' }]);
-  });
-
-  it('should handle message with multiple properties', () => {
-    expect(
-      getMessageParts({
-        role: 'assistant',
-        content: 'Test content',
-        toolInvocations: [
-          {
-            state: 'call',
-            toolCallId: 'test-call-id',
-            toolName: 'test-tool',
-            args: { input: 'test-input' },
-          },
-        ],
-      }),
-    ).toEqual([
-      {
-        type: 'tool-invocation',
-        toolInvocation: {
-          state: 'call',
-          toolCallId: 'test-call-id',
-          toolName: 'test-tool',
-          args: { input: 'test-input' },
-        },
-      },
-      { type: 'text', text: 'Test content' },
-    ]);
   });
 });
