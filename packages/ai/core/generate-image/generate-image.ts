@@ -145,7 +145,7 @@ Only applicable for HTTP-based providers.
   const images: Array<DefaultGeneratedFile> = [];
   const warnings: Array<ImageGenerationWarning> = [];
   const responses: Array<ImageModelResponseMetadata> = [];
-  const providerMetadata: Array<ProviderMetadata | undefined> = [];
+  const providerMetadata: Array<ProviderMetadata> = [];
   for (const result of results) {
     images.push(
       ...result.images.map(
@@ -161,8 +161,12 @@ Only applicable for HTTP-based providers.
       ),
     );
     warnings.push(...result.warnings);
+
+    if (result.providerMetadata) {
+      providerMetadata.push(...result.providerMetadata)
+    }
+
     responses.push(result.response);
-    providerMetadata.push(result.providerMetadata);
   }
 
   if (!images.length) {

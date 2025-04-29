@@ -15,3 +15,10 @@ export type JSONObject = {
 };
 
 export type JSONArray = JSONValue[];
+
+
+const test: Record<string, JSONValue> = {
+  images: [{ revisedPrompt: 'test' }],
+}
+
+// Type '{ revisedPrompt: string; }[]' is not assignable to type 'Record<string, JSONValue>'.

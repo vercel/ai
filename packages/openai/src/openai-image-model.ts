@@ -1,4 +1,4 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import { ImageModelV2, ImageModelV2CallWarning, JSONValue } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -37,7 +37,7 @@ export class OpenAIImageModel implements ImageModelV2 {
     readonly modelId: OpenAIImageModelId,
     private readonly settings: OpenAIImageSettings,
     private readonly config: OpenAIImageModelConfig,
-  ) {}
+  ) { }
 
   async doGenerate({
     prompt,
@@ -99,12 +99,15 @@ export class OpenAIImageModel implements ImageModelV2 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
-    };
-  }
+      providerMetadata: response.data.map(item => ({
+        openai: { revisedPrompt: item.revised_prompt },
+      }))
+    }
+  };
 }
 
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
+  data: z.array(z.object({ b64_json: z.string(), revised_prompt: z.string() })),
 });

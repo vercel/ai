@@ -53,8 +53,19 @@ Warnings for the call, e.g. unsupported settings.
 Additional provider-specific metadata. They are passed through
 from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
+
+The outer record is keyed by the provider name, and the inner
+record is an array provider-specific metadata, one per image.
+
+```ts
+{
+  "openai": [{
+    "revisedPrompt": "Revised prompt here."
+  }]
+}
+```
       */
-    providerMetadata?: SharedV2ProviderMetadata;
+    providerMetadata?: Array<Record<string, SharedV2ProviderMetadata>>;
 
     /**
 Response information for telemetry and debugging purposes.
