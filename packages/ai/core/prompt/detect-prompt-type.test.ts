@@ -22,25 +22,6 @@ it('should detect UI messages with data role', () => {
   expect(detectPromptType(messages)).toBe('ui-messages');
 });
 
-it('should detect UI messages with toolInvocations', () => {
-  const messages: Omit<Message, 'id'>[] = [
-    {
-      role: 'assistant',
-      content: 'Hello',
-      toolInvocations: [
-        {
-          state: 'result',
-          toolCallId: '1',
-          toolName: 'test',
-          args: '{}',
-          result: 'result',
-        },
-      ],
-    },
-  ];
-  expect(detectPromptType(messages)).toBe('ui-messages');
-});
-
 it('should detect UI messages with experimental_attachments', () => {
   const messages: Omit<Message, 'id'>[] = [
     {

@@ -207,14 +207,6 @@ describe('convertToCoreMessages', () => {
   describe('assistant message', () => {
     it('should convert a simple assistant message', () => {
       const result = convertToCoreMessages([
-        { role: 'assistant', content: 'Hello, human!' },
-      ]);
-
-      expect(result).toEqual([{ role: 'assistant', content: 'Hello, human!' }]);
-    });
-
-    it('should convert a simple assistant message (parts)', () => {
-      const result = convertToCoreMessages([
         {
           role: 'assistant',
           content: '', // empty content
@@ -230,7 +222,7 @@ describe('convertToCoreMessages', () => {
       ]);
     });
 
-    it('should convert an assistant message with reasoning (parts)', () => {
+    it('should convert an assistant message with reasoning', () => {
       const result = convertToCoreMessages([
         {
           role: 'assistant',
@@ -304,28 +296,7 @@ describe('convertToCoreMessages', () => {
       const result = convertToCoreMessages([
         {
           role: 'assistant',
-          content: 'Let me calculate that for you.',
-          toolInvocations: [
-            {
-              state: 'result',
-              toolCallId: 'call1',
-              toolName: 'calculator',
-              args: { operation: 'add', numbers: [1, 2] },
-              result: '3',
-            },
-          ],
-        },
-      ]);
-
-      expect(result).toMatchSnapshot();
-    });
-
-    it('should handle assistant message with tool invocations (parts)', () => {
-      const result = convertToCoreMessages([
-        {
-          role: 'assistant',
           content: '', // empty content
-          toolInvocations: [], // empty invocations
           parts: [
             { type: 'text', text: 'Let me calculate that for you.' },
             {
@@ -361,41 +332,7 @@ describe('convertToCoreMessages', () => {
         [
           {
             role: 'assistant',
-            content: 'Let me calculate that for you.',
-            toolInvocations: [
-              {
-                state: 'result',
-                toolCallId: 'call1',
-                toolName: 'screenshot',
-                args: {},
-                result: 'imgbase64',
-              },
-            ],
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
-
-      expect(result).toMatchSnapshot();
-    });
-
-    it('should handle assistant message with tool invocations that have multi-part responses (parts)', () => {
-      const tools = {
-        screenshot: tool({
-          parameters: z.object({}),
-          execute: async () => 'imgbase64',
-          experimental_toToolResultContent: result => [
-            { type: 'image', data: result },
-          ],
-        }),
-      };
-
-      const result = convertToCoreMessages(
-        [
-          {
-            role: 'assistant',
             content: '', // empty content
-            toolInvocations: [], // empty invocations
             parts: [
               { type: 'text', text: 'Let me calculate that for you.' },
               {
@@ -423,30 +360,11 @@ describe('convertToCoreMessages', () => {
         {
           role: 'user',
           content: 'text1',
-          toolInvocations: [],
-        },
-        {
-          role: 'assistant',
-          content: 'text2',
-          toolInvocations: [],
-        },
-      ]);
-
-      expect(result).toMatchSnapshot();
-    });
-
-    it('should handle conversation with an assistant message that has empty tool invocations (parts)', () => {
-      const result = convertToCoreMessages([
-        {
-          role: 'user',
-          content: 'text1',
-          toolInvocations: [],
           parts: [{ type: 'text', text: 'text1' }],
         },
         {
           role: 'assistant',
           content: '', // empty content
-          toolInvocations: [],
           parts: [{ type: 'text', text: 'text2' }],
         },
       ]);
@@ -466,64 +384,7 @@ describe('convertToCoreMessages', () => {
         [
           {
             role: 'assistant',
-            content: 'response',
-            toolInvocations: [
-              {
-                state: 'result',
-                toolCallId: 'call-1',
-                toolName: 'screenshot',
-                args: { value: 'value-1' },
-                result: 'result-1',
-                step: 0,
-              },
-              {
-                state: 'result',
-                toolCallId: 'call-2',
-                toolName: 'screenshot',
-                args: { value: 'value-2' },
-                result: 'result-2',
-                step: 1,
-              },
-
-              {
-                state: 'result',
-                toolCallId: 'call-3',
-                toolName: 'screenshot',
-                args: { value: 'value-3' },
-                result: 'result-3',
-                step: 1,
-              },
-              {
-                state: 'result',
-                toolCallId: 'call-4',
-                toolName: 'screenshot',
-                args: { value: 'value-4' },
-                result: 'result-4',
-                step: 2,
-              },
-            ],
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
-
-      expect(result).toMatchSnapshot();
-    });
-
-    it('should handle conversation with multiple tool invocations that have step information (parts)', () => {
-      const tools = {
-        screenshot: tool({
-          parameters: z.object({ value: z.string() }),
-          execute: async () => 'imgbase64',
-        }),
-      };
-
-      const result = convertToCoreMessages(
-        [
-          {
-            role: 'assistant',
             content: '', // empty content
-            toolInvocations: [], // empty invocations
             parts: [
               { type: 'text', text: 'response' },
               {
@@ -579,7 +440,7 @@ describe('convertToCoreMessages', () => {
       expect(result).toMatchSnapshot();
     });
 
-    it('should handle conversation with mix of tool invocations and text (parts)', () => {
+    it('should handle conversation with mix of tool invocations and text', () => {
       const tools = {
         screenshot: tool({
           parameters: z.object({ value: z.string() }),
@@ -592,7 +453,6 @@ describe('convertToCoreMessages', () => {
           {
             role: 'assistant',
             content: '', // empty content
-            toolInvocations: [], // empty invocations
             parts: [
               { type: 'text', text: 'i am gonna use tool1' },
               {
@@ -654,20 +514,6 @@ describe('convertToCoreMessages', () => {
   describe('multiple messages', () => {
     it('should handle a conversation with multiple messages', () => {
       const result = convertToCoreMessages([
-        { role: 'user', content: "What's the weather like?" },
-        { role: 'assistant', content: "I'll check that for you." },
-        { role: 'user', content: 'Thanks!' },
-      ]);
-
-      expect(result).toEqual([
-        { role: 'user', content: "What's the weather like?" },
-        { role: 'assistant', content: "I'll check that for you." },
-        { role: 'user', content: 'Thanks!' },
-      ]);
-    });
-
-    it('should handle a conversation with multiple messages (parts)', () => {
-      const result = convertToCoreMessages([
         {
           role: 'user',
           content: "What's the weather like?",
@@ -685,26 +531,37 @@ describe('convertToCoreMessages', () => {
         },
       ]);
 
-      expect(result).toMatchSnapshot();
-    });
-
-    it('should convert fully typed Message[]', () => {
-      const messages: Message[] = [
-        {
-          id: '1',
-          role: 'user',
-          content: 'What is the weather in Tokyo?',
-        },
-        {
-          id: '2',
-          role: 'assistant',
-          content: 'It is sunny in Tokyo.',
-        },
-      ];
-
-      const result = convertToCoreMessages(messages);
-
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "What's the weather like?",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "content": [
+              {
+                "text": "I'll check that for you.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "text": "Thanks!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
     });
 
     it('should handle conversation with multiple tool invocations and user message at the end', () => {
@@ -719,68 +576,7 @@ describe('convertToCoreMessages', () => {
         [
           {
             role: 'assistant',
-            content: 'response',
-            toolInvocations: [
-              {
-                state: 'result',
-                toolCallId: 'call-1',
-                toolName: 'screenshot',
-                args: { value: 'value-1' },
-                result: 'result-1',
-                step: 0,
-              },
-              {
-                state: 'result',
-                toolCallId: 'call-2',
-                toolName: 'screenshot',
-                args: { value: 'value-2' },
-                result: 'result-2',
-                step: 1,
-              },
-
-              {
-                state: 'result',
-                toolCallId: 'call-3',
-                toolName: 'screenshot',
-                args: { value: 'value-3' },
-                result: 'result-3',
-                step: 1,
-              },
-              {
-                state: 'result',
-                toolCallId: 'call-4',
-                toolName: 'screenshot',
-                args: { value: 'value-4' },
-                result: 'result-4',
-                step: 2,
-              },
-            ],
-          },
-          {
-            role: 'user',
-            content: 'Thanks!',
-          },
-        ],
-        { tools }, // separate tools to ensure that types are inferred correctly
-      );
-
-      expect(result).toMatchSnapshot();
-    });
-
-    it('should handle conversation with multiple tool invocations and user message at the end (parts)', () => {
-      const tools = {
-        screenshot: tool({
-          parameters: z.object({ value: z.string() }),
-          execute: async () => 'imgbase64',
-        }),
-      };
-
-      const result = convertToCoreMessages(
-        [
-          {
-            role: 'assistant',
             content: '',
-            toolInvocations: [],
             parts: [
               {
                 type: 'tool-invocation',

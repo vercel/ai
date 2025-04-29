@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useChat } from './use-chat';
+import { getToolInvocations } from 'ai';
 
 const { messages, handleSubmit, input } = useChat({
   onToolCall({ toolCall }) {
@@ -22,7 +23,10 @@ const { messages, handleSubmit, input } = useChat({
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
       {{ m.content }}
 
-      <div v-for="invocation in m.toolInvocations" :key="invocation.toolCallId">
+      <div
+        v-for="invocation in getToolInvocations(m)"
+        :key="invocation.toolCallId"
+      >
         <template v-if="invocation.state === 'result'">
           {{ invocation.result }}
         </template>

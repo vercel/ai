@@ -43,20 +43,6 @@ exports[`appendResponseMessages > after assistant message > adds assistant text 
       },
     ],
     "role": "assistant",
-    "toolInvocations": [
-      {
-        "args": {
-          "query": "some query",
-        },
-        "result": {
-          "answer": "Tool result data",
-        },
-        "state": "result",
-        "step": 0,
-        "toolCallId": "call-1",
-        "toolName": "some-tool",
-      },
-    ],
   },
 ]
 `;
@@ -112,29 +98,6 @@ exports[`appendResponseMessages > after assistant message > adds assistant tool 
       },
     ],
     "role": "assistant",
-    "toolInvocations": [
-      {
-        "args": {
-          "query": "some query",
-        },
-        "result": {
-          "answer": "Tool result data",
-        },
-        "state": "result",
-        "step": 0,
-        "toolCallId": "call-1",
-        "toolName": "some-tool",
-      },
-      {
-        "args": {
-          "query": "another query",
-        },
-        "state": "call",
-        "step": 1,
-        "toolCallId": "call-2",
-        "toolName": "some-tool",
-      },
-    ],
   },
 ]
 `;
@@ -175,20 +138,6 @@ exports[`appendResponseMessages > after assistant message > adds tool results to
       },
     ],
     "role": "assistant",
-    "toolInvocations": [
-      {
-        "args": {
-          "query": "some query",
-        },
-        "result": {
-          "answer": "Tool result data",
-        },
-        "state": "result",
-        "step": 0,
-        "toolCallId": "call-1",
-        "toolName": "some-tool",
-      },
-    ],
   },
 ]
 `;
@@ -258,20 +207,6 @@ exports[`appendResponseMessages > after assistant message > appends assistant me
       },
     ],
     "role": "assistant",
-    "toolInvocations": [
-      {
-        "args": {
-          "query": "some query",
-        },
-        "result": {
-          "answer": "Tool result data",
-        },
-        "state": "result",
-        "step": 0,
-        "toolCallId": "call-1",
-        "toolName": "some-tool",
-      },
-    ],
   },
 ]
 `;
@@ -340,32 +275,6 @@ exports[`appendResponseMessages > after user message > adds chain of assistant m
       },
     ],
     "role": "assistant",
-    "toolInvocations": [
-      {
-        "args": {
-          "query": "some query",
-        },
-        "result": {
-          "answer": "Tool result data",
-        },
-        "state": "result",
-        "step": 0,
-        "toolCallId": "call-1",
-        "toolName": "some-tool",
-      },
-      {
-        "args": {
-          "query": "another query",
-        },
-        "result": {
-          "answer": "another result",
-        },
-        "state": "result",
-        "step": 1,
-        "toolCallId": "call-2",
-        "toolName": "some-tool",
-      },
-    ],
   },
 ]
 `;
@@ -399,7 +308,6 @@ exports[`appendResponseMessages > after user message > appends assistant message
       },
     ],
     "role": "assistant",
-    "toolInvocations": [],
   },
 ]
 `;
@@ -454,7 +362,6 @@ exports[`appendResponseMessages > after user message > appends assistant message
       },
     ],
     "role": "assistant",
-    "toolInvocations": [],
   },
 ]
 `;
@@ -487,7 +394,6 @@ exports[`appendResponseMessages > after user message > appends assistant message
       },
     ],
     "role": "assistant",
-    "toolInvocations": [],
   },
 ]
 `;
@@ -532,17 +438,6 @@ exports[`appendResponseMessages > after user message > handles tool calls and ma
       },
     ],
     "role": "assistant",
-    "toolInvocations": [
-      {
-        "args": {
-          "query": "some query",
-        },
-        "state": "call",
-        "step": 0,
-        "toolCallId": "call-1",
-        "toolName": "some-tool",
-      },
-    ],
   },
 ]
 `;

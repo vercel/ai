@@ -2,7 +2,12 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { formatDataStreamPart, type Message } from 'ai';
+import {
+  formatDataStreamPart,
+  getToolInvocations,
+  type Message,
+  type UIMessage,
+} from 'ai';
 import { render } from '@testing-library/svelte';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
@@ -495,39 +500,33 @@ describe('onToolCall', () => {
 
     const appendOperation = chat.append({ role: 'user', content: 'hi' });
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     resolve();
     await appendOperation;
 
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        toolInvocations: [
-          {
-            state: 'result',
-            step: 0,
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-            result:
-              'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
-          },
-        ],
-      }),
-    );
+    expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
+      {
+        state: 'result',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+        result:
+          'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+      },
+    ]);
   });
 });
 
@@ -557,18 +556,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'partial-call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'partial-call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: undefined,
+        },
+      ]);
     });
 
     controller.write(
@@ -579,19 +577,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'partial-call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 't' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'partial-call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 't' },
+        },
+      ]);
     });
 
     controller.write(
@@ -602,19 +598,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'partial-call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'partial-call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     controller.write(
@@ -626,19 +620,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     controller.write(
@@ -650,20 +642,16 @@ describe('tool invocations', () => {
     controller.close();
     await appendOperation;
 
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        toolInvocations: [
-          {
-            state: 'result',
-            step: 0,
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-            result: 'test-result',
-          },
-        ],
-      }),
-    );
+    expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
+      {
+        state: 'result',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+        result: 'test-result',
+      },
+    ]);
   });
 
   it('should display partial tool call and tool result (when there is no tool call streaming)', async () => {
@@ -684,19 +672,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     controller.write(
@@ -708,20 +694,16 @@ describe('tool invocations', () => {
     controller.close();
     await appendOperation;
 
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        toolInvocations: [
-          {
-            state: 'result',
-            step: 0,
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-            result: 'test-result',
-          },
-        ],
-      }),
-    );
+    expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
+      {
+        state: 'result',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+        result: 'test-result',
+      },
+    ]);
   });
 
   it('should update tool call to result when addToolResult is called', async () => {
@@ -739,19 +721,17 @@ describe('tool invocations', () => {
     await chat.append({ role: 'user', content: 'hi' });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     chat.addToolResult({
@@ -760,20 +740,18 @@ describe('tool invocations', () => {
     });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'result',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-              result: 'test-result',
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'result',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+          result: 'test-result',
+        },
+      ]);
     });
   });
 
@@ -805,19 +783,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     // user submits the tool result
@@ -828,20 +804,18 @@ describe('tool invocations', () => {
 
     // UI should show the tool result
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'result',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-              result: 'test-result',
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'result',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+          result: 'test-result',
+        },
+      ]);
     });
 
     // should not have called the API yet
