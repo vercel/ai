@@ -1,6 +1,5 @@
-import { ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
 import { GeneratedFile } from '../generate-text';
-import { ImageGenerationWarning } from '../types/image-model';
+import { ImageGenerationWarning, ImageModelProviderMetadata } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 
 /**
@@ -32,5 +31,5 @@ Response metadata from the provider. There may be multiple responses if we made 
    * Provider-specific metadata. They are passed through from the provider to the AI SDK and enable provider-specific
    * results that can be fully encapsulated in the provider.
    */
-  readonly providerMetadata: ImageModelV2ProviderMetadata;
+  readonly providerMetadata: ImageModelProviderMetadata;
 }
