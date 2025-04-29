@@ -208,14 +208,13 @@ export function useChat(
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
       const previousMessages = fillMessageParts(messagesSnapshot);
-      const chatMessages = previousMessages;
-      mutate(chatMessages);
+      mutate(previousMessages);
 
       const existingData = (streamData.value ?? []) as JSONValue[];
 
       const constructedMessagesPayload = sendExtraMessageFields
-        ? chatMessages
-        : chatMessages.map(
+        ? previousMessages
+        : previousMessages.map(
             ({
               role,
               content,
@@ -237,7 +236,7 @@ export function useChat(
         api,
         body: experimental_prepareRequestBody?.({
           id: chatId,
-          messages: chatMessages,
+          messages: previousMessages,
           requestData: data,
           requestBody: body,
         }) ?? {
@@ -260,8 +259,8 @@ export function useChat(
 
           mutate([
             ...(replaceLastMessage
-              ? chatMessages.slice(0, chatMessages.length - 1)
-              : chatMessages),
+              ? previousMessages.slice(0, previousMessages.length - 1)
+              : previousMessages),
             message,
           ]);
           if (data?.length) {
@@ -279,7 +278,9 @@ export function useChat(
         onToolCall,
         fetch,
         // enabled use of structured clone in processChatResponse:
-        lastMessage: recursiveToRaw(chatMessages[chatMessages.length - 1]),
+        lastMessage: recursiveToRaw(
+          previousMessages[previousMessages.length - 1],
+        ),
       });
 
       mutateStatus(() => 'ready');
