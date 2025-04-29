@@ -17,7 +17,7 @@ describe('streamObject', () => {
     >;
 
     for await (const text of result.partialObjectStream) {
-      expectTypeOf(text).toEqualTypeOf<'a' | 'b' | 'c' | (string & {})>();
+      expectTypeOf(text).toEqualTypeOf<string>();
     }
   });
 

@@ -214,7 +214,7 @@ Callback that is called when the LLM response and the final object validation ar
     },
 ): StreamObjectResult<
   Output extends 'enum'
-    ? RESULT | (string & {})
+    ? string
     : Output extends 'array'
       ? RESULT
       : DeepPartial<RESULT>,

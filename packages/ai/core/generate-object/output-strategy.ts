@@ -290,7 +290,7 @@ const arrayOutputStrategy = <ELEMENT>(
 
 const enumOutputStrategy = <ENUM extends string>(
   enumValues: Array<ENUM>,
-): OutputStrategy<ENUM | (string & {}), ENUM, never> => {
+): OutputStrategy<string, ENUM, never> => {
   return {
     type: 'enum',
 
