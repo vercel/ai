@@ -317,7 +317,7 @@ export function useChat(
 
   const append: UseChatHelpers['append'] = async (message, options) => {
     const attachmentsForRequest = await prepareAttachmentsForRequest(
-      options?.experimental_attachments,
+      options?.experimental_attachments ?? message.experimental_attachments,
     );
 
     return triggerRequest(
