@@ -1,5 +1,14 @@
 # ai
 
+## 4.3.11
+
+### Patch Changes
+
+- Updated dependencies [77b2097]
+- Updated dependencies [62181ef]
+  - @ai-sdk/react@1.2.10
+  - @ai-sdk/ui-utils@1.2.9
+
 ## 4.3.10
 
 ### Patch Changes
