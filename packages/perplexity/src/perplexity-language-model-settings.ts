@@ -1,5 +1,6 @@
-// https://docs.perplexity.ai/guides/model-cards
+// https://docs.perplexity.ai/models/model-cards
 export type PerplexityLanguageModelId =
+  | 'sonar-deep-research'
   | 'sonar-reasoning-pro'
   | 'sonar-reasoning'
   | 'sonar-pro'

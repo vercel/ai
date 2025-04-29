@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.2.14
+
+### Patch Changes
+
+- c695a7e: feat (provider/google): add new gemini models
+
 ## 1.2.13
 
 ### Patch Changes
