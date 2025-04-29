@@ -78,28 +78,13 @@ The 'data' role is deprecated.
   annotations?: JSONValue[] | undefined;
 
   /**
-Tool invocations (that can be tool calls or tool results, depending on whether or not the invocation has finished)
-that the assistant made as part of this message.
-
-@deprecated Use `parts` instead.
-   */
-  toolInvocations?: Array<ToolInvocation>;
-
-  /**
    * The parts of the message. Use this for rendering the message in the UI.
    *
    * Assistant messages can have text, reasoning and tool invocation parts.
    * User messages can have text parts.
    */
   // note: optional on the Message type (which serves as input)
-  parts?: Array<
-    | TextUIPart
-    | ReasoningUIPart
-    | ToolInvocationUIPart
-    | SourceUIPart
-    | FileUIPart
-    | StepStartUIPart
-  >;
+  parts?: Array<UIMessagePart>;
 }
 
 export type UIMessage = Message & {
@@ -109,15 +94,16 @@ export type UIMessage = Message & {
    * Assistant messages can have text, reasoning and tool invocation parts.
    * User messages can have text parts.
    */
-  parts: Array<
-    | TextUIPart
-    | ReasoningUIPart
-    | ToolInvocationUIPart
-    | SourceUIPart
-    | FileUIPart
-    | StepStartUIPart
-  >;
+  parts: Array<UIMessagePart>;
 };
+
+export type UIMessagePart =
+  | TextUIPart
+  | ReasoningUIPart
+  | ToolInvocationUIPart
+  | SourceUIPart
+  | FileUIPart
+  | StepStartUIPart;
 
 /**
  * A text part of a message.
