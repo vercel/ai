@@ -196,9 +196,11 @@ export function useChat(
     mutateStatus(() => 'submitted');
 
     const messageCount = messages.value.length;
-    const maxStep = extractMaxToolInvocationStep(
-      getToolInvocations(messages.value[messages.value.length - 1]),
-    );
+    const lastMessage = messages.value.at(-1);
+    const maxStep =
+      lastMessage != null
+        ? extractMaxToolInvocationStep(getToolInvocations(lastMessage))
+        : 0;
 
     try {
       abortController = new AbortController();
