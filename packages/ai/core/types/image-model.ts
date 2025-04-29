@@ -1,4 +1,8 @@
-import { ImageModelV2, ImageModelV2CallWarning, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
+import {
+  ImageModelV2,
+  ImageModelV2CallWarning,
+  ImageModelV2ProviderMetadata,
+} from '@ai-sdk/provider';
 
 /**
 Image model that is used by the AI SDK Core functions.

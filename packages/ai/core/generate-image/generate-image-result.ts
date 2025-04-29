@@ -1,5 +1,8 @@
 import { GeneratedFile } from '../generate-text';
-import { ImageGenerationWarning, ImageModelProviderMetadata } from '../types/image-model';
+import {
+  ImageGenerationWarning,
+  ImageModelProviderMetadata,
+} from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 
 /**
