@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useChat } from './use-chat';
+import { getToolInvocations } from 'ai';
 
 const { messages, append, addToolResult } = useChat({
   maxSteps: 5,
@@ -14,7 +15,7 @@ const { messages, append, addToolResult } = useChat({
       :data-testid="`message-${idx}`"
     >
       <div
-        v-for="(toolInvocation, toolIdx) in m.toolInvocations"
+        v-for="(toolInvocation, toolIdx) in getToolInvocations(m)"
         :key="toolInvocation.toolCallId"
       >
         {{ JSON.stringify(toolInvocation) }}
