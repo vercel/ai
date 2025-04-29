@@ -1,5 +1,17 @@
 # @ai-sdk/togetherai
 
+## 1.0.0-canary.13
+
+### Patch Changes
+
+- d9209ca: fix (image-model): `specificationVersion: v1` -> `v2`
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [d9209ca]
+- Updated dependencies [0ff02bb]
+  - @ai-sdk/provider@2.0.0-canary.12
+  - @ai-sdk/openai-compatible@1.0.0-canary.13
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+
 ## 1.0.0-canary.12
 
 ### Patch Changes
