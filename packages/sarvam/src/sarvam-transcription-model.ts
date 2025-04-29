@@ -38,7 +38,7 @@ interface SarvamTranscriptionModelConfig extends SarvamConfig {
 }
 
 export class SarvamTranscriptionModel implements TranscriptionModelV1 {
-  readonly specificationVersion: 'v1';
+  readonly specificationVersion = 'v1';
 
   constructor(
     readonly modelId: SarvamTranscriptionModelId,
@@ -50,6 +50,8 @@ export class SarvamTranscriptionModel implements TranscriptionModelV1 {
   }
 
   private getArgs({
+    audio,
+    mediaType,
     providerOptions,
   }: Parameters<TranscriptionModelV1['doGenerate']>[0]) {
     const warnings: TranscriptionModelV1CallWarning[] = [];
@@ -59,5 +61,37 @@ export class SarvamTranscriptionModel implements TranscriptionModelV1 {
       providerOptions,
       schema: sarvamProviderOptionsSchema,
     });
+
+    const formData = new FormData();
+    const blob =
+      audio instanceof Blob ? audio : new Blob([audio], { type: mediaType });
+
+    formData.append('file', blob);
+    formData.append('model', this.modelId);
+    if (sarvamOptions) {
+      formData.append('language_code', sarvamOptions.language_code);
+      formData.append(
+        'with_timestamps',
+        sarvamOptions.with_timestamps ? 'true' : 'false',
+      );
+      formData.append(
+        'with_diarization',
+        sarvamOptions.with_diarization ? 'true' : 'false',
+      );
+      if (
+        sarvamOptions.num_speakers !== null &&
+        sarvamOptions.num_speakers !== undefined
+      ) {
+        formData.append('num_speakers', sarvamOptions.num_speakers.toString());
+      }
+    }
+
+    return {
+      formData,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      warnings,
+    };
   }
 }
