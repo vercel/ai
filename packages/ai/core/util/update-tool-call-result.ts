@@ -30,11 +30,9 @@ export function updateToolCallResult({
     return;
   }
 
-  const toolResult = {
+  invocationPart.toolInvocation = {
     ...invocationPart.toolInvocation,
     state: 'result' as const,
     result,
   };
-
-  invocationPart.toolInvocation = toolResult;
 }
