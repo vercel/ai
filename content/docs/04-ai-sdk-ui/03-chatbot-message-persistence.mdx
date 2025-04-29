@@ -340,8 +340,9 @@ The following are the pre-requisities for your chat application to support resum
 
 To resume a chat stream, you will use the `experimental_resume` function returned by the `useChat` hook. You will call this function during the initial mount of the hook inside the main chat component.
 
-```filename="app/components/chat.tsx"
+```tsx filename="app/components/chat.tsx"
 'use client'
+
 import { useChat } from "@ai-sdk/react";
 import { Input } from "@/components/input";
 import { Messages } from "@/components/messages";
@@ -369,7 +370,7 @@ The `experimental_resume` function makes a `GET` request to your configured chat
 
 The `GET` request automatically appends the `chatId` query parameter to the URL to help identify the chat the request belongs to. Using the `chatId`, you can look up the most recent stream ID from the database and resume the stream.
 
-```
+```bash
 GET /api/chat?chatId=<your-chat-id>
 ```
 
