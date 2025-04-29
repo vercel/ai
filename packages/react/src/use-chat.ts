@@ -13,6 +13,7 @@ import {
   fillMessageParts,
   generateId as generateIdFunc,
   getMessageParts,
+  getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
   prepareAttachmentsForRequest,
   shouldResubmitMessages,
@@ -244,7 +245,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
       const messageCount = chatMessages.length;
       const maxStep = extractMaxToolInvocationStep(
-        chatMessages[chatMessages.length - 1]?.toolInvocations,
+        getToolInvocations(chatMessages[chatMessages.length - 1]),
       );
 
       try {
@@ -269,7 +270,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
                 content,
                 experimental_attachments,
                 annotations,
-                toolInvocations,
                 parts,
               }) => ({
                 role,
@@ -278,7 +278,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
                   experimental_attachments,
                 }),
                 ...(annotations !== undefined && { annotations }),
-                ...(toolInvocations !== undefined && { toolInvocations }),
                 ...(parts !== undefined && { parts }),
               }),
             );

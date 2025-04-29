@@ -3,15 +3,16 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
+import '@testing-library/jest-dom/vitest';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   formatDataStreamPart,
   generateId,
   getTextFromDataUrl,
+  getToolInvocations,
   Message,
 } from 'ai';
-import '@testing-library/jest-dom/vitest';
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -677,7 +678,7 @@ describe('onToolCall', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.toolInvocations?.map((toolInvocation, toolIdx) => (
+            {getToolInvocations(m).map((toolInvocation, toolIdx) => (
               <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
                 {JSON.stringify(toolInvocation)}
               </div>
@@ -740,7 +741,7 @@ describe('tool invocations', () => {
       <div>
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
-            {m.toolInvocations?.map((toolInvocation, toolIdx) => {
+            {getToolInvocations(m).map((toolInvocation, toolIdx) => {
               return (
                 <div key={toolIdx}>
                   <div data-testid={`tool-invocation-${toolIdx}`}>
@@ -1071,7 +1072,7 @@ describe('maxSteps', () => {
 
           {messages.map((m, idx) => (
             <div data-testid={`message-${idx}`} key={m.id}>
-              {m.toolInvocations?.map((toolInvocation, toolIdx) =>
+              {getToolInvocations(m).map((toolInvocation, toolIdx) =>
                 'result' in toolInvocation ? (
                   <div key={toolIdx} data-testid={`tool-invocation-${toolIdx}`}>
                     {toolInvocation.result}

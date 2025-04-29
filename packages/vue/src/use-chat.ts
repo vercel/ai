@@ -12,6 +12,7 @@ import {
   fillMessageParts,
   generateId as generateIdFunc,
   getMessageParts,
+  getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
   prepareAttachmentsForRequest,
   shouldResubmitMessages,
@@ -196,7 +197,7 @@ export function useChat(
 
     const messageCount = messages.value.length;
     const maxStep = extractMaxToolInvocationStep(
-      messages.value[messages.value.length - 1]?.toolInvocations,
+      getToolInvocations(messages.value[messages.value.length - 1]),
     );
 
     try {
@@ -218,7 +219,6 @@ export function useChat(
               content,
               experimental_attachments,
               annotations,
-              toolInvocations,
               parts,
             }) => ({
               role,
@@ -227,7 +227,6 @@ export function useChat(
                 experimental_attachments,
               }),
               ...(annotations !== undefined && { annotations }),
-              ...(toolInvocations !== undefined && { toolInvocations }),
               ...(parts !== undefined && { parts }),
             }),
           );
