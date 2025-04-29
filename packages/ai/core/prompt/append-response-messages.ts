@@ -1,3 +1,5 @@
+import { AISDKError } from '@ai-sdk/provider';
+import { ResponseMessage } from '../generate-text/step-result';
 import {
   FileUIPart,
   Message,
@@ -8,11 +10,9 @@ import {
   ToolInvocationUIPart,
   UIMessage,
 } from '../types';
-import { extractMaxToolInvocationStep } from '../util';
-import { ResponseMessage } from '../generate-text/step-result';
-import { convertDataContentToBase64String } from './data-content';
-import { AISDKError } from '@ai-sdk/provider';
 import { getToolInvocations } from '../ui/get-tool-invocations';
+import { extractMaxToolInvocationStep } from '../util';
+import { convertDataContentToBase64String } from './data-content';
 
 /**
  * Appends the ResponseMessage[] from the response to a Message[] (for useChat).

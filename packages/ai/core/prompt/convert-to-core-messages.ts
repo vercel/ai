@@ -1,3 +1,4 @@
+import { ToolSet } from '../generate-text/tool-set';
 import {
   FileUIPart,
   Message,
@@ -5,10 +6,9 @@ import {
   TextUIPart,
   ToolInvocationUIPart,
 } from '../types';
-import { ToolSet } from '../generate-text/tool-set';
-import { AssistantContent, CoreMessage } from './message';
-import { ToolCallPart, ToolResultPart } from './content-part';
 import { attachmentsToParts } from './attachments-to-parts';
+import { ToolResultPart } from './content-part';
+import { AssistantContent, CoreMessage } from './message';
 import { MessageConversionError } from './message-conversion-error';
 
 /**
