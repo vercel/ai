@@ -42,7 +42,9 @@ Provider-specific model ID for logging purposes.
    *
    * @returns A promise resolving to a map of supported URL patterns.
    */
-  getSupportedUrls(): PromiseLike<Record<string, RegExp[]>>;
+  supportedUrls:
+    | PromiseLike<Record<string, RegExp[]>>
+    | Record<string, RegExp[]>;
 
   /**
 Generates a language model output (non-streaming).

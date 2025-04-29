@@ -3275,13 +3275,16 @@ describe('streamText', () => {
           {
             role: 'assistant',
             content: '',
-            toolInvocations: [
+            parts: [
               {
-                state: 'result',
-                toolCallId: 'call-1',
-                toolName: 'test-tool',
-                args: { value: 'test-value' },
-                result: 'test result',
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-1',
+                  toolName: 'test-tool',
+                  args: { value: 'test-value' },
+                  result: 'test result',
+                },
               },
             ],
           },
@@ -3293,13 +3296,13 @@ describe('streamText', () => {
       ).toStrictEqual(['Hello']);
     });
 
-    it('should support models that use "this" context in getSupportedUrls', async () => {
-      let getSupportedUrlsCalled = false;
+    it('should support models that use "this" context in supportedUrls', async () => {
+      let supportedUrlsCalled = false;
       class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
         constructor() {
           super({
-            async getSupportedUrls() {
-              getSupportedUrlsCalled = true;
+            supportedUrls() {
+              supportedUrlsCalled = true;
               // Reference 'this' to verify context
               return this.modelId === 'mock-model-id'
                 ? ({ 'image/*': [/^https:\/\/.*$/] } as Record<
@@ -3332,7 +3335,7 @@ describe('streamText', () => {
 
       await result.consumeStream();
 
-      expect(getSupportedUrlsCalled).toBe(true);
+      expect(supportedUrlsCalled).toBe(true);
       expect(await result.text).toBe('Hello, world!');
     });
   });

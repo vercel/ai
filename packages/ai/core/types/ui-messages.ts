@@ -1,4 +1,5 @@
 import {
+  JSONValue,
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
@@ -60,18 +61,13 @@ The timestamp of the message.
   /**
 Text content of the message. Use parts when possible.
    */
+  // TODO replace with readonly property that is only available on the client
   content: string;
-
-  /**
-Reasoning for the message.
-
-@deprecated Use `parts` instead.
-   */
-  reasoning?: string;
 
   /**
    * Additional attachments to be sent along with the message.
    */
+  // TODO replace with FileUIParts in user messages
   experimental_attachments?: Attachment[];
 
   /**
@@ -80,24 +76,10 @@ The 'data' role is deprecated.
   role: 'system' | 'user' | 'assistant' | 'data';
 
   /**
-For data messages.
-
-@deprecated Data messages will be removed.
-   */
-  data?: JSONValue;
-
-  /**
    * Additional message-specific information added on the server via StreamData
    */
+  // TODO replace with special part
   annotations?: JSONValue[] | undefined;
-
-  /**
-Tool invocations (that can be tool calls or tool results, depending on whether or not the invocation has finished)
-that the assistant made as part of this message.
-
-@deprecated Use `parts` instead.
-   */
-  toolInvocations?: Array<ToolInvocation>;
 
   /**
    * The parts of the message. Use this for rendering the message in the UI.
@@ -106,14 +88,7 @@ that the assistant made as part of this message.
    * User messages can have text parts.
    */
   // note: optional on the Message type (which serves as input)
-  parts?: Array<
-    | TextUIPart
-    | ReasoningUIPart
-    | ToolInvocationUIPart
-    | SourceUIPart
-    | FileUIPart
-    | StepStartUIPart
-  >;
+  parts?: Array<UIMessagePart>;
 }
 
 export type UIMessage = Message & {
@@ -123,15 +98,16 @@ export type UIMessage = Message & {
    * Assistant messages can have text, reasoning and tool invocation parts.
    * User messages can have text parts.
    */
-  parts: Array<
-    | TextUIPart
-    | ReasoningUIPart
-    | ToolInvocationUIPart
-    | SourceUIPart
-    | FileUIPart
-    | StepStartUIPart
-  >;
+  parts: Array<UIMessagePart>;
 };
+
+export type UIMessagePart =
+  | TextUIPart
+  | ReasoningUIPart
+  | ToolInvocationUIPart
+  | SourceUIPart
+  | FileUIPart
+  | StepStartUIPart;
 
 /**
  * A text part of a message.
@@ -491,15 +467,3 @@ or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
 };
-
-/**
-A JSON value can be a string, number, boolean, object, array, or null.
-JSON values can be serialized and deserialized by the JSON.stringify and JSON.parse methods.
- */
-export type JSONValue =
-  | null
-  | string
-  | number
-  | boolean
-  | { [value: string]: JSONValue }
-  | Array<JSONValue>;

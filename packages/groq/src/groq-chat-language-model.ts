@@ -39,6 +39,10 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
   readonly modelId: GroqChatModelId;
 
+  readonly supportedUrls = {
+    'image/*': [/^https?:\/\/.*$/],
+  };
+
   private readonly config: GroqChatConfig;
 
   constructor(modelId: GroqChatModelId, config: GroqChatConfig) {
@@ -48,12 +52,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return {
-      'image/*': [/^https:\/\/.*$/],
-    };
   }
 
   private async getArgs({

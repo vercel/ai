@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.12
+
+### Patch Changes
+
+- 7b3ae3f: chore (provider): change getSupportedUrls to supportedUrls (language model v2)
+
 ## 2.0.0-canary.11
 
 ### Major Changes

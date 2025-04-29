@@ -36,7 +36,7 @@ type AnthropicMessagesConfig = {
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
   transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
-  getSupportedUrls?: LanguageModelV2['getSupportedUrls'];
+  supportedUrls?: () => LanguageModelV2['supportedUrls'];
 };
 
 export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
@@ -62,8 +62,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     return this.config.provider;
   }
 
-  async getSupportedUrls(): Promise<Record<string, RegExp[]>> {
-    return this.config.getSupportedUrls?.() ?? {};
+  get supportedUrls() {
+    return this.config.supportedUrls?.() ?? {};
   }
 
   private async getArgs({

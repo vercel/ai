@@ -15,6 +15,7 @@ import {
   getMessageParts,
   updateToolCallResult,
   isAssistantMessageWithCompletedToolCalls,
+  getToolInvocations,
 } from 'ai';
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
@@ -241,7 +242,7 @@ export class Chat {
     const messages = fillMessageParts(chatRequest.messages);
     const messageCount = messages.length;
     const maxStep = extractMaxToolInvocationStep(
-      messages[messages.length - 1]?.toolInvocations,
+      getToolInvocations(messages[messages.length - 1]),
     );
 
     try {
@@ -258,9 +259,7 @@ export class Chat {
               role,
               content,
               experimental_attachments,
-              data,
               annotations,
-              toolInvocations,
               parts,
             }) => ({
               role,
@@ -268,9 +267,7 @@ export class Chat {
               ...(experimental_attachments !== undefined && {
                 experimental_attachments,
               }),
-              ...(data !== undefined && { data }),
               ...(annotations !== undefined && { annotations }),
-              ...(toolInvocations !== undefined && { toolInvocations }),
               ...(parts !== undefined && { parts }),
             }),
           );

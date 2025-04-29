@@ -13,6 +13,7 @@ import {
   fillMessageParts,
   generateId as generateIdFunc,
   getMessageParts,
+  getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
   prepareAttachmentsForRequest,
   shouldResubmitMessages,
@@ -244,7 +245,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
       const messageCount = chatMessages.length;
       const maxStep = extractMaxToolInvocationStep(
-        chatMessages[chatMessages.length - 1]?.toolInvocations,
+        getToolInvocations(chatMessages[chatMessages.length - 1]),
       );
 
       try {
@@ -268,9 +269,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
                 role,
                 content,
                 experimental_attachments,
-                data,
                 annotations,
-                toolInvocations,
                 parts,
               }) => ({
                 role,
@@ -278,9 +277,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
                 ...(experimental_attachments !== undefined && {
                   experimental_attachments,
                 }),
-                ...(data !== undefined && { data }),
                 ...(annotations !== undefined && { annotations }),
-                ...(toolInvocations !== undefined && { toolInvocations }),
                 ...(parts !== undefined && { parts }),
               }),
             );
@@ -552,7 +549,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
       mutate(
         [
           ...currentMessages.slice(0, currentMessages.length - 1),
-          { ...currentMessages[currentMessages.length - 1] },
+          {
+            ...currentMessages[currentMessages.length - 1],
+            // @ts-ignore
+            // update the revisionId to trigger a re-render
+            revisionId: generateId(),
+          },
         ],
         false,
       );
@@ -568,7 +570,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         triggerRequest({ messages: currentMessages });
       }
     },
-    [mutate, status, triggerRequest],
+    [mutate, status, triggerRequest, generateId],
   );
 
   return {

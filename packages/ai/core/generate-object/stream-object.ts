@@ -117,33 +117,46 @@ export function streamObject<
         : T
       : never,
   SCHEMA extends z.Schema | Schema = z.Schema<JSONValue>,
-  Output extends 'object' | 'array' | 'no-schema' = 'object',
+  Output extends
+    | 'object'
+    | 'array'
+    | 'enum'
+    | 'no-schema' = RESULT extends string ? 'enum' : 'object',
 >(
   options: Omit<CallSettings, 'stopSequences'> &
     Prompt &
-    (Output extends 'no-schema'
-      ? {}
-      : {
+    (Output extends 'enum'
+      ? {
           /**
+The enum values that the model should use.
+        */
+          enum: Array<RESULT>;
+          mode?: 'json';
+          output: 'enum';
+        }
+      : Output extends 'no-schema'
+        ? {}
+        : {
+            /**
 The schema of the object that the model should generate.
       */
-          schema: SCHEMA;
+            schema: SCHEMA;
 
-          /**
+            /**
 Optional name of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema name.
       */
-          schemaName?: string;
+            schemaName?: string;
 
-          /**
+            /**
 Optional description of the output that should be generated.
 Used by some providers for additional LLM guidance, e.g.
 via tool or schema description.
       */
-          schemaDescription?: string;
+            schemaDescription?: string;
 
-          /**
+            /**
 The mode to use for object generation.
 
 The schema is converted into a JSON schema and used in one of the following ways
@@ -156,8 +169,8 @@ Please note that most providers do not support all modes.
 
 Default and recommended: 'auto' (best mode for the model).
       */
-          mode?: 'auto' | 'json' | 'tool';
-        }) & {
+            mode?: 'auto' | 'json' | 'tool';
+          }) & {
       output?: Output;
 
       /**
@@ -200,7 +213,11 @@ Callback that is called when the LLM response and the final object validation ar
       };
     },
 ): StreamObjectResult<
-  Output extends 'array' ? RESULT : DeepPartial<RESULT>,
+  Output extends 'enum'
+    ? string
+    : Output extends 'array'
+      ? RESULT
+      : DeepPartial<RESULT>,
   Output extends 'array' ? RESULT : RESULT,
   Output extends 'array'
     ? RESULT extends Array<infer U>
@@ -229,6 +246,9 @@ Callback that is called when the LLM response and the final object validation ar
     ...settings
   } = options;
 
+  const enumValues =
+    'enum' in options && options.enum ? options.enum : undefined;
+
   const {
     schema: inputSchema,
     schemaDescription,
@@ -240,9 +260,14 @@ Callback that is called when the LLM response and the final object validation ar
     schema: inputSchema,
     schemaName,
     schemaDescription,
+    enumValues,
   });
 
-  const outputStrategy = getOutputStrategy({ output, schema: inputSchema });
+  const outputStrategy = getOutputStrategy({
+    output,
+    schema: inputSchema,
+    enumValues,
+  });
 
   return new DefaultStreamObjectResult({
     model,
@@ -404,7 +429,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           ...prepareCallSettings(settings),
           prompt: await convertToLanguageModelPrompt({
             prompt: standardizedPrompt,
-            supportedUrls: await model.getSupportedUrls(),
+            supportedUrls: await model.supportedUrls,
           }),
           providerOptions,
           abortSignal,

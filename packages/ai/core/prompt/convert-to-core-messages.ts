@@ -1,3 +1,4 @@
+import { ToolSet } from '../generate-text/tool-set';
 import {
   FileUIPart,
   Message,
@@ -5,10 +6,9 @@ import {
   TextUIPart,
   ToolInvocationUIPart,
 } from '../types';
-import { ToolSet } from '../generate-text/tool-set';
-import { AssistantContent, CoreMessage } from './message';
-import { ToolCallPart, ToolResultPart } from './content-part';
 import { attachmentsToParts } from './attachments-to-parts';
+import { ToolResultPart } from './content-part';
+import { AssistantContent, CoreMessage } from './message';
 import { MessageConversionError } from './message-conversion-error';
 
 /**
@@ -204,79 +204,6 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
           processBlock();
 
           break;
-        }
-
-        const toolInvocations = message.toolInvocations;
-
-        if (toolInvocations == null || toolInvocations.length === 0) {
-          coreMessages.push({ role: 'assistant', content });
-          break;
-        }
-
-        const maxStep = toolInvocations.reduce((max, toolInvocation) => {
-          return Math.max(max, toolInvocation.step ?? 0);
-        }, 0);
-
-        for (let i = 0; i <= maxStep; i++) {
-          const stepInvocations = toolInvocations.filter(
-            toolInvocation => (toolInvocation.step ?? 0) === i,
-          );
-
-          if (stepInvocations.length === 0) {
-            continue;
-          }
-
-          // assistant message with tool calls
-          coreMessages.push({
-            role: 'assistant',
-            content: [
-              ...(isLastMessage && content && i === 0
-                ? [{ type: 'text' as const, text: content }]
-                : []),
-              ...stepInvocations.map(
-                ({ toolCallId, toolName, args }): ToolCallPart => ({
-                  type: 'tool-call' as const,
-                  toolCallId,
-                  toolName,
-                  args,
-                }),
-              ),
-            ],
-          });
-
-          // tool message with tool results
-          coreMessages.push({
-            role: 'tool',
-            content: stepInvocations.map((toolInvocation): ToolResultPart => {
-              if (!('result' in toolInvocation)) {
-                throw new MessageConversionError({
-                  originalMessage: message,
-                  message:
-                    'ToolInvocation must have a result: ' +
-                    JSON.stringify(toolInvocation),
-                });
-              }
-
-              const { toolCallId, toolName, result } = toolInvocation;
-
-              const tool = tools[toolName];
-              return tool?.experimental_toToolResultContent != null
-                ? {
-                    type: 'tool-result',
-                    toolCallId,
-                    toolName,
-                    result: tool.experimental_toToolResultContent(result),
-                    experimental_content:
-                      tool.experimental_toToolResultContent(result),
-                  }
-                : {
-                    type: 'tool-result',
-                    toolCallId,
-                    toolName,
-                    result,
-                  };
-            }),
-          });
         }
 
         if (content && !isLastMessage) {
