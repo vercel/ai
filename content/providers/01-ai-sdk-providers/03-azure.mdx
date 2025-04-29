@@ -301,35 +301,6 @@ The following OpenAI-specific metadata is returned:
 - **reasoningTokens** _number_
   The number of reasoning tokens that the model generated.
 
-#### Web Search
-
-The Azure OpenAI responses provider supports web search through the `azure.tools.webSearchPreview` tool.
-
-You can force the use of the web search tool by setting the `toolChoice` parameter to `{ type: 'tool', toolName: 'web_search_preview' }`.
-
-```ts
-const result = await generateText({
-  model: azure.responses('your-deployment-name'),
-  prompt: 'What happened in San Francisco last week?',
-  tools: {
-    web_search_preview: azure.tools.webSearchPreview({
-      // optional configuration:
-      searchContextSize: 'high',
-      userLocation: {
-        type: 'approximate',
-        city: 'San Francisco',
-        region: 'California',
-      },
-    }),
-  },
-  // Force web search tool:
-  toolChoice: { type: 'tool', toolName: 'web_search_preview' },
-});
-
-// URL sources
-const sources = result.sources;
-```
-
 #### PDF support
 
 The Azure OpenAI Responses API supports reading PDF files.

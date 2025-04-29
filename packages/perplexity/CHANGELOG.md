@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 1.1.8
+
+### Patch Changes
+
+- 8781e61: feat (provider/perplexity): add sonar-deep-research model
+
 ## 1.1.7
 
 ### Patch Changes
