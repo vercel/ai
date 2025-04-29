@@ -7,7 +7,7 @@ async function main() {
   const prompt = 'Santa Claus driving a Cadillac';
   const result = await generateImage({
     model: openai.image('dall-e-3'),
-    prompt
+    prompt,
   });
 
   const revisedPrompt = result.providerMetadata[0]?.openai.revisedPrompt;
@@ -16,9 +16,11 @@ async function main() {
   console.log(prompt);
 
   if (revisedPrompt) {
-    console.log(`Revised Prompt`);
+    console.log(`\nREVISED PROMPT`);
     console.log(revisedPrompt);
   }
+
+  console.log('');
 
   await presentImages([result.image]);
 }

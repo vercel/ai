@@ -65,7 +65,7 @@ record is an array provider-specific metadata, one per image.
 }
 ```
       */
-    providerMetadata?: Array<Record<string, SharedV2ProviderMetadata>>;
+    providerMetadata?: Array<SharedV2ProviderMetadata>;
 
     /**
 Response information for telemetry and debugging purposes.

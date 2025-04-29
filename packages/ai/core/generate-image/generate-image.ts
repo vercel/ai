@@ -163,7 +163,7 @@ Only applicable for HTTP-based providers.
     warnings.push(...result.warnings);
 
     if (result.providerMetadata) {
-      providerMetadata.push(...result.providerMetadata)
+      providerMetadata.push(...result.providerMetadata);
     }
 
     responses.push(result.response);

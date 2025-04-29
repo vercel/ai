@@ -1,4 +1,8 @@
-import { ImageModelV2, ImageModelV2CallWarning, JSONValue } from '@ai-sdk/provider';
+import {
+  ImageModelV2,
+  ImageModelV2CallWarning,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -37,7 +41,7 @@ export class OpenAIImageModel implements ImageModelV2 {
     readonly modelId: OpenAIImageModelId,
     private readonly settings: OpenAIImageSettings,
     private readonly config: OpenAIImageModelConfig,
-  ) { }
+  ) {}
 
   async doGenerate({
     prompt,
@@ -101,9 +105,9 @@ export class OpenAIImageModel implements ImageModelV2 {
       },
       providerMetadata: response.data.map(item => ({
         openai: { revisedPrompt: item.revised_prompt },
-      }))
-    }
-  };
+      })),
+    };
+  }
 }
 
 // minimal version of the schema, focussed on what is needed for the implementation
