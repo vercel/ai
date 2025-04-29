@@ -1,5 +1,6 @@
-import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { UIMessage } from '../types';
+import { getToolInvocations } from '../ui/get-tool-invocations';
+import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 
 export function shouldResubmitMessages({
   originalMaxToolInvocationStep,
@@ -20,12 +21,13 @@ export function shouldResubmitMessages({
     lastMessage != null &&
     // ensure we actually have new steps (to prevent infinite loops in case of errors):
     (messages.length > originalMessageCount ||
-      extractMaxToolInvocationStep(lastMessage.toolInvocations) !==
+      extractMaxToolInvocationStep(getToolInvocations(lastMessage)) !==
         originalMaxToolInvocationStep) &&
     // check that next step is possible:
     isAssistantMessageWithCompletedToolCalls(lastMessage) &&
     // limit the number of automatic steps:
-    (extractMaxToolInvocationStep(lastMessage.toolInvocations) ?? 0) < maxSteps
+    (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0) <
+      maxSteps
   );
 }
 

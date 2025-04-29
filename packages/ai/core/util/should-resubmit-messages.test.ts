@@ -62,16 +62,6 @@ describe('shouldResubmitMessages', () => {
                 },
               },
             ],
-            toolInvocations: [
-              {
-                state: 'result',
-                toolCallId: 'tool1',
-                toolName: 'some-tool',
-                args: {},
-                result: 'some result',
-                step: 1,
-              },
-            ],
           },
         ],
       }),

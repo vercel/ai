@@ -22,12 +22,6 @@ export function getMessageParts(
 )[] {
   return (
     message.parts ?? [
-      ...(message.toolInvocations
-        ? message.toolInvocations.map(toolInvocation => ({
-            type: 'tool-invocation' as const,
-            toolInvocation,
-          }))
-        : []),
       ...(message.content
         ? [{ type: 'text' as const, text: message.content }]
         : []),

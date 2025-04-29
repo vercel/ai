@@ -37,9 +37,4 @@ export function updateToolCallResult({
   };
 
   invocationPart.toolInvocation = toolResult;
-
-  lastMessage.toolInvocations = lastMessage.toolInvocations?.map(
-    toolInvocation =>
-      toolInvocation.toolCallId === toolCallId ? toolResult : toolInvocation,
-  );
 }
