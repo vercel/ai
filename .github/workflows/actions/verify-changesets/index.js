@@ -127,7 +127,7 @@ export async function verifyChangesets(
     if (invalidVersionBumps.length > 0) {
       throw Object.assign(
         new Error(
-          `Invalid .changeset file - invalid version bump (only "patch" is allowed, see https://sdk.vercel.ai/docs/migration-guides/versioning). To bypass, add one of the following labels: ${BYPASS_LABELS.join(', ')}`,
+          `Invalid .changeset file - invalid version bump (only "patch" is allowed, see https://ai-sdk.dev/docs/migration-guides/versioning). To bypass, add one of the following labels: ${BYPASS_LABELS.join(', ')}`,
         ),
 
         { path, content },
