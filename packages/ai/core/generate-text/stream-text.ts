@@ -1612,8 +1612,8 @@ However, the LLM results are expected to be small enough to not cause issues.
               controller.enqueue(
                 // TODO update protocol to v2 or replace with event stream
                 formatDataStreamPart('file', {
-                  mimeType: chunk.file.mediaType,
-                  data: chunk.file.base64,
+                  mediaType: chunk.file.mediaType,
+                  url: `data:${chunk.file.mediaType};base64,${chunk.file.base64}`,
                 }),
               );
               break;

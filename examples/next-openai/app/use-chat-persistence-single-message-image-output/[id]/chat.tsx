@@ -1,12 +1,12 @@
 'use client';
 
 import { createIdGenerator } from 'ai';
-import { Message, useChat } from '@ai-sdk/react';
+import { UIMessage, useChat } from '@ai-sdk/react';
 
 export default function Chat({
   id,
   initialMessages,
-}: { id?: string | undefined; initialMessages?: Message[] } = {}) {
+}: { id?: string | undefined; initialMessages?: UIMessage[] } = {}) {
   const { input, handleInputChange, handleSubmit, messages } = useChat({
     api: '/api/use-chat-persistence-single-message-image-output',
     id, // use the provided chatId
@@ -33,11 +33,8 @@ export default function Chat({
               part.mediaType.startsWith('image/')
             ) {
               return (
-                // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
-                <img
-                  key={index}
-                  src={`data:${part.mediaType};base64,${part.data}`}
-                />
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={index} src={part.url} alt="Generated image" />
               );
             }
           })}

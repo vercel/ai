@@ -1,4 +1,4 @@
-import { Message } from '../types';
+import { UIMessage } from '../types';
 import { CoreMessage } from './message';
 
 /**
@@ -19,5 +19,5 @@ A simple text prompt. You can either use `prompt` or `messages` but not both.
   /**
 A list of messages. You can either use `prompt` or `messages` but not both.
    */
-  messages?: Array<CoreMessage> | Array<Omit<Message, 'id'>>;
+  messages?: Array<CoreMessage> | Array<Omit<UIMessage, 'id'>>;
 };

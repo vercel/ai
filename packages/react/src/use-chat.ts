@@ -1,18 +1,15 @@
 import type {
   ChatRequest,
   ChatRequestOptions,
-  CreateMessage,
+  CreateUIMessage,
   JSONValue,
-  Message,
   UIMessage,
   UseChatOptions,
 } from 'ai';
 import {
   callChatApi,
   extractMaxToolInvocationStep,
-  fillMessageParts,
   generateId as generateIdFunc,
-  getMessageParts,
   getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
   prepareAttachmentsForRequest,
@@ -24,7 +21,7 @@ import useSWR from 'swr';
 import { throttle } from './throttle';
 import { useStableValue } from './util/use-stable-value';
 
-export type { CreateMessage, Message, UseChatOptions };
+export type { CreateUIMessage, UIMessage, UseChatOptions };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
@@ -38,7 +35,7 @@ export type UseChatHelpers = {
    * @param options Additional options to pass to the API call
    */
   append: (
-    message: Message | CreateMessage,
+    message: UIMessage | CreateUIMessage,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
@@ -59,7 +56,7 @@ export type UseChatHelpers = {
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
+    messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
   ) => void;
   /** The current value of the input */
   input: string;
@@ -105,6 +102,14 @@ export type UseChatHelpers = {
       | undefined
       | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
   ) => void;
+
+  addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
 
   /** The id of the chat */
   id: string;
@@ -164,15 +169,7 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
  */
   maxSteps?: number;
-} = {}): UseChatHelpers & {
-  addToolResult: ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: any;
-  }) => void;
-} {
+} = {}): UseChatHelpers {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
@@ -183,7 +180,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
   // Store array of the processed initial messages to avoid re-renders:
   const stableInitialMessages = useStableValue(initialMessages ?? []);
   const processedInitialMessages = useMemo(
-    () => fillMessageParts(stableInitialMessages),
+    () => stableInitialMessages,
     [stableInitialMessages],
   );
 
@@ -241,7 +238,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
       mutateStatus('submitted');
       setError(undefined);
 
-      const chatMessages = fillMessageParts(chatRequest.messages);
+      const chatMessages = chatRequest.messages;
 
       const messageCount = chatMessages.length;
       const maxStep = extractMaxToolInvocationStep(
@@ -399,7 +396,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
   const append = useCallback(
     async (
-      message: Message | CreateMessage,
+      message: UIMessage | CreateUIMessage,
       {
         data,
         headers,
@@ -417,7 +414,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         createdAt: message.createdAt ?? new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: getMessageParts(message),
+        parts: message.parts,
       });
 
       return triggerRequest({ messages, headers, body, data });
@@ -454,14 +451,13 @@ By default, it's set to 1, which means that only a single LLM call is made.
   }, []);
 
   const setMessages = useCallback(
-    (messages: Message[] | ((messages: Message[]) => Message[])) => {
+    (messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[])) => {
       if (typeof messages === 'function') {
         messages = messages(messagesRef.current);
       }
 
-      const messagesWithParts = fillMessageParts(messages);
-      mutate(messagesWithParts, false);
-      messagesRef.current = messagesWithParts;
+      mutate(messages, false);
+      messagesRef.current = messages;
     },
     [mutate],
   );

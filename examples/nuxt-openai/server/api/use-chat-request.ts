@@ -1,5 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { streamText, type Message } from 'ai';
+import { streamText, type UIMessage } from 'ai';
 
 export default defineLazyEventHandler(async () => {
   const openai = createOpenAI({
@@ -11,7 +11,7 @@ export default defineLazyEventHandler(async () => {
     const { message } = await readBody(event);
 
     // Implement your own logic here to add message history
-    const previousMessages: Message[] = [];
+    const previousMessages: UIMessage[] = [];
     const messages = [...previousMessages, message];
 
     // Call the language model

@@ -1,11 +1,11 @@
 'use client';
 
-import { Message, useChat } from '@ai-sdk/react';
+import { UIMessage, useChat } from '@ai-sdk/react';
+import { tools } from '../api/use-chat-human-in-the-loop/tools';
 import {
   APPROVAL,
   getToolsRequiringConfirmation,
 } from '../api/use-chat-human-in-the-loop/utils';
-import { tools } from '../api/use-chat-human-in-the-loop/tools';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
@@ -16,7 +16,7 @@ export default function Chat() {
 
   const toolsRequiringConfirmation = getToolsRequiringConfirmation(tools);
 
-  const pendingToolCallConfirmation = messages.some((m: Message) =>
+  const pendingToolCallConfirmation = messages.some((m: UIMessage) =>
     m.parts?.some(
       part =>
         part.type === 'tool-invocation' &&
@@ -27,7 +27,7 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages?.map((m: Message) => (
+      {messages?.map((m: UIMessage) => (
         <div key={m.id} className="whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
           {m.parts?.map((part, i) => {

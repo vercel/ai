@@ -1,4 +1,4 @@
-import { Message } from '../types';
+import { UIMessage } from '../types';
 import { detectPromptType } from './detect-prompt-type';
 import type { CoreMessage } from './message';
 
@@ -12,22 +12,13 @@ it('should return "messages" for empty arrays', () => {
   expect(detectPromptType([])).toBe('messages');
 });
 
-it('should detect UI messages with data role', () => {
-  const messages: Omit<Message, 'id'>[] = [
-    {
-      role: 'data',
-      content: 'some data',
-    },
-  ];
-  expect(detectPromptType(messages)).toBe('ui-messages');
-});
-
 it('should detect UI messages with experimental_attachments', () => {
-  const messages: Omit<Message, 'id'>[] = [
+  const messages: Omit<UIMessage, 'id'>[] = [
     {
       role: 'user',
       content: 'Check this file',
       experimental_attachments: [{ contentType: 'image/png', url: 'test.png' }],
+      parts: [{ text: 'Check this file', type: 'text' }],
     },
   ];
   expect(detectPromptType(messages)).toBe('ui-messages');
@@ -88,7 +79,7 @@ it('should detect mixed core messages and simple messages as valid messages', ()
 });
 
 it('should detect UI messages with parts array', () => {
-  const messages: Omit<Message, 'id'>[] = [
+  const messages: Omit<UIMessage, 'id'>[] = [
     {
       role: 'assistant',
       content: 'Hello',

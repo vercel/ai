@@ -401,8 +401,8 @@ const fileStreamPart: DataStreamPart<
   'k',
   'file',
   {
-    data: string; // base64 encoded data
-    mimeType: string;
+    url: string;
+    mediaType: string;
   }
 > = {
   code: 'k',
@@ -411,16 +411,16 @@ const fileStreamPart: DataStreamPart<
     if (
       value == null ||
       typeof value !== 'object' ||
-      !('data' in value) ||
-      typeof value.data !== 'string' ||
-      !('mimeType' in value) ||
-      typeof value.mimeType !== 'string'
+      !('url' in value) ||
+      typeof value.url !== 'string' ||
+      !('mediaType' in value) ||
+      typeof value.mediaType !== 'string'
     ) {
       throw new Error(
-        '"file" parts expect an object with a "data" and "mimeType" property.',
+        '"file" parts expect an object with a "url" and "mediaType" property.',
       );
     }
-    return { type: 'file', value: value as { data: string; mimeType: string } };
+    return { type: 'file', value: value as { url: string; mediaType: string } };
   },
 };
 
@@ -533,7 +533,7 @@ export const parseDataStreamPart = (line: string): DataStreamPartType => {
 };
 
 /**
-Prepends a string with a prefix from the `StreamChunkPrefixes`, JSON-ifies it,
+Prepends a string with a prefix from the `StreamChunkPrefixes`, converts it to JSON,
 and appends a new line.
 
 It ensures type-safety for the part type and value.

@@ -1475,6 +1475,7 @@ describe('options.messages', () => {
             {
               content: [
                 {
+                  providerOptions: undefined,
                   text: 'prompt',
                   type: 'text',
                 },
@@ -1524,6 +1525,7 @@ describe('options.messages', () => {
         {
           role: 'user',
           content: 'prompt',
+          parts: [{ type: 'text', text: 'prompt' }],
         },
         {
           role: 'assistant',

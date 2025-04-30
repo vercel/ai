@@ -1,6 +1,6 @@
 'use client';
 
-import { Message, useChat } from '@ai-sdk/react';
+import { UIMessage, useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, data, setData } =
@@ -22,7 +22,7 @@ export default function Chat() {
         </>
       )}
 
-      {messages?.map((m: Message) => (
+      {messages?.map((m: UIMessage) => (
         <div key={m.id} className="whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
           {m.content}
