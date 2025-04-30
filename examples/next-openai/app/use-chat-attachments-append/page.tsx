@@ -1,8 +1,8 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { getTextFromDataUrl } from 'ai';
 import { useChat } from '@ai-sdk/react';
+import { convertFileListToFileUIParts } from 'ai';
 import { useRef, useState } from 'react';
 
 export default function Page() {
@@ -21,43 +21,38 @@ export default function Page() {
             <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
 
             <div className="flex flex-col gap-2">
-              {message.content}
-
-              <div className="flex flex-row gap-2">
-                {message.experimental_attachments?.map((attachment, index) =>
-                  attachment.contentType?.includes('image/') ? (
-                    <img
-                      key={`${message.id}-${index}`}
-                      className="w-24 rounded-md"
-                      src={attachment.url}
-                      alt={attachment.name}
-                    />
-                  ) : attachment.contentType?.includes('text/') ? (
-                    <div className="w-32 h-24 p-2 overflow-hidden text-xs border rounded-md ellipsis text-zinc-500">
-                      {getTextFromDataUrl(attachment.url)}
+              {message.parts.map((part, index) => {
+                if (part.type === 'text') {
+                  return <div key={index}>{part.text}</div>;
+                }
+                if (
+                  part.type === 'file' &&
+                  part.mediaType?.startsWith('image/')
+                ) {
+                  return (
+                    <div key={index}>
+                      <img className="rounded-md w-60" src={part.url} />
                     </div>
-                  ) : null,
-                )}
-              </div>
+                  );
+                }
+              })}
             </div>
           </div>
         ))}
       </div>
 
       <form
-        onSubmit={event => {
+        onSubmit={async event => {
           event.preventDefault();
 
-          append(
-            {
-              role: 'user',
-              content: input,
-              parts: [{ type: 'text', text: input }],
-            },
-            {
-              files,
-            },
-          );
+          append({
+            role: 'user',
+            content: input,
+            parts: [
+              ...(await convertFileListToFileUIParts(files)),
+              { type: 'text', text: input },
+            ],
+          });
 
           setFiles(undefined);
           setInput('');

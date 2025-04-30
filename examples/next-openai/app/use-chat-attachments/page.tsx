@@ -1,7 +1,6 @@
 'use client';
 
 /* eslint-disable @next/next/no-img-element */
-import { getTextFromDataUrl } from 'ai';
 import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 
@@ -20,17 +19,23 @@ export default function Page() {
           <div key={message.id} className="flex flex-row gap-2">
             <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
 
-            {message.parts.map((part, index) => {
-              if (part.type === 'text') {
-                return <div key={index}>{part.text}</div>;
-              }
-              if (
-                part.type === 'file' &&
-                part.mediaType?.startsWith('image/')
-              ) {
-                return <img key={index} src={part.url} />;
-              }
-            })}
+            <div className="flex flex-col gap-2">
+              {message.parts.map((part, index) => {
+                if (part.type === 'text') {
+                  return <div key={index}>{part.text}</div>;
+                }
+                if (
+                  part.type === 'file' &&
+                  part.mediaType?.startsWith('image/')
+                ) {
+                  return (
+                    <div key={index}>
+                      <img className="rounded-md w-60" src={part.url} />
+                    </div>
+                  );
+                }
+              })}
+            </div>
           </div>
         ))}
       </div>
