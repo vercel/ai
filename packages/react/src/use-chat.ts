@@ -138,6 +138,7 @@ export function useChat({
   fetch,
   keepLastMessageOnError = true,
   experimental_throttle: throttleWaitMs,
+  ...options
 }: UseChatOptions & {
   key?: string;
 
@@ -172,7 +173,15 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
  */
   maxSteps?: number;
+
+  '~internal'?: {
+    currentDate?: () => Date;
+  };
 } = {}): UseChatHelpers {
+  const getCurrentDate = useMemo(() => {
+    return () => options['~internal']?.currentDate?.() ?? new Date();
+  }, [options]);
+
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
@@ -325,6 +334,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           generateId,
           fetch,
           lastMessage: chatMessages[chatMessages.length - 1],
+          getCurrentDate,
         });
 
         abortControllerRef.current = null;
@@ -383,11 +393,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
       keepLastMessageOnError,
       throttleWaitMs,
       chatId,
+      getCurrentDate,
     ],
   );
 
   const append = useCallback(
-    async (
+    (
       message: UIMessage | CreateUIMessage,
       { data, headers, body }: ChatRequestOptions = {},
     ) =>
@@ -395,13 +406,13 @@ By default, it's set to 1, which means that only a single LLM call is made.
         messages: messagesRef.current.concat({
           ...message,
           id: message.id ?? generateId(),
-          createdAt: message.createdAt ?? new Date(),
+          createdAt: message.createdAt ?? getCurrentDate(),
         }),
         headers,
         body,
         data,
       }),
-    [triggerRequest, generateId],
+    [triggerRequest, generateId, getCurrentDate],
   );
 
   const reload = useCallback(
@@ -487,26 +498,22 @@ By default, it's set to 1, which means that only a single LLM call is made.
         ? options.files
         : await convertFileListToFileUIParts(options?.files);
 
-      const messages = messagesRef.current.concat({
-        id: generateId(),
-        createdAt: new Date(),
-        role: 'user',
-        content: input,
-        parts: [...fileParts, { type: 'text', text: input }],
-      });
-
-      const chatRequest: ChatRequest = {
-        messages,
+      triggerRequest({
+        messages: messagesRef.current.concat({
+          id: generateId(),
+          createdAt: getCurrentDate(),
+          role: 'user',
+          content: input,
+          parts: [...fileParts, { type: 'text', text: input }],
+        }),
         headers: options.headers,
         body: options.body,
         data: options.data,
-      };
-
-      triggerRequest(chatRequest);
+      });
 
       setInput('');
     },
-    [input, generateId, triggerRequest],
+    [input, generateId, triggerRequest, getCurrentDate],
   );
 
   const handleInputChange = (e: any) => {
