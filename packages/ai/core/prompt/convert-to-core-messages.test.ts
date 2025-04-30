@@ -306,7 +306,7 @@ describe('convertToCoreMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: 'dGVzdA==',
+              url: 'data:image/png;base64,dGVzdA==',
             },
           ],
         },

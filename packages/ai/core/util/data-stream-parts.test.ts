@@ -362,7 +362,7 @@ describe('data-stream-parts', () => {
   describe('file stream part', () => {
     it('should format a file stream part', () => {
       const file = {
-        data: 'file content',
+        url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
         mimeType: 'text/plain',
       };
 
@@ -373,7 +373,7 @@ describe('data-stream-parts', () => {
 
     it('should parse a file stream part', () => {
       const file = {
-        data: 'file content',
+        url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
         mimeType: 'text/plain',
       };
 
