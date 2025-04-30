@@ -59,11 +59,6 @@ Optional IANA media type of the image.
   mediaType?: string;
 
   /**
-@deprecated Use `mediaType` instead.
-   */
-  mimeType?: string;
-
-  /**
 Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
@@ -78,7 +73,6 @@ export const imagePartSchema: z.ZodType<ImagePart> = z.object({
   type: z.literal('image'),
   image: z.union([dataContentSchema, z.instanceof(URL)]),
   mediaType: z.string().optional(),
-  mimeType: z.string().optional(),
   providerOptions: providerMetadataSchema.optional(),
 });
 
@@ -109,11 +103,6 @@ IANA media type of the file.
   mediaType: string;
 
   /**
-@deprecated Use `mediaType` instead.
-   */
-  mimeType?: string;
-
-  /**
 Additional provider-specific metadata. They are passed through
 to the provider from the AI SDK and enable provider-specific
 functionality that can be fully encapsulated in the provider.
@@ -129,7 +118,6 @@ export const filePartSchema: z.ZodType<FilePart> = z.object({
   data: z.union([dataContentSchema, z.instanceof(URL)]),
   filename: z.string().optional(),
   mediaType: z.string(),
-  mimeType: z.string().optional(),
   providerOptions: providerMetadataSchema.optional(),
 });
 
