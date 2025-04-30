@@ -118,8 +118,7 @@ export type ReasoningUIPart = {
   /**
    * The reasoning text.
    */
-  // TODO: v5 rename to `text`
-  reasoning: string;
+  text: string;
 
   /**
    * The provider metadata.
