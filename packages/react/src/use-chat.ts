@@ -106,6 +106,14 @@ export type UseChatHelpers = {
       | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
   ) => void;
 
+  addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
+
   /** The id of the chat */
   id: string;
 };
@@ -164,15 +172,7 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
  */
   maxSteps?: number;
-} = {}): UseChatHelpers & {
-  addToolResult: ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: any;
-  }) => void;
-} {
+} = {}): UseChatHelpers {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
