@@ -115,7 +115,7 @@ export function convertToLanguageModelMessage(
                   type: 'file',
                   data,
                   filename: part.filename,
-                  mediaType: mediaType ?? part.mediaType ?? part.mimeType,
+                  mediaType: mediaType ?? part.mediaType,
                   providerOptions,
                 };
               }
@@ -194,9 +194,7 @@ async function downloadAssets(
     )
     .map(part => {
       const mediaType =
-        part.mediaType ??
-        part.mimeType ??
-        (part.type === 'image' ? 'image/*' : undefined);
+        part.mediaType ?? (part.type === 'image' ? 'image/*' : undefined);
 
       let data = part.type === 'image' ? part.image : part.data;
       if (typeof data === 'string') {
@@ -275,8 +273,7 @@ function convertPartToLanguageModelPart(
   const { data: convertedData, mediaType: convertedMediaType } =
     convertToLanguageModelV2DataContent(originalData);
 
-  let mediaType: string | undefined =
-    convertedMediaType ?? part.mediaType ?? part.mimeType;
+  let mediaType: string | undefined = convertedMediaType ?? part.mediaType;
   let data: Uint8Array | string | URL = convertedData; // binary | base64 | url
 
   // If the content is a URL, we check if it was downloaded:

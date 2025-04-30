@@ -713,12 +713,12 @@ describe('scenario: server provides file parts', () => {
       formatDataStreamPart('text', 'Here is a file:'),
       formatDataStreamPart('file', {
         url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
-        mimeType: 'text/plain',
+        mediaType: 'text/plain',
       }),
       formatDataStreamPart('text', 'And another one:'),
       formatDataStreamPart('file', {
         url: 'data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9',
-        mimeType: 'application/json',
+        mediaType: 'application/json',
       }),
       formatDataStreamPart('finish_step', {
         finishReason: 'stop',

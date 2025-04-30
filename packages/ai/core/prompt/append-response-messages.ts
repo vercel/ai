@@ -115,8 +115,8 @@ Internal. For test use only. May change without notice.
                 }
                 parts.push({
                   type: 'file' as const,
-                  mediaType: part.mediaType ?? part.mimeType,
-                  url: `data:${part.mediaType ?? part.mimeType};base64,${convertDataContentToBase64String(part.data)}`,
+                  mediaType: part.mediaType,
+                  url: `data:${part.mediaType};base64,${convertDataContentToBase64String(part.data)}`,
                 });
                 break;
             }
