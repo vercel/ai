@@ -1,11 +1,6 @@
 import { openai } from '@ai-sdk/openai';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import {
-  convertToModelMessages,
-  experimental_createMCPClient,
-  stepCountIs,
-  streamText,
-} from 'ai';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
+import { experimental_createMCPClient, streamText } from 'ai';
 
 export async function POST(req: Request) {
   const url = new URL('http://localhost:3000/mcp/server');
@@ -24,12 +19,12 @@ export async function POST(req: Request) {
     const result = streamText({
       model: openai('gpt-4o-mini'),
       tools,
-      stopWhen: stepCountIs(5),
+      maxSteps: 5,
       onStepFinish: async ({ toolResults }) => {
         console.log(`STEP RESULTS: ${JSON.stringify(toolResults, null, 2)}`);
       },
       system: 'You are a helpful chatbot capable of basic arithmetic problems',
-      messages: convertToModelMessages(messages),
+      messages,
       onFinish: async () => {
         await client.close();
       },
@@ -39,7 +34,7 @@ export async function POST(req: Request) {
       // },
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toDataStreamResponse();
   } catch (error) {
     console.error(error);
     return Response.json({ error: 'Unexpected error' }, { status: 500 });
