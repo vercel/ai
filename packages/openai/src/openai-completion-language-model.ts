@@ -128,13 +128,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         echo: openaiOptions.echo,
         logit_bias: openaiOptions.logitBias,
         logprobs:
-          typeof openaiOptions?.logprobs === 'number'
-            ? openaiOptions.logprobs
-            : typeof openaiOptions?.logprobs === 'boolean'
-              ? openaiOptions.logprobs
-                ? 0
-                : undefined
-              : undefined,
+          openaiOptions?.logprobs === true ? 0 : openaiOptions?.logprobs,
         suffix: openaiOptions.suffix,
         user: openaiOptions.user,
 
