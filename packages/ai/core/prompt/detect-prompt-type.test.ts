@@ -12,17 +12,6 @@ it('should return "messages" for empty arrays', () => {
   expect(detectPromptType([])).toBe('messages');
 });
 
-it('should detect UI messages with data role', () => {
-  const messages: Omit<UIMessage, 'id'>[] = [
-    {
-      role: 'data',
-      content: 'some data',
-      parts: [{ text: 'some data', type: 'text' }],
-    },
-  ];
-  expect(detectPromptType(messages)).toBe('ui-messages');
-});
-
 it('should detect UI messages with experimental_attachments', () => {
   const messages: Omit<UIMessage, 'id'>[] = [
     {
