@@ -94,13 +94,13 @@ Internal. For test use only. May change without notice.
                 if (reasoningPart == null) {
                   reasoningPart = {
                     type: 'reasoning' as const,
-                    reasoning: '',
+                    text: '',
                   };
                   parts.push(reasoningPart);
                 }
 
                 reasoningTextContent = (reasoningTextContent ?? '') + part.text;
-                reasoningPart.reasoning += part.text;
+                reasoningPart.text += part.text;
                 reasoningPart.providerMetadata = part.providerOptions;
                 break;
               }

@@ -93,7 +93,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                 case 'reasoning': {
                   content.push({
                     type: 'reasoning' as const,
-                    text: part.reasoning,
+                    text: part.text,
                     providerOptions: part.providerMetadata,
                   });
                   break;
