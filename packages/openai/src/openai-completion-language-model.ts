@@ -128,7 +128,11 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         echo: openaiOptions.echo,
         logit_bias: openaiOptions.logitBias,
         logprobs:
-          openaiOptions?.logprobs === true ? 0 : openaiOptions?.logprobs,
+          openaiOptions?.logprobs === true
+            ? 0
+            : openaiOptions?.logprobs === false
+              ? undefined
+              : openaiOptions?.logprobs,
         suffix: openaiOptions.suffix,
         user: openaiOptions.user,
 
@@ -328,7 +332,7 @@ const openaiCompletionResponseSchema = z.object({
         .object({
           tokens: z.array(z.string()),
           token_logprobs: z.array(z.number()),
-          top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+          top_logprobs: z.array(z.record(z.string(), z.number())).nullish(),
         })
         .nullish(),
     }),
@@ -355,7 +359,7 @@ const openaiCompletionChunkSchema = z.union([
           .object({
             tokens: z.array(z.string()),
             token_logprobs: z.array(z.number()),
-            top_logprobs: z.array(z.record(z.string(), z.number())).nullable(),
+            top_logprobs: z.array(z.record(z.string(), z.number())).nullish(),
           })
           .nullish(),
       }),

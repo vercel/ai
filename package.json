@@ -5,7 +5,7 @@
     "build": "turbo build --concurrency 16",
     "build:examples": "turbo build --filter=@example/*",
     "changeset": "changeset",
-    "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo; turbo clean",
+    "clean": "turbo clean",
     "dev": "turbo dev --no-cache --concurrency 16 --continue",
     "lint": "turbo lint",
     "prepare": "husky install",

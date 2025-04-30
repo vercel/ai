@@ -338,7 +338,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       providerMetadata.openai.cachedPromptTokens =
         promptTokenDetails?.cached_tokens;
     }
-    if (choice.logprobs != null) {
+    if (choice.logprobs?.content != null) {
       providerMetadata.openai.logprobs = choice.logprobs.content;
     }
 
@@ -686,7 +686,7 @@ const openaiChatResponseSchema = z.object({
                 ),
               }),
             )
-            .nullable(),
+            .nullish(),
         })
         .nullish(),
       finish_reason: z.string().nullish(),
@@ -723,7 +723,7 @@ const openaiChatChunkSchema = z.union([
               .nullish(),
           })
           .nullish(),
-        finish_reason: z.string().nullable().optional(),
+        finish_reason: z.string().nullish(),
         index: z.number(),
       }),
     ),
