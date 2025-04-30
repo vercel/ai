@@ -362,7 +362,7 @@ describe('data-stream-parts', () => {
   describe('file stream part', () => {
     it('should format a file stream part', () => {
       const file = {
-        data: 'file content',
+        url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
         mimeType: 'text/plain',
       };
 
@@ -373,7 +373,7 @@ describe('data-stream-parts', () => {
 
     it('should parse a file stream part', () => {
       const file = {
-        data: 'file content',
+        url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
         mimeType: 'text/plain',
       };
 
@@ -387,7 +387,7 @@ describe('data-stream-parts', () => {
     it('should throw an error if the file value is not an object', () => {
       const input = 'k:"not an object"';
       expect(() => parseDataStreamPart(input)).toThrow(
-        '"file" parts expect an object with a "data" and "mimeType" property.',
+        '"file" parts expect an object with a "url" and "mimeType" property.',
       );
     });
 
@@ -395,7 +395,7 @@ describe('data-stream-parts', () => {
       const invalidFile = { name: 'test.txt' };
       const input = `k:${JSON.stringify(invalidFile)}`;
       expect(() => parseDataStreamPart(input)).toThrow(
-        '"file" parts expect an object with a "data" and "mimeType" property.',
+        '"file" parts expect an object with a "url" and "mimeType" property.',
       );
     });
   });

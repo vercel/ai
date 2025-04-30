@@ -302,9 +302,9 @@ exports[`appendResponseMessages > after user message > appends assistant message
         "type": "step-start",
       },
       {
-        "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
         "mediaType": "image/png",
         "type": "file",
+        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=",
       },
     ],
     "role": "assistant",
