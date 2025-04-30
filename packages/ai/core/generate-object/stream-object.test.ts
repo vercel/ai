@@ -1523,6 +1523,7 @@ describe('streamObject', () => {
           {
             role: 'user',
             content: 'prompt',
+            parts: [{ type: 'text', text: 'prompt' }],
           },
           {
             role: 'assistant',
@@ -1564,6 +1565,7 @@ describe('streamObject', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "prompt",
                 "type": "text",
               },

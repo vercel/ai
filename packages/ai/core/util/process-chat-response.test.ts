@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { DataStreamString, formatDataStreamPart } from './data-stream-parts';
 import { LanguageModelUsage } from '../types/duplicated/usage';
 import { processChatResponse } from './process-chat-response';
-import { JSONValue, Message } from '../types';
+import { JSONValue, UIMessage } from '../types';
 
 function createDataProtocolStream(
   dataPartTexts: DataStreamString[],
@@ -15,12 +15,12 @@ function createDataProtocolStream(
 }
 
 let updateCalls: Array<{
-  message: Message;
+  message: UIMessage;
   data: JSONValue[] | undefined;
   replaceLastMessage: boolean;
 }> = [];
 const update = (options: {
-  message: Message;
+  message: UIMessage;
   data: JSONValue[] | undefined;
   replaceLastMessage: boolean;
 }) => {
@@ -29,12 +29,12 @@ const update = (options: {
 };
 
 let finishCalls: Array<{
-  message: Message | undefined;
+  message: UIMessage | undefined;
   finishReason: LanguageModelV2FinishReason;
   usage: LanguageModelUsage;
 }> = [];
 const onFinish = (options: {
-  message: Message | undefined;
+  message: UIMessage | undefined;
   finishReason: LanguageModelV2FinishReason;
   usage: LanguageModelUsage;
 }) => {

@@ -1,6 +1,6 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
-import { Message } from '../types';
+import { UIMessage } from '../types';
 import { z } from 'zod';
 import { ToolSet } from '../generate-text/tool-set';
 import { convertToCoreMessages } from './convert-to-core-messages';
@@ -83,7 +83,7 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
 
     const messages: CoreMessage[] =
       promptType === 'ui-messages'
-        ? convertToCoreMessages(prompt.messages as Omit<Message, 'id'>[], {
+        ? convertToCoreMessages(prompt.messages as Omit<UIMessage, 'id'>[], {
             tools,
           })
         : (prompt.messages as CoreMessage[]);

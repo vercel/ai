@@ -49,7 +49,11 @@ export default function Page() {
           event.preventDefault();
 
           append(
-            { role: 'user', content: input },
+            {
+              role: 'user',
+              content: input,
+              parts: [{ type: 'text', text: input }],
+            },
             {
               experimental_attachments: files,
             },

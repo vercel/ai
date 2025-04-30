@@ -1,20 +1,31 @@
 import { appendClientMessage } from './append-client-message';
-import { Message } from '../types';
+import { UIMessage } from '../types';
 
 describe('appendClientMessage', () => {
   it('should append a new message to an empty array', () => {
-    const message: Message = { id: '1', role: 'user', content: 'Hello' };
+    const message: UIMessage = {
+      id: '1',
+      role: 'user',
+      content: 'Hello',
+      parts: [{ type: 'text', text: 'Hello' }],
+    };
     const result = appendClientMessage({ messages: [], message });
     expect(result).toEqual([message]);
   });
 
   it('should append a new message with different id', () => {
-    const existingMessage: Message = {
+    const existingMessage: UIMessage = {
       id: '1',
       role: 'user',
       content: 'Hello',
+      parts: [{ type: 'text', text: 'Hello' }],
     };
-    const newMessage: Message = { id: '2', role: 'user', content: 'World' };
+    const newMessage: UIMessage = {
+      id: '2',
+      role: 'user',
+      content: 'World',
+      parts: [{ type: 'text', text: 'World' }],
+    };
     const result = appendClientMessage({
       messages: [existingMessage],
       message: newMessage,
@@ -23,15 +34,17 @@ describe('appendClientMessage', () => {
   });
 
   it('should replace last message if ids match', () => {
-    const existingMessage: Message = {
+    const existingMessage: UIMessage = {
       id: '1',
       role: 'user',
       content: 'Hello',
+      parts: [{ type: 'text', text: 'Hello' }],
     };
-    const updatedMessage: Message = {
+    const updatedMessage: UIMessage = {
       id: '1',
       role: 'user',
       content: 'Updated',
+      parts: [{ type: 'text', text: 'Updated' }],
     };
     const result = appendClientMessage({
       messages: [existingMessage],

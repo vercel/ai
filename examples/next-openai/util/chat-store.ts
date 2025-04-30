@@ -1,4 +1,4 @@
-import { generateId, Message } from 'ai';
+import { generateId, UIMessage } from 'ai';
 import { existsSync, mkdirSync } from 'fs';
 import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
@@ -18,12 +18,12 @@ export async function saveChat({
   messages,
 }: {
   id: string;
-  messages: Message[];
+  messages: UIMessage[];
 }): Promise<void> {
   await writeFile(getChatFile(id), JSON.stringify(messages, null, 2));
 }
 
-export async function loadChat(id: string): Promise<Message[]> {
+export async function loadChat(id: string): Promise<UIMessage[]> {
   return JSON.parse(await readFile(getChatFile(id), 'utf8'));
 }
 

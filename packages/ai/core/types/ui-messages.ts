@@ -4,7 +4,7 @@ import {
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
 import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
-import { ChatState, ChatStoreEvent } from '../util/chat-store';
+import { ChatStore } from '../util/chat-store';
 import { LanguageModelUsage } from './duplicated/usage';
 
 export type IdGenerator = () => string;
@@ -47,7 +47,7 @@ export interface Attachment {
 /**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
-export interface Message {
+export interface UIMessage {
   /**
 A unique identifier for the message.
    */
@@ -61,7 +61,7 @@ The timestamp of the message.
   /**
 Text content of the message. Use parts when possible.
    */
-  // TODO replace with readonly property that is only available on the client
+  // TODO remove (replace with parts)
   content: string;
 
   /**
@@ -87,19 +87,8 @@ The 'data' role is deprecated.
    * Assistant messages can have text, reasoning and tool invocation parts.
    * User messages can have text parts.
    */
-  // note: optional on the Message type (which serves as input)
-  parts?: Array<UIMessagePart>;
-}
-
-export type UIMessage = Message & {
-  /**
-   * The parts of the message. Use this for rendering the message in the UI.
-   *
-   * Assistant messages can have text, reasoning and tool invocation parts.
-   * User messages can have text parts.
-   */
   parts: Array<UIMessagePart>;
-};
+}
 
 export type UIMessagePart =
   | TextUIPart
@@ -189,8 +178,8 @@ export type StepStartUIPart = {
   type: 'step-start';
 };
 
-export type CreateMessage = Omit<Message, 'id'> & {
-  id?: Message['id'];
+export type CreateUIMessage = Omit<UIMessage, 'id'> & {
+  id?: UIMessage['id'];
 };
 
 export type ChatRequest = {
@@ -207,7 +196,7 @@ An optional object to be passed to the API endpoint.
   /**
 The messages of the chat.
    */
-  messages: Message[];
+  messages: UIMessage[];
 
   /**
 Additional data to be sent to the server.
@@ -257,11 +246,6 @@ Additional data to be sent to the API endpoint.
 
 export type UseChatOptions = {
   /**
-   * The initial messages of the chat.
-   */
-  initialMessages?: Message[];
-
-  /**
 Keeps the last message when an error happens. Defaults to `true`.
 
 @deprecated This option will be removed in the next major release.
@@ -282,21 +266,11 @@ Keeps the last message when an error happens. Defaults to `true`.
   id?: string;
 
   /**
-   * Optional initialization object for the chat store.
+   * Optional ChatStore instance.
    */
-  chats?: Record<string, Pick<ChatState, 'messages'>>;
-  /**
-   * Optional callback function that is called when chat store changes.
-   */
-  onChatStoreChange?: ({
-    event,
-    chatId,
-    state,
-  }: {
-    event: ChatStoreEvent;
-    chatId: string;
-    state: ChatState;
-  }) => void;
+  store?: ChatStore;
+
+  initialMessages?: UIMessage[];
 
   /**
    * Initial input of the chat.
@@ -329,7 +303,7 @@ either synchronously or asynchronously.
    * @param options.finishReason The finish reason of the message.
    */
   onFinish?: (
-    message: Message,
+    message: UIMessage,
     options: {
       usage: LanguageModelUsage;
       finishReason: LanguageModelV2FinishReason;
