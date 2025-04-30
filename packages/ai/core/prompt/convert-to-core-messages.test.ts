@@ -29,7 +29,19 @@ describe('convertToCoreMessages', () => {
         },
       ]);
 
-      expect(result).toEqual([{ role: 'user', content: 'Hello, AI!' }]);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello, AI!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
     });
 
     it('should prefer content in parts when content is empty', () => {

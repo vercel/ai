@@ -1475,6 +1475,7 @@ describe('options.messages', () => {
             {
               content: [
                 {
+                  providerOptions: undefined,
                   text: 'prompt',
                   type: 'text',
                 },

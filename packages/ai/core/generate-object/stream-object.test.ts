@@ -1565,6 +1565,7 @@ describe('streamObject', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "prompt",
                 "type": "text",
               },

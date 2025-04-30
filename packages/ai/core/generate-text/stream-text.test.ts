@@ -3216,6 +3216,7 @@ describe('streamText', () => {
               {
                 content: [
                   {
+                    providerOptions: undefined,
                     text: 'prompt',
                     type: 'text',
                   },
