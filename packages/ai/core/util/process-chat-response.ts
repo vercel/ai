@@ -170,7 +170,7 @@ export async function processChatResponse({
       message.parts.push({
         type: 'file',
         mediaType: value.mimeType,
-        data: value.data,
+        url: value.url,
       });
 
       execUpdate();

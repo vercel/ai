@@ -85,7 +85,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                 case 'file': {
                   content.push({
                     type: 'file' as const,
-                    data: part.data,
+                    data: part.url,
                     mediaType: part.mediaType ?? (part as any).mimeType, // TODO migration, remove
                   });
                   break;

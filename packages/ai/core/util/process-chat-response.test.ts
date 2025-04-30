@@ -712,12 +712,12 @@ describe('scenario: server provides file parts', () => {
     const stream = createDataProtocolStream([
       formatDataStreamPart('text', 'Here is a file:'),
       formatDataStreamPart('file', {
-        data: 'Hello World',
+        url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
         mimeType: 'text/plain',
       }),
       formatDataStreamPart('text', 'And another one:'),
       formatDataStreamPart('file', {
-        data: '{"key": "value"}',
+        url: 'data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9',
         mimeType: 'application/json',
       }),
       formatDataStreamPart('finish_step', {

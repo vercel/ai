@@ -164,9 +164,10 @@ export type FileUIPart = {
   mediaType: string;
 
   /**
-   * The base64 encoded data.
+   * The URL of the file.
+   * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
    */
-  data: string;
+  url: string;
 };
 
 /**
