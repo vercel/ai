@@ -1,13 +1,12 @@
 import {
   convertToCoreMessages,
-  formatDataStreamPart,
-  Message,
   DataStreamWriter,
+  formatDataStreamPart,
+  Tool,
   ToolExecutionOptions,
   ToolSet,
-  Tool,
+  UIMessage,
 } from 'ai';
-import { z } from 'zod';
 
 // Approval string to be shared across frontend and backend
 export const APPROVAL = {
@@ -46,7 +45,7 @@ export async function processToolCalls<
   }: {
     tools: Tools; // used for type inference
     dataStream: DataStreamWriter;
-    messages: Message[];
+    messages: UIMessage[];
   },
   executeFunctions: {
     [K in keyof Tools & keyof ExecutableTools]?: (
@@ -54,7 +53,7 @@ export async function processToolCalls<
       context: ToolExecutionOptions,
     ) => Promise<any>;
   },
-): Promise<Message[]> {
+): Promise<UIMessage[]> {
   const lastMessage = messages[messages.length - 1];
   const parts = lastMessage.parts;
   if (!parts) return messages;
