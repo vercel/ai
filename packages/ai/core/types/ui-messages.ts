@@ -34,6 +34,7 @@ A unique identifier for the message.
   /**
 The timestamp of the message.
    */
+  // TODO solve optionality similar id
   createdAt?: Date;
 
   /**

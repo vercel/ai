@@ -1,12 +1,11 @@
 import { ToolSet } from '../generate-text/tool-set';
 import {
   FileUIPart,
-  UIMessage,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocationUIPart,
+  UIMessage,
 } from '../types';
-import { attachmentsToParts } from './attachments-to-parts';
 import { ToolResultPart } from './content-part';
 import { AssistantContent, CoreMessage } from './message';
 import { MessageConversionError } from './message-conversion-error';
@@ -25,7 +24,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
     const isLastMessage = i === messages.length - 1;
-    const { role, content, experimental_attachments } = message;
+    const { role, content } = message;
 
     switch (role) {
       case 'system': {
@@ -37,31 +36,24 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
       }
 
       case 'user': {
-        if (message.parts == null) {
-          coreMessages.push({
-            role: 'user',
-            content: experimental_attachments
-              ? [
-                  { type: 'text', text: content },
-                  ...attachmentsToParts(experimental_attachments),
-                ]
-              : content,
-          });
-        } else {
-          const textParts = message.parts
-            .filter(part => part.type === 'text')
-            .map(part => ({
-              type: 'text' as const,
-              text: part.text,
-            }));
+        coreMessages.push({
+          role: 'user',
+          content: message.parts
+            .filter(
+              (part): part is TextUIPart | FileUIPart =>
+                part.type === 'text' || part.type === 'file',
+            )
+            .map(part =>
+              part.type === 'file'
+                ? {
+                    type: 'file' as const,
+                    mediaType: part.mediaType,
+                    data: part.url,
+                  }
+                : part,
+            ),
+        });
 
-          coreMessages.push({
-            role: 'user',
-            content: experimental_attachments
-              ? [...textParts, ...attachmentsToParts(experimental_attachments)]
-              : textParts,
-          });
-        }
         break;
       }
 
@@ -85,8 +77,8 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                 case 'file': {
                   content.push({
                     type: 'file' as const,
+                    mediaType: part.mediaType,
                     data: part.url,
-                    mediaType: part.mediaType ?? (part as any).mimeType, // TODO migration, remove
                   });
                   break;
                 }

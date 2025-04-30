@@ -261,23 +261,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
         const constructedMessagesPayload = sendExtraMessageFields
           ? chatMessages
-          : chatMessages.map(
-              ({
-                role,
-                content,
-                experimental_attachments,
-                annotations,
-                parts,
-              }) => ({
-                role,
-                content,
-                ...(experimental_attachments !== undefined && {
-                  experimental_attachments,
-                }),
-                ...(annotations !== undefined && { annotations }),
-                ...(parts !== undefined && { parts }),
-              }),
-            );
+          : chatMessages.map(({ role, content, annotations, parts }) => ({
+              role,
+              content,
+              ...(annotations !== undefined && { annotations }),
+              ...(parts !== undefined && { parts }),
+            }));
 
         const existingData = streamDataRef.current;
 
@@ -397,28 +386,18 @@ By default, it's set to 1, which means that only a single LLM call is made.
   const append = useCallback(
     async (
       message: UIMessage | CreateUIMessage,
-      {
-        data,
+      { data, headers, body }: ChatRequestOptions = {},
+    ) =>
+      triggerRequest({
+        messages: messagesRef.current.concat({
+          ...message,
+          id: message.id ?? generateId(),
+          createdAt: message.createdAt ?? new Date(),
+        }),
         headers,
         body,
-        experimental_attachments,
-      }: ChatRequestOptions = {},
-    ) => {
-      const attachmentsForRequest = await prepareAttachmentsForRequest(
-        experimental_attachments,
-      );
-
-      const messages = messagesRef.current.concat({
-        ...message,
-        id: message.id ?? generateId(),
-        createdAt: message.createdAt ?? new Date(),
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: message.parts,
-      });
-
-      return triggerRequest({ messages, headers, body, data });
-    },
+        data,
+      }),
     [triggerRequest, generateId],
   );
 
