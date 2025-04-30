@@ -315,7 +315,13 @@ describe('convertToCoreMessages', () => {
       expect(result).toEqual([
         {
           role: 'assistant',
-          content: [{ type: 'file', mediaType: 'image/png', data: 'dGVzdA==' }],
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'data:image/png;base64,dGVzdA==',
+            },
+          ],
         },
       ] satisfies CoreMessage[]);
     });

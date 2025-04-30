@@ -387,7 +387,7 @@ describe('data-stream-parts', () => {
     it('should throw an error if the file value is not an object', () => {
       const input = 'k:"not an object"';
       expect(() => parseDataStreamPart(input)).toThrow(
-        '"file" parts expect an object with a "data" and "mimeType" property.',
+        '"file" parts expect an object with a "url" and "mimeType" property.',
       );
     });
 
@@ -395,7 +395,7 @@ describe('data-stream-parts', () => {
       const invalidFile = { name: 'test.txt' };
       const input = `k:${JSON.stringify(invalidFile)}`;
       expect(() => parseDataStreamPart(input)).toThrow(
-        '"file" parts expect an object with a "data" and "mimeType" property.',
+        '"file" parts expect an object with a "url" and "mimeType" property.',
       );
     });
   });
