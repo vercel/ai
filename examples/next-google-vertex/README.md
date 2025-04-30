@@ -30,6 +30,6 @@ To run the example locally you need to:
 To learn more about Google Vertex AI, Next.js, and the AI SDK take a look at the following resources:
 
 - [AI SDK docs](https://ai-sdk.dev/docs)
-- [Vercel AI Playground](https://play.vercel.ai)
+- [Vercel AI Playground](https://ai-sdk.dev/playground)
 - [Google Vertex AI Documentation](https://cloud.google.com/vertex-ai/docs) - learn about Vertex AI features and API
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API

@@ -36,6 +36,6 @@ To run the example locally you need to:
 To learn more about the AI SDK, Next.js, and FastAPI take a look at the following resources:
 
 - [AI SDK Docs](https://ai-sdk.dev/docs) - view documentation and reference for the AI SDK.
-- [Vercel AI Playground](https://play.vercel.ai) - try different models and choose the best one for your use case.
+- [Vercel AI Playground](https://ai-sdk.dev/playground) - try different models and choose the best one for your use case.
 - [Next.js Docs](https://nextjs.org/docs) - learn about Next.js features and API.
 - [FastAPI Docs](https://fastapi.tiangolo.com) - learn about FastAPI features and API.

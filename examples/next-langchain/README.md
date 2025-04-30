@@ -37,7 +37,7 @@ To run the example locally you need to:
 To learn more about LangChain, OpenAI, Next.js, and the AI SDK take a look at the following resources:
 
 - [AI SDK docs](https://ai-sdk.dev/docs) - learn mode about the AI SDK
-- [Vercel AI Playground](https://play.vercel.ai) - compare and tune 20+ AI models side-by-side
+- [Vercel AI Playground](https://ai-sdk.dev/playground) - compare and tune 20+ AI models side-by-side
 - [LangChain Documentation](https://js.langchain.com/docs) - learn about LangChain
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.

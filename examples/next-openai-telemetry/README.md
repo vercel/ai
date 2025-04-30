@@ -38,6 +38,6 @@ To learn more about OpenAI, Next.js, and the AI SDK take a look at the following
 
 - [AI SDK docs](https://ai-sdk.dev/docs)
 - [AI SDK telemetry support](https://ai-sdk.dev/docs/ai-sdk-core/telemetry)
-- [Vercel AI Playground](https://play.vercel.ai)
+- [Vercel AI Playground](https://ai-sdk.dev/playground)
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
