@@ -258,7 +258,7 @@ describe('convertToCoreMessages', () => {
           parts: [
             {
               type: 'reasoning',
-              reasoning: 'Thinking...',
+              text: 'Thinking...',
               providerMetadata: {
                 testProvider: {
                   signature: '1234567890',
@@ -267,7 +267,7 @@ describe('convertToCoreMessages', () => {
             },
             {
               type: 'reasoning',
-              reasoning: 'redacted-data',
+              text: 'redacted-data',
               providerMetadata: {
                 testProvider: { isRedacted: true },
               },

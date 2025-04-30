@@ -150,12 +150,12 @@ export async function processChatResponse({
       if (currentReasoningPart == null) {
         currentReasoningPart = {
           type: 'reasoning',
-          reasoning: value.text,
+          text: value.text,
           providerMetadata: value.providerMetadata,
         };
         message.parts.push(currentReasoningPart);
       } else {
-        currentReasoningPart.reasoning += value.text;
+        currentReasoningPart.text += value.text;
         currentReasoningPart.providerMetadata = value.providerMetadata;
       }
 
