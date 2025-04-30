@@ -36,6 +36,7 @@ async function main() {
 
       case 'finish': {
         console.log('Finish reason:', part.finishReason);
+        console.log('Logprobs:', part.providerMetadata?.openai.logprobs);
         console.log('Usage:', part.usage);
         break;
       }
