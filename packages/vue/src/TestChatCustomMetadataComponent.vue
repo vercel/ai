@@ -26,7 +26,13 @@ const { messages, append } = useChat({
 
     <button
       data-testid="do-append"
-      @click="append({ role: 'user', content: 'custom metadata component' })"
+      @click="
+        append({
+          role: 'user',
+          content: 'custom metadata component',
+          parts: [{ text: 'custom metadata component', type: 'text' }],
+        })
+      "
     />
   </div>
 </template>

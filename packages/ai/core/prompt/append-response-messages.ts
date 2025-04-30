@@ -2,7 +2,6 @@ import { AISDKError } from '@ai-sdk/provider';
 import { ResponseMessage } from '../generate-text/step-result';
 import {
   FileUIPart,
-  Message,
   ReasoningUIPart,
   StepStartUIPart,
   TextUIPart,
@@ -26,7 +25,7 @@ export function appendResponseMessages({
   responseMessages,
   _internal: { currentDate = () => new Date() } = {},
 }: {
-  messages: Message[];
+  messages: UIMessage[];
   responseMessages: ResponseMessage[];
 
   /**
@@ -35,7 +34,7 @@ Internal. For test use only. May change without notice.
   _internal?: {
     currentDate?: () => Date;
   };
-}): Message[] {
+}): UIMessage[] {
   const clonedMessages = structuredClone(messages);
 
   for (const message of responseMessages) {

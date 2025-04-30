@@ -36,7 +36,11 @@ const isLoading = computed(() => status.value !== 'ready');
       data-testid="do-append"
       @click="
         append(
-          { role: 'user', content: 'hi' },
+          {
+            role: 'user',
+            content: 'hi',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
           {
             data: { 'test-data-key': 'test-data-value' },
             body: { 'request-body-key': 'request-body-value' },

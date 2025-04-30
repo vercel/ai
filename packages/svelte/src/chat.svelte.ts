@@ -1,29 +1,26 @@
+import { isAbortError } from '@ai-sdk/provider-utils';
 import {
-  fillMessageParts,
+  callChatApi,
+  extractMaxToolInvocationStep,
   generateId,
+  getToolInvocations,
+  isAssistantMessageWithCompletedToolCalls,
+  prepareAttachmentsForRequest,
+  shouldResubmitMessages,
+  updateToolCallResult,
+  type ChatRequest,
+  type ChatRequestOptions,
+  type CreateUIMessage,
+  type JSONValue,
   type UIMessage,
   type UseChatOptions,
-  type JSONValue,
-  type ChatRequest,
-  extractMaxToolInvocationStep,
-  callChatApi,
-  shouldResubmitMessages,
-  type Message,
-  type CreateMessage,
-  type ChatRequestOptions,
-  prepareAttachmentsForRequest,
-  getMessageParts,
-  updateToolCallResult,
-  isAssistantMessageWithCompletedToolCalls,
-  getToolInvocations,
 } from 'ai';
-import { isAbortError } from '@ai-sdk/provider-utils';
+import { untrack } from 'svelte';
 import {
   KeyedChatStore,
   getChatContext,
   hasChatContext,
 } from './chat-context.svelte.js';
-import { untrack } from 'svelte';
 
 export type ChatOptions = Readonly<
   Omit<UseChatOptions, 'keepLastMessageOnError'> & {
@@ -38,7 +35,7 @@ export type ChatOptions = Readonly<
   }
 >;
 
-export type { CreateMessage, Message, UIMessage };
+export type { CreateUIMessage, UIMessage };
 
 export class Chat {
   readonly #options: ChatOptions = {};
@@ -96,8 +93,8 @@ export class Chat {
   get messages(): UIMessage[] {
     return this.#store.messages;
   }
-  set messages(value: Message[]) {
-    untrack(() => (this.#store.messages = fillMessageParts(value)));
+  set messages(value: UIMessage[]) {
+    untrack(() => (this.#store.messages = value));
   }
 
   constructor(options: ChatOptions = {}) {
@@ -119,7 +116,7 @@ export class Chat {
    * @param options Additional options to pass to the API call
    */
   append = async (
-    message: Message | CreateMessage,
+    message: UIMessage | CreateUIMessage,
     { data, headers, body, experimental_attachments }: ChatRequestOptions = {},
   ) => {
     const attachmentsForRequest = await prepareAttachmentsForRequest(
@@ -132,7 +129,7 @@ export class Chat {
       createdAt: message.createdAt ?? new Date(),
       experimental_attachments:
         attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-      parts: getMessageParts(message),
+      parts: message.parts,
     });
 
     return this.#triggerRequest({ messages, headers, body, data });
@@ -239,7 +236,7 @@ export class Chat {
     this.#store.status = 'submitted';
     this.#store.error = undefined;
 
-    const messages = fillMessageParts(chatRequest.messages);
+    const messages = chatRequest.messages;
     const messageCount = messages.length;
     const maxStep = extractMaxToolInvocationStep(
       getToolInvocations(messages[messages.length - 1]),

@@ -1,4 +1,4 @@
-import { Message } from '../types';
+import { UIMessage } from '../types';
 
 /**
  * Appends a client message to the messages array.
@@ -9,8 +9,8 @@ export function appendClientMessage({
   messages,
   message,
 }: {
-  messages: Message[];
-  message: Message;
+  messages: UIMessage[];
+  message: UIMessage;
 }) {
   return [
     ...(messages.length > 0 && messages[messages.length - 1].id === message.id

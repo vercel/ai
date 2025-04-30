@@ -1,7 +1,7 @@
 import { ToolSet } from '../generate-text/tool-set';
 import {
   FileUIPart,
-  Message,
+  UIMessage,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocationUIPart,
@@ -16,7 +16,7 @@ Converts an array of messages from useChat into an array of CoreMessages that ca
 with the AI core functions (e.g. `streamText`).
  */
 export function convertToCoreMessages<TOOLS extends ToolSet = never>(
-  messages: Array<Omit<Message, 'id'>>,
+  messages: Array<Omit<UIMessage, 'id'>>,
   options?: { tools?: TOOLS },
 ) {
   const tools = options?.tools ?? ({} as TOOLS);

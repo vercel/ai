@@ -1,7 +1,7 @@
 'use client';
 
 import { getToolInvocations, ToolInvocation, UIMessage } from 'ai';
-import { Message, useChat } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
@@ -22,7 +22,7 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages?.map((m: Message) => {
+      {messages?.map((m: UIMessage) => {
         const isNewRole = m.role !== lastRole;
         lastRole = m.role;
 
