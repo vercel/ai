@@ -232,6 +232,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     });
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
+    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
@@ -285,6 +286,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
               finishReason = mapOpenAIFinishReason(choice.finish_reason);
             }
 
+            if (choice?.logprobs != null) {
+              providerMetadata.openai.logprobs = choice.logprobs;
+            }
+
             if (choice?.text != null) {
               controller.enqueue({
                 type: 'text',
@@ -297,6 +302,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
+              providerMetadata,
               usage,
             });
           },

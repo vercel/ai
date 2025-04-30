@@ -405,6 +405,52 @@ describe('doStream', () => {
         },
         {
           "finishReason": "stop",
+          "providerMetadata": {
+            "openai": {
+              "logprobs": {
+                "token_logprobs": [
+                  -0.0664508,
+                  -0.014520033,
+                  -1.3820221,
+                  -0.7890417,
+                  -0.5323165,
+                  -0.10247037,
+                ],
+                "tokens": [
+                  " ever",
+                  " after",
+                  ".
+
+      ",
+                  "The",
+                  " end",
+                  ".",
+                ],
+                "top_logprobs": [
+                  {
+                    " ever": -0.0664508,
+                  },
+                  {
+                    " after": -0.014520033,
+                  },
+                  {
+                    ".
+
+      ": -1.3820221,
+                  },
+                  {
+                    "The": -0.7890417,
+                  },
+                  {
+                    " end": -0.5323165,
+                  },
+                  {
+                    ".": -0.10247037,
+                  },
+                ],
+              },
+            },
+          },
           "type": "finish",
           "usage": {
             "inputTokens": 10,
@@ -446,6 +492,9 @@ describe('doStream', () => {
         },
         {
           "finishReason": "error",
+          "providerMetadata": {
+            "openai": {},
+          },
           "type": "finish",
           "usage": {
             "inputTokens": undefined,
