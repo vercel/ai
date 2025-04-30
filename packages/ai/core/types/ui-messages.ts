@@ -64,27 +64,27 @@ Text content of the message. Use parts when possible.
   content: string;
 
   /**
-   * Additional attachments to be sent along with the message.
+Additional attachments to be sent along with the message.
    */
   // TODO replace with FileUIParts in user messages
   experimental_attachments?: Attachment[];
 
   /**
-The 'data' role is deprecated.
+The role of the message.
    */
-  role: 'system' | 'user' | 'assistant' | 'data';
+  role: 'system' | 'user' | 'assistant';
 
   /**
-   * Additional message-specific information added on the server via StreamData
+Additional message-specific information added on the server via StreamData
    */
   // TODO replace with special part
   annotations?: JSONValue[] | undefined;
 
   /**
-   * The parts of the message. Use this for rendering the message in the UI.
-   *
-   * Assistant messages can have text, reasoning and tool invocation parts.
-   * User messages can have text parts.
+The parts of the message. Use this for rendering the message in the UI.
+
+Assistant messages can have text, reasoning and tool invocation parts.
+User messages can have text parts.
    */
   parts: Array<UIMessagePart>;
 }
