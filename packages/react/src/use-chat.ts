@@ -2,17 +2,18 @@ import type {
   ChatRequest,
   ChatRequestOptions,
   CreateUIMessage,
+  FileUIPart,
   JSONValue,
   UIMessage,
   UseChatOptions,
 } from 'ai';
 import {
   callChatApi,
+  convertFileListToFileUIParts,
   extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
-  prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
 } from 'ai';
@@ -71,7 +72,9 @@ export type UseChatHelpers = {
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions,
+    chatRequestOptions?: ChatRequestOptions & {
+      files?: FileList | FileUIPart[];
+    },
   ) => void;
   metadata?: Object;
 
@@ -464,7 +467,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
   const handleSubmit = useCallback(
     async (
       event?: { preventDefault?: () => void },
-      options: ChatRequestOptions = {},
+      options: ChatRequestOptions & {
+        files?: FileList | FileUIPart[];
+      } = {},
       metadata?: Object,
     ) => {
       event?.preventDefault?.();
@@ -478,18 +483,16 @@ By default, it's set to 1, which means that only a single LLM call is made.
         };
       }
 
-      const attachmentsForRequest = await prepareAttachmentsForRequest(
-        options.experimental_attachments,
-      );
+      const fileParts = Array.isArray(options?.files)
+        ? options.files
+        : await convertFileListToFileUIParts(options?.files);
 
       const messages = messagesRef.current.concat({
         id: generateId(),
         createdAt: new Date(),
         role: 'user',
         content: input,
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: [{ type: 'text', text: input }],
+        parts: [...fileParts, { type: 'text', text: input }],
       });
 
       const chatRequest: ChatRequest = {

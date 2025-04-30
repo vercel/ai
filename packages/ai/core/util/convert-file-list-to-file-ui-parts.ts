@@ -1,18 +1,19 @@
 import { FileUIPart } from '../types';
 
 export async function convertFileListToFileUIParts(
-  attachmentsFromOptions: FileList,
+  files: FileList | undefined,
 ): Promise<Array<FileUIPart>> {
+  if (files == null) {
+    return [];
+  }
+
   // React-native doesn't have a FileList global:
-  if (
-    !globalThis.FileList ||
-    !(attachmentsFromOptions instanceof globalThis.FileList)
-  ) {
+  if (!globalThis.FileList || !(files instanceof globalThis.FileList)) {
     throw new Error('FileList is not supported in the current environment');
   }
 
   return Promise.all(
-    Array.from(attachmentsFromOptions).map(async attachment => {
+    Array.from(files).map(async attachment => {
       // TODO add filename once supported by file ui parts
       const { name, type } = attachment;
 

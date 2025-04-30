@@ -10,7 +10,7 @@ export {
 // NOTE: this is experimental / internal and may change without notice
 export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
-export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
+export { convertToFileUIParts as convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
 export type { DataStreamPart, DataStreamString } from './data-stream-parts';
 export { getTextFromDataUrl } from './data-url';

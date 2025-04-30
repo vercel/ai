@@ -55,7 +55,7 @@ export default function Page() {
               parts: [{ type: 'text', text: input }],
             },
             {
-              experimental_attachments: files,
+              files,
             },
           );
 
