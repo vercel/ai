@@ -303,6 +303,30 @@ You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
 
+#### Logprobs
+
+OpenAI provides logprobs information for completion/chat models.
+You can access it in the `providerMetadata` object.
+
+```ts highlight="11"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    openai: {
+      logprobs: true,
+    },
+  },
+});
+
+const openaiMetadata = (await result.providerMetadata)?.openai;
+
+const logprobs = openaiMetadata?.logprobs;
+```
+
 #### PDF support
 
 The OpenAI Chat API supports reading PDF files.
