@@ -317,6 +317,8 @@ const result = await generateText({
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   providerOptions: {
     openai: {
+      // this can also be a number,
+      // refer to logprobs provider options section for more
       logprobs: true,
     },
   },
