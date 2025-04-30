@@ -1,5 +1,20 @@
 # ai
 
+## 5.0.0-canary.16
+
+### Major Changes
+
+- ec78cdc: chore (ai): remove "data" UIMessage role
+- 8b86e99: chore (ai): replace `Message` with `UIMessage`
+- 2524fc7: chore (ai): remove ui message toolInvocations property
+- 175b868: chore (ai): rename reasoning UI parts 'reasoning' property to 'text'
+
+### Patch Changes
+
+- 9b4d074: feat(streamObject): add enum support
+- 28ad69e: fix(react-native): support experimental_attachments without FileList global
+- ec5933d: chore (ai/mcp): add `assertCapability` method to experimental MCP client
+
 ## 5.0.0-canary.15
 
 ### Major Changes
