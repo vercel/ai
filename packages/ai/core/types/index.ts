@@ -2,6 +2,7 @@ export type { Embedding, EmbeddingModel } from './embedding-model';
 export type {
   ImageModel,
   ImageGenerationWarning as ImageModelCallWarning,
+  ImageModelProviderMetadata,
 } from './image-model';
 export type { ImageModelResponseMetadata } from './image-model-response-metadata';
 export type { JSONValue } from './json-value';
