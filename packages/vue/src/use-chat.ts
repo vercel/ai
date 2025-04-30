@@ -7,11 +7,11 @@ import type {
 } from 'ai';
 import {
   callChatApi,
+  convertFileListToFileUIParts,
   extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
-  prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
 } from 'ai';
@@ -59,7 +59,7 @@ export type UseChatHelpers = {
   /** Form submission handler to automatically reset input and append a user message  */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions,
+    chatRequestOptions?: ChatRequestOptions & { files?: FileList },
   ) => void;
 
   /**
@@ -211,23 +211,12 @@ export function useChat(
 
       const constructedMessagesPayload = sendExtraMessageFields
         ? previousMessages
-        : previousMessages.map(
-            ({
-              role,
-              content,
-              experimental_attachments,
-              annotations,
-              parts,
-            }) => ({
-              role,
-              content,
-              ...(experimental_attachments !== undefined && {
-                experimental_attachments,
-              }),
-              ...(annotations !== undefined && { annotations }),
-              ...(parts !== undefined && { parts }),
-            }),
-          );
+        : previousMessages.map(({ role, content, annotations, parts }) => ({
+            role,
+            content,
+            ...(annotations !== undefined && { annotations }),
+            ...(parts !== undefined && { parts }),
+          }));
 
       await callChatApi({
         api,
@@ -313,17 +302,11 @@ export function useChat(
   }
 
   const append: UseChatHelpers['append'] = async (message, options) => {
-    const attachmentsForRequest = await prepareAttachmentsForRequest(
-      options?.experimental_attachments,
-    );
-
     return triggerRequest(
       messages.value.concat({
         ...message,
         id: message.id ?? generateId(),
         createdAt: message.createdAt ?? new Date(),
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
         parts: message.parts,
       }),
       options,
@@ -376,7 +359,7 @@ export function useChat(
 
   const handleSubmit = async (
     event?: { preventDefault?: () => void },
-    options: ChatRequestOptions = {},
+    options: ChatRequestOptions & { files?: FileList } = {},
   ) => {
     event?.preventDefault?.();
 
@@ -384,9 +367,9 @@ export function useChat(
 
     if (!inputValue && !options.allowEmptySubmit) return;
 
-    const attachmentsForRequest = await prepareAttachmentsForRequest(
-      options.experimental_attachments,
-    );
+    const fileParts = Array.isArray(options?.files)
+      ? options.files
+      : await convertFileListToFileUIParts(options?.files);
 
     triggerRequest(
       messages.value.concat({
@@ -394,9 +377,7 @@ export function useChat(
         createdAt: new Date(),
         content: inputValue,
         role: 'user',
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: [{ type: 'text', text: inputValue }],
+        parts: [...fileParts, { type: 'text', text: inputValue }],
       }),
       options,
     );

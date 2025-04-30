@@ -1,11 +1,11 @@
 import { isAbortError } from '@ai-sdk/provider-utils';
 import {
   callChatApi,
+  convertFileListToFileUIParts,
   extractMaxToolInvocationStep,
   generateId,
   getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
-  prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
   type ChatRequest,
@@ -32,6 +32,10 @@ export type ChatOptions = Readonly<
      * @default 1
      */
     maxSteps?: number;
+
+    '~internal'?: {
+      currentDate?: () => Date;
+    };
   }
 >;
 
@@ -97,6 +101,10 @@ export class Chat {
     untrack(() => (this.#store.messages = value));
   }
 
+  private currentDate = $derived(
+    this.#options['~internal']?.currentDate ?? (() => new Date()),
+  );
+
   constructor(options: ChatOptions = {}) {
     if (hasChatContext()) {
       this.#keyedStore = getChatContext();
@@ -117,18 +125,12 @@ export class Chat {
    */
   append = async (
     message: UIMessage | CreateUIMessage,
-    { data, headers, body, experimental_attachments }: ChatRequestOptions = {},
+    { data, headers, body }: ChatRequestOptions = {},
   ) => {
-    const attachmentsForRequest = await prepareAttachmentsForRequest(
-      experimental_attachments,
-    );
-
     const messages = this.messages.concat({
       ...message,
       id: message.id ?? this.#generateId(),
-      createdAt: message.createdAt ?? new Date(),
-      experimental_attachments:
-        attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+      createdAt: message.createdAt ?? this.currentDate(),
       parts: message.parts,
     });
 
@@ -174,23 +176,21 @@ export class Chat {
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit = async (
     event?: { preventDefault?: () => void },
-    options: ChatRequestOptions = {},
+    options: ChatRequestOptions & { files?: FileList } = {},
   ) => {
     event?.preventDefault?.();
     if (!this.input && !options.allowEmptySubmit) return;
 
-    const attachmentsForRequest = await prepareAttachmentsForRequest(
-      options.experimental_attachments,
-    );
+    const fileParts = Array.isArray(options?.files)
+      ? options.files
+      : await convertFileListToFileUIParts(options?.files);
 
     const messages = this.messages.concat({
       id: this.#generateId(),
-      createdAt: new Date(),
+      createdAt: this.currentDate(),
       role: 'user',
       content: this.input,
-      experimental_attachments:
-        attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-      parts: [{ type: 'text', text: this.input }],
+      parts: [...fileParts, { type: 'text', text: this.input }],
     });
 
     const chatRequest: ChatRequest = {
@@ -251,23 +251,12 @@ export class Chat {
 
       const constructedMessagesPayload = this.#options.sendExtraMessageFields
         ? messages
-        : messages.map(
-            ({
-              role,
-              content,
-              experimental_attachments,
-              annotations,
-              parts,
-            }) => ({
-              role,
-              content,
-              ...(experimental_attachments !== undefined && {
-                experimental_attachments,
-              }),
-              ...(annotations !== undefined && { annotations }),
-              ...(parts !== undefined && { parts }),
-            }),
-          );
+        : messages.map(({ role, content, annotations, parts }) => ({
+            role,
+            content,
+            ...(annotations !== undefined && { annotations }),
+            ...(parts !== undefined && { parts }),
+          }));
 
       const existingData = this.data ?? [];
       await callChatApi({
@@ -306,6 +295,7 @@ export class Chat {
         onToolCall: this.#options.onToolCall,
         onFinish: this.#options.onFinish,
         generateId: this.#generateId,
+        getCurrentDate: this.currentDate,
         fetch: this.#options.fetch,
         // callChatApi calls structuredClone on the message
         lastMessage: $state.snapshot(this.messages[this.messages.length - 1]),

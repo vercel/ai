@@ -21,6 +21,7 @@ export async function callChatApi({
   generateId,
   fetch = getOriginalFetch(),
   lastMessage,
+  getCurrentDate,
 }: {
   api: string;
   body: Record<string, any>;
@@ -40,6 +41,7 @@ export async function callChatApi({
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   lastMessage: UIMessage | undefined;
+  getCurrentDate: () => Date;
 }) {
   const response = await fetch(api, {
     method: 'POST',
@@ -97,6 +99,7 @@ export async function callChatApi({
           }
         },
         generateId,
+        getCurrentDate,
       });
       return;
     }
