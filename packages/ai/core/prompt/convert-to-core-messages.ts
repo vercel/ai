@@ -213,11 +213,6 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
         break;
       }
 
-      case 'data': {
-        // ignore
-        break;
-      }
-
       default: {
         const _exhaustiveCheck: never = role;
         throw new MessageConversionError({
