@@ -1440,7 +1440,11 @@ describe('synchronization', () => {
       component: { chat1, chat2 },
     } = render(ChatSynchronization, { id: crypto.randomUUID() });
 
-    await chat1.append({ role: 'user', content: 'hi' });
+    await chat1.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(chat1.messages.at(0)).toStrictEqual(
       expect.objectContaining({
@@ -1470,7 +1474,11 @@ describe('synchronization', () => {
       component: { chat1, chat2 },
     } = render(ChatSynchronization, { id: crypto.randomUUID() });
 
-    const appendOperation = chat1.append({ role: 'user', content: 'hi' });
+    const appendOperation = chat1.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     await vi.waitFor(() => {
       expect(chat1.status).toBe('submitted');
