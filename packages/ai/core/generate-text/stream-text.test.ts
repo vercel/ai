@@ -3271,6 +3271,7 @@ describe('streamText', () => {
           {
             role: 'user',
             content: 'prompt',
+            parts: [{ type: 'text', text: 'prompt' }],
           },
           {
             role: 'assistant',

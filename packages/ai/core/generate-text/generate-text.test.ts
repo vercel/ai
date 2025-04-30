@@ -1524,6 +1524,7 @@ describe('options.messages', () => {
         {
           role: 'user',
           content: 'prompt',
+          parts: [{ type: 'text', text: 'prompt' }],
         },
         {
           role: 'assistant',

@@ -2,12 +2,7 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import {
-  formatDataStreamPart,
-  getToolInvocations,
-  type Message,
-  type UIMessage,
-} from 'ai';
+import { formatDataStreamPart, getToolInvocations, type UIMessage } from 'ai';
 import { render } from '@testing-library/svelte';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
@@ -44,11 +39,16 @@ describe('data protocol stream', () => {
       chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     expect(chat.messages.at(0)).toStrictEqual(
       expect.objectContaining({
         role: 'user',
         content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
       }),
     );
 
@@ -66,7 +66,11 @@ describe('data protocol stream', () => {
       chunks: ['2:[{"t1":"v1"}]\n', '2:[{"t1": "v2"}]\n', '0:"Hello"\n'],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     expect(chat.data).toStrictEqual([{ t1: 'v1' }, { t1: 'v2' }]);
 
     expect(chat.messages.at(1)).toStrictEqual(
@@ -83,7 +87,11 @@ describe('data protocol stream', () => {
       chunks: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     expect(chat.data).toStrictEqual([{ t1: 'v1' }]);
     chat.data = undefined;
     expect(chat.data).toBeUndefined();
@@ -96,7 +104,11 @@ describe('data protocol stream', () => {
       body: 'Not found',
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     expect(chat.error).toBeInstanceOf(Error);
     expect(chat.error?.message).toBe('Not found');
   });
@@ -107,7 +119,11 @@ describe('data protocol stream', () => {
       chunks: ['3:"custom error message"\n'],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     expect(chat.error).toBeInstanceOf(Error);
     expect(chat.error?.message).toBe('custom error message');
   });
@@ -120,7 +136,11 @@ describe('data protocol stream', () => {
         controller,
       };
 
-      const appendOperation = chat.append({ role: 'user', content: 'hi' });
+      const appendOperation = chat.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
       await vi.waitFor(() => expect(chat.status).toBe('submitted'));
       controller.write('0:"Hello"\n');
       await vi.waitFor(() => expect(chat.status).toBe('streaming'));
@@ -136,7 +156,11 @@ describe('data protocol stream', () => {
         body: 'Not found',
       };
 
-      chat.append({ role: 'user', content: 'hi' });
+      chat.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
       await vi.waitFor(() => expect(chat.status).toBe('error'));
     });
   });
@@ -160,7 +184,11 @@ describe('data protocol stream', () => {
     const chatWithOnFinish = new Chat({
       onFinish,
     });
-    await chatWithOnFinish.append({ role: 'user', content: 'hi' });
+    await chatWithOnFinish.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith(
       {
@@ -188,7 +216,11 @@ describe('data protocol stream', () => {
         chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
       };
 
-      await chat.append({ role: 'user', content: 'hi' });
+      await chat.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
 
       expect(await server.calls[0].requestBody).toStrictEqual({
         id: chat.id,
@@ -214,7 +246,11 @@ describe('data protocol stream', () => {
           return id;
         },
       });
-      await chatWithId.append({ role: 'user', content: 'hi' });
+      await chatWithId.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
 
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
@@ -241,7 +277,11 @@ describe('data protocol stream', () => {
           return id;
         },
       });
-      await chatWithId.append({ role: 'user', content: 'hi' });
+      await chatWithId.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
 
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
@@ -276,7 +316,11 @@ describe('text stream', () => {
       chunks: ['Hello', ',', ' world', '.'],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(chat.messages.at(0)).toStrictEqual(
       expect.objectContaining({
@@ -300,7 +344,11 @@ describe('text stream', () => {
       controller,
     };
 
-    const appendOperation = chat.append({ role: 'user', content: 'hi' });
+    const appendOperation = chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     controller.write('He');
 
     await vi.waitFor(() =>
@@ -339,7 +387,11 @@ describe('text stream', () => {
       streamProtocol: 'text',
       onFinish,
     });
-    await chatWithOnFinish.append({ role: 'user', content: 'hi' });
+    await chatWithOnFinish.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith(
       {
@@ -498,7 +550,11 @@ describe('onToolCall', () => {
       ],
     };
 
-    const appendOperation = chat.append({ role: 'user', content: 'hi' });
+    const appendOperation = chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     await vi.waitFor(() => {
       expect(
         getToolInvocations(chat.messages.at(1) as UIMessage),
@@ -546,7 +602,11 @@ describe('tool invocations', () => {
       controller,
     };
 
-    const appendOperation = chat.append({ role: 'user', content: 'hi' });
+    const appendOperation = chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     controller.write(
       formatDataStreamPart('tool_call_streaming_start', {
@@ -661,7 +721,11 @@ describe('tool invocations', () => {
       controller,
     };
 
-    const appendOperation = chat.append({ role: 'user', content: 'hi' });
+    const appendOperation = chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     controller.write(
       formatDataStreamPart('tool_call', {
@@ -718,7 +782,11 @@ describe('tool invocations', () => {
       ],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     await vi.waitFor(() => {
       expect(
@@ -764,7 +832,11 @@ describe('tool invocations', () => {
       { type: 'controlled-stream', controller: controller2 },
     ];
 
-    chat.append({ role: 'user', content: 'hi' });
+    chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     // start stream
     controller1.write(
@@ -880,7 +952,11 @@ describe('maxSteps', () => {
         },
       ];
 
-      await chat.append({ role: 'user', content: 'hi' });
+      await chat.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
 
       expect(onToolCallInvoked).toBe(true);
 
@@ -928,7 +1004,11 @@ describe('maxSteps', () => {
         },
       ];
 
-      await chat.append({ role: 'user', content: 'hi' });
+      await chat.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
 
       expect(chat.error).toBeInstanceOf(Error);
       expect(chat.error?.message).toBe('call failure');
@@ -1207,7 +1287,11 @@ describe('reload', () => {
       },
     ];
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(chat.messages.at(0)).toStrictEqual(
       expect.objectContaining({
@@ -1274,6 +1358,7 @@ describe('test sending additional fields during message submission', () => {
       role: 'user',
       content: 'hi',
       annotations: ['this is an annotation'],
+      parts: [{ text: 'hi', type: 'text' }],
     });
 
     expect(chat.messages.at(0)).toStrictEqual(
@@ -1299,11 +1384,12 @@ describe('test sending additional fields during message submission', () => {
 
 describe('initialMessages', () => {
   let chat: Chat;
-  let initialMessages = $state<Message[]>([
+  let initialMessages = $state<UIMessage[]>([
     {
       id: 'test-msg-1',
       content: 'Test message 1',
       role: 'user',
+      parts: [{ text: 'Test message 1', type: 'text' }],
     },
   ]);
 
@@ -1329,6 +1415,7 @@ describe('initialMessages', () => {
         id: 'test-msg-2',
         content: 'Test message 2',
         role: 'user',
+        parts: [{ text: 'Test message 2', type: 'text' }],
       },
     ];
 
@@ -1420,7 +1507,11 @@ describe('generateId function', () => {
       generateId: mockGenerateId,
     });
 
-    await chatWithCustomId.append({ role: 'user', content: 'hi' });
+    await chatWithCustomId.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(chatWithCustomId.messages.at(0)).toStrictEqual(
       expect.objectContaining({

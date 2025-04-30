@@ -1,8 +1,7 @@
 export {
   Chat,
   type ChatOptions,
-  type CreateMessage,
-  type Message,
+  type CreateUIMessage,
   type UIMessage,
 } from './chat.svelte.js';
 
