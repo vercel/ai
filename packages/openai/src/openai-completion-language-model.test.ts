@@ -530,6 +530,9 @@ describe('doStream', () => {
           },
           {
             "finishReason": "error",
+            "providerMetadata": {
+              "openai": {},
+            },
             "type": "finish",
             "usage": {
               "inputTokens": undefined,
