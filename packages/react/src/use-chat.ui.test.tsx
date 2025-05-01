@@ -1860,3 +1860,83 @@ describe('initialMessages', () => {
     });
   });
 });
+
+describe('resume ongoing stream and return assistant message', () => {
+  const controller = new TestResponseController();
+
+  setupTestComponent(
+    () => {
+      const { messages, status, experimental_resume } = useChat({
+        id: '123',
+        initialMessages: [{ id: 'msg_123', role: 'user', content: 'hi' }],
+      });
+
+      useEffect(() => {
+        experimental_resume();
+
+        // We want to disable the exhaustive deps rule here because we only want to run this effect once
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))}
+
+          <div data-testid="status">{status}</div>
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        server.urls['/api/chat'].response = {
+          type: 'controlled-stream',
+          controller,
+        };
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  it('construct messages from resumed stream', async () => {
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    controller.write('0:"Hello"\n');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+    });
+
+    controller.write('0:"," \n');
+    controller.write('0:" world"\n');
+    controller.write('0:"."\n');
+
+    controller.close();
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+
+      expect(server.calls.length).toBeGreaterThan(0);
+      const mostRecentCall = server.calls[0];
+
+      const { requestMethod, requestUrl } = mostRecentCall;
+      expect(requestMethod).toBe('GET');
+      expect(requestUrl).toBe('http://localhost:3000/api/chat?chatId=123');
+    });
+  });
+});
