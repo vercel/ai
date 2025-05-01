@@ -112,7 +112,7 @@ Only applicable for HTTP-based providers.
 
   // extract maxImagesPerCall from providerOptions as it's not meant to be passed to `doGenerate()`
   const [
-    [providerName, { maxImagesPerCall, ...generateProviderOptions } = {}],
+    [providerName, { maxImagesPerCall, ...generateProviderOptions } = {}] = [],
   ] = Object.entries(providerOptions ?? {});
 
   // default to 1 if the model has not specified limits on
@@ -142,7 +142,9 @@ Only applicable for HTTP-based providers.
           size,
           aspectRatio,
           seed,
-          providerOptions: { [providerName]: generateProviderOptions },
+          providerOptions: providerName
+            ? { [providerName]: generateProviderOptions }
+            : {},
         }),
       ),
     ),
