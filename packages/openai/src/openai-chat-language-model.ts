@@ -889,7 +889,7 @@ const openaiChatChunkSchema = z.union([
                 z.object({
                   index: z.number(),
                   id: z.string().nullish(),
-                  type: z.literal('function').optional(),
+                  type: z.literal('function').nullish(),
                   function: z.object({
                     name: z.string().nullish(),
                     arguments: z.string().nullish(),
@@ -917,7 +917,7 @@ const openaiChatChunkSchema = z.union([
               .nullable(),
           })
           .nullish(),
-        finish_reason: z.string().nullable().optional(),
+        finish_reason: z.string().nullish(),
         index: z.number(),
       }),
     ),

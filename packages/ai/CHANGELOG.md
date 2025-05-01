@@ -1,5 +1,12 @@
 # ai
 
+## 4.3.12
+
+### Patch Changes
+
+- 1ed3755: fix (ai): don't publish mcp-stdio TypeScript files
+- 46cb332: chore (ai/mcp): add `assertCapability` method to experimental MCP client
+
 ## 4.3.11
 
 ### Patch Changes
