@@ -135,7 +135,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             audioTimestamp: googleOptions.audioTimestamp,
           }),
 
-          responseLogProbs:
+          responseLogprobs:
             googleOptions?.logprobs === true ||
             typeof googleOptions?.logprobs === 'number'
               ? true
