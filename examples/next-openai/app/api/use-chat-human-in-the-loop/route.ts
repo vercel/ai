@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { createDataStreamResponse, Message, streamText } from 'ai';
+import { createDataStreamResponse, UIMessage, streamText } from 'ai';
 import { processToolCalls } from './utils';
 import { tools } from './tools';
 
@@ -7,7 +7,7 @@ import { tools } from './tools';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  const { messages }: { messages: Message[] } = await req.json();
+  const { messages }: { messages: UIMessage[] } = await req.json();
 
   return createDataStreamResponse({
     execute: async dataStream => {

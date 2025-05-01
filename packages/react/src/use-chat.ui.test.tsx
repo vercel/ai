@@ -11,7 +11,7 @@ import {
   generateId,
   getTextFromDataUrl,
   getToolInvocations,
-  Message,
+  UIMessage,
 } from 'ai';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
@@ -23,7 +23,7 @@ const server = createTestServer({
 
 describe('data protocol stream', () => {
   let onFinishCalls: Array<{
-    message: Message;
+    message: UIMessage;
     options: {
       finishReason: string;
       usage: {
@@ -69,7 +69,11 @@ describe('data protocol stream', () => {
           <button
             data-testid="do-append"
             onClick={() => {
-              append({ role: 'user', content: 'hi' });
+              append({
+                role: 'user',
+                content: 'hi',
+                parts: [{ text: 'hi', type: 'text' }],
+              });
             }}
           />
           <button
@@ -320,7 +324,7 @@ describe('data protocol stream', () => {
 
 describe('text stream', () => {
   let onFinishCalls: Array<{
-    message: Message;
+    message: UIMessage;
     options: {
       finishReason: string;
       usage: {
@@ -354,7 +358,11 @@ describe('text stream', () => {
         <button
           data-testid="do-append-text-stream"
           onClick={() => {
-            append({ role: 'user', content: 'hi' });
+            append({
+              role: 'user',
+              content: 'hi',
+              parts: [{ text: 'hi', type: 'text' }],
+            });
           }}
         />
       </div>
@@ -608,7 +616,11 @@ describe('prepareRequestBody', () => {
           data-testid="do-append"
           onClick={() => {
             append(
-              { role: 'user', content: 'hi' },
+              {
+                role: 'user',
+                content: 'hi',
+                parts: [{ text: 'hi', type: 'text' }],
+              },
               {
                 data: { 'test-data-key': 'test-data-value' },
                 body: { 'request-body-key': 'request-body-value' },
@@ -689,7 +701,11 @@ describe('onToolCall', () => {
         <button
           data-testid="do-append"
           onClick={() => {
-            append({ role: 'user', content: 'hi' });
+            append({
+              role: 'user',
+              content: 'hi',
+              parts: [{ text: 'hi', type: 'text' }],
+            });
           }}
         />
       </div>
@@ -767,7 +783,11 @@ describe('tool invocations', () => {
         <button
           data-testid="do-append"
           onClick={() => {
-            append({ role: 'user', content: 'hi' });
+            append({
+              role: 'user',
+              content: 'hi',
+              parts: [{ text: 'hi', type: 'text' }],
+            });
           }}
         />
       </div>
@@ -1018,7 +1038,11 @@ describe('maxSteps', () => {
           <button
             data-testid="do-append"
             onClick={() => {
-              append({ role: 'user', content: 'hi' });
+              append({
+                role: 'user',
+                content: 'hi',
+                parts: [{ text: 'hi', type: 'text' }],
+              });
             }}
           />
         </div>
@@ -1089,7 +1113,11 @@ describe('maxSteps', () => {
           <button
             data-testid="do-append"
             onClick={() => {
-              append({ role: 'user', content: 'hi' });
+              append({
+                role: 'user',
+                content: 'hi',
+                parts: [{ text: 'hi', type: 'text' }],
+              });
             }}
           />
         </div>
@@ -1538,6 +1566,9 @@ describe('should append message with attachments', () => {
               {
                 role: 'user',
                 content: 'Message with image attachment',
+                parts: [
+                  { text: 'Message with image attachment', type: 'text' },
+                ],
               },
               {
                 experimental_attachments: [
@@ -1619,7 +1650,11 @@ describe('reload', () => {
         <button
           data-testid="do-append"
           onClick={() => {
-            append({ role: 'user', content: 'hi' });
+            append({
+              role: 'user',
+              content: 'hi',
+              parts: [{ text: 'hi', type: 'text' }],
+            });
           }}
         />
 
@@ -1704,6 +1739,7 @@ describe('test sending additional fields during message submission', () => {
               role: 'user',
               content: 'hi',
               annotations: ['this is an annotation'],
+              parts: [{ text: 'hi', type: 'text' }],
             });
           }}
         />
@@ -1750,11 +1786,13 @@ describe('initialMessages', () => {
             id: 'test-msg-1',
             content: 'Test message',
             role: 'user',
+            parts: [{ text: 'Test message', type: 'text' }],
           },
           {
             id: 'test-msg-2',
             content: 'Test response',
             role: 'assistant',
+            parts: [{ text: 'Test response', type: 'text' }],
           },
         ],
       });
@@ -1809,11 +1847,12 @@ describe('initialMessages', () => {
 
   describe('changing initial messages', () => {
     setupTestComponent(() => {
-      const [initialMessages, setInitialMessages] = useState<Message[]>([
+      const [initialMessages, setInitialMessages] = useState<UIMessage[]>([
         {
           id: 'test-msg-1',
           content: 'Test message 1',
           role: 'user',
+          parts: [{ text: 'Test message 1', type: 'text' }],
         },
       ]);
 
@@ -1835,6 +1874,7 @@ describe('initialMessages', () => {
                   id: 'test-msg-2',
                   content: 'Test message 2',
                   role: 'user',
+                  parts: [{ text: 'Test message 2', type: 'text' }],
                 },
               ]);
             }}

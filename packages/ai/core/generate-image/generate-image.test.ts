@@ -1,4 +1,8 @@
-import { ImageModelV2, ImageModelV2CallWarning } from '@ai-sdk/provider';
+import {
+  ImageModelV2,
+  ImageModelV2CallWarning,
+  ImageModelV2ProviderMetadata,
+} from '@ai-sdk/provider';
 import { MockImageModelV2 } from '../test/mock-image-model-v2';
 import { generateImage } from './generate-image';
 import {
@@ -20,10 +24,16 @@ const createMockResponse = (options: {
   warnings?: ImageModelV2CallWarning[];
   timestamp?: Date;
   modelId?: string;
+  providerMetaData?: ImageModelV2ProviderMetadata;
   headers?: Record<string, string>;
 }) => ({
   images: options.images,
   warnings: options.warnings ?? [],
+  providerMetadata: options.providerMetaData ?? {
+    testProvider: {
+      images: options.images.map(() => null),
+    },
+  },
   response: {
     timestamp: options.timestamp ?? new Date(),
     modelId: options.modelId ?? 'test-model-id',
@@ -381,5 +391,31 @@ describe('generateImage', () => {
         headers: testHeaders,
       },
     ]);
+  });
+
+  it('should return provider metadata', async () => {
+    const result = await generateImage({
+      model: new MockImageModelV2({
+        doGenerate: async () =>
+          createMockResponse({
+            images: [pngBase64, pngBase64],
+            timestamp: testDate,
+            modelId: 'test-model',
+            providerMetaData: {
+              testProvider: {
+                images: [{ revisedPrompt: 'test-revised-prompt' }, null],
+              },
+            },
+            headers: {},
+          }),
+      }),
+      prompt,
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      testProvider: {
+        images: [{ revisedPrompt: 'test-revised-prompt' }, null],
+      },
+    });
   });
 });

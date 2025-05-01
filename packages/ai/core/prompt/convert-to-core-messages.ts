@@ -1,7 +1,7 @@
 import { ToolSet } from '../generate-text/tool-set';
 import {
   FileUIPart,
-  Message,
+  UIMessage,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocationUIPart,
@@ -16,7 +16,7 @@ Converts an array of messages from useChat into an array of CoreMessages that ca
 with the AI core functions (e.g. `streamText`).
  */
 export function convertToCoreMessages<TOOLS extends ToolSet = never>(
-  messages: Array<Omit<Message, 'id'>>,
+  messages: Array<Omit<UIMessage, 'id'>>,
   options?: { tools?: TOOLS },
 ) {
   const tools = options?.tools ?? ({} as TOOLS);
@@ -85,7 +85,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                 case 'file': {
                   content.push({
                     type: 'file' as const,
-                    data: part.data,
+                    data: part.url,
                     mediaType: part.mediaType ?? (part as any).mimeType, // TODO migration, remove
                   });
                   break;
@@ -93,7 +93,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                 case 'reasoning': {
                   content.push({
                     type: 'reasoning' as const,
-                    text: part.reasoning,
+                    text: part.text,
                     providerOptions: part.providerMetadata,
                   });
                   break;
@@ -210,11 +210,6 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
           coreMessages.push({ role: 'assistant', content });
         }
 
-        break;
-      }
-
-      case 'data': {
-        // ignore
         break;
       }
 

@@ -1,14 +1,18 @@
-import { Attachment, Message } from '../types';
-import { convertToCoreMessages } from './convert-to-core-messages';
-import { tool } from '../tool/tool';
 import { z } from 'zod';
+import { tool } from '../tool/tool';
+import { Attachment } from '../types';
+import { convertToCoreMessages } from './convert-to-core-messages';
 import { CoreMessage } from './message';
 
 describe('convertToCoreMessages', () => {
   describe('system message', () => {
     it('should convert a simple system message', () => {
       const result = convertToCoreMessages([
-        { role: 'system', content: 'System message' },
+        {
+          role: 'system',
+          content: 'System message',
+          parts: [{ text: 'System message', type: 'text' }],
+        },
       ]);
 
       expect(result).toEqual([{ role: 'system', content: 'System message' }]);
@@ -18,10 +22,26 @@ describe('convertToCoreMessages', () => {
   describe('user message', () => {
     it('should convert a simple user message', () => {
       const result = convertToCoreMessages([
-        { role: 'user', content: 'Hello, AI!' },
+        {
+          role: 'user',
+          content: 'Hello, AI!',
+          parts: [{ text: 'Hello, AI!', type: 'text' }],
+        },
       ]);
 
-      expect(result).toEqual([{ role: 'user', content: 'Hello, AI!' }]);
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "text": "Hello, AI!",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ]
+      `);
     });
 
     it('should prefer content in parts when content is empty', () => {
@@ -56,6 +76,7 @@ describe('convertToCoreMessages', () => {
         {
           role: 'user',
           content: 'Check this image',
+          parts: [{ text: 'Check this image', type: 'text' }],
           experimental_attachments: [attachment],
         },
       ]);
@@ -81,6 +102,7 @@ describe('convertToCoreMessages', () => {
         {
           role: 'user',
           content: 'Check this document',
+          parts: [{ text: 'Check this document', type: 'text' }],
           experimental_attachments: [attachment],
         },
       ]);
@@ -110,6 +132,7 @@ describe('convertToCoreMessages', () => {
         {
           role: 'user',
           content: 'Check this image',
+          parts: [{ text: 'Check this image', type: 'text' }],
           experimental_attachments: [attachment],
         },
       ]);
@@ -127,6 +150,7 @@ describe('convertToCoreMessages', () => {
         {
           role: 'user',
           content: 'Check this document',
+          parts: [{ text: 'Check this document', type: 'text' }],
           experimental_attachments: [attachment],
         },
       ]);
@@ -145,6 +169,7 @@ describe('convertToCoreMessages', () => {
           {
             role: 'user',
             content: 'Check this image',
+            parts: [{ text: 'Check this image', type: 'text' }],
             experimental_attachments: [attachment],
           },
         ]);
@@ -161,6 +186,7 @@ describe('convertToCoreMessages', () => {
           {
             role: 'user',
             content: 'Check this file',
+            parts: [{ text: 'Check this file', type: 'text' }],
             experimental_attachments: [attachment],
           },
         ]);
@@ -180,6 +206,7 @@ describe('convertToCoreMessages', () => {
           {
             role: 'user',
             content: 'Check this image',
+            parts: [{ text: 'Check this image', type: 'text' }],
             experimental_attachments: [attachment],
           },
         ]);
@@ -197,6 +224,7 @@ describe('convertToCoreMessages', () => {
           {
             role: 'user',
             content: 'Check this image',
+            parts: [{ text: 'Check this image', type: 'text' }],
             experimental_attachments: [attachment],
           },
         ]);
@@ -230,7 +258,7 @@ describe('convertToCoreMessages', () => {
           parts: [
             {
               type: 'reasoning',
-              reasoning: 'Thinking...',
+              text: 'Thinking...',
               providerMetadata: {
                 testProvider: {
                   signature: '1234567890',
@@ -239,7 +267,7 @@ describe('convertToCoreMessages', () => {
             },
             {
               type: 'reasoning',
-              reasoning: 'redacted-data',
+              text: 'redacted-data',
               providerMetadata: {
                 testProvider: { isRedacted: true },
               },
@@ -278,7 +306,7 @@ describe('convertToCoreMessages', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: 'dGVzdA==',
+              url: 'data:image/png;base64,dGVzdA==',
             },
           ],
         },
@@ -287,7 +315,13 @@ describe('convertToCoreMessages', () => {
       expect(result).toEqual([
         {
           role: 'assistant',
-          content: [{ type: 'file', mediaType: 'image/png', data: 'dGVzdA==' }],
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: 'data:image/png;base64,dGVzdA==',
+            },
+          ],
         },
       ] satisfies CoreMessage[]);
     });
@@ -643,7 +677,11 @@ describe('convertToCoreMessages', () => {
     it('should throw an error for unhandled roles', () => {
       expect(() => {
         convertToCoreMessages([
-          { role: 'unknown' as any, content: 'unknown role message' },
+          {
+            role: 'unknown' as any,
+            content: 'unknown role message',
+            parts: [{ text: 'unknown role message', type: 'text' }],
+          },
         ]);
       }).toThrow('Unsupported role: unknown');
     });

@@ -1,5 +1,5 @@
 import { ChatOpenAI } from '@langchain/openai';
-import { Message } from 'ai';
+import { UIMessage } from 'ai';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { toDataStreamResponse } from '@ai-sdk/langchain';
 
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const {
     messages,
   }: {
-    messages: Message[];
+    messages: UIMessage[];
   } = await req.json();
 
   const model = new ChatOpenAI({

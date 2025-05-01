@@ -3216,6 +3216,7 @@ describe('streamText', () => {
               {
                 content: [
                   {
+                    providerOptions: undefined,
                     text: 'prompt',
                     type: 'text',
                   },
@@ -3271,6 +3272,7 @@ describe('streamText', () => {
           {
             role: 'user',
             content: 'prompt',
+            parts: [{ type: 'text', text: 'prompt' }],
           },
           {
             role: 'assistant',

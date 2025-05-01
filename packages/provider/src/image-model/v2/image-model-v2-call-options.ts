@@ -39,9 +39,9 @@ The outer record is keyed by the provider name, and the inner
 record is keyed by the provider-specific metadata key.
 ```ts
 {
-"openai": {
-"style": "vivid"
-}
+  "openai": {
+    "style": "vivid"
+  }
 }
 ```
  */

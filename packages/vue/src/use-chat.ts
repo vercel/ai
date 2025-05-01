@@ -1,17 +1,14 @@
 import type {
   ChatRequestOptions,
-  CreateMessage,
+  CreateUIMessage,
   JSONValue,
-  Message,
   UIMessage,
   UseChatOptions,
 } from 'ai';
 import {
   callChatApi,
   extractMaxToolInvocationStep,
-  fillMessageParts,
   generateId as generateIdFunc,
-  getMessageParts,
   getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
   prepareAttachmentsForRequest,
@@ -22,7 +19,7 @@ import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { computed, ref, unref } from 'vue';
 
-export type { CreateMessage, Message, UIMessage, UseChatOptions };
+export type { CreateUIMessage, UIMessage, UseChatOptions };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
@@ -34,7 +31,7 @@ export type UseChatHelpers = {
    * the assistant's response.
    */
   append: (
-    message: Message | CreateMessage,
+    message: UIMessage | CreateUIMessage,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
@@ -55,7 +52,7 @@ export type UseChatHelpers = {
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
+    messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
   ) => void;
   /** The current value of the input */
   input: Ref<string>;
@@ -162,7 +159,7 @@ export function useChat(
   const key = `${api}|${chatId}`;
   const { data: messagesData, mutate: originalMutate } = useSWRV<UIMessage[]>(
     key,
-    () => store[key] ?? fillMessageParts(initialMessages),
+    () => store[key] ?? initialMessages,
   );
 
   const { data: status, mutate: mutateStatus } = useSWRV<
@@ -172,7 +169,7 @@ export function useChat(
   status.value ??= 'ready';
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
-  messagesData.value ??= fillMessageParts(initialMessages);
+  messagesData.value ??= initialMessages;
 
   const mutate = (data?: UIMessage[]) => {
     store[key] = data;
@@ -189,7 +186,7 @@ export function useChat(
   let abortController: AbortController | null = null;
 
   async function triggerRequest(
-    messagesSnapshot: Message[],
+    messagesSnapshot: UIMessage[],
     { data, headers, body }: ChatRequestOptions = {},
   ) {
     error.value = undefined;
@@ -207,7 +204,7 @@ export function useChat(
 
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = fillMessageParts(messagesSnapshot);
+      const previousMessages = messagesSnapshot;
       mutate(previousMessages);
 
       const existingData = (streamData.value ?? []) as JSONValue[];
@@ -327,7 +324,7 @@ export function useChat(
         createdAt: message.createdAt ?? new Date(),
         experimental_attachments:
           attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: getMessageParts(message),
+        parts: message.parts,
       }),
       options,
     );
@@ -353,13 +350,13 @@ export function useChat(
   };
 
   const setMessages = (
-    messagesArg: Message[] | ((messages: Message[]) => Message[]),
+    messagesArg: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
   ) => {
     if (typeof messagesArg === 'function') {
       messagesArg = messagesArg(messages.value);
     }
 
-    mutate(fillMessageParts(messagesArg));
+    mutate(messagesArg);
   };
 
   const setData = (

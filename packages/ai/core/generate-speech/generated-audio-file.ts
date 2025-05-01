@@ -29,21 +29,22 @@ export class DefaultGeneratedAudioFile
     super({ data, mediaType });
     let format = 'mp3';
 
-    // If format is not provided, try to determine it from the mimeType
+    // If format is not provided, try to determine it from the media type
     if (mediaType) {
-      const mimeTypeParts = mediaType.split('/');
+      const mediaTypeParts = mediaType.split('/');
 
-      if (mimeTypeParts.length === 2) {
+      if (mediaTypeParts.length === 2) {
         // Handle special cases for audio formats
         if (mediaType !== 'audio/mpeg') {
-          format = mimeTypeParts[1];
+          format = mediaTypeParts[1];
         }
       }
     }
 
     if (!format) {
+      // TODO this should be an AI SDK error
       throw new Error(
-        'Audio format must be provided or determinable from mimeType',
+        'Audio format must be provided or determinable from media type',
       );
     }
 

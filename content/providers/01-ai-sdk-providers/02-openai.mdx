@@ -303,6 +303,32 @@ You need to change Zod `.nullish()` and `.optional()` to `.nullable()`.
 
 </Note>
 
+#### Logprobs
+
+OpenAI provides logprobs information for completion/chat models.
+You can access it in the `providerMetadata` object.
+
+```ts highlight="11"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    openai: {
+      // this can also be a number,
+      // refer to logprobs provider options section for more
+      logprobs: true,
+    },
+  },
+});
+
+const openaiMetadata = (await result.providerMetadata)?.openai;
+
+const logprobs = openaiMetadata?.logprobs;
+```
+
 #### PDF support
 
 The OpenAI Chat API supports reading PDF files.
@@ -909,7 +935,7 @@ const model = openai.image('dall-e-3');
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-1` model supports the `quality` option:
 
 ```ts
-const { image } = await generateImage({
+const { image, providerMetadata } = await generateImage({
   model: openai.image('gpt-image-1'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
@@ -919,6 +945,8 @@ const { image } = await generateImage({
 ```
 
 For more on `generateImage()` see [Image Generation](/docs/ai-sdk-core/image-generation).
+
+OpenAI's image models may return a revised prompt for each image. It can be access at `providerMetadata.openai.images[0]?.revisedPrompt`.
 
 For more information on the available OpenAI image model options, see the [OpenAI API reference](https://platform.openai.com/docs/api-reference/images/create).
 

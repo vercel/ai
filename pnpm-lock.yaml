@@ -1573,11 +1573,11 @@ importers:
   packages/gladia:
     dependencies:
       '@ai-sdk/provider':
-        specifier: 2.0.0-canary.6
-        version: 2.0.0-canary.6
+        specifier: workspace:*
+        version: link:../provider
       '@ai-sdk/provider-utils':
-        specifier: 3.0.0-canary.7
-        version: 3.0.0-canary.7(zod@3.23.8)
+        specifier: workspace:*
+        version: link:../provider-utils
     devDependencies:
       '@types/node':
         specifier: 20.17.24
@@ -2392,16 +2392,6 @@ packages:
 
   '@adobe/css-tools@4.4.0':
     resolution: {integrity: sha512-Ff9+ksdQQB3rMncgqDK78uLznstjyfIf2Arnh22pW8kBpLs6rpKDwgnZT46hin5Hl1WzazzK64DOrhSwYpS7bQ==}
-
-  '@ai-sdk/provider-utils@3.0.0-canary.7':
-    resolution: {integrity: sha512-eVsCJx9CJZ8ZMzgBHn02dYbKjUl54ji9yV5+mTIL7h9+iVpqRNX4/570cFc+dPuy/WuTf6Mqnw3esbK1WgWhSw==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.23.8
-
-  '@ai-sdk/provider@2.0.0-canary.6':
-    resolution: {integrity: sha512-cvl91VElPdC8oBzNyjcpH/3Vc73/JpJkH2sNejyAN5dAlMt8zNsYkYxLb2TBdnqmFEiBkU2lEDIOCq1QLaZbSw==}
-    engines: {node: '>=18'}
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
@@ -15158,15 +15148,6 @@ packages:
 snapshots:
 
   '@adobe/css-tools@4.4.0': {}
-
-  '@ai-sdk/provider-utils@3.0.0-canary.7(zod@3.23.8)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0-canary.6
-      zod: 3.23.8
-
-  '@ai-sdk/provider@2.0.0-canary.6':
-    dependencies:
-      json-schema: 0.4.0
 
   '@alloc/quick-lru@5.2.0': {}
 
