@@ -1,45 +1,33 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { generateId } from 'ai';
+import { mockId, mockValues } from 'ai/test';
+import { computed, ref } from 'vue';
 import { useChat } from './use-chat';
-import { getTextFromDataUrl } from 'ai';
 
-const { messages, handleSubmit, handleInputChange, status, input } = useChat();
-const attachments = ref<FileList>();
+const { messages, handleSubmit, status, input } = useChat({
+  id: generateId(),
+  generateId: mockId(),
+  '~internal': {
+    currentDate: mockValues(new Date('2025-01-01')),
+  },
+});
+const files = ref<FileList>();
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const isLoading = computed(() => status.value !== 'ready');
 </script>
 
 <template>
   <div>
-    <div v-for="(m, idx) in messages" :key="m.id" :data-testid="`message-${idx}`">
-      {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
-      <template v-if="m.experimental_attachments">
-        <template v-for="attachment in m.experimental_attachments" :key="attachment.name">
-          <img
-            v-if="attachment.contentType?.startsWith('image/')"
-            :src="attachment.url"
-            :alt="attachment.name"
-            :data-testid="`attachment-${idx}`"
-          />
-          <div
-            v-else-if="attachment.contentType?.startsWith('text/')"
-            :data-testid="`attachment-${idx}`"
-          >
-            {{ getTextFromDataUrl(attachment.url) }}
-          </div>
-        </template>
-      </template>
-    </div>
+    <div data-testid="messages">{{ JSON.stringify(messages, null, 2) }}</div>
 
     <form
       @submit="
-        (event) => {
+        event => {
           handleSubmit(event, {
             allowEmptySubmit: true,
-            experimental_attachments: attachments,
+            files,
           });
-          attachments = undefined;
+          files = undefined;
           if (fileInputRef) {
             fileInputRef.value = '';
           }
@@ -50,9 +38,9 @@ const isLoading = computed(() => status.value !== 'ready');
       <input
         type="file"
         @change="
-          (event) => {
-            if (event.target.files) {
-              attachments = event.target.files;
+          event => {
+            if (event.target != null && 'files' in event.target) {
+              files = event.target.files as FileList;
             }
           }
         "

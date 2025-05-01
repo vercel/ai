@@ -1,6 +1,7 @@
 import type {
   ChatRequestOptions,
   CreateUIMessage,
+  FileUIPart,
   JSONValue,
   UIMessage,
   UseChatOptions,
@@ -59,7 +60,9 @@ export type UseChatHelpers = {
   /** Form submission handler to automatically reset input and append a user message  */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions & { files?: FileList },
+    chatRequestOptions?: ChatRequestOptions & {
+      files?: FileList | FileUIPart[];
+    },
   ) => void;
 
   /**
@@ -369,7 +372,7 @@ export function useChat(
 
   const handleSubmit = async (
     event?: { preventDefault?: () => void },
-    options: ChatRequestOptions & { files?: FileList } = {},
+    options: ChatRequestOptions & { files?: FileList | FileUIPart[] } = {},
   ) => {
     event?.preventDefault?.();
 
@@ -384,7 +387,7 @@ export function useChat(
     triggerRequest(
       messages.value.concat({
         id: generateId(),
-        createdAt: new Date(),
+        createdAt: getCurrentDate(),
         content: inputValue,
         role: 'user',
         parts: [...fileParts, { type: 'text', text: inputValue }],

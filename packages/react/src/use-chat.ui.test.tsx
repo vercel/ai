@@ -1256,7 +1256,7 @@ describe('maxSteps', () => {
 
 describe('file attachments with data url', () => {
   setupTestComponent(() => {
-    const { messages, handleSubmit, handleInputChange, status, input, error } =
+    const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({
         generateId: mockId(),
         '~internal': {
@@ -1587,25 +1587,14 @@ describe('attachments with empty submit', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit } = useChat({
       generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
     });
 
     return (
       <div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
-            {m.parts.map((part, partIdx) => {
-              if (part.type === 'file') {
-                return (
-                  <div key={partIdx} data-testid={`attachment-${idx}`}>
-                    {part.url}
-                  </div>
-                );
-              }
-            })}
-          </div>
-        ))}
+        <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
           onSubmit={event => {
@@ -1640,16 +1629,42 @@ describe('attachments with empty submit', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent('User:');
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveTextContent(
-      'https://example.com/image.png',
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: 'id-1',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          role: 'user',
+          content: '',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              url: 'https://example.com/image.png',
+            },
+            {
+              type: 'text',
+              text: '',
+            },
+          ],
+        },
+        {
+          id: 'id-2',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          role: 'assistant',
+          content: 'Response to message with image attachment',
+          parts: [
+            {
+              type: 'text',
+              text: 'Response to message with image attachment',
+            },
+          ],
+          revisionId: 'id-3',
+        },
+      ]);
+    });
 
     expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
       {
