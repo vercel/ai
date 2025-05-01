@@ -85,12 +85,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
 
-    const googleOptions =
-      (await parseProviderOptions({
-        provider: 'google',
-        providerOptions,
-        schema: googleGenerativeAIProviderOptions,
-      })) ?? {};
+    const googleOptions = await parseProviderOptions({
+      provider: 'google',
+      providerOptions,
+      schema: googleGenerativeAIProviderOptions,
+    });
 
     const { contents, systemInstruction } =
       convertToGoogleGenerativeAIMessages(prompt);
@@ -137,8 +136,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           }),
 
           responseLogProbs:
-            googleOptions.logprobs === true ||
-            typeof googleOptions.logprobs === 'number'
+            googleOptions?.logprobs === true ||
+            typeof googleOptions?.logprobs === 'number'
               ? true
               : undefined,
 
