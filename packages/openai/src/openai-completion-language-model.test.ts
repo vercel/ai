@@ -10,6 +10,33 @@ const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
+const TEST_LOGPROBS = {
+  tokens: [' ever', ' after', '.\n\n', 'The', ' end', '.'],
+  token_logprobs: [
+    -0.0664508, -0.014520033, -1.3820221, -0.7890417, -0.5323165, -0.10247037,
+  ],
+  top_logprobs: [
+    {
+      ' ever': -0.0664508,
+    },
+    {
+      ' after': -0.014520033,
+    },
+    {
+      '.\n\n': -1.3820221,
+    },
+    {
+      The: -0.7890417,
+    },
+    {
+      ' end': -0.5323165,
+    },
+    {
+      '.': -0.10247037,
+    },
+  ] as Record<string, number>[],
+};
+
 const provider = createOpenAI({
   apiKey: 'test-api-key',
   compatibility: 'strict',
@@ -29,6 +56,7 @@ describe('doGenerate', () => {
       total_tokens: 34,
       completion_tokens: 30,
     },
+    logprobs = null,
     finish_reason = 'stop',
     id = 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
     created = 1711363706,
@@ -41,6 +69,11 @@ describe('doGenerate', () => {
       total_tokens: number;
       completion_tokens: number;
     };
+    logprobs?: {
+      tokens: string[];
+      token_logprobs: number[];
+      top_logprobs: Record<string, number>[];
+    } | null;
     finish_reason?: string;
     id?: string;
     created?: number;
@@ -59,6 +92,7 @@ describe('doGenerate', () => {
           {
             text: content,
             index: 0,
+            ...(logprobs ? { logprobs } : {}),
             finish_reason,
           },
         ],
@@ -110,6 +144,7 @@ describe('doGenerate', () => {
           "echo": undefined,
           "frequency_penalty": undefined,
           "logit_bias": undefined,
+          "logprobs": undefined,
           "max_tokens": undefined,
           "model": "gpt-3.5-turbo-instruct",
           "presence_penalty": undefined,
@@ -152,6 +187,24 @@ describe('doGenerate', () => {
       timestamp: new Date(123 * 1000),
       modelId: 'test-model',
     });
+  });
+
+  it('should extract logprobs', async () => {
+    prepareJsonResponse({ logprobs: TEST_LOGPROBS });
+
+    const provider = createOpenAI({ apiKey: 'test-api-key' });
+
+    const response = await provider.completion('gpt-3.5-turbo').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          logprobs: 1,
+        },
+      },
+    });
+    expect(response.providerMetadata?.openai.logprobs).toStrictEqual(
+      TEST_LOGPROBS,
+    );
   });
 
   it('should extract finish reason', async () => {
@@ -266,6 +319,7 @@ describe('doStream', () => {
       total_tokens: 372,
       completion_tokens: 362,
     },
+    logprobs = null,
     headers,
   }: {
     content?: string[];
@@ -274,6 +328,11 @@ describe('doStream', () => {
       total_tokens: number;
       completion_tokens: number;
     };
+    logprobs?: {
+      tokens: string[];
+      token_logprobs: number[];
+      top_logprobs: Record<string, number>[];
+    } | null;
     finish_reason?: string;
     headers?: Record<string, string>;
   }) {
@@ -284,11 +343,13 @@ describe('doStream', () => {
         ...content.map(text => {
           return (
             `data: {"id":"cmpl-96c64EdfhOw8pjFFgVpLuT8k2MtdT","object":"text_completion","created":1711363440,` +
-            `"choices":[{"text":"${text}","index":0,"logprobs":null,"finish_reason":null}],"model":"gpt-3.5-turbo-instruct"}\n\n`
+            `"choices":[{"text":"${text}","index":0,"logprobs":${JSON.stringify(
+              logprobs,
+            )},"finish_reason":null}],"model":"gpt-3.5-turbo-instruct"}\n\n`
           );
         }),
         `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,` +
-          `"choices":[{"text":"","index":0,"logprobs":null,"finish_reason":"${finish_reason}"}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
+          `"choices":[{"text":"","index":0,"logprobs":${JSON.stringify(logprobs)},"finish_reason":"${finish_reason}"}],"model":"gpt-3.5-turbo-instruct"}\n\n`,
         `data: {"id":"cmpl-96c3yLQE1TtZCd6n6OILVmzev8M8H","object":"text_completion","created":1711363310,` +
           `"model":"gpt-3.5-turbo-instruct","usage":${JSON.stringify(
             usage,
@@ -307,6 +368,7 @@ describe('doStream', () => {
         total_tokens: 372,
         completion_tokens: 362,
       },
+      logprobs: TEST_LOGPROBS,
     });
 
     const { stream } = await model.doStream({
@@ -343,6 +405,52 @@ describe('doStream', () => {
         },
         {
           "finishReason": "stop",
+          "providerMetadata": {
+            "openai": {
+              "logprobs": {
+                "token_logprobs": [
+                  -0.0664508,
+                  -0.014520033,
+                  -1.3820221,
+                  -0.7890417,
+                  -0.5323165,
+                  -0.10247037,
+                ],
+                "tokens": [
+                  " ever",
+                  " after",
+                  ".
+
+      ",
+                  "The",
+                  " end",
+                  ".",
+                ],
+                "top_logprobs": [
+                  {
+                    " ever": -0.0664508,
+                  },
+                  {
+                    " after": -0.014520033,
+                  },
+                  {
+                    ".
+
+      ": -1.3820221,
+                  },
+                  {
+                    "The": -0.7890417,
+                  },
+                  {
+                    " end": -0.5323165,
+                  },
+                  {
+                    ".": -0.10247037,
+                  },
+                ],
+              },
+            },
+          },
           "type": "finish",
           "usage": {
             "inputTokens": 10,
@@ -384,6 +492,9 @@ describe('doStream', () => {
         },
         {
           "finishReason": "error",
+          "providerMetadata": {
+            "openai": {},
+          },
           "type": "finish",
           "usage": {
             "inputTokens": undefined,
@@ -419,6 +530,9 @@ describe('doStream', () => {
           },
           {
             "finishReason": "error",
+            "providerMetadata": {
+              "openai": {},
+            },
             "type": "finish",
             "usage": {
               "inputTokens": undefined,
@@ -443,6 +557,7 @@ describe('doStream', () => {
           "echo": undefined,
           "frequency_penalty": undefined,
           "logit_bias": undefined,
+          "logprobs": undefined,
           "max_tokens": undefined,
           "model": "gpt-3.5-turbo-instruct",
           "presence_penalty": undefined,

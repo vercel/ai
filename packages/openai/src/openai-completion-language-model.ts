@@ -4,6 +4,7 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2StreamPart,
   LanguageModelV2Usage,
+  SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   FetchFunction,
@@ -126,6 +127,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         // model specific settings:
         echo: openaiOptions.echo,
         logit_bias: openaiOptions.logitBias,
+        logprobs:
+          openaiOptions?.logprobs === true
+            ? 0
+            : openaiOptions?.logprobs === false
+              ? undefined
+              : openaiOptions?.logprobs,
         suffix: openaiOptions.suffix,
         user: openaiOptions.user,
 
@@ -173,6 +180,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
 
     const choice = response.choices[0];
 
+    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+
+    if (choice.logprobs != null) {
+      providerMetadata.openai.logprobs = choice.logprobs;
+    }
+
     return {
       content: [{ type: 'text', text: choice.text }],
       usage: {
@@ -186,6 +199,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         headers: responseHeaders,
         body: rawResponse,
       },
+      providerMetadata,
       warnings,
     };
   }
@@ -222,6 +236,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     });
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
+    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
@@ -275,6 +290,10 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
               finishReason = mapOpenAIFinishReason(choice.finish_reason);
             }
 
+            if (choice?.logprobs != null) {
+              providerMetadata.openai.logprobs = choice.logprobs;
+            }
+
             if (choice?.text != null) {
               controller.enqueue({
                 type: 'text',
@@ -287,6 +306,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
             controller.enqueue({
               type: 'finish',
               finishReason,
+              providerMetadata,
               usage,
             });
           },
@@ -308,6 +328,13 @@ const openaiCompletionResponseSchema = z.object({
     z.object({
       text: z.string(),
       finish_reason: z.string(),
+      logprobs: z
+        .object({
+          tokens: z.array(z.string()),
+          token_logprobs: z.array(z.number()),
+          top_logprobs: z.array(z.record(z.string(), z.number())).nullish(),
+        })
+        .nullish(),
     }),
   ),
   usage: z.object({
@@ -328,6 +355,13 @@ const openaiCompletionChunkSchema = z.union([
         text: z.string(),
         finish_reason: z.string().nullish(),
         index: z.number(),
+        logprobs: z
+          .object({
+            tokens: z.array(z.string()),
+            token_logprobs: z.array(z.number()),
+            top_logprobs: z.array(z.record(z.string(), z.number())).nullish(),
+          })
+          .nullish(),
       }),
     ),
     usage: z

@@ -10,6 +10,101 @@ const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
+const TEST_LOGPROBS = {
+  content: [
+    {
+      token: 'Hello',
+      logprob: -0.0009994634,
+      top_logprobs: [
+        {
+          token: 'Hello',
+          logprob: -0.0009994634,
+        },
+      ],
+    },
+    {
+      token: '!',
+      logprob: -0.13410144,
+      top_logprobs: [
+        {
+          token: '!',
+          logprob: -0.13410144,
+        },
+      ],
+    },
+    {
+      token: ' How',
+      logprob: -0.0009250381,
+      top_logprobs: [
+        {
+          token: ' How',
+          logprob: -0.0009250381,
+        },
+      ],
+    },
+    {
+      token: ' can',
+      logprob: -0.047709424,
+      top_logprobs: [
+        {
+          token: ' can',
+          logprob: -0.047709424,
+        },
+      ],
+    },
+    {
+      token: ' I',
+      logprob: -0.000009014684,
+      top_logprobs: [
+        {
+          token: ' I',
+          logprob: -0.000009014684,
+        },
+      ],
+    },
+    {
+      token: ' assist',
+      logprob: -0.009125131,
+      top_logprobs: [
+        {
+          token: ' assist',
+          logprob: -0.009125131,
+        },
+      ],
+    },
+    {
+      token: ' you',
+      logprob: -0.0000066306106,
+      top_logprobs: [
+        {
+          token: ' you',
+          logprob: -0.0000066306106,
+        },
+      ],
+    },
+    {
+      token: ' today',
+      logprob: -0.00011093382,
+      top_logprobs: [
+        {
+          token: ' today',
+          logprob: -0.00011093382,
+        },
+      ],
+    },
+    {
+      token: '?',
+      logprob: -0.00004596782,
+      top_logprobs: [
+        {
+          token: '?',
+          logprob: -0.00004596782,
+        },
+      ],
+    },
+  ],
+};
+
 const provider = createOpenAI({
   apiKey: 'test-api-key',
   compatibility: 'strict',
@@ -35,6 +130,7 @@ describe('doGenerate', () => {
     id = 'chatcmpl-95ZTZkhr0mHNKqerQfiwkuox3PHAd',
     created = 1711115037,
     model = 'gpt-3.5-turbo-0125',
+    logprobs = null,
     headers,
   }: {
     content?: string;
@@ -50,6 +146,15 @@ describe('doGenerate', () => {
       name: string;
       arguments: string;
     };
+    logprobs?: {
+      content:
+        | {
+            token: string;
+            logprob: number;
+            top_logprobs: { token: string; logprob: number }[];
+          }[]
+        | null;
+    } | null;
     usage?: {
       prompt_tokens?: number;
       total_tokens?: number;
@@ -86,6 +191,7 @@ describe('doGenerate', () => {
               tool_calls,
               function_call,
             },
+            ...(logprobs ? { logprobs } : {}),
             finish_reason,
           },
         ],
@@ -137,6 +243,7 @@ describe('doGenerate', () => {
         "body": {
           "frequency_penalty": undefined,
           "logit_bias": undefined,
+          "logprobs": undefined,
           "max_completion_tokens": undefined,
           "max_tokens": undefined,
           "messages": [
@@ -158,6 +265,7 @@ describe('doGenerate', () => {
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
+          "top_logprobs": undefined,
           "top_p": undefined,
           "user": undefined,
         },
@@ -222,6 +330,24 @@ describe('doGenerate', () => {
     });
 
     expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: undefined });
+  });
+
+  it('should extract logprobs', async () => {
+    prepareJsonResponse({
+      logprobs: TEST_LOGPROBS,
+    });
+
+    const response = await provider.chat('gpt-3.5-turbo').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          logprobs: 1,
+        },
+      },
+    });
+    expect(response.providerMetadata?.openai.logprobs).toStrictEqual(
+      TEST_LOGPROBS.content,
+    );
   });
 
   it('should extract finish reason', async () => {
@@ -1214,6 +1340,7 @@ describe('doStream', () => {
       total_tokens: 244,
       completion_tokens: 227,
     },
+    logprobs = null,
     finish_reason = 'stop',
     model = 'gpt-3.5-turbo-0613',
     headers,
@@ -1232,6 +1359,15 @@ describe('doStream', () => {
         rejected_prediction_tokens?: number;
       };
     };
+    logprobs?: {
+      content:
+        | {
+            token: string;
+            logprob: number;
+            top_logprobs: { token: string; logprob: number }[];
+          }[]
+        | null;
+    } | null;
     finish_reason?: string;
     model?: string;
     headers?: Record<string, string>;
@@ -1249,7 +1385,9 @@ describe('doStream', () => {
           );
         }),
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
-          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":null}]}\n\n`,
+          `"system_fingerprint":null,"choices":[{"index":0,"delta":{},"finish_reason":"${finish_reason}","logprobs":${JSON.stringify(
+            logprobs,
+          )}}]}\n\n`,
         `data: {"id":"chatcmpl-96aZqmeDpA9IPD6tACY8djkMsJCMP","object":"chat.completion.chunk","created":1702657020,"model":"${model}",` +
           `"system_fingerprint":"fp_3bc1b5746c","choices":[],"usage":${JSON.stringify(
             usage,
@@ -1268,6 +1406,7 @@ describe('doStream', () => {
         total_tokens: 244,
         completion_tokens: 227,
       },
+      logprobs: TEST_LOGPROBS,
     });
 
     const { stream } = await model.doStream({
@@ -1900,6 +2039,7 @@ describe('doStream', () => {
         "body": {
           "frequency_penalty": undefined,
           "logit_bias": undefined,
+          "logprobs": undefined,
           "max_completion_tokens": undefined,
           "max_tokens": undefined,
           "messages": [
@@ -1925,6 +2065,7 @@ describe('doStream', () => {
           "temperature": undefined,
           "tool_choice": undefined,
           "tools": undefined,
+          "top_logprobs": undefined,
           "top_p": undefined,
           "user": undefined,
         },
