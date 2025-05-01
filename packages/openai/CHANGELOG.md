@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 1.3.21
+
+### Patch Changes
+
+- 5caac29: fix(providers/openai): zod parse error with function
+
 ## 1.3.20
 
 ### Patch Changes
