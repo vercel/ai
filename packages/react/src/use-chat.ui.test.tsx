@@ -1908,7 +1908,14 @@ describe('resume ongoing stream and return assistant message', () => {
     () => {
       const { messages, status, experimental_resume } = useChat({
         id: '123',
-        initialMessages: [{ id: 'msg_123', role: 'user', content: 'hi' }],
+        initialMessages: [
+          {
+            id: 'msg_123',
+            role: 'user',
+            content: 'hi',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
       });
 
       useEffect(() => {
