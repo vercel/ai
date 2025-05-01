@@ -85,11 +85,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
   }: Parameters<LanguageModelV2['doGenerate']>[0]) {
     const warnings: LanguageModelV2CallWarning[] = [];
 
-    const googleOptions = await parseProviderOptions({
-      provider: 'google',
-      providerOptions,
-      schema: googleGenerativeAIProviderOptions,
-    });
+    const googleOptions =
+      (await parseProviderOptions({
+        provider: 'google',
+        providerOptions,
+        schema: googleGenerativeAIProviderOptions,
+      })) ?? {};
 
     const { contents, systemInstruction } =
       convertToGoogleGenerativeAIMessages(prompt);
@@ -134,6 +135,17 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
           }),
+
+          responseLogProbs:
+            googleOptions.logprobs === true ||
+            typeof googleOptions.logprobs === 'number'
+              ? true
+              : undefined,
+
+          logprobs:
+            typeof googleOptions?.logprobs === 'boolean'
+              ? undefined
+              : googleOptions?.logprobs,
 
           // provider options:
           responseModalities: googleOptions?.responseModalities,
@@ -235,6 +247,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         google: {
           groundingMetadata: candidate.groundingMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
+          avgLogprobs: candidate.avgLogprobs ?? null,
+          logprobs: candidate.logprobsResult ?? null,
         },
       },
       request: { body },
@@ -380,6 +394,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
+                  avgLogprobs: candidate.avgLogprobs ?? null,
+                  logprobs: candidate.logprobsResult ?? null,
                 },
               };
             }
@@ -547,6 +563,22 @@ export const safetyRatingSchema = z.object({
   blocked: z.boolean().nullish(),
 });
 
+const logprobSchema = z.object({
+  token: z.string(),
+  logProbability: z.number(),
+});
+
+const logprobsResultSchema = z.object({
+  topCandidates: z
+    .array(
+      z.object({
+        candidates: z.array(logprobSchema),
+      }),
+    )
+    .nullish(),
+  chosenCandidates: z.array(logprobSchema),
+});
+
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
@@ -554,6 +586,8 @@ const responseSchema = z.object({
       finishReason: z.string().nullish(),
       safetyRatings: z.array(safetyRatingSchema).nullish(),
       groundingMetadata: groundingMetadataSchema.nullish(),
+      avgLogprobs: z.number().nullish(),
+      logprobsResult: logprobsResultSchema.nullish(),
     }),
   ),
   usageMetadata: z
@@ -575,6 +609,8 @@ const chunkSchema = z.object({
         finishReason: z.string().nullish(),
         safetyRatings: z.array(safetyRatingSchema).nullish(),
         groundingMetadata: groundingMetadataSchema.nullish(),
+        avgLogprobs: z.number().nullish(),
+        logprobsResult: logprobsResultSchema.nullish(),
       }),
     )
     .nullish(),

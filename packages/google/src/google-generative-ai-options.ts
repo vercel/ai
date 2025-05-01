@@ -55,6 +55,16 @@ export const googleGenerativeAIProviderOptions = z.object({
     .optional(),
 
   /**
+   * Returns the log probabilities of the top candidate tokens
+   * at each generation step. The model's chosen token might not
+   * be the same as the top candidate token at each step.
+   *
+   * Specify the number of candidates to return by using an
+   * integer value in the range of 1-5.
+   */
+  logprobs: z.union([z.boolean(), z.number().min(0).max(5)]).optional(),
+
+  /**
 Optional.
 The name of the cached content used as context to serve the prediction.
 Format: cachedContents/{cachedContent}

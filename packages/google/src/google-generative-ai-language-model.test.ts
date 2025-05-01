@@ -33,6 +33,21 @@ const SAFETY_RATINGS = [
   },
 ];
 
+const TEST_LOGPROBS = {
+  avgLogprobs: 0.0009994634,
+  logprobsResult: {
+    topCandidates: [
+      {
+        candidates: [
+          { token: 'Hello', logProbability: 0.0009994634 },
+          { token: 'Hi', logProbability: 0.0001 },
+        ],
+      },
+    ],
+    chosenCandidates: [{ token: 'Hello', logProbability: 0.0009994634 }],
+  },
+};
+
 const provider = createGoogleGenerativeAI({
   apiKey: 'test-api-key',
   generateId: () => 'test-id',
@@ -175,6 +190,7 @@ describe('doGenerate', () => {
       candidatesTokenCount: 2,
       totalTokenCount: 3,
     },
+    logprobs = null,
     headers,
     groundingMetadata,
     url = TEST_URL_GEMINI_PRO,
@@ -185,6 +201,18 @@ describe('doGenerate', () => {
       candidatesTokenCount: number;
       totalTokenCount: number;
     };
+    logprobs?: {
+      logprobsResult: {
+        topCandidates?: {
+          candidates: {
+            token: string;
+            logProbability: number;
+          }[];
+        }[];
+        chosenCandidates: { token: string; logProbability: number }[];
+      };
+      avgLogprobs: number;
+    } | null;
     headers?: Record<string, string>;
     groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
     url?:
@@ -205,6 +233,7 @@ describe('doGenerate', () => {
               role: 'model',
             },
             finishReason: 'STOP',
+            ...logprobs,
             index: 0,
             safetyRatings: SAFETY_RATINGS,
             ...(groundingMetadata && { groundingMetadata }),
@@ -215,6 +244,28 @@ describe('doGenerate', () => {
       },
     };
   };
+
+  it('should extract logprobs', async () => {
+    prepareJsonResponse({
+      logprobs: TEST_LOGPROBS,
+    });
+
+    const response = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          logprobs: 1,
+        },
+      },
+    });
+
+    expect(response.providerMetadata?.google.avgLogprobs).toStrictEqual(
+      TEST_LOGPROBS.avgLogprobs,
+    );
+    expect(response.providerMetadata?.google.logprobs).toStrictEqual(
+      TEST_LOGPROBS.logprobsResult,
+    );
+  });
 
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
@@ -1279,12 +1330,25 @@ describe('doStream', () => {
   const prepareStreamResponse = ({
     content,
     headers,
+    logprobs,
     groundingMetadata,
     url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
   }: {
     content: string[];
     headers?: Record<string, string>;
     groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
+    logprobs?: {
+      logprobsResult: {
+        topCandidates?: {
+          candidates: {
+            token: string;
+            logProbability: number;
+          }[];
+        }[];
+        chosenCandidates: { token: string; logProbability: number }[];
+      };
+      avgLogprobs: number;
+    } | null;
     url?:
       | typeof TEST_URL_GEMINI_PRO
       | typeof TEST_URL_GEMINI_2_0_PRO
@@ -1305,6 +1369,7 @@ describe('doStream', () => {
                 index: 0,
                 safetyRatings: SAFETY_RATINGS,
                 ...(groundingMetadata && { groundingMetadata }),
+                ...logprobs,
               },
             ],
             // Include usage metadata only in the last chunk
@@ -1422,7 +1487,9 @@ describe('doStream', () => {
           "finishReason": "stop",
           "providerMetadata": {
             "google": {
+              "avgLogprobs": null,
               "groundingMetadata": null,
+              "logprobs": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -1570,7 +1637,9 @@ describe('doStream', () => {
           "finishReason": "stop",
           "providerMetadata": {
             "google": {
+              "avgLogprobs": null,
               "groundingMetadata": null,
+              "logprobs": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -1808,7 +1877,9 @@ describe('doStream', () => {
           "finishReason": "stop",
           "providerMetadata": {
             "google": {
+              "avgLogprobs": null,
               "groundingMetadata": null,
+              "logprobs": null,
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
