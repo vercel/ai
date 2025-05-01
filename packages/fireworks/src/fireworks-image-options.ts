@@ -8,10 +8,3 @@ export type FireworksImageModelId =
   | 'accounts/fireworks/models/SSD-1B'
   | 'accounts/fireworks/models/stable-diffusion-xl-1024-v1-0'
   | (string & {});
-
-export interface FireworksImageSettings {
-  /**
-Override the maximum number of images per call (default 1)
-   */
-  maxImagesPerCall?: number;
-}

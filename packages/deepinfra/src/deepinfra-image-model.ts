@@ -6,10 +6,7 @@ import {
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import {
-  DeepInfraImageModelId,
-  DeepInfraImageSettings,
-} from './deepinfra-image-settings';
+import { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { z } from 'zod';
 
 interface DeepInfraImageModelConfig {
@@ -24,18 +21,14 @@ interface DeepInfraImageModelConfig {
 
 export class DeepInfraImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
     readonly modelId: DeepInfraImageModelId,
-    readonly settings: DeepInfraImageSettings,
     private config: DeepInfraImageModelConfig,
   ) {}
 

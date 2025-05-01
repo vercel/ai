@@ -16,10 +16,7 @@ import { BedrockChatModelId } from './bedrock-chat-options';
 import { BedrockEmbeddingModel } from './bedrock-embedding-model';
 import { BedrockEmbeddingModelId } from './bedrock-embedding-options';
 import { BedrockImageModel } from './bedrock-image-model';
-import {
-  BedrockImageModelId,
-  BedrockImageSettings,
-} from './bedrock-image-settings';
+import { BedrockImageModelId } from './bedrock-image-settings';
 import {
   BedrockCredentials,
   createSigV4FetchFunction,
@@ -85,15 +82,16 @@ export interface AmazonBedrockProvider extends ProviderV2 {
 
   embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV2<string>;
 
-  image(
-    modelId: BedrockImageModelId,
-    settings?: BedrockImageSettings,
-  ): ImageModelV2;
+  /**
+Creates a model for image generation.
+@deprecated Use `imageModel` instead.
+   */
+  image(modelId: BedrockImageModelId): ImageModelV2;
 
-  imageModel(
-    modelId: BedrockImageModelId,
-    settings?: BedrockImageSettings,
-  ): ImageModelV2;
+  /**
+Creates a model for image generation.
+   */
+  imageModel(modelId: BedrockImageModelId): ImageModelV2;
 }
 
 /**
@@ -173,11 +171,8 @@ export function createAmazonBedrock(
       fetch: sigv4Fetch,
     });
 
-  const createImageModel = (
-    modelId: BedrockImageModelId,
-    settings: BedrockImageSettings = {},
-  ) =>
-    new BedrockImageModel(modelId, settings, {
+  const createImageModel = (modelId: BedrockImageModelId) =>
+    new BedrockImageModel(modelId, {
       baseUrl: getBaseUrl,
       headers: options.headers ?? {},
       fetch: sigv4Fetch,

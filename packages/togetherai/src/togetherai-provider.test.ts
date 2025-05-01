@@ -131,13 +131,11 @@ describe('TogetherAIProvider', () => {
     it('should construct an image model with correct configuration', () => {
       const provider = createTogetherAI();
       const modelId = 'stabilityai/stable-diffusion-xl';
-      const settings = { maxImagesPerCall: 4 };
 
-      const model = provider.image(modelId, settings);
+      const model = provider.image(modelId);
 
       expect(TogetherAIImageModel).toHaveBeenCalledWith(
         modelId,
-        settings,
         expect.objectContaining({
           provider: 'togetherai.image',
           baseURL: 'https://api.together.xyz/v1/',
@@ -156,7 +154,6 @@ describe('TogetherAIProvider', () => {
 
       expect(TogetherAIImageModel).toHaveBeenCalledWith(
         modelId,
-        expect.any(Object),
         expect.objectContaining({
           baseURL: 'https://custom.url/',
         }),

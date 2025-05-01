@@ -7,7 +7,7 @@ import {
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { FalImageModel } from './fal-image-model';
-import { FalImageModelId, FalImageSettings } from './fal-image-settings';
+import { FalImageModelId } from './fal-image-settings';
 import { FalTranscriptionModelId } from './fal-transcription-options';
 import { FalTranscriptionModel } from './fal-transcription-model';
 
@@ -39,16 +39,14 @@ requests, or to provide a custom fetch implementation for e.g. testing.
 export interface FalProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
+@deprecated Use `imageModel` instead.
    */
-  image(modelId: FalImageModelId, settings?: FalImageSettings): ImageModelV2;
+  image(modelId: FalImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(
-    modelId: FalImageModelId,
-    settings?: FalImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: FalImageModelId): ImageModelV2;
 
   /**
 Creates a model for transcription.
@@ -111,11 +109,8 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
     ...options.headers,
   });
 
-  const createImageModel = (
-    modelId: FalImageModelId,
-    settings: FalImageSettings = {},
-  ) =>
-    new FalImageModel(modelId, settings, {
+  const createImageModel = (modelId: FalImageModelId) =>
+    new FalImageModel(modelId, {
       provider: 'fal.image',
       baseURL: baseURL ?? defaultBaseURL,
       headers: getHeaders,

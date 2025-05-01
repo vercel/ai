@@ -9,14 +9,13 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
-  settings,
 }: {
   headers?: Record<string, string | undefined>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
   settings?: any;
 } = {}) {
-  return new FalImageModel('stable-diffusion-xl', settings ?? {}, {
+  return new FalImageModel('stable-diffusion-xl', {
     provider: 'fal',
     baseURL: 'https://api.example.com',
     headers: headers ?? { 'api-key': 'test-key' },
@@ -183,22 +182,6 @@ describe('FalImageModel', () => {
       expect(model.provider).toBe('fal');
       expect(model.modelId).toBe('stable-diffusion-xl');
       expect(model.specificationVersion).toBe('v2');
-      expect(model.maxImagesPerCall).toBe(1);
-    });
-
-    it('should use maxImagesPerCall from settings', () => {
-      const model = createBasicModel({
-        settings: {
-          maxImagesPerCall: 4,
-        },
-      });
-
-      expect(model.maxImagesPerCall).toBe(4);
-    });
-
-    it('should default maxImagesPerCall to 1 when not specified', () => {
-      const model = createBasicModel();
-
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

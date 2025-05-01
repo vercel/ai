@@ -136,14 +136,12 @@ describe('DeepInfraProvider', () => {
     it('should construct an image model with correct configuration', () => {
       const provider = createDeepInfra();
       const modelId = 'deepinfra-image-model';
-      const settings = { maxImagesPerCall: 2 };
 
-      const model = provider.image(modelId, settings);
+      const model = provider.image(modelId);
 
       expect(model).toBeInstanceOf(DeepInfraImageModel);
       expect(DeepInfraImageModel).toHaveBeenCalledWith(
         modelId,
-        settings,
         expect.objectContaining({
           provider: 'deepinfra.image',
           baseURL: 'https://api.deepinfra.com/v1/inference',
@@ -160,7 +158,6 @@ describe('DeepInfraProvider', () => {
       expect(model).toBeInstanceOf(DeepInfraImageModel);
       expect(DeepInfraImageModel).toHaveBeenCalledWith(
         modelId,
-        {},
         expect.any(Object),
       );
     });
@@ -174,7 +171,6 @@ describe('DeepInfraProvider', () => {
 
       expect(DeepInfraImageModel).toHaveBeenCalledWith(
         modelId,
-        expect.any(Object),
         expect.objectContaining({
           baseURL: `${customBaseURL}/inference`,
         }),

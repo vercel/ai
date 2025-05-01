@@ -140,13 +140,10 @@ describe('AmazonBedrockProvider', () => {
       const provider = createAmazonBedrock();
       const modelId = 'amazon.titan-image-generator';
 
-      const model = provider.image(modelId, {
-        maxImagesPerCall: 5,
-      });
+      const model = provider.image(modelId);
 
       const constructorCall = BedrockImageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1]).toEqual({ maxImagesPerCall: 5 });
       expect(model).toBeInstanceOf(BedrockImageModel);
     });
 
@@ -154,13 +151,10 @@ describe('AmazonBedrockProvider', () => {
       const provider = createAmazonBedrock();
       const modelId = 'amazon.titan-image-generator';
 
-      const model = provider.imageModel(modelId, {
-        maxImagesPerCall: 5,
-      });
+      const model = provider.imageModel(modelId);
 
       const constructorCall = BedrockImageModelMock.mock.calls[0];
       expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1]).toEqual({ maxImagesPerCall: 5 });
       expect(model).toBeInstanceOf(BedrockImageModel);
     });
   });

@@ -146,34 +146,11 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
       'imagen-3.0-generate-002',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:
           'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
         headers: expect.any(Object),
-      }),
-    );
-  });
-
-  it('should create an image model with custom maxImagesPerCall', () => {
-    const provider = createVertex({
-      project: 'test-project',
-      location: 'test-location',
-    });
-    const imageSettings = {
-      maxImagesPerCall: 4,
-    };
-    provider.image('imagen-3.0-generate-002', imageSettings);
-
-    expect(GoogleVertexImageModel).toHaveBeenCalledWith(
-      'imagen-3.0-generate-002',
-      imageSettings,
-      expect.objectContaining({
-        provider: 'google.vertex.image',
-        headers: expect.any(Object),
-        baseURL:
-          'https://test-location-aiplatform.googleapis.com/v1/projects/test-project/locations/test-location/publishers/google',
       }),
     );
   });
