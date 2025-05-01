@@ -396,7 +396,7 @@ const streamContext = createResumableStreamContext({
   waitUntil: after,
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get('chatId');
 
