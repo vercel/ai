@@ -1,5 +1,11 @@
 # @ai-sdk/ui-utils
 
+## 1.2.10
+
+### Patch Changes
+
+- 6c59ae7: feat (ui/react): support resuming an ongoing stream
+
 ## 1.2.9
 
 ### Patch Changes
