@@ -1,4 +1,5 @@
 import { cleanup, render } from '@testing-library/react';
+import { SWRConfig } from 'swr';
 
 export const setupTestComponent = (
   TestComponent: React.ComponentType<any>,
@@ -9,7 +10,12 @@ export const setupTestComponent = (
   } = {},
 ) => {
   beforeEach(() => {
-    render(init?.(TestComponent) ?? <TestComponent />);
+    // reset SWR cache to isolate tests:
+    render(
+      <SWRConfig value={{ provider: () => new Map() }}>
+        {init?.(TestComponent) ?? <TestComponent />}
+      </SWRConfig>,
+    );
   });
 
   afterEach(() => {

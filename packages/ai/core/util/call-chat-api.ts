@@ -21,6 +21,7 @@ export async function callChatApi({
   generateId,
   fetch = getOriginalFetch(),
   lastMessage,
+  getCurrentDate,
   requestType = 'generate',
 }: {
   api: string;
@@ -41,6 +42,7 @@ export async function callChatApi({
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   lastMessage: UIMessage | undefined;
+  getCurrentDate: () => Date;
   requestType?: 'generate' | 'resume';
 }) {
   const request =
@@ -112,6 +114,7 @@ export async function callChatApi({
           }
         },
         generateId,
+        getCurrentDate,
       });
       return;
     }
