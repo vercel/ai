@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { Message } from 'ai';
+import { UIMessage } from 'ai';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
@@ -12,7 +12,7 @@ export function Chat({
 }: {
   chatId: string;
   autoResume: boolean;
-  initialMessages: Message[];
+  initialMessages: UIMessage[];
 }) {
   const {
     error,

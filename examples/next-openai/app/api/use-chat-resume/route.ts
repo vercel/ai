@@ -9,7 +9,7 @@ import {
   appendResponseMessages,
   createDataStream,
   generateId,
-  Message,
+  UIMessage,
   streamText,
 } from 'ai';
 import { after } from 'next/server';
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     waitUntil: after,
   });
 
-  const { id, messages }: { id: string; messages: Message[] } =
+  const { id, messages }: { id: string; messages: UIMessage[] } =
     await req.json();
 
   const streamId = generateId();
