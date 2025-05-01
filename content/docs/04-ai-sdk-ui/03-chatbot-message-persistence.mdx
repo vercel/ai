@@ -437,7 +437,7 @@ When you create a brand-new chat completion, you must:
 3. Kick off a `createDataStream` that pipes tokens as they arrive
 4. Hand that new stream to `streamContext.resumableStream()`
 
-```ts filename="@/app/api/chat/route.ts"
+```ts filename="app/api/chat/route.ts"
 import {
   appendResponseMessages,
   createDataStream,
