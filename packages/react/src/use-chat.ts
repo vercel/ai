@@ -56,7 +56,7 @@ export type UseChatHelpers = {
   /**
    * Resume an ongoing chat generation stream. This does not resume an aborted generation.
    */
-  experimental_resume: () => Promise<string | null | undefined>;
+  experimental_resume: () => void;
 
   /**
    * Update the `messages` state locally. This is useful when you want to
@@ -469,7 +469,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
   const experimental_resume = useCallback(async () => {
     const messages = messagesRef.current;
 
-    return triggerRequest({ messages }, 'resume');
+    triggerRequest({ messages }, 'resume');
   }, [triggerRequest]);
 
   const setMessages = useCallback(
