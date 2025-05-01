@@ -157,6 +157,18 @@ The following optional provider options are available for Google Generative AI m
     disables thinking. Budgets from 1 to 1024 tokens will be set to 1024.
     For more information see [Google Generative AI documentation](https://ai.google.dev/gemini-api/docs/thinking).
 
+- **logprobs** _boolean | number_
+
+  Return the log probabilities of the tokens. Including logprobs will increase
+  the response size and can slow down response times. However, it can
+  be useful to better understand how the model is behaving.
+
+  Setting to true will return the log probabilities of the tokens that
+  were generated.
+
+  Setting to a number will return the log probabilities of the top n
+  tokens that were generated.
+
 You can use Google Generative AI language models to generate text with the `generateText` function:
 
 ```ts
@@ -360,6 +372,32 @@ const { text, providerMetadata } = await generateText({
   },
   prompt: 'Who won the latest F1 grand prix?',
 });
+```
+
+#### Logprobs
+
+Google Generative AI provides logprobs information for chat models.
+You can access it in the `providerMetadata` object.
+
+```ts highlight="11"
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google('gemini-1.5-pro'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+  providerOptions: {
+    google: {
+      // this can also be a number,
+      // refer to logprobs provider options section for more
+      logprobs: true,
+    },
+  },
+});
+
+const googleMetadata = (await result.providerMetadata)?.google;
+
+const logprobs = googleMetadata?.logprobs;
 ```
 
 The `dynamicRetrievalConfig` describes the options to customize dynamic retrieval:

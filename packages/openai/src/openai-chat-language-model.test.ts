@@ -1406,7 +1406,7 @@ describe('doStream', () => {
         total_tokens: 244,
         completion_tokens: 227,
       },
-      logprobs: TEST_LOGPROBS.content,
+      logprobs: TEST_LOGPROBS,
     });
 
     const { stream } = await model.doStream({
