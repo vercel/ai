@@ -146,7 +146,7 @@ describe('LumaImageModel', () => {
       });
     });
 
-    it.only('should not pass providerOptions.{pollIntervalMillis,maxPollAttempts}', async () => {
+    it('should not pass providerOptions.{pollIntervalMillis,maxPollAttempts}', async () => {
       const model = createBasicModel();
 
       await model.doGenerate({
