@@ -12,13 +12,15 @@ it('should return "messages" for empty arrays', () => {
   expect(detectPromptType([])).toBe('messages');
 });
 
-it('should detect UI messages with experimental_attachments', () => {
+it('should detect UI messages with file parts', () => {
   const messages: Omit<UIMessage, 'id'>[] = [
     {
       role: 'user',
       content: 'Check this file',
-      experimental_attachments: [{ contentType: 'image/png', url: 'test.png' }],
-      parts: [{ text: 'Check this file', type: 'text' }],
+      parts: [
+        { type: 'file', mediaType: 'image/png', url: 'test.png' },
+        { type: 'text', text: 'Check this file' },
+      ],
     },
   ];
   expect(detectPromptType(messages)).toBe('ui-messages');

@@ -2,17 +2,18 @@ import type {
   ChatRequest,
   ChatRequestOptions,
   CreateUIMessage,
+  FileUIPart,
   JSONValue,
   UIMessage,
   UseChatOptions,
 } from 'ai';
 import {
   callChatApi,
+  convertFileListToFileUIParts,
   extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
-  prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
 } from 'ai';
@@ -77,7 +78,9 @@ export type UseChatHelpers = {
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions,
+    chatRequestOptions?: ChatRequestOptions & {
+      files?: FileList | FileUIPart[];
+    },
   ) => void;
   metadata?: Object;
 
@@ -141,6 +144,7 @@ export function useChat({
   fetch,
   keepLastMessageOnError = true,
   experimental_throttle: throttleWaitMs,
+  ...options
 }: UseChatOptions & {
   key?: string;
 
@@ -175,7 +179,16 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
  */
   maxSteps?: number;
+
+  '~internal'?: {
+    currentDate?: () => Date;
+  };
 } = {}): UseChatHelpers {
+  // allow overriding the current date for testing purposes:
+  const getCurrentDate = useCallback(() => {
+    return options['~internal']?.currentDate?.() ?? new Date();
+  }, [options]);
+
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
@@ -270,23 +283,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
         const constructedMessagesPayload = sendExtraMessageFields
           ? chatMessages
-          : chatMessages.map(
-              ({
-                role,
-                content,
-                experimental_attachments,
-                annotations,
-                parts,
-              }) => ({
-                role,
-                content,
-                ...(experimental_attachments !== undefined && {
-                  experimental_attachments,
-                }),
-                ...(annotations !== undefined && { annotations }),
-                ...(parts !== undefined && { parts }),
-              }),
-            );
+          : chatMessages.map(({ role, content, annotations, parts }) => ({
+              role,
+              content,
+              ...(annotations !== undefined && { annotations }),
+              ...(parts !== undefined && { parts }),
+            }));
 
         const existingData = streamDataRef.current;
 
@@ -342,6 +344,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
           generateId,
           fetch,
           lastMessage: chatMessages[chatMessages.length - 1],
+          getCurrentDate,
           requestType,
         });
 
@@ -401,35 +404,26 @@ By default, it's set to 1, which means that only a single LLM call is made.
       keepLastMessageOnError,
       throttleWaitMs,
       chatId,
+      getCurrentDate,
     ],
   );
 
   const append = useCallback(
-    async (
+    (
       message: UIMessage | CreateUIMessage,
-      {
-        data,
+      { data, headers, body }: ChatRequestOptions = {},
+    ) =>
+      triggerRequest({
+        messages: messagesRef.current.concat({
+          ...message,
+          id: message.id ?? generateId(),
+          createdAt: message.createdAt ?? getCurrentDate(),
+        }),
         headers,
         body,
-        experimental_attachments,
-      }: ChatRequestOptions = {},
-    ) => {
-      const attachmentsForRequest = await prepareAttachmentsForRequest(
-        experimental_attachments,
-      );
-
-      const messages = messagesRef.current.concat({
-        ...message,
-        id: message.id ?? generateId(),
-        createdAt: message.createdAt ?? new Date(),
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: message.parts,
-      });
-
-      return triggerRequest({ messages, headers, body, data });
-    },
-    [triggerRequest, generateId],
+        data,
+      }),
+    [triggerRequest, generateId, getCurrentDate],
   );
 
   const reload = useCallback(
@@ -501,7 +495,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
   const handleSubmit = useCallback(
     async (
       event?: { preventDefault?: () => void },
-      options: ChatRequestOptions = {},
+      options: ChatRequestOptions & {
+        files?: FileList | FileUIPart[];
+      } = {},
       metadata?: Object,
     ) => {
       event?.preventDefault?.();
@@ -515,32 +511,26 @@ By default, it's set to 1, which means that only a single LLM call is made.
         };
       }
 
-      const attachmentsForRequest = await prepareAttachmentsForRequest(
-        options.experimental_attachments,
-      );
+      const fileParts = Array.isArray(options?.files)
+        ? options.files
+        : await convertFileListToFileUIParts(options?.files);
 
-      const messages = messagesRef.current.concat({
-        id: generateId(),
-        createdAt: new Date(),
-        role: 'user',
-        content: input,
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: [{ type: 'text', text: input }],
-      });
-
-      const chatRequest: ChatRequest = {
-        messages,
+      triggerRequest({
+        messages: messagesRef.current.concat({
+          id: generateId(),
+          createdAt: getCurrentDate(),
+          role: 'user',
+          content: input,
+          parts: [...fileParts, { type: 'text', text: input }],
+        }),
         headers: options.headers,
         body: options.body,
         data: options.data,
-      };
-
-      triggerRequest(chatRequest);
+      });
 
       setInput('');
     },
-    [input, generateId, triggerRequest],
+    [input, generateId, triggerRequest, getCurrentDate],
   );
 
   const handleInputChange = (e: any) => {

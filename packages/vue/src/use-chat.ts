@@ -1,17 +1,18 @@
 import type {
   ChatRequestOptions,
   CreateUIMessage,
+  FileUIPart,
   JSONValue,
   UIMessage,
   UseChatOptions,
 } from 'ai';
 import {
   callChatApi,
+  convertFileListToFileUIParts,
   extractMaxToolInvocationStep,
   generateId as generateIdFunc,
   getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
-  prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
 } from 'ai';
@@ -59,7 +60,9 @@ export type UseChatHelpers = {
   /** Form submission handler to automatically reset input and append a user message  */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions,
+    chatRequestOptions?: ChatRequestOptions & {
+      files?: FileList | FileUIPart[];
+    },
   ) => void;
 
   /**
@@ -125,6 +128,7 @@ export function useChat(
     keepLastMessageOnError = true,
     maxSteps = 1,
     experimental_prepareRequestBody,
+    ...options
   }: UseChatOptions & {
     /**
      * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
@@ -149,10 +153,18 @@ export function useChat(
       requestData?: JSONValue;
       requestBody?: object;
     }) => unknown;
+
+    '~internal'?: {
+      currentDate?: () => Date;
+    };
   } = {
     maxSteps: 1,
   },
 ): UseChatHelpers {
+  // allow overriding the current date for testing purposes:
+  const getCurrentDate = () =>
+    options['~internal']?.currentDate?.() ?? new Date();
+
   // Generate a unique ID for the chat if not provided.
   const chatId = id ?? generateId();
 
@@ -211,23 +223,12 @@ export function useChat(
 
       const constructedMessagesPayload = sendExtraMessageFields
         ? previousMessages
-        : previousMessages.map(
-            ({
-              role,
-              content,
-              experimental_attachments,
-              annotations,
-              parts,
-            }) => ({
-              role,
-              content,
-              ...(experimental_attachments !== undefined && {
-                experimental_attachments,
-              }),
-              ...(annotations !== undefined && { annotations }),
-              ...(parts !== undefined && { parts }),
-            }),
-          );
+        : previousMessages.map(({ role, content, annotations, parts }) => ({
+            role,
+            content,
+            ...(annotations !== undefined && { annotations }),
+            ...(parts !== undefined && { parts }),
+          }));
 
       await callChatApi({
         api,
@@ -278,6 +279,7 @@ export function useChat(
         lastMessage: recursiveToRaw(
           previousMessages[previousMessages.length - 1],
         ),
+        getCurrentDate,
       });
 
       mutateStatus(() => 'ready');
@@ -313,17 +315,11 @@ export function useChat(
   }
 
   const append: UseChatHelpers['append'] = async (message, options) => {
-    const attachmentsForRequest = await prepareAttachmentsForRequest(
-      options?.experimental_attachments,
-    );
-
     return triggerRequest(
       messages.value.concat({
         ...message,
         id: message.id ?? generateId(),
-        createdAt: message.createdAt ?? new Date(),
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
+        createdAt: message.createdAt ?? getCurrentDate(),
         parts: message.parts,
       }),
       options,
@@ -376,7 +372,7 @@ export function useChat(
 
   const handleSubmit = async (
     event?: { preventDefault?: () => void },
-    options: ChatRequestOptions = {},
+    options: ChatRequestOptions & { files?: FileList | FileUIPart[] } = {},
   ) => {
     event?.preventDefault?.();
 
@@ -384,19 +380,17 @@ export function useChat(
 
     if (!inputValue && !options.allowEmptySubmit) return;
 
-    const attachmentsForRequest = await prepareAttachmentsForRequest(
-      options.experimental_attachments,
-    );
+    const fileParts = Array.isArray(options?.files)
+      ? options.files
+      : await convertFileListToFileUIParts(options?.files);
 
     triggerRequest(
       messages.value.concat({
         id: generateId(),
-        createdAt: new Date(),
+        createdAt: getCurrentDate(),
         content: inputValue,
         role: 'user',
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: [{ type: 'text', text: inputValue }],
+        parts: [...fileParts, { type: 'text', text: inputValue }],
       }),
       options,
     );

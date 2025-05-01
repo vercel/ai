@@ -4,14 +4,14 @@
 import { useChat } from '@ai-sdk/react';
 import { useRef, useState } from 'react';
 import { upload } from '@vercel/blob/client';
-import { Attachment } from 'ai';
+import { FileUIPart } from 'ai';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } = useChat({
     api: '/api/chat',
   });
 
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [files, setFiles] = useState<FileUIPart[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -22,20 +22,17 @@ export default function Page() {
           <div key={message.id} className="flex flex-row gap-2">
             <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
 
-            <div className="flex flex-col gap-2">
-              {message.content}
-
-              <div className="flex flex-row gap-2">
-                {message.experimental_attachments?.map((attachment, index) => (
-                  <img
-                    key={`${message.id}-${index}`}
-                    className="w-24 rounded-md"
-                    src={attachment.url}
-                    alt={attachment.name}
-                  />
-                ))}
-              </div>
-            </div>
+            {message.parts.map((part, index) => {
+              if (part.type === 'text') {
+                return <div key={index}>{part.text}</div>;
+              }
+              if (
+                part.type === 'file' &&
+                part.mediaType?.startsWith('image/')
+              ) {
+                return <img key={index} src={part.url} />;
+              }
+            })}
           </div>
         ))}
       </div>
@@ -47,11 +44,9 @@ export default function Page() {
             return;
           }
 
-          handleSubmit(event, {
-            experimental_attachments: attachments,
-          });
+          handleSubmit(event, { files });
 
-          setAttachments([]);
+          setFiles([]);
 
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -60,16 +55,18 @@ export default function Page() {
         className="fixed bottom-0 flex flex-col w-full gap-2 p-2"
       >
         <div className="fixed flex flex-row items-end gap-2 right-2 bottom-14">
-          {Array.from(attachments)
-            .filter(attachment => attachment.contentType?.startsWith('image/'))
-            .map(attachment => (
-              <div key={attachment.name}>
+          {Array.from(files)
+            .filter(file => file.mediaType?.startsWith('image/'))
+            .map(file => (
+              <div key={file.url}>
                 <img
                   className="w-24 rounded-md"
-                  src={attachment.url}
-                  alt={attachment.name}
+                  src={file.url}
+                  // alt={file.name} TODO filename support
                 />
-                <span className="text-sm text-zinc-500">{attachment.name}</span>
+                <span className="text-sm text-zinc-500">
+                  {'name' /* TODO file.name*/}
+                </span>
               </div>
             ))}
         </div>
@@ -85,11 +82,12 @@ export default function Page() {
                   handleUploadUrl: '/api/files',
                 });
 
-                setAttachments(prevAttachments => [
-                  ...prevAttachments,
+                setFiles(prevFiles => [
+                  ...prevFiles,
                   {
-                    name: file.name,
-                    contentType: blob.contentType,
+                    type: 'file' as const,
+                    // name: file.name, TODO filename support
+                    mediaType: blob.contentType ?? '*/*',
                     url: blob.url,
                   },
                 ]);
