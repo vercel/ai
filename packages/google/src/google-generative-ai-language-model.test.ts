@@ -1330,7 +1330,7 @@ describe('doStream', () => {
   const prepareStreamResponse = ({
     content,
     headers,
-    logprobs,
+    logprobs = null,
     groundingMetadata,
     url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
   }: {
@@ -1459,7 +1459,10 @@ describe('doStream', () => {
   });
 
   it('should stream text deltas', async () => {
-    prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
+    prepareStreamResponse({
+      content: ['Hello', ', ', 'world!'],
+      logprobs: TEST_LOGPROBS,
+    });
 
     const { stream } = await model.doStream({
       prompt: TEST_PROMPT,
@@ -1487,9 +1490,30 @@ describe('doStream', () => {
           "finishReason": "stop",
           "providerMetadata": {
             "google": {
-              "avgLogprobs": null,
+              "avgLogprobs": 0.0009994634,
               "groundingMetadata": null,
-              "logprobs": null,
+              "logprobs": {
+                "chosenCandidates": [
+                  {
+                    "logProbability": 0.0009994634,
+                    "token": "Hello",
+                  },
+                ],
+                "topCandidates": [
+                  {
+                    "candidates": [
+                      {
+                        "logProbability": 0.0009994634,
+                        "token": "Hello",
+                      },
+                      {
+                        "logProbability": 0.0001,
+                        "token": "Hi",
+                      },
+                    ],
+                  },
+                ],
+              },
               "safetyRatings": [
                 {
                   "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
