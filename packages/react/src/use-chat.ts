@@ -178,8 +178,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
     currentDate?: () => Date;
   };
 } = {}): UseChatHelpers {
-  const getCurrentDate = useMemo(() => {
-    return () => options['~internal']?.currentDate?.() ?? new Date();
+  // allow overriding the current date for testing purposes:
+  const getCurrentDate = useCallback(() => {
+    return options['~internal']?.currentDate?.() ?? new Date();
   }, [options]);
 
   // Generate ID once, store in state for stability across re-renders

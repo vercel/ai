@@ -125,6 +125,7 @@ export function useChat(
     keepLastMessageOnError = true,
     maxSteps = 1,
     experimental_prepareRequestBody,
+    ...options
   }: UseChatOptions & {
     /**
      * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
@@ -149,10 +150,18 @@ export function useChat(
       requestData?: JSONValue;
       requestBody?: object;
     }) => unknown;
+
+    '~internal'?: {
+      currentDate?: () => Date;
+    };
   } = {
     maxSteps: 1,
   },
 ): UseChatHelpers {
+  // allow overriding the current date for testing purposes:
+  const getCurrentDate = () =>
+    options['~internal']?.currentDate?.() ?? new Date();
+
   // Generate a unique ID for the chat if not provided.
   const chatId = id ?? generateId();
 
@@ -267,6 +276,7 @@ export function useChat(
         lastMessage: recursiveToRaw(
           previousMessages[previousMessages.length - 1],
         ),
+        getCurrentDate,
       });
 
       mutateStatus(() => 'ready');
@@ -306,7 +316,7 @@ export function useChat(
       messages.value.concat({
         ...message,
         id: message.id ?? generateId(),
-        createdAt: message.createdAt ?? new Date(),
+        createdAt: message.createdAt ?? getCurrentDate(),
         parts: message.parts,
       }),
       options,
