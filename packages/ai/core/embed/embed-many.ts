@@ -203,7 +203,10 @@ Only applicable for HTTP-based providers.
       > = [];
       let tokens = 0;
 
-      const parallelChunks = splitArray(valueChunks, concurrency);
+      const parallelChunks = splitArray(
+        valueChunks,
+        supportsParallelCalls ? concurrency : 1,
+      );
 
       for (const parallelChunk of parallelChunks) {
         const results = await Promise.all(
