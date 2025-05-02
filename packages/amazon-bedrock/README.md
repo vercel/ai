@@ -1,6 +1,6 @@
 # AI SDK - Amazon Bedrock Provider
 
-The **[Amazon Bedrock provider](https://sdk.vercel.ai/providers/ai-sdk-providers/amazon-bedrock)** for the [AI SDK](https://sdk.vercel.ai/docs)
+The **[Amazon Bedrock provider](https://ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains language model support for the Amazon Bedrock [converse API](https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html).
 
 ## Setup
@@ -33,4 +33,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[Amazon Bedrock provider documentation](https://sdk.vercel.ai/providers/ai-sdk-providers/amazon-bedrock)** for more information.
+Please check out the **[Amazon Bedrock provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/amazon-bedrock)** for more information.

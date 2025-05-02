@@ -1,6 +1,6 @@
 # AI SDK, Next.js, and Google Vertex AI Edge Example
 
-This example shows how to use the [AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and [Google Vertex AI](https://cloud.google.com/vertex-ai) to validate that the AI SDK's Google Vertex provider can run successfully in the Edge runtime.
+This example shows how to use the [AI SDK](https://ai-sdk.dev/docs) with [Next.js](https://nextjs.org/) and [Google Vertex AI](https://cloud.google.com/vertex-ai) to validate that the AI SDK's Google Vertex provider can run successfully in the Edge runtime.
 
 ## Deploy your own
 
@@ -29,7 +29,7 @@ To run the example locally you need to:
 
 To learn more about Google Vertex AI, Next.js, and the AI SDK take a look at the following resources:
 
-- [AI SDK docs](https://sdk.vercel.ai/docs)
-- [Vercel AI Playground](https://play.vercel.ai)
+- [AI SDK docs](https://ai-sdk.dev/docs)
+- [Vercel AI Playground](https://ai-sdk.dev/playground)
 - [Google Vertex AI Documentation](https://cloud.google.com/vertex-ai/docs) - learn about Vertex AI features and API
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API

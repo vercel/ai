@@ -1,6 +1,6 @@
 # AI SDK - Perplexity Provider
 
-The **[Perplexity provider](https://sdk.vercel.ai/providers/ai-sdk-providers/perplexity)** for the [AI SDK](https://sdk.vercel.ai/docs)
+The **[Perplexity provider](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains language model support for Perplexity's Sonar API - a powerful answer engine with real-time web search capabilities.
 
 ## Features
@@ -44,4 +44,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[Perplexity provider documentation](https://sdk.vercel.ai/providers/ai-sdk-providers/perplexity)** for more information.
+Please check out the **[Perplexity provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity)** for more information.
