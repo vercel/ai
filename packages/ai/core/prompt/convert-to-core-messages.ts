@@ -7,7 +7,7 @@ import {
   UIMessage,
 } from '../types';
 import { ToolResultPart } from './content-part';
-import { AssistantContent, CoreMessage } from './message';
+import { AssistantContent, ModelMessage } from './message';
 import { MessageConversionError } from './message-conversion-error';
 
 /**
@@ -19,7 +19,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
   options?: { tools?: TOOLS },
 ) {
   const tools = options?.tools ?? ({} as TOOLS);
-  const coreMessages: CoreMessage[] = [];
+  const coreMessages: ModelMessage[] = [];
 
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];

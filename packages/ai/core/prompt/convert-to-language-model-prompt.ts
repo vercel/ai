@@ -5,7 +5,7 @@ import {
   LanguageModelV2TextPart,
 } from '@ai-sdk/provider';
 import { download } from '../../util/download';
-import { CoreMessage } from '../prompt/message';
+import { ModelMessage } from '../prompt/message';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
@@ -52,7 +52,7 @@ export async function convertToLanguageModelPrompt({
  *   available if the model does not support URLs, null otherwise.
  */
 export function convertToLanguageModelMessage(
-  message: CoreMessage,
+  message: ModelMessage,
   downloadedAssets: Record<
     string,
     { mediaType: string | undefined; data: Uint8Array }
@@ -175,7 +175,7 @@ export function convertToLanguageModelMessage(
  * Downloads images and files from URLs in the messages.
  */
 async function downloadAssets(
-  messages: CoreMessage[],
+  messages: ModelMessage[],
   downloadImplementation: typeof download,
   supportedUrls: Record<string, RegExp[]>,
 ): Promise<

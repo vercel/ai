@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { tool } from '../tool/tool';
 import { convertToCoreMessages } from './convert-to-core-messages';
-import { CoreMessage } from './message';
+import { ModelMessage } from './message';
 
 describe('convertToCoreMessages', () => {
   describe('system message', () => {
@@ -159,7 +159,7 @@ describe('convertToCoreMessages', () => {
             { type: 'text', text: 'Hello, human!' },
           ],
         },
-      ] satisfies CoreMessage[]);
+      ] satisfies ModelMessage[]);
     });
 
     it('should convert an assistant message with file parts', () => {
@@ -188,7 +188,7 @@ describe('convertToCoreMessages', () => {
             },
           ],
         },
-      ] satisfies CoreMessage[]);
+      ] satisfies ModelMessage[]);
     });
 
     it('should handle assistant message with tool invocations', () => {

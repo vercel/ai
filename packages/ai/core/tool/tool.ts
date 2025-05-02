@@ -1,5 +1,5 @@
 import { ToolResultContent } from '../prompt/tool-result-content';
-import { CoreMessage } from '../prompt/message';
+import { ModelMessage } from '../prompt/message';
 import { z } from 'zod';
 import { Schema } from '../util';
 import { JSONObject, JSONValue } from '@ai-sdk/provider';
@@ -16,7 +16,7 @@ export interface ToolExecutionOptions {
    * Messages that were sent to the language model to initiate the response that contained the tool call.
    * The messages **do not** include the system prompt nor the assistant response that contained the tool call.
    */
-  messages: CoreMessage[];
+  messages: ModelMessage[];
 
   /**
    * An optional abort signal that indicates that the overall operation should be aborted.

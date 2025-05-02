@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { ToolSet } from '../generate-text/tool-set';
 import { convertToCoreMessages } from './convert-to-core-messages';
 import { detectPromptType } from './detect-prompt-type';
-import { CoreMessage, coreMessageSchema } from './message';
+import { ModelMessage, modelMessageSchema } from './message';
 import { Prompt } from './prompt';
 
 export type StandardizedPrompt = {
@@ -17,7 +17,7 @@ export type StandardizedPrompt = {
   /**
    * Messages.
    */
-  messages: CoreMessage[];
+  messages: ModelMessage[];
 };
 
 export async function standardizePrompt<TOOLS extends ToolSet>({
@@ -81,12 +81,12 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
       });
     }
 
-    const messages: CoreMessage[] =
+    const messages: ModelMessage[] =
       promptType === 'ui-messages'
         ? convertToCoreMessages(prompt.messages as Omit<UIMessage, 'id'>[], {
             tools,
           })
-        : (prompt.messages as CoreMessage[]);
+        : (prompt.messages as ModelMessage[]);
 
     if (messages.length === 0) {
       throw new InvalidPromptError({
@@ -97,7 +97,7 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
 
     const validationResult = await safeValidateTypes({
       value: messages,
-      schema: z.array(coreMessageSchema),
+      schema: z.array(modelMessageSchema),
     });
 
     if (!validationResult.success) {
