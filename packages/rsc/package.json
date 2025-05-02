@@ -7,9 +7,9 @@
   "module": "./dist/rsc-client.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup --tsconfig tsconfig.build.json",
+    "build": "pnpm clean; tsup --tsconfig tsconfig.build.json && perl -pi -e 's/\\.mts/\\.mjs/g' dist/*.mjs",
     "build:watch": "pnpm build --watch",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist *.tsbuildinfo",
     "lint": "eslint \"./**/*.ts*\"",
     "type-check": "tsc --noEmit",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
@@ -28,9 +28,21 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "react-server": "./dist/rsc-server.mjs",
-      "module": "./dist/rsc-client.mjs",
-      "import": "./dist/rsc-client.mjs"
+      "react-server": "./src/rsc-server.ts",
+      "module": "./src/rsc-client.ts",
+      "import": "./src/rsc-client.ts"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      "./package.json": "./package.json",
+      ".": {
+        "types": "./dist/index.d.ts",
+        "react-server": "./dist/rsc-server.mjs",
+        "module": "./dist/rsc-client.mjs",
+        "import": "./dist/rsc-client.mjs"
+      }
     }
   },
   "files": [
@@ -74,9 +86,6 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {

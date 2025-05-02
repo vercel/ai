@@ -3,8 +3,8 @@
   "version": "3.0.0-canary.15",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
@@ -28,25 +28,37 @@
   },
   "exports": {
     "./package.json": "./package.json",
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    },
-    "./edge": {
-      "types": "./dist/edge/index.d.ts",
-      "import": "./dist/edge/index.mjs",
-      "require": "./dist/edge/index.js"
-    },
-    "./anthropic": {
-      "types": "./dist/anthropic/index.d.ts",
-      "import": "./dist/anthropic/index.mjs",
-      "require": "./dist/anthropic/index.js"
-    },
-    "./anthropic/edge": {
-      "types": "./dist/anthropic/edge/index.d.ts",
-      "import": "./dist/anthropic/edge/index.mjs",
-      "require": "./dist/anthropic/edge/index.js"
+    ".": "./src/index.ts",
+    "./edge": "./src/edge/index.ts",
+    "./anthropic": "./src/anthropic/index.ts",
+    "./anthropic/edge": "./src/anthropic/edge/index.ts"
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "access": "public",
+    "exports": {
+      "./package.json": "./package.json",
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.js"
+      },
+      "./edge": {
+        "types": "./dist/edge/index.d.ts",
+        "import": "./dist/edge/index.mjs",
+        "require": "./dist/edge/index.js"
+      },
+      "./anthropic": {
+        "types": "./dist/anthropic/index.d.ts",
+        "import": "./dist/anthropic/index.mjs",
+        "require": "./dist/anthropic/index.js"
+      },
+      "./anthropic/edge": {
+        "types": "./dist/anthropic/edge/index.d.ts",
+        "import": "./dist/anthropic/edge/index.mjs",
+        "require": "./dist/anthropic/edge/index.js"
+      }
     }
   },
   "dependencies": {
@@ -68,9 +80,6 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {

@@ -6,16 +6,14 @@ import {
 import { jsonSchema } from '../util';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod';
-import {
-  NoObjectGeneratedError,
-  verifyNoObjectGeneratedError,
-} from '../../errors/no-object-generated-error';
+import { verifyNoObjectGeneratedError } from '../test/errors';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
+import { NoObjectGeneratedError } from '../../errors';
 
 describe('streamObject', () => {
   describe('output = "object"', () => {

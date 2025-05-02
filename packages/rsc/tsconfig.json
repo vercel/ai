@@ -5,7 +5,9 @@
     "stripInternal": true,
     "rootDir": "src",
     "composite": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly": true
   },
   "exclude": ["dist", "build", "node_modules", "*.config.ts", "tests"],
   "references": [
