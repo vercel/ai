@@ -170,16 +170,6 @@ Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
 
-  /**
-Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-Must be at least 1.
-
-A maximum number is required to prevent infinite loops in the case of misconfigured tools.
-
-By default, it's set to 1, which means that only a single LLM call is made.
- */
-  maxSteps?: number;
-
   '~internal'?: {
     currentDate?: () => Date;
   };
