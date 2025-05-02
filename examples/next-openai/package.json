@@ -15,6 +15,7 @@
     "@ai-sdk/openai": "workspace:*",
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.10.2",
     "@ai-sdk/perplexity": "workspace:*",
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/rsc": "workspace:*",
