@@ -1,5 +1,5 @@
 import { UIMessage } from '../types';
-import { CoreMessage } from './message';
+import { ModelMessage } from './message';
 
 /**
 Prompt part of the AI function options.
@@ -19,5 +19,5 @@ A simple text prompt. You can either use `prompt` or `messages` but not both.
   /**
 A list of messages. You can either use `prompt` or `messages` but not both.
    */
-  messages?: Array<CoreMessage> | Array<Omit<UIMessage, 'id'>>;
+  messages?: Array<ModelMessage> | Array<Omit<UIMessage, 'id'>>;
 };

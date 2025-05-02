@@ -1,7 +1,7 @@
 import { JSONSchema7, LanguageModelV2ToolCall } from '@ai-sdk/provider';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
-import { CoreMessage } from '../prompt';
+import { ModelMessage } from '../prompt';
 import { ToolSet } from './tool-set';
 
 /**
@@ -19,7 +19,7 @@ import { ToolSet } from './tool-set';
  */
 export type ToolCallRepairFunction<TOOLS extends ToolSet> = (options: {
   system: string | undefined;
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   toolCall: LanguageModelV2ToolCall;
   tools: TOOLS;
   parameterSchema: (options: { toolName: string }) => JSONSchema7;

@@ -1,8 +1,8 @@
-import { CoreMessage, generateText } from 'ai';
+import { ModelMessage, generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 export async function POST(req: Request) {
-  const { messages }: { messages: CoreMessage[] } = await req.json();
+  const { messages }: { messages: ModelMessage[] } = await req.json();
 
   const { response } = await generateText({
     model: openai('gpt-4'),

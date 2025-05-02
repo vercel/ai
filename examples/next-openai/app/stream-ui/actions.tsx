@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, generateId } from 'ai';
+import { ModelMessage, generateId } from 'ai';
 import {
   createAI,
   createStreamableValue,
@@ -41,7 +41,7 @@ export async function submitUserMessage(content: string) {
     system: 'You are a weather assistant.',
     messages: aiState
       .get()
-      .messages.map(({ role, content }) => ({ role, content }) as CoreMessage),
+      .messages.map(({ role, content }) => ({ role, content }) as ModelMessage),
 
     text: ({ content, done, delta }) => {
       if (!textStream) {
@@ -98,7 +98,7 @@ export async function submitUserMessage(content: string) {
   };
 }
 
-export type ClientMessage = CoreMessage & {
+export type ClientMessage = ModelMessage & {
   id: string;
 };
 

@@ -7,19 +7,19 @@ import {
   UIMessage,
 } from '../types';
 import { ToolResultPart } from './content-part';
-import { AssistantContent, CoreMessage } from './message';
+import { AssistantContent, ModelMessage } from './message';
 import { MessageConversionError } from './message-conversion-error';
 
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
  */
-export function convertToCoreMessages<TOOLS extends ToolSet = never>(
+export function convertToModelMessages<TOOLS extends ToolSet = never>(
   messages: Array<Omit<UIMessage, 'id'>>,
   options?: { tools?: TOOLS },
-) {
+): ModelMessage[] {
   const tools = options?.tools ?? ({} as TOOLS);
-  const coreMessages: CoreMessage[] = [];
+  const coreMessages: ModelMessage[] = [];
 
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
@@ -218,3 +218,9 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
 
   return coreMessages;
 }
+
+/**
+@deprecated Use `convertToModelMessages` instead.
+ */
+// TODO remove in AI SDK 6
+export const convertToCoreMessages = convertToModelMessages;

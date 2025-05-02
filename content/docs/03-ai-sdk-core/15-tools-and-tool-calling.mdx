@@ -191,12 +191,12 @@ Both `generateText` and `streamText` have a `response.messages` property that yo
 add the assistant and tool messages to your conversation history.
 It is also available in the `onFinish` callback of `streamText`.
 
-The `response.messages` property contains an array of `CoreMessage` objects that you can add to your conversation history:
+The `response.messages` property contains an array of `ModelMessage` objects that you can add to your conversation history:
 
 ```ts
 import { generateText } from 'ai';
 
-const messages: CoreMessage[] = [
+const messages: ModelMessage[] = [
   // ...
 ];
 
