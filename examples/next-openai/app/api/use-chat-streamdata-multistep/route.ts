@@ -1,6 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import {
-  convertToCoreMessages,
+  convertToModelMessages,
   createDataStreamResponse,
   streamText,
   tool,
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
           'You are a helpful assistant with a different system prompt. Repeat the extract user goal in your answer.',
         // continue the workflow stream with the messages from the previous step:
         messages: [
-          ...convertToCoreMessages(messages),
+          ...convertToModelMessages(messages),
           ...(await result1.response).messages,
         ],
       });

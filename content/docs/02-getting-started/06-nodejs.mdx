@@ -76,7 +76,7 @@ Create an `index.ts` file in the root of your project and add the following code
 
 ```ts filename="index.ts"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, streamText } from 'ai';
+import { ModelMessage, streamText } from 'ai';
 import dotenv from 'dotenv';
 import * as readline from 'node:readline/promises';
 
@@ -87,7 +87,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -151,7 +151,7 @@ Modify your `index.ts` file to include the new weather tool:
 
 ```ts filename="index.ts" highlight="2,4,25-38"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, streamText, tool } from 'ai';
+import { ModelMessage, streamText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
@@ -163,7 +163,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -221,7 +221,7 @@ Notice the blank "assistant" response? This is because instead of generating a t
 
 ```typescript highlight="47-48"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, streamText, tool } from 'ai';
+import { ModelMessage, streamText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
@@ -233,7 +233,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -291,7 +291,7 @@ Modify your `index.ts` file to include the `maxSteps` option:
 
 ```ts filename="index.ts" highlight="39-42"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, streamText, tool } from 'ai';
+import { ModelMessage, streamText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
@@ -303,7 +303,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {
@@ -364,7 +364,7 @@ Update your `index.ts` file to add a new tool to convert the temperature from Ce
 
 ```ts filename="index.ts" highlight="38-49"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, streamText, tool } from 'ai';
+import { ModelMessage, streamText, tool } from 'ai';
 import dotenv from 'dotenv';
 import { z } from 'zod';
 import * as readline from 'node:readline/promises';
@@ -376,7 +376,7 @@ const terminal = readline.createInterface({
   output: process.stdout,
 });
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   while (true) {

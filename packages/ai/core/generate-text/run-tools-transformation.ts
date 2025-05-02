@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/provider';
 import { Tracer } from '@opentelemetry/api';
 import { ToolExecutionError } from '../../errors';
-import { CoreMessage } from '../prompt/message';
+import { ModelMessage } from '../prompt/message';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -76,7 +76,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
   system: string | undefined;
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
 }): ReadableStream<SingleRequestTextStreamPart<TOOLS>> {

@@ -1,9 +1,9 @@
-import { CoreMessage } from 'ai';
+import { ModelMessage } from 'ai';
 import { useState } from 'react';
 
 export default function Page() {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<CoreMessage[]>([]);
+  const [messages, setMessages] = useState<ModelMessage[]>([]);
 
   return (
     <div className="flex flex-col gap-2">

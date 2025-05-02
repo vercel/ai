@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { tool } from '../tool/tool';
-import { convertToCoreMessages } from './convert-to-core-messages';
-import { CoreMessage } from './message';
+import { convertToModelMessages } from './convert-to-model-messages';
+import { ModelMessage } from './message';
 
-describe('convertToCoreMessages', () => {
+describe('convertToModelMessages', () => {
   describe('system message', () => {
     it('should convert a simple system message', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'system',
           content: 'System message',
@@ -20,7 +20,7 @@ describe('convertToCoreMessages', () => {
 
   describe('user message', () => {
     it('should convert a simple user message', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'user',
           content: 'Hello, AI!',
@@ -44,7 +44,7 @@ describe('convertToCoreMessages', () => {
     });
 
     it('should prefer content in parts when content is empty', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'user',
           content: '', // empty content
@@ -66,7 +66,7 @@ describe('convertToCoreMessages', () => {
     });
 
     it('should handle user message file parts', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'user',
           content: 'Check this image',
@@ -99,7 +99,7 @@ describe('convertToCoreMessages', () => {
 
   describe('assistant message', () => {
     it('should convert a simple assistant message', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'assistant',
           content: '', // empty content
@@ -116,7 +116,7 @@ describe('convertToCoreMessages', () => {
     });
 
     it('should convert an assistant message with reasoning', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'assistant',
           content: '', // empty content
@@ -159,11 +159,11 @@ describe('convertToCoreMessages', () => {
             { type: 'text', text: 'Hello, human!' },
           ],
         },
-      ] satisfies CoreMessage[]);
+      ] satisfies ModelMessage[]);
     });
 
     it('should convert an assistant message with file parts', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'assistant',
           content: '', // empty content
@@ -188,11 +188,11 @@ describe('convertToCoreMessages', () => {
             },
           ],
         },
-      ] satisfies CoreMessage[]);
+      ] satisfies ModelMessage[]);
     });
 
     it('should handle assistant message with tool invocations', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'assistant',
           content: '', // empty content
@@ -227,7 +227,7 @@ describe('convertToCoreMessages', () => {
         }),
       };
 
-      const result = convertToCoreMessages(
+      const result = convertToModelMessages(
         [
           {
             role: 'assistant',
@@ -255,7 +255,7 @@ describe('convertToCoreMessages', () => {
     });
 
     it('should handle conversation with an assistant message that has empty tool invocations', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'user',
           content: 'text1',
@@ -279,7 +279,7 @@ describe('convertToCoreMessages', () => {
         }),
       };
 
-      const result = convertToCoreMessages(
+      const result = convertToModelMessages(
         [
           {
             role: 'assistant',
@@ -347,7 +347,7 @@ describe('convertToCoreMessages', () => {
         }),
       };
 
-      const result = convertToCoreMessages(
+      const result = convertToModelMessages(
         [
           {
             role: 'assistant',
@@ -412,7 +412,7 @@ describe('convertToCoreMessages', () => {
 
   describe('multiple messages', () => {
     it('should handle a conversation with multiple messages', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'user',
           content: "What's the weather like?",
@@ -471,7 +471,7 @@ describe('convertToCoreMessages', () => {
         }),
       };
 
-      const result = convertToCoreMessages(
+      const result = convertToModelMessages(
         [
           {
             role: 'assistant',
@@ -541,7 +541,7 @@ describe('convertToCoreMessages', () => {
   describe('error handling', () => {
     it('should throw an error for unhandled roles', () => {
       expect(() => {
-        convertToCoreMessages([
+        convertToModelMessages([
           {
             role: 'unknown' as any,
             content: 'unknown role message',
