@@ -48,6 +48,7 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
                 ? {
                     type: 'file' as const,
                     mediaType: part.mediaType,
+                    filename: part.filename,
                     data: part.url,
                   }
                 : part,
