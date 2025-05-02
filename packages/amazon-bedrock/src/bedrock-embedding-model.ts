@@ -1,4 +1,7 @@
-import { EmbeddingModelV2, EmbeddingModelV2Embedding, TooManyEmbeddingValuesForCallError } from '@ai-sdk/provider';
+import {
+  EmbeddingModelV2,
+  TooManyEmbeddingValuesForCallError,
+} from '@ai-sdk/provider';
 import {
   FetchFunction,
   Resolvable,
