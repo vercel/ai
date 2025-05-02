@@ -224,13 +224,6 @@ Additional data to be sent to the API endpoint.
 
 export type UseChatOptions = {
   /**
-Keeps the last message when an error happens. Defaults to `true`.
-
-@deprecated This option will be removed in the next major release.
-   */
-  keepLastMessageOnError?: boolean;
-
-  /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
    */
