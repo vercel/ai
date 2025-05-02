@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
-import { Message, useChat } from './use-chat';
+import { UIMessage, useChat } from './use-chat';
 
 const onFinishCalls: Array<{
-  message: Message;
+  message: UIMessage;
   options: {
     finishReason: string;
     usage: {
@@ -35,7 +35,13 @@ const { messages, append } = useChat({
 
     <button
       data-testid="do-append"
-      @click="append({ role: 'user', content: 'hi' })"
+      @click="
+        append({
+          role: 'user',
+          content: 'hi',
+          parts: [{ text: 'hi', type: 'text' }],
+        })
+      "
     />
 
     <div data-testid="on-finish-calls">{{ JSON.stringify(onFinishCalls) }}</div>
