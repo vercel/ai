@@ -319,13 +319,6 @@ either synchronously or asynchronously.
   body?: object;
 
   /**
-   * Whether to send extra message fields such as `message.id` and `message.createdAt` to the API.
-   * Defaults to `false`. When set to `true`, the API endpoint might need to
-   * handle the extra fields before forwarding the request to the AI service.
-   */
-  sendExtraMessageFields?: boolean;
-
-  /**
 Streaming protocol that is used. Defaults to `data`.
    */
   streamProtocol?: 'data' | 'text';

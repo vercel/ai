@@ -32,7 +32,12 @@ describe('data protocol stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should correctly manage streamed response in messages', async () => {
@@ -185,6 +190,10 @@ describe('data protocol stream', () => {
     const onFinish = vi.fn();
     const chatWithOnFinish = new Chat({
       onFinish,
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
     });
     await chatWithOnFinish.append({
       role: 'user',
@@ -224,16 +233,25 @@ describe('data protocol stream', () => {
         parts: [{ text: 'hi', type: 'text' }],
       });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        id: chat.id,
-        messages: [
-          {
-            role: 'user',
-            content: 'hi',
-            parts: [{ text: 'hi', type: 'text' }],
-          },
-        ],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "id-0",
+          "messages": [
+            {
+              "content": "hi",
+              "createdAt": "2025-01-01T00:00:00.000Z",
+              "id": "id-1",
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+        }
+      `);
     });
 
     it('should clear out messages when the id changes', async () => {
@@ -1089,6 +1107,8 @@ describe('file attachments with data url', () => {
         "messages": [
           {
             "content": "Message with text attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
             "parts": [
               {
                 "filename": "test.txt",
@@ -1166,6 +1186,8 @@ describe('file attachments with data url', () => {
         "messages": [
           {
             "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
             "parts": [
               {
                 "filename": "test.png",
@@ -1256,6 +1278,8 @@ describe('file attachments with url', () => {
         "messages": [
           {
             "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
             "parts": [
               {
                 "filename": "test.png",
@@ -1345,6 +1369,8 @@ describe('file attachments with empty text content', () => {
         "messages": [
           {
             "content": "",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
             "parts": [
               {
                 "filename": "test.png",
@@ -1369,7 +1395,12 @@ describe('reload', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should show streamed response', async () => {
@@ -1411,18 +1442,29 @@ describe('reload', () => {
       headers: { 'header-key': 'header-value' },
     });
 
-    expect(await server.calls[1].requestBodyJson).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          content: 'hi',
-          role: 'user',
-          parts: [{ text: 'hi', type: 'text' }],
+    expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "test-data-key": "test-data-value",
         },
-      ],
-      data: { 'test-data-key': 'test-data-value' },
-      'request-body-key': 'request-body-value',
-    });
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "hi",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "request-body-key": "request-body-value",
+      }
+    `);
 
     expect(server.calls[1].requestHeaders).toStrictEqual({
       'content-type': 'application/json',
@@ -1442,7 +1484,12 @@ describe('test sending additional fields during message submission', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should send annotations with the message', async () => {
@@ -1465,17 +1512,28 @@ describe('test sending additional fields during message submission', () => {
       }),
     );
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          role: 'user',
-          content: 'hi',
-          annotations: ['this is an annotation'],
-          parts: [{ text: 'hi', type: 'text' }],
-        },
-      ],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "annotations": [
+              "this is an annotation",
+            ],
+            "content": "hi",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 

@@ -8,12 +8,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  formatDataStreamPart,
-  generateId,
-  getToolInvocations,
-  UIMessage,
-} from 'ai';
+import { formatDataStreamPart, getToolInvocations, UIMessage } from 'ai';
 import { mockValues } from 'ai/test';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
@@ -100,7 +95,7 @@ describe('data protocol stream', () => {
     },
     {
       // use a random id to avoid conflicts:
-      init: TestComponent => <TestComponent id={`first-id-${generateId()}`} />,
+      init: TestComponent => <TestComponent id={`first-${mockId()()}`} />,
     },
   );
 
@@ -345,16 +340,25 @@ describe('data protocol stream', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        id: screen.getByTestId('id').textContent,
-        messages: [
-          {
-            role: 'user',
-            content: 'hi',
-            parts: [{ text: 'hi', type: 'text' }],
-          },
-        ],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "first-id-0",
+          "messages": [
+            {
+              "content": "hi",
+              "createdAt": "2025-01-01T00:00:00.000Z",
+              "id": "id-1",
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+        }
+      `);
     });
 
     it('should clear out messages when the id changes', async () => {
@@ -1374,6 +1378,8 @@ describe('file attachments with data url', () => {
         "messages": [
           {
             "content": "Message with text attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.txt",
@@ -1456,6 +1462,8 @@ describe('file attachments with data url', () => {
         "messages": [
           {
             "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-0",
             "parts": [
               {
                 "filename": "test.png",
@@ -1573,6 +1581,8 @@ describe('file attachments with url', () => {
         "messages": [
           {
             "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-0",
             "parts": [
               {
                 "mediaType": "image/png",
@@ -1682,6 +1692,8 @@ describe('attachments with empty submit', () => {
         "messages": [
           {
             "content": "",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
             "parts": [
               {
                 "filename": "test.png",
@@ -1797,6 +1809,8 @@ describe('should append message with attachments', () => {
         "messages": [
           {
             "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
             "parts": [
               {
                 "mediaType": "image/png",
@@ -1818,7 +1832,12 @@ describe('should append message with attachments', () => {
 
 describe('reload', () => {
   setupTestComponent(() => {
-    const { messages, append, reload } = useChat();
+    const { messages, append, reload } = useChat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
 
     return (
       <div>
@@ -1876,18 +1895,29 @@ describe('reload', () => {
     // setup done, click reload:
     await userEvent.click(screen.getByTestId('do-reload'));
 
-    expect(await server.calls[1].requestBodyJson).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          content: 'hi',
-          role: 'user',
-          parts: [{ text: 'hi', type: 'text' }],
+    expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "test-data-key": "test-data-value",
         },
-      ],
-      data: { 'test-data-key': 'test-data-value' },
-      'request-body-key': 'request-body-value',
-    });
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "hi",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "request-body-key": "request-body-value",
+      }
+    `);
 
     expect(server.calls[1].requestHeaders).toStrictEqual({
       'content-type': 'application/json',
@@ -1903,7 +1933,12 @@ describe('reload', () => {
 
 describe('test sending additional fields during message submission', () => {
   setupTestComponent(() => {
-    const { messages, append } = useChat();
+    const { messages, append } = useChat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
 
     return (
       <div>
@@ -1940,17 +1975,28 @@ describe('test sending additional fields during message submission', () => {
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          role: 'user',
-          content: 'hi',
-          annotations: ['this is an annotation'],
-          parts: [{ text: 'hi', type: 'text' }],
-        },
-      ],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "annotations": [
+              "this is an annotation",
+            ],
+            "content": "hi",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 

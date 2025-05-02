@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
-import { Message, useChat } from './use-chat';
+import { UIMessage, useChat } from './use-chat';
 
 const onFinishCalls: Array<{
-  message: Message;
+  message: UIMessage;
   options: {
     finishReason: string;
     usage: {
@@ -37,7 +37,13 @@ const { messages, append, data, error, status, setData } = useChat({
 
     <button
       data-testid="do-append"
-      @click="append({ role: 'user', content: 'hi' })"
+      @click="
+        append({
+          role: 'user',
+          content: 'hi',
+          parts: [{ text: 'hi', type: 'text' }],
+        })
+      "
     />
 
     <button data-testid="do-set-data" @click="setData([{ t1: 'set' }])" />

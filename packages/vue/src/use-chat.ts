@@ -114,7 +114,6 @@ export function useChat(
     id,
     initialMessages = [],
     initialInput = '',
-    sendExtraMessageFields,
     streamProtocol = 'data',
     onResponse,
     onFinish,
@@ -206,32 +205,21 @@ export function useChat(
     try {
       abortController = new AbortController();
 
-      // Do an optimistic update to the chat state to show the updated messages
-      // immediately.
-      const previousMessages = messagesSnapshot;
-      mutate(previousMessages);
+      // Do an optimistic update to show the updated messages immediately:
+      mutate(messagesSnapshot);
 
       const existingData = (streamData.value ?? []) as JSONValue[];
-
-      const constructedMessagesPayload = sendExtraMessageFields
-        ? previousMessages
-        : previousMessages.map(({ role, content, annotations, parts }) => ({
-            role,
-            content,
-            ...(annotations !== undefined && { annotations }),
-            ...(parts !== undefined && { parts }),
-          }));
 
       await callChatApi({
         api,
         body: experimental_prepareRequestBody?.({
           id: chatId,
-          messages: previousMessages,
+          messages: messagesSnapshot,
           requestData: data,
           requestBody: body,
         }) ?? {
           id: chatId,
-          messages: constructedMessagesPayload,
+          messages: messagesSnapshot,
           data,
           ...unref(metadataBody), // Use unref to unwrap the ref value
           ...body,
@@ -249,8 +237,8 @@ export function useChat(
 
           mutate([
             ...(replaceLastMessage
-              ? previousMessages.slice(0, previousMessages.length - 1)
-              : previousMessages),
+              ? messagesSnapshot.slice(0, messagesSnapshot.length - 1)
+              : messagesSnapshot),
             message,
           ]);
           if (data?.length) {
@@ -263,7 +251,7 @@ export function useChat(
         fetch,
         // enabled use of structured clone in processChatResponse:
         lastMessage: recursiveToRaw(
-          previousMessages[previousMessages.length - 1],
+          messagesSnapshot[messagesSnapshot.length - 1],
         ),
         getCurrentDate,
       });
