@@ -106,7 +106,7 @@ In this project, you will build a chatbot that will only respond with informatio
 This project will use the following stack:
 
 - [Next.js](https://nextjs.org) 14 (App Router)
-- [ AI SDK ](https://sdk.vercel.ai/docs)
+- [ AI SDK ](/docs)
 - [OpenAI](https://openai.com)
 - [ Drizzle ORM ](https://orm.drizzle.team)
 - [ Postgres ](https://www.postgresql.org/) with [ pgvector ](https://github.com/pgvector/pgvector)
@@ -254,7 +254,7 @@ You will use the AI SDK to create embeddings. This will require two more depende
 
 <Snippet text="pnpm add ai @ai-sdk/react @ai-sdk/openai" />
 
-This will install the [AI SDK](https://sdk.vercel.ai/docs), AI SDK's React hooks, and AI SDK's [OpenAI provider](/providers/ai-sdk-providers/openai).
+This will install the [AI SDK](/docs), AI SDK's React hooks, and AI SDK's [OpenAI provider](/providers/ai-sdk-providers/openai).
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -535,7 +535,7 @@ export async function POST(req: Request) {
 In this code, you define a tool called `addResource`. This tool has three elements:
 
 - **description**: description of the tool that will influence when the tool is picked.
-- **parameters**: [Zod schema](https://sdk.vercel.ai/docs/foundations/tools#schema-specification-and-validation-with-zod) that defines the parameters necessary for the tool to run.
+- **parameters**: [Zod schema](/docs/foundations/tools#schema-specification-and-validation-with-zod) that defines the parameters necessary for the tool to run.
 - **execute**: An asynchronous function that is called with the arguments from the tool call.
 
 In simple terms, on each generation, the model will decide whether it should call the tool. If it deems it should call the tool, it will extract the parameters from the input and then append a new `message` to the `messages` array of type `tool-call`. The AI SDK will then run the `execute` function with the parameters provided by the `tool-call` message.

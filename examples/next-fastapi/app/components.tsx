@@ -62,7 +62,7 @@ export const Card = ({ type }: { type: string }) => {
             <Link
               target="_blank"
               className="text-blue-500 hover:underline"
-              href="https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol#data-stream-protocol"
+              href="https://ai-sdk.dev/docs/ai-sdk-ui/stream-protocol#data-stream-protocol"
             >
               data stream protocol
             </Link>{' '}

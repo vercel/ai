@@ -63,7 +63,7 @@ export async function POST(req: Request) {
 }
 ```
 
-With AI SDK Core you have a unified API for any provider that implements the [AI SDK Language Model Specification](https://sdk.vercel.ai/providers/community-providers/custom-providers).
+With AI SDK Core you have a unified API for any provider that implements the [AI SDK Language Model Specification](/providers/community-providers/custom-providers).
 
 Let’s take a look at the example above, but refactored to utilize the AI SDK Core API alongside the AI SDK OpenAI provider. In this example, you import the LLM function you want to use from the `ai` package, import the OpenAI provider from `@ai-sdk/openai`, and then you call the model and return the response using the `toDataStreamResponse()` helper function.
 

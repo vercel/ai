@@ -1,6 +1,6 @@
 # AI SDK - Cerebras Provider
 
-The **Cerebras provider** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for [Cerebras](https://cerebras.ai), offering high-speed AI model inference powered by Cerebras Wafer-Scale Engines and CS-3 systems.
+The **Cerebras provider** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for [Cerebras](https://cerebras.ai), offering high-speed AI model inference powered by Cerebras Wafer-Scale Engines and CS-3 systems.
 
 ## Setup
 
