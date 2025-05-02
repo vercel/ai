@@ -5,6 +5,7 @@ import {
 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { embedMany } from './embed-many';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],
@@ -20,20 +21,25 @@ const testValues = [
 
 describe('model.supportsParallelCalls', () => {
   it('should not parallelize when false', async () => {
-    let currentValueIndex = 0;
+    const events: string[] = [];
+    let callCount = 0;
 
-    const { embeddings } = await embedMany({
+    const resolvables = [
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+    ];
+
+    const embedManyPromise = embedMany({
       model: new MockEmbeddingModelV2({
         supportsParallelCalls: false,
         maxEmbeddingsPerCall: 1,
-        doEmbed: async ({ values }) => {
-          const index = currentValueIndex++;
+        doEmbed: async () => {
+          const index = callCount++;
+          events.push(`start-${index}`);
 
-          expect(values).toEqual([testValues[index]]);
-
-          await new Promise(resolve => setTimeout(resolve, 1));
-
-          expect(currentValueIndex).toEqual(index + 1);
+          await resolvables[index].promise;
+          events.push(`end-${index}`);
 
           return {
             embeddings: [dummyEmbeddings[index]],
@@ -44,28 +50,44 @@ describe('model.supportsParallelCalls', () => {
       values: testValues,
     });
 
-    expect(embeddings.length).toEqual(testValues.length);
+    resolvables.forEach(resolvable => {
+      resolvable.resolve();
+    });
+
+    const { embeddings } = await embedManyPromise;
+
+    expect(events).toStrictEqual([
+      'start-0',
+      'end-0',
+      'start-1',
+      'end-1',
+      'start-2',
+      'end-2',
+    ]);
+
+    expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 
   it('should parallelize when true', async () => {
-    let currentValueIndex = 0;
+    const events: string[] = [];
+    let callCount = 0;
 
-    const { embeddings } = await embedMany({
+    const resolvables = [
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+    ];
+
+    const embedManyPromise = embedMany({
       model: new MockEmbeddingModelV2({
         supportsParallelCalls: true,
         maxEmbeddingsPerCall: 1,
-        doEmbed: async ({ values }) => {
-          const index = currentValueIndex++;
+        doEmbed: async () => {
+          const index = callCount++;
+          events.push(`start-${index}`);
 
-          expect(values).toEqual([testValues[index]]);
-
-          await new Promise(resolve => setTimeout(resolve, 1));
-
-          if (index === testValues.length - 1) {
-            currentValueIndex++;
-          }
-
-          expect(currentValueIndex).not.toEqual(index + 1);
+          await resolvables[index].promise;
+          events.push(`end-${index}`);
 
           return {
             embeddings: [dummyEmbeddings[index]],
@@ -76,7 +98,70 @@ describe('model.supportsParallelCalls', () => {
       values: testValues,
     });
 
-    expect(embeddings.length).toEqual(testValues.length);
+    resolvables.forEach(resolvable => {
+      resolvable.resolve();
+    });
+
+    const { embeddings } = await embedManyPromise;
+
+    expect(events).toStrictEqual([
+      'start-0',
+      'start-1',
+      'start-2',
+      'end-0',
+      'end-1',
+      'end-2',
+    ]);
+
+    expect(embeddings).toStrictEqual(dummyEmbeddings);
+  });
+
+  it('should parallelize when true', async () => {
+    const events: string[] = [];
+    let callCount = 0;
+
+    const resolvables = [
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+    ];
+
+    const embedManyPromise = embedMany({
+      model: new MockEmbeddingModelV2({
+        supportsParallelCalls: true,
+        maxEmbeddingsPerCall: 2,
+        doEmbed: async () => {
+          const index = callCount++;
+          events.push(`start-${index}`);
+
+          await resolvables[index].promise;
+          events.push(`end-${index}`);
+
+          return {
+            embeddings: [dummyEmbeddings[index]],
+            response: { headers: {}, body: {} },
+          };
+        },
+      }),
+      values: testValues,
+    });
+
+    resolvables.forEach(resolvable => {
+      resolvable.resolve();
+    });
+
+    const { embeddings } = await embedManyPromise;
+
+    expect(events).toStrictEqual([
+      'start-0',
+      'start-1',
+      'end-0',
+      'end-1',
+      'start-2',
+      'end-2',
+    ]);
+
+    expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 });
 
