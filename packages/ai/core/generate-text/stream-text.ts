@@ -2,7 +2,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
-import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
+import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
@@ -254,7 +254,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     /**
 Generate a unique ID for each message.
      */
-    experimental_generateMessageId?: IDGenerator;
+    experimental_generateMessageId?: IdGenerator;
 
     /**
 When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
@@ -341,7 +341,7 @@ Internal. For test use only. May change without notice.
      */
     _internal?: {
       now?: () => number;
-      generateId?: IDGenerator;
+      generateId?: IdGenerator;
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
