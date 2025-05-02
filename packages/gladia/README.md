@@ -1,6 +1,6 @@
 # AI SDK - Gladia Provider
 
-The **[Gladia provider](https://sdk.vercel.ai/providers/ai-sdk-providers/assemblyai)** for the [AI SDK](https://sdk.vercel.ai/docs)
+The **[Gladia provider](https://ai-sdk.dev/providers/ai-sdk-providers/assemblyai)** for the [AI SDK](https://ai-sdk.dev/docs)
 contains transcription model support for the Gladia transcription API.
 
 ## Setup
@@ -35,4 +35,4 @@ const { text } = await transcribe({
 
 ## Documentation
 
-Please check out the **[Gladia provider documentation](https://sdk.vercel.ai/providers/ai-sdk-providers/gladia)** for more information.
+Please check out the **[Gladia provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/gladia)** for more information.
