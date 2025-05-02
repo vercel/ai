@@ -1,5 +1,13 @@
+import { JSONArray, JSONValue } from '../../json-value';
 import { ImageModelV2CallOptions } from './image-model-v2-call-options';
 import { ImageModelV2CallWarning } from './image-model-v2-call-warning';
+
+export type ImageModelV2ProviderMetadata = Record<
+  string,
+  {
+    images: JSONArray;
+  } & JSONValue
+>;
 
 /**
 Image generation model specification version 2.
@@ -47,6 +55,25 @@ be returned as binary data.
 Warnings for the call, e.g. unsupported settings.
      */
     warnings: Array<ImageModelV2CallWarning>;
+
+    /**
+Additional provider-specific metadata. They are passed through
+from the provider to the AI SDK and enable provider-specific
+results that can be fully encapsulated in the provider.
+
+The outer record is keyed by the provider name, and the inner
+record is provider-specific metadata. It always includes an
+`images` key with image-specific metadata
+
+```ts
+{
+  "openai": {
+    "images": ["revisedPrompt": "Revised prompt here."]
+  }
+}
+```
+      */
+    providerMetadata?: ImageModelV2ProviderMetadata;
 
     /**
 Response information for telemetry and debugging purposes.

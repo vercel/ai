@@ -1,5 +1,24 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-canary.14
+
+### Major Changes
+
+- 957b739: chore (provider-utils): rename TestServerCall.requestBody to requestBodyJson
+
+### Patch Changes
+
+- Updated dependencies [9bd5ab5]
+  - @ai-sdk/provider@2.0.0-canary.13
+
+## 3.0.0-canary.13
+
+### Patch Changes
+
+- 0ff02bb: chore(provider-utils): move over jsonSchema
+- Updated dependencies [7b3ae3f]
+  - @ai-sdk/provider@2.0.0-canary.12
+
 ## 3.0.0-canary.12
 
 ### Patch Changes

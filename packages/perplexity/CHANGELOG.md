@@ -1,5 +1,24 @@
 # @ai-sdk/perplexity
 
+## 2.0.0-canary.14
+
+### Patch Changes
+
+- Updated dependencies [957b739]
+- Updated dependencies [9bd5ab5]
+  - @ai-sdk/provider-utils@3.0.0-canary.14
+  - @ai-sdk/provider@2.0.0-canary.13
+
+## 2.0.0-canary.13
+
+### Patch Changes
+
+- 78e4cfc: feat (provider/perplexity): add sonar-deep-research model
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [0ff02bb]
+  - @ai-sdk/provider@2.0.0-canary.12
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+
 ## 2.0.0-canary.12
 
 ### Patch Changes

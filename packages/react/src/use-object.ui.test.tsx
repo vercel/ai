@@ -91,7 +91,7 @@ describe('text stream', () => {
       });
 
       it("should send 'test' to the API", async () => {
-        expect(await server.calls[0].requestBody).toBe('test-input');
+        expect(await server.calls[0].requestBodyJson).toBe('test-input');
       });
 
       it('should not have an error', async () => {

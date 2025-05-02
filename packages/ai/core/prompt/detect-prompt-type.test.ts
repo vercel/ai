@@ -1,6 +1,6 @@
-import { Message } from '../types';
+import { UIMessage } from '../types';
 import { detectPromptType } from './detect-prompt-type';
-import type { CoreMessage } from './message';
+import type { ModelMessage } from './message';
 
 it('should return "other" for invalid inputs', () => {
   expect(detectPromptType(null as any)).toBe('other');
@@ -12,48 +12,22 @@ it('should return "messages" for empty arrays', () => {
   expect(detectPromptType([])).toBe('messages');
 });
 
-it('should detect UI messages with data role', () => {
-  const messages: Omit<Message, 'id'>[] = [
+it('should detect UI messages with file parts', () => {
+  const messages: Omit<UIMessage, 'id'>[] = [
     {
-      role: 'data',
-      content: 'some data',
-    },
-  ];
-  expect(detectPromptType(messages)).toBe('ui-messages');
-});
-
-it('should detect UI messages with toolInvocations', () => {
-  const messages: Omit<Message, 'id'>[] = [
-    {
-      role: 'assistant',
-      content: 'Hello',
-      toolInvocations: [
-        {
-          state: 'result',
-          toolCallId: '1',
-          toolName: 'test',
-          args: '{}',
-          result: 'result',
-        },
+      role: 'user',
+      content: 'Check this file',
+      parts: [
+        { type: 'file', mediaType: 'image/png', url: 'test.png' },
+        { type: 'text', text: 'Check this file' },
       ],
     },
   ];
   expect(detectPromptType(messages)).toBe('ui-messages');
 });
 
-it('should detect UI messages with experimental_attachments', () => {
-  const messages: Omit<Message, 'id'>[] = [
-    {
-      role: 'user',
-      content: 'Check this file',
-      experimental_attachments: [{ contentType: 'image/png', url: 'test.png' }],
-    },
-  ];
-  expect(detectPromptType(messages)).toBe('ui-messages');
-});
-
 it('should detect core messages with array content', () => {
-  const messages: CoreMessage[] = [
+  const messages: ModelMessage[] = [
     {
       role: 'user',
       content: [{ type: 'text', text: 'Hello' }],
@@ -63,7 +37,7 @@ it('should detect core messages with array content', () => {
 });
 
 it('should detect core messages with providerOptions', () => {
-  const messages: CoreMessage[] = [
+  const messages: ModelMessage[] = [
     {
       role: 'system',
       content: 'System prompt',
@@ -107,7 +81,7 @@ it('should detect mixed core messages and simple messages as valid messages', ()
 });
 
 it('should detect UI messages with parts array', () => {
-  const messages: Omit<Message, 'id'>[] = [
+  const messages: Omit<UIMessage, 'id'>[] = [
     {
       role: 'assistant',
       content: 'Hello',

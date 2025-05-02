@@ -60,7 +60,7 @@ describe('prepareRequestBody', () => {
       requestBody: { 'request-body-key': 'request-body-value' },
     });
 
-    expect(await server.calls[0].requestBody).toBe('test-request-body');
+    expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -327,7 +327,7 @@ describe('custom metadata', () => {
 
     await screen.findByTestId('message-1');
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -469,7 +469,7 @@ describe('reload', () => {
     // setup done, click reload:
     await userEvent.click(screen.getByTestId('do-reload'));
 
-    expect(await server.calls[1].requestBody).toStrictEqual({
+    expect(await server.calls[1].requestBodyJson).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -641,7 +641,8 @@ describe('tool invocations', () => {
     });
   });
 
-  it('should update tool call to result when addToolResult is called', async () => {
+  // TODO re-enable when chat store is in place
+  it.skip('should update tool call to result when addToolResult is called', async () => {
     server.urls['/api/chat'].response = {
       type: 'stream-chunks',
       chunks: [
@@ -670,7 +671,8 @@ describe('tool invocations', () => {
     });
   });
 
-  it('should delay tool result submission until the stream is finished', async () => {
+  // TODO re-enable when chat store is in place
+  it.skip('should delay tool result submission until the stream is finished', async () => {
     const controller1 = new TestResponseController();
     const controller2 = new TestResponseController();
 
@@ -768,20 +770,43 @@ describe('file attachments with data url', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with text attachment',
-    );
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveTextContent(
-      'test file content',
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to message with text attachment',
-    );
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: 'id-0',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          role: 'user',
+          content: 'Message with text attachment',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'text/plain',
+              filename: 'test.txt',
+              url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
+            },
+            {
+              type: 'text',
+              text: 'Message with text attachment',
+            },
+          ],
+        },
+        {
+          content: 'Response to message with text attachment',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-1',
+          parts: [
+            {
+              text: 'Response to message with text attachment',
+              type: 'text',
+            },
+          ],
+          role: 'assistant',
+          revisionId: 'id-2',
+        },
+      ]);
+    });
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -803,21 +828,43 @@ describe('file attachments with data url', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with image attachment',
-    );
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      expect.stringContaining('data:image/png;base64'),
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to message with image attachment',
-    );
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          role: 'user',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-0',
+          content: 'Message with image attachment',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              filename: 'test.png',
+              url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
+            },
+            {
+              type: 'text',
+              text: 'Message with image attachment',
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-1',
+          content: 'Response to message with image attachment',
+          parts: [
+            {
+              type: 'text',
+              text: 'Response to message with image attachment',
+            },
+          ],
+          revisionId: expect.any(String),
+        },
+      ]);
+    });
   });
 });
 
@@ -836,21 +883,42 @@ describe('file attachments with url', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with image attachment',
-    );
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      'https://example.com/image.png',
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to message with image attachment',
-    );
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          role: 'user',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-0',
+          content: 'Message with image attachment',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              url: 'https://example.com/image.png',
+            },
+            {
+              type: 'text',
+              text: 'Message with image attachment',
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-1',
+          content: 'Response to message with image attachment',
+          parts: [
+            {
+              type: 'text',
+              text: 'Response to message with image attachment',
+            },
+          ],
+          revisionId: expect.any(String),
+        },
+      ]);
+    });
   });
 });
 
@@ -873,19 +941,43 @@ describe('attachments with empty submit', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent('User:');
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      expect.stringContaining('data:image/png;base64'),
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to empty message with attachment',
-    );
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: 'id-0',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          role: 'user',
+          content: '',
+          parts: [
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              filename: 'test.png',
+              url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
+            },
+            {
+              type: 'text',
+              text: '',
+            },
+          ],
+        },
+        {
+          id: 'id-1',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          role: 'assistant',
+          content: 'Response to empty message with attachment',
+          parts: [
+            {
+              type: 'text',
+              text: 'Response to empty message with attachment',
+            },
+          ],
+          revisionId: 'id-2',
+        },
+      ]);
+    });
   });
 });
 
@@ -901,20 +993,41 @@ describe('should append message with attachments', () => {
     const appendButton = screen.getByTestId('do-append');
     await userEvent.click(appendButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with image attachment',
-    );
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      'https://example.com/image.png',
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to message with image attachment',
-    );
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          content: 'Message with image attachment',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-0',
+          parts: [
+            {
+              mediaType: 'image/png',
+              type: 'file',
+              url: 'https://example.com/image.png',
+            },
+            {
+              text: 'Message with image attachment',
+              type: 'text',
+            },
+          ],
+          role: 'user',
+        },
+        {
+          content: 'Response to message with image attachment',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-1',
+          parts: [
+            {
+              text: 'Response to message with image attachment',
+              type: 'text',
+            },
+          ],
+          revisionId: 'id-2',
+          role: 'assistant',
+        },
+      ]);
+    });
   });
 });

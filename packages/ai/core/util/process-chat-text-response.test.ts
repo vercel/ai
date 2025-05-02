@@ -1,7 +1,7 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { processChatTextResponse } from './process-chat-text-response';
-import { Message } from '../types';
+import { UIMessage } from '../types';
 
 function createTextStream(chunks: string[]): ReadableStream<Uint8Array> {
   return convertArrayToReadableStream(chunks).pipeThrough(
@@ -10,15 +10,15 @@ function createTextStream(chunks: string[]): ReadableStream<Uint8Array> {
 }
 
 let updateCalls: Array<{
-  message: Message;
+  message: UIMessage;
   data: any[] | undefined;
   replaceLastMessage: boolean;
 }> = [];
 
-let finishCallMessages: Message[] = [];
+let finishCallMessages: UIMessage[] = [];
 
 const update = (options: {
-  message: Message;
+  message: UIMessage;
   data: any[] | undefined;
   replaceLastMessage: boolean;
 }) => {
@@ -26,7 +26,7 @@ const update = (options: {
   updateCalls.push(structuredClone(options));
 };
 
-const onFinish = (message: Message) => {
+const onFinish = (message: UIMessage) => {
   // store the final message
   finishCallMessages.push(structuredClone(message));
 };

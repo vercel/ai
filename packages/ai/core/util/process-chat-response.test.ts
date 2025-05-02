@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { DataStreamString, formatDataStreamPart } from './data-stream-parts';
 import { LanguageModelUsage } from '../types/duplicated/usage';
 import { processChatResponse } from './process-chat-response';
-import { JSONValue, Message } from '../types';
+import { JSONValue, UIMessage } from '../types';
 
 function createDataProtocolStream(
   dataPartTexts: DataStreamString[],
@@ -15,12 +15,12 @@ function createDataProtocolStream(
 }
 
 let updateCalls: Array<{
-  message: Message;
+  message: UIMessage;
   data: JSONValue[] | undefined;
   replaceLastMessage: boolean;
 }> = [];
 const update = (options: {
-  message: Message;
+  message: UIMessage;
   data: JSONValue[] | undefined;
   replaceLastMessage: boolean;
 }) => {
@@ -29,12 +29,12 @@ const update = (options: {
 };
 
 let finishCalls: Array<{
-  message: Message | undefined;
+  message: UIMessage | undefined;
   finishReason: LanguageModelV2FinishReason;
   usage: LanguageModelUsage;
 }> = [];
 const onFinish = (options: {
-  message: Message | undefined;
+  message: UIMessage | undefined;
   finishReason: LanguageModelV2FinishReason;
   usage: LanguageModelUsage;
 }) => {
@@ -176,16 +176,6 @@ describe('scenario: server-side tool roundtrip with existing assistant message',
         id: 'original-id',
         createdAt: new Date('2023-01-02T00:00:00.000Z'),
         content: '',
-        toolInvocations: [
-          {
-            args: {},
-            result: { location: 'Berlin' },
-            state: 'result',
-            step: 0,
-            toolCallId: 'tool-call-id-original',
-            toolName: 'tool-name-original',
-          },
-        ],
         parts: [
           {
             type: 'tool-invocation',
@@ -722,13 +712,13 @@ describe('scenario: server provides file parts', () => {
     const stream = createDataProtocolStream([
       formatDataStreamPart('text', 'Here is a file:'),
       formatDataStreamPart('file', {
-        data: 'Hello World',
-        mimeType: 'text/plain',
+        url: 'data:text/plain;base64,SGVsbG8gV29ybGQ=',
+        mediaType: 'text/plain',
       }),
       formatDataStreamPart('text', 'And another one:'),
       formatDataStreamPart('file', {
-        data: '{"key": "value"}',
-        mimeType: 'application/json',
+        url: 'data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9',
+        mediaType: 'application/json',
       }),
       formatDataStreamPart('finish_step', {
         finishReason: 'stop',

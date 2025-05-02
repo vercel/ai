@@ -48,7 +48,7 @@
   "engines": {
     "node": "^18.0.0 || ^20.0.0 || ^22.0.0"
   },
-  "homepage": "https://sdk.vercel.ai/docs",
+  "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"

@@ -1,20 +1,19 @@
 import type {
   ChatRequest,
   ChatRequestOptions,
-  CreateMessage,
+  CreateUIMessage,
+  FileUIPart,
   JSONValue,
-  Message,
   UIMessage,
   UseChatOptions,
 } from 'ai';
 import {
   callChatApi,
+  convertFileListToFileUIParts,
   extractMaxToolInvocationStep,
-  fillMessageParts,
   generateId as generateIdFunc,
-  getMessageParts,
+  getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
-  prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
 } from 'ai';
@@ -23,7 +22,7 @@ import useSWR from 'swr';
 import { throttle } from './throttle';
 import { useStableValue } from './util/use-stable-value';
 
-export type { CreateMessage, Message, UseChatOptions };
+export type { CreateUIMessage, UIMessage, UseChatOptions };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
@@ -37,7 +36,7 @@ export type UseChatHelpers = {
    * @param options Additional options to pass to the API call
    */
   append: (
-    message: Message | CreateMessage,
+    message: UIMessage | CreateUIMessage,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
@@ -52,13 +51,19 @@ export type UseChatHelpers = {
    * Abort the current request immediately, keep the generated tokens if any.
    */
   stop: () => void;
+
+  /**
+   * Resume an ongoing chat generation stream. This does not resume an aborted generation.
+   */
+  experimental_resume: () => void;
+
   /**
    * Update the `messages` state locally. This is useful when you want to
    * edit the messages on the client, and then trigger the `reload` method
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
+    messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
   ) => void;
   /** The current value of the input */
   input: string;
@@ -73,7 +78,9 @@ export type UseChatHelpers = {
   /** Form submission handler to automatically reset input and append a user message */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions,
+    chatRequestOptions?: ChatRequestOptions & {
+      files?: FileList | FileUIPart[];
+    },
   ) => void;
   metadata?: Object;
 
@@ -105,6 +112,14 @@ export type UseChatHelpers = {
       | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
   ) => void;
 
+  addToolResult: ({
+    toolCallId,
+    result,
+  }: {
+    toolCallId: string;
+    result: any;
+  }) => void;
+
   /** The id of the chat */
   id: string;
 };
@@ -127,8 +142,8 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-  keepLastMessageOnError = true,
   experimental_throttle: throttleWaitMs,
+  ...options
 }: UseChatOptions & {
   key?: string;
 
@@ -154,24 +169,15 @@ Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
 
-  /**
-Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-Must be at least 1.
+  '~internal'?: {
+    currentDate?: () => Date;
+  };
+} = {}): UseChatHelpers {
+  // allow overriding the current date for testing purposes:
+  const getCurrentDate = useCallback(() => {
+    return options['~internal']?.currentDate?.() ?? new Date();
+  }, [options]);
 
-A maximum number is required to prevent infinite loops in the case of misconfigured tools.
-
-By default, it's set to 1, which means that only a single LLM call is made.
- */
-  maxSteps?: number;
-} = {}): UseChatHelpers & {
-  addToolResult: ({
-    toolCallId,
-    result,
-  }: {
-    toolCallId: string;
-    result: any;
-  }) => void;
-} {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
@@ -182,7 +188,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
   // Store array of the processed initial messages to avoid re-renders:
   const stableInitialMessages = useStableValue(initialMessages ?? []);
   const processedInitialMessages = useMemo(
-    () => fillMessageParts(stableInitialMessages),
+    () => stableInitialMessages,
     [stableInitialMessages],
   );
 
@@ -236,15 +242,18 @@ By default, it's set to 1, which means that only a single LLM call is made.
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async (chatRequest: ChatRequest) => {
+    async (
+      chatRequest: ChatRequest,
+      requestType: 'generate' | 'resume' = 'generate',
+    ) => {
       mutateStatus('submitted');
       setError(undefined);
 
-      const chatMessages = fillMessageParts(chatRequest.messages);
+      const chatMessages = chatRequest.messages;
 
       const messageCount = chatMessages.length;
       const maxStep = extractMaxToolInvocationStep(
-        chatMessages[chatMessages.length - 1]?.toolInvocations,
+        getToolInvocations(chatMessages[chatMessages.length - 1]),
       );
 
       try {
@@ -263,25 +272,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
 
         const constructedMessagesPayload = sendExtraMessageFields
           ? chatMessages
-          : chatMessages.map(
-              ({
-                role,
-                content,
-                experimental_attachments,
-                annotations,
-                toolInvocations,
-                parts,
-              }) => ({
-                role,
-                content,
-                ...(experimental_attachments !== undefined && {
-                  experimental_attachments,
-                }),
-                ...(annotations !== undefined && { annotations }),
-                ...(toolInvocations !== undefined && { toolInvocations }),
-                ...(parts !== undefined && { parts }),
-              }),
-            );
+          : chatMessages.map(({ role, content, annotations, parts }) => ({
+              role,
+              content,
+              ...(annotations !== undefined && { annotations }),
+              ...(parts !== undefined && { parts }),
+            }));
 
         const existingData = streamDataRef.current;
 
@@ -306,11 +302,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
             ...chatRequest.headers,
           },
           abortController: () => abortControllerRef.current,
-          restoreMessagesOnFailure() {
-            if (!keepLastMessageOnError) {
-              throttledMutate(previousMessages, false);
-            }
-          },
           onResponse,
           onUpdate({ message, data, replaceLastMessage }) {
             mutateStatus('streaming');
@@ -337,6 +328,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
           generateId,
           fetch,
           lastMessage: chatMessages[chatMessages.length - 1],
+          getCurrentDate,
+          requestType,
         });
 
         abortControllerRef.current = null;
@@ -392,38 +385,28 @@ By default, it's set to 1, which means that only a single LLM call is made.
       abortControllerRef,
       generateId,
       fetch,
-      keepLastMessageOnError,
       throttleWaitMs,
       chatId,
+      getCurrentDate,
     ],
   );
 
   const append = useCallback(
-    async (
-      message: Message | CreateMessage,
-      {
-        data,
+    (
+      message: UIMessage | CreateUIMessage,
+      { data, headers, body }: ChatRequestOptions = {},
+    ) =>
+      triggerRequest({
+        messages: messagesRef.current.concat({
+          ...message,
+          id: message.id ?? generateId(),
+          createdAt: message.createdAt ?? getCurrentDate(),
+        }),
         headers,
         body,
-        experimental_attachments,
-      }: ChatRequestOptions = {},
-    ) => {
-      const attachmentsForRequest = await prepareAttachmentsForRequest(
-        experimental_attachments,
-      );
-
-      const messages = messagesRef.current.concat({
-        ...message,
-        id: message.id ?? generateId(),
-        createdAt: message.createdAt ?? new Date(),
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: getMessageParts(message),
-      });
-
-      return triggerRequest({ messages, headers, body, data });
-    },
-    [triggerRequest, generateId],
+        data,
+      }),
+    [triggerRequest, generateId, getCurrentDate],
   );
 
   const reload = useCallback(
@@ -454,15 +437,20 @@ By default, it's set to 1, which means that only a single LLM call is made.
     }
   }, []);
 
+  const experimental_resume = useCallback(async () => {
+    const messages = messagesRef.current;
+
+    triggerRequest({ messages }, 'resume');
+  }, [triggerRequest]);
+
   const setMessages = useCallback(
-    (messages: Message[] | ((messages: Message[]) => Message[])) => {
+    (messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[])) => {
       if (typeof messages === 'function') {
         messages = messages(messagesRef.current);
       }
 
-      const messagesWithParts = fillMessageParts(messages);
-      mutate(messagesWithParts, false);
-      messagesRef.current = messagesWithParts;
+      mutate(messages, false);
+      messagesRef.current = messages;
     },
     [mutate],
   );
@@ -490,7 +478,9 @@ By default, it's set to 1, which means that only a single LLM call is made.
   const handleSubmit = useCallback(
     async (
       event?: { preventDefault?: () => void },
-      options: ChatRequestOptions = {},
+      options: ChatRequestOptions & {
+        files?: FileList | FileUIPart[];
+      } = {},
       metadata?: Object,
     ) => {
       event?.preventDefault?.();
@@ -504,32 +494,26 @@ By default, it's set to 1, which means that only a single LLM call is made.
         };
       }
 
-      const attachmentsForRequest = await prepareAttachmentsForRequest(
-        options.experimental_attachments,
-      );
+      const fileParts = Array.isArray(options?.files)
+        ? options.files
+        : await convertFileListToFileUIParts(options?.files);
 
-      const messages = messagesRef.current.concat({
-        id: generateId(),
-        createdAt: new Date(),
-        role: 'user',
-        content: input,
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: [{ type: 'text', text: input }],
-      });
-
-      const chatRequest: ChatRequest = {
-        messages,
+      triggerRequest({
+        messages: messagesRef.current.concat({
+          id: generateId(),
+          createdAt: getCurrentDate(),
+          role: 'user',
+          content: input,
+          parts: [...fileParts, { type: 'text', text: input }],
+        }),
         headers: options.headers,
         body: options.body,
         data: options.data,
-      };
-
-      triggerRequest(chatRequest);
+      });
 
       setInput('');
     },
-    [input, generateId, triggerRequest],
+    [input, generateId, triggerRequest, getCurrentDate],
   );
 
   const handleInputChange = (e: any) => {
@@ -550,7 +534,12 @@ By default, it's set to 1, which means that only a single LLM call is made.
       mutate(
         [
           ...currentMessages.slice(0, currentMessages.length - 1),
-          { ...currentMessages[currentMessages.length - 1] },
+          {
+            ...currentMessages[currentMessages.length - 1],
+            // @ts-ignore
+            // update the revisionId to trigger a re-render
+            revisionId: generateId(),
+          },
         ],
         false,
       );
@@ -566,7 +555,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
         triggerRequest({ messages: currentMessages });
       }
     },
-    [mutate, status, triggerRequest],
+    [mutate, status, triggerRequest, generateId],
   );
 
   return {
@@ -579,6 +568,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     append,
     reload,
     stop,
+    experimental_resume,
     input,
     setInput,
     handleInputChange,

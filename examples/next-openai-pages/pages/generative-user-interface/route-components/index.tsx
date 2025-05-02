@@ -1,4 +1,4 @@
-import { ToolInvocation } from 'ai';
+import { getToolInvocations, ToolInvocation } from 'ai';
 import { useChat } from '@ai-sdk/react';
 
 export default function Page() {
@@ -111,12 +111,17 @@ export default function Page() {
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="w-24 text-zinc-500">{`${
-              message.toolInvocations ? 'tool' : message.role
+              getToolInvocations(message).length > 0 ? 'tool' : message.role
             }: `}</div>
             <div className="w-full">
-              {message.toolInvocations
-                ? message.toolInvocations.map(tool => renderToolResult(tool))
-                : message.content}
+              {message.parts.map((part, index) => {
+                switch (part.type) {
+                  case 'text':
+                    return <div key={index}>{part.text}</div>;
+                  case 'tool-invocation':
+                    return renderToolResult(part.toolInvocation);
+                }
+              })}
             </div>
           </div>
         ))}

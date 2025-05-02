@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "2.0.0-canary.13",
+  "version": "2.0.0-canary.16",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -14,7 +14,7 @@
     "type-check": "tsc --build",
     "prettier-check": "prettier --check \"./**/*.ts*\"",
     "test": "vitest --config vitest.config.js --run",
-    "test:update": "pnpm test -u",
+    "test:update": "vitest --config vitest.config.js --run -u",
     "test:watch": "vitest --config vitest.config.js"
   },
   "exports": {
@@ -67,7 +67,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://sdk.vercel.ai/docs",
+  "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"

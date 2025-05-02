@@ -2,13 +2,14 @@ import {
   LanguageModelV2Content,
   LanguageModelV2ToolCall,
 } from '@ai-sdk/provider';
-import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
+import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import { ToolExecutionError } from '../../errors/tool-execution-error';
-import { CoreAssistantMessage, CoreMessage } from '../prompt';
+import { AssistantModelMessage, ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
+import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareRetries } from '../prompt/prepare-retries';
@@ -33,14 +34,13 @@ import { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import { convertReasoningContentToParts, asReasoningText } from './reasoning';
+import { asReasoningText, convertReasoningContentToParts } from './reasoning';
 import { ResponseMessage, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ReasoningPart } from '../prompt/content-part';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -166,7 +166,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     /**
 Generate a unique ID for each message.
      */
-    experimental_generateMessageId?: IDGenerator;
+    experimental_generateMessageId?: IdGenerator;
 
     /**
 When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
@@ -238,7 +238,7 @@ A function that attempts to repair a tool call that failed to parse.
      * Internal. For test use only. May change without notice.
      */
     _internal?: {
-      generateId?: IDGenerator;
+      generateId?: IdGenerator;
       currentDate?: () => Date;
     };
   }): Promise<GenerateTextResult<TOOLS, OUTPUT>> {
@@ -539,7 +539,7 @@ A function that attempts to repair a tool call that failed to parse.
           // so we can assume that there is a single last assistant message:
           const lastMessage = responseMessages[
             responseMessages.length - 1
-          ] as CoreAssistantMessage;
+          ] as AssistantModelMessage;
 
           if (typeof lastMessage.content === 'string') {
             lastMessage.content += stepText;
@@ -667,7 +667,7 @@ async function executeTools<TOOLS extends ToolSet>({
   tools: TOOLS;
   tracer: Tracer;
   telemetry: TelemetrySettings | undefined;
-  messages: CoreMessage[];
+  messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
 }): Promise<ToolResultArray<TOOLS>> {
   const toolResults = await Promise.all(

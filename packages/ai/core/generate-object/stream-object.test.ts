@@ -1139,6 +1139,168 @@ describe('streamObject', () => {
     });
   });
 
+  describe('output = "enum"', () => {
+    it('should stream an enum value', async () => {
+      const mockModel = new MockLanguageModelV2({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: '{ ' },
+            { type: 'text', text: '"result": ' },
+            { type: 'text', text: `"su` },
+            { type: 'text', text: `nny` },
+            { type: 'text', text: `"` },
+            { type: 'text', text: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { inputTokens: 3, outputTokens: 10 },
+            },
+          ]),
+        },
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        output: 'enum',
+        enum: ['sunny', 'rainy', 'snowy'],
+        prompt: 'prompt',
+      });
+
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
+          [
+            "sunny",
+          ]
+        `);
+
+      expect(mockModel.doStreamCalls[0].responseFormat).toMatchInlineSnapshot(`
+        {
+          "description": undefined,
+          "name": undefined,
+          "schema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "additionalProperties": false,
+            "properties": {
+              "result": {
+                "enum": [
+                  "sunny",
+                  "rainy",
+                  "snowy",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "result",
+            ],
+            "type": "object",
+          },
+          "type": "json",
+        }
+      `);
+    });
+
+    it('should not stream incorrect values', async () => {
+      const mockModel = new MockLanguageModelV2({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: '{ ' },
+            { type: 'text', text: '"result": ' },
+            { type: 'text', text: `"foo` },
+            { type: 'text', text: `bar` },
+            { type: 'text', text: `"` },
+            { type: 'text', text: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { inputTokens: 3, outputTokens: 10 },
+            },
+          ]),
+        },
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        output: 'enum',
+        enum: ['sunny', 'rainy', 'snowy'],
+        prompt: 'prompt',
+      });
+
+      expect(
+        await convertAsyncIterableToArray(result.partialObjectStream),
+      ).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should handle ambiguous values', async () => {
+      const mockModel = new MockLanguageModelV2({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: '{ ' },
+            { type: 'text', text: '"result": ' },
+            { type: 'text', text: `"foo` },
+            { type: 'text', text: `bar` },
+            { type: 'text', text: `"` },
+            { type: 'text', text: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { inputTokens: 3, outputTokens: 10 },
+            },
+          ]),
+        },
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        output: 'enum',
+        enum: ['foobar', 'foobar2'],
+        prompt: 'prompt',
+      });
+
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
+        [
+          "foo",
+          "foobar",
+        ]
+      `);
+    });
+
+    it('should handle non-ambiguous values', async () => {
+      const mockModel = new MockLanguageModelV2({
+        doStream: {
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: '{ ' },
+            { type: 'text', text: '"result": ' },
+            { type: 'text', text: `"foo` },
+            { type: 'text', text: `bar` },
+            { type: 'text', text: `"` },
+            { type: 'text', text: ' }' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: { inputTokens: 3, outputTokens: 10 },
+            },
+          ]),
+        },
+      });
+
+      const result = streamObject({
+        model: mockModel,
+        output: 'enum',
+        enum: ['foobar', 'barfoo'],
+        prompt: 'prompt',
+      });
+
+      expect(await convertAsyncIterableToArray(result.partialObjectStream))
+        .toMatchInlineSnapshot(`
+        [
+          "foobar",
+        ]
+      `);
+    });
+  });
+
   describe('output = "no-schema"', () => {
     it('should send object deltas', async () => {
       const mockModel = new MockLanguageModelV2({
@@ -1361,17 +1523,21 @@ describe('streamObject', () => {
           {
             role: 'user',
             content: 'prompt',
+            parts: [{ type: 'text', text: 'prompt' }],
           },
           {
             role: 'assistant',
             content: '',
-            toolInvocations: [
+            parts: [
               {
-                state: 'result',
-                toolCallId: 'call-1',
-                toolName: 'test-tool',
-                args: { value: 'test-value' },
-                result: 'test result',
+                type: 'tool-invocation',
+                toolInvocation: {
+                  state: 'result',
+                  toolCallId: 'call-1',
+                  toolName: 'test-tool',
+                  args: { value: 'test-value' },
+                  result: 'test result',
+                },
               },
             ],
           },
@@ -1399,6 +1565,7 @@ describe('streamObject', () => {
           {
             "content": [
               {
+                "providerOptions": undefined,
                 "text": "prompt",
                 "type": "text",
               },

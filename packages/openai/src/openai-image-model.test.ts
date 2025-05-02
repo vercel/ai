@@ -48,7 +48,7 @@ describe('doGenerate', () => {
       providerOptions: { openai: { style: 'vivid' } },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'dall-e-3',
       prompt,
       n: 1,
@@ -227,7 +227,8 @@ describe('doGenerate', () => {
       providerOptions: {},
     });
 
-    const requestBody = await server.calls[server.calls.length - 1].requestBody;
+    const requestBody =
+      await server.calls[server.calls.length - 1].requestBodyJson;
     expect(requestBody).toStrictEqual({
       model: 'gpt-image-1',
       prompt,
@@ -250,7 +251,33 @@ describe('doGenerate', () => {
       providerOptions: {},
     });
 
-    const requestBody = await server.calls[server.calls.length - 1].requestBody;
+    const requestBody =
+      await server.calls[server.calls.length - 1].requestBodyJson;
     expect(requestBody).toHaveProperty('response_format', 'b64_json');
+  });
+
+  it('should return image meta data', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      aspectRatio: undefined,
+      seed: undefined,
+      providerOptions: { openai: { style: 'vivid' } },
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      openai: {
+        images: [
+          {
+            revisedPrompt:
+              'A charming visual illustration of a baby sea otter swimming joyously.',
+          },
+          null,
+        ],
+      },
+    });
   });
 });

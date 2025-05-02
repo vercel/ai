@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/assemblyai",
-  "version": "0.0.1-canary.0",
+  "version": "0.0.1-canary.2",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -50,7 +50,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://sdk.vercel.ai/docs",
+  "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"

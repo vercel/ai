@@ -1475,6 +1475,7 @@ describe('options.messages', () => {
             {
               content: [
                 {
+                  providerOptions: undefined,
                   text: 'prompt',
                   type: 'text',
                 },
@@ -1524,17 +1525,21 @@ describe('options.messages', () => {
         {
           role: 'user',
           content: 'prompt',
+          parts: [{ type: 'text', text: 'prompt' }],
         },
         {
           role: 'assistant',
           content: '',
-          toolInvocations: [
+          parts: [
             {
-              state: 'result',
-              toolCallId: 'call-1',
-              toolName: 'test-tool',
-              args: { value: 'test-value' },
-              result: 'test result',
+              type: 'tool-invocation',
+              toolInvocation: {
+                state: 'result',
+                toolCallId: 'call-1',
+                toolName: 'test-tool',
+                args: { value: 'test-value' },
+                result: 'test result',
+              },
             },
           ],
         },

@@ -647,8 +647,8 @@ By using `FileList`, you can send multiple files as attachments along with a mes
 <Note>
   Currently, only `image/*` and `text/*` content types get automatically
   converted into [multi-modal content
-  parts](https://sdk.vercel.ai/docs/foundations/prompts#multi-modal-messages).
-  You will need to handle other content types manually.
+  parts](/docs/foundations/prompts#multi-modal-messages). You will need to
+  handle other content types manually.
 </Note>
 
 ```tsx filename="app/page.tsx"
@@ -731,7 +731,7 @@ export default function Page() {
 
 You can also send URLs as attachments along with a message. This can be useful for sending links to external resources or media content.
 
-> **Note:** The URL can also be a data URL, which is a base64-encoded string that represents the content of a file. Currently, only `image/*` content types get automatically converted into [multi-modal content parts](https://sdk.vercel.ai/docs/foundations/prompts#multi-modal-messages). You will need to handle other content types manually.
+> **Note:** The URL can also be a data URL, which is a base64-encoded string that represents the content of a file. Currently, only `image/*` content types get automatically converted into [multi-modal content parts](/docs/foundations/prompts#multi-modal-messages). You will need to handle other content types manually.
 
 ```tsx filename="app/page.tsx"
 'use client';

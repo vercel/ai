@@ -1,5 +1,46 @@
 # @ai-sdk/react
 
+## 2.0.0-canary.16
+
+### Patch Changes
+
+- c34ccd7: feat (ui/react): support resuming an ongoing stream
+- Updated dependencies [f04fb4a]
+- Updated dependencies [fd1924b]
+- Updated dependencies [957b739]
+- Updated dependencies [fafc3f2]
+- Updated dependencies [c9ad635]
+- Updated dependencies [9bd5ab5]
+- Updated dependencies [92cb0a2]
+  - ai@5.0.0-canary.17
+  - @ai-sdk/provider-utils@3.0.0-canary.14
+
+## 2.0.0-canary.15
+
+### Patch Changes
+
+- 6a0ff37: fix (react): integrate addToolResult into UseChatHelpers type without intersection
+- Updated dependencies [ec78cdc]
+- Updated dependencies [9b4d074]
+- Updated dependencies [8b86e99]
+- Updated dependencies [28ad69e]
+- Updated dependencies [2524fc7]
+- Updated dependencies [ec5933d]
+- Updated dependencies [175b868]
+  - ai@5.0.0-canary.16
+
+## 2.0.0-canary.14
+
+### Patch Changes
+
+- Updated dependencies [d9209ca]
+- Updated dependencies [ea27cc6]
+- Updated dependencies [0ff02bb]
+- Updated dependencies [4bfe9ec]
+- Updated dependencies [2877a74]
+  - ai@5.0.0-canary.15
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+
 ## 2.0.0-canary.13
 
 ### Patch Changes

@@ -18,22 +18,26 @@ export default function Page() {
             <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
 
             <div className="flex flex-col gap-2">
-              {message.content && <div>{message.content}</div>}
-
-              <div className="flex flex-row gap-2">
-                {message.toolInvocations?.map(toolInvocation => (
-                  <pre
-                    key={toolInvocation.toolCallId}
-                    className={`${GeistMono.className} text-sm text-zinc-500 bg-zinc-100 p-3 rounded-lg`}
-                  >
-                    {`${toolInvocation.toolName}(${JSON.stringify(
-                      toolInvocation.args,
-                      null,
-                      2,
-                    )})`}
-                  </pre>
-                ))}
-              </div>
+              {message.parts.map((part, index) => {
+                switch (part.type) {
+                  case 'text':
+                    return <div key={index}>{part.text}</div>;
+                  case 'tool-invocation': {
+                    return (
+                      <div
+                        key={index}
+                        className={`${GeistMono.className} text-sm text-zinc-500 bg-zinc-100 p-3 rounded-lg`}
+                      >
+                        {`${part.toolInvocation.toolName}(${JSON.stringify(
+                          part.toolInvocation.args,
+                          null,
+                          2,
+                        )})`}
+                      </div>
+                    );
+                  }
+                }
+              })}
             </div>
           </div>
         ))}

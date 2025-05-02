@@ -1,4 +1,5 @@
 import {
+  JSONValue,
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
@@ -23,30 +24,9 @@ export type ToolInvocation =
   | ({ state: 'result'; step?: number } & ToolResult<string, any, any>);
 
 /**
- * An attachment that can be sent along with a message.
- */
-export interface Attachment {
-  /**
-   * The name of the attachment, usually the file name.
-   */
-  name?: string;
-
-  /**
-   * A string indicating the [media type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type).
-   * By default, it's extracted from the pathname's extension.
-   */
-  contentType?: string;
-
-  /**
-   * The URL of the attachment. It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
-   */
-  url: string;
-}
-
-/**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
-export interface Message {
+export interface UIMessage {
   /**
 A unique identifier for the message.
    */
@@ -55,69 +35,46 @@ A unique identifier for the message.
   /**
 The timestamp of the message.
    */
+  // TODO solve optionality similar id
   createdAt?: Date;
 
   /**
 Text content of the message. Use parts when possible.
    */
+  // TODO remove (replace with parts)
   content: string;
 
   /**
-   * Additional attachments to be sent along with the message.
+The role of the message.
    */
-  experimental_attachments?: Attachment[];
+  role: 'system' | 'user' | 'assistant';
 
   /**
-The 'data' role is deprecated.
+Additional message-specific information added on the server via StreamData
    */
-  role: 'system' | 'user' | 'assistant' | 'data';
-
-  /**
-   * Additional message-specific information added on the server via StreamData
-   */
+  // TODO replace with special part
   annotations?: JSONValue[] | undefined;
 
   /**
-Tool invocations (that can be tool calls or tool results, depending on whether or not the invocation has finished)
-that the assistant made as part of this message.
+The parts of the message. Use this for rendering the message in the UI.
 
-@deprecated Use `parts` instead.
-   */
-  toolInvocations?: Array<ToolInvocation>;
+System messages should be avoided (set the system prompt on the server instead).
+They can have text parts.
 
-  /**
-   * The parts of the message. Use this for rendering the message in the UI.
-   *
-   * Assistant messages can have text, reasoning and tool invocation parts.
-   * User messages can have text parts.
+User messages can have text parts and file parts.
+
+Assistant messages can have text, reasoning, tool invocation, and file parts.
    */
-  // note: optional on the Message type (which serves as input)
-  parts?: Array<
-    | TextUIPart
-    | ReasoningUIPart
-    | ToolInvocationUIPart
-    | SourceUIPart
-    | FileUIPart
-    | StepStartUIPart
-  >;
+  parts: Array<UIMessagePart>;
 }
 
-export type UIMessage = Message & {
-  /**
-   * The parts of the message. Use this for rendering the message in the UI.
-   *
-   * Assistant messages can have text, reasoning and tool invocation parts.
-   * User messages can have text parts.
-   */
-  parts: Array<
-    | TextUIPart
-    | ReasoningUIPart
-    | ToolInvocationUIPart
-    | SourceUIPart
-    | FileUIPart
-    | StepStartUIPart
-  >;
-};
+export type UIMessagePart =
+  | TextUIPart
+  | ReasoningUIPart
+  | ToolInvocationUIPart
+  | SourceUIPart
+  | FileUIPart
+  | StepStartUIPart;
 
 /**
  * A text part of a message.
@@ -140,8 +97,7 @@ export type ReasoningUIPart = {
   /**
    * The reasoning text.
    */
-  // TODO: v5 rename to `text`
-  reasoning: string;
+  text: string;
 
   /**
    * The provider metadata.
@@ -187,9 +143,15 @@ export type FileUIPart = {
   mediaType: string;
 
   /**
-   * The base64 encoded data.
+   * Optional filename of the file.
    */
-  data: string;
+  filename?: string;
+
+  /**
+   * The URL of the file.
+   * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
+   */
+  url: string;
 };
 
 /**
@@ -199,8 +161,8 @@ export type StepStartUIPart = {
   type: 'step-start';
 };
 
-export type CreateMessage = Omit<Message, 'id'> & {
-  id?: Message['id'];
+export type CreateUIMessage = Omit<UIMessage, 'id'> & {
+  id?: UIMessage['id'];
 };
 
 export type ChatRequest = {
@@ -217,7 +179,7 @@ An optional object to be passed to the API endpoint.
   /**
 The messages of the chat.
    */
-  messages: Message[];
+  messages: UIMessage[];
 
   /**
 Additional data to be sent to the server.
@@ -255,24 +217,12 @@ Additional data to be sent to the API endpoint.
   data?: JSONValue;
 
   /**
-   * Additional files to be sent to the server.
-   */
-  experimental_attachments?: FileList | Array<Attachment>;
-
-  /**
    * Allow submitting an empty message. Defaults to `false`.
    */
   allowEmptySubmit?: boolean;
 };
 
 export type UseChatOptions = {
-  /**
-Keeps the last message when an error happens. Defaults to `true`.
-
-@deprecated This option will be removed in the next major release.
-   */
-  keepLastMessageOnError?: boolean;
-
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
@@ -289,7 +239,7 @@ Keeps the last message when an error happens. Defaults to `true`.
   /**
    * Initial messages of the chat. Useful to load an existing chat history.
    */
-  initialMessages?: Message[];
+  initialMessages?: UIMessage[];
 
   /**
    * Initial input of the chat.
@@ -322,7 +272,7 @@ either synchronously or asynchronously.
    * @param options.finishReason The finish reason of the message.
    */
   onFinish?: (
-    message: Message,
+    message: UIMessage,
     options: {
       usage: LanguageModelUsage;
       finishReason: LanguageModelV2FinishReason;
@@ -383,6 +333,16 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
+
+  /**
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
+Must be at least 1.
+
+A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+
+By default, it's set to 1, which means that only a single LLM call is made.
+ */
+  maxSteps?: number;
 };
 
 export type UseCompletionOptions = {
@@ -460,15 +420,3 @@ or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
 };
-
-/**
-A JSON value can be a string, number, boolean, object, array, or null.
-JSON values can be serialized and deserialized by the JSON.stringify and JSON.parse methods.
- */
-export type JSONValue =
-  | null
-  | string
-  | number
-  | boolean
-  | { [value: string]: JSONValue }
-  | Array<JSONValue>;

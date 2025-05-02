@@ -99,6 +99,17 @@ export class OpenAIImageModel implements ImageModelV2 {
         modelId: this.modelId,
         headers: responseHeaders,
       },
+      providerMetadata: {
+        openai: {
+          images: response.data.map(item =>
+            item.revised_prompt
+              ? {
+                  revisedPrompt: item.revised_prompt,
+                }
+              : null,
+          ),
+        },
+      },
     };
   }
 }
@@ -106,5 +117,7 @@ export class OpenAIImageModel implements ImageModelV2 {
 // minimal version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiImageResponseSchema = z.object({
-  data: z.array(z.object({ b64_json: z.string() })),
+  data: z.array(
+    z.object({ b64_json: z.string(), revised_prompt: z.string().optional() }),
+  ),
 });

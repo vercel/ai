@@ -1,19 +1,18 @@
 import type {
   ChatRequestOptions,
-  CreateMessage,
+  CreateUIMessage,
+  FileUIPart,
   JSONValue,
-  Message,
   UIMessage,
   UseChatOptions,
 } from 'ai';
 import {
   callChatApi,
+  convertFileListToFileUIParts,
   extractMaxToolInvocationStep,
-  fillMessageParts,
   generateId as generateIdFunc,
-  getMessageParts,
+  getToolInvocations,
   isAssistantMessageWithCompletedToolCalls,
-  prepareAttachmentsForRequest,
   shouldResubmitMessages,
   updateToolCallResult,
 } from 'ai';
@@ -21,7 +20,7 @@ import swrv from 'swrv';
 import type { Ref } from 'vue';
 import { computed, ref, unref } from 'vue';
 
-export type { CreateMessage, Message, UIMessage, UseChatOptions };
+export type { CreateUIMessage, UIMessage, UseChatOptions };
 
 export type UseChatHelpers = {
   /** Current messages in the chat */
@@ -33,7 +32,7 @@ export type UseChatHelpers = {
    * the assistant's response.
    */
   append: (
-    message: Message | CreateMessage,
+    message: UIMessage | CreateUIMessage,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
@@ -54,14 +53,16 @@ export type UseChatHelpers = {
    * manually to regenerate the AI response.
    */
   setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
+    messages: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
   ) => void;
   /** The current value of the input */
   input: Ref<string>;
   /** Form submission handler to automatically reset input and append a user message  */
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    chatRequestOptions?: ChatRequestOptions,
+    chatRequestOptions?: ChatRequestOptions & {
+      files?: FileList | FileUIPart[];
+    },
   ) => void;
 
   /**
@@ -124,17 +125,10 @@ export function useChat(
     generateId = generateIdFunc,
     onToolCall,
     fetch,
-    keepLastMessageOnError = true,
     maxSteps = 1,
     experimental_prepareRequestBody,
+    ...options
   }: UseChatOptions & {
-    /**
-     * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
-     * A maximum number is required to prevent infinite loops in the case of misconfigured tools.
-     * By default, it's set to 1, which means that only a single LLM call is made.
-     */
-    maxSteps?: number;
-
     /**
      * Experimental (Vue only). When a function is provided, it will be used
      * to prepare the request body for the chat API. This can be useful for
@@ -151,17 +145,25 @@ export function useChat(
       requestData?: JSONValue;
       requestBody?: object;
     }) => unknown;
+
+    '~internal'?: {
+      currentDate?: () => Date;
+    };
   } = {
     maxSteps: 1,
   },
 ): UseChatHelpers {
+  // allow overriding the current date for testing purposes:
+  const getCurrentDate = () =>
+    options['~internal']?.currentDate?.() ?? new Date();
+
   // Generate a unique ID for the chat if not provided.
   const chatId = id ?? generateId();
 
   const key = `${api}|${chatId}`;
   const { data: messagesData, mutate: originalMutate } = useSWRV<UIMessage[]>(
     key,
-    () => store[key] ?? fillMessageParts(initialMessages),
+    () => store[key] ?? initialMessages,
   );
 
   const { data: status, mutate: mutateStatus } = useSWRV<
@@ -171,7 +173,7 @@ export function useChat(
   status.value ??= 'ready';
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
-  messagesData.value ??= fillMessageParts(initialMessages);
+  messagesData.value ??= initialMessages;
 
   const mutate = (data?: UIMessage[]) => {
     store[key] = data;
@@ -188,55 +190,43 @@ export function useChat(
   let abortController: AbortController | null = null;
 
   async function triggerRequest(
-    messagesSnapshot: Message[],
+    messagesSnapshot: UIMessage[],
     { data, headers, body }: ChatRequestOptions = {},
   ) {
     error.value = undefined;
     mutateStatus(() => 'submitted');
 
     const messageCount = messages.value.length;
-    const maxStep = extractMaxToolInvocationStep(
-      messages.value[messages.value.length - 1]?.toolInvocations,
-    );
+    const lastMessage = messages.value.at(-1);
+    const maxStep =
+      lastMessage != null
+        ? extractMaxToolInvocationStep(getToolInvocations(lastMessage))
+        : 0;
 
     try {
       abortController = new AbortController();
 
       // Do an optimistic update to the chat state to show the updated messages
       // immediately.
-      const previousMessages = fillMessageParts(messagesSnapshot);
-      const chatMessages = previousMessages;
-      mutate(chatMessages);
+      const previousMessages = messagesSnapshot;
+      mutate(previousMessages);
 
       const existingData = (streamData.value ?? []) as JSONValue[];
 
       const constructedMessagesPayload = sendExtraMessageFields
-        ? chatMessages
-        : chatMessages.map(
-            ({
-              role,
-              content,
-              experimental_attachments,
-              annotations,
-              toolInvocations,
-              parts,
-            }) => ({
-              role,
-              content,
-              ...(experimental_attachments !== undefined && {
-                experimental_attachments,
-              }),
-              ...(annotations !== undefined && { annotations }),
-              ...(toolInvocations !== undefined && { toolInvocations }),
-              ...(parts !== undefined && { parts }),
-            }),
-          );
+        ? previousMessages
+        : previousMessages.map(({ role, content, annotations, parts }) => ({
+            role,
+            content,
+            ...(annotations !== undefined && { annotations }),
+            ...(parts !== undefined && { parts }),
+          }));
 
       await callChatApi({
         api,
         body: experimental_prepareRequestBody?.({
           id: chatId,
-          messages: chatMessages,
+          messages: previousMessages,
           requestData: data,
           requestBody: body,
         }) ?? {
@@ -259,8 +249,8 @@ export function useChat(
 
           mutate([
             ...(replaceLastMessage
-              ? chatMessages.slice(0, chatMessages.length - 1)
-              : chatMessages),
+              ? previousMessages.slice(0, previousMessages.length - 1)
+              : previousMessages),
             message,
           ]);
           if (data?.length) {
@@ -268,17 +258,14 @@ export function useChat(
           }
         },
         onFinish,
-        restoreMessagesOnFailure() {
-          // Restore the previous messages if the request fails.
-          if (!keepLastMessageOnError) {
-            mutate(previousMessages);
-          }
-        },
         generateId,
         onToolCall,
         fetch,
         // enabled use of structured clone in processChatResponse:
-        lastMessage: recursiveToRaw(chatMessages[chatMessages.length - 1]),
+        lastMessage: recursiveToRaw(
+          previousMessages[previousMessages.length - 1],
+        ),
+        getCurrentDate,
       });
 
       mutateStatus(() => 'ready');
@@ -314,18 +301,12 @@ export function useChat(
   }
 
   const append: UseChatHelpers['append'] = async (message, options) => {
-    const attachmentsForRequest = await prepareAttachmentsForRequest(
-      options?.experimental_attachments,
-    );
-
     return triggerRequest(
       messages.value.concat({
         ...message,
         id: message.id ?? generateId(),
-        createdAt: message.createdAt ?? new Date(),
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: getMessageParts(message),
+        createdAt: message.createdAt ?? getCurrentDate(),
+        parts: message.parts,
       }),
       options,
     );
@@ -351,13 +332,13 @@ export function useChat(
   };
 
   const setMessages = (
-    messagesArg: Message[] | ((messages: Message[]) => Message[]),
+    messagesArg: UIMessage[] | ((messages: UIMessage[]) => UIMessage[]),
   ) => {
     if (typeof messagesArg === 'function') {
       messagesArg = messagesArg(messages.value);
     }
 
-    mutate(fillMessageParts(messagesArg));
+    mutate(messagesArg);
   };
 
   const setData = (
@@ -377,7 +358,7 @@ export function useChat(
 
   const handleSubmit = async (
     event?: { preventDefault?: () => void },
-    options: ChatRequestOptions = {},
+    options: ChatRequestOptions & { files?: FileList | FileUIPart[] } = {},
   ) => {
     event?.preventDefault?.();
 
@@ -385,19 +366,17 @@ export function useChat(
 
     if (!inputValue && !options.allowEmptySubmit) return;
 
-    const attachmentsForRequest = await prepareAttachmentsForRequest(
-      options.experimental_attachments,
-    );
+    const fileParts = Array.isArray(options?.files)
+      ? options.files
+      : await convertFileListToFileUIParts(options?.files);
 
     triggerRequest(
       messages.value.concat({
         id: generateId(),
-        createdAt: new Date(),
+        createdAt: getCurrentDate(),
         content: inputValue,
         role: 'user',
-        experimental_attachments:
-          attachmentsForRequest.length > 0 ? attachmentsForRequest : undefined,
-        parts: [{ type: 'text', text: inputValue }],
+        parts: [...fileParts, { type: 'text', text: inputValue }],
       }),
       options,
     );

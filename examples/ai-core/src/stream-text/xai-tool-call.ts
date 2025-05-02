@@ -1,9 +1,9 @@
 import { xai } from '@ai-sdk/xai';
-import { streamText, CoreMessage, ToolCallPart, ToolResultPart } from 'ai';
+import { streamText, ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
 import 'dotenv/config';
 import { weatherTool } from '../tools/weather-tool';
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;

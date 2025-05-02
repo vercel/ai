@@ -1,12 +1,14 @@
 import {
   createTestServer,
+  mockId,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { formatDataStreamPart, type Message } from 'ai';
+import { formatDataStreamPart, getToolInvocations, type UIMessage } from 'ai';
 import { render } from '@testing-library/svelte';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
 import { promiseWithResolvers } from './utils.svelte.js';
+import { mockValues } from 'ai/test';
 
 function createFileList(...files: File[]): FileList {
   // file lists are really hard to create :(
@@ -39,11 +41,16 @@ describe('data protocol stream', () => {
       chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     expect(chat.messages.at(0)).toStrictEqual(
       expect.objectContaining({
         role: 'user',
         content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
       }),
     );
 
@@ -61,7 +68,11 @@ describe('data protocol stream', () => {
       chunks: ['2:[{"t1":"v1"}]\n', '2:[{"t1": "v2"}]\n', '0:"Hello"\n'],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     expect(chat.data).toStrictEqual([{ t1: 'v1' }, { t1: 'v2' }]);
 
     expect(chat.messages.at(1)).toStrictEqual(
@@ -78,7 +89,11 @@ describe('data protocol stream', () => {
       chunks: ['2:[{"t1":"v1"}]\n', '0:"Hello"\n'],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     expect(chat.data).toStrictEqual([{ t1: 'v1' }]);
     chat.data = undefined;
     expect(chat.data).toBeUndefined();
@@ -91,7 +106,11 @@ describe('data protocol stream', () => {
       body: 'Not found',
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     expect(chat.error).toBeInstanceOf(Error);
     expect(chat.error?.message).toBe('Not found');
   });
@@ -102,7 +121,11 @@ describe('data protocol stream', () => {
       chunks: ['3:"custom error message"\n'],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     expect(chat.error).toBeInstanceOf(Error);
     expect(chat.error?.message).toBe('custom error message');
   });
@@ -115,7 +138,11 @@ describe('data protocol stream', () => {
         controller,
       };
 
-      const appendOperation = chat.append({ role: 'user', content: 'hi' });
+      const appendOperation = chat.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
       await vi.waitFor(() => expect(chat.status).toBe('submitted'));
       controller.write('0:"Hello"\n');
       await vi.waitFor(() => expect(chat.status).toBe('streaming'));
@@ -131,7 +158,11 @@ describe('data protocol stream', () => {
         body: 'Not found',
       };
 
-      chat.append({ role: 'user', content: 'hi' });
+      chat.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
       await vi.waitFor(() => expect(chat.status).toBe('error'));
     });
   });
@@ -155,7 +186,11 @@ describe('data protocol stream', () => {
     const chatWithOnFinish = new Chat({
       onFinish,
     });
-    await chatWithOnFinish.append({ role: 'user', content: 'hi' });
+    await chatWithOnFinish.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith(
       {
@@ -183,9 +218,13 @@ describe('data protocol stream', () => {
         chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
       };
 
-      await chat.append({ role: 'user', content: 'hi' });
+      await chat.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         id: chat.id,
         messages: [
           {
@@ -209,7 +248,11 @@ describe('data protocol stream', () => {
           return id;
         },
       });
-      await chatWithId.append({ role: 'user', content: 'hi' });
+      await chatWithId.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
 
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
@@ -236,7 +279,11 @@ describe('data protocol stream', () => {
           return id;
         },
       });
-      await chatWithId.append({ role: 'user', content: 'hi' });
+      await chatWithId.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
 
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
@@ -271,7 +318,11 @@ describe('text stream', () => {
       chunks: ['Hello', ',', ' world', '.'],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(chat.messages.at(0)).toStrictEqual(
       expect.objectContaining({
@@ -295,7 +346,11 @@ describe('text stream', () => {
       controller,
     };
 
-    const appendOperation = chat.append({ role: 'user', content: 'hi' });
+    const appendOperation = chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     controller.write('He');
 
     await vi.waitFor(() =>
@@ -334,7 +389,11 @@ describe('text stream', () => {
       streamProtocol: 'text',
       onFinish,
     });
-    await chatWithOnFinish.append({ role: 'user', content: 'hi' });
+    await chatWithOnFinish.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(onFinish).toHaveBeenCalledExactlyOnceWith(
       {
@@ -493,41 +552,39 @@ describe('onToolCall', () => {
       ],
     };
 
-    const appendOperation = chat.append({ role: 'user', content: 'hi' });
+    const appendOperation = chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     resolve();
     await appendOperation;
 
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        toolInvocations: [
-          {
-            state: 'result',
-            step: 0,
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-            result:
-              'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
-          },
-        ],
-      }),
-    );
+    expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
+      {
+        state: 'result',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+        result:
+          'test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}',
+      },
+    ]);
   });
 });
 
@@ -547,7 +604,11 @@ describe('tool invocations', () => {
       controller,
     };
 
-    const appendOperation = chat.append({ role: 'user', content: 'hi' });
+    const appendOperation = chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     controller.write(
       formatDataStreamPart('tool_call_streaming_start', {
@@ -557,18 +618,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'partial-call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'partial-call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: undefined,
+        },
+      ]);
     });
 
     controller.write(
@@ -579,19 +639,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'partial-call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 't' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'partial-call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 't' },
+        },
+      ]);
     });
 
     controller.write(
@@ -602,19 +660,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'partial-call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'partial-call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     controller.write(
@@ -626,19 +682,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     controller.write(
@@ -650,20 +704,16 @@ describe('tool invocations', () => {
     controller.close();
     await appendOperation;
 
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        toolInvocations: [
-          {
-            state: 'result',
-            step: 0,
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-            result: 'test-result',
-          },
-        ],
-      }),
-    );
+    expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
+      {
+        state: 'result',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+        result: 'test-result',
+      },
+    ]);
   });
 
   it('should display partial tool call and tool result (when there is no tool call streaming)', async () => {
@@ -673,7 +723,11 @@ describe('tool invocations', () => {
       controller,
     };
 
-    const appendOperation = chat.append({ role: 'user', content: 'hi' });
+    const appendOperation = chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     controller.write(
       formatDataStreamPart('tool_call', {
@@ -684,19 +738,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     controller.write(
@@ -708,20 +760,16 @@ describe('tool invocations', () => {
     controller.close();
     await appendOperation;
 
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        toolInvocations: [
-          {
-            state: 'result',
-            step: 0,
-            toolCallId: 'tool-call-0',
-            toolName: 'test-tool',
-            args: { testArg: 'test-value' },
-            result: 'test-result',
-          },
-        ],
-      }),
-    );
+    expect(getToolInvocations(chat.messages.at(1) as UIMessage)).toStrictEqual([
+      {
+        state: 'result',
+        step: 0,
+        toolCallId: 'tool-call-0',
+        toolName: 'test-tool',
+        args: { testArg: 'test-value' },
+        result: 'test-result',
+      },
+    ]);
   });
 
   it('should update tool call to result when addToolResult is called', async () => {
@@ -736,22 +784,24 @@ describe('tool invocations', () => {
       ],
     };
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     chat.addToolResult({
@@ -760,20 +810,18 @@ describe('tool invocations', () => {
     });
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'result',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-              result: 'test-result',
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'result',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+          result: 'test-result',
+        },
+      ]);
     });
   });
 
@@ -786,7 +834,11 @@ describe('tool invocations', () => {
       { type: 'controlled-stream', controller: controller2 },
     ];
 
-    chat.append({ role: 'user', content: 'hi' });
+    chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     // start stream
     controller1.write(
@@ -805,19 +857,17 @@ describe('tool invocations', () => {
     );
 
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'call',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'call',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+        },
+      ]);
     });
 
     // user submits the tool result
@@ -828,20 +878,18 @@ describe('tool invocations', () => {
 
     // UI should show the tool result
     await vi.waitFor(() => {
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          toolInvocations: [
-            {
-              state: 'result',
-              step: 0,
-              toolCallId: 'tool-call-0',
-              toolName: 'test-tool',
-              args: { testArg: 'test-value' },
-              result: 'test-result',
-            },
-          ],
-        }),
-      );
+      expect(
+        getToolInvocations(chat.messages.at(1) as UIMessage),
+      ).toStrictEqual([
+        {
+          state: 'result',
+          step: 0,
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          args: { testArg: 'test-value' },
+          result: 'test-result',
+        },
+      ]);
     });
 
     // should not have called the API yet
@@ -906,7 +954,11 @@ describe('maxSteps', () => {
         },
       ];
 
-      await chat.append({ role: 'user', content: 'hi' });
+      await chat.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
 
       expect(onToolCallInvoked).toBe(true);
 
@@ -954,7 +1006,11 @@ describe('maxSteps', () => {
         },
       ];
 
-      await chat.append({ role: 'user', content: 'hi' });
+      await chat.append({
+        role: 'user',
+        content: 'hi',
+        parts: [{ text: 'hi', type: 'text' }],
+      });
 
       expect(chat.error).toBeInstanceOf(Error);
       expect(chat.error?.message).toBe('call failure');
@@ -967,7 +1023,12 @@ describe('file attachments with data url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should handle text file attachment and submission', async () => {
@@ -979,51 +1040,72 @@ describe('file attachments with data url', () => {
     chat.input = 'Message with text attachment';
 
     await chat.handleSubmit(undefined, {
-      experimental_attachments: createFileList(
+      files: createFileList(
         new File(['test file content'], 'test.txt', {
           type: 'text/plain',
         }),
       ),
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: 'Message with text attachment',
-        experimental_attachments: [
-          expect.objectContaining({
-            name: 'test.txt',
-            contentType: 'text/plain',
-            url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
-          }),
-        ],
-      }),
-    );
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Response to message with text attachment',
-      }),
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
         {
-          role: 'user',
-          content: 'Message with text attachment',
-          experimental_attachments: [
+          "content": "Message with text attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
             {
-              name: 'test.txt',
-              contentType: 'text/plain',
-              url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
+              "filename": "test.txt",
+              "mediaType": "text/plain",
+              "type": "file",
+              "url": "data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=",
+            },
+            {
+              "text": "Message with text attachment",
+              "type": "text",
             },
           ],
-          parts: [{ text: 'Message with text attachment', type: 'text' }],
+          "role": "user",
         },
-      ],
-    });
+        {
+          "content": "Response to message with text attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Response to message with text attachment",
+              "type": "text",
+            },
+          ],
+          "revisionId": "id-3",
+          "role": "assistant",
+        },
+      ]
+    `);
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "Message with text attachment",
+            "parts": [
+              {
+                "filename": "test.txt",
+                "mediaType": "text/plain",
+                "type": "file",
+                "url": "data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=",
+              },
+              {
+                "text": "Message with text attachment",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1035,51 +1117,72 @@ describe('file attachments with data url', () => {
     chat.input = 'Message with image attachment';
 
     await chat.handleSubmit(undefined, {
-      experimental_attachments: createFileList(
+      files: createFileList(
         new File(['test image content'], 'test.png', {
           type: 'image/png',
         }),
       ),
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: 'Message with image attachment',
-        experimental_attachments: [
-          expect.objectContaining({
-            name: 'test.png',
-            contentType: 'image/png',
-            url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
-          }),
-        ],
-      }),
-    );
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Response to message with image attachment',
-      }),
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
         {
-          role: 'user',
-          content: 'Message with image attachment',
-          experimental_attachments: [
+          "content": "Message with image attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
             {
-              name: 'test.png',
-              contentType: 'image/png',
-              url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
+              "filename": "test.png",
+              "mediaType": "image/png",
+              "type": "file",
+              "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+            },
+            {
+              "text": "Message with image attachment",
+              "type": "text",
             },
           ],
-          parts: [{ text: 'Message with image attachment', type: 'text' }],
+          "role": "user",
         },
-      ],
-    });
+        {
+          "content": "Response to message with image attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Response to message with image attachment",
+              "type": "text",
+            },
+          ],
+          "revisionId": "id-3",
+          "role": "assistant",
+        },
+      ]
+    `);
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "Message with image attachment",
+            "parts": [
+              {
+                "filename": "test.png",
+                "mediaType": "image/png",
+                "type": "file",
+                "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+              },
+              {
+                "text": "Message with image attachment",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
@@ -1087,7 +1190,12 @@ describe('file attachments with url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1099,53 +1207,72 @@ describe('file attachments with url', () => {
     chat.input = 'Message with image attachment';
 
     await chat.handleSubmit(undefined, {
-      experimental_attachments: [
-        {
-          name: 'test.png',
-          contentType: 'image/png',
-          url: 'https://example.com/image.png',
-        },
-      ],
+      files: createFileList(
+        new File(['test image content'], 'test.png', {
+          type: 'image/png',
+        }),
+      ),
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: 'Message with image attachment',
-        experimental_attachments: [
-          expect.objectContaining({
-            name: 'test.png',
-            contentType: 'image/png',
-            url: 'https://example.com/image.png',
-          }),
-        ],
-      }),
-    );
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Response to message with image attachment',
-      }),
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
         {
-          role: 'user',
-          content: 'Message with image attachment',
-          experimental_attachments: [
+          "content": "Message with image attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
             {
-              name: 'test.png',
-              contentType: 'image/png',
-              url: 'https://example.com/image.png',
+              "filename": "test.png",
+              "mediaType": "image/png",
+              "type": "file",
+              "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+            },
+            {
+              "text": "Message with image attachment",
+              "type": "text",
             },
           ],
-          parts: [{ text: 'Message with image attachment', type: 'text' }],
+          "role": "user",
         },
-      ],
-    });
+        {
+          "content": "Response to message with image attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Response to message with image attachment",
+              "type": "text",
+            },
+          ],
+          "revisionId": "id-3",
+          "role": "assistant",
+        },
+      ]
+    `);
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "Message with image attachment",
+            "parts": [
+              {
+                "filename": "test.png",
+                "mediaType": "image/png",
+                "type": "file",
+                "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+              },
+              {
+                "text": "Message with image attachment",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
@@ -1153,7 +1280,12 @@ describe('file attachments with empty text content', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1164,53 +1296,72 @@ describe('file attachments with empty text content', () => {
 
     await chat.handleSubmit(undefined, {
       allowEmptySubmit: true,
-      experimental_attachments: [
-        {
-          name: 'test.png',
-          contentType: 'image/png',
-          url: 'https://example.com/image.png',
-        },
-      ],
+      files: createFileList(
+        new File(['test image content'], 'test.png', {
+          type: 'image/png',
+        }),
+      ),
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: '',
-        experimental_attachments: [
-          expect.objectContaining({
-            name: 'test.png',
-            contentType: 'image/png',
-            url: 'https://example.com/image.png',
-          }),
-        ],
-      }),
-    );
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Response to message with image attachment',
-      }),
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
         {
-          role: 'user',
-          content: '',
-          experimental_attachments: [
+          "content": "",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
             {
-              name: 'test.png',
-              contentType: 'image/png',
-              url: 'https://example.com/image.png',
+              "filename": "test.png",
+              "mediaType": "image/png",
+              "type": "file",
+              "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+            },
+            {
+              "text": "",
+              "type": "text",
             },
           ],
-          parts: [{ text: '', type: 'text' }],
+          "role": "user",
         },
-      ],
-    });
+        {
+          "content": "Response to message with image attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Response to message with image attachment",
+              "type": "text",
+            },
+          ],
+          "revisionId": "id-3",
+          "role": "assistant",
+        },
+      ]
+    `);
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "",
+            "parts": [
+              {
+                "filename": "test.png",
+                "mediaType": "image/png",
+                "type": "file",
+                "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+              },
+              {
+                "text": "",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
@@ -1233,7 +1384,11 @@ describe('reload', () => {
       },
     ];
 
-    await chat.append({ role: 'user', content: 'hi' });
+    await chat.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(chat.messages.at(0)).toStrictEqual(
       expect.objectContaining({
@@ -1256,7 +1411,7 @@ describe('reload', () => {
       headers: { 'header-key': 'header-value' },
     });
 
-    expect(await server.calls[1].requestBody).toStrictEqual({
+    expect(await server.calls[1].requestBodyJson).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1300,6 +1455,7 @@ describe('test sending additional fields during message submission', () => {
       role: 'user',
       content: 'hi',
       annotations: ['this is an annotation'],
+      parts: [{ text: 'hi', type: 'text' }],
     });
 
     expect(chat.messages.at(0)).toStrictEqual(
@@ -1309,7 +1465,7 @@ describe('test sending additional fields during message submission', () => {
       }),
     );
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1325,11 +1481,12 @@ describe('test sending additional fields during message submission', () => {
 
 describe('initialMessages', () => {
   let chat: Chat;
-  let initialMessages = $state<Message[]>([
+  let initialMessages = $state<UIMessage[]>([
     {
       id: 'test-msg-1',
       content: 'Test message 1',
       role: 'user',
+      parts: [{ text: 'Test message 1', type: 'text' }],
     },
   ]);
 
@@ -1355,6 +1512,7 @@ describe('initialMessages', () => {
         id: 'test-msg-2',
         content: 'Test message 2',
         role: 'user',
+        parts: [{ text: 'Test message 2', type: 'text' }],
       },
     ];
 
@@ -1379,7 +1537,11 @@ describe('synchronization', () => {
       component: { chat1, chat2 },
     } = render(ChatSynchronization, { id: crypto.randomUUID() });
 
-    await chat1.append({ role: 'user', content: 'hi' });
+    await chat1.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(chat1.messages.at(0)).toStrictEqual(
       expect.objectContaining({
@@ -1409,7 +1571,11 @@ describe('synchronization', () => {
       component: { chat1, chat2 },
     } = render(ChatSynchronization, { id: crypto.randomUUID() });
 
-    const appendOperation = chat1.append({ role: 'user', content: 'hi' });
+    const appendOperation = chat1.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     await vi.waitFor(() => {
       expect(chat1.status).toBe('submitted');
@@ -1446,7 +1612,11 @@ describe('generateId function', () => {
       generateId: mockGenerateId,
     });
 
-    await chatWithCustomId.append({ role: 'user', content: 'hi' });
+    await chatWithCustomId.append({
+      role: 'user',
+      content: 'hi',
+      parts: [{ text: 'hi', type: 'text' }],
+    });
 
     expect(chatWithCustomId.messages.at(0)).toStrictEqual(
       expect.objectContaining({

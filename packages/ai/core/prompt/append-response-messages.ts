@@ -1,16 +1,17 @@
+import { AISDKError } from '@ai-sdk/provider';
+import { ResponseMessage } from '../generate-text/step-result';
 import {
   FileUIPart,
-  Message,
   ReasoningUIPart,
   StepStartUIPart,
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
+  UIMessage,
 } from '../types';
+import { getToolInvocations } from '../ui/get-tool-invocations';
 import { extractMaxToolInvocationStep } from '../util';
-import { ResponseMessage } from '../generate-text/step-result';
 import { convertDataContentToBase64String } from './data-content';
-import { AISDKError } from '@ai-sdk/provider';
 
 /**
  * Appends the ResponseMessage[] from the response to a Message[] (for useChat).
@@ -24,7 +25,7 @@ export function appendResponseMessages({
   responseMessages,
   _internal: { currentDate = () => new Date() } = {},
 }: {
-  messages: Message[];
+  messages: UIMessage[];
   responseMessages: ResponseMessage[];
 
   /**
@@ -33,7 +34,7 @@ Internal. For test use only. May change without notice.
   _internal?: {
     currentDate?: () => Date;
   };
-}): Message[] {
+}): UIMessage[] {
   const clonedMessages = structuredClone(messages);
 
   for (const message of responseMessages) {
@@ -45,7 +46,7 @@ Internal. For test use only. May change without notice.
 
     switch (role) {
       case 'assistant': {
-        function getToolInvocations(step: number) {
+        function getToolInvocationsForStep(step: number) {
           return (
             typeof message.content === 'string'
               ? []
@@ -93,13 +94,13 @@ Internal. For test use only. May change without notice.
                 if (reasoningPart == null) {
                   reasoningPart = {
                     type: 'reasoning' as const,
-                    reasoning: '',
+                    text: '',
                   };
                   parts.push(reasoningPart);
                 }
 
                 reasoningTextContent = (reasoningTextContent ?? '') + part.text;
-                reasoningPart.reasoning += part.text;
+                reasoningPart.text += part.text;
                 reasoningPart.providerMetadata = part.providerOptions;
                 break;
               }
@@ -114,8 +115,8 @@ Internal. For test use only. May change without notice.
                 }
                 parts.push({
                   type: 'file' as const,
-                  mediaType: part.mediaType ?? part.mimeType,
-                  data: convertDataContentToBase64String(part.data),
+                  mediaType: part.mediaType,
+                  url: `data:${part.mediaType};base64,${convertDataContentToBase64String(part.data)}`,
                 });
                 break;
             }
@@ -124,7 +125,7 @@ Internal. For test use only. May change without notice.
 
         if (isLastMessageAssistant) {
           const maxStep = extractMaxToolInvocationStep(
-            lastMessage.toolInvocations,
+            getToolInvocations(lastMessage),
           );
 
           lastMessage.parts ??= [];
@@ -132,12 +133,7 @@ Internal. For test use only. May change without notice.
           lastMessage.content = textContent;
           lastMessage.parts.push(...parts);
 
-          lastMessage.toolInvocations = [
-            ...(lastMessage.toolInvocations ?? []),
-            ...getToolInvocations(maxStep === undefined ? 0 : maxStep + 1),
-          ];
-
-          getToolInvocations(maxStep === undefined ? 0 : maxStep + 1)
+          getToolInvocationsForStep(maxStep === undefined ? 0 : maxStep + 1)
             .map(call => ({
               type: 'tool-invocation' as const,
               toolInvocation: call,
@@ -152,10 +148,9 @@ Internal. For test use only. May change without notice.
             id: message.id,
             createdAt: currentDate(), // generate a createdAt date for the message, will be overridden by the client
             content: textContent,
-            toolInvocations: getToolInvocations(0),
             parts: [
               ...parts,
-              ...getToolInvocations(0).map(call => ({
+              ...getToolInvocationsForStep(0).map(call => ({
                 type: 'tool-invocation' as const,
                 toolInvocation: call,
               })),
@@ -168,8 +163,6 @@ Internal. For test use only. May change without notice.
 
       case 'tool': {
         // for tool call results, add the result to previous message:
-        lastMessage.toolInvocations ??= []; // ensure the toolInvocations array exists
-
         if (lastMessage.role !== 'assistant') {
           throw new Error(
             `Tool result must follow an assistant message: ${lastMessage.role}`,
@@ -180,7 +173,7 @@ Internal. For test use only. May change without notice.
 
         for (const contentPart of message.content) {
           // find the tool call in the previous message:
-          const toolCall = lastMessage.toolInvocations.find(
+          const toolCall = getToolInvocations(lastMessage).find(
             call => call.toolCallId === contentPart.toolCallId,
           );
           const toolCallPart: ToolInvocationUIPart | undefined =

@@ -1,13 +1,10 @@
-import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
+import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import {
   calculateLanguageModelUsage,
   LanguageModelUsage,
 } from '../types/duplicated/usage';
-import { parsePartialJson } from './parse-partial-json';
-import { processDataStream } from './process-data-stream';
 import type {
-  JSONValue,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
@@ -15,6 +12,10 @@ import type {
   UIMessage,
   UseChatOptions,
 } from '../types/ui-messages';
+import { getToolInvocations } from '../ui/get-tool-invocations';
+import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
+import { parsePartialJson } from './parse-partial-json';
+import { processDataStream } from './process-data-stream';
 
 export async function processChatResponse({
   stream,
@@ -42,12 +43,9 @@ export async function processChatResponse({
   lastMessage: UIMessage | undefined;
 }) {
   const replaceLastMessage = lastMessage?.role === 'assistant';
+
   let step = replaceLastMessage
-    ? 1 +
-      // find max step in existing tool invocations:
-      (lastMessage.toolInvocations?.reduce((max, toolInvocation) => {
-        return Math.max(max, toolInvocation.step ?? 0);
-      }, 0) ?? 0)
+    ? 1 + (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0)
     : 0;
 
   const message: UIMessage = replaceLastMessage
@@ -152,12 +150,12 @@ export async function processChatResponse({
       if (currentReasoningPart == null) {
         currentReasoningPart = {
           type: 'reasoning',
-          reasoning: value.text,
+          text: value.text,
           providerMetadata: value.providerMetadata,
         };
         message.parts.push(currentReasoningPart);
       } else {
-        currentReasoningPart.reasoning += value.text;
+        currentReasoningPart.text += value.text;
         currentReasoningPart.providerMetadata = value.providerMetadata;
       }
 
@@ -171,8 +169,8 @@ export async function processChatResponse({
     onFilePart(value) {
       message.parts.push({
         type: 'file',
-        mediaType: value.mimeType,
-        data: value.data,
+        mediaType: value.mediaType,
+        url: value.url,
       });
 
       execUpdate();
@@ -186,29 +184,23 @@ export async function processChatResponse({
       execUpdate();
     },
     onToolCallStreamingStartPart(value) {
-      if (message.toolInvocations == null) {
-        message.toolInvocations = [];
-      }
+      const toolInvocations = getToolInvocations(message);
 
       // add the partial tool call to the map
       partialToolCalls[value.toolCallId] = {
         text: '',
         step,
         toolName: value.toolName,
-        index: message.toolInvocations.length,
+        index: toolInvocations.length,
       };
 
-      const invocation = {
+      updateToolInvocationPart(value.toolCallId, {
         state: 'partial-call',
         step,
         toolCallId: value.toolCallId,
         toolName: value.toolName,
         args: undefined,
-      } as const;
-
-      message.toolInvocations.push(invocation);
-
-      updateToolInvocationPart(value.toolCallId, invocation);
+      } as const);
 
       execUpdate();
     },
@@ -221,40 +213,22 @@ export async function processChatResponse({
         partialToolCall.text,
       );
 
-      const invocation = {
+      updateToolInvocationPart(value.toolCallId, {
         state: 'partial-call',
         step: partialToolCall.step,
         toolCallId: value.toolCallId,
         toolName: partialToolCall.toolName,
         args: partialArgs,
-      } as const;
-
-      message.toolInvocations![partialToolCall.index] = invocation;
-
-      updateToolInvocationPart(value.toolCallId, invocation);
+      } as const);
 
       execUpdate();
     },
     async onToolCallPart(value) {
-      const invocation = {
+      updateToolInvocationPart(value.toolCallId, {
         state: 'call',
         step,
         ...value,
-      } as const;
-
-      if (partialToolCalls[value.toolCallId] != null) {
-        // change the partial tool call to a full tool call
-        message.toolInvocations![partialToolCalls[value.toolCallId].index] =
-          invocation;
-      } else {
-        if (message.toolInvocations == null) {
-          message.toolInvocations = [];
-        }
-
-        message.toolInvocations.push(invocation);
-      }
-
-      updateToolInvocationPart(value.toolCallId, invocation);
+      } as const);
 
       execUpdate();
 
@@ -264,25 +238,19 @@ export async function processChatResponse({
       if (onToolCall) {
         const result = await onToolCall({ toolCall: value });
         if (result != null) {
-          const invocation = {
+          updateToolInvocationPart(value.toolCallId, {
             state: 'result',
             step,
             ...value,
             result,
-          } as const;
-
-          // store the result in the tool invocation
-          message.toolInvocations![message.toolInvocations!.length - 1] =
-            invocation;
-
-          updateToolInvocationPart(value.toolCallId, invocation);
+          } as const);
 
           execUpdate();
         }
       }
     },
     onToolResultPart(value) {
-      const toolInvocations = message.toolInvocations;
+      const toolInvocations = getToolInvocations(message);
 
       if (toolInvocations == null) {
         throw new Error('tool_result must be preceded by a tool_call');
@@ -300,15 +268,11 @@ export async function processChatResponse({
         );
       }
 
-      const invocation = {
+      updateToolInvocationPart(value.toolCallId, {
         ...toolInvocations[toolInvocationIndex],
         state: 'result' as const,
         ...value,
-      } as const;
-
-      toolInvocations[toolInvocationIndex] = invocation;
-
-      updateToolInvocationPart(value.toolCallId, invocation);
+      } as const);
 
       execUpdate();
     },

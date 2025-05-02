@@ -1,11 +1,26 @@
 import { expectTypeOf } from 'vitest';
-import { generateObject } from './generate-object';
 import { z } from 'zod';
 import { JSONValue } from '@ai-sdk/provider';
 import { streamObject } from './stream-object';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 
 describe('streamObject', () => {
+  it('should support enum types', async () => {
+    const result = await streamObject({
+      output: 'enum',
+      enum: ['a', 'b', 'c'] as const,
+      model: undefined!,
+    });
+
+    expectTypeOf<typeof result.object>().toEqualTypeOf<
+      Promise<'a' | 'b' | 'c'>
+    >;
+
+    for await (const text of result.partialObjectStream) {
+      expectTypeOf(text).toEqualTypeOf<string>();
+    }
+  });
+
   it('should support schema types', async () => {
     const result = streamObject({
       schema: z.object({ number: z.number() }),

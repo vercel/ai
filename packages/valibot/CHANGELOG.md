@@ -1,5 +1,20 @@
 # @ai-sdk/valibot
 
+## 1.0.0-canary.16
+
+### Patch Changes
+
+- Updated dependencies [957b739]
+  - @ai-sdk/provider-utils@3.0.0-canary.14
+
+## 1.0.0-canary.15
+
+### Patch Changes
+
+- 0ff02bb: chore(provider-utils): move over jsonSchema
+- Updated dependencies [0ff02bb]
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+
 ## 1.0.0-canary.14
 
 ### Patch Changes

@@ -1,27 +1,27 @@
 ---
-title: convertToCoreMessages
-description: Convert useChat messages to CoreMessages for AI core functions (API Reference)
+title: convertToModelMessages
+description: Convert useChat messages to ModelMessages for AI functions (API Reference)
 ---
 
-# `convertToCoreMessages()`
+# `convertToModelMessages()`
 
 <Note title="warning">
-  The `convertToCoreMessages` function is no longer required. The AI SDK now
-  automatically converts the incoming messages to the `CoreMessage` format.
+  The `convertToModelMessages` function is no longer required. The AI SDK now
+  automatically converts the incoming messages to the `ModelMessage` format.
 </Note>
 
-The `convertToCoreMessages` function is used to transform an array of UI messages from the `useChat` hook into an array of `CoreMessage` objects. These `CoreMessage` objects are compatible with AI core functions like `streamText`.
+The `convertToModelMessages` function is used to transform an array of UI messages from the `useChat` hook into an array of `ModelMessage` objects. These `ModelMessage` objects are compatible with AI core functions like `streamText`.
 
 ```ts filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
-import { convertToCoreMessages, streamText } from 'ai';
+import { convertToModelMessages, streamText } from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
     model: openai('gpt-4o'),
-    messages: convertToCoreMessages(messages),
+    messages: convertToModelMessages(messages),
   });
 
   return result.toDataStreamResponse();
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
 
 ## Import
 
-<Snippet text={`import { convertToCoreMessages } from "ai"`} prompt={false} />
+<Snippet text={`import { convertToModelMessages } from "ai"`} prompt={false} />
 
 ## API Signature
 
@@ -55,21 +55,21 @@ export async function POST(req: Request) {
 
 ### Returns
 
-An array of [`CoreMessage`](/docs/reference/ai-sdk-core/core-message) objects.
+An array of [`ModelMessage`](/docs/reference/ai-sdk-core/core-message) objects.
 
 <PropertiesTable
   content={[
     {
-      name: 'CoreMessage[]',
+      name: 'ModelMessage[]',
       type: 'Array',
-      description: 'An array of CoreMessage objects',
+      description: 'An array of ModelMessage objects',
     },
   ]}
 />
 
 ## Multi-modal Tool Responses
 
-The `convertToCoreMessages` function supports tools that can return multi-modal content. This is useful when tools need to return non-text content like images.
+The `convertToModelMessages` function supports tools that can return multi-modal content. This is useful when tools need to return non-text content like images.
 
 ```ts
 import { tool } from 'ai';
@@ -83,7 +83,7 @@ const screenshotTool = tool({
 
 const result = streamText({
   model: openai('gpt-4'),
-  messages: convertToCoreMessages(messages, {
+  messages: convertToModelMessages(messages, {
     tools: {
       screenshot: screenshotTool,
     },

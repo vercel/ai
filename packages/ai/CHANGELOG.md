@@ -1,5 +1,77 @@
 # ai
 
+## 5.0.0-canary.17
+
+### Major Changes
+
+- f04fb4a: chore (ai): replace useChat attachments with file ui parts
+- fd1924b: chore (ai): remove redundant `mimeType` property
+- fafc3f2: chore (ai): change file to parts to use urls instead of data
+- 92cb0a2: chore (ai): rename CoreMessage to ModelMessage
+
+### Minor Changes
+
+- c9ad635: feat (ai): add filename to file ui parts
+
+### Patch Changes
+
+- 9bd5ab5: feat (provider): add providerMetadata to ImageModelV2 interface (#5977)
+
+  The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
+
+  ```js
+  const prompt = 'Santa Claus driving a Cadillac';
+
+  const { providerMetadata } = await experimental_generateImage({
+    model: openai.image('dall-e-3'),
+    prompt,
+  });
+
+  const revisedPrompt = providerMetadata.openai.images[0]?.revisedPrompt;
+
+  console.log({
+    prompt,
+    revisedPrompt,
+  });
+  ```
+
+- Updated dependencies [957b739]
+- Updated dependencies [9bd5ab5]
+  - @ai-sdk/provider-utils@3.0.0-canary.14
+  - @ai-sdk/provider@2.0.0-canary.13
+
+## 5.0.0-canary.16
+
+### Major Changes
+
+- ec78cdc: chore (ai): remove "data" UIMessage role
+- 8b86e99: chore (ai): replace `Message` with `UIMessage`
+- 2524fc7: chore (ai): remove ui message toolInvocations property
+- 175b868: chore (ai): rename reasoning UI parts 'reasoning' property to 'text'
+
+### Patch Changes
+
+- 9b4d074: feat(streamObject): add enum support
+- 28ad69e: fix(react-native): support experimental_attachments without FileList global
+- ec5933d: chore (ai/mcp): add `assertCapability` method to experimental MCP client
+
+## 5.0.0-canary.15
+
+### Major Changes
+
+- 4bfe9ec: chore (ai): remove ui message reasoning property
+- 2877a74: chore (ai): remove ui message data property
+
+### Patch Changes
+
+- d9209ca: fix (image-model): `specificationVersion: v1` -> `v2`
+- ea27cc6: chore (ai): use JSONValue definition from provider
+- 0ff02bb: chore(provider-utils): move over jsonSchema
+- Updated dependencies [7b3ae3f]
+- Updated dependencies [0ff02bb]
+  - @ai-sdk/provider@2.0.0-canary.12
+  - @ai-sdk/provider-utils@3.0.0-canary.13
+
 ## 5.0.0-canary.14
 
 ### Patch Changes

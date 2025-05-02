@@ -1,11 +1,11 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
-import { Message } from '../types';
+import { UIMessage } from '../types';
 import { z } from 'zod';
 import { ToolSet } from '../generate-text/tool-set';
-import { convertToCoreMessages } from './convert-to-core-messages';
+import { convertToModelMessages } from './convert-to-model-messages';
 import { detectPromptType } from './detect-prompt-type';
-import { CoreMessage, coreMessageSchema } from './message';
+import { ModelMessage, modelMessageSchema } from './message';
 import { Prompt } from './prompt';
 
 export type StandardizedPrompt = {
@@ -17,7 +17,7 @@ export type StandardizedPrompt = {
   /**
    * Messages.
    */
-  messages: CoreMessage[];
+  messages: ModelMessage[];
 };
 
 export async function standardizePrompt<TOOLS extends ToolSet>({
@@ -77,16 +77,16 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
     if (promptType === 'other') {
       throw new InvalidPromptError({
         prompt,
-        message: 'messages must be an array of CoreMessage or UIMessage',
+        message: 'messages must be an array of ModelMessage or UIMessage',
       });
     }
 
-    const messages: CoreMessage[] =
+    const messages: ModelMessage[] =
       promptType === 'ui-messages'
-        ? convertToCoreMessages(prompt.messages as Omit<Message, 'id'>[], {
+        ? convertToModelMessages(prompt.messages as Omit<UIMessage, 'id'>[], {
             tools,
           })
-        : (prompt.messages as CoreMessage[]);
+        : (prompt.messages as ModelMessage[]);
 
     if (messages.length === 0) {
       throw new InvalidPromptError({
@@ -97,13 +97,13 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
 
     const validationResult = await safeValidateTypes({
       value: messages,
-      schema: z.array(coreMessageSchema),
+      schema: z.array(modelMessageSchema),
     });
 
     if (!validationResult.success) {
       throw new InvalidPromptError({
         prompt,
-        message: 'messages must be an array of CoreMessage or UIMessage',
+        message: 'messages must be an array of ModelMessage or UIMessage',
         cause: validationResult.error,
       });
     }
