@@ -142,7 +142,6 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-  keepLastMessageOnError = true,
   experimental_throttle: throttleWaitMs,
   ...options
 }: UseChatOptions & {
@@ -313,11 +312,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
             ...chatRequest.headers,
           },
           abortController: () => abortControllerRef.current,
-          restoreMessagesOnFailure() {
-            if (!keepLastMessageOnError) {
-              throttledMutate(previousMessages, false);
-            }
-          },
           onResponse,
           onUpdate({ message, data, replaceLastMessage }) {
             mutateStatus('streaming');
@@ -401,7 +395,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
       abortControllerRef,
       generateId,
       fetch,
-      keepLastMessageOnError,
       throttleWaitMs,
       chatId,
       getCurrentDate,

@@ -23,7 +23,7 @@ import {
 } from './chat-context.svelte.js';
 
 export type ChatOptions = Readonly<
-  Omit<UseChatOptions, 'keepLastMessageOnError'> & {
+  UseChatOptions & {
     /**
      * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
      * Must be at least 1.
@@ -275,7 +275,6 @@ export class Chat {
           ...chatRequest.headers,
         },
         abortController: () => abortController,
-        restoreMessagesOnFailure: () => {},
         onResponse: this.#options.onResponse,
         onUpdate: ({ message, data, replaceLastMessage }) => {
           this.#store.status = 'streaming';

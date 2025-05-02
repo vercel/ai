@@ -1,7 +1,7 @@
+import { JSONValue } from '@ai-sdk/provider';
+import { IdGenerator, UIMessage, UseChatOptions } from '../types';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
-import { IdGenerator, UIMessage, UseChatOptions } from '../types';
-import { JSONValue } from '@ai-sdk/provider';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -13,7 +13,6 @@ export async function callChatApi({
   credentials,
   headers,
   abortController,
-  restoreMessagesOnFailure,
   onResponse,
   onUpdate,
   onFinish,
@@ -30,7 +29,6 @@ export async function callChatApi({
   credentials: RequestCredentials | undefined;
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
-  restoreMessagesOnFailure: () => void;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
   onUpdate: (options: {
     message: UIMessage;
@@ -45,43 +43,24 @@ export async function callChatApi({
   getCurrentDate: () => Date;
   requestType?: 'generate' | 'resume';
 }) {
-  const request =
-    requestType === 'resume'
-      ? fetch(`${api}?chatId=${body.id}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-          },
-          signal: abortController?.()?.signal,
-          credentials,
-        })
-      : fetch(api, {
-          method: 'POST',
-          body: JSON.stringify(body),
-          headers: {
-            'Content-Type': 'application/json',
-            ...headers,
-          },
-          signal: abortController?.()?.signal,
-          credentials,
-        });
+  const response = await fetch(
+    requestType === 'resume' ? `${api}?chatId=${body.id}` : api,
+    {
+      method: requestType === 'resume' ? 'GET' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      signal: abortController?.()?.signal,
+      credentials,
+    },
+  );
 
-  const response = await request.catch(err => {
-    restoreMessagesOnFailure();
-    throw err;
-  });
-
-  if (onResponse) {
-    try {
-      await onResponse(response);
-    } catch (err) {
-      throw err;
-    }
+  if (onResponse != null) {
+    await onResponse(response);
   }
 
   if (!response.ok) {
-    restoreMessagesOnFailure();
     throw new Error(
       (await response.text()) ?? 'Failed to fetch the chat response.',
     );

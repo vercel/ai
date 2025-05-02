@@ -125,7 +125,6 @@ export function useChat(
     generateId = generateIdFunc,
     onToolCall,
     fetch,
-    keepLastMessageOnError = true,
     maxSteps = 1,
     experimental_prepareRequestBody,
     ...options
@@ -266,12 +265,6 @@ export function useChat(
           }
         },
         onFinish,
-        restoreMessagesOnFailure() {
-          // Restore the previous messages if the request fails.
-          if (!keepLastMessageOnError) {
-            mutate(previousMessages);
-          }
-        },
         generateId,
         onToolCall,
         fetch,
