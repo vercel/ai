@@ -487,7 +487,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               finishReason = mapOpenAIFinishReason(choice.finish_reason);
             }
 
-            if (choice?.logprobs != null) {
+            if (choice?.logprobs?.content != null) {
               providerMetadata.openai.logprobs = choice.logprobs.content;
             }
 
