@@ -5,6 +5,7 @@ import {
 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { embedMany } from './embed-many';
+import { createResolvablePromise } from '../../util/create-resolvable-promise';
 
 const dummyEmbeddings = [
   [0.1, 0.2, 0.3],
@@ -17,6 +18,153 @@ const testValues = [
   'rainy afternoon in the city',
   'snowy night in the mountains',
 ];
+
+describe('model.supportsParallelCalls', () => {
+  it('should not parallelize when false', async () => {
+    const events: string[] = [];
+    let callCount = 0;
+
+    const resolvables = [
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+    ];
+
+    const embedManyPromise = embedMany({
+      model: new MockEmbeddingModelV2({
+        supportsParallelCalls: false,
+        maxEmbeddingsPerCall: 1,
+        doEmbed: async () => {
+          const index = callCount++;
+          events.push(`start-${index}`);
+
+          await resolvables[index].promise;
+          events.push(`end-${index}`);
+
+          return {
+            embeddings: [dummyEmbeddings[index]],
+            response: { headers: {}, body: {} },
+          };
+        },
+      }),
+      values: testValues,
+    });
+
+    resolvables.forEach(resolvable => {
+      resolvable.resolve();
+    });
+
+    const { embeddings } = await embedManyPromise;
+
+    expect(events).toStrictEqual([
+      'start-0',
+      'end-0',
+      'start-1',
+      'end-1',
+      'start-2',
+      'end-2',
+    ]);
+
+    expect(embeddings).toStrictEqual(dummyEmbeddings);
+  });
+
+  it('should parallelize when true', async () => {
+    const events: string[] = [];
+    let callCount = 0;
+
+    const resolvables = [
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+    ];
+
+    const embedManyPromise = embedMany({
+      model: new MockEmbeddingModelV2({
+        supportsParallelCalls: true,
+        maxEmbeddingsPerCall: 1,
+        doEmbed: async () => {
+          const index = callCount++;
+          events.push(`start-${index}`);
+
+          await resolvables[index].promise;
+          events.push(`end-${index}`);
+
+          return {
+            embeddings: [dummyEmbeddings[index]],
+            response: { headers: {}, body: {} },
+          };
+        },
+      }),
+      values: testValues,
+    });
+
+    resolvables.forEach(resolvable => {
+      resolvable.resolve();
+    });
+
+    const { embeddings } = await embedManyPromise;
+
+    expect(events).toStrictEqual([
+      'start-0',
+      'start-1',
+      'start-2',
+      'end-0',
+      'end-1',
+      'end-2',
+    ]);
+
+    expect(embeddings).toStrictEqual(dummyEmbeddings);
+  });
+
+  it('should support maxParallelCalls', async () => {
+    const events: string[] = [];
+    let callCount = 0;
+
+    const resolvables = [
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+      createResolvablePromise<void>(),
+    ];
+
+    const embedManyPromise = embedMany({
+      maxParallelCalls: 2,
+      model: new MockEmbeddingModelV2({
+        supportsParallelCalls: true,
+        maxEmbeddingsPerCall: 1,
+        doEmbed: async () => {
+          const index = callCount++;
+          events.push(`start-${index}`);
+
+          await resolvables[index].promise;
+          events.push(`end-${index}`);
+
+          return {
+            embeddings: [dummyEmbeddings[index]],
+            response: { headers: {}, body: {} },
+          };
+        },
+      }),
+      values: testValues,
+    });
+
+    resolvables.forEach(resolvable => {
+      resolvable.resolve();
+    });
+
+    const { embeddings } = await embedManyPromise;
+
+    expect(events).toStrictEqual([
+      'start-0',
+      'start-1',
+      'end-0',
+      'end-1',
+      'start-2',
+      'end-2',
+    ]);
+
+    expect(embeddings).toStrictEqual(dummyEmbeddings);
+  });
+});
 
 describe('result.embedding', () => {
   it('should generate embeddings', async () => {
