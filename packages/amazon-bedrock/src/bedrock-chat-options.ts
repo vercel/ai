@@ -44,10 +44,10 @@ export const bedrockProviderOptions = z.object({
   additionalModelRequestFields: z.record(z.any()).optional(),
   reasoningConfig: z
     .object({
-      type: z.union([z.literal('enabled'), z.literal('disabled')]).nullish(),
-      budgetTokens: z.number().nullish(),
+      type: z.union([z.literal('enabled'), z.literal('disabled')]).optional(),
+      budgetTokens: z.number().optional(),
     })
-    .nullish(),
+    .optional(),
 });
 
 export type BedrockProviderOptions = z.infer<typeof bedrockProviderOptions>;
