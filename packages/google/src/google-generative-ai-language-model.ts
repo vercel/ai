@@ -271,7 +271,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       providerMetadata: {
         google: {
           groundingMetadata: candidate.groundingMetadata ?? null,
-          safetyRatings: candidate.safetyRatings ?? null,
+          safetyRatings: candidate.safetyRatings?.map((rating) => rating ?? null) ?? null,
         },
       },
       sources: extractSources({
@@ -418,7 +418,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               providerMetadata = {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
-                  safetyRatings: candidate.safetyRatings ?? null,
+                  safetyRatings: candidate.safetyRatings?.map((rating) => rating ?? null) ?? null,
                 },
               };
             }
@@ -588,7 +588,7 @@ const responseSchema = z.object({
     z.object({
       content: contentSchema.nullish().or(z.object({}).strict()),
       finishReason: z.string().nullish(),
-      safetyRatings: z.array(safetyRatingSchema).nullish(),
+      safetyRatings: z.array(safetyRatingSchema.nullish()).nullish(),
       groundingMetadata: groundingMetadataSchema.nullish(),
     }),
   ),
@@ -609,7 +609,7 @@ const chunkSchema = z.object({
       z.object({
         content: contentSchema.nullish(),
         finishReason: z.string().nullish(),
-        safetyRatings: z.array(safetyRatingSchema).nullish(),
+        safetyRatings: z.array(safetyRatingSchema.nullish()).nullish(),
         groundingMetadata: groundingMetadataSchema.nullish(),
       }),
     )
