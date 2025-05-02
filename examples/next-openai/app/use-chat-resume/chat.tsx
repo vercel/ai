@@ -28,7 +28,6 @@ export function Chat({
     id: chatId,
     api: '/api/use-chat-resume',
     initialMessages,
-    sendExtraMessageFields: true,
     onError: error => {
       console.error('Error streaming text:', error);
     },
@@ -43,7 +42,7 @@ export function Chat({
   }, []);
 
   return (
-    <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch gap-8">
+    <div className="flex flex-col w-full max-w-md gap-8 py-24 mx-auto stretch">
       <Link href={`/use-chat-resume/${chatId}`} target="_noblank">
         Chat Id: {chatId}
       </Link>
@@ -51,7 +50,7 @@ export function Chat({
       <div>Status: {status}</div>
 
       {messages.map(message => (
-        <div key={message.id} className="whitespace-pre-wrap flex flex-row">
+        <div key={message.id} className="flex flex-row whitespace-pre-wrap">
           <div className="min-w-12">
             {message.role === 'user' ? 'User: ' : 'AI: '}
           </div>

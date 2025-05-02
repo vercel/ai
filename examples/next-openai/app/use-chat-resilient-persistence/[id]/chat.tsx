@@ -12,7 +12,6 @@ export default function Chat({
       api: '/api/use-chat-resilient-persistence',
       id, // use the provided chatId
       initialMessages, // initial messages if provided
-      sendExtraMessageFields: true, // send id and createdAt for each message
       generateId: createIdGenerator({ prefix: 'msgc', size: 16 }), // id format for client-side messages
     });
 

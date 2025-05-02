@@ -11,7 +11,6 @@ export default function Chat({
     api: '/api/use-chat-persistence-single-message-image-output',
     id, // use the provided chatId
     initialMessages, // initial messages if provided
-    sendExtraMessageFields: true, // send id and createdAt for each message
     generateId: createIdGenerator({ prefix: 'msgc', size: 16 }), // id format for client-side messages
 
     // only send the last message to the server:

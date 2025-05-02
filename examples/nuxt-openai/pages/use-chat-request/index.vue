@@ -4,7 +4,6 @@ import { createIdGenerator } from 'ai';
 
 const { input, handleSubmit, messages } = useChat({
   api: '/api/use-chat-request',
-  sendExtraMessageFields: true,
   generateId: createIdGenerator({ prefix: 'msgc', size: 16 }),
 
   experimental_prepareRequestBody({ messages }) {
