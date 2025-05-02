@@ -51,6 +51,7 @@ A function that generates an ID.
 export type IdGenerator = () => string;
 
 /**
-Generates a 16-character random string to use for IDs. Not secure.
+Generates a 16-character random string to use for IDs.
+Not cryptographically secure.
  */
 export const generateId = createIdGenerator();
