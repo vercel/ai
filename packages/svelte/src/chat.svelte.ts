@@ -23,7 +23,7 @@ import {
 } from './chat-context.svelte.js';
 
 export type ChatOptions = Readonly<
-  Omit<UseChatOptions, 'keepLastMessageOnError'> & {
+  UseChatOptions & {
     '~internal'?: {
       currentDate?: () => Date;
     };
@@ -266,7 +266,6 @@ export class Chat {
           ...chatRequest.headers,
         },
         abortController: () => abortController,
-        restoreMessagesOnFailure: () => {},
         onResponse: this.#options.onResponse,
         onUpdate: ({ message, data, replaceLastMessage }) => {
           this.#store.status = 'streaming';

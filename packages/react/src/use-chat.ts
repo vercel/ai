@@ -142,7 +142,6 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-  keepLastMessageOnError = true,
   experimental_throttle: throttleWaitMs,
   ...options
 }: UseChatOptions & {
@@ -303,11 +302,6 @@ Default is undefined, which disables throttling.
             ...chatRequest.headers,
           },
           abortController: () => abortControllerRef.current,
-          restoreMessagesOnFailure() {
-            if (!keepLastMessageOnError) {
-              throttledMutate(previousMessages, false);
-            }
-          },
           onResponse,
           onUpdate({ message, data, replaceLastMessage }) {
             mutateStatus('streaming');
@@ -391,7 +385,6 @@ Default is undefined, which disables throttling.
       abortControllerRef,
       generateId,
       fetch,
-      keepLastMessageOnError,
       throttleWaitMs,
       chatId,
       getCurrentDate,
