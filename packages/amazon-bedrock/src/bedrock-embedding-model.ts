@@ -1,4 +1,4 @@
-import { EmbeddingModelV2, EmbeddingModelV2Embedding } from '@ai-sdk/provider';
+import { EmbeddingModelV2, EmbeddingModelV2Embedding, TooManyEmbeddingValuesForCallError } from '@ai-sdk/provider';
 import {
   FetchFunction,
   Resolvable,
@@ -41,13 +41,22 @@ export class BedrockEmbeddingModel implements EmbeddingModelV2<string> {
   }
 
   async doEmbed({
-    values: [value],
+    values,
     headers,
     abortSignal,
     providerOptions,
   }: Parameters<
     EmbeddingModelV2<string>['doEmbed']
   >[0]): Promise<DoEmbedResponse> {
+    if (values.length > this.maxEmbeddingsPerCall) {
+      throw new TooManyEmbeddingValuesForCallError({
+        provider: this.provider,
+        modelId: this.modelId,
+        maxEmbeddingsPerCall: this.maxEmbeddingsPerCall,
+        values,
+      });
+    }
+
     // Parse provider options
     const bedrockOptions =
       (await parseProviderOptions({
@@ -58,7 +67,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV2<string> {
 
     // https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_InvokeModel.html
     const args = {
-      inputText: value,
+      inputText: values[0],
       dimensions: bedrockOptions.dimensions,
       normalize: bedrockOptions.normalize,
     };

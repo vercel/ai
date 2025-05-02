@@ -86,14 +86,6 @@ describe('doEmbed', () => {
     expect(usage?.tokens).toStrictEqual(8);
   });
 
-  it('should handle multiple input values and extract usage', async () => {
-    const { usage } = await model.doEmbed({
-      values: testValues,
-    });
-
-    expect(usage?.tokens).toStrictEqual(16);
-  });
-
   it('should properly combine headers from all sources', async () => {
     const optionsHeaders = {
       'options-header': 'options-value',
