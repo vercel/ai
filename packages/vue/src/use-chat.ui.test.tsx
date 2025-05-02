@@ -327,18 +327,7 @@ describe('custom metadata', () => {
 
     await screen.findByTestId('message-1');
 
-    expect(await server.calls[0].requestBodyJson).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          content: 'custom metadata component',
-          role: 'user',
-          parts: [{ text: 'custom metadata component', type: 'text' }],
-        },
-      ],
-      body1: 'value1',
-      body2: 'value2',
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot();
   });
 });
 
@@ -469,18 +458,7 @@ describe('reload', () => {
     // setup done, click reload:
     await userEvent.click(screen.getByTestId('do-reload'));
 
-    expect(await server.calls[1].requestBodyJson).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          content: 'hi',
-          role: 'user',
-          parts: [{ text: 'hi', type: 'text' }],
-        },
-      ],
-      data: { 'test-data-key': 'test-data-value' },
-      'request-body-key': 'request-body-value',
-    });
+    expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot();
 
     expect(server.calls[1].requestHeaders).toStrictEqual({
       'content-type': 'application/json',

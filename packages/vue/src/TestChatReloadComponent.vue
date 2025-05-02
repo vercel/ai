@@ -1,7 +1,13 @@
 <script setup lang="ts">
+import { mockId, mockValues } from 'ai/test';
 import { useChat } from './use-chat';
 
-const { messages, append, reload } = useChat();
+const { messages, append, reload } = useChat({
+  generateId: mockId(),
+  '~internal': {
+    currentDate: mockValues(new Date('2025-01-01')),
+  },
+});
 </script>
 
 <template>
