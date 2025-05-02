@@ -116,7 +116,7 @@ describe('model.supportsParallelCalls', () => {
     expect(embeddings).toStrictEqual(dummyEmbeddings);
   });
 
-  it('should parallelize with concurrency', async () => {
+  it('should support maxParallelCalls', async () => {
     const events: string[] = [];
     let callCount = 0;
 
@@ -127,7 +127,7 @@ describe('model.supportsParallelCalls', () => {
     ];
 
     const embedManyPromise = embedMany({
-      concurrency: 2,
+      maxParallelCalls: 2,
       model: new MockEmbeddingModelV2({
         supportsParallelCalls: true,
         maxEmbeddingsPerCall: 1,
