@@ -4,8 +4,9 @@ import {
   LanguageModelV2Prompt,
   LanguageModelV2TextPart,
 } from '@ai-sdk/provider';
+import { isUrlSupported } from '@ai-sdk/provider-utils';
 import { download } from '../../util/download';
-import { CoreMessage } from '../prompt/message';
+import { ModelMessage } from '../prompt/message';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
@@ -17,7 +18,6 @@ import {
 } from './data-content';
 import { InvalidMessageRoleError } from './invalid-message-role-error';
 import { StandardizedPrompt } from './standardize-prompt';
-import { isUrlSupported } from '@ai-sdk/provider-utils';
 
 export async function convertToLanguageModelPrompt({
   prompt,
@@ -45,14 +45,14 @@ export async function convertToLanguageModelPrompt({
 }
 
 /**
- * Convert a CoreMessage to a LanguageModelV2Message.
+ * Convert a ModelMessage to a LanguageModelV2Message.
  *
- * @param message The CoreMessage to convert.
+ * @param message The ModelMessage to convert.
  * @param downloadedAssets A map of URLs to their downloaded data. Only
  *   available if the model does not support URLs, null otherwise.
  */
 export function convertToLanguageModelMessage(
-  message: CoreMessage,
+  message: ModelMessage,
   downloadedAssets: Record<
     string,
     { mediaType: string | undefined; data: Uint8Array }
@@ -175,7 +175,7 @@ export function convertToLanguageModelMessage(
  * Downloads images and files from URLs in the messages.
  */
 async function downloadAssets(
-  messages: CoreMessage[],
+  messages: ModelMessage[],
   downloadImplementation: typeof download,
   supportedUrls: Record<string, RegExp[]>,
 ): Promise<

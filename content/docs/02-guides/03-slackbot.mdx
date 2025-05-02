@@ -318,10 +318,10 @@ Here's how to implement it:
 
 ```typescript filename="lib/generate-response.ts"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, generateText } from 'ai';
+import { ModelMessage, generateText } from 'ai';
 
 export const generateResponse = async (
-  messages: CoreMessage[],
+  messages: ModelMessage[],
   updateStatus?: (status: string) => void,
 ) => {
   const { text } = await generateText({
@@ -349,12 +349,12 @@ The real power of the AI SDK comes from tools that enable your bot to perform ac
 
 ```typescript filename="lib/generate-response.ts"
 import { openai } from '@ai-sdk/openai';
-import { CoreMessage, generateText, tool } from 'ai';
+import { ModelMessage, generateText, tool } from 'ai';
 import { z } from 'zod';
 import { exa } from './utils';
 
 export const generateResponse = async (
-  messages: CoreMessage[],
+  messages: ModelMessage[],
   updateStatus?: (status: string) => void,
 ) => {
   const { text } = await generateText({

@@ -1,6 +1,6 @@
 import { UIMessage } from '../types';
 import { detectPromptType } from './detect-prompt-type';
-import type { CoreMessage } from './message';
+import type { ModelMessage } from './message';
 
 it('should return "other" for invalid inputs', () => {
   expect(detectPromptType(null as any)).toBe('other');
@@ -27,7 +27,7 @@ it('should detect UI messages with file parts', () => {
 });
 
 it('should detect core messages with array content', () => {
-  const messages: CoreMessage[] = [
+  const messages: ModelMessage[] = [
     {
       role: 'user',
       content: [{ type: 'text', text: 'Hello' }],
@@ -37,7 +37,7 @@ it('should detect core messages with array content', () => {
 });
 
 it('should detect core messages with providerOptions', () => {
-  const messages: CoreMessage[] = [
+  const messages: ModelMessage[] = [
     {
       role: 'system',
       content: 'System prompt',
