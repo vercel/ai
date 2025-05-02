@@ -76,7 +76,7 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(await server.calls[0].requestBodyJsonMultipart).toMatchObject({
+    expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       model: 'whisper-1',
     });
   });
