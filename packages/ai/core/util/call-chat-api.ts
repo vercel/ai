@@ -2,6 +2,7 @@ import { JSONValue } from '@ai-sdk/provider';
 import { IdGenerator, UIMessage, UseChatOptions } from '../types';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
+import { request } from 'http';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -43,18 +44,27 @@ export async function callChatApi({
   getCurrentDate: () => Date;
   requestType?: 'generate' | 'resume';
 }) {
-  const response = await fetch(
-    requestType === 'resume' ? `${api}?chatId=${body.id}` : api,
-    {
-      method: requestType === 'resume' ? 'GET' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-      signal: abortController?.()?.signal,
-      credentials,
-    },
-  );
+  const response =
+    requestType === 'resume'
+      ? await fetch(`${api}?chatId=${body.id}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          signal: abortController?.()?.signal,
+          credentials,
+        })
+      : await fetch(api, {
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers,
+          },
+          signal: abortController?.()?.signal,
+          credentials,
+        });
 
   if (onResponse != null) {
     await onResponse(response);
