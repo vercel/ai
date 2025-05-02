@@ -11,6 +11,7 @@ import {
   OpenAIImageModelId,
   OpenAIImageSettings,
   modelMaxImagesPerCall,
+  hasDefaultResponseFormat,
 } from './openai-image-settings';
 
 interface OpenAIImageModelConfig extends OpenAIConfig {
@@ -78,7 +79,9 @@ export class OpenAIImageModel implements ImageModelV1 {
         n,
         size,
         ...(providerOptions.openai ?? {}),
-        response_format: 'b64_json',
+        ...(!hasDefaultResponseFormat.has(this.modelId)
+          ? { response_format: 'b64_json' }
+          : {}),
       },
       failedResponseHandler: openaiFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(

@@ -1,5 +1,23 @@
 # @ai-sdk/google
 
+## 1.2.14
+
+### Patch Changes
+
+- c695a7e: feat (provider/google): add new gemini models
+
+## 1.2.13
+
+### Patch Changes
+
+- 6183b08: feat(providers/google): Add taskType support for Text Embedding Models
+
+## 1.2.12
+
+### Patch Changes
+
+- c56331d: feat (providers/google): add thinking config to provider options
+
 ## 1.2.11
 
 ### Patch Changes

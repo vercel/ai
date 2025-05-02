@@ -1,5 +1,41 @@
 # ai
 
+## 4.3.13
+
+### Patch Changes
+
+- Updated dependencies [6c59ae7]
+  - @ai-sdk/ui-utils@1.2.10
+  - @ai-sdk/react@1.2.11
+
+## 4.3.12
+
+### Patch Changes
+
+- 1ed3755: fix (ai): don't publish mcp-stdio TypeScript files
+- 46cb332: chore (ai/mcp): add `assertCapability` method to experimental MCP client
+
+## 4.3.11
+
+### Patch Changes
+
+- Updated dependencies [77b2097]
+- Updated dependencies [62181ef]
+  - @ai-sdk/react@1.2.10
+  - @ai-sdk/ui-utils@1.2.9
+
+## 4.3.10
+
+### Patch Changes
+
+- 0432959: feat (ai): add experimental prepareStep callback to generateText
+
+## 4.3.9
+
+### Patch Changes
+
+- b69a253: fix(utils/detect-mimetype): add support for detecting id3 tags
+
 ## 4.3.8
 
 ### Patch Changes

@@ -111,6 +111,29 @@ The following optional settings are available for xAI chat models:
   A unique identifier representing your end-user, which can help xAI to
   monitor and detect abuse.
 
+xAI chat models also support some model specific provider options. You can pass them in `providerOptions` argument:
+
+```ts
+const model = xai('grok-3');
+
+await generateText({
+  model,
+  providerOptions: {
+    xai: {
+      reasoningEffort: 'high',
+    },
+  },
+});
+```
+
+The following optional provider options are available for xAI chat models:
+
+- **reasoningEffort** _'low' | 'medium' | 'high'_
+
+  Reasoning effort for reasoning models. Defaults to `medium`. If you use
+  `providerOptions` to set the `reasoningEffort` option, this
+  model setting will be ignored.
+
 ## Model Capabilities
 
 | Model                | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |

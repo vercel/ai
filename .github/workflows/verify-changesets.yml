@@ -1,0 +1,38 @@
+# vercel/ai uses https://github.com/changesets/changesets for versioning and changelogs,
+# but is not following semantic versioning. Instead, it uses `patch` for both fixes
+# and features. It uses `minor` for "marketing releases", accompanied by a blog post and migration guide.
+# This workflow verifies that all `.changeset/*.md` files use `patch` unless a `minor-release` label is present.
+name: Verify Changesets
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches:
+      - main
+    paths:
+      - '.changeset/*.md'
+
+jobs:
+  verify-changesets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - name: get all changed files from .changeset/*.md
+        id: changeset-files
+        run: |
+          echo "changed-files=$(git diff --diff-filter=dr --name-only $BASE_SHA -- '.changeset/*.md' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      - name: Verify changesets
+        if: steps.changeset-files.outputs.changed-files != ''
+        working-directory: .github/workflows/actions/verify-changesets
+        run: |
+          node index.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANGED_FILES: ${{ steps.changeset-files.outputs.changed-files }}

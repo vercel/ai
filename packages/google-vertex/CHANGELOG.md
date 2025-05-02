@@ -1,5 +1,27 @@
 # @ai-sdk/google-vertex
 
+## 2.2.18
+
+### Patch Changes
+
+- a85ae99: feat (provider/google-vertex): add imagen-3.0-generate-002
+- Updated dependencies [c695a7e]
+  - @ai-sdk/google@1.2.14
+
+## 2.2.17
+
+### Patch Changes
+
+- Updated dependencies [6183b08]
+  - @ai-sdk/google@1.2.13
+
+## 2.2.16
+
+### Patch Changes
+
+- Updated dependencies [c56331d]
+  - @ai-sdk/google@1.2.12
+
 ## 2.2.15
 
 ### Patch Changes

@@ -1,5 +1,20 @@
 # @ai-sdk/solid
 
+## 1.2.12
+
+### Patch Changes
+
+- Updated dependencies [6c59ae7]
+  - @ai-sdk/ui-utils@1.2.10
+
+## 1.2.11
+
+### Patch Changes
+
+- 77b2097: fix(append): support Message.experimental_attachments alongside ChatRequestOptions
+- Updated dependencies [62181ef]
+  - @ai-sdk/ui-utils@1.2.9
+
 ## 1.2.10
 
 ### Patch Changes
