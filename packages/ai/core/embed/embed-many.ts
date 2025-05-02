@@ -28,6 +28,7 @@ has a limit on how many embeddings can be generated in a single call.
 export async function embedMany<VALUE>({
   model,
   values,
+  concurrency = Infinity,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -73,6 +74,13 @@ Only applicable for HTTP-based providers.
   functionality that can be fully encapsulated in the provider.
   */
   providerOptions?: ProviderOptions;
+
+  /**
+   * Maximum number of concurrent requests.
+   *
+   * @default Infinity
+   */
+  concurrency?: number;
 }): Promise<EmbedManyResult<VALUE>> {
   const { maxRetries, retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
@@ -104,13 +112,6 @@ Only applicable for HTTP-based providers.
         model.maxEmbeddingsPerCall,
         model.supportsParallelCalls,
       ]);
-
-      const maxParallelChunks =
-        typeof supportsParallelCalls === 'number'
-          ? supportsParallelCalls
-          : supportsParallelCalls
-            ? Infinity
-            : 1;
 
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
@@ -202,7 +203,7 @@ Only applicable for HTTP-based providers.
       > = [];
       let tokens = 0;
 
-      const parallelChunks = splitArray(valueChunks, maxParallelChunks);
+      const parallelChunks = splitArray(valueChunks, concurrency);
 
       for (const parallelChunk of parallelChunks) {
         const results = await Promise.all(
