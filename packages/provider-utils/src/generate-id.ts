@@ -1,5 +1,4 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
-import { customAlphabet } from './generate-id-custom-alphabet';
 
 /**
 Creates an ID generator.
@@ -22,7 +21,14 @@ export const createIdGenerator = ({
   size?: number;
   alphabet?: string;
 } = {}): IdGenerator => {
-  const generator = customAlphabet(alphabet, size);
+  const generator = () => {
+    const alphabetLength = alphabet.length;
+    const chars = new Array(size);
+    for (let i = 0; i < size; i++) {
+      chars[i] = alphabet[(Math.random() * alphabetLength) | 0];
+    }
+    return chars.join('');
+  };
 
   if (prefix == null) {
     return generator;
