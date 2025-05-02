@@ -42,7 +42,10 @@ Use Infinity for models that do not have a limit.
   /**
 True if the model can handle multiple embedding calls in parallel.
    */
-  readonly supportsParallelCalls: PromiseLike<boolean> | boolean;
+  readonly supportsParallelCalls:
+    | PromiseLike<boolean | number>
+    | boolean
+    | number;
 
   /**
 Generates a list of embeddings for the given input text.

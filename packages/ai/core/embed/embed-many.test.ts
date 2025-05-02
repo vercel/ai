@@ -18,6 +18,68 @@ const testValues = [
   'snowy night in the mountains',
 ];
 
+describe('model.supportsParallelCalls', () => {
+  it('should not parallelize when false', async () => {
+    let i = 0;
+
+    const { embeddings } = await embedMany({
+      model: new MockEmbeddingModelV2({
+        supportsParallelCalls: false,
+        maxEmbeddingsPerCall: 1,
+        doEmbed: async ({ values }) => {
+          const index = i++;
+
+          expect(values).toEqual([testValues[index]]);
+
+          await new Promise(resolve => setTimeout(resolve, 10));
+
+          expect(i).toEqual(index + 1);
+
+          return {
+            embeddings: [dummyEmbeddings[index]],
+            response: { headers: {}, body: {} },
+          };
+        },
+      }),
+      values: testValues,
+    });
+
+    expect(embeddings.length).toEqual(testValues.length);
+  });
+
+  it('should parallelize when true', async () => {
+    let i = 0;
+
+    const { embeddings } = await embedMany({
+      model: new MockEmbeddingModelV2({
+        supportsParallelCalls: true,
+        maxEmbeddingsPerCall: 1,
+        doEmbed: async ({ values }) => {
+          const index = i++;
+
+          expect(values).toEqual([testValues[index]]);
+
+          await new Promise(resolve => setTimeout(resolve, 10));
+
+          if (index === testValues.length - 1) {
+            i++;
+          }
+
+          expect(i).not.toEqual(index + 1);
+
+          return {
+            embeddings: [dummyEmbeddings[index]],
+            response: { headers: {}, body: {} },
+          };
+        },
+      }),
+      values: testValues,
+    });
+
+    expect(embeddings.length).toEqual(testValues.length);
+  });
+});
+
 describe('result.embedding', () => {
   it('should generate embeddings', async () => {
     const result = await embedMany({

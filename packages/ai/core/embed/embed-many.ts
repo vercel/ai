@@ -100,7 +100,17 @@ Only applicable for HTTP-based providers.
     }),
     tracer,
     fn: async span => {
-      const maxEmbeddingsPerCall = await model.maxEmbeddingsPerCall;
+      const [maxEmbeddingsPerCall, supportsParallelCalls] = await Promise.all([
+        model.maxEmbeddingsPerCall,
+        model.supportsParallelCalls,
+      ]);
+
+      const maxParallelChunks =
+        typeof supportsParallelCalls === 'number'
+          ? supportsParallelCalls
+          : supportsParallelCalls
+            ? Infinity
+            : 1;
 
       // the model has not specified limits on
       // how many embeddings can be generated in a single call
@@ -192,66 +202,72 @@ Only applicable for HTTP-based providers.
       > = [];
       let tokens = 0;
 
-      for (const chunk of valueChunks) {
-        const {
-          embeddings: responseEmbeddings,
-          usage,
-          response,
-        } = await retry(() => {
-          // nested spans to align with the embedMany telemetry data:
-          return recordSpan({
-            name: 'ai.embedMany.doEmbed',
-            attributes: selectTelemetryAttributes({
-              telemetry,
-              attributes: {
-                ...assembleOperationName({
-                  operationId: 'ai.embedMany.doEmbed',
-                  telemetry,
-                }),
-                ...baseTelemetryAttributes,
-                // specific settings that only make sense on the outer level:
-                'ai.values': {
-                  input: () => chunk.map(value => JSON.stringify(value)),
-                },
-              },
-            }),
-            tracer,
-            fn: async doEmbedSpan => {
-              const modelResponse = await model.doEmbed({
-                values: chunk,
-                abortSignal,
-                headers,
-                providerOptions,
-              });
+      const parallelChunks = splitArray(valueChunks, maxParallelChunks);
 
-              const embeddings = modelResponse.embeddings;
-              const usage = modelResponse.usage ?? { tokens: NaN };
-
-              doEmbedSpan.setAttributes(
-                selectTelemetryAttributes({
+      for (const parallelChunk of parallelChunks) {
+        const results = await Promise.all(
+          parallelChunk.map(chunk => {
+            return retry(() => {
+              // nested spans to align with the embedMany telemetry data:
+              return recordSpan({
+                name: 'ai.embedMany.doEmbed',
+                attributes: selectTelemetryAttributes({
                   telemetry,
                   attributes: {
-                    'ai.embeddings': {
-                      output: () =>
-                        embeddings.map(embedding => JSON.stringify(embedding)),
+                    ...assembleOperationName({
+                      operationId: 'ai.embedMany.doEmbed',
+                      telemetry,
+                    }),
+                    ...baseTelemetryAttributes,
+                    // specific settings that only make sense on the outer level:
+                    'ai.values': {
+                      input: () => chunk.map(value => JSON.stringify(value)),
                     },
-                    'ai.usage.tokens': usage.tokens,
                   },
                 }),
-              );
+                tracer,
+                fn: async doEmbedSpan => {
+                  const modelResponse = await model.doEmbed({
+                    values: chunk,
+                    abortSignal,
+                    headers,
+                    providerOptions,
+                  });
 
-              return {
-                embeddings,
-                usage,
-                response: modelResponse.response,
-              };
-            },
-          });
-        });
+                  const embeddings = modelResponse.embeddings;
+                  const usage = modelResponse.usage ?? { tokens: NaN };
 
-        embeddings.push(...responseEmbeddings);
-        responses.push(response);
-        tokens += usage.tokens;
+                  doEmbedSpan.setAttributes(
+                    selectTelemetryAttributes({
+                      telemetry,
+                      attributes: {
+                        'ai.embeddings': {
+                          output: () =>
+                            embeddings.map(embedding =>
+                              JSON.stringify(embedding),
+                            ),
+                        },
+                        'ai.usage.tokens': usage.tokens,
+                      },
+                    }),
+                  );
+
+                  return {
+                    embeddings,
+                    usage,
+                    response: modelResponse.response,
+                  };
+                },
+              });
+            });
+          }),
+        );
+
+        for (const result of results) {
+          embeddings.push(...result.embeddings);
+          responses.push(result.response);
+          tokens += result.usage.tokens;
+        }
       }
 
       span.setAttributes(
