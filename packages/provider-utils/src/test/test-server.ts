@@ -58,8 +58,7 @@ export type UrlHandlers<
 class TestServerCall {
   constructor(private request: Request) {}
 
-  // TODO: rename to requestBodyJson
-  get requestBody() {
+  get requestBodyJson() {
     return this.request!.text().then(JSON.parse);
   }
 

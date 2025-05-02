@@ -672,7 +672,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
     });
@@ -699,7 +699,7 @@ describe('doStream', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
       guardrailConfig: {
@@ -938,7 +938,7 @@ describe('doStream', () => {
     });
 
     // Verify the outgoing request body includes "foo" at the top level.
-    const body = await server.calls[0].requestBody;
+    const body = await server.calls[0].requestBodyJson;
     expect(body).toMatchObject({ foo: 'bar' });
   });
 
@@ -1036,8 +1036,7 @@ describe('doStream', () => {
       ],
     });
 
-    const requestBody = await server.calls[0].requestBody;
-    expect(requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       system: [{ text: 'System Prompt' }, { cachePoint: { type: 'default' } }],
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
     });
@@ -1314,7 +1313,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
     });
@@ -1330,7 +1329,7 @@ describe('doGenerate', () => {
       topP: 0.5,
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       inferenceConfig: {
         maxOutputTokens: 100,
         temperature: 0.5,
@@ -1355,7 +1354,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       guardrailConfig: {
         guardrailIdentifier: '-1',
         guardrailVersion: '1',
@@ -1433,7 +1432,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       toolConfig: {
         tools: [
           {
@@ -1536,7 +1535,7 @@ describe('doGenerate', () => {
     });
 
     // Verify that the outgoing request body includes "foo" at its top level.
-    const body = await server.calls[0].requestBody;
+    const body = await server.calls[0].requestBodyJson;
     expect(body).toMatchObject({ foo: 'bar' });
   });
 
@@ -1584,8 +1583,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    const requestBody = await server.calls[0].requestBody;
-    expect(requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       system: [{ text: 'System Prompt' }, { cachePoint: { type: 'default' } }],
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
     });

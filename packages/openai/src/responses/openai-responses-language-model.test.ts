@@ -250,7 +250,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           topP: 0.3,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           temperature: 0.5,
           top_p: 0.3,
@@ -273,7 +273,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           topP: 0.3,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'o1-mini',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -308,7 +308,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           topP: 0.3,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'o3',
           input: [
             { role: 'developer', content: 'You are a helpful assistant.' },
@@ -347,7 +347,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           text: {
             format: {
@@ -380,7 +380,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           text: {
             format: {
@@ -405,7 +405,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -426,7 +426,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -447,7 +447,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -468,7 +468,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -489,7 +489,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -510,7 +510,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'o3',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -533,7 +533,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           input: [
             { role: 'user', content: [{ type: 'input_text', text: 'Hello' }] },
@@ -550,7 +550,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           text: { format: { type: 'json_object' } },
           input: [
@@ -578,7 +578,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           text: {
             format: {
@@ -628,7 +628,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           text: {
             format: {
@@ -675,7 +675,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           tools: [
             {
@@ -715,7 +715,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await server.calls[0].requestBody).toStrictEqual({
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
           model: 'gpt-4o',
           tool_choice: { type: 'web_search_preview' },
           tools: [
@@ -790,7 +790,7 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         });
 
-        expect(await server.calls[0].requestBody).toMatchObject({
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
           model: 'o3-mini',
           reasoning: {
             effort: 'low',
@@ -1553,7 +1553,7 @@ describe('OpenAIResponsesLanguageModel', () => {
         ]
       `);
 
-      expect(await server.calls[0].requestBody).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
         model: 'o3-mini',
         reasoning: {
           effort: 'low',
