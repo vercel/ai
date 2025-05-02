@@ -4,4 +4,4 @@
 'ai': patch
 ---
 
-feat(embedding-model): respect supportsParallelCalls & concurrency
+feat(embed-many): respect supportsParallelCalls & concurrency
