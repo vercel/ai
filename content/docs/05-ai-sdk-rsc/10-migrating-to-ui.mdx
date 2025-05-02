@@ -483,12 +483,12 @@ With AI SDK UI, you will save chats using the `onFinish` callback function of `s
 ```ts filename="@/app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
 import { saveChat } from '@/utils/queries';
-import { streamText, convertToCoreMessages } from 'ai';
+import { streamText, convertToModelMessages } from 'ai';
 
 export async function POST(request) {
   const { id, messages } = await request.json();
 
-  const coreMessages = convertToCoreMessages(messages);
+  const coreMessages = convertToModelMessages(messages);
 
   const result = streamText({
     model: openai('gpt-4o'),

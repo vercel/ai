@@ -1,7 +1,7 @@
 import { cohere } from '@ai-sdk/cohere';
 import {
   streamText,
-  CoreMessage,
+  ModelMessage,
   ToolCallPart,
   ToolResultPart,
   tool,
@@ -9,7 +9,7 @@ import {
 import 'dotenv/config';
 import { z } from 'zod';
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;

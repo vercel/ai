@@ -336,7 +336,7 @@ The solution above is low-level and not very friendly to use in a production env
 import {
   formatDataStreamPart,
   Message,
-  convertToCoreMessages,
+  convertToModelMessages,
   DataStreamWriter,
   ToolExecutionOptions,
   ToolSet,
@@ -419,7 +419,7 @@ export async function processToolCalls<
         const toolInstance = executeFunctions[toolName];
         if (toolInstance) {
           result = await toolInstance(toolInvocation.args, {
-            messages: convertToCoreMessages(messages),
+            messages: convertToModelMessages(messages),
             toolCallId: toolInvocation.toolCallId,
           });
         } else {
