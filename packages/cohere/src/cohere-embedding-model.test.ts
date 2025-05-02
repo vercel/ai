@@ -78,7 +78,7 @@ describe('doEmbed', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'embed-english-v3.0',
       embedding_types: ['float'],
       texts: testValues,
@@ -98,7 +98,7 @@ describe('doEmbed', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'embed-english-v3.0',
       embedding_types: ['float'],
       texts: testValues,

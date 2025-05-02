@@ -224,7 +224,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -244,7 +244,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
       parallel_tool_calls: false,
@@ -277,7 +277,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
       tools: [
@@ -396,7 +396,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
       response_format: {
@@ -1136,7 +1136,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       model: 'gemma2-9b-it',
       messages: [{ role: 'user', content: 'Hello' }],
