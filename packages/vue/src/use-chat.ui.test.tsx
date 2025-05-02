@@ -783,6 +783,7 @@ describe('file attachments with data url', () => {
             {
               type: 'file',
               mediaType: 'text/plain',
+              filename: 'test.txt',
               url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
             },
             {
@@ -840,6 +841,7 @@ describe('file attachments with data url', () => {
             {
               type: 'file',
               mediaType: 'image/png',
+              filename: 'test.png',
               url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
             },
             {
@@ -952,6 +954,7 @@ describe('attachments with empty submit', () => {
             {
               type: 'file',
               mediaType: 'image/png',
+              filename: 'test.png',
               url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
             },
             {

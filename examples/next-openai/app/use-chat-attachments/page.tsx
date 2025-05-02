@@ -30,7 +30,14 @@ export default function Page() {
                 ) {
                   return (
                     <div key={index}>
-                      <img className="rounded-md w-60" src={part.url} />
+                      <img
+                        className="rounded-md w-60"
+                        src={part.url}
+                        alt={part.filename}
+                      />
+                      <span className="text-sm text-zinc-500">
+                        {part.filename}
+                      </span>
                     </div>
                   );
                 }

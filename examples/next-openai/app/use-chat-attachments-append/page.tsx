@@ -31,7 +31,11 @@ export default function Page() {
                 ) {
                   return (
                     <div key={index}>
-                      <img className="rounded-md w-60" src={part.url} />
+                      <img
+                        className="rounded-md w-60"
+                        src={part.url}
+                        alt={part.filename}
+                      />
                     </div>
                   );
                 }
@@ -79,16 +83,6 @@ export default function Page() {
                       <span className="text-sm text-zinc-500">
                         {attachment.name}
                       </span>
-                    </div>
-                  );
-                } else if (type.startsWith('text/')) {
-                  return (
-                    <div
-                      key={attachment.name}
-                      className="flex flex-col flex-shrink-0 w-24 gap-1 text-sm text-zinc-500"
-                    >
-                      <div className="w-16 h-20 rounded-md bg-zinc-100" />
-                      {attachment.name}
                     </div>
                   );
                 }
