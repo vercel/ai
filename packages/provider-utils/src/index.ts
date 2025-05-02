@@ -30,4 +30,4 @@ export type { Schema } from './schema';
 export { zodSchema } from './zod-schema';
 
 export type { ToolCall } from './types/tool-call';
-export type { ToolResult } from './types/tool-result';
+export type { ToolResult, ToolResultContent } from './types/tool-result';
