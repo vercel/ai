@@ -20,20 +20,20 @@ const testValues = [
 
 describe('model.supportsParallelCalls', () => {
   it('should not parallelize when false', async () => {
-    let i = 0;
+    let currentValueIndex = 0;
 
     const { embeddings } = await embedMany({
       model: new MockEmbeddingModelV2({
         supportsParallelCalls: false,
         maxEmbeddingsPerCall: 1,
         doEmbed: async ({ values }) => {
-          const index = i++;
+          const index = currentValueIndex++;
 
           expect(values).toEqual([testValues[index]]);
 
           await new Promise(resolve => setTimeout(resolve, 1));
 
-          expect(i).toEqual(index + 1);
+          expect(currentValueIndex).toEqual(index + 1);
 
           return {
             embeddings: [dummyEmbeddings[index]],
@@ -48,24 +48,24 @@ describe('model.supportsParallelCalls', () => {
   });
 
   it('should parallelize when true', async () => {
-    let i = 0;
+    let currentValueIndex = 0;
 
     const { embeddings } = await embedMany({
       model: new MockEmbeddingModelV2({
         supportsParallelCalls: true,
         maxEmbeddingsPerCall: 1,
         doEmbed: async ({ values }) => {
-          const index = i++;
+          const index = currentValueIndex++;
 
           expect(values).toEqual([testValues[index]]);
 
           await new Promise(resolve => setTimeout(resolve, 1));
 
           if (index === testValues.length - 1) {
-            i++;
+            currentValueIndex++;
           }
 
-          expect(i).not.toEqual(index + 1);
+          expect(currentValueIndex).not.toEqual(index + 1);
 
           return {
             embeddings: [dummyEmbeddings[index]],
