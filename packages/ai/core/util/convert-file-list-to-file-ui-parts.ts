@@ -13,9 +13,8 @@ export async function convertFileListToFileUIParts(
   }
 
   return Promise.all(
-    Array.from(files).map(async attachment => {
-      // TODO add filename once supported by file ui parts
-      const { name, type } = attachment;
+    Array.from(files).map(async file => {
+      const { name, type } = file;
 
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -23,12 +22,13 @@ export async function convertFileListToFileUIParts(
           resolve(readerEvent.target?.result as string);
         };
         reader.onerror = error => reject(error);
-        reader.readAsDataURL(attachment);
+        reader.readAsDataURL(file);
       });
 
       return {
         type: 'file',
         mediaType: type,
+        filename: name,
         url: dataUrl,
       };
     }),

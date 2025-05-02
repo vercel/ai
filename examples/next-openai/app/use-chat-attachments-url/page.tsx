@@ -22,17 +22,27 @@ export default function Page() {
           <div key={message.id} className="flex flex-row gap-2">
             <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
 
-            {message.parts.map((part, index) => {
-              if (part.type === 'text') {
-                return <div key={index}>{part.text}</div>;
-              }
-              if (
-                part.type === 'file' &&
-                part.mediaType?.startsWith('image/')
-              ) {
-                return <img key={index} src={part.url} />;
-              }
-            })}
+            <div className="flex flex-col gap-2">
+              {message.parts.map((part, index) => {
+                if (part.type === 'text') {
+                  return <div key={index}>{part.text}</div>;
+                }
+                if (
+                  part.type === 'file' &&
+                  part.mediaType?.startsWith('image/')
+                ) {
+                  return (
+                    <div key={index}>
+                      <img
+                        className="rounded-md w-60"
+                        src={part.url}
+                        alt={part.filename}
+                      />
+                    </div>
+                  );
+                }
+              })}
+            </div>
           </div>
         ))}
       </div>
@@ -62,11 +72,9 @@ export default function Page() {
                 <img
                   className="w-24 rounded-md"
                   src={file.url}
-                  // alt={file.name} TODO filename support
+                  alt={file.filename}
                 />
-                <span className="text-sm text-zinc-500">
-                  {'name' /* TODO file.name*/}
-                </span>
+                <span className="text-sm text-zinc-500">{file.filename}</span>
               </div>
             ))}
         </div>
@@ -86,7 +94,7 @@ export default function Page() {
                   ...prevFiles,
                   {
                     type: 'file' as const,
-                    // name: file.name, TODO filename support
+                    filename: file.name,
                     mediaType: blob.contentType ?? '*/*',
                     url: blob.url,
                   },

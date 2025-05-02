@@ -1603,7 +1603,7 @@ describe('attachments with empty submit', () => {
               files: [
                 {
                   type: 'file',
-                  // name: 'test.png', TODO enable file name
+                  filename: 'test.png',
                   mediaType: 'image/png',
                   url: 'https://example.com/image.png',
                 },
