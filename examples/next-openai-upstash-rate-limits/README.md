@@ -1,6 +1,6 @@
 # AI SDK, Next.js, and OpenAI Chat Example with Rate Limits (via Vercel KV)
 
-This example shows how to use the [AI SDK](https://sdk.vercel.ai/docs) with [Next.js](https://nextjs.org/) and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot with rate limits using [Vercel KV](https://vercel.com/docs/storage/vercel-kv).
+This example shows how to use the [AI SDK](https://ai-sdk.dev/docs) with [Next.js](https://nextjs.org/) and [OpenAI](https://openai.com) to create a ChatGPT-like AI-powered streaming chat bot with rate limits using [Vercel KV](https://vercel.com/docs/storage/vercel-kv).
 
 ![CleanShot 2023-08-09 at 16 11 13](https://github.com/vercel/ai/assets/28986134/a10d96dc-dbd3-4d05-85a3-217b5cb18060)
 
@@ -38,8 +38,8 @@ To run the example locally you need to:
 
 To learn more about OpenAI, Next.js, and the AI SDK take a look at the following resources:
 
-- [AI SDK docs](https://sdk.vercel.ai/docs)
-- [Vercel AI Playground](https://play.vercel.ai)
+- [AI SDK docs](https://ai-sdk.dev/docs)
+- [Vercel AI Playground](https://ai-sdk.dev/playground)
 - [OpenAI Documentation](https://platform.openai.com/docs) - learn about OpenAI features and API.
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Vercel KV Documentation](https://vercel.com/docs/storage/vercel-kv) - learn about Vercel KV features and API.

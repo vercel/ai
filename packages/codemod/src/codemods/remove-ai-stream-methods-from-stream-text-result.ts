@@ -23,7 +23,7 @@ export default createTransformer((fileInfo, api, options, context) => {
         // Add block comment above the statement
         const comment = j.commentBlock(
           ` WARNING: ${path.node.property.name} has been removed from streamText.\n` +
-            ` See migration guide at https://sdk.vercel.ai/docs/migrations `,
+            ` See migration guide at https://ai-sdk.dev/docs/migration-guides `,
           true, // leading
           false, // trailing
         );
