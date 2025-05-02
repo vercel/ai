@@ -7,14 +7,13 @@ The total length of the ID is the sum of the prefix, separator, and random part 
 Non-secure.
 
 @param alphabet - The alphabet to use for the ID. Default: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.
-@param prefix - The prefix of the ID to generate. Default: ''.
+@param prefix - The prefix of the ID to generate. Optional.
 @param separator - The separator between the prefix and the random part of the ID. Default: '-'.
 @param size - The size of the random part of the ID to generate. Default: 16.
  */
-// TODO 5.0 breaking change: change the return type to IDGenerator
 export const createIdGenerator = ({
   prefix,
-  size: defaultSize = 16,
+  size = 16,
   alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
   separator = '-',
 }: {
@@ -22,8 +21,8 @@ export const createIdGenerator = ({
   separator?: string;
   size?: number;
   alphabet?: string;
-} = {}): ((size?: number) => string) => {
-  const generator = customAlphabet(alphabet, defaultSize);
+} = {}): IdGenerator => {
+  const generator = customAlphabet(alphabet, size);
 
   if (prefix == null) {
     return generator;
@@ -37,17 +36,15 @@ export const createIdGenerator = ({
     });
   }
 
-  return size => `${prefix}${separator}${generator(size)}`;
+  return () => `${prefix}${separator}${generator()}`;
 };
 
 /**
 A function that generates an ID.
  */
-export type IDGenerator = () => string;
+export type IdGenerator = () => string;
 
 /**
 Generates a 16-character random string to use for IDs. Not secure.
-
-@param size - The size of the ID to generate. Default: 16.
  */
 export const generateId = createIdGenerator();

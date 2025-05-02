@@ -6,7 +6,7 @@ export type { EventSourceChunk } from './event-source-parser-stream';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export { createIdGenerator, generateId } from './generate-id';
-export type { IDGenerator } from './generate-id';
+export type { IdGenerator as IDGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
 export * from './is-abort-error';
