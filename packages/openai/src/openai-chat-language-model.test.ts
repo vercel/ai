@@ -1444,7 +1444,100 @@ describe('doStream', () => {
         {
           "finishReason": "stop",
           "providerMetadata": {
-            "openai": {},
+            "openai": {
+              "logprobs": [
+                {
+                  "logprob": -0.0009994634,
+                  "token": "Hello",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.0009994634,
+                      "token": "Hello",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.13410144,
+                  "token": "!",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.13410144,
+                      "token": "!",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.0009250381,
+                  "token": " How",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.0009250381,
+                      "token": " How",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.047709424,
+                  "token": " can",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.047709424,
+                      "token": " can",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.000009014684,
+                  "token": " I",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.000009014684,
+                      "token": " I",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.009125131,
+                  "token": " assist",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.009125131,
+                      "token": " assist",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.0000066306106,
+                  "token": " you",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.0000066306106,
+                      "token": " you",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.00011093382,
+                  "token": " today",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.00011093382,
+                      "token": " today",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.00004596782,
+                  "token": "?",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.00004596782,
+                      "token": "?",
+                    },
+                  ],
+                },
+              ],
+            },
           },
           "type": "finish",
           "usage": {
