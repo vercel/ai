@@ -345,7 +345,7 @@ describe('data protocol stream', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         id: screen.getByTestId('id').textContent,
         messages: [
           {
@@ -758,7 +758,7 @@ describe('prepareRequestBody', () => {
       }
     `);
 
-    expect(await server.calls[0].requestBody).toBe('test-request-body');
+    expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -1363,7 +1363,7 @@ describe('file attachments with data url', () => {
       ]);
     });
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
@@ -1445,7 +1445,7 @@ describe('file attachments with data url', () => {
       ]);
     });
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
@@ -1562,7 +1562,7 @@ describe('file attachments with url', () => {
       ]);
     });
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
@@ -1671,7 +1671,7 @@ describe('attachments with empty submit', () => {
       ]);
     });
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
@@ -1786,7 +1786,7 @@ describe('should append message with attachments', () => {
       ]);
     });
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
@@ -1871,7 +1871,7 @@ describe('reload', () => {
     // setup done, click reload:
     await userEvent.click(screen.getByTestId('do-reload'));
 
-    expect(await server.calls[1].requestBody).toStrictEqual({
+    expect(await server.calls[1].requestBodyJson).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1935,7 +1935,7 @@ describe('test sending additional fields during message submission', () => {
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       id: expect.any(String),
       messages: [
         {

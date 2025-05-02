@@ -226,7 +226,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'command-r-plus',
       messages: [
         { role: 'system', content: 'you are a friendly bot!' },
@@ -259,7 +259,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'command-r-plus',
         messages: [
           {
@@ -332,7 +332,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'command-r-plus',
       messages: [
         { role: 'system', content: 'you are a friendly bot!' },
@@ -743,7 +743,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       model: 'command-r-plus',
       messages: [

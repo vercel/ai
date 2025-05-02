@@ -127,7 +127,7 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -148,7 +148,7 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -169,7 +169,7 @@ describe('GoogleVertexImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -194,7 +194,7 @@ describe('GoogleVertexImageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         instances: [{ prompt: 'test prompt' }],
         parameters: {
           sampleCount: 1,
@@ -314,7 +314,7 @@ describe('GoogleVertexImageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         instances: [{ prompt }],
         parameters: {
           sampleCount: 2,

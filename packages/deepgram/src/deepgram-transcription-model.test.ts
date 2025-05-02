@@ -96,7 +96,7 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(await server.calls[0].requestBodyMultipart).toMatchObject({});
+    expect(await server.calls[0].requestBodyJsonMultipart).toMatchObject({});
   });
 
   it('should pass headers', async () => {

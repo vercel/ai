@@ -224,7 +224,7 @@ describe('data protocol stream', () => {
         parts: [{ text: 'hi', type: 'text' }],
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         id: chat.id,
         messages: [
           {
@@ -1083,7 +1083,7 @@ describe('file attachments with data url', () => {
       ]
     `);
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
@@ -1160,7 +1160,7 @@ describe('file attachments with data url', () => {
       ]
     `);
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
@@ -1250,7 +1250,7 @@ describe('file attachments with url', () => {
       ]
     `);
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
@@ -1339,7 +1339,7 @@ describe('file attachments with empty text content', () => {
       ]
     `);
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
@@ -1411,7 +1411,7 @@ describe('reload', () => {
       headers: { 'header-key': 'header-value' },
     });
 
-    expect(await server.calls[1].requestBody).toStrictEqual({
+    expect(await server.calls[1].requestBodyJson).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
@@ -1465,7 +1465,7 @@ describe('test sending additional fields during message submission', () => {
       }),
     );
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       id: expect.any(String),
       messages: [
         {
