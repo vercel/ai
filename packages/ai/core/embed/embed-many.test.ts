@@ -31,7 +31,7 @@ describe('model.supportsParallelCalls', () => {
 
           expect(values).toEqual([testValues[index]]);
 
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise(resolve => setTimeout(resolve, 1));
 
           expect(i).toEqual(index + 1);
 
@@ -59,7 +59,7 @@ describe('model.supportsParallelCalls', () => {
 
           expect(values).toEqual([testValues[index]]);
 
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise(resolve => setTimeout(resolve, 1));
 
           if (index === testValues.length - 1) {
             i++;
