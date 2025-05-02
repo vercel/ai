@@ -742,7 +742,7 @@ const openaiChatChunkSchema = z.union([
                   ),
                 }),
               )
-              .nullable(),
+              .nullish(),
           })
           .nullish(),
         finish_reason: z.string().nullish(),
