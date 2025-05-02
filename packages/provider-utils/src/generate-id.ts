@@ -3,7 +3,7 @@ import { InvalidArgumentError } from '@ai-sdk/provider';
 /**
 Creates an ID generator.
 The total length of the ID is the sum of the prefix, separator, and random part length.
-Non-secure.
+Not cryptographically secure.
 
 @param alphabet - The alphabet to use for the ID. Default: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.
 @param prefix - The prefix of the ID to generate. Optional.
