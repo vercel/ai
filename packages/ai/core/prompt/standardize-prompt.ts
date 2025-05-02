@@ -3,7 +3,7 @@ import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { UIMessage } from '../types';
 import { z } from 'zod';
 import { ToolSet } from '../generate-text/tool-set';
-import { convertToCoreMessages } from './convert-to-core-messages';
+import { convertToModelMessages } from './convert-to-model-messages';
 import { detectPromptType } from './detect-prompt-type';
 import { ModelMessage, modelMessageSchema } from './message';
 import { Prompt } from './prompt';
@@ -77,13 +77,13 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
     if (promptType === 'other') {
       throw new InvalidPromptError({
         prompt,
-        message: 'messages must be an array of CoreMessage or UIMessage',
+        message: 'messages must be an array of ModelMessage or UIMessage',
       });
     }
 
     const messages: ModelMessage[] =
       promptType === 'ui-messages'
-        ? convertToCoreMessages(prompt.messages as Omit<UIMessage, 'id'>[], {
+        ? convertToModelMessages(prompt.messages as Omit<UIMessage, 'id'>[], {
             tools,
           })
         : (prompt.messages as ModelMessage[]);
@@ -103,7 +103,7 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
     if (!validationResult.success) {
       throw new InvalidPromptError({
         prompt,
-        message: 'messages must be an array of CoreMessage or UIMessage',
+        message: 'messages must be an array of ModelMessage or UIMessage',
         cause: validationResult.error,
       });
     }

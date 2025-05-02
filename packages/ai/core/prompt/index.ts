@@ -8,7 +8,10 @@ export type {
   ToolCallPart,
   ToolResultPart,
 } from './content-part';
-export { convertToCoreMessages } from './convert-to-core-messages';
+export {
+  convertToCoreMessages,
+  convertToModelMessages,
+} from './convert-to-model-messages';
 export type { DataContent } from './data-content';
 export {
   assistantModelMessageSchema,
