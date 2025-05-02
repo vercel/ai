@@ -96,7 +96,6 @@ export default function Chat({
   const { input, handleInputChange, handleSubmit, messages } = useChat({
     id, // use the provided chat ID
     initialMessages, // initial messages if provided
-    sendExtraMessageFields: true, // send id and createdAt for each message
   });
 
   // simplified rendering code, extend as needed:
@@ -120,8 +119,6 @@ export default function Chat({
 ## Storing messages
 
 `useChat` sends the chat id and the messages to the backend.
-We have enabled the `sendExtraMessageFields` option to send the id and createdAt fields,
-meaning that we store messages in the `useChat` message format.
 
 <Note>
   The `useChat` message format is different from the `ModelMessage` format. The

@@ -240,21 +240,12 @@ export class Chat {
       // Optimistically update messages
       this.messages = messages;
 
-      const constructedMessagesPayload = this.#options.sendExtraMessageFields
-        ? messages
-        : messages.map(({ role, content, annotations, parts }) => ({
-            role,
-            content,
-            ...(annotations !== undefined && { annotations }),
-            ...(parts !== undefined && { parts }),
-          }));
-
       const existingData = this.data ?? [];
       await callChatApi({
         api: this.#api,
         body: {
           id: this.id,
-          messages: constructedMessagesPayload,
+          messages,
           data: chatRequest.data,
           ...$state.snapshot(this.#options.body),
           ...chatRequest.body,

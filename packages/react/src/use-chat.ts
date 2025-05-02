@@ -129,7 +129,6 @@ export function useChat({
   id,
   initialMessages,
   initialInput = '',
-  sendExtraMessageFields,
   onToolCall,
   experimental_prepareRequestBody,
   maxSteps = 1,
@@ -266,18 +265,8 @@ Default is undefined, which disables throttling.
           throttleWaitMs,
         );
 
-        // Do an optimistic update to the chat state to show the updated messages immediately:
-        const previousMessages = messagesRef.current;
+        // Do an optimistic update to show the updated messages immediately:
         throttledMutate(chatMessages, false);
-
-        const constructedMessagesPayload = sendExtraMessageFields
-          ? chatMessages
-          : chatMessages.map(({ role, content, annotations, parts }) => ({
-              role,
-              content,
-              ...(annotations !== undefined && { annotations }),
-              ...(parts !== undefined && { parts }),
-            }));
 
         const existingData = streamDataRef.current;
 
@@ -290,7 +279,7 @@ Default is undefined, which disables throttling.
             requestBody: chatRequest.body,
           }) ?? {
             id: chatId,
-            messages: constructedMessagesPayload,
+            messages: chatMessages,
             data: chatRequest.data,
             ...extraMetadataRef.current.body,
             ...chatRequest.body,
@@ -377,7 +366,6 @@ Default is undefined, which disables throttling.
       mutateStreamData,
       streamDataRef,
       streamProtocol,
-      sendExtraMessageFields,
       experimental_prepareRequestBody,
       onToolCall,
       maxSteps,

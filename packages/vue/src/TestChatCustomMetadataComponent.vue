@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { mockId, mockValues } from 'ai/test';
 import { useChat } from './use-chat';
+import { generateId } from 'ai';
 
 const { messages, append } = useChat({
   body: {
@@ -9,6 +11,11 @@ const { messages, append } = useChat({
   headers: {
     header1: 'value1',
     header2: 'value2',
+  },
+  id: generateId(),
+  generateId: mockId(),
+  '~internal': {
+    currentDate: mockValues(new Date('2025-01-01')),
   },
 });
 </script>
