@@ -1055,6 +1055,7 @@ describe('file attachments with data url', () => {
           "id": "id-1",
           "parts": [
             {
+              "filename": "test.txt",
               "mediaType": "text/plain",
               "type": "file",
               "url": "data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=",
@@ -1090,6 +1091,7 @@ describe('file attachments with data url', () => {
             "content": "Message with text attachment",
             "parts": [
               {
+                "filename": "test.txt",
                 "mediaType": "text/plain",
                 "type": "file",
                 "url": "data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=",
@@ -1130,6 +1132,7 @@ describe('file attachments with data url', () => {
           "id": "id-1",
           "parts": [
             {
+              "filename": "test.png",
               "mediaType": "image/png",
               "type": "file",
               "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1165,6 +1168,7 @@ describe('file attachments with data url', () => {
             "content": "Message with image attachment",
             "parts": [
               {
+                "filename": "test.png",
                 "mediaType": "image/png",
                 "type": "file",
                 "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1218,6 +1222,7 @@ describe('file attachments with url', () => {
           "id": "id-1",
           "parts": [
             {
+              "filename": "test.png",
               "mediaType": "image/png",
               "type": "file",
               "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1253,6 +1258,7 @@ describe('file attachments with url', () => {
             "content": "Message with image attachment",
             "parts": [
               {
+                "filename": "test.png",
                 "mediaType": "image/png",
                 "type": "file",
                 "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1305,6 +1311,7 @@ describe('file attachments with empty text content', () => {
           "id": "id-1",
           "parts": [
             {
+              "filename": "test.png",
               "mediaType": "image/png",
               "type": "file",
               "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1340,6 +1347,7 @@ describe('file attachments with empty text content', () => {
             "content": "",
             "parts": [
               {
+                "filename": "test.png",
                 "mediaType": "image/png",
                 "type": "file",
                 "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",

@@ -1343,6 +1343,7 @@ describe('file attachments with data url', () => {
             {
               type: 'file',
               mediaType: 'text/plain',
+              filename: 'test.txt',
               url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
             },
             {
@@ -1375,6 +1376,7 @@ describe('file attachments with data url', () => {
             "content": "Message with text attachment",
             "parts": [
               {
+                "filename": "test.txt",
                 "mediaType": "text/plain",
                 "type": "file",
                 "url": "data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=",
@@ -1423,6 +1425,7 @@ describe('file attachments with data url', () => {
             {
               type: 'file',
               mediaType: 'image/png',
+              filename: 'test.png',
               url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
             },
             {
@@ -1455,6 +1458,7 @@ describe('file attachments with data url', () => {
             "content": "Message with image attachment",
             "parts": [
               {
+                "filename": "test.png",
                 "mediaType": "image/png",
                 "type": "file",
                 "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1608,7 +1612,7 @@ describe('attachments with empty submit', () => {
               files: [
                 {
                   type: 'file',
-                  // name: 'test.png', TODO enable file name
+                  filename: 'test.png',
                   mediaType: 'image/png',
                   url: 'https://example.com/image.png',
                 },
@@ -1647,6 +1651,7 @@ describe('attachments with empty submit', () => {
             {
               type: 'file',
               mediaType: 'image/png',
+              filename: 'test.png',
               url: 'https://example.com/image.png',
             },
             {
@@ -1679,6 +1684,7 @@ describe('attachments with empty submit', () => {
             "content": "",
             "parts": [
               {
+                "filename": "test.png",
                 "mediaType": "image/png",
                 "type": "file",
                 "url": "https://example.com/image.png",
