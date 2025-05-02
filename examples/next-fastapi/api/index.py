@@ -56,7 +56,7 @@ def stream_text(messages: List[ClientMessage], protocol: str = 'data'):
     )
 
     # When protocol is set to "text", you will send a stream of plain text chunks
-    # https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol#text-stream-protocol
+    # https://ai-sdk.dev/docs/ai-sdk-ui/stream-protocol#text-stream-protocol
 
     if (protocol == 'text'):
         for chunk in stream:
@@ -67,7 +67,7 @@ def stream_text(messages: List[ClientMessage], protocol: str = 'data'):
                     yield "{text}".format(text=choice.delta.content)
 
     # When protocol is set to "data", you will send a stream data part chunks
-    # https://sdk.vercel.ai/docs/ai-sdk-ui/stream-protocol#data-stream-protocol
+    # https://ai-sdk.dev/docs/ai-sdk-ui/stream-protocol#data-stream-protocol
 
     elif (protocol == 'data'):
         draft_tool_calls = []

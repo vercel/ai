@@ -77,7 +77,7 @@
     "vitest": "^3.0.0",
     "zod": "3.23.8"
   },
-  "homepage": "https://sdk.vercel.ai/docs",
+  "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git",
