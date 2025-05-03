@@ -21,7 +21,7 @@ export const cohereEmbeddingOptions = z.object({
    */
   inputType: z
     .enum(['search_document', 'search_query', 'classification', 'clustering'])
-    .nullish(),
+    .optional(),
 
   /**
    * Specifies how the API will handle inputs longer than the maximum token length.
@@ -31,7 +31,7 @@ export const cohereEmbeddingOptions = z.object({
    * - "START": Will discard the start of the input until the remaining input is exactly the maximum input token length for the model.
    * - "END": Will discard the end of the input until the remaining input is exactly the maximum input token length for the model.
    */
-  truncate: z.enum(['NONE', 'START', 'END']).nullish(),
+  truncate: z.enum(['NONE', 'START', 'END']).optional(),
 });
 
 export type CohereEmbeddingOptions = z.infer<typeof cohereEmbeddingOptions>;
