@@ -1,8 +1,18 @@
+import { InvalidPromptError } from '@ai-sdk/provider';
+
 export function detectPromptType(
   prompt: Array<any>,
 ): 'ui-messages' | 'messages' | 'other' {
   if (!Array.isArray(prompt)) {
-    return 'other';
+    throw new InvalidPromptError({
+      prompt,
+      message: [
+        'messages must be an array of CoreMessage or UIMessage',
+        `Received non-array value: ${JSON.stringify(prompt)}`,
+      ].join('\n'),
+      cause: prompt,
+    });
+
   }
 
   if (prompt.length === 0) {
@@ -13,15 +23,25 @@ export function detectPromptType(
 
   if (characteristics.some(c => c === 'has-ui-specific-parts')) {
     return 'ui-messages';
-  } else if (
-    characteristics.every(
-      c => c === 'has-core-specific-parts' || c === 'message',
-    )
-  ) {
-    return 'messages';
-  } else {
-    return 'other';
   }
+
+  const nonMessageIndex = characteristics.findIndex(
+    c => c !== 'has-core-specific-parts' && c !== 'message',
+  );
+
+  if (nonMessageIndex === -1) {
+    return 'messages';
+  }
+
+  throw new InvalidPromptError({
+    prompt,
+    message: [
+      'messages must be an array of CoreMessage or UIMessage',
+      `Received message of type: "${characteristics[nonMessageIndex]}" at index ${nonMessageIndex}`,
+      `messages[${nonMessageIndex}]: ${JSON.stringify(prompt[nonMessageIndex])}`,
+    ].join('\n'),
+    cause: prompt,
+  });
 }
 
 function detectSingleMessageCharacteristics(

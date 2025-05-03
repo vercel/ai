@@ -81,13 +81,6 @@ export function standardizePrompt<TOOLS extends ToolSet>({
   if (prompt.messages != null) {
     const promptType = detectPromptType(prompt.messages);
 
-    if (promptType === 'other') {
-      throw new InvalidPromptError({
-        prompt,
-        message: 'messages must be an array of CoreMessage or UIMessage',
-      });
-    }
-
     const messages: CoreMessage[] =
       promptType === 'ui-messages'
         ? convertToCoreMessages(prompt.messages as Omit<Message, 'id'>[], {
@@ -110,7 +103,10 @@ export function standardizePrompt<TOOLS extends ToolSet>({
     if (!validationResult.success) {
       throw new InvalidPromptError({
         prompt,
-        message: 'messages must be an array of CoreMessage or UIMessage',
+        message: [
+          'messages must be an array of CoreMessage or UIMessage',
+          `Validation error: ${validationResult.error.message}`,
+        ].join('\n'),
         cause: validationResult.error,
       });
     }

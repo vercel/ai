@@ -2,10 +2,33 @@ import { Message } from '@ai-sdk/ui-utils';
 import { detectPromptType } from './detect-prompt-type';
 import type { CoreMessage } from './message';
 
-it('should return "other" for invalid inputs', () => {
-  expect(detectPromptType(null as any)).toBe('other');
-  expect(detectPromptType(undefined as any)).toBe('other');
-  expect(detectPromptType('not an array' as any)).toBe('other');
+it('should throw error for invalid inputs', () => {
+  expect(() =>
+    detectPromptType(null as any),
+  ).toThrowErrorMatchingInlineSnapshot(`
+    [AI_InvalidPromptError: Invalid prompt: messages must be an array of CoreMessage or UIMessage
+    Received non-array value: null]
+  `);
+  expect(() =>
+    detectPromptType(undefined as any),
+  ).toThrowErrorMatchingInlineSnapshot(`
+    [AI_InvalidPromptError: Invalid prompt: messages must be an array of CoreMessage or UIMessage
+    Received non-array value: undefined]
+  `);
+  expect(() =>
+    detectPromptType('not an array' as any),
+  ).toThrowErrorMatchingInlineSnapshot(`
+    [AI_InvalidPromptError: Invalid prompt: messages must be an array of CoreMessage or UIMessage
+    Received non-array value: "not an array"]
+  `);
+
+  expect(() => detectPromptType([{
+    role: 'system',
+  }])).toThrowErrorMatchingInlineSnapshot(`
+    [AI_InvalidPromptError: Invalid prompt: messages must be an array of CoreMessage or UIMessage
+    Received message of type: "other" at index 0
+    messages[0]: {"role":"system"}]
+  `)
 });
 
 it('should return "messages" for empty arrays', () => {
