@@ -12,7 +12,6 @@ export function detectPromptType(
       ].join('\n'),
       cause: prompt,
     });
-
   }
 
   if (prompt.length === 0) {
