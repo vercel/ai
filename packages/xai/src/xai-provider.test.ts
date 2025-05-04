@@ -113,9 +113,9 @@ describe('xAIProvider', () => {
       expect(model).toBeInstanceOf(OpenAICompatibleImageModel);
 
       const constructorCall = OpenAICompatibleImageModelMock.mock.calls[0];
-      expect(constructorCall).toStrictEqual([modelId]);
+      expect(constructorCall[0]).toBe(modelId);
 
-      const config = constructorCall[2];
+      const config = constructorCall[1];
       expect(config.provider).toBe('xai.image');
       expect(config.url({ path: '/test-path' })).toBe(
         'https://api.x.ai/v1/test-path',
@@ -130,7 +130,7 @@ describe('xAIProvider', () => {
       provider.imageModel(modelId);
 
       const constructorCall = OpenAICompatibleImageModelMock.mock.calls[0];
-      const config = constructorCall[2];
+      const config = constructorCall[1];
       expect(config.url({ path: '/test-path' })).toBe(
         `${customBaseURL}/test-path`,
       );
@@ -143,7 +143,7 @@ describe('xAIProvider', () => {
       provider.imageModel('grok-2-image');
 
       const constructorCall = OpenAICompatibleImageModelMock.mock.calls[0];
-      const config = constructorCall[2];
+      const config = constructorCall[1];
       const headers = config.headers();
 
       expect(headers).toMatchObject({

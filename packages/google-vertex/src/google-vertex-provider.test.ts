@@ -146,7 +146,6 @@ describe('google-vertex-provider', () => {
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
       'imagen-3.0-generate-002',
-      {},
       expect.objectContaining({
         provider: 'google.vertex.image',
         baseURL:

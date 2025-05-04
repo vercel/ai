@@ -10,26 +10,20 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
-  settings,
 }: {
   headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
-  settings?: TogetherAIImageSettings;
 } = {}) {
-  return new TogetherAIImageModel(
-    'stabilityai/stable-diffusion-xl',
-    settings ?? {},
-    {
-      provider: 'togetherai',
-      baseURL: 'https://api.example.com',
-      headers: headers ?? (() => ({ 'api-key': 'test-key' })),
-      fetch,
-      _internal: {
-        currentDate,
-      },
+  return new TogetherAIImageModel('stabilityai/stable-diffusion-xl', {
+    provider: 'togetherai',
+    baseURL: 'https://api.example.com',
+    headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+    fetch,
+    _internal: {
+      currentDate,
     },
-  );
+  });
 }
 
 const server = createTestServer({
@@ -255,16 +249,6 @@ describe('constructor', () => {
     expect(model.modelId).toBe('stabilityai/stable-diffusion-xl');
     expect(model.specificationVersion).toBe('v2');
     expect(model.maxImagesPerCall).toBe(1);
-  });
-
-  it('should use maxImagesPerCall from settings', () => {
-    const model = createBasicModel({
-      settings: {
-        maxImagesPerCall: 4,
-      },
-    });
-
-    expect(model.maxImagesPerCall).toBe(4);
   });
 
   it('should default maxImagesPerCall to 1 when not specified', () => {

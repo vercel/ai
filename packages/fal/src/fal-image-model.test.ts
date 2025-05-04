@@ -190,22 +190,6 @@ describe('FalImageModel', () => {
       expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(1);
     });
-
-    it('should use maxImagesPerCall from settings', () => {
-      const model = createBasicModel({
-        settings: {
-          maxImagesPerCall: 4,
-        },
-      });
-
-      expect(model.maxImagesPerCall).toBe(4);
-    });
-
-    it('should default maxImagesPerCall to 1 when not specified', () => {
-      const model = createBasicModel();
-
-      expect(model.maxImagesPerCall).toBe(1);
-    });
   });
 
   describe('response schema validation', () => {

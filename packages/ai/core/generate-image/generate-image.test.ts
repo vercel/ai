@@ -77,6 +77,7 @@ describe('generateImage', () => {
       aspectRatio: '16:9',
       seed: 12345,
       providerOptions: { 'mock-provider': { style: 'vivid' } },
+      providerRequestOptions: {},
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
     });
@@ -218,6 +219,7 @@ describe('generateImage', () => {
                   providerOptions: {
                     'mock-provider': { style: 'vivid' },
                   },
+                  providerRequestOptions: {},
                   headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
@@ -232,6 +234,7 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
+                  providerRequestOptions: {},
                   headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
@@ -275,6 +278,7 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
+                  providerRequestOptions: {},
                   headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });
@@ -290,6 +294,7 @@ describe('generateImage', () => {
                   size: '1024x1024',
                   aspectRatio: '16:9',
                   providerOptions: { 'mock-provider': { style: 'vivid' } },
+                  providerRequestOptions: {},
                   headers: { 'custom-request-header': 'request-header-value' },
                   abortSignal: undefined,
                 });

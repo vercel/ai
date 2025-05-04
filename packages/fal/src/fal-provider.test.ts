@@ -21,7 +21,6 @@ describe('createFal', () => {
       expect(model).toBeInstanceOf(FalImageModel);
       expect(FalImageModel).toHaveBeenCalledWith(
         modelId,
-        {},
         expect.objectContaining({
           provider: 'fal.image',
           baseURL: 'https://fal.run',
@@ -39,7 +38,6 @@ describe('createFal', () => {
       expect(model).toBeInstanceOf(FalImageModel);
       expect(FalImageModel).toHaveBeenCalledWith(
         modelId,
-        settings,
         expect.objectContaining({
           provider: 'fal.image',
           baseURL: 'https://fal.run',
@@ -64,7 +62,6 @@ describe('createFal', () => {
 
       expect(FalImageModel).toHaveBeenCalledWith(
         modelId,
-        {},
         expect.objectContaining({
           baseURL: customBaseURL,
           headers: expect.any(Function),

@@ -3,15 +3,11 @@ import { GoogleVertexImageModel } from './google-vertex-image-model';
 
 const prompt = 'A cute baby sea otter';
 
-const model = new GoogleVertexImageModel(
-  'imagen-3.0-generate-002',
-  {},
-  {
-    provider: 'google-vertex',
-    baseURL: 'https://api.example.com',
-    headers: { 'api-key': 'test-key' },
-  },
-);
+const model = new GoogleVertexImageModel('imagen-3.0-generate-002', {
+  provider: 'google-vertex',
+  baseURL: 'https://api.example.com',
+  headers: { 'api-key': 'test-key' },
+});
 
 const server = createTestServer({
   'https://api.example.com/models/imagen-3.0-generate-002:predict': {},
@@ -43,7 +39,6 @@ describe('GoogleVertexImageModel', () => {
 
       const modelWithHeaders = new GoogleVertexImageModel(
         'imagen-3.0-generate-002',
-        {},
         {
           provider: 'google-vertex',
           baseURL: 'https://api.example.com',
@@ -73,24 +68,9 @@ describe('GoogleVertexImageModel', () => {
       });
     });
 
-    it('should respect maxImagesPerCall setting', () => {
-      const customModel = new GoogleVertexImageModel(
-        'imagen-3.0-generate-002',
-        { maxImagesPerCall: 2 },
-        {
-          provider: 'google-vertex',
-          baseURL: 'https://api.example.com',
-          headers: { 'api-key': 'test-key' },
-        },
-      );
-
-      expect(customModel.maxImagesPerCall).toBe(2);
-    });
-
     it('should use default maxImagesPerCall when not specified', () => {
       const defaultModel = new GoogleVertexImageModel(
         'imagen-3.0-generate-002',
-        {},
         {
           provider: 'google-vertex',
           baseURL: 'https://api.example.com',
@@ -246,7 +226,6 @@ describe('GoogleVertexImageModel', () => {
 
       const customModel = new GoogleVertexImageModel(
         'imagen-3.0-generate-002',
-        {},
         {
           provider: 'google-vertex',
           baseURL: 'https://api.example.com',

@@ -10,14 +10,12 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
-  settings,
 }: {
   headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
-  settings?: DeepInfraImageSettings;
 } = {}) {
-  return new DeepInfraImageModel('stability-ai/sdxl', settings ?? {}, {
+  return new DeepInfraImageModel('stability-ai/sdxl', {
     provider: 'deepinfra',
     baseURL: 'https://api.example.com',
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
@@ -241,16 +239,6 @@ describe('DeepInfraImageModel', () => {
       expect(model.modelId).toBe('stability-ai/sdxl');
       expect(model.specificationVersion).toBe('v2');
       expect(model.maxImagesPerCall).toBe(1);
-    });
-
-    it('should use maxImagesPerCall from settings', () => {
-      const model = createBasicModel({
-        settings: {
-          maxImagesPerCall: 4,
-        },
-      });
-
-      expect(model.maxImagesPerCall).toBe(4);
     });
 
     it('should default maxImagesPerCall to 1 when not specified', () => {

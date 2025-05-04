@@ -158,7 +158,6 @@ describe('DeepInfraProvider', () => {
       expect(model).toBeInstanceOf(DeepInfraImageModel);
       expect(DeepInfraImageModel).toHaveBeenCalledWith(
         modelId,
-        {},
         expect.any(Object),
       );
     });
@@ -172,7 +171,6 @@ describe('DeepInfraProvider', () => {
 
       expect(DeepInfraImageModel).toHaveBeenCalledWith(
         modelId,
-        expect.any(Object),
         expect.objectContaining({
           baseURL: `${customBaseURL}/inference`,
         }),

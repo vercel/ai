@@ -154,7 +154,6 @@ describe('TogetherAIProvider', () => {
 
       expect(TogetherAIImageModel).toHaveBeenCalledWith(
         modelId,
-        expect.any(Object),
         expect.objectContaining({
           baseURL: 'https://custom.url/',
         }),

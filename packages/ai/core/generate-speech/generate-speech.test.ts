@@ -65,7 +65,6 @@ describe('generateSpeech', () => {
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
       providerOptions: {},
-      providerRequestOptions: {},
       outputFormat: undefined,
       instructions: undefined,
       speed: undefined,

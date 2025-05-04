@@ -76,16 +76,6 @@ describe('OpenAICompatibleImageModel', () => {
       expect(model.maxImagesPerCall).toBe(10);
     });
 
-    it('should use maxImagesPerCall from settings', () => {
-      const model = createBasicModel({
-        settings: {
-          maxImagesPerCall: 5,
-        },
-      });
-
-      expect(model.maxImagesPerCall).toBe(5);
-    });
-
     it('should default maxImagesPerCall to 10 when not specified', () => {
       const model = createBasicModel();
 
@@ -280,13 +270,16 @@ describe('OpenAICompatibleImageModel', () => {
     });
 
     it('should pass the user setting in the request', async () => {
-      const model = createBasicModel({
-        settings: {
-          user: 'test-user-id',
-        },
-      });
-
-      await model.doGenerate(createDefaultGenerateParams());
+      const model = createBasicModel();
+      await model.doGenerate(
+        createDefaultGenerateParams({
+          providerRequestOptions: {
+            openai: {
+              user: 'test-user-id',
+            },
+          },
+        }),
+      );
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'dall-e-3',
@@ -299,11 +292,16 @@ describe('OpenAICompatibleImageModel', () => {
     });
 
     it('should not include user field in request when setting is not provided', async () => {
-      const model = createBasicModel({
-        settings: {}, // explicitly empty settings
-      });
+      const model = createBasicModel();
 
-      await model.doGenerate(createDefaultGenerateParams());
+      await model.doGenerate(
+        createDefaultGenerateParams({
+          providerRequestOptions: {
+            // explicitly not setting user
+            openai: {},
+          },
+        }),
+      );
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toStrictEqual({
