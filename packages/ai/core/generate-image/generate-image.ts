@@ -13,7 +13,10 @@ import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
-import { ProviderOptions, ProviderRequestOptions } from '../types/provider-metadata';
+import {
+  ProviderOptions,
+  ProviderRequestOptions,
+} from '../types/provider-metadata';
 
 /**
 Generates images using an image model.
@@ -128,13 +131,14 @@ Only applicable for HTTP-based providers.
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
   // extract maxImagesPerCall from providerRequestOptions
-  const [
-    { maxImagesPerCall } = {}
-  ] = Object.values(providerOptions ?? {});
+  const [{ maxImagesPerCall } = {}] = Object.values(
+    providerRequestOptions ?? {},
+  );
 
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
-  const maxImagesPerCallWithDefault = (maxImagesPerCall as number) ?? model.maxImagesPerCall ?? 1;
+  const maxImagesPerCallWithDefault =
+    (maxImagesPerCall as number) ?? model.maxImagesPerCall ?? 1;
 
   // parallelize calls to the model:
   const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
