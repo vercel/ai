@@ -129,10 +129,8 @@ export function createVertex(
   const createEmbeddingModel = (modelId: GoogleVertexEmbeddingModelId) =>
     new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
 
-  const createImageModel = (
-    modelId: GoogleVertexImageModelId,
-    settings: GoogleVertexImageSettings = {},
-  ) => new GoogleVertexImageModel(modelId, settings, createConfig('image'));
+  const createImageModel = (modelId: GoogleVertexImageModelId) =>
+    new GoogleVertexImageModel(modelId, createConfig('image'));
 
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {

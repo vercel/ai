@@ -162,6 +162,7 @@ Only applicable for HTTP-based providers.
           aspectRatio,
           seed,
           providerOptions: providerOptions ?? {},
+          providerRequestOptions: providerRequestOptions ?? {},
         }),
       ),
     ),

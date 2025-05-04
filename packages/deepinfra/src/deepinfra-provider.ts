@@ -130,11 +130,8 @@ export function createDeepInfra(
       getCommonModelConfig('embedding'),
     );
 
-  const createImageModel = (
-    modelId: DeepInfraImageModelId,
-    settings: DeepInfraImageSettings = {},
-  ) =>
-    new DeepInfraImageModel(modelId, settings, {
+  const createImageModel = (modelId: DeepInfraImageModelId) =>
+    new DeepInfraImageModel(modelId, {
       ...getCommonModelConfig('image'),
       baseURL: baseURL
         ? `${baseURL}/inference`

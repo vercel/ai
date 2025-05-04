@@ -317,6 +317,7 @@ describe('image', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(
@@ -336,6 +337,7 @@ describe('image', () => {
           aspectRatio: undefined,
           seed: undefined,
           providerOptions: {},
+          providerRequestOptions: {},
         });
 
       expect(
@@ -361,6 +363,7 @@ describe('image', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
@@ -389,6 +392,7 @@ describe('image', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(server.calls[0].requestUrl).toStrictEqual(
@@ -406,6 +410,7 @@ describe('image', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
@@ -421,6 +426,7 @@ describe('image', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: { openai: { style: 'natural' } },
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({

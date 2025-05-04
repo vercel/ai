@@ -144,11 +144,8 @@ export function createFireworks(
       errorStructure: fireworksErrorStructure,
     });
 
-  const createImageModel = (
-    modelId: FireworksImageModelId,
-    settings: FireworksImageSettings = {},
-  ) =>
-    new FireworksImageModel(modelId, settings, {
+  const createImageModel = (modelId: FireworksImageModelId) =>
+    new FireworksImageModel(modelId, {
       ...getCommonModelConfig('image'),
       baseURL: baseURL ?? defaultBaseURL,
     });

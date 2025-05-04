@@ -71,6 +71,7 @@ describe('FireworksImageModel', () => {
         aspectRatio: '16:9',
         seed: 42,
         providerOptions: { fireworks: { additional_param: 'value' } },
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -92,6 +93,7 @@ describe('FireworksImageModel', () => {
         aspectRatio: '16:9',
         seed: 42,
         providerOptions: { fireworks: { additional_param: 'value' } },
+        providerRequestOptions: {},
       });
 
       expect(server.calls[0].requestMethod).toStrictEqual('POST');
@@ -114,6 +116,7 @@ describe('FireworksImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
@@ -140,6 +143,7 @@ describe('FireworksImageModel', () => {
           aspectRatio: undefined,
           seed: undefined,
           providerOptions: {},
+          providerRequestOptions: {},
         }),
       ).rejects.toMatchObject({
         message: 'Response body is empty',
@@ -167,6 +171,7 @@ describe('FireworksImageModel', () => {
           aspectRatio: undefined,
           seed: undefined,
           providerOptions: {},
+          providerRequestOptions: {},
         }),
       ).rejects.toMatchObject({
         message: 'Bad Request',
@@ -189,6 +194,7 @@ describe('FireworksImageModel', () => {
         aspectRatio: undefined,
         seed: 42,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -211,6 +217,7 @@ describe('FireworksImageModel', () => {
           aspectRatio: '1:1',
           seed: 123,
           providerOptions: {},
+          providerRequestOptions: {},
         });
 
         expect(result1.warnings).toContainEqual({
@@ -231,6 +238,7 @@ describe('FireworksImageModel', () => {
           aspectRatio: '1:1',
           seed: 123,
           providerOptions: {},
+          providerRequestOptions: {},
         });
 
         expect(result2.warnings).toContainEqual({
@@ -252,6 +260,7 @@ describe('FireworksImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
         abortSignal: controller.signal,
       });
 
@@ -280,6 +289,7 @@ describe('FireworksImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(mockFetch).toHaveBeenCalled();
@@ -295,6 +305,7 @@ describe('FireworksImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toHaveProperty(
@@ -317,6 +328,7 @@ describe('FireworksImageModel', () => {
           aspectRatio: undefined,
           seed: undefined,
           providerOptions: {},
+          providerRequestOptions: {},
         });
 
         expect(result.response).toStrictEqual({
@@ -344,6 +356,7 @@ describe('FireworksImageModel', () => {
           aspectRatio: undefined,
           seed: undefined,
           providerOptions: {},
+          providerRequestOptions: {},
         });
 
         expect(result.response.headers).toStrictEqual({

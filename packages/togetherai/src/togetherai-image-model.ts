@@ -32,7 +32,6 @@ export class TogetherAIImageModel implements ImageModelV2 {
 
   constructor(
     readonly modelId: TogetherAIImageModelId,
-    readonly settings: TogetherAIImageSettings,
     private config: TogetherAIImageModelConfig,
   ) {}
 

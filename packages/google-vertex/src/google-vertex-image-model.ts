@@ -36,7 +36,6 @@ export class GoogleVertexImageModel implements ImageModelV2 {
 
   constructor(
     readonly modelId: GoogleVertexImageModelId,
-    readonly settings: GoogleVertexImageSettings,
     private config: GoogleVertexImageModelConfig,
   ) {}
 

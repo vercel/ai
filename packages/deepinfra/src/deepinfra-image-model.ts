@@ -32,7 +32,6 @@ export class DeepInfraImageModel implements ImageModelV2 {
 
   constructor(
     readonly modelId: DeepInfraImageModelId,
-    readonly settings: DeepInfraImageSettings,
     private config: DeepInfraImageModelConfig,
   ) {}
 

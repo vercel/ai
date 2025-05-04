@@ -48,6 +48,23 @@ record is keyed by the provider-specific metadata key.
   providerOptions: SharedV2ProviderOptions;
 
   /**
+Additional provider-specific options that are NOT passed through to the provider
+as body parameters.
+
+The outer record is keyed by the provider name, and the inner
+record is keyed by the provider-specific metadata key.
+
+```ts
+{
+  "openai": {
+    "maxImagesPerCall": 3
+  }
+}
+```
+ */
+  providerRequestOptions: SharedV2ProviderOptions;
+
+  /**
 Abort signal for cancelling the operation.
  */
   abortSignal?: AbortSignal;

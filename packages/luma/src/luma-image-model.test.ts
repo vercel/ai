@@ -17,7 +17,7 @@ function createBasicModel({
   currentDate?: () => Date;
   settings?: any;
 } = {}) {
-  return new LumaImageModel('test-model', settings ?? {}, {
+  return new LumaImageModel('test-model', {
     provider: 'luma',
     baseURL: 'https://api.example.com',
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
@@ -86,6 +86,7 @@ describe('LumaImageModel', () => {
         aspectRatio: '16:9',
         seed: undefined,
         providerOptions: { luma: { additional_param: 'value' } },
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -104,6 +105,7 @@ describe('LumaImageModel', () => {
         n: 1,
         aspectRatio: '16:9',
         providerOptions: {},
+        providerRequestOptions: {},
         size: undefined,
         seed: undefined,
       });
@@ -133,6 +135,7 @@ describe('LumaImageModel', () => {
         prompt,
         n: 1,
         providerOptions: {},
+        providerRequestOptions: {},
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
@@ -163,6 +166,7 @@ describe('LumaImageModel', () => {
           prompt,
           n: 1,
           providerOptions: {},
+          providerRequestOptions: {},
           size: undefined,
           seed: undefined,
           aspectRatio: undefined,
@@ -204,6 +208,7 @@ describe('LumaImageModel', () => {
           prompt,
           n: 1,
           providerOptions: {},
+          providerRequestOptions: {},
           size: undefined,
           seed: undefined,
           aspectRatio: undefined,
@@ -221,6 +226,7 @@ describe('LumaImageModel', () => {
           size: '1024x1024',
           seed: 123,
           providerOptions: {},
+          providerRequestOptions: {},
           aspectRatio: undefined,
         });
 
@@ -250,6 +256,7 @@ describe('LumaImageModel', () => {
           prompt,
           n: 1,
           providerOptions: {},
+          providerRequestOptions: {},
           size: undefined,
           seed: undefined,
           aspectRatio: undefined,
@@ -325,6 +332,7 @@ describe('LumaImageModel', () => {
         prompt,
         n: 1,
         providerOptions: {},
+        providerRequestOptions: {},
         size: undefined,
         seed: undefined,
         aspectRatio: undefined,
@@ -367,6 +375,7 @@ describe('LumaImageModel', () => {
         prompt,
         n: 1,
         providerOptions: {},
+        providerRequestOptions: {},
         size: undefined,
         seed: undefined,
         aspectRatio: undefined,
@@ -407,6 +416,7 @@ describe('LumaImageModel', () => {
         prompt,
         n: 1,
         providerOptions: {},
+        providerRequestOptions: {},
         size: undefined,
         seed: undefined,
         aspectRatio: undefined,
@@ -446,6 +456,7 @@ describe('LumaImageModel', () => {
         prompt,
         n: 1,
         providerOptions: {},
+        providerRequestOptions: {},
         size: undefined,
         seed: undefined,
         aspectRatio: undefined,
@@ -502,6 +513,7 @@ describe('LumaImageModel', () => {
         prompt,
         n: 1,
         providerOptions: {},
+        providerRequestOptions: {},
         size: undefined,
         seed: undefined,
         aspectRatio: undefined,

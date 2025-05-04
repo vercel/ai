@@ -107,15 +107,13 @@ describe('xAIProvider', () => {
     it('should construct an image model with correct configuration', () => {
       const provider = createXai();
       const modelId = 'grok-2-image';
-      const settings = { maxImagesPerCall: 3 };
 
-      const model = provider.imageModel(modelId, settings);
+      const model = provider.imageModel(modelId);
 
       expect(model).toBeInstanceOf(OpenAICompatibleImageModel);
 
       const constructorCall = OpenAICompatibleImageModelMock.mock.calls[0];
-      expect(constructorCall[0]).toBe(modelId);
-      expect(constructorCall[1]).toEqual(settings);
+      expect(constructorCall).toStrictEqual([modelId]);
 
       const config = constructorCall[2];
       expect(config.provider).toBe('xai.image');

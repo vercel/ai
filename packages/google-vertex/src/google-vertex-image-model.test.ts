@@ -60,6 +60,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
@@ -110,6 +111,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(result.images).toStrictEqual(['base64-image-1', 'base64-image-2']);
@@ -125,6 +127,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: '16:9',
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -146,6 +149,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: '16:9',
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -167,6 +171,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: undefined,
         seed: 42,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -192,6 +197,7 @@ describe('GoogleVertexImageModel', () => {
             addWatermark: false,
           },
         },
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -215,6 +221,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: '1:1',
         seed: 123,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(result.warnings).toStrictEqual([
@@ -257,6 +264,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(result.response).toStrictEqual({
@@ -282,6 +290,7 @@ describe('GoogleVertexImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       const afterDate = new Date();
@@ -312,6 +321,7 @@ describe('GoogleVertexImageModel', () => {
             foo: 'bar',
           },
         },
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({

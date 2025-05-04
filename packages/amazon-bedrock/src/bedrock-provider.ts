@@ -167,11 +167,8 @@ export function createAmazonBedrock(
       fetch: sigv4Fetch,
     });
 
-  const createImageModel = (
-    modelId: BedrockImageModelId,
-    settings: BedrockImageSettings = {},
-  ) =>
-    new BedrockImageModel(modelId, settings, {
+  const createImageModel = (modelId: BedrockImageModelId) =>
+    new BedrockImageModel(modelId, {
       baseUrl: getBaseUrl,
       headers: options.headers ?? {},
       fetch: sigv4Fetch,

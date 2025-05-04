@@ -200,7 +200,7 @@ export function createOpenAI(
     modelId: OpenAIImageModelId,
     settings: OpenAIImageSettings = {},
   ) =>
-    new OpenAIImageModel(modelId, settings, {
+    new OpenAIImageModel(modelId, {
       provider: `${providerName}.image`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,

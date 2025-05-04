@@ -20,7 +20,7 @@ function createBasicModel({
   settings?: any;
   errorStructure?: ProviderErrorStructure<any>;
 } = {}) {
-  return new OpenAICompatibleImageModel('dall-e-3', settings ?? {}, {
+  return new OpenAICompatibleImageModel('dall-e-3', {
     provider: 'openai-compatible',
     headers: headers ?? (() => ({ Authorization: 'Bearer test-key' })),
     url: ({ modelId, path }) => `https://api.example.com/${modelId}${path}`,
@@ -40,6 +40,7 @@ function createDefaultGenerateParams(overrides = {}): ImageModelV2CallOptions {
     aspectRatio: undefined,
     seed: undefined,
     providerOptions: {},
+    providerRequestOptions: {},
     headers: {},
     abortSignal: undefined,
     ...overrides,
@@ -259,16 +260,11 @@ describe('OpenAICompatibleImageModel', () => {
     it('should use real date when no custom date provider is specified', async () => {
       const beforeDate = new Date();
 
-      const model = new OpenAICompatibleImageModel(
-        'dall-e-3',
-        {},
-        {
-          provider: 'openai-compatible',
-          headers: () => ({ Authorization: 'Bearer test-key' }),
-          url: ({ modelId, path }) =>
-            `https://api.example.com/${modelId}${path}`,
-        },
-      );
+      const model = new OpenAICompatibleImageModel('dall-e-3', {
+        provider: 'openai-compatible',
+        headers: () => ({ Authorization: 'Bearer test-key' }),
+        url: ({ modelId, path }) => `https://api.example.com/${modelId}${path}`,
+      });
 
       const result = await model.doGenerate(createDefaultGenerateParams());
 

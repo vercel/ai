@@ -112,7 +112,7 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
     modelId: FalImageModelId,
     settings: FalImageSettings = {},
   ) =>
-    new FalImageModel(modelId, settings, {
+    new FalImageModel(modelId, {
       provider: 'fal.image',
       baseURL: baseURL ?? defaultBaseURL,
       headers: getHeaders,

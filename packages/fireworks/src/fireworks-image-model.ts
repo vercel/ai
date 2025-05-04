@@ -80,7 +80,6 @@ export class FireworksImageModel implements ImageModelV2 {
 
   constructor(
     readonly modelId: FireworksImageModelId,
-    readonly settings: FireworksImageSettings,
     private config: FireworksImageModelConfig,
   ) {}
 

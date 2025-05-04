@@ -53,11 +53,8 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
     ...options.headers,
   });
 
-  const createImageModel = (
-    modelId: LumaImageModelId,
-    settings: LumaImageSettings = {},
-  ) =>
-    new LumaImageModel(modelId, settings, {
+  const createImageModel = (modelId: LumaImageModelId) =>
+    new LumaImageModel(modelId, {
       provider: 'luma.image',
       baseURL: baseURL ?? defaultBaseURL,
       headers: getHeaders,

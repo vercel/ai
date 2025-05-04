@@ -132,7 +132,7 @@ describe('FireworksProvider', () => {
       const modelId = 'accounts/fireworks/models/flux-1-dev-fp8';
       const settings = { maxImagesPerCall: 2 };
 
-      const model = provider.image(modelId, settings);
+      const model = provider.image(modelId);
 
       expect(model).toBeInstanceOf(FireworksImageModel);
       expect(FireworksImageModel).toHaveBeenCalledWith(

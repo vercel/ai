@@ -99,11 +99,8 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const createImageModel = (
-    modelId: XaiImageModelId,
-    settings: XaiImageSettings = {},
-  ) => {
-    return new OpenAICompatibleImageModel(modelId, settings, {
+  const createImageModel = (modelId: XaiImageModelId) => {
+    return new OpenAICompatibleImageModel(modelId, {
       provider: 'xai.image',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,

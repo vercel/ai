@@ -130,11 +130,8 @@ export function createTogetherAI(
       getCommonModelConfig('embedding'),
     );
 
-  const createImageModel = (
-    modelId: TogetherAIImageModelId,
-    settings: TogetherAIImageSettings = {},
-  ) =>
-    new TogetherAIImageModel(modelId, settings, {
+  const createImageModel = (modelId: TogetherAIImageModelId) =>
+    new TogetherAIImageModel(modelId, {
       ...getCommonModelConfig('image'),
       baseURL: baseURL ?? 'https://api.together.xyz/v1/',
     });

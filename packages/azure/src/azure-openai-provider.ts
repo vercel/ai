@@ -184,7 +184,7 @@ export function createAzure(
     modelId: string,
     settings: OpenAIImageSettings = {},
   ) =>
-    new OpenAIImageModel(modelId, settings, {
+    new OpenAIImageModel(modelId, {
       provider: 'azure.image',
       url,
       headers: getHeaders,

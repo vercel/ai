@@ -51,7 +51,7 @@ export function createReplicate(
   options: ReplicateProviderSettings = {},
 ): ReplicateProvider {
   const createImageModel = (modelId: ReplicateImageModelId) =>
-    new ReplicateImageModel(modelId, settings ?? {}, {
+    new ReplicateImageModel(modelId, {
       provider: 'replicate',
       baseURL: options.baseURL ?? 'https://api.replicate.com/v1',
       headers: {

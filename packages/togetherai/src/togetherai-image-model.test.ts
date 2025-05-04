@@ -56,6 +56,7 @@ describe('doGenerate', () => {
       size: '1024x1024',
       seed: 42,
       providerOptions: { togetherai: { additional_param: 'value' } },
+      providerRequestOptions: {},
       aspectRatio: undefined,
     });
 
@@ -80,6 +81,7 @@ describe('doGenerate', () => {
       size: '1024x1024',
       seed: 42,
       providerOptions: {},
+      providerRequestOptions: {},
       aspectRatio: undefined,
     });
 
@@ -102,6 +104,7 @@ describe('doGenerate', () => {
       size: undefined,
       seed: undefined,
       providerOptions: {},
+      providerRequestOptions: {},
       aspectRatio: undefined,
       headers: {
         'Custom-Request-Header': 'request-header-value',
@@ -134,6 +137,7 @@ describe('doGenerate', () => {
         size: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
         aspectRatio: undefined,
       }),
     ).rejects.toMatchObject({
@@ -152,6 +156,7 @@ describe('doGenerate', () => {
         aspectRatio: '1:1',
         seed: 123,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(result.warnings).toContainEqual({
@@ -173,6 +178,7 @@ describe('doGenerate', () => {
       size: undefined,
       seed: undefined,
       providerOptions: {},
+      providerRequestOptions: {},
       aspectRatio: undefined,
       abortSignal: controller.signal,
     });
@@ -195,6 +201,7 @@ describe('doGenerate', () => {
         size: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
         aspectRatio: undefined,
       });
 
@@ -227,6 +234,7 @@ describe('doGenerate', () => {
         size: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
         aspectRatio: undefined,
       });
 

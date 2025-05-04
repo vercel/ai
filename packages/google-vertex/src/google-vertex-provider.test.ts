@@ -161,14 +161,10 @@ describe('google-vertex-provider', () => {
       project: 'test-project',
       location: 'test-location',
     });
-    const imageSettings = {
-      maxImagesPerCall: 4,
-    };
-    provider.image('imagen-3.0-generate-002', imageSettings);
+    provider.image('imagen-3.0-generate-002');
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
       'imagen-3.0-generate-002',
-      imageSettings,
       expect.objectContaining({
         provider: 'google.vertex.image',
         headers: expect.any(Object),

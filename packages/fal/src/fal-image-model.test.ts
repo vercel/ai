@@ -16,7 +16,7 @@ function createBasicModel({
   currentDate?: () => Date;
   settings?: any;
 } = {}) {
-  return new FalImageModel('stable-diffusion-xl', settings ?? {}, {
+  return new FalImageModel('stable-diffusion-xl', {
     provider: 'fal',
     baseURL: 'https://api.example.com',
     headers: headers ?? { 'api-key': 'test-key' },
@@ -63,6 +63,7 @@ describe('FalImageModel', () => {
         aspectRatio: undefined,
         seed: 123,
         providerOptions: { fal: { additional_param: 'value' } },
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -84,6 +85,7 @@ describe('FalImageModel', () => {
         aspectRatio: '16:9',
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -104,6 +106,7 @@ describe('FalImageModel', () => {
         prompt,
         n: 1,
         providerOptions: {},
+        providerRequestOptions: {},
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
@@ -140,6 +143,7 @@ describe('FalImageModel', () => {
           prompt,
           n: 1,
           providerOptions: {},
+          providerRequestOptions: {},
           size: undefined,
           seed: undefined,
           aspectRatio: undefined,
@@ -162,6 +166,7 @@ describe('FalImageModel', () => {
           prompt,
           n: 1,
           providerOptions: {},
+          providerRequestOptions: {},
           size: undefined,
           seed: undefined,
           aspectRatio: undefined,
@@ -222,6 +227,7 @@ describe('FalImageModel', () => {
         prompt,
         n: 1,
         providerOptions: {},
+        providerRequestOptions: {},
         size: undefined,
         seed: undefined,
         aspectRatio: undefined,
@@ -257,6 +263,7 @@ describe('FalImageModel', () => {
         prompt,
         n: 2,
         providerOptions: {},
+        providerRequestOptions: {},
         size: undefined,
         seed: undefined,
         aspectRatio: undefined,

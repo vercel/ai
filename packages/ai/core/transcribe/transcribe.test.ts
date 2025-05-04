@@ -82,6 +82,7 @@ describe('transcribe', () => {
       headers: { 'custom-request-header': 'request-header-value' },
       abortSignal,
       providerOptions: {},
+      providerRequestOptions: {},
     });
   });
 

@@ -47,6 +47,7 @@ export class OpenAICompatibleImageModel implements ImageModelV2 {
     aspectRatio,
     seed,
     providerOptions,
+    providerRequestOptions,
     headers,
     abortSignal,
   }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
@@ -81,7 +82,9 @@ export class OpenAICompatibleImageModel implements ImageModelV2 {
         size,
         ...(providerOptions.openai ?? {}),
         response_format: 'b64_json',
-        ...(this.settings.user ? { user: this.settings.user } : {}),
+        ...(providerRequestOptions.openai?.user
+          ? { user: providerRequestOptions.openai.user }
+          : {}),
       },
       failedResponseHandler: createJsonErrorResponseHandler(
         this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,

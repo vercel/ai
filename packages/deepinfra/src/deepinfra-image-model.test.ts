@@ -52,6 +52,7 @@ describe('DeepInfraImageModel', () => {
         aspectRatio: '16:9',
         seed: 42,
         providerOptions: { deepinfra: { additional_param: 'value' } },
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -73,6 +74,7 @@ describe('DeepInfraImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(server.calls[0].requestMethod).toStrictEqual('POST');
@@ -95,6 +97,7 @@ describe('DeepInfraImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
         headers: {
           'Custom-Request-Header': 'request-header-value',
         },
@@ -127,6 +130,7 @@ describe('DeepInfraImageModel', () => {
           aspectRatio: undefined,
           seed: undefined,
           providerOptions: {},
+          providerRequestOptions: {},
         }),
       ).rejects.toThrow('Bad Request');
     });
@@ -141,6 +145,7 @@ describe('DeepInfraImageModel', () => {
         aspectRatio: undefined,
         seed: 42,
         providerOptions: {},
+        providerRequestOptions: {},
       });
 
       expect(await server.calls[0].requestBodyJson).toStrictEqual({
@@ -163,6 +168,7 @@ describe('DeepInfraImageModel', () => {
         aspectRatio: undefined,
         seed: undefined,
         providerOptions: {},
+        providerRequestOptions: {},
         abortSignal: controller.signal,
       });
 
@@ -186,6 +192,7 @@ describe('DeepInfraImageModel', () => {
           aspectRatio: undefined,
           seed: undefined,
           providerOptions: {},
+          providerRequestOptions: {},
         });
 
         expect(result.response).toStrictEqual({
@@ -214,6 +221,7 @@ describe('DeepInfraImageModel', () => {
           aspectRatio: undefined,
           seed: undefined,
           providerOptions: {},
+          providerRequestOptions: {},
         });
 
         expect(result.response.headers).toStrictEqual({

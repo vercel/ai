@@ -34,8 +34,8 @@ export class LumaImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
   readonly maxImagesPerCall = 1;
 
-  private readonly pollIntervalMillis: number;
-  private readonly maxPollAttempts: number;
+  readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
+  readonly maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS;
 
   get provider(): string {
     return this.config.provider;
@@ -44,12 +44,7 @@ export class LumaImageModel implements ImageModelV2 {
   constructor(
     readonly modelId: string,
     private readonly config: LumaImageModelConfig,
-  ) {
-    this.pollIntervalMillis =
-      settings.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS;
-    this.maxPollAttempts =
-      settings.maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS;
-  }
+  ) {}
 
   async doGenerate({
     prompt,
@@ -58,6 +53,7 @@ export class LumaImageModel implements ImageModelV2 {
     aspectRatio,
     seed,
     providerOptions,
+    providerRequestOptions,
     headers,
     abortSignal,
   }: Parameters<ImageModelV2['doGenerate']>[0]): Promise<
@@ -101,10 +97,15 @@ export class LumaImageModel implements ImageModelV2 {
       ),
     });
 
+    // remove non-request options from providerOptions
+    const { pollIntervalMillis, maxPollAttempts } =
+      providerRequestOptions.luma ?? {};
     const imageUrl = await this.pollForImageUrl(
       generationResponse.id,
       fullHeaders,
       abortSignal,
+      pollIntervalMillis as number,
+      maxPollAttempts as number,
     );
 
     const downloadedImage = await this.downloadImage(imageUrl, abortSignal);
@@ -124,10 +125,11 @@ export class LumaImageModel implements ImageModelV2 {
     generationId: string,
     headers: Record<string, string | undefined>,
     abortSignal: AbortSignal | undefined,
+    pollIntervalMillis: number = this.pollIntervalMillis,
+    maxPollAttempts: number = this.maxPollAttempts,
   ): Promise<string> {
-    let attemptCount = 0;
     const url = this.getLumaGenerationsUrl(generationId);
-    for (let i = 0; i < this.maxPollAttempts; i++) {
+    for (let i = 0; i < maxPollAttempts; i++) {
       const { value: statusResponse } = await getFromApi({
         url,
         headers,
@@ -154,7 +156,7 @@ export class LumaImageModel implements ImageModelV2 {
             message: `Image generation failed.`,
           });
       }
-      await delay(this.pollIntervalMillis);
+      await delay(pollIntervalMillis);
     }
 
     throw new Error(
