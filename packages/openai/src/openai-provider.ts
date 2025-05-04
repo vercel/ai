@@ -76,6 +76,7 @@ Creates a model for text embeddings.
 
   /**
 Creates a model for image generation.
+@deprecated Use `imageModel` instead.
    */
   image(
     modelId: OpenAIImageModelId,
@@ -109,27 +110,27 @@ OpenAI-specific tools.
 export interface OpenAIProviderSettings {
   /**
 Base URL for the OpenAI API calls.
-     */
+   */
   baseURL?: string;
 
   /**
 API key for authenticating requests.
-     */
+   */
   apiKey?: string;
 
   /**
 OpenAI Organization.
-     */
+   */
   organization?: string;
 
   /**
 OpenAI project.
-     */
+   */
   project?: string;
 
   /**
 Custom headers to include in the requests.
-     */
+   */
   headers?: Record<string, string>;
 
   /**
@@ -147,7 +148,7 @@ Provider name. Overrides the `openai` default name for 3rd party providers.
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
-    */
+   */
   fetch?: FetchFunction;
 }
 

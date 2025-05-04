@@ -26,7 +26,8 @@ Creates a model for text generation.
   languageModel: (modelId: GoogleVertexModelId) => LanguageModelV2;
 
   /**
-   * Creates a model for image generation.
+Creates a model for image generation.
+@deprecated Use `imageModel` instead.
    */
   image(
     modelId: GoogleVertexImageModelId,

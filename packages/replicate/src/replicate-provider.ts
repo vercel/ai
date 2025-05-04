@@ -22,19 +22,20 @@ The default prefix is `https://api.replicate.com/v1`.
 
   /**
 Custom headers to include in the requests.
-     */
+   */
   headers?: Record<string, string>;
 
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
-    */
+   */
   fetch?: FetchFunction;
 }
 
 export interface ReplicateProvider extends ProviderV2 {
   /**
-   * Creates a Replicate image generation model.
+Creates a model for image generation.
+@deprecated Use `imageModel` instead.
    */
   image(
     modelId: ReplicateImageModelId,

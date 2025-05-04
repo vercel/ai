@@ -40,7 +40,8 @@ Creates an Xai chat model for text generation.
   chat: (modelId: XaiChatModelId) => LanguageModelV2;
 
   /**
-Creates an Xai image model for image generation.
+Creates a model for image generation.
+@deprecated Use `imageModel` instead.
    */
   image(modelId: XaiImageModelId, settings?: XaiImageSettings): ImageModelV2;
 
@@ -56,7 +57,7 @@ Creates an Xai image model for image generation.
 export interface XaiProviderSettings {
   /**
 Base URL for the xAI API calls.
-     */
+   */
   baseURL?: string;
 
   /**
@@ -72,7 +73,7 @@ Custom headers to include in the requests.
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
-  */
+   */
   fetch?: FetchFunction;
 }
 

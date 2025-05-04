@@ -15,7 +15,7 @@ export interface FalProviderSettings {
   /**
 fal.ai API key. Default value is taken from the `FAL_API_KEY` environment
 variable, falling back to `FAL_KEY`.
-  */
+   */
   apiKey?: string;
 
   /**
@@ -39,6 +39,7 @@ requests, or to provide a custom fetch implementation for e.g. testing.
 export interface FalProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
+@deprecated Use `imageModel` instead.
    */
   image(modelId: FalImageModelId, settings?: FalImageSettings): ImageModelV2;
 

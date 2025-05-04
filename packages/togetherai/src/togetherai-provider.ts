@@ -72,8 +72,9 @@ Creates a text embedding model for text generation.
   ): EmbeddingModelV2<string>;
 
   /**
-  Creates a model for image generation.
-   */
+Creates a model for image generation.
+@deprecated Use `imageModel` instead.
+*/
   image(
     modelId: TogetherAIImageModelId,
     settings?: TogetherAIImageSettings,
@@ -81,7 +82,7 @@ Creates a text embedding model for text generation.
 
   /**
   Creates a model for image generation.
-   */
+*/
   imageModel(modelId: TogetherAIImageModelId): ImageModelV2;
 }
 
