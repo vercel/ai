@@ -83,9 +83,9 @@ const createModelVariants = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
 ): ModelWithCapabilities<LanguageModelV2>[] => [
-    createBaseModel(vertex, modelId),
-    createSearchGroundedModel(vertex, modelId),
-  ];
+  createBaseModel(vertex, modelId),
+  createSearchGroundedModel(vertex, modelId),
+];
 
 const createModelsForRuntime = (
   vertex: typeof vertexNode | typeof vertexEdge,

@@ -136,7 +136,9 @@ describe('doGenerate', () => {
   it('should respect maxImagesPerCall setting', async () => {
     prepareJsonResponse();
 
-    const customModel = provider.imageModel('dall-e-2', { maxImagesPerCall: 5 });
+    const customModel = provider.imageModel('dall-e-2', {
+      maxImagesPerCall: 5,
+    });
     expect(customModel.maxImagesPerCall).toBe(5);
 
     const defaultModel = provider.imageModel('dall-e-2');
