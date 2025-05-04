@@ -37,10 +37,7 @@ Creates a model for image generation.
   /**
 Creates a model for image generation.
    */
-  imageModel(
-    modelId: LumaImageModelId,
-    settings?: LumaImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: LumaImageModelId): ImageModelV2;
 }
 
 const defaultBaseURL = 'https://api.lumalabs.ai';

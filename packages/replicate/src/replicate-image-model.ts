@@ -28,18 +28,14 @@ interface ReplicateImageModelConfig {
 
 export class ReplicateImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
     readonly modelId: ReplicateImageModelId,
-    private readonly settings: ReplicateImageSettings,
     private readonly config: ReplicateImageModelConfig,
   ) {}
 

@@ -88,18 +88,12 @@ Creates a text embedding model for text generation.
   /**
 Creates a model for image generation.
 */
-  image(
-    modelId: FireworksImageModelId,
-    settings?: FireworksImageSettings,
-  ): ImageModelV2;
+  image(modelId: FireworksImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
 */
-  imageModel(
-    modelId: FireworksImageModelId,
-    settings?: FireworksImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: FireworksImageModelId): ImageModelV2;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';

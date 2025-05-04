@@ -32,6 +32,7 @@ interface LumaImageModelConfig {
 
 export class LumaImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   private readonly pollIntervalMillis: number;
   private readonly maxPollAttempts: number;
@@ -40,13 +41,8 @@ export class LumaImageModel implements ImageModelV2 {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
     readonly modelId: string,
-    private readonly settings: LumaImageSettings,
     private readonly config: LumaImageModelConfig,
   ) {
     this.pollIntervalMillis =

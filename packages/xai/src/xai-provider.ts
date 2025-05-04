@@ -47,10 +47,7 @@ Creates an Xai image model for image generation.
   /**
 Creates an Xai image model for image generation.
    */
-  imageModel(
-    modelId: XaiImageModelId,
-    settings?: XaiImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: XaiImageModelId): ImageModelV2;
 }
 
 export interface XaiProviderSettings {

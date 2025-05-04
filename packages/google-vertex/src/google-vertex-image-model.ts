@@ -27,14 +27,11 @@ interface GoogleVertexImageModelConfig {
 // https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
 export class GoogleVertexImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
+  // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
+  readonly maxImagesPerCall = 4;
 
   get provider(): string {
     return this.config.provider;
-  }
-
-  get maxImagesPerCall(): number {
-    // https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/imagen-api#parameter_list
-    return this.settings.maxImagesPerCall ?? 4;
   }
 
   constructor(

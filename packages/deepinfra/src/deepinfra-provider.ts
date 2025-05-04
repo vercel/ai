@@ -57,18 +57,12 @@ Creates a chat model for text generation.
   /**
 Creates a model for image generation.
   */
-  image(
-    modelId: DeepInfraImageModelId,
-    settings?: DeepInfraImageSettings,
-  ): ImageModelV2;
+  image(modelId: DeepInfraImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
   */
-  imageModel(
-    modelId: DeepInfraImageModelId,
-    settings?: DeepInfraImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: DeepInfraImageModelId): ImageModelV2;
 
   /**
 Creates a chat model for text generation.

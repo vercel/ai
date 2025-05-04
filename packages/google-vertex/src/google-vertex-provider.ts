@@ -28,18 +28,12 @@ Creates a model for text generation.
   /**
    * Creates a model for image generation.
    */
-  image(
-    modelId: GoogleVertexImageModelId,
-    settings?: GoogleVertexImageSettings,
-  ): ImageModelV2;
+  image(modelId: GoogleVertexImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(
-    modelId: GoogleVertexImageModelId,
-    settings?: GoogleVertexImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: GoogleVertexImageModelId): ImageModelV2;
 }
 
 export interface GoogleVertexProviderSettings {

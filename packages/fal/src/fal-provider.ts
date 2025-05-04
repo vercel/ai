@@ -45,10 +45,7 @@ Creates a model for image generation.
   /**
 Creates a model for image generation.
    */
-  imageModel(
-    modelId: FalImageModelId,
-    settings?: FalImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: FalImageModelId): ImageModelV2;
 
   /**
 Creates a model for transcription.

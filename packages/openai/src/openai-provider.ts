@@ -77,18 +77,12 @@ Creates a model for text embeddings.
   /**
 Creates a model for image generation.
    */
-  image(
-    modelId: OpenAIImageModelId,
-    settings?: OpenAIImageSettings,
-  ): ImageModelV2;
+  image(modelId: OpenAIImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(
-    modelId: OpenAIImageModelId,
-    settings?: OpenAIImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: OpenAIImageModelId): ImageModelV2;
 
   /**
 Creates a model for transcription.

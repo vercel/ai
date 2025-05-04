@@ -36,18 +36,12 @@ export interface ReplicateProvider extends ProviderV2 {
   /**
    * Creates a Replicate image generation model.
    */
-  image(
-    modelId: ReplicateImageModelId,
-    settings?: ReplicateImageSettings,
-  ): ReplicateImageModel;
+  image(modelId: ReplicateImageModelId): ReplicateImageModel;
 
   /**
    * Creates a Replicate image generation model.
    */
-  imageModel(
-    modelId: ReplicateImageModelId,
-    settings?: ReplicateImageSettings,
-  ): ReplicateImageModel;
+  imageModel(modelId: ReplicateImageModelId): ReplicateImageModel;
 }
 
 /**
@@ -56,10 +50,7 @@ export interface ReplicateProvider extends ProviderV2 {
 export function createReplicate(
   options: ReplicateProviderSettings = {},
 ): ReplicateProvider {
-  const createImageModel = (
-    modelId: ReplicateImageModelId,
-    settings?: ReplicateImageSettings,
-  ) =>
+  const createImageModel = (modelId: ReplicateImageModelId) =>
     new ReplicateImageModel(modelId, settings ?? {}, {
       provider: 'replicate',
       baseURL: options.baseURL ?? 'https://api.replicate.com/v1',

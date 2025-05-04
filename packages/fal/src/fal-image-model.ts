@@ -30,18 +30,14 @@ interface FalImageModelConfig {
 
 export class FalImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
     readonly modelId: FalImageModelId,
-    private readonly settings: FalImageSettings,
     private readonly config: FalImageModelConfig,
   ) {}
 

@@ -53,10 +53,7 @@ Creates an Azure OpenAI completion model for text generation.
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  imageModel(
-    deploymentId: string,
-    settings?: OpenAIImageSettings,
-  ): ImageModelV2;
+  imageModel(deploymentId: string): ImageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel` instead.

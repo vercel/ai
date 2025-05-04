@@ -74,10 +74,7 @@ Creates a text embedding model for text generation.
   /**
   Creates a model for image generation.
    */
-  image(
-    modelId: TogetherAIImageModelId,
-    settings?: TogetherAIImageSettings,
-  ): ImageModelV2;
+  image(modelId: TogetherAIImageModelId): ImageModelV2;
 
   /**
   Creates a model for image generation.

@@ -30,9 +30,7 @@ export class BedrockImageModel implements ImageModelV2 {
   readonly provider = 'amazon-bedrock';
 
   get maxImagesPerCall(): number {
-    return (
-      this.settings.maxImagesPerCall ?? modelMaxImagesPerCall[this.modelId] ?? 1
-    );
+    return modelMaxImagesPerCall[this.modelId] ?? 1;
   }
 
   private getUrl(modelId: string): string {
@@ -42,7 +40,6 @@ export class BedrockImageModel implements ImageModelV2 {
 
   constructor(
     readonly modelId: BedrockImageModelId,
-    private readonly settings: BedrockImageSettings,
     private readonly config: BedrockImageModelConfig,
   ) {}
 
