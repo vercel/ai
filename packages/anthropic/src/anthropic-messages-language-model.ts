@@ -303,6 +303,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
+        totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+        reasoningTokens: undefined,
+        cachedInputTokens: response.usage.cache_read_input_tokens ?? undefined,
       },
       request: { body: args },
       response: {
@@ -316,7 +319,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         anthropic: {
           cacheCreationInputTokens:
             response.usage.cache_creation_input_tokens ?? null,
-          cacheReadInputTokens: response.usage.cache_read_input_tokens ?? null,
         },
       },
     };
@@ -344,6 +346,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
+      totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: undefined,
     };
 
     const toolCallContentBlocks: Record<
@@ -517,14 +522,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
               case 'message_start': {
                 usage.inputTokens = value.message.usage.input_tokens;
-                usage.outputTokens = value.message.usage.output_tokens;
+                usage.cachedInputTokens =
+                  value.message.usage.cache_read_input_tokens ?? undefined;
 
                 providerMetadata = {
                   anthropic: {
                     cacheCreationInputTokens:
                       value.message.usage.cache_creation_input_tokens ?? null,
-                    cacheReadInputTokens:
-                      value.message.usage.cache_read_input_tokens ?? null,
                   },
                 };
 
@@ -539,6 +543,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
               case 'message_delta': {
                 usage.outputTokens = value.usage.output_tokens;
+                usage.totalTokens =
+                  (usage.inputTokens ?? 0) + (value.usage.output_tokens ?? 0);
+
                 finishReason = mapAnthropicStopReason(value.delta.stop_reason);
                 return;
               }

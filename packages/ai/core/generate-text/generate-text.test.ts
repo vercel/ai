@@ -359,9 +359,9 @@ describe('result.providerMetadata', () => {
           ...dummyResponseValues,
           content: [],
           providerMetadata: {
-            anthropic: {
-              cacheCreationInputTokens: 10,
-              cacheReadInputTokens: 20,
+            exampleProvider: {
+              a: 10,
+              b: 20,
             },
           },
         }),
@@ -370,9 +370,9 @@ describe('result.providerMetadata', () => {
     });
 
     expect(result.providerMetadata).toStrictEqual({
-      anthropic: {
-        cacheCreationInputTokens: 10,
-        cacheReadInputTokens: 20,
+      exampleProvider: {
+        a: 10,
+        b: 20,
       },
     });
   });

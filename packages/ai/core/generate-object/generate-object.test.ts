@@ -394,9 +394,9 @@ describe('output = "object"', () => {
             ...dummyResponseValues,
             content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
             providerMetadata: {
-              anthropic: {
-                cacheCreationInputTokens: 10,
-                cacheReadInputTokens: 20,
+              exampleProvider: {
+                a: 10,
+                b: 20,
               },
             },
           }),
@@ -406,9 +406,9 @@ describe('output = "object"', () => {
       });
 
       expect(result.providerMetadata).toStrictEqual({
-        anthropic: {
-          cacheCreationInputTokens: 10,
-          cacheReadInputTokens: 20,
+        exampleProvider: {
+          a: 10,
+          b: 20,
         },
       });
     });
