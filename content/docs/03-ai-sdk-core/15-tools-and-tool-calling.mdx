@@ -521,6 +521,13 @@ const result = await generateText({
     messages,
     system,
   }) => {
+    // Parse tool args without schema
+    const parsedArgsResult = safeParseJSON({
+      text: toolCall.args,
+    })
+    if (!parsedArgsResult.success) {
+      return null // do not attempt to fix tool with args that are not JSON
+    }
     const result = await generateText({
       model,
       system,
@@ -533,7 +540,7 @@ const result = await generateText({
               type: 'tool-call',
               toolCallId: toolCall.toolCallId,
               toolName: toolCall.toolName,
-              args: toolCall.args,
+              args: parsedArgsResult.value,
             },
           ],
         },
