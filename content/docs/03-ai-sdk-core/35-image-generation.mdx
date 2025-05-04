@@ -15,7 +15,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: openai.imageModel('dall-e-3'),
   prompt: 'Santa Claus driving a Cadillac',
 });
 ```
@@ -43,7 +43,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: openai.imageModel('dall-e-3'),
   prompt: 'Santa Claus driving a Cadillac',
   size: '1024x1024',
 });
@@ -59,7 +59,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 import { vertex } from '@ai-sdk/google-vertex';
 
 const { image } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
+  model: vertex.imageModel('imagen-3.0-generate-002'),
   prompt: 'Santa Claus driving a Cadillac',
   aspectRatio: '16:9',
 });
@@ -74,7 +74,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { images } = await generateImage({
-  model: openai.image('dall-e-2'),
+  model: openai.imageModel('dall-e-2'),
   prompt: 'Santa Claus driving a Cadillac',
   n: 4, // number of images to generate
 });
@@ -90,7 +90,7 @@ Each image model has an internal limit on how many images it can generate in a s
 If needed, you can override this behavior using the `maxImagesPerCall` setting when configuring your model. This is particularly useful when working with new or custom models where the default batch size might not be optimal:
 
 ```tsx
-const model = openai.image('dall-e-2', {
+const model = openai.imageModel('dall-e-2', {
   maxImagesPerCall: 5, // Override the default batch size
 });
 
@@ -111,7 +111,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: openai.imageModel('dall-e-3'),
   prompt: 'Santa Claus driving a Cadillac',
   seed: 1234567890,
 });
@@ -129,7 +129,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: openai.imageModel('dall-e-3'),
   prompt: 'Santa Claus driving a Cadillac',
   size: '1024x1024',
   providerOptions: {
@@ -149,7 +149,7 @@ import { openai } from '@ai-sdk/openai';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: openai.imageModel('dall-e-3'),
   prompt: 'Santa Claus driving a Cadillac',
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
 });
@@ -165,7 +165,7 @@ import { openai } from '@ai-sdk/openai';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: openai.imageModel('dall-e-3'),
   value: 'sunny day at the beach',
   headers: { 'X-Custom-Header': 'custom-value' },
 });
@@ -177,7 +177,7 @@ If the model returns warnings, e.g. for unsupported parameters, they will be ava
 
 ```tsx
 const { image, warnings } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: openai.imageModel('dall-e-3'),
   prompt: 'Santa Claus driving a Cadillac',
 });
 ```
@@ -190,7 +190,7 @@ Some providers expose additional meta data for the result overall or per image.
 const prompt = 'Santa Claus driving a Cadillac';
 
 const { image, providerMetaData } = await generateImage({
-  model: openai.image('dall-e-3'),
+  model: openai.imageModel('dall-e-3'),
   prompt,
 });
 

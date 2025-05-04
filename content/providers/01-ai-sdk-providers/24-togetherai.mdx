@@ -132,7 +132,7 @@ The Together.ai provider also supports [completion models](https://docs.together
 
 ## Image Models
 
-You can create Together.ai image models using the `.image()` factory method.
+You can create Together.ai image models using the `.imageModel()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 ```ts
@@ -140,7 +140,7 @@ import { togetherai } from '@ai-sdk/togetherai';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { images } = await generateImage({
-  model: togetherai.image('black-forest-labs/FLUX.1-dev'),
+  model: togetherai.imageModel('black-forest-labs/FLUX.1-dev'),
   prompt: 'A delighted resplendent quetzal mid flight amidst raindrops',
 });
 ```
@@ -152,7 +152,7 @@ import { togetherai } from '@ai-sdk/togetherai';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { images } = await generateImage({
-  model: togetherai.image('black-forest-labs/FLUX.1-dev'),
+  model: togetherai.imageModel('black-forest-labs/FLUX.1-dev'),
   prompt: 'A delighted resplendent quetzal mid flight amidst raindrops',
   size: '512x512',
   // Optional additional provider-specific request parameters

@@ -117,7 +117,7 @@ DeepInfra language models can also be used in the `streamText` function (see [AI
 
 ## Image Models
 
-You can create DeepInfra image models using the `.image()` factory method.
+You can create DeepInfra image models using the `.imageModel()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 ```ts
@@ -125,7 +125,7 @@ import { deepinfra } from '@ai-sdk/deepinfra';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: deepinfra.image('stabilityai/sd3.5'),
+  model: deepinfra.imageModel('stabilityai/sd3.5'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });
@@ -147,7 +147,7 @@ import { deepinfra } from '@ai-sdk/deepinfra';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: deepinfra.image('stabilityai/sd3.5'),
+  model: deepinfra.imageModel('stabilityai/sd3.5'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
   providerOptions: {

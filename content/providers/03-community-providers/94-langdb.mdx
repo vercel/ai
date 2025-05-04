@@ -89,7 +89,7 @@ const langdb = createLangDB({
 
 export async function generateImageExample() {
   const { images } = await generateImage({
-    model: langdb.image('openai/dall-e-3'),
+    model: langdb.imageModel('openai/dall-e-3'),
     prompt: 'A delighted resplendent quetzal mid-flight amidst raindrops',
   });
 

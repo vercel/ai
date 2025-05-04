@@ -146,7 +146,7 @@ const model = fireworks.textEmbeddingModel(
 
 ## Image Models
 
-You can create Fireworks image models using the `.image()` factory method.
+You can create Fireworks image models using the `.imageModel()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 ```ts
@@ -154,7 +154,7 @@ import { fireworks } from '@ai-sdk/fireworks';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: fireworks.image('accounts/fireworks/models/flux-1-dev-fp8'),
+  model: fireworks.imageModel('accounts/fireworks/models/flux-1-dev-fp8'),
   prompt: 'A futuristic cityscape at sunset',
   aspectRatio: '16:9',
 });

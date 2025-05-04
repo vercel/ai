@@ -69,7 +69,7 @@ You can use the following optional settings to customize the Fal provider instan
 
 ## Image Models
 
-You can create Fal image models using the `.image()` factory method.
+You can create Fal image models using the `.imageModel()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 ### Basic Usage
@@ -80,7 +80,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 import fs from 'fs';
 
 const { image } = await generateImage({
-  model: fal.image('fal-ai/fast-sdxl'),
+  model: fal.imageModel('fal-ai/fast-sdxl'),
   prompt: 'A serene mountain landscape at sunset',
 });
 
