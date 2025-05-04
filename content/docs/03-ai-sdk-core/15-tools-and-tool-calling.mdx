@@ -524,9 +524,9 @@ const result = await generateText({
     // Parse tool args without schema
     const parsedArgsResult = safeParseJSON({
       text: toolCall.args,
-    })
+    });
     if (!parsedArgsResult.success) {
-      return null // do not attempt to fix tool with args that are not JSON
+      return null; // do not attempt to fix tool with args that are not JSON
     }
     const result = await generateText({
       model,
