@@ -3,6 +3,7 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { MockLanguageModelV2 } from 'ai/test';
 import { streamUI } from './stream-ui';
 import { z } from 'zod';
+import { LanguageModelUsage } from 'ai';
 
 async function recursiveResolve(val: any): Promise<any> {
   if (val && typeof val === 'object' && typeof val.then === 'function') {
@@ -50,6 +51,14 @@ async function simulateFlightServerRender(node: React.ReactNode) {
   return traverse(node);
 }
 
+const testUsage: LanguageModelUsage = {
+  inputTokens: 3,
+  outputTokens: 10,
+  totalTokens: 13,
+  reasoningTokens: undefined,
+  cachedInputTokens: undefined,
+};
+
 const mockTextModel = new MockLanguageModelV2({
   doStream: async () => {
     return {
@@ -63,7 +72,7 @@ const mockTextModel = new MockLanguageModelV2({
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { inputTokens: 3, outputTokens: 10 },
+          usage: testUsage,
         },
       ]),
     };
@@ -84,7 +93,7 @@ const mockToolModel = new MockLanguageModelV2({
         {
           type: 'finish',
           finishReason: 'stop',
-          usage: { inputTokens: 3, outputTokens: 10 },
+          usage: testUsage,
         },
       ]),
     };
@@ -211,15 +220,11 @@ describe('rsc - streamUI() onFinish callback', () => {
   });
 
   it('should contain token usage', () => {
-    assert.deepStrictEqual(result.usage, {
-      completionTokens: 10,
-      promptTokens: 3,
-      totalTokens: 13,
-    });
+    expect(result.usage).toStrictEqual(testUsage);
   });
 
   it('should contain finish reason', async () => {
-    assert.strictEqual(result.finishReason, 'stop');
+    expect(result.finishReason).toBe('stop');
   });
 
   it('should contain final React node', async () => {
@@ -245,7 +250,7 @@ describe('options.headers', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           };
@@ -277,7 +282,7 @@ describe('options.providerMetadata', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           };
