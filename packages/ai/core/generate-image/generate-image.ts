@@ -13,7 +13,7 @@ import {
   detectMediaType,
   imageMediaTypeSignatures,
 } from '../util/detect-media-type';
-import { ProviderOptions } from '../types/provider-metadata';
+import { ProviderOptions, ProviderRequestOptions } from '../types/provider-metadata';
 
 /**
 Generates images using an image model.
@@ -89,6 +89,22 @@ record is keyed by the provider-specific metadata key.
 ```
      */
   providerOptions?: ProviderOptions;
+
+  /**
+Additional provider-specific options that are passed through to the provider
+as body parameters.
+
+The outer record is keyed by the provider name, and the inner
+record is keyed by the provider-specific metadata key.
+```ts
+{
+  "openai": {
+    "style": "vivid"
+  }
+}
+```
+     */
+providerRequestOptions?: ProviderRequestOptions;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.
