@@ -132,9 +132,16 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "reasoningTokens": undefined,
+        "totalTokens": 25,
+      }
+    `);
   });
-
   it('should send additional response information', async () => {
     prepareJsonResponse({
       id: 'test-id',
@@ -167,9 +174,16 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: undefined });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": undefined,
+        "reasoningTokens": undefined,
+        "totalTokens": 20,
+      }
+    `);
   });
-
   it('should extract finish reason', async () => {
     prepareJsonResponse({
       content: '',
@@ -490,8 +504,11 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
           },
         },
       ]
@@ -552,8 +569,11 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
           },
         },
       ]
@@ -686,8 +706,11 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
           },
         },
       ]
@@ -827,8 +850,11 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
           },
         },
       ]
@@ -953,8 +979,11 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -1024,8 +1053,11 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
           },
         },
       ]
@@ -1062,8 +1094,11 @@ describe('doStream', () => {
           "finishReason": "error",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -1098,8 +1133,11 @@ describe('doStream', () => {
             "finishReason": "error",
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": undefined,
               "outputTokens": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": undefined,
             },
           },
         ]
