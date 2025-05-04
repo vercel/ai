@@ -222,6 +222,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: response.usage.prompt_tokens,
         outputTokens: response.usage.completion_tokens,
+        totalTokens: response.usage.total_tokens,
+        reasoningTokens: undefined,
+        cachedInputTokens: undefined,
       },
       request: { body },
       response: {
@@ -255,6 +258,9 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
+      totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: undefined,
     };
     let chunkNumber = 0;
     let trimLeadingSpace = false;
@@ -289,6 +295,7 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
             if (value.usage != null) {
               usage.inputTokens = value.usage.prompt_tokens;
               usage.outputTokens = value.usage.completion_tokens;
+              usage.totalTokens = value.usage.total_tokens;
             }
 
             const choice = value.choices[0];
@@ -429,6 +436,12 @@ const mistralContentSchema = z
   ])
   .nullish();
 
+const mistralUsageSchema = z.object({
+  prompt_tokens: z.number(),
+  completion_tokens: z.number(),
+  total_tokens: z.number(),
+});
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const mistralChatResponseSchema = z.object({
@@ -454,10 +467,7 @@ const mistralChatResponseSchema = z.object({
     }),
   ),
   object: z.literal('chat.completion'),
-  usage: z.object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
-  }),
+  usage: mistralUsageSchema,
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -484,10 +494,5 @@ const mistralChatChunkSchema = z.object({
       index: z.number(),
     }),
   ),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-    })
-    .nullish(),
+  usage: mistralUsageSchema.nullish(),
 });

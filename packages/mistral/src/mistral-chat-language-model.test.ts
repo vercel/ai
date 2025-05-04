@@ -164,7 +164,15 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "reasoningTokens": undefined,
+        "totalTokens": 25,
+      }
+    `);
   });
 
   it('should send additional response information', async () => {
@@ -449,8 +457,11 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 4,
             "outputTokens": 32,
+            "reasoningTokens": undefined,
+            "totalTokens": 36,
           },
         },
       ]
@@ -502,8 +513,11 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 4,
             "outputTokens": 32,
+            "reasoningTokens": undefined,
+            "totalTokens": 36,
           },
         },
       ]
@@ -579,8 +593,11 @@ describe('doStream', () => {
           "finishReason": "tool-calls",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 183,
             "outputTokens": 133,
+            "reasoningTokens": undefined,
+            "totalTokens": 316,
           },
         },
       ]
@@ -730,8 +747,11 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 4,
             "outputTokens": 32,
+            "reasoningTokens": undefined,
+            "totalTokens": 36,
           },
         },
       ]
