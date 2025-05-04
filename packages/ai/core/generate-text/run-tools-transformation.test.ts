@@ -9,6 +9,14 @@ import { NoSuchToolError } from '../../errors';
 import { MockTracer } from '../test/mock-tracer';
 import { runToolsTransformation } from './run-tools-transformation';
 
+const testUsage = {
+  inputTokens: 3,
+  outputTokens: 10,
+  totalTokens: 13,
+  reasoningTokens: undefined,
+  cachedInputTokens: undefined,
+};
+
 it('should forward text deltas correctly', async () => {
   const inputStream: ReadableStream<LanguageModelV2StreamPart> =
     convertArrayToReadableStream([
@@ -16,7 +24,7 @@ it('should forward text deltas correctly', async () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { inputTokens: 3, outputTokens: 10 },
+        usage: testUsage,
       },
     ]);
 
@@ -34,14 +42,25 @@ it('should forward text deltas correctly', async () => {
 
   const result = await convertReadableStreamToArray(transformedStream);
 
-  expect(result).toEqual([
-    { type: 'text', text: 'text' },
-    {
-      type: 'finish',
-      finishReason: 'stop',
-      usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-    },
-  ]);
+  expect(result).toMatchInlineSnapshot(`
+    [
+      {
+        "text": "text",
+        "type": "text",
+      },
+      {
+        "finishReason": "stop",
+        "type": "finish",
+        "usage": {
+          "cachedInputTokens": undefined,
+          "inputTokens": 3,
+          "outputTokens": 10,
+          "reasoningTokens": undefined,
+          "totalTokens": 13,
+        },
+      },
+    ]
+  `);
 });
 
 it('should handle immediate tool execution', async () => {
@@ -57,7 +76,7 @@ it('should handle immediate tool execution', async () => {
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { inputTokens: 3, outputTokens: 10 },
+        usage: testUsage,
       },
     ]);
 
@@ -78,28 +97,39 @@ it('should handle immediate tool execution', async () => {
     repairToolCall: undefined,
   });
 
-  const result = await convertReadableStreamToArray(transformedStream);
-
-  expect(result).toEqual([
-    {
-      type: 'tool-call',
-      toolCallId: 'call-1',
-      toolName: 'syncTool',
-      args: { value: 'test' },
-    },
-    {
-      type: 'tool-result',
-      toolCallId: 'call-1',
-      toolName: 'syncTool',
-      args: { value: 'test' },
-      result: 'test-sync-result',
-    },
-    {
-      type: 'finish',
-      finishReason: 'stop',
-      usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-    },
-  ]);
+  expect(await convertReadableStreamToArray(transformedStream))
+    .toMatchInlineSnapshot(`
+    [
+      {
+        "args": {
+          "value": "test",
+        },
+        "toolCallId": "call-1",
+        "toolName": "syncTool",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "test",
+        },
+        "result": "test-sync-result",
+        "toolCallId": "call-1",
+        "toolName": "syncTool",
+        "type": "tool-result",
+      },
+      {
+        "finishReason": "stop",
+        "type": "finish",
+        "usage": {
+          "cachedInputTokens": undefined,
+          "inputTokens": 3,
+          "outputTokens": 10,
+          "reasoningTokens": undefined,
+          "totalTokens": 13,
+        },
+      },
+    ]
+  `);
 });
 
 it('should hold off on sending finish until the delayed tool result is received', async () => {
@@ -115,7 +145,7 @@ it('should hold off on sending finish until the delayed tool result is received'
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { inputTokens: 3, outputTokens: 10 },
+        usage: testUsage,
       },
     ]);
 
@@ -141,26 +171,38 @@ it('should hold off on sending finish until the delayed tool result is received'
 
   const result = await convertReadableStreamToArray(transformedStream);
 
-  expect(result).toEqual([
-    {
-      type: 'tool-call',
-      toolCallId: 'call-1',
-      toolName: 'delayedTool',
-      args: { value: 'test' },
-    },
-    {
-      type: 'tool-result',
-      toolCallId: 'call-1',
-      toolName: 'delayedTool',
-      args: { value: 'test' },
-      result: 'test-delayed-result',
-    },
-    {
-      type: 'finish',
-      finishReason: 'stop',
-      usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-    },
-  ]);
+  expect(result).toMatchInlineSnapshot(`
+    [
+      {
+        "args": {
+          "value": "test",
+        },
+        "toolCallId": "call-1",
+        "toolName": "delayedTool",
+        "type": "tool-call",
+      },
+      {
+        "finishReason": "stop",
+        "type": "finish",
+        "usage": {
+          "cachedInputTokens": undefined,
+          "inputTokens": 3,
+          "outputTokens": 10,
+          "reasoningTokens": undefined,
+          "totalTokens": 13,
+        },
+      },
+      {
+        "args": {
+          "value": "test",
+        },
+        "result": "test-delayed-result",
+        "toolCallId": "call-1",
+        "toolName": "delayedTool",
+        "type": "tool-result",
+      },
+    ]
+  `);
 });
 
 it('should try to repair tool call when the tool name is not found', async () => {
@@ -176,7 +218,7 @@ it('should try to repair tool call when the tool name is not found', async () =>
       {
         type: 'finish',
         finishReason: 'stop',
-        usage: { inputTokens: 3, outputTokens: 10 },
+        usage: testUsage,
       },
     ]);
 
@@ -208,26 +250,37 @@ it('should try to repair tool call when the tool name is not found', async () =>
     },
   });
 
-  const result = await convertReadableStreamToArray(transformedStream);
-
-  expect(result).toEqual([
-    {
-      type: 'tool-call',
-      toolCallId: 'call-1',
-      toolName: 'correctTool',
-      args: { value: 'test' },
-    },
-    {
-      type: 'tool-result',
-      toolCallId: 'call-1',
-      toolName: 'correctTool',
-      args: { value: 'test' },
-      result: 'test-result',
-    },
-    {
-      type: 'finish',
-      finishReason: 'stop',
-      usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
-    },
-  ]);
+  expect(await convertReadableStreamToArray(transformedStream))
+    .toMatchInlineSnapshot(`
+    [
+      {
+        "args": {
+          "value": "test",
+        },
+        "toolCallId": "call-1",
+        "toolName": "correctTool",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "test",
+        },
+        "result": "test-result",
+        "toolCallId": "call-1",
+        "toolName": "correctTool",
+        "type": "tool-result",
+      },
+      {
+        "finishReason": "stop",
+        "type": "finish",
+        "usage": {
+          "cachedInputTokens": undefined,
+          "inputTokens": 3,
+          "outputTokens": 10,
+          "reasoningTokens": undefined,
+          "totalTokens": 13,
+        },
+      },
+    ]
+  `);
 });

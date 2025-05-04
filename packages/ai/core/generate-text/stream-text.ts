@@ -790,9 +790,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
           const usage = recordedUsage ?? {
-            completionTokens: NaN,
-            promptTokens: NaN,
-            totalTokens: NaN,
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
           };
 
           // from finish:
@@ -837,8 +839,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       : undefined,
                 },
 
-                'ai.usage.promptTokens': usage.promptTokens,
-                'ai.usage.completionTokens': usage.completionTokens,
+                'ai.usage.inputTokens': usage.inputTokens,
+                'ai.usage.outputTokens': usage.outputTokens,
+                'ai.usage.totalTokens': usage.totalTokens,
+                'ai.usage.reasoningTokens': usage.reasoningTokens,
+                'ai.usage.cachedInputTokens': usage.cachedInputTokens,
               },
             }),
           );
@@ -1038,9 +1043,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           let stepFinishReason: FinishReason = 'unknown';
           let stepUsage: LanguageModelUsage = {
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
           };
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
@@ -1212,8 +1219,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       doStreamSpan.addEvent('ai.stream.finish');
                       doStreamSpan.setAttributes({
                         'ai.response.msToFinish': msToFinish,
-                        'ai.response.avgCompletionTokensPerSecond':
-                          (1000 * stepUsage.completionTokens) / msToFinish,
+                        'ai.response.avgOutputTokensPerSecond':
+                          (1000 * (stepUsage.outputTokens ?? 0)) / msToFinish,
                       });
 
                       break;
@@ -1305,17 +1312,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           'ai.response.timestamp':
                             stepResponse.timestamp.toISOString(),
 
-                          'ai.usage.promptTokens': stepUsage.promptTokens,
-                          'ai.usage.completionTokens':
-                            stepUsage.completionTokens,
+                          'ai.usage.inputTokens': stepUsage.inputTokens,
+                          'ai.usage.outputTokens': stepUsage.outputTokens,
+                          'ai.usage.totalTokens': stepUsage.totalTokens,
+                          'ai.usage.reasoningTokens': stepUsage.reasoningTokens,
+                          'ai.usage.cachedInputTokens':
+                            stepUsage.cachedInputTokens,
 
                           // standardized gen-ai llm span attributes:
                           'gen_ai.response.finish_reasons': [stepFinishReason],
                           'gen_ai.response.id': stepResponse.id,
                           'gen_ai.response.model': stepResponse.modelId,
-                          'gen_ai.usage.input_tokens': stepUsage.promptTokens,
-                          'gen_ai.usage.output_tokens':
-                            stepUsage.completionTokens,
+                          'gen_ai.usage.input_tokens': stepUsage.inputTokens,
+                          'gen_ai.usage.output_tokens': stepUsage.outputTokens,
                         },
                       }),
                     );
@@ -1414,9 +1423,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           currentStep: 0,
           responseMessages: [],
           usage: {
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
           },
           previousStepText: '',
           stepType: 'initial',
@@ -1689,8 +1700,11 @@ However, the LLM results are expected to be small enough to not cause issues.
                   finishReason: chunk.finishReason,
                   usage: sendUsage
                     ? {
-                        promptTokens: chunk.usage.promptTokens,
-                        completionTokens: chunk.usage.completionTokens,
+                        inputTokens: chunk.usage.inputTokens,
+                        outputTokens: chunk.usage.outputTokens,
+                        totalTokens: chunk.usage.totalTokens,
+                        reasoningTokens: chunk.usage.reasoningTokens,
+                        cachedInputTokens: chunk.usage.cachedInputTokens,
                       }
                     : undefined,
                   isContinued: chunk.isContinued,
@@ -1706,8 +1720,11 @@ However, the LLM results are expected to be small enough to not cause issues.
                     finishReason: chunk.finishReason,
                     usage: sendUsage
                       ? {
-                          promptTokens: chunk.usage.promptTokens,
-                          completionTokens: chunk.usage.completionTokens,
+                          inputTokens: chunk.usage.inputTokens,
+                          outputTokens: chunk.usage.outputTokens,
+                          totalTokens: chunk.usage.totalTokens,
+                          reasoningTokens: chunk.usage.reasoningTokens,
+                          cachedInputTokens: chunk.usage.cachedInputTokens,
                         }
                       : undefined,
                   }),

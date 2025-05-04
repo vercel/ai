@@ -4,7 +4,7 @@ import {
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
 import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
-import { LanguageModelUsage } from './duplicated/usage';
+import { LanguageModelUsage } from './usage';
 
 export type IdGenerator = () => string;
 
