@@ -40,6 +40,7 @@ export async function generateImage({
   aspectRatio,
   seed,
   providerOptions,
+  providerRequestOptions,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -104,7 +105,7 @@ record is keyed by the provider-specific metadata key.
 }
 ```
      */
-providerRequestOptions?: ProviderRequestOptions;
+  providerRequestOptions?: ProviderRequestOptions;
 
   /**
 Maximum number of retries per embedding model call. Set to 0 to disable retries.
@@ -126,19 +127,24 @@ Only applicable for HTTP-based providers.
 }): Promise<GenerateImageResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
+  // extract maxImagesPerCall from providerRequestOptions
+  const [
+    { maxImagesPerCall } = {}
+  ] = Object.values(providerOptions ?? {});
+
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
-  const maxImagesPerCall = model.maxImagesPerCall ?? 1;
+  const maxImagesPerCallWithDefault = (maxImagesPerCall as number) ?? model.maxImagesPerCall ?? 1;
 
   // parallelize calls to the model:
-  const callCount = Math.ceil(n / maxImagesPerCall);
+  const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
   const callImageCounts = Array.from({ length: callCount }, (_, i) => {
     if (i < callCount - 1) {
-      return maxImagesPerCall;
+      return maxImagesPerCallWithDefault;
     }
 
-    const remainder = n % maxImagesPerCall;
-    return remainder === 0 ? maxImagesPerCall : remainder;
+    const remainder = n % maxImagesPerCallWithDefault;
+    return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
   const results = await Promise.all(
     callImageCounts.map(async callImageCount =>
