@@ -212,18 +212,15 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(result.usage).toStrictEqual({
-          inputTokens: 345,
-          outputTokens: 538,
-        });
-
-        expect(result.providerMetadata).toStrictEqual({
-          openai: {
-            responseId: 'resp_67c97c0203188190a025beb4a75242bc',
-            cachedPromptTokens: 234,
-            reasoningTokens: 123,
-          },
-        });
+        expect(result.usage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": 234,
+            "inputTokens": 345,
+            "outputTokens": 538,
+            "reasoningTokens": 123,
+            "totalTokens": 883,
+          }
+        `);
       });
 
       it('should extract response id metadata ', async () => {
@@ -234,8 +231,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(result.providerMetadata).toStrictEqual({
           openai: {
             responseId: 'resp_67c97c0203188190a025beb4a75242bc',
-            cachedPromptTokens: 234,
-            reasoningTokens: 123,
           },
         });
       });
@@ -782,13 +777,15 @@ describe('OpenAIResponsesLanguageModel', () => {
           ]
         `);
 
-        expect(result.providerMetadata).toStrictEqual({
-          openai: {
-            responseId: 'resp_67c97c0203188190a025beb4a75242bc',
-            cachedPromptTokens: 0,
-            reasoningTokens: 320,
-          },
-        });
+        expect(result.usage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": 0,
+            "inputTokens": 34,
+            "outputTokens": 538,
+            "reasoningTokens": 320,
+            "totalTokens": 572,
+          }
+        `);
 
         expect(await server.calls[0].requestBodyJson).toMatchObject({
           model: 'o3-mini',
@@ -1180,15 +1177,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "openai": {
-                "cachedPromptTokens": 234,
-                "reasoningTokens": 123,
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
               },
             },
             "type": "finish",
             "usage": {
+              "cachedInputTokens": 234,
               "inputTokens": 543,
               "outputTokens": 478,
+              "reasoningTokens": 123,
+              "totalTokens": 1021,
             },
           },
         ]
@@ -1235,15 +1233,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "finishReason": "length",
             "providerMetadata": {
               "openai": {
-                "cachedPromptTokens": 0,
-                "reasoningTokens": 0,
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
               },
             },
             "type": "finish",
             "usage": {
+              "cachedInputTokens": 0,
               "inputTokens": 0,
               "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 0,
             },
           },
         ]
@@ -1363,15 +1362,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "finishReason": "tool-calls",
             "providerMetadata": {
               "openai": {
-                "cachedPromptTokens": 0,
-                "reasoningTokens": 0,
                 "responseId": "resp_67cb13a755c08190acbe3839a49632fc",
               },
             },
             "type": "finish",
             "usage": {
+              "cachedInputTokens": 0,
               "inputTokens": 0,
               "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 0,
             },
           },
         ]
@@ -1459,15 +1459,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "openai": {
-                "cachedPromptTokens": 0,
-                "reasoningTokens": 0,
                 "responseId": "resp_67cf3390786881908b27489d7e8cfb6b",
               },
             },
             "type": "finish",
             "usage": {
+              "cachedInputTokens": 0,
               "inputTokens": 327,
               "outputTokens": 834,
+              "reasoningTokens": 0,
+              "totalTokens": 1161,
             },
           },
         ]
@@ -1539,15 +1540,16 @@ describe('OpenAIResponsesLanguageModel', () => {
             "finishReason": "stop",
             "providerMetadata": {
               "openai": {
-                "cachedPromptTokens": 234,
-                "reasoningTokens": 350,
                 "responseId": "resp_67c9a81b6a048190a9ee441c5755a4e8",
               },
             },
             "type": "finish",
             "usage": {
+              "cachedInputTokens": 234,
               "inputTokens": 543,
               "outputTokens": 478,
+              "reasoningTokens": 350,
+              "totalTokens": 1021,
             },
           },
         ]
