@@ -52,7 +52,7 @@ describe('doGenerate', () => {
       aspectRatio: undefined,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'stabilityai/stable-diffusion-xl',
       prompt,
       seed: 42,

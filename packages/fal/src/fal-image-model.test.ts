@@ -64,7 +64,7 @@ describe('FalImageModel', () => {
         providerOptions: { fal: { additional_param: 'value' } },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         seed: 123,
         image_size: { width: 1024, height: 1024 },
@@ -85,7 +85,7 @@ describe('FalImageModel', () => {
         providerOptions: {},
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         image_size: 'landscape_16_9',
         num_images: 1,

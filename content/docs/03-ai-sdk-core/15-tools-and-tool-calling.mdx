@@ -191,12 +191,12 @@ Both `generateText` and `streamText` have a `response.messages` property that yo
 add the assistant and tool messages to your conversation history.
 It is also available in the `onFinish` callback of `streamText`.
 
-The `response.messages` property contains an array of `CoreMessage` objects that you can add to your conversation history:
+The `response.messages` property contains an array of `ModelMessage` objects that you can add to your conversation history:
 
 ```ts
 import { generateText } from 'ai';
 
-const messages: CoreMessage[] = [
+const messages: ModelMessage[] = [
   // ...
 ];
 
@@ -679,7 +679,7 @@ Create an MCP client using either:
 
 - `SSE` (Server-Sent Events): Uses HTTP-based real-time communication, better suited for remote servers that need to send data over the network
 - `stdio`: Uses standard input and output streams for communication, ideal for local tool servers running on the same machine (like CLI tools or local services)
-- Custom transport: Bring your own transport by implementing the `MCPTransport` interface
+- Custom transport: Bring your own transport by implementing the `MCPTransport` interface, ideal when implementing transports from MCP's official Typescript SDK (e.g. `StreamableHTTPClientTransport`)
 
 #### SSE Transport
 
@@ -719,17 +719,29 @@ const mcpClient = await createMCPClient({
 
 #### Custom Transport
 
-You can also bring your own transport by implementing the `MCPTransport` interface:
+You can also bring your own transport, as long as it implements the `MCPTransport` interface. Below is an example of using the new `StreamableHTTPClientTransport` from MCP's official Typescript SDK:
 
 ```typescript
-import { MCPTransport, createMCPClient } from 'ai';
+import {
+  MCPTransport,
+  experimental_createMCPClient as createMCPClient,
+} from 'ai';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
 
+const url = new URL('http://localhost:3000/mcp');
 const mcpClient = await createMCPClient({
-  transport: new MyCustomTransport({
-    // ...
+  transport: new StreamableHTTPClientTransport(url, {
+    sessionId: 'session_123',
   }),
 });
 ```
+
+<Note>
+  The client returned by the `experimental_createMCPClient` function is a
+  lightweight client intended for use in tool conversion. It currently does not
+  support all features of the full MCP client, such as: authorization, session
+  management, resumable streams, and receiving notifications.
+</Note>
 
 #### Closing the MCP Client
 

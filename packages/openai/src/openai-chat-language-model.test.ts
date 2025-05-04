@@ -401,7 +401,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -421,7 +421,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "logit_bias": {
           "50256": -100,
@@ -451,7 +451,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'low',
@@ -470,7 +470,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1-mini',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'high',
@@ -501,7 +501,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "messages": [
           {
@@ -630,7 +630,7 @@ describe('doGenerate', () => {
         responseFormat: { type: 'text' },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
       });
@@ -646,7 +646,7 @@ describe('doGenerate', () => {
         responseFormat: { type: 'json' },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: { type: 'json_object' },
@@ -677,7 +677,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
         {
           "messages": [
             {
@@ -721,7 +721,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -762,7 +762,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -803,7 +803,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -838,7 +838,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         response_format: {
@@ -882,7 +882,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'gpt-4o-2024-08-06',
         messages: [{ role: 'user', content: 'Hello' }],
         tool_choice: 'required',
@@ -956,7 +956,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-4o-2024-08-06',
       messages: [{ role: 'user', content: 'Hello' }],
       tool_choice: { type: 'function', function: { name: 'test-tool' } },
@@ -1057,7 +1057,7 @@ describe('doGenerate', () => {
         presencePenalty: 0.3,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'o1-preview',
         messages: [{ role: 'user', content: 'Hello' }],
       });
@@ -1096,7 +1096,7 @@ describe('doGenerate', () => {
         maxOutputTokens: 1000,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'o1-preview',
         messages: [{ role: 'user', content: 'Hello' }],
         max_completion_tokens: 1000,
@@ -1116,7 +1116,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1-preview',
       messages: [{ role: 'user', content: 'Hello' }],
     });
@@ -1141,7 +1141,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1',
       messages: [
         { role: 'developer', content: 'You are a helpful assistant.' },
@@ -1191,7 +1191,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'o1-preview',
       messages: [{ role: 'user', content: 'Hello' }],
       max_completion_tokens: 255,
@@ -1213,7 +1213,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       prediction: {
@@ -1235,7 +1235,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       store: true,
@@ -1256,7 +1256,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: 'Hello' }],
       metadata: {
@@ -1275,7 +1275,7 @@ describe('doGenerate', () => {
       temperature: 0.7,
     });
 
-    const requestBody = await server.calls[0].requestBody;
+    const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.model).toBe('gpt-4o-search-preview');
     expect(requestBody.temperature).toBeUndefined();
 
@@ -1297,7 +1297,7 @@ describe('doGenerate', () => {
       temperature: 0.7,
     });
 
-    const requestBody = await server.calls[0].requestBody;
+    const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.model).toBe('gpt-4o-mini-search-preview');
     expect(requestBody.temperature).toBeUndefined();
 
@@ -1319,7 +1319,7 @@ describe('doGenerate', () => {
       temperature: 0.7,
     });
 
-    const requestBody = await server.calls[0].requestBody;
+    const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.model).toBe('gpt-4o-mini-search-preview-2025-03-11');
     expect(requestBody.temperature).toBeUndefined();
 
@@ -1444,7 +1444,100 @@ describe('doStream', () => {
         {
           "finishReason": "stop",
           "providerMetadata": {
-            "openai": {},
+            "openai": {
+              "logprobs": [
+                {
+                  "logprob": -0.0009994634,
+                  "token": "Hello",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.0009994634,
+                      "token": "Hello",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.13410144,
+                  "token": "!",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.13410144,
+                      "token": "!",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.0009250381,
+                  "token": " How",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.0009250381,
+                      "token": " How",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.047709424,
+                  "token": " can",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.047709424,
+                      "token": " can",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.000009014684,
+                  "token": " I",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.000009014684,
+                      "token": " I",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.009125131,
+                  "token": " assist",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.009125131,
+                      "token": " assist",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.0000066306106,
+                  "token": " you",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.0000066306106,
+                      "token": " you",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.00011093382,
+                  "token": " today",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.00011093382,
+                      "token": " today",
+                    },
+                  ],
+                },
+                {
+                  "logprob": -0.00004596782,
+                  "token": "?",
+                  "top_logprobs": [
+                    {
+                      "logprob": -0.00004596782,
+                      "token": "?",
+                    },
+                  ],
+                },
+              ],
+            },
           },
           "type": "finish",
           "usage": {
@@ -2100,7 +2193,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
@@ -2154,7 +2247,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
@@ -2197,7 +2290,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       stream_options: { include_usage: true },
       model: 'gpt-3.5-turbo',
@@ -2235,7 +2328,7 @@ describe('doStream', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       stream: true,
       stream_options: { include_usage: true },
@@ -2258,7 +2351,7 @@ describe('doStream', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'gpt-3.5-turbo',
       stream: true,
       stream_options: { include_usage: true },

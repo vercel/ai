@@ -114,7 +114,7 @@ test('minor update', async () => {
     () => verifyChangesets(event, env, readFile),
     Object.assign(
       new Error(
-        `Invalid .changeset file - invalid version bump (only "patch" is allowed, see https://sdk.vercel.ai/docs/migration-guides/versioning). To bypass, add one of the following labels: minor, major`,
+        `Invalid .changeset file - invalid version bump (only "patch" is allowed, see https://ai-sdk.dev/docs/migration-guides/versioning). To bypass, add one of the following labels: minor, major`,
       ),
       {
         path: '.changeset/minor-update.md',

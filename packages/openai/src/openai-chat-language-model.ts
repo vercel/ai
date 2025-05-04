@@ -487,6 +487,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               finishReason = mapOpenAIFinishReason(choice.finish_reason);
             }
 
+            if (choice?.logprobs?.content != null) {
+              providerMetadata.openai.logprobs = choice.logprobs.content;
+            }
+
             if (choice?.delta == null) {
               return;
             }
@@ -713,11 +717,29 @@ const openaiChatChunkSchema = z.union([
                 z.object({
                   index: z.number(),
                   id: z.string().nullish(),
-                  type: z.literal('function').optional(),
+                  type: z.literal('function').nullish(),
                   function: z.object({
                     name: z.string().nullish(),
                     arguments: z.string().nullish(),
                   }),
+                }),
+              )
+              .nullish(),
+          })
+          .nullish(),
+        logprobs: z
+          .object({
+            content: z
+              .array(
+                z.object({
+                  token: z.string(),
+                  logprob: z.number(),
+                  top_logprobs: z.array(
+                    z.object({
+                      token: z.string(),
+                      logprob: z.number(),
+                    }),
+                  ),
                 }),
               )
               .nullish(),

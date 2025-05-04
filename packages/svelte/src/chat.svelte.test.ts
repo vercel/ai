@@ -1,5 +1,6 @@
 import {
   createTestServer,
+  mockId,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
 import { formatDataStreamPart, getToolInvocations, type UIMessage } from 'ai';
@@ -7,6 +8,7 @@ import { render } from '@testing-library/svelte';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
 import { promiseWithResolvers } from './utils.svelte.js';
+import { mockValues } from 'ai/test';
 
 function createFileList(...files: File[]): FileList {
   // file lists are really hard to create :(
@@ -30,7 +32,12 @@ describe('data protocol stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should correctly manage streamed response in messages', async () => {
@@ -183,6 +190,10 @@ describe('data protocol stream', () => {
     const onFinish = vi.fn();
     const chatWithOnFinish = new Chat({
       onFinish,
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
     });
     await chatWithOnFinish.append({
       role: 'user',
@@ -222,16 +233,25 @@ describe('data protocol stream', () => {
         parts: [{ text: 'hi', type: 'text' }],
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        id: chat.id,
-        messages: [
-          {
-            role: 'user',
-            content: 'hi',
-            parts: [{ text: 'hi', type: 'text' }],
-          },
-        ],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "id-0",
+          "messages": [
+            {
+              "content": "hi",
+              "createdAt": "2025-01-01T00:00:00.000Z",
+              "id": "id-1",
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+        }
+      `);
     });
 
     it('should clear out messages when the id changes', async () => {
@@ -1021,7 +1041,12 @@ describe('file attachments with data url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should handle text file attachment and submission', async () => {
@@ -1033,51 +1058,74 @@ describe('file attachments with data url', () => {
     chat.input = 'Message with text attachment';
 
     await chat.handleSubmit(undefined, {
-      experimental_attachments: createFileList(
+      files: createFileList(
         new File(['test file content'], 'test.txt', {
           type: 'text/plain',
         }),
       ),
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: 'Message with text attachment',
-        experimental_attachments: [
-          expect.objectContaining({
-            name: 'test.txt',
-            contentType: 'text/plain',
-            url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
-          }),
-        ],
-      }),
-    );
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Response to message with text attachment',
-      }),
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
         {
-          role: 'user',
-          content: 'Message with text attachment',
-          experimental_attachments: [
+          "content": "Message with text attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
             {
-              name: 'test.txt',
-              contentType: 'text/plain',
-              url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
+              "filename": "test.txt",
+              "mediaType": "text/plain",
+              "type": "file",
+              "url": "data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=",
+            },
+            {
+              "text": "Message with text attachment",
+              "type": "text",
             },
           ],
-          parts: [{ text: 'Message with text attachment', type: 'text' }],
+          "role": "user",
         },
-      ],
-    });
+        {
+          "content": "Response to message with text attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Response to message with text attachment",
+              "type": "text",
+            },
+          ],
+          "revisionId": "id-3",
+          "role": "assistant",
+        },
+      ]
+    `);
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "Message with text attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "filename": "test.txt",
+                "mediaType": "text/plain",
+                "type": "file",
+                "url": "data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=",
+              },
+              {
+                "text": "Message with text attachment",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1089,51 +1137,74 @@ describe('file attachments with data url', () => {
     chat.input = 'Message with image attachment';
 
     await chat.handleSubmit(undefined, {
-      experimental_attachments: createFileList(
+      files: createFileList(
         new File(['test image content'], 'test.png', {
           type: 'image/png',
         }),
       ),
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: 'Message with image attachment',
-        experimental_attachments: [
-          expect.objectContaining({
-            name: 'test.png',
-            contentType: 'image/png',
-            url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
-          }),
-        ],
-      }),
-    );
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Response to message with image attachment',
-      }),
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
         {
-          role: 'user',
-          content: 'Message with image attachment',
-          experimental_attachments: [
+          "content": "Message with image attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
             {
-              name: 'test.png',
-              contentType: 'image/png',
-              url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
+              "filename": "test.png",
+              "mediaType": "image/png",
+              "type": "file",
+              "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+            },
+            {
+              "text": "Message with image attachment",
+              "type": "text",
             },
           ],
-          parts: [{ text: 'Message with image attachment', type: 'text' }],
+          "role": "user",
         },
-      ],
-    });
+        {
+          "content": "Response to message with image attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Response to message with image attachment",
+              "type": "text",
+            },
+          ],
+          "revisionId": "id-3",
+          "role": "assistant",
+        },
+      ]
+    `);
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "filename": "test.png",
+                "mediaType": "image/png",
+                "type": "file",
+                "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+              },
+              {
+                "text": "Message with image attachment",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
@@ -1141,7 +1212,12 @@ describe('file attachments with url', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1153,53 +1229,74 @@ describe('file attachments with url', () => {
     chat.input = 'Message with image attachment';
 
     await chat.handleSubmit(undefined, {
-      experimental_attachments: [
-        {
-          name: 'test.png',
-          contentType: 'image/png',
-          url: 'https://example.com/image.png',
-        },
-      ],
+      files: createFileList(
+        new File(['test image content'], 'test.png', {
+          type: 'image/png',
+        }),
+      ),
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: 'Message with image attachment',
-        experimental_attachments: [
-          expect.objectContaining({
-            name: 'test.png',
-            contentType: 'image/png',
-            url: 'https://example.com/image.png',
-          }),
-        ],
-      }),
-    );
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Response to message with image attachment',
-      }),
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
         {
-          role: 'user',
-          content: 'Message with image attachment',
-          experimental_attachments: [
+          "content": "Message with image attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
             {
-              name: 'test.png',
-              contentType: 'image/png',
-              url: 'https://example.com/image.png',
+              "filename": "test.png",
+              "mediaType": "image/png",
+              "type": "file",
+              "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+            },
+            {
+              "text": "Message with image attachment",
+              "type": "text",
             },
           ],
-          parts: [{ text: 'Message with image attachment', type: 'text' }],
+          "role": "user",
         },
-      ],
-    });
+        {
+          "content": "Response to message with image attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Response to message with image attachment",
+              "type": "text",
+            },
+          ],
+          "revisionId": "id-3",
+          "role": "assistant",
+        },
+      ]
+    `);
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "filename": "test.png",
+                "mediaType": "image/png",
+                "type": "file",
+                "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+              },
+              {
+                "text": "Message with image attachment",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
@@ -1207,7 +1304,12 @@ describe('file attachments with empty text content', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1218,53 +1320,74 @@ describe('file attachments with empty text content', () => {
 
     await chat.handleSubmit(undefined, {
       allowEmptySubmit: true,
-      experimental_attachments: [
-        {
-          name: 'test.png',
-          contentType: 'image/png',
-          url: 'https://example.com/image.png',
-        },
-      ],
+      files: createFileList(
+        new File(['test image content'], 'test.png', {
+          type: 'image/png',
+        }),
+      ),
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: '',
-        experimental_attachments: [
-          expect.objectContaining({
-            name: 'test.png',
-            contentType: 'image/png',
-            url: 'https://example.com/image.png',
-          }),
-        ],
-      }),
-    );
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Response to message with image attachment',
-      }),
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
         {
-          role: 'user',
-          content: '',
-          experimental_attachments: [
+          "content": "",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
             {
-              name: 'test.png',
-              contentType: 'image/png',
-              url: 'https://example.com/image.png',
+              "filename": "test.png",
+              "mediaType": "image/png",
+              "type": "file",
+              "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+            },
+            {
+              "text": "",
+              "type": "text",
             },
           ],
-          parts: [{ text: '', type: 'text' }],
+          "role": "user",
         },
-      ],
-    });
+        {
+          "content": "Response to message with image attachment",
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Response to message with image attachment",
+              "type": "text",
+            },
+          ],
+          "revisionId": "id-3",
+          "role": "assistant",
+        },
+      ]
+    `);
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "filename": "test.png",
+                "mediaType": "image/png",
+                "type": "file",
+                "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+              },
+              {
+                "text": "",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
@@ -1272,7 +1395,12 @@ describe('reload', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should show streamed response', async () => {
@@ -1314,18 +1442,29 @@ describe('reload', () => {
       headers: { 'header-key': 'header-value' },
     });
 
-    expect(await server.calls[1].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          content: 'hi',
-          role: 'user',
-          parts: [{ text: 'hi', type: 'text' }],
+    expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "test-data-key": "test-data-value",
         },
-      ],
-      data: { 'test-data-key': 'test-data-value' },
-      'request-body-key': 'request-body-value',
-    });
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "hi",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "request-body-key": "request-body-value",
+      }
+    `);
 
     expect(server.calls[1].requestHeaders).toStrictEqual({
       'content-type': 'application/json',
@@ -1345,7 +1484,12 @@ describe('test sending additional fields during message submission', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should send annotations with the message', async () => {
@@ -1368,17 +1512,28 @@ describe('test sending additional fields during message submission', () => {
       }),
     );
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          role: 'user',
-          content: 'hi',
-          annotations: ['this is an annotation'],
-          parts: [{ text: 'hi', type: 'text' }],
-        },
-      ],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "annotations": [
+              "this is an annotation",
+            ],
+            "content": "hi",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 

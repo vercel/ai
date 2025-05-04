@@ -69,7 +69,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
 
     await model.doEmbed({ values: testValues });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       requests: testValues.map(value => ({
         model: 'models/text-embedding-004',
         content: { role: 'user', parts: [{ text: value }] },
@@ -87,7 +87,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       requests: testValues.map(value => ({
         model: 'models/text-embedding-004',
         content: { role: 'user', parts: [{ text: value }] },
@@ -104,7 +104,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
       providerOptions: { google: { taskType: 'SEMANTIC_SIMILARITY' } },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       requests: testValues.map(value => ({
         model: 'models/text-embedding-004',
         content: { role: 'user', parts: [{ text: value }] },

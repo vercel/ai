@@ -25,7 +25,7 @@ import {
  to increase the resilience against prompt injection attacks,
  and because not all providers support several system messages.
  */
-export type CoreSystemMessage = {
+export type SystemModelMessage = {
   role: 'system';
   content: string;
 
@@ -37,16 +37,30 @@ functionality that can be fully encapsulated in the provider.
   providerOptions?: ProviderOptions;
 };
 
-export const coreSystemMessageSchema: z.ZodType<CoreSystemMessage> = z.object({
-  role: z.literal('system'),
-  content: z.string(),
-  providerOptions: providerMetadataSchema.optional(),
-});
+/**
+@deprecated Use `SystemModelMessage` instead.
+ */
+// TODO remove in AI SDK 6
+export type CoreSystemMessage = SystemModelMessage;
+
+export const systemModelMessageSchema: z.ZodType<SystemModelMessage> = z.object(
+  {
+    role: z.literal('system'),
+    content: z.string(),
+    providerOptions: providerMetadataSchema.optional(),
+  },
+);
+
+/**
+@deprecated Use `systemModelMessageSchema` instead.
+ */
+// TODO remove in AI SDK 6
+export const coreSystemMessageSchema = systemModelMessageSchema;
 
 /**
 A user message. It can contain text or a combination of text and images.
  */
-export type CoreUserMessage = {
+export type UserModelMessage = {
   role: 'user';
   content: UserContent;
 
@@ -58,7 +72,13 @@ functionality that can be fully encapsulated in the provider.
   providerOptions?: ProviderOptions;
 };
 
-export const coreUserMessageSchema: z.ZodType<CoreUserMessage> = z.object({
+/**
+@deprecated Use `UserModelMessage` instead.
+ */
+// TODO remove in AI SDK 6
+export type CoreUserMessage = UserModelMessage;
+
+export const userModelMessageSchema: z.ZodType<UserModelMessage> = z.object({
   role: z.literal('user'),
   content: z.union([
     z.string(),
@@ -68,6 +88,12 @@ export const coreUserMessageSchema: z.ZodType<CoreUserMessage> = z.object({
 });
 
 /**
+@deprecated Use `userModelMessageSchema` instead.
+ */
+// TODO remove in AI SDK 6
+export const coreUserMessageSchema = userModelMessageSchema;
+
+/**
 Content of a user message. It can be a string or an array of text and image parts.
  */
 export type UserContent = string | Array<TextPart | ImagePart | FilePart>;
@@ -75,7 +101,7 @@ export type UserContent = string | Array<TextPart | ImagePart | FilePart>;
 /**
 An assistant message. It can contain text, tool calls, or a combination of text and tool calls.
  */
-export type CoreAssistantMessage = {
+export type AssistantModelMessage = {
   role: 'assistant';
   content: AssistantContent;
 
@@ -87,7 +113,13 @@ functionality that can be fully encapsulated in the provider.
   providerOptions?: ProviderOptions;
 };
 
-export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
+/**
+@deprecated Use `AssistantModelMessage` instead.
+ */
+// TODO remove in AI SDK 6
+export type CoreAssistantMessage = AssistantModelMessage;
+
+export const assistantModelMessageSchema: z.ZodType<AssistantModelMessage> =
   z.object({
     role: z.literal('assistant'),
     content: z.union([
@@ -105,6 +137,12 @@ export const coreAssistantMessageSchema: z.ZodType<CoreAssistantMessage> =
   });
 
 /**
+@deprecated Use `assistantModelMessageSchema` instead.
+ */
+// TODO remove in AI SDK 6
+export const coreAssistantMessageSchema = assistantModelMessageSchema;
+
+/**
 Content of an assistant message.
 It can be a string or an array of text, image, reasoning, redacted reasoning, and tool call parts.
  */
@@ -115,7 +153,7 @@ export type AssistantContent =
 /**
 A tool message. It contains the result of one or more tool calls.
  */
-export type CoreToolMessage = {
+export type ToolModelMessage = {
   role: 'tool';
   content: ToolContent;
 
@@ -127,11 +165,23 @@ functionality that can be fully encapsulated in the provider.
   providerOptions?: ProviderOptions;
 };
 
-export const coreToolMessageSchema: z.ZodType<CoreToolMessage> = z.object({
+/**
+@deprecated Use `ToolModelMessage` instead.
+ */
+// TODO remove in AI SDK 6
+export type CoreToolMessage = ToolModelMessage;
+
+export const toolModelMessageSchema: z.ZodType<ToolModelMessage> = z.object({
   role: z.literal('tool'),
   content: z.array(toolResultPartSchema),
   providerOptions: providerMetadataSchema.optional(),
 });
+
+/**
+@deprecated Use `toolModelMessageSchema` instead.
+ */
+// TODO remove in AI SDK 6
+export const coreToolMessageSchema = toolModelMessageSchema;
 
 /**
 Content of a tool message. It is an array of tool result parts.
@@ -142,15 +192,27 @@ export type ToolContent = Array<ToolResultPart>;
 A message that can be used in the `messages` field of a prompt.
 It can be a user message, an assistant message, or a tool message.
  */
-export type CoreMessage =
-  | CoreSystemMessage
-  | CoreUserMessage
-  | CoreAssistantMessage
-  | CoreToolMessage;
+export type ModelMessage =
+  | SystemModelMessage
+  | UserModelMessage
+  | AssistantModelMessage
+  | ToolModelMessage;
 
-export const coreMessageSchema: z.ZodType<CoreMessage> = z.union([
-  coreSystemMessageSchema,
-  coreUserMessageSchema,
-  coreAssistantMessageSchema,
-  coreToolMessageSchema,
+/**
+@deprecated Use `ModelMessage` instead.
+   */
+// TODO remove in AI SDK 6
+export type CoreMessage = ModelMessage;
+
+export const modelMessageSchema: z.ZodType<ModelMessage> = z.union([
+  systemModelMessageSchema,
+  userModelMessageSchema,
+  assistantModelMessageSchema,
+  toolModelMessageSchema,
 ]);
+
+/**
+@deprecated Use `modelMessageSchema` instead.
+ */
+// TODO remove in AI SDK 6
+export const coreMessageSchema: z.ZodType<CoreMessage> = modelMessageSchema;

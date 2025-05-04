@@ -1,5 +1,20 @@
 # @ai-sdk/react
 
+## 2.0.0-canary.16
+
+### Patch Changes
+
+- c34ccd7: feat (ui/react): support resuming an ongoing stream
+- Updated dependencies [f04fb4a]
+- Updated dependencies [fd1924b]
+- Updated dependencies [957b739]
+- Updated dependencies [fafc3f2]
+- Updated dependencies [c9ad635]
+- Updated dependencies [9bd5ab5]
+- Updated dependencies [92cb0a2]
+  - ai@5.0.0-canary.17
+  - @ai-sdk/provider-utils@3.0.0-canary.14
+
 ## 2.0.0-canary.15
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/gladia",
-  "version": "1.0.0-canary.3",
+  "version": "1.0.0-canary.4",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -50,7 +50,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://sdk.vercel.ai/docs",
+  "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git"

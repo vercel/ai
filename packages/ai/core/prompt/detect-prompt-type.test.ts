@@ -1,6 +1,6 @@
 import { UIMessage } from '../types';
 import { detectPromptType } from './detect-prompt-type';
-import type { CoreMessage } from './message';
+import type { ModelMessage } from './message';
 
 it('should return "other" for invalid inputs', () => {
   expect(detectPromptType(null as any)).toBe('other');
@@ -12,20 +12,22 @@ it('should return "messages" for empty arrays', () => {
   expect(detectPromptType([])).toBe('messages');
 });
 
-it('should detect UI messages with experimental_attachments', () => {
+it('should detect UI messages with file parts', () => {
   const messages: Omit<UIMessage, 'id'>[] = [
     {
       role: 'user',
       content: 'Check this file',
-      experimental_attachments: [{ contentType: 'image/png', url: 'test.png' }],
-      parts: [{ text: 'Check this file', type: 'text' }],
+      parts: [
+        { type: 'file', mediaType: 'image/png', url: 'test.png' },
+        { type: 'text', text: 'Check this file' },
+      ],
     },
   ];
   expect(detectPromptType(messages)).toBe('ui-messages');
 });
 
 it('should detect core messages with array content', () => {
-  const messages: CoreMessage[] = [
+  const messages: ModelMessage[] = [
     {
       role: 'user',
       content: [{ type: 'text', text: 'Hello' }],
@@ -35,7 +37,7 @@ it('should detect core messages with array content', () => {
 });
 
 it('should detect core messages with providerOptions', () => {
-  const messages: CoreMessage[] = [
+  const messages: ModelMessage[] = [
     {
       role: 'system',
       content: 'System prompt',

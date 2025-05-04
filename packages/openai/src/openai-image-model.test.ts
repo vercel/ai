@@ -48,7 +48,7 @@ describe('doGenerate', () => {
       providerOptions: { openai: { style: 'vivid' } },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'dall-e-3',
       prompt,
       n: 1,
@@ -218,7 +218,8 @@ describe('doGenerate', () => {
       providerOptions: {},
     });
 
-    const requestBody = await server.calls[server.calls.length - 1].requestBody;
+    const requestBody =
+      await server.calls[server.calls.length - 1].requestBodyJson;
     expect(requestBody).toStrictEqual({
       model: 'gpt-image-1',
       prompt,
@@ -241,7 +242,8 @@ describe('doGenerate', () => {
       providerOptions: {},
     });
 
-    const requestBody = await server.calls[server.calls.length - 1].requestBody;
+    const requestBody =
+      await server.calls[server.calls.length - 1].requestBodyJson;
     expect(requestBody).toHaveProperty('response_format', 'b64_json');
   });
 

@@ -1,6 +1,6 @@
 # AI SDK - Azure OpenAI Provider
 
-The **[Azure provider](https://sdk.vercel.ai/providers/ai-sdk-providers/azure)** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the Azure OpenAI API.
+The **[Azure provider](https://ai-sdk.dev/providers/ai-sdk-providers/azure)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the Azure OpenAI API.
 
 ## Setup
 
@@ -32,4 +32,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[Azure provider](https://sdk.vercel.ai/providers/ai-sdk-providers/azure)** for more information.
+Please check out the **[Azure provider](https://ai-sdk.dev/providers/ai-sdk-providers/azure)** for more information.

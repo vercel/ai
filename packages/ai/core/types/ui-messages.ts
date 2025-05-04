@@ -23,27 +23,6 @@ export type ToolInvocation =
   | ({ state: 'result'; step?: number } & ToolResult<string, any, any>);
 
 /**
- * An attachment that can be sent along with a message.
- */
-export interface Attachment {
-  /**
-   * The name of the attachment, usually the file name.
-   */
-  name?: string;
-
-  /**
-   * A string indicating the [media type](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type).
-   * By default, it's extracted from the pathname's extension.
-   */
-  contentType?: string;
-
-  /**
-   * The URL of the attachment. It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
-   */
-  url: string;
-}
-
-/**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
 export interface UIMessage {
@@ -55,6 +34,7 @@ A unique identifier for the message.
   /**
 The timestamp of the message.
    */
+  // TODO solve optionality similar id
   createdAt?: Date;
 
   /**
@@ -62,12 +42,6 @@ Text content of the message. Use parts when possible.
    */
   // TODO remove (replace with parts)
   content: string;
-
-  /**
-Additional attachments to be sent along with the message.
-   */
-  // TODO replace with FileUIParts in user messages
-  experimental_attachments?: Attachment[];
 
   /**
 The role of the message.
@@ -83,8 +57,12 @@ Additional message-specific information added on the server via StreamData
   /**
 The parts of the message. Use this for rendering the message in the UI.
 
-Assistant messages can have text, reasoning and tool invocation parts.
-User messages can have text parts.
+System messages should be avoided (set the system prompt on the server instead).
+They can have text parts.
+
+User messages can have text parts and file parts.
+
+Assistant messages can have text, reasoning, tool invocation, and file parts.
    */
   parts: Array<UIMessagePart>;
 }
@@ -164,6 +142,11 @@ export type FileUIPart = {
   mediaType: string;
 
   /**
+   * Optional filename of the file.
+   */
+  filename?: string;
+
+  /**
    * The URL of the file.
    * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
    */
@@ -233,24 +216,12 @@ Additional data to be sent to the API endpoint.
   data?: JSONValue;
 
   /**
-   * Additional files to be sent to the server.
-   */
-  experimental_attachments?: FileList | Array<Attachment>;
-
-  /**
    * Allow submitting an empty message. Defaults to `false`.
    */
   allowEmptySubmit?: boolean;
 };
 
 export type UseChatOptions = {
-  /**
-Keeps the last message when an error happens. Defaults to `true`.
-
-@deprecated This option will be removed in the next major release.
-   */
-  keepLastMessageOnError?: boolean;
-
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
@@ -345,13 +316,6 @@ either synchronously or asynchronously.
   body?: object;
 
   /**
-   * Whether to send extra message fields such as `message.id` and `message.createdAt` to the API.
-   * Defaults to `false`. When set to `true`, the API endpoint might need to
-   * handle the extra fields before forwarding the request to the AI service.
-   */
-  sendExtraMessageFields?: boolean;
-
-  /**
 Streaming protocol that is used. Defaults to `data`.
    */
   streamProtocol?: 'data' | 'text';
@@ -361,6 +325,16 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
+
+  /**
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
+Must be at least 1.
+
+A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+
+By default, it's set to 1, which means that only a single LLM call is made.
+ */
+  maxSteps?: number;
 };
 
 export type UseCompletionOptions = {

@@ -1,21 +1,7 @@
+import { ToolResultContent } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 
-export type ToolResultContent = Array<
-  | {
-      type: 'text';
-      text: string;
-    }
-  | {
-      type: 'image';
-      data: string; // base64 encoded png image, e.g. screenshot
-      mediaType?: string; // e.g. 'image/png';
-
-      /**
-       * @deprecated Use `mediaType` instead.
-       */
-      mimeType?: string; // e.g. 'image/png';
-    }
->;
+export type { ToolResultContent };
 
 export const toolResultContentSchema: z.ZodType<ToolResultContent> = z.array(
   z.union([

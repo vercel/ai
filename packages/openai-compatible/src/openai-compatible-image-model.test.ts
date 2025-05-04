@@ -85,7 +85,7 @@ describe('OpenAICompatibleImageModel', () => {
         }),
       );
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'dall-e-3',
         prompt,
         n: 2,
@@ -273,7 +273,7 @@ describe('OpenAICompatibleImageModel', () => {
         }),
       );
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'dall-e-3',
         prompt,
         n: 1,
@@ -294,7 +294,7 @@ describe('OpenAICompatibleImageModel', () => {
         }),
       );
 
-      const requestBody = await server.calls[0].requestBody;
+      const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toStrictEqual({
         model: 'dall-e-3',
         prompt,

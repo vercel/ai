@@ -125,7 +125,7 @@ Internal. For test use only. May change without notice.
 
         if (isLastMessageAssistant) {
           const maxStep = extractMaxToolInvocationStep(
-            getToolInvocations(lastMessage as UIMessage), // TODO remove once Message is removed
+            getToolInvocations(lastMessage),
           );
 
           lastMessage.parts ??= [];
@@ -173,9 +173,9 @@ Internal. For test use only. May change without notice.
 
         for (const contentPart of message.content) {
           // find the tool call in the previous message:
-          const toolCall = getToolInvocations(
-            lastMessage as UIMessage, // TODO remove once Message is removed
-          ).find(call => call.toolCallId === contentPart.toolCallId);
+          const toolCall = getToolInvocations(lastMessage).find(
+            call => call.toolCallId === contentPart.toolCallId,
+          );
           const toolCallPart: ToolInvocationUIPart | undefined =
             lastMessage.parts.find(
               (part): part is ToolInvocationUIPart =>

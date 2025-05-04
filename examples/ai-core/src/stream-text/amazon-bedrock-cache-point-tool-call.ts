@@ -2,14 +2,14 @@ import { bedrock } from '@ai-sdk/amazon-bedrock';
 import {
   streamText,
   tool,
-  CoreMessage,
+  ModelMessage,
   ToolCallPart,
   ToolResultPart,
 } from 'ai';
 import 'dotenv/config';
 import { z } from 'zod';
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 const weatherTool = tool({
   description: 'Get the weather in a location',

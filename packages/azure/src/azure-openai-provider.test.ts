@@ -423,7 +423,7 @@ describe('image', () => {
         providerOptions: { openai: { style: 'natural' } },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'dalle-deployment',
         prompt,
         n: 2,

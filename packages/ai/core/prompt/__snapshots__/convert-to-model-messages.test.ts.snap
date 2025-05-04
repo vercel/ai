@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`convertToCoreMessages > assistant message > should handle assistant message with tool invocations 1`] = `
+exports[`convertToModelMessages > assistant message > should handle assistant message with tool invocations 1`] = `
 [
   {
     "content": [
@@ -37,7 +37,7 @@ exports[`convertToCoreMessages > assistant message > should handle assistant mes
 ]
 `;
 
-exports[`convertToCoreMessages > assistant message > should handle assistant message with tool invocations that have multi-part responses 1`] = `
+exports[`convertToModelMessages > assistant message > should handle assistant message with tool invocations that have multi-part responses 1`] = `
 [
   {
     "content": [
@@ -79,7 +79,7 @@ exports[`convertToCoreMessages > assistant message > should handle assistant mes
 ]
 `;
 
-exports[`convertToCoreMessages > assistant message > should handle conversation with an assistant message that has empty tool invocations 1`] = `
+exports[`convertToModelMessages > assistant message > should handle conversation with an assistant message that has empty tool invocations 1`] = `
 [
   {
     "content": [
@@ -102,7 +102,7 @@ exports[`convertToCoreMessages > assistant message > should handle conversation 
 ]
 `;
 
-exports[`convertToCoreMessages > assistant message > should handle conversation with mix of tool invocations and text 1`] = `
+exports[`convertToModelMessages > assistant message > should handle conversation with mix of tool invocations and text 1`] = `
 [
   {
     "content": [
@@ -210,7 +210,7 @@ exports[`convertToCoreMessages > assistant message > should handle conversation 
 ]
 `;
 
-exports[`convertToCoreMessages > assistant message > should handle conversation with multiple tool invocations that have step information 1`] = `
+exports[`convertToModelMessages > assistant message > should handle conversation with multiple tool invocations that have step information 1`] = `
 [
   {
     "content": [
@@ -305,7 +305,7 @@ exports[`convertToCoreMessages > assistant message > should handle conversation 
 ]
 `;
 
-exports[`convertToCoreMessages > multiple messages > should handle conversation with multiple tool invocations and user message at the end 1`] = `
+exports[`convertToModelMessages > multiple messages > should handle conversation with multiple tool invocations and user message at the end 1`] = `
 [
   {
     "content": [
@@ -407,48 +407,6 @@ exports[`convertToCoreMessages > multiple messages > should handle conversation 
       {
         "text": "Thanks!",
         "type": "text",
-      },
-    ],
-    "role": "user",
-  },
-]
-`;
-
-exports[`convertToCoreMessages > user message > should handle user message with attachment URLs (file) 1`] = `
-[
-  {
-    "content": [
-      {
-        "text": "Check this document",
-        "type": "text",
-      },
-      {
-        "data": "dGVzdA==",
-        "mediaType": "application/pdf",
-        "type": "file",
-      },
-    ],
-    "role": "user",
-  },
-]
-`;
-
-exports[`convertToCoreMessages > user message > should handle user message with attachment URLs 1`] = `
-[
-  {
-    "content": [
-      {
-        "text": "Check this image",
-        "type": "text",
-      },
-      {
-        "image": Uint8Array [
-          116,
-          101,
-          115,
-          116,
-        ],
-        "type": "image",
       },
     ],
     "role": "user",

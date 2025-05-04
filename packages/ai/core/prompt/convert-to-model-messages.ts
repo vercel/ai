@@ -1,31 +1,30 @@
 import { ToolSet } from '../generate-text/tool-set';
 import {
   FileUIPart,
-  UIMessage,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocationUIPart,
+  UIMessage,
 } from '../types';
-import { attachmentsToParts } from './attachments-to-parts';
 import { ToolResultPart } from './content-part';
-import { AssistantContent, CoreMessage } from './message';
+import { AssistantContent, ModelMessage } from './message';
 import { MessageConversionError } from './message-conversion-error';
 
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
  */
-export function convertToCoreMessages<TOOLS extends ToolSet = never>(
+export function convertToModelMessages<TOOLS extends ToolSet = never>(
   messages: Array<Omit<UIMessage, 'id'>>,
   options?: { tools?: TOOLS },
-) {
+): ModelMessage[] {
   const tools = options?.tools ?? ({} as TOOLS);
-  const coreMessages: CoreMessage[] = [];
+  const coreMessages: ModelMessage[] = [];
 
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
     const isLastMessage = i === messages.length - 1;
-    const { role, content, experimental_attachments } = message;
+    const { role, content } = message;
 
     switch (role) {
       case 'system': {
@@ -37,31 +36,25 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
       }
 
       case 'user': {
-        if (message.parts == null) {
-          coreMessages.push({
-            role: 'user',
-            content: experimental_attachments
-              ? [
-                  { type: 'text', text: content },
-                  ...attachmentsToParts(experimental_attachments),
-                ]
-              : content,
-          });
-        } else {
-          const textParts = message.parts
-            .filter(part => part.type === 'text')
-            .map(part => ({
-              type: 'text' as const,
-              text: part.text,
-            }));
+        coreMessages.push({
+          role: 'user',
+          content: message.parts
+            .filter(
+              (part): part is TextUIPart | FileUIPart =>
+                part.type === 'text' || part.type === 'file',
+            )
+            .map(part =>
+              part.type === 'file'
+                ? {
+                    type: 'file' as const,
+                    mediaType: part.mediaType,
+                    filename: part.filename,
+                    data: part.url,
+                  }
+                : part,
+            ),
+        });
 
-          coreMessages.push({
-            role: 'user',
-            content: experimental_attachments
-              ? [...textParts, ...attachmentsToParts(experimental_attachments)]
-              : textParts,
-          });
-        }
         break;
       }
 
@@ -85,8 +78,8 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                 case 'file': {
                   content.push({
                     type: 'file' as const,
+                    mediaType: part.mediaType,
                     data: part.url,
-                    mediaType: part.mediaType ?? (part as any).mimeType, // TODO migration, remove
                   });
                   break;
                 }
@@ -225,3 +218,9 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
 
   return coreMessages;
 }
+
+/**
+@deprecated Use `convertToModelMessages` instead.
+ */
+// TODO remove in AI SDK 6
+export const convertToCoreMessages = convertToModelMessages;

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/svelte",
-  "version": "3.0.0-canary.15",
+  "version": "3.0.0-canary.16",
   "license": "Apache-2.0",
   "scripts": {
     "build": "pnpm prepack",
@@ -77,7 +77,7 @@
     "vitest": "^3.0.0",
     "zod": "3.23.8"
   },
-  "homepage": "https://sdk.vercel.ai/docs",
+  "homepage": "https://ai-sdk.dev/docs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vercel/ai.git",

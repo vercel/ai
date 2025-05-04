@@ -1,13 +1,12 @@
 import { z } from 'zod';
 import { tool } from '../tool/tool';
-import { Attachment } from '../types';
-import { convertToCoreMessages } from './convert-to-core-messages';
-import { CoreMessage } from './message';
+import { convertToModelMessages } from './convert-to-model-messages';
+import { ModelMessage } from './message';
 
-describe('convertToCoreMessages', () => {
+describe('convertToModelMessages', () => {
   describe('system message', () => {
     it('should convert a simple system message', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'system',
           content: 'System message',
@@ -21,7 +20,7 @@ describe('convertToCoreMessages', () => {
 
   describe('user message', () => {
     it('should convert a simple user message', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'user',
           content: 'Hello, AI!',
@@ -45,7 +44,7 @@ describe('convertToCoreMessages', () => {
     });
 
     it('should prefer content in parts when content is empty', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'user',
           content: '', // empty content
@@ -66,175 +65,41 @@ describe('convertToCoreMessages', () => {
       ]);
     });
 
-    it('should handle user message with attachments', () => {
-      const attachment: Attachment = {
-        contentType: 'image/jpeg',
-        url: 'https://example.com/image.jpg',
-      };
-
-      const result = convertToCoreMessages([
+    it('should handle user message file parts', () => {
+      const result = convertToModelMessages([
         {
           role: 'user',
           content: 'Check this image',
-          parts: [{ text: 'Check this image', type: 'text' }],
-          experimental_attachments: [attachment],
-        },
-      ]);
-
-      expect(result).toEqual([
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Check this image' },
-            { type: 'image', image: new URL('https://example.com/image.jpg') },
-          ],
-        },
-      ]);
-    });
-
-    it('should handle user message with attachments (file)', () => {
-      const attachment: Attachment = {
-        contentType: 'application/pdf',
-        url: 'https://example.com/document.pdf',
-      };
-
-      const result = convertToCoreMessages([
-        {
-          role: 'user',
-          content: 'Check this document',
-          parts: [{ text: 'Check this document', type: 'text' }],
-          experimental_attachments: [attachment],
-        },
-      ]);
-
-      expect(result).toEqual([
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Check this document' },
+          parts: [
             {
               type: 'file',
-              data: new URL('https://example.com/document.pdf'),
-              mediaType: 'application/pdf',
+              mediaType: 'image/jpeg',
+              url: 'https://example.com/image.jpg',
             },
+            { type: 'text', text: 'Check this image' },
           ],
         },
       ]);
-    });
 
-    it('should handle user message with attachment URLs', () => {
-      const attachment: Attachment = {
-        contentType: 'image/jpeg',
-        url: 'data:image/jpg;base64,dGVzdA==',
-      };
-
-      const result = convertToCoreMessages([
+      expect(result).toEqual([
         {
           role: 'user',
-          content: 'Check this image',
-          parts: [{ text: 'Check this image', type: 'text' }],
-          experimental_attachments: [attachment],
+          content: [
+            {
+              type: 'file',
+              mediaType: 'image/jpeg',
+              data: 'https://example.com/image.jpg',
+            },
+            { type: 'text', text: 'Check this image' },
+          ],
         },
       ]);
-
-      expect(result).toMatchSnapshot();
-    });
-
-    it('should handle user message with attachment URLs (file)', () => {
-      const attachment: Attachment = {
-        contentType: 'application/pdf',
-        url: 'data:application/pdf;base64,dGVzdA==',
-      };
-
-      const result = convertToCoreMessages([
-        {
-          role: 'user',
-          content: 'Check this document',
-          parts: [{ text: 'Check this document', type: 'text' }],
-          experimental_attachments: [attachment],
-        },
-      ]);
-
-      expect(result).toMatchSnapshot();
-    });
-
-    it('should throw an error for invalid attachment URLs', () => {
-      const attachment: Attachment = {
-        contentType: 'image/jpeg',
-        url: 'invalid-url',
-      };
-
-      expect(() => {
-        convertToCoreMessages([
-          {
-            role: 'user',
-            content: 'Check this image',
-            parts: [{ text: 'Check this image', type: 'text' }],
-            experimental_attachments: [attachment],
-          },
-        ]);
-      }).toThrow('Invalid URL: invalid-url');
-    });
-
-    it('should throw an error for file attachments without contentType', () => {
-      const attachment: Attachment = {
-        url: 'data:application/pdf;base64,dGVzdA==',
-      };
-
-      expect(() => {
-        convertToCoreMessages([
-          {
-            role: 'user',
-            content: 'Check this file',
-            parts: [{ text: 'Check this file', type: 'text' }],
-            experimental_attachments: [attachment],
-          },
-        ]);
-      }).toThrow(
-        'If the attachment is not an image or text, it must specify a content type',
-      );
-    });
-
-    it('should throw an error for invalid data URL format', () => {
-      const attachment: Attachment = {
-        contentType: 'image/jpeg',
-        url: 'data:image/jpg;base64',
-      };
-
-      expect(() => {
-        convertToCoreMessages([
-          {
-            role: 'user',
-            content: 'Check this image',
-            parts: [{ text: 'Check this image', type: 'text' }],
-            experimental_attachments: [attachment],
-          },
-        ]);
-      }).toThrow(`Invalid data URL format: ${attachment.url}`);
-    });
-
-    it('should throw an error for unsupported attachment protocols', () => {
-      const attachment: Attachment = {
-        contentType: 'image/jpeg',
-        url: 'ftp://example.com/image.jpg',
-      };
-
-      expect(() => {
-        convertToCoreMessages([
-          {
-            role: 'user',
-            content: 'Check this image',
-            parts: [{ text: 'Check this image', type: 'text' }],
-            experimental_attachments: [attachment],
-          },
-        ]);
-      }).toThrow('Unsupported URL protocol: ftp:');
     });
   });
 
   describe('assistant message', () => {
     it('should convert a simple assistant message', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'assistant',
           content: '', // empty content
@@ -251,7 +116,7 @@ describe('convertToCoreMessages', () => {
     });
 
     it('should convert an assistant message with reasoning', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'assistant',
           content: '', // empty content
@@ -294,11 +159,11 @@ describe('convertToCoreMessages', () => {
             { type: 'text', text: 'Hello, human!' },
           ],
         },
-      ] satisfies CoreMessage[]);
+      ] satisfies ModelMessage[]);
     });
 
     it('should convert an assistant message with file parts', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'assistant',
           content: '', // empty content
@@ -323,11 +188,11 @@ describe('convertToCoreMessages', () => {
             },
           ],
         },
-      ] satisfies CoreMessage[]);
+      ] satisfies ModelMessage[]);
     });
 
     it('should handle assistant message with tool invocations', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'assistant',
           content: '', // empty content
@@ -362,7 +227,7 @@ describe('convertToCoreMessages', () => {
         }),
       };
 
-      const result = convertToCoreMessages(
+      const result = convertToModelMessages(
         [
           {
             role: 'assistant',
@@ -390,7 +255,7 @@ describe('convertToCoreMessages', () => {
     });
 
     it('should handle conversation with an assistant message that has empty tool invocations', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'user',
           content: 'text1',
@@ -414,7 +279,7 @@ describe('convertToCoreMessages', () => {
         }),
       };
 
-      const result = convertToCoreMessages(
+      const result = convertToModelMessages(
         [
           {
             role: 'assistant',
@@ -482,7 +347,7 @@ describe('convertToCoreMessages', () => {
         }),
       };
 
-      const result = convertToCoreMessages(
+      const result = convertToModelMessages(
         [
           {
             role: 'assistant',
@@ -547,7 +412,7 @@ describe('convertToCoreMessages', () => {
 
   describe('multiple messages', () => {
     it('should handle a conversation with multiple messages', () => {
-      const result = convertToCoreMessages([
+      const result = convertToModelMessages([
         {
           role: 'user',
           content: "What's the weather like?",
@@ -606,7 +471,7 @@ describe('convertToCoreMessages', () => {
         }),
       };
 
-      const result = convertToCoreMessages(
+      const result = convertToModelMessages(
         [
           {
             role: 'assistant',
@@ -676,7 +541,7 @@ describe('convertToCoreMessages', () => {
   describe('error handling', () => {
     it('should throw an error for unhandled roles', () => {
       expect(() => {
-        convertToCoreMessages([
+        convertToModelMessages([
           {
             role: 'unknown' as any,
             content: 'unknown role message',

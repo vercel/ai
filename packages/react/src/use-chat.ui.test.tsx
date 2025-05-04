@@ -1,18 +1,15 @@
+/* eslint-disable jsx-a11y/alt-text */
 /* eslint-disable @next/next/no-img-element */
 import {
   createTestServer,
+  mockId,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  formatDataStreamPart,
-  generateId,
-  getTextFromDataUrl,
-  getToolInvocations,
-  UIMessage,
-} from 'ai';
+import { formatDataStreamPart, getToolInvocations, UIMessage } from 'ai';
+import { mockValues } from 'ai/test';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -47,8 +44,12 @@ describe('data protocol stream', () => {
         id: idKey,
       } = useChat({
         id,
+        generateId: mockId(),
         onFinish: (message, options) => {
           onFinishCalls.push({ message, options });
+        },
+        '~internal': {
+          currentDate: mockValues(new Date('2025-01-01')),
         },
       });
 
@@ -60,12 +61,7 @@ describe('data protocol stream', () => {
           <div data-testid="data">
             {data != null ? JSON.stringify(data) : ''}
           </div>
-          {messages.map((m, idx) => (
-            <div data-testid={`message-${idx}`} key={m.id}>
-              {m.role === 'user' ? 'User: ' : 'AI: '}
-              {m.content}
-            </div>
-          ))}
+          <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
           <button
             data-testid="do-append"
             onClick={() => {
@@ -99,7 +95,7 @@ describe('data protocol stream', () => {
     },
     {
       // use a random id to avoid conflicts:
-      init: TestComponent => <TestComponent id={`first-id-${generateId()}`} />,
+      init: TestComponent => <TestComponent id={`first-${mockId()()}`} />,
     },
   );
 
@@ -115,13 +111,37 @@ describe('data protocol stream', () => {
 
     await userEvent.click(screen.getByTestId('do-append'));
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Hello, world.',
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId('messages').textContent).toMatchInlineSnapshot(`
+        "[
+          {
+            "role": "user",
+            "content": "hi",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "id": "id-1",
+            "createdAt": "2025-01-01T00:00:00.000Z"
+          },
+          {
+            "id": "id-2",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "role": "assistant",
+            "content": "Hello, world.",
+            "parts": [
+              {
+                "type": "text",
+                "text": "Hello, world."
+              }
+            ],
+            "revisionId": "id-6"
+          }
+        ]"
+      `);
+    });
   });
 
   it('should set stream data', async () => {
@@ -132,11 +152,11 @@ describe('data protocol stream', () => {
 
     await userEvent.click(screen.getByTestId('do-append'));
 
-    await screen.findByTestId('data');
-    expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+    await waitFor(() => {
+      expect(screen.getByTestId('data').textContent).toMatchInlineSnapshot(
+        `"[{"t1":"v1"}]"`,
+      );
+    });
   });
 
   describe('setData', () => {
@@ -258,7 +278,37 @@ describe('data protocol stream', () => {
 
     controller.close();
 
-    await screen.findByTestId('message-1');
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          role: 'user',
+          content: 'hi',
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          id: 'id-1',
+          createdAt: '2025-01-01T00:00:00.000Z',
+        },
+        {
+          id: 'id-2',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          role: 'assistant',
+          content: 'Hello, world.',
+          parts: [
+            {
+              type: 'text',
+              text: 'Hello, world.',
+            },
+          ],
+          revisionId: 'id-6',
+        },
+      ]);
+    });
 
     expect(onFinishCalls).toStrictEqual([
       {
@@ -290,16 +340,25 @@ describe('data protocol stream', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        id: screen.getByTestId('id').textContent,
-        messages: [
-          {
-            role: 'user',
-            content: 'hi',
-            parts: [{ text: 'hi', type: 'text' }],
-          },
-        ],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "first-id-0",
+          "messages": [
+            {
+              "content": "hi",
+              "createdAt": "2025-01-01T00:00:00.000Z",
+              "id": "id-1",
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+        }
+      `);
     });
 
     it('should clear out messages when the id changes', async () => {
@@ -310,11 +369,37 @@ describe('data protocol stream', () => {
 
       await userEvent.click(screen.getByTestId('do-append'));
 
-      await screen.findByTestId('message-1');
-      expect(screen.getByTestId('message-1')).toHaveTextContent(
-        'AI: Hello, world.',
-      );
-
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+        ).toStrictEqual([
+          {
+            content: 'hi',
+            createdAt: '2025-01-01T00:00:00.000Z',
+            id: expect.any(String),
+            parts: [
+              {
+                text: 'hi',
+                type: 'text',
+              },
+            ],
+            role: 'user',
+          },
+          {
+            content: 'Hello, world.',
+            createdAt: '2025-01-01T00:00:00.000Z',
+            id: 'id-2',
+            parts: [
+              {
+                text: 'Hello, world.',
+                type: 'text',
+              },
+            ],
+            role: 'assistant',
+            revisionId: 'id-6',
+          },
+        ]);
+      });
       await userEvent.click(screen.getByTestId('do-change-id'));
 
       expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
@@ -600,6 +685,10 @@ describe('prepareRequestBody', () => {
         bodyOptions = options;
         return 'test-request-body';
       },
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
     });
 
     return (
@@ -647,23 +736,33 @@ describe('prepareRequestBody', () => {
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
-    expect(bodyOptions).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          role: 'user',
-          content: 'hi',
-          id: expect.any(String),
-          experimental_attachments: undefined,
-          createdAt: expect.any(Date),
-          parts: [{ type: 'text', text: 'hi' }],
+    expect(bodyOptions).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "hi",
+            "createdAt": 2025-01-01T00:00:00.000Z,
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "requestBody": {
+          "request-body-key": "request-body-value",
         },
-      ],
-      requestData: { 'test-data-key': 'test-data-value' },
-      requestBody: { 'request-body-key': 'request-body-value' },
-    });
+        "requestData": {
+          "test-data-key": "test-data-value",
+        },
+      }
+    `);
 
-    expect(await server.calls[0].requestBody).toBe('test-request-body');
+    expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -1162,46 +1261,24 @@ describe('maxSteps', () => {
 describe('file attachments with data url', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
-      useChat();
+      useChat({
+        generateId: mockId(),
+        '~internal': {
+          currentDate: mockValues(new Date('2025-01-01')),
+        },
+      });
 
-    const [attachments, setAttachments] = useState<FileList | undefined>(
-      undefined,
-    );
+    const [files, setFiles] = useState<FileList | undefined>(undefined);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     return (
       <div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
-            {m.experimental_attachments?.map(attachment => {
-              if (attachment.contentType?.startsWith('image/')) {
-                return (
-                  <img
-                    key={attachment.name}
-                    src={attachment.url}
-                    alt={attachment.name}
-                    data-testid={`attachment-${idx}`}
-                  />
-                );
-              } else if (attachment.contentType?.startsWith('text/')) {
-                return (
-                  <div key={attachment.name} data-testid={`attachment-${idx}`}>
-                    {getTextFromDataUrl(attachment.url)}
-                  </div>
-                );
-              }
-            })}
-          </div>
-        ))}
+        <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
           onSubmit={event => {
-            handleSubmit(event, {
-              experimental_attachments: attachments,
-            });
-            setAttachments(undefined);
+            handleSubmit(event, { files });
+            setFiles(undefined);
             if (fileInputRef.current) {
               fileInputRef.current.value = '';
             }
@@ -1212,7 +1289,7 @@ describe('file attachments with data url', () => {
             type="file"
             onChange={event => {
               if (event.target.files) {
-                setAttachments(event.target.files);
+                setFiles(event.target.files);
               }
             }}
             multiple
@@ -1252,38 +1329,69 @@ describe('file attachments with data url', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with text attachment',
-    );
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveTextContent(
-      'test file content',
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to message with text attachment',
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
         {
+          id: 'id-0',
+          createdAt: '2025-01-01T00:00:00.000Z',
           role: 'user',
           content: 'Message with text attachment',
-          experimental_attachments: [
+          parts: [
             {
-              name: 'test.txt',
-              contentType: 'text/plain',
+              type: 'file',
+              mediaType: 'text/plain',
+              filename: 'test.txt',
               url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
             },
+            {
+              type: 'text',
+              text: 'Message with text attachment',
+            },
           ],
-          parts: [{ text: 'Message with text attachment', type: 'text' }],
         },
-      ],
+        {
+          content: 'Response to message with text attachment',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-1',
+          parts: [
+            {
+              text: 'Response to message with text attachment',
+              type: 'text',
+            },
+          ],
+          role: 'assistant',
+          revisionId: 'id-2',
+        },
+      ]);
     });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "Message with text attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-0",
+            "parts": [
+              {
+                "filename": "test.txt",
+                "mediaType": "text/plain",
+                "type": "file",
+                "url": "data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=",
+              },
+              {
+                "text": "Message with text attachment",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 
   it('should handle image file attachment and submission', async () => {
@@ -1305,84 +1413,93 @@ describe('file attachments with data url', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with image attachment',
-    );
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      expect.stringContaining('data:image/png;base64'),
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to message with image attachment',
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
         {
           role: 'user',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-0',
           content: 'Message with image attachment',
-          experimental_attachments: [
+          parts: [
             {
-              name: 'test.png',
-              contentType: 'image/png',
+              type: 'file',
+              mediaType: 'image/png',
+              filename: 'test.png',
               url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
             },
+            {
+              type: 'text',
+              text: 'Message with image attachment',
+            },
           ],
-          parts: [{ text: 'Message with image attachment', type: 'text' }],
         },
-      ],
+        {
+          role: 'assistant',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-1',
+          content: 'Response to message with image attachment',
+          parts: [
+            {
+              type: 'text',
+              text: 'Response to message with image attachment',
+            },
+          ],
+          revisionId: expect.any(String),
+        },
+      ]);
     });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-0",
+            "parts": [
+              {
+                "filename": "test.png",
+                "mediaType": "image/png",
+                "type": "file",
+                "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
+              },
+              {
+                "text": "Message with image attachment",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
 describe('file attachments with url', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit, handleInputChange, status, input } =
-      useChat();
+      useChat({
+        generateId: mockId(),
+        '~internal': {
+          currentDate: mockValues(new Date('2025-01-01')),
+        },
+      });
 
     return (
       <div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
-            {m.experimental_attachments?.map(attachment => {
-              if (attachment.contentType?.startsWith('image/')) {
-                return (
-                  <img
-                    key={attachment.name}
-                    src={attachment.url}
-                    alt={attachment.name}
-                    data-testid={`attachment-${idx}`}
-                  />
-                );
-              } else if (attachment.contentType?.startsWith('text/')) {
-                return (
-                  <div key={attachment.name} data-testid={`attachment-${idx}`}>
-                    {Buffer.from(
-                      attachment.url.split(',')[1],
-                      'base64',
-                    ).toString('utf-8')}
-                  </div>
-                );
-              }
-            })}
-          </div>
-        ))}
+        <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
           onSubmit={event => {
             handleSubmit(event, {
-              experimental_attachments: [
+              files: [
                 {
-                  name: 'test.png',
-                  contentType: 'image/png',
+                  type: 'file',
+                  mediaType: 'image/png',
                   url: 'https://example.com/image.png',
                 },
               ],
@@ -1416,71 +1533,92 @@ describe('file attachments with url', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with image attachment',
-    );
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      expect.stringContaining('https://example.com/image.png'),
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent(
-      'AI: Response to message with image attachment',
-    );
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
         {
           role: 'user',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-0',
           content: 'Message with image attachment',
-          experimental_attachments: [
+          parts: [
             {
-              name: 'test.png',
-              contentType: 'image/png',
+              type: 'file',
+              mediaType: 'image/png',
               url: 'https://example.com/image.png',
             },
+            {
+              type: 'text',
+              text: 'Message with image attachment',
+            },
           ],
-          parts: [{ text: 'Message with image attachment', type: 'text' }],
         },
-      ],
+        {
+          role: 'assistant',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-1',
+          content: 'Response to message with image attachment',
+          parts: [
+            {
+              type: 'text',
+              text: 'Response to message with image attachment',
+            },
+          ],
+          revisionId: expect.any(String),
+        },
+      ]);
     });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-0",
+            "parts": [
+              {
+                "mediaType": "image/png",
+                "type": "file",
+                "url": "https://example.com/image.png",
+              },
+              {
+                "text": "Message with image attachment",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
 describe('attachments with empty submit', () => {
   setupTestComponent(() => {
-    const { messages, handleSubmit } = useChat();
+    const { messages, handleSubmit } = useChat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
 
     return (
       <div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
-            {m.experimental_attachments?.map(attachment => (
-              <img
-                key={attachment.name}
-                src={attachment.url}
-                alt={attachment.name}
-                data-testid={`attachment-${idx}`}
-              />
-            ))}
-          </div>
-        ))}
+        <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
           onSubmit={event => {
             handleSubmit(event, {
               allowEmptySubmit: true,
-              experimental_attachments: [
+              files: [
                 {
-                  name: 'test.png',
-                  contentType: 'image/png',
+                  type: 'file',
+                  filename: 'test.png',
+                  mediaType: 'image/png',
                   url: 'https://example.com/image.png',
                 },
               ],
@@ -1505,81 +1643,104 @@ describe('attachments with empty submit', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent('User:');
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      expect.stringContaining('https://example.com/image.png'),
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
         {
+          id: 'id-1',
+          createdAt: '2025-01-01T00:00:00.000Z',
           role: 'user',
           content: '',
-          experimental_attachments: [
+          parts: [
             {
-              name: 'test.png',
-              contentType: 'image/png',
+              type: 'file',
+              mediaType: 'image/png',
+              filename: 'test.png',
               url: 'https://example.com/image.png',
             },
+            {
+              type: 'text',
+              text: '',
+            },
           ],
-          parts: [{ text: '', type: 'text' }],
         },
-      ],
+        {
+          id: 'id-2',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          role: 'assistant',
+          content: 'Response to message with image attachment',
+          parts: [
+            {
+              type: 'text',
+              text: 'Response to message with image attachment',
+            },
+          ],
+          revisionId: 'id-3',
+        },
+      ]);
     });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "filename": "test.png",
+                "mediaType": "image/png",
+                "type": "file",
+                "url": "https://example.com/image.png",
+              },
+              {
+                "text": "",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
 describe('should append message with attachments', () => {
   setupTestComponent(() => {
-    const { messages, append } = useChat();
+    const { messages, append } = useChat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
 
     return (
       <div>
-        {messages.map((m, idx) => (
-          <div data-testid={`message-${idx}`} key={m.id}>
-            {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
-            {m.experimental_attachments?.map(attachment => (
-              <img
-                key={attachment.name}
-                src={attachment.url}
-                alt={attachment.name}
-                data-testid={`attachment-${idx}`}
-              />
-            ))}
-          </div>
-        ))}
+        <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
 
         <form
           onSubmit={event => {
             event.preventDefault();
 
-            append(
-              {
-                role: 'user',
-                content: 'Message with image attachment',
-                parts: [
-                  { text: 'Message with image attachment', type: 'text' },
-                ],
-              },
-              {
-                experimental_attachments: [
-                  {
-                    name: 'test.png',
-                    contentType: 'image/png',
-                    url: 'https://example.com/image.png',
-                  },
-                ],
-              },
-            );
+            append({
+              role: 'user',
+              content: 'Message with image attachment',
+              parts: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  url: 'https://example.com/image.png',
+                },
+                {
+                  type: 'text',
+                  text: 'Message with image attachment',
+                },
+              ],
+            });
           }}
           data-testid="chat-form"
         >
@@ -1600,43 +1761,78 @@ describe('should append message with attachments', () => {
     const submitButton = screen.getByTestId('submit-button');
     await userEvent.click(submitButton);
 
-    await screen.findByTestId('message-0');
-    expect(screen.getByTestId('message-0')).toHaveTextContent(
-      'User: Message with image attachment',
-    );
-
-    await screen.findByTestId('attachment-0');
-    expect(screen.getByTestId('attachment-0')).toHaveAttribute(
-      'src',
-      expect.stringContaining('https://example.com/image.png'),
-    );
-
-    await screen.findByTestId('message-1');
-    expect(screen.getByTestId('message-1')).toHaveTextContent('AI:');
-
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
+    await waitFor(() => {
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
         {
-          role: 'user',
           content: 'Message with image attachment',
-          experimental_attachments: [
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-1',
+          parts: [
             {
-              name: 'test.png',
-              contentType: 'image/png',
+              mediaType: 'image/png',
+              type: 'file',
               url: 'https://example.com/image.png',
             },
+            {
+              text: 'Message with image attachment',
+              type: 'text',
+            },
           ],
-          parts: [{ text: 'Message with image attachment', type: 'text' }],
+          role: 'user',
         },
-      ],
+        {
+          content: 'Response to message with image attachment',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-2',
+          parts: [
+            {
+              text: 'Response to message with image attachment',
+              type: 'text',
+            },
+          ],
+          revisionId: 'id-3',
+          role: 'assistant',
+        },
+      ]);
     });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "mediaType": "image/png",
+                "type": "file",
+                "url": "https://example.com/image.png",
+              },
+              {
+                "text": "Message with image attachment",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
 describe('reload', () => {
   setupTestComponent(() => {
-    const { messages, append, reload } = useChat();
+    const { messages, append, reload } = useChat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
 
     return (
       <div>
@@ -1694,18 +1890,29 @@ describe('reload', () => {
     // setup done, click reload:
     await userEvent.click(screen.getByTestId('do-reload'));
 
-    expect(await server.calls[1].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          content: 'hi',
-          role: 'user',
-          parts: [{ text: 'hi', type: 'text' }],
+    expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "test-data-key": "test-data-value",
         },
-      ],
-      data: { 'test-data-key': 'test-data-value' },
-      'request-body-key': 'request-body-value',
-    });
+        "id": "id-0",
+        "messages": [
+          {
+            "content": "hi",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "request-body-key": "request-body-value",
+      }
+    `);
 
     expect(server.calls[1].requestHeaders).toStrictEqual({
       'content-type': 'application/json',
@@ -1721,7 +1928,12 @@ describe('reload', () => {
 
 describe('test sending additional fields during message submission', () => {
   setupTestComponent(() => {
-    const { messages, append } = useChat();
+    const { messages, append } = useChat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
 
     return (
       <div>
@@ -1758,17 +1970,28 @@ describe('test sending additional fields during message submission', () => {
     await screen.findByTestId('message-0');
     expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          role: 'user',
-          content: 'hi',
-          annotations: ['this is an annotation'],
-          parts: [{ text: 'hi', type: 'text' }],
-        },
-      ],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "annotations": [
+              "this is an annotation",
+            ],
+            "content": "hi",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
@@ -1897,6 +2120,93 @@ describe('initialMessages', () => {
           'Test message 2',
         );
       });
+    });
+  });
+});
+
+describe('resume ongoing stream and return assistant message', () => {
+  const controller = new TestResponseController();
+
+  setupTestComponent(
+    () => {
+      const { messages, status, experimental_resume } = useChat({
+        id: '123',
+        initialMessages: [
+          {
+            id: 'msg_123',
+            role: 'user',
+            content: 'hi',
+            parts: [{ type: 'text', text: 'hi' }],
+          },
+        ],
+      });
+
+      useEffect(() => {
+        experimental_resume();
+
+        // We want to disable the exhaustive deps rule here because we only want to run this effect once
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, []);
+
+      return (
+        <div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.content}
+            </div>
+          ))}
+
+          <div data-testid="status">{status}</div>
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        server.urls['/api/chat'].response = {
+          type: 'controlled-stream',
+          controller,
+        };
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  it('construct messages from resumed stream', async () => {
+    await screen.findByTestId('message-0');
+    expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+    });
+
+    controller.write('0:"Hello"\n');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+    });
+
+    controller.write('0:"," \n');
+    controller.write('0:" world"\n');
+    controller.write('0:"."\n');
+
+    controller.close();
+
+    await screen.findByTestId('message-1');
+    expect(screen.getByTestId('message-1')).toHaveTextContent(
+      'AI: Hello, world.',
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+
+      expect(server.calls.length).toBeGreaterThan(0);
+      const mostRecentCall = server.calls[0];
+
+      const { requestMethod, requestUrl } = mostRecentCall;
+      expect(requestMethod).toBe('GET');
+      expect(requestUrl).toBe('http://localhost:3000/api/chat?chatId=123');
     });
   });
 });

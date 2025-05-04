@@ -6,7 +6,7 @@ export type { EventSourceChunk } from './event-source-parser-stream';
 export * from './extract-response-headers';
 export * from './fetch-function';
 export { createIdGenerator, generateId } from './generate-id';
-export type { IDGenerator } from './generate-id';
+export type { IdGenerator } from './generate-id';
 export * from './get-error-message';
 export * from './get-from-api';
 export * from './is-abort-error';
@@ -30,4 +30,4 @@ export type { Schema } from './schema';
 export { zodSchema } from './zod-schema';
 
 export type { ToolCall } from './types/tool-call';
-export type { ToolResult } from './types/tool-result';
+export type { ToolResult, ToolResultContent } from './types/tool-result';
