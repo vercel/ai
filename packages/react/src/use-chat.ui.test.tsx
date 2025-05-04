@@ -8,7 +8,13 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { formatDataStreamPart, getToolInvocations, UIMessage } from 'ai';
+import {
+  FinishReason,
+  formatDataStreamPart,
+  getToolInvocations,
+  LanguageModelUsage,
+  UIMessage,
+} from 'ai';
 import { mockValues } from 'ai/test';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
@@ -22,12 +28,8 @@ describe('data protocol stream', () => {
   let onFinishCalls: Array<{
     message: UIMessage;
     options: {
-      finishReason: string;
-      usage: {
-        completionTokens: number;
-        promptTokens: number;
-        totalTokens: number;
-      };
+      finishReason: FinishReason;
+      usage: LanguageModelUsage;
     };
   }> = [];
 
@@ -272,7 +274,13 @@ describe('data protocol stream', () => {
     controller.write(
       formatDataStreamPart('finish_message', {
         finishReason: 'stop',
-        usage: { completionTokens: 1, promptTokens: 3 },
+        usage: {
+          inputTokens: 1,
+          outputTokens: 3,
+          totalTokens: 4,
+          reasoningTokens: undefined,
+          cachedInputTokens: undefined,
+        },
       }),
     );
 
@@ -411,12 +419,8 @@ describe('text stream', () => {
   let onFinishCalls: Array<{
     message: UIMessage;
     options: {
-      finishReason: string;
-      usage: {
-        completionTokens: number;
-        promptTokens: number;
-        totalTokens: number;
-      };
+      finishReason: FinishReason;
+      usage: LanguageModelUsage;
     };
   }> = [];
 

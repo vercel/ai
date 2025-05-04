@@ -182,7 +182,13 @@ describe('data protocol stream', () => {
         formatDataStreamPart('text', '.'),
         formatDataStreamPart('finish_message', {
           finishReason: 'stop',
-          usage: { completionTokens: 1, promptTokens: 3 },
+          usage: {
+            inputTokens: 1,
+            outputTokens: 3,
+            totalTokens: 4,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          },
         }),
       ],
     };
