@@ -140,7 +140,7 @@ describe('AmazonBedrockProvider', () => {
       const provider = createAmazonBedrock();
       const modelId = 'amazon.titan-image-generator';
 
-      const model = provider.image(modelId, {
+      const model = provider.imageModel(modelId, {
         maxImagesPerCall: 5,
       });
 

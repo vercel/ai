@@ -66,7 +66,7 @@ const createImageModel = (
   modelId: string,
   additionalTests: ((model: ImageModelV2) => void)[] = [],
 ): ModelWithCapabilities<ImageModelV2> => {
-  const model = vertex.image(modelId);
+  const model = vertex.imageModel(modelId);
 
   if (additionalTests.length > 0) {
     describe.each([createModelObject(model)])(
@@ -83,9 +83,9 @@ const createModelVariants = (
   vertex: typeof vertexNode | typeof vertexEdge,
   modelId: string,
 ): ModelWithCapabilities<LanguageModelV2>[] => [
-  createBaseModel(vertex, modelId),
-  createSearchGroundedModel(vertex, modelId),
-];
+    createBaseModel(vertex, modelId),
+    createSearchGroundedModel(vertex, modelId),
+  ];
 
 const createModelsForRuntime = (
   vertex: typeof vertexNode | typeof vertexEdge,

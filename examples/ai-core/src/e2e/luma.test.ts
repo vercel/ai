@@ -10,10 +10,10 @@ import 'dotenv/config';
 createFeatureTestSuite({
   name: 'Luma',
   models: {
-    invalidImageModel: provider.image('no-such-model'),
+    invalidImageModel: provider.imageModel('no-such-model'),
     imageModels: [
-      createImageModelWithCapabilities(provider.image('photon-flash-1')),
-      createImageModelWithCapabilities(provider.image('photon-1')),
+      createImageModelWithCapabilities(provider.imageModel('photon-flash-1')),
+      createImageModelWithCapabilities(provider.imageModel('photon-1')),
     ],
   },
   timeout: 30000,

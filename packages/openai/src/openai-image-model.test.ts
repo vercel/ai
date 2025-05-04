@@ -5,7 +5,7 @@ import { createOpenAI } from './openai-provider';
 const prompt = 'A cute baby sea otter';
 
 const provider = createOpenAI({ apiKey: 'test-api-key' });
-const model = provider.image('dall-e-3', { maxImagesPerCall: 2 });
+const model = provider.imageModel('dall-e-3', { maxImagesPerCall: 2 });
 
 const server = createTestServer({
   'https://api.openai.com/v1/images/generations': {},
@@ -70,7 +70,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider.image('dall-e-3').doGenerate({
+    await provider.imageModel('dall-e-3').doGenerate({
       prompt,
       n: 1,
       size: '1024x1024',
@@ -136,13 +136,13 @@ describe('doGenerate', () => {
   it('should respect maxImagesPerCall setting', async () => {
     prepareJsonResponse();
 
-    const customModel = provider.image('dall-e-2', { maxImagesPerCall: 5 });
+    const customModel = provider.imageModel('dall-e-2', { maxImagesPerCall: 5 });
     expect(customModel.maxImagesPerCall).toBe(5);
 
-    const defaultModel = provider.image('dall-e-2');
+    const defaultModel = provider.imageModel('dall-e-2');
     expect(defaultModel.maxImagesPerCall).toBe(10); // dall-e-2's default from settings
 
-    const unknownModel = provider.image('unknown-model' as any);
+    const unknownModel = provider.imageModel('unknown-model' as any);
     expect(unknownModel.maxImagesPerCall).toBe(1); // fallback for unknown models
   });
 
@@ -217,7 +217,7 @@ describe('doGenerate', () => {
   it('should not include response_format for gpt-image-1', async () => {
     prepareJsonResponse();
 
-    const gptImageModel = provider.image('gpt-image-1');
+    const gptImageModel = provider.imageModel('gpt-image-1');
     await gptImageModel.doGenerate({
       prompt,
       n: 1,

@@ -16,7 +16,7 @@ describe('createLuma', () => {
       const provider = createLuma();
       const modelId = 'luma-v1';
 
-      const model = provider.image(modelId);
+      const model = provider.imageModel(modelId);
 
       expect(model).toBeInstanceOf(LumaImageModel);
       expect(LumaImageModel).toHaveBeenCalledWith(
@@ -34,7 +34,7 @@ describe('createLuma', () => {
       const modelId = 'luma-v1';
       const settings = { maxImagesPerCall: 2 };
 
-      const model = provider.image(modelId, settings);
+      const model = provider.imageModel(modelId, settings);
 
       expect(model).toBeInstanceOf(LumaImageModel);
       expect(LumaImageModel).toHaveBeenCalledWith(
@@ -60,7 +60,7 @@ describe('createLuma', () => {
       });
       const modelId = 'luma-v1';
 
-      provider.image(modelId);
+      provider.imageModel(modelId);
 
       expect(LumaImageModel).toHaveBeenCalledWith(
         modelId,

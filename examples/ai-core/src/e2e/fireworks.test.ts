@@ -38,7 +38,7 @@ createFeatureTestSuite({
     ],
     imageModels: [
       createImageModelWithCapabilities(
-        provider.image('accounts/fireworks/models/flux-1-dev-fp8'),
+        provider.imageModel('accounts/fireworks/models/flux-1-dev-fp8'),
       ),
     ],
   },
