@@ -164,7 +164,7 @@ describe('LumaImageModel', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         prompt,
         aspect_ratio: '16:9',
         model: 'test-model',
