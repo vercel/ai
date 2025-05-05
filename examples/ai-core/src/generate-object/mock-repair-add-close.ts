@@ -7,7 +7,11 @@ async function main() {
   const result = await generateObject({
     model: new MockLanguageModelV2({
       doGenerate: async () => ({
-        usage: { inputTokens: 10, outputTokens: 20 },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
         warnings: [],
         finishReason: 'tool-calls',
         content: [
