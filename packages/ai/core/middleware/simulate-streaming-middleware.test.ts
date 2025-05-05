@@ -16,6 +16,14 @@ const DEFAULT_SETTINGs = {
   },
 };
 
+const testUsage = {
+  inputTokens: 5,
+  outputTokens: 10,
+  totalTokens: 18,
+  reasoningTokens: 3,
+  cachedInputTokens: undefined,
+};
+
 describe('simulateStreamingMiddleware', () => {
   it('should simulate streaming with text response', async () => {
     const mockModel = new MockLanguageModelV2({
@@ -23,7 +31,7 @@ describe('simulateStreamingMiddleware', () => {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
           finishReason: 'stop',
-          usage: { inputTokens: 10, outputTokens: 10 },
+          usage: testUsage,
           warnings: [],
         };
       },
@@ -55,7 +63,7 @@ describe('simulateStreamingMiddleware', () => {
             { type: 'text', text: 'This is a test response' },
           ],
           finishReason: 'stop',
-          usage: { inputTokens: 10, outputTokens: 10 },
+          usage: testUsage,
           warnings: [],
         };
       },
@@ -99,7 +107,7 @@ describe('simulateStreamingMiddleware', () => {
             },
           ],
           finishReason: 'stop',
-          usage: { inputTokens: 10, outputTokens: 10 },
+          usage: testUsage,
           warnings: [],
         };
       },
@@ -140,7 +148,7 @@ describe('simulateStreamingMiddleware', () => {
             },
           ],
           finishReason: 'stop',
-          usage: { inputTokens: 10, outputTokens: 10 },
+          usage: testUsage,
           warnings: [],
         };
       },
@@ -194,9 +202,11 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "step-finish",
             "usage": {
-              "completionTokens": 10,
-              "promptTokens": 10,
-              "totalTokens": 20,
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
             },
             "warnings": [],
           },
@@ -211,9 +221,11 @@ describe('simulateStreamingMiddleware', () => {
             },
             "type": "finish",
             "usage": {
-              "completionTokens": 10,
-              "promptTokens": 10,
-              "totalTokens": 20,
+              "cachedInputTokens": undefined,
+              "inputTokens": 5,
+              "outputTokens": 10,
+              "reasoningTokens": 3,
+              "totalTokens": 18,
             },
           },
         ]
@@ -245,7 +257,7 @@ describe('simulateStreamingMiddleware', () => {
             },
           ],
           finishReason: 'tool-calls',
-          usage: { inputTokens: 10, outputTokens: 10 },
+          usage: testUsage,
           warnings: [],
         };
       },
@@ -270,7 +282,7 @@ describe('simulateStreamingMiddleware', () => {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
           finishReason: 'stop',
-          usage: { inputTokens: 10, outputTokens: 10 },
+          usage: testUsage,
           providerMetadata: { custom: { key: 'value' } },
           warnings: [],
         };
@@ -296,7 +308,7 @@ describe('simulateStreamingMiddleware', () => {
         return {
           content: [{ type: 'text', text: '' }],
           finishReason: 'stop',
-          usage: { inputTokens: 10, outputTokens: 0 },
+          usage: testUsage,
           warnings: [],
         };
       },
@@ -321,7 +333,7 @@ describe('simulateStreamingMiddleware', () => {
         return {
           content: [{ type: 'text', text: 'This is a test response' }],
           finishReason: 'stop',
-          usage: { inputTokens: 10, outputTokens: 10 },
+          usage: testUsage,
           warnings: [
             { type: 'other', message: 'Test warning', code: 'test_warning' },
           ],

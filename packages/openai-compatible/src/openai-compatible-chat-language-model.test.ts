@@ -209,7 +209,15 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "reasoningTokens": undefined,
+        "totalTokens": 25,
+      }
+    `);
   });
 
   it('should send additional response information', async () => {
@@ -269,7 +277,15 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: undefined });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": undefined,
+        "reasoningTokens": undefined,
+        "totalTokens": 20,
+      }
+    `);
   });
 
   it('should extract finish reason', async () => {
@@ -794,6 +810,7 @@ describe('doGenerate', () => {
         usage: {
           prompt_tokens: 20,
           completion_tokens: 30,
+          total_tokens: 50,
           prompt_tokens_details: {
             cached_tokens: 5,
           },
@@ -809,12 +826,23 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.providerMetadata!['test-provider']).toStrictEqual({
-        cachedPromptTokens: 5,
-        reasoningTokens: 10,
-        acceptedPredictionTokens: 15,
-        rejectedPredictionTokens: 5,
-      });
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "cachedInputTokens": 5,
+          "inputTokens": 20,
+          "outputTokens": 30,
+          "reasoningTokens": 10,
+          "totalTokens": 50,
+        }
+      `);
+      expect(result.providerMetadata).toMatchInlineSnapshot(`
+        {
+          "test-provider": {
+            "acceptedPredictionTokens": 15,
+            "rejectedPredictionTokens": 5,
+          },
+        }
+      `);
     });
 
     it('should handle missing token details', async () => {
@@ -840,6 +868,7 @@ describe('doGenerate', () => {
         usage: {
           prompt_tokens: 20,
           completion_tokens: 30,
+          total_tokens: 50,
           prompt_tokens_details: {
             cached_tokens: 5,
           },
@@ -854,10 +883,15 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(result.providerMetadata!['test-provider']).toStrictEqual({
-        cachedPromptTokens: 5,
-        reasoningTokens: 10,
-      });
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "cachedInputTokens": 5,
+          "inputTokens": 20,
+          "outputTokens": 30,
+          "reasoningTokens": 10,
+          "totalTokens": 50,
+        }
+      `);
     });
   });
 });
@@ -964,8 +998,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
           },
         },
       ]
@@ -1030,8 +1067,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -1167,8 +1207,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
           },
         },
       ]
@@ -1311,8 +1354,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
           },
         },
       ]
@@ -1444,8 +1490,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 226,
             "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 246,
           },
         },
       ]
@@ -1518,8 +1567,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 18,
             "outputTokens": 439,
+            "reasoningTokens": undefined,
+            "totalTokens": 457,
           },
         },
       ]
@@ -1556,8 +1608,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -1594,8 +1649,11 @@ describe('doStream', () => {
             },
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": undefined,
               "outputTokens": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": undefined,
             },
           },
         ]
@@ -1763,12 +1821,25 @@ describe('doStream', () => {
       const parts = await convertReadableStreamToArray(stream);
       const finishPart = parts.find(part => part.type === 'finish');
 
-      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({
-        cachedPromptTokens: 5,
-        reasoningTokens: 10,
-        acceptedPredictionTokens: 15,
-        rejectedPredictionTokens: 5,
-      });
+      expect(finishPart).toMatchInlineSnapshot(`
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {
+              "acceptedPredictionTokens": 15,
+              "rejectedPredictionTokens": 5,
+            },
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": 5,
+            "inputTokens": 20,
+            "outputTokens": 30,
+            "reasoningTokens": 10,
+            "totalTokens": undefined,
+          },
+        }
+      `);
     });
 
     it('should handle missing token details in stream', async () => {
@@ -1799,6 +1870,7 @@ describe('doStream', () => {
           `data: {"id":"chat-id","choices":[{"delta":{"content":"Hello"}}]}\n\n`,
           `data: {"choices":[{"delta":{},"finish_reason":"stop"}],` +
             `"usage":{"prompt_tokens":20,"completion_tokens":30,` +
+            `"total_tokens":50,` +
             `"prompt_tokens_details":{"cached_tokens":5},` +
             `"completion_tokens_details":{"reasoning_tokens":10}}}\n\n`,
           'data: [DONE]\n\n',
@@ -1812,10 +1884,22 @@ describe('doStream', () => {
       const parts = await convertReadableStreamToArray(stream);
       const finishPart = parts.find(part => part.type === 'finish');
 
-      expect(finishPart?.providerMetadata!['test-provider']).toStrictEqual({
-        cachedPromptTokens: 5,
-        reasoningTokens: 10,
-      });
+      expect(finishPart).toMatchInlineSnapshot(`
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "test-provider": {},
+          },
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": 5,
+            "inputTokens": 20,
+            "outputTokens": 30,
+            "reasoningTokens": 10,
+            "totalTokens": 50,
+          },
+        }
+      `);
     });
   });
 });

@@ -1,6 +1,7 @@
 import {
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { JSONValue } from '../types';
@@ -193,10 +194,7 @@ const finishMessageStreamPart: DataStreamPart<
   {
     finishReason: LanguageModelV2FinishReason;
     // TODO v5 remove usage from finish event (only on step-finish)
-    usage?: {
-      promptTokens: number;
-      completionTokens: number;
-    };
+    usage?: LanguageModelV2Usage;
   }
 > = {
   code: 'd',
@@ -215,10 +213,7 @@ const finishMessageStreamPart: DataStreamPart<
 
     const result: {
       finishReason: LanguageModelV2FinishReason;
-      usage?: {
-        promptTokens: number;
-        completionTokens: number;
-      };
+      usage?: LanguageModelV2Usage;
     } = {
       finishReason: value.finishReason as LanguageModelV2FinishReason,
     };
@@ -226,22 +221,36 @@ const finishMessageStreamPart: DataStreamPart<
     if (
       'usage' in value &&
       value.usage != null &&
-      typeof value.usage === 'object' &&
-      'promptTokens' in value.usage &&
-      'completionTokens' in value.usage
+      typeof value.usage === 'object'
     ) {
       result.usage = {
-        promptTokens:
-          typeof value.usage.promptTokens === 'number'
-            ? value.usage.promptTokens
-            : Number.NaN,
-        completionTokens:
-          typeof value.usage.completionTokens === 'number'
-            ? value.usage.completionTokens
-            : Number.NaN,
+        inputTokens:
+          'inputTokens' in value.usage &&
+          typeof value.usage.inputTokens === 'number'
+            ? value.usage.inputTokens
+            : undefined,
+        outputTokens:
+          'outputTokens' in value.usage &&
+          typeof value.usage.outputTokens === 'number'
+            ? value.usage.outputTokens
+            : undefined,
+        totalTokens:
+          'totalTokens' in value.usage &&
+          typeof value.usage.totalTokens === 'number'
+            ? value.usage.totalTokens
+            : undefined,
+        reasoningTokens:
+          'reasoningTokens' in value.usage &&
+          typeof value.usage.reasoningTokens === 'number'
+            ? value.usage.reasoningTokens
+            : undefined,
+        cachedInputTokens:
+          'cachedInputTokens' in value.usage &&
+          typeof value.usage.cachedInputTokens === 'number'
+            ? value.usage.cachedInputTokens
+            : undefined,
       };
     }
-
     return {
       type: 'finish_message',
       value: result,
@@ -255,10 +264,7 @@ const finishStepStreamPart: DataStreamPart<
   {
     isContinued: boolean;
     finishReason: LanguageModelV2FinishReason;
-    usage?: {
-      promptTokens: number;
-      completionTokens: number;
-    };
+    usage?: LanguageModelV2Usage;
   }
 > = {
   code: 'e',
@@ -278,10 +284,7 @@ const finishStepStreamPart: DataStreamPart<
     const result: {
       isContinued: boolean;
       finishReason: LanguageModelV2FinishReason;
-      usage?: {
-        promptTokens: number;
-        completionTokens: number;
-      };
+      usage?: LanguageModelV2Usage;
     } = {
       finishReason: value.finishReason as LanguageModelV2FinishReason,
       isContinued: false,
@@ -290,19 +293,34 @@ const finishStepStreamPart: DataStreamPart<
     if (
       'usage' in value &&
       value.usage != null &&
-      typeof value.usage === 'object' &&
-      'promptTokens' in value.usage &&
-      'completionTokens' in value.usage
+      typeof value.usage === 'object'
     ) {
       result.usage = {
-        promptTokens:
-          typeof value.usage.promptTokens === 'number'
-            ? value.usage.promptTokens
-            : Number.NaN,
-        completionTokens:
-          typeof value.usage.completionTokens === 'number'
-            ? value.usage.completionTokens
-            : Number.NaN,
+        inputTokens:
+          'inputTokens' in value.usage &&
+          typeof value.usage.inputTokens === 'number'
+            ? value.usage.inputTokens
+            : undefined,
+        outputTokens:
+          'outputTokens' in value.usage &&
+          typeof value.usage.outputTokens === 'number'
+            ? value.usage.outputTokens
+            : undefined,
+        totalTokens:
+          'totalTokens' in value.usage &&
+          typeof value.usage.totalTokens === 'number'
+            ? value.usage.totalTokens
+            : undefined,
+        reasoningTokens:
+          'reasoningTokens' in value.usage &&
+          typeof value.usage.reasoningTokens === 'number'
+            ? value.usage.reasoningTokens
+            : undefined,
+        cachedInputTokens:
+          'cachedInputTokens' in value.usage &&
+          typeof value.usage.cachedInputTokens === 'number'
+            ? value.usage.cachedInputTokens
+            : undefined,
       };
     }
 

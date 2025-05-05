@@ -388,6 +388,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 10,
               "outputTokens": 20,
+              "totalTokens": undefined,
             },
           },
         ]
@@ -457,6 +458,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 10,
               "outputTokens": 20,
+              "totalTokens": undefined,
             },
           },
         ]
@@ -541,6 +543,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 10,
               "outputTokens": 20,
+              "totalTokens": undefined,
             },
           },
         ]
@@ -603,6 +606,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 11,
               "outputTokens": 21,
+              "totalTokens": undefined,
             },
           },
         ]

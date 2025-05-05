@@ -322,6 +322,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
+        totalTokens: response.usage.input_tokens + response.usage.output_tokens,
+        reasoningTokens:
+          response.usage.output_tokens_details?.reasoning_tokens ?? undefined,
+        cachedInputTokens:
+          response.usage.input_tokens_details?.cached_tokens ?? undefined,
       },
       request: { body },
       response: {
@@ -334,10 +339,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       providerMetadata: {
         openai: {
           responseId: response.id,
-          cachedPromptTokens:
-            response.usage.input_tokens_details?.cached_tokens ?? null,
-          reasoningTokens:
-            response.usage.output_tokens_details?.reasoning_tokens ?? null,
         },
       },
       warnings,
@@ -373,9 +374,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
+      totalTokens: undefined,
     };
-    let cachedPromptTokens: number | null = null;
-    let reasoningTokens: number | null = null;
     let responseId: string | null = null;
     const ongoingToolCalls: Record<
       number,
@@ -468,12 +468,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               });
               usage.inputTokens = value.response.usage.input_tokens;
               usage.outputTokens = value.response.usage.output_tokens;
-              cachedPromptTokens =
-                value.response.usage.input_tokens_details?.cached_tokens ??
-                cachedPromptTokens;
-              reasoningTokens =
+              usage.totalTokens =
+                value.response.usage.input_tokens +
+                value.response.usage.output_tokens;
+              usage.reasoningTokens =
                 value.response.usage.output_tokens_details?.reasoning_tokens ??
-                reasoningTokens;
+                undefined;
+              usage.cachedInputTokens =
+                value.response.usage.input_tokens_details?.cached_tokens ??
+                undefined;
             } else if (isResponseAnnotationAddedChunk(value)) {
               controller.enqueue({
                 type: 'source',
@@ -490,15 +493,11 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               type: 'finish',
               finishReason,
               usage,
-              ...((cachedPromptTokens != null || reasoningTokens != null) && {
-                providerMetadata: {
-                  openai: {
-                    responseId,
-                    cachedPromptTokens,
-                    reasoningTokens,
-                  },
+              providerMetadata: {
+                openai: {
+                  responseId,
                 },
-              }),
+              },
             });
           },
         }),

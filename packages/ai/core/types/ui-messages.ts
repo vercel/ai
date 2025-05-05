@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { ChatStore } from '../util/chat-store';
-import { LanguageModelUsage } from './duplicated/usage';
+import { LanguageModelUsage } from './usage';
 
 export type IdGenerator = () => string;
 

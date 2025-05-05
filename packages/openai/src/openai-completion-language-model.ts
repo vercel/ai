@@ -189,8 +189,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     return {
       content: [{ type: 'text', text: choice.text }],
       usage: {
-        inputTokens: response.usage.prompt_tokens,
-        outputTokens: response.usage.completion_tokens,
+        inputTokens: response.usage?.prompt_tokens,
+        outputTokens: response.usage?.completion_tokens,
+        totalTokens: response.usage?.total_tokens,
       },
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       request: { body: args },
@@ -240,6 +241,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
+      totalTokens: undefined,
     };
     let isFirstChunk = true;
 
@@ -282,6 +284,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
             if (value.usage != null) {
               usage.inputTokens = value.usage.prompt_tokens;
               usage.outputTokens = value.usage.completion_tokens;
+              usage.totalTokens = value.usage.total_tokens;
             }
 
             const choice = value.choices[0];
@@ -318,6 +321,12 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
   }
 }
 
+const usageSchema = z.object({
+  prompt_tokens: z.number(),
+  completion_tokens: z.number(),
+  total_tokens: z.number(),
+});
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiCompletionResponseSchema = z.object({
@@ -337,10 +346,7 @@ const openaiCompletionResponseSchema = z.object({
         .nullish(),
     }),
   ),
-  usage: z.object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
-  }),
+  usage: usageSchema.nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -364,12 +370,7 @@ const openaiCompletionChunkSchema = z.union([
           .nullish(),
       }),
     ),
-    usage: z
-      .object({
-        prompt_tokens: z.number(),
-        completion_tokens: z.number(),
-      })
-      .nullish(),
+    usage: usageSchema.nullish(),
   }),
   openaiErrorDataSchema,
 ]);

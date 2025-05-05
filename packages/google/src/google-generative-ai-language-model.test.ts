@@ -246,9 +246,16 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "reasoningTokens": undefined,
+        "totalTokens": 25,
+      }
+    `);
   });
-
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -1444,8 +1451,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 294,
             "outputTokens": 233,
+            "reasoningTokens": undefined,
+            "totalTokens": 527,
           },
         },
       ]
@@ -1592,8 +1602,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 294,
             "outputTokens": 233,
+            "reasoningTokens": undefined,
+            "totalTokens": 527,
           },
         },
       ]
@@ -1830,8 +1843,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 294,
             "outputTokens": 233,
+            "reasoningTokens": undefined,
+            "totalTokens": 527,
           },
         },
       ]

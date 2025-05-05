@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`scenario: delayed message annotations in onFinish > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: delayed message annotations in onFinish > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -22,15 +22,17 @@ exports[`scenario: delayed message annotations in onFinish > should call the onF
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 10,
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
   },
 ]
 `;
 
-exports[`scenario: delayed message annotations in onFinish > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: delayed message annotations in onFinish > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -74,7 +76,7 @@ exports[`scenario: delayed message annotations in onFinish > should call the upd
 ]
 `;
 
-exports[`scenario: message annotations in onChunk > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: message annotations in onChunk > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -95,15 +97,17 @@ exports[`scenario: message annotations in onChunk > should call the onFinish fun
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 10,
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
   },
 ]
 `;
 
-exports[`scenario: message annotations in onChunk > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: message annotations in onChunk > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -185,7 +189,7 @@ exports[`scenario: message annotations in onChunk > should call the update funct
 ]
 `;
 
-exports[`scenario: message annotations with existing assistant lastMessage > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: message annotations with existing assistant lastMessage > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -206,15 +210,17 @@ exports[`scenario: message annotations with existing assistant lastMessage > sho
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 10,
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
   },
 ]
 `;
 
-exports[`scenario: message annotations with existing assistant lastMessage > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: message annotations with existing assistant lastMessage > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -256,7 +262,7 @@ exports[`scenario: message annotations with existing assistant lastMessage > sho
 ]
 `;
 
-exports[`scenario: onToolCall is executed > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: onToolCall is executed > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -282,15 +288,17 @@ exports[`scenario: onToolCall is executed > should call the onFinish function wi
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 10,
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
   },
 ]
 `;
 
-exports[`scenario: onToolCall is executed > should call the update function twice with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: onToolCall is executed > should call the update function twice with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -346,7 +354,7 @@ exports[`scenario: onToolCall is executed > should call the update function twic
 ]
 `;
 
-exports[`scenario: server provides file parts > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server provides file parts > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -373,15 +381,17 @@ exports[`scenario: server provides file parts > should call the onFinish functio
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 7,
-      "promptTokens": 14,
-      "totalTokens": 21,
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
+      "totalTokens": 15,
     },
   },
 ]
 `;
 
-exports[`scenario: server provides file parts > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server provides file parts > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -474,7 +484,7 @@ exports[`scenario: server provides file parts > should call the update function 
 ]
 `;
 
-exports[`scenario: server provides message ids > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server provides message ids > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -494,15 +504,17 @@ exports[`scenario: server provides message ids > should call the onFinish functi
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 10,
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
   },
 ]
 `;
 
-exports[`scenario: server provides message ids > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server provides message ids > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -563,7 +575,7 @@ exports[`scenario: server provides message ids > should call the update function
 ]
 `;
 
-exports[`scenario: server provides reasoning > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server provides reasoning > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -592,15 +604,17 @@ exports[`scenario: server provides reasoning > should call the onFinish function
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 10,
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
   },
 ]
 `;
 
-exports[`scenario: server provides reasoning > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server provides reasoning > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -767,7 +781,7 @@ exports[`scenario: server provides reasoning > should call the update function w
 ]
 `;
 
-exports[`scenario: server provides sources > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server provides sources > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -794,15 +808,17 @@ exports[`scenario: server provides sources > should call the onFinish function w
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 7,
-      "promptTokens": 14,
+      "cachedInputTokens": undefined,
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "reasoningTokens": undefined,
       "totalTokens": 21,
     },
   },
 ]
 `;
 
-exports[`scenario: server provides sources > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server provides sources > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -851,7 +867,7 @@ exports[`scenario: server provides sources > should call the update function wit
 ]
 `;
 
-exports[`scenario: server-side continue roundtrip > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server-side continue roundtrip > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -868,15 +884,17 @@ exports[`scenario: server-side continue roundtrip > should call the onFinish fun
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 7,
-      "promptTokens": 14,
+      "cachedInputTokens": undefined,
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "reasoningTokens": undefined,
       "totalTokens": 21,
     },
   },
 ]
 `;
 
-exports[`scenario: server-side continue roundtrip > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server-side continue roundtrip > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -915,7 +933,7 @@ exports[`scenario: server-side continue roundtrip > should call the update funct
 ]
 `;
 
-exports[`scenario: server-side tool roundtrip > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server-side tool roundtrip > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -947,15 +965,17 @@ exports[`scenario: server-side tool roundtrip > should call the onFinish functio
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 7,
-      "promptTokens": 14,
+      "cachedInputTokens": undefined,
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "reasoningTokens": undefined,
       "totalTokens": 21,
     },
   },
 ]
 `;
 
-exports[`scenario: server-side tool roundtrip > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server-side tool roundtrip > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -1045,7 +1065,7 @@ exports[`scenario: server-side tool roundtrip > should call the update function 
 ]
 `;
 
-exports[`scenario: server-side tool roundtrip with existing assistant message > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server-side tool roundtrip with existing assistant message > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -1093,15 +1113,17 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 7,
-      "promptTokens": 14,
+      "cachedInputTokens": undefined,
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "reasoningTokens": undefined,
       "totalTokens": 21,
     },
   },
 ]
 `;
 
-exports[`scenario: server-side tool roundtrip with existing assistant message > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server-side tool roundtrip with existing assistant message > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -1268,7 +1290,7 @@ exports[`scenario: server-side tool roundtrip with existing assistant message > 
 ]
 `;
 
-exports[`scenario: server-side tool roundtrip with multiple assistant reasoning > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server-side tool roundtrip with multiple assistant reasoning > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -1318,15 +1340,17 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 7,
-      "promptTokens": 14,
+      "cachedInputTokens": undefined,
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "reasoningTokens": undefined,
       "totalTokens": 21,
     },
   },
 ]
 `;
 
-exports[`scenario: server-side tool roundtrip with multiple assistant reasoning > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server-side tool roundtrip with multiple assistant reasoning > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -1538,7 +1562,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant reasoning 
 ]
 `;
 
-exports[`scenario: server-side tool roundtrip with multiple assistant texts > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server-side tool roundtrip with multiple assistant texts > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -1574,15 +1598,17 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 7,
-      "promptTokens": 14,
+      "cachedInputTokens": undefined,
+      "inputTokens": 7,
+      "outputTokens": 14,
+      "reasoningTokens": undefined,
       "totalTokens": 21,
     },
   },
 ]
 `;
 
-exports[`scenario: server-side tool roundtrip with multiple assistant texts > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: server-side tool roundtrip with multiple assistant texts > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -1754,7 +1780,7 @@ exports[`scenario: server-side tool roundtrip with multiple assistant texts > sh
 ]
 `;
 
-exports[`scenario: simple text response > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: simple text response > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -1771,15 +1797,17 @@ exports[`scenario: simple text response > should call the onFinish function with
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 10,
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
   },
 ]
 `;
 
-exports[`scenario: simple text response > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: simple text response > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
@@ -1818,7 +1846,7 @@ exports[`scenario: simple text response > should call the update function with t
 ]
 `;
 
-exports[`scenario: tool call streaming > should call the onFinish function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: tool call streaming > should call the onFinish function with the correct arguments 1`] = `
 [
   {
     "finishReason": "stop",
@@ -1844,15 +1872,17 @@ exports[`scenario: tool call streaming > should call the onFinish function with 
       "role": "assistant",
     },
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 10,
+      "cachedInputTokens": undefined,
+      "inputTokens": 5,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 15,
     },
   },
 ]
 `;
 
-exports[`scenario: tool call streaming > should call the update function with the correct arguments 1`] = `
+exports[`processChatResponse > scenario: tool call streaming > should call the update function with the correct arguments 1`] = `
 [
   {
     "data": [],
