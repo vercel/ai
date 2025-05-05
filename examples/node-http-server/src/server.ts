@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { pipeDataStreamToResponse, streamText } from 'ai';
+import { createDataStream, pipeDataStreamToResponse, streamText } from 'ai';
 import 'dotenv/config';
 import { createServer } from 'http';
 
@@ -10,22 +10,23 @@ createServer(async (req, res) => {
         model: openai('gpt-4o'),
         prompt: 'Invent a new holiday and describe its traditions.',
       });
-      result.pipeDataStreamToResponse(res);
+
+      pipeDataStreamToResponse(res, { dataStream: result.toDataStream() });
       break;
     }
 
     case '/stream-data': {
       // immediately start streaming the response
-      pipeDataStreamToResponse(res, {
-        execute: async dataStreamWriter => {
-          dataStreamWriter.writeData('initialized call');
+      const dataStream = createDataStream({
+        execute: writer => {
+          writer.writeData('initialized call');
 
           const result = streamText({
             model: openai('gpt-4o'),
             prompt: 'Invent a new holiday and describe its traditions.',
           });
 
-          result.mergeIntoDataStream(dataStreamWriter);
+          writer.merge(result.toDataStream());
         },
         onError: error => {
           // Error messages are masked by default for security reasons.
@@ -33,6 +34,8 @@ createServer(async (req, res) => {
           return error instanceof Error ? error.message : String(error);
         },
       });
+
+      pipeDataStreamToResponse(res, { dataStream });
       break;
     }
   }
