@@ -70,7 +70,7 @@ const response = createDataStreamResponse({
           parameters: [
             {
               name: 'write',
-              type: '(data: DataStreamString) => void',
+              type: '(data: DataStreamText) => void',
               description: 'Appends a data part to the stream.',
             },
             {
@@ -90,7 +90,7 @@ const response = createDataStreamResponse({
             },
             {
               name: 'merge',
-              type: '(stream: ReadableStream<DataStreamString>) => void',
+              type: '(stream: ReadableStream<DataStreamText>) => void',
               description:
                 'Merges the contents of another stream to this stream.',
             },
