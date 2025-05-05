@@ -491,7 +491,6 @@ Default is undefined, which disables throttling.
           id: generateId(),
           createdAt: getCurrentDate(),
           role: 'user',
-          content: input,
           parts: [...fileParts, { type: 'text', text: input }],
         }),
         headers: options.headers,

@@ -50,7 +50,6 @@ describe('prepareRequestBody', () => {
       messages: [
         {
           role: 'user',
-          content: 'hi',
           id: expect.any(String),
           createdAt: expect.any(String),
           parts: [{ type: 'text', text: 'hi' }],
@@ -225,7 +224,6 @@ describe('data protocol stream', () => {
           id: expect.any(String),
           createdAt: expect.any(String),
           role: 'assistant',
-          content: 'Hello, world.',
           parts: [{ text: 'Hello, world.', type: 'text' }],
         },
         options: {
@@ -284,7 +282,6 @@ describe('text stream', () => {
           id: expect.any(String),
           createdAt: expect.any(String),
           role: 'assistant',
-          content: 'Hello, world.',
           parts: [{ text: 'Hello, world.', type: 'text' }],
         },
         options: {
@@ -332,7 +329,6 @@ describe('custom metadata', () => {
       id: expect.any(String),
       messages: [
         {
-          content: 'custom metadata component',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
           parts: [
@@ -482,7 +478,6 @@ describe('reload', () => {
       id: expect.any(String),
       messages: [
         {
-          content: 'hi',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
           parts: [
@@ -793,7 +788,6 @@ describe('file attachments with data url', () => {
           id: 'id-0',
           createdAt: '2025-01-01T00:00:00.000Z',
           role: 'user',
-          content: 'Message with text attachment',
           parts: [
             {
               type: 'file',
@@ -808,7 +802,6 @@ describe('file attachments with data url', () => {
           ],
         },
         {
-          content: 'Response to message with text attachment',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
           parts: [
@@ -851,7 +844,6 @@ describe('file attachments with data url', () => {
           role: 'user',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
-          content: 'Message with image attachment',
           parts: [
             {
               type: 'file',
@@ -869,7 +861,6 @@ describe('file attachments with data url', () => {
           role: 'assistant',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
-          content: 'Response to message with image attachment',
           parts: [
             {
               type: 'text',
@@ -906,7 +897,6 @@ describe('file attachments with url', () => {
           role: 'user',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
-          content: 'Message with image attachment',
           parts: [
             {
               type: 'file',
@@ -923,7 +913,6 @@ describe('file attachments with url', () => {
           role: 'assistant',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
-          content: 'Response to message with image attachment',
           parts: [
             {
               type: 'text',
@@ -964,7 +953,6 @@ describe('attachments with empty submit', () => {
           id: 'id-0',
           createdAt: '2025-01-01T00:00:00.000Z',
           role: 'user',
-          content: '',
           parts: [
             {
               type: 'file',
@@ -982,7 +970,6 @@ describe('attachments with empty submit', () => {
           id: 'id-1',
           createdAt: '2025-01-01T00:00:00.000Z',
           role: 'assistant',
-          content: 'Response to empty message with attachment',
           parts: [
             {
               type: 'text',
@@ -1013,7 +1000,6 @@ describe('should append message with attachments', () => {
         JSON.parse(screen.getByTestId('messages').textContent ?? ''),
       ).toStrictEqual([
         {
-          content: 'Message with image attachment',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
           parts: [
@@ -1030,7 +1016,6 @@ describe('should append message with attachments', () => {
           role: 'user',
         },
         {
-          content: 'Response to message with image attachment',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
           parts: [

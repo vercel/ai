@@ -362,7 +362,6 @@ export function useChat(
       messages.value.concat({
         id: generateId(),
         createdAt: getCurrentDate(),
-        content: inputValue,
         role: 'user',
         parts: [...fileParts, { type: 'text', text: inputValue }],
       }),

@@ -21,7 +21,6 @@ const { messages, append } = useChat({
       @click="
         append({
           role: 'user',
-          content: 'Message with image attachment',
           parts: [
             {
               type: 'file',

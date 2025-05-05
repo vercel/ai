@@ -38,12 +38,6 @@ The timestamp of the message.
   createdAt?: Date;
 
   /**
-Text content of the message. Use parts when possible.
-   */
-  // TODO remove (replace with parts)
-  content: string;
-
-  /**
 The role of the message.
    */
   role: 'system' | 'user' | 'assistant';

@@ -223,7 +223,6 @@ describe('processChatResponse', () => {
           role: 'assistant',
           id: 'original-id',
           createdAt: new Date('2023-01-02T00:00:00.000Z'),
-          content: '',
           parts: [
             {
               type: 'tool-invocation',
@@ -602,7 +601,6 @@ describe('processChatResponse', () => {
           role: 'assistant',
           id: 'original-id',
           createdAt: new Date('2023-01-02T00:00:00.000Z'),
-          content: '',
           annotations: ['annotation0'],
           parts: [],
         },

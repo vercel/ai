@@ -3311,12 +3311,10 @@ describe('streamText', () => {
         messages: [
           {
             role: 'user',
-            content: 'prompt',
             parts: [{ type: 'text', text: 'prompt' }],
           },
           {
             role: 'assistant',
-            content: '',
             parts: [
               {
                 type: 'tool-invocation',

@@ -22,6 +22,7 @@ export type { TelemetrySettings } from './telemetry/telemetry-settings';
 
 // ui exports:
 export { getToolInvocations } from './ui/get-tool-invocations';
+export { getUIText } from './ui/get-ui-text';
 
 // util exports:
 export { cosineSimilarity } from './util/cosine-similarity';

@@ -9,7 +9,6 @@ describe('appendResponseMessages', () => {
           {
             role: 'user',
             id: '1',
-            content: 'Hello!',
             createdAt: new Date(123),
             parts: [{ type: 'text', text: 'Hello!' }],
           },
@@ -33,7 +32,6 @@ describe('appendResponseMessages', () => {
           {
             role: 'user',
             id: '1',
-            content: 'Hello!',
             createdAt: new Date(123),
             parts: [{ type: 'text', text: 'Hello!' }],
           },
@@ -75,7 +73,6 @@ describe('appendResponseMessages', () => {
           {
             role: 'user',
             id: '1',
-            content: 'Generate an image of a cat',
             createdAt: new Date(123),
             parts: [{ type: 'text', text: 'Generate an image of a cat' }],
           },
@@ -105,7 +102,6 @@ describe('appendResponseMessages', () => {
           {
             role: 'user',
             id: '1',
-            content: 'User wants a tool invocation',
             createdAt: new Date(123),
             parts: [{ type: 'text', text: 'User wants a tool invocation' }],
           },
@@ -137,7 +133,6 @@ describe('appendResponseMessages', () => {
           {
             role: 'user',
             id: '1',
-            content: 'User wants a tool invocation',
             createdAt: new Date(123),
             parts: [{ type: 'text', text: 'User wants a tool invocation' }],
           },
@@ -210,7 +205,6 @@ describe('appendResponseMessages', () => {
             {
               role: 'user',
               id: '1',
-              content: 'User message',
               createdAt: new Date(),
               parts: [{ type: 'text', text: 'User message' }],
             },
@@ -241,14 +235,12 @@ describe('appendResponseMessages', () => {
           {
             role: 'user',
             id: '1',
-            content: 'User wants a tool invocation',
             createdAt: new Date(123),
             parts: [{ type: 'text', text: 'User wants a tool invocation' }],
           },
           {
             role: 'assistant',
             id: '2',
-            content: '',
             createdAt: new Date(456),
             parts: [
               {
@@ -286,14 +278,12 @@ describe('appendResponseMessages', () => {
           {
             role: 'user',
             id: '1',
-            content: 'User wants a tool invocation',
             createdAt: new Date(123),
             parts: [{ type: 'text', text: 'User wants a tool invocation' }],
           },
           {
             role: 'assistant',
             id: '2',
-            content: '',
             createdAt: new Date(456),
             parts: [
               {
@@ -338,14 +328,12 @@ describe('appendResponseMessages', () => {
           {
             role: 'user',
             id: '1',
-            content: 'User wants a tool invocation',
             createdAt: new Date(123),
             parts: [{ type: 'text', text: 'User wants a tool invocation' }],
           },
           {
             role: 'assistant',
             id: '2',
-            content: 'Placeholder text',
             createdAt: new Date(456),
             parts: [
               {
@@ -389,16 +377,18 @@ describe('appendResponseMessages', () => {
           {
             role: 'user',
             id: '1',
-            content: 'User wants a tool invocation',
             createdAt: new Date(123),
             parts: [{ type: 'text', text: 'User wants a tool invocation' }],
           },
           {
             role: 'assistant',
             id: '2',
-            content: 'Placeholder text',
             createdAt: new Date(456),
             parts: [
+              {
+                type: 'text',
+                text: 'Placeholder text',
+              },
               {
                 type: 'tool-invocation',
                 toolInvocation: {
