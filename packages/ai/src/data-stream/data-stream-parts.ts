@@ -1,10 +1,10 @@
 import {
+  JSONValue,
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
   LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
-import { JSONValue } from '../types';
 
 export type DataStreamText =
   `${(typeof DataStreamTextPrefixes)[keyof typeof DataStreamTextPrefixes]}:${string}\n`;
