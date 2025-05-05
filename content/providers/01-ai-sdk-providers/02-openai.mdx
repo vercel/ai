@@ -578,7 +578,7 @@ The following provider options are available:
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 - **reasoningSummary** _'auto' | 'detailed'_
-  Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
+  Controls whether the model returns its reasoning process. Set to `'auto'` for the most comprehensive summary available to the model. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
 
 - **strictSchemas** _boolean_
   Whether to use strict JSON schemas in tools and when generating JSON outputs. Defaults to `true`.
