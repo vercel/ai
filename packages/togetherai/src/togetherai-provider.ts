@@ -83,7 +83,10 @@ Creates a model for image generation.
   /**
   Creates a model for image generation.
 */
-  imageModel(modelId: TogetherAIImageModelId): ImageModelV2;
+  imageModel(
+    modelId: TogetherAIImageModelId,
+    settings?: TogetherAIImageSettings,
+  ): ImageModelV2;
 }
 
 export function createTogetherAI(
