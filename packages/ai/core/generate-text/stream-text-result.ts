@@ -20,6 +20,11 @@ import { ToolSet } from './tool-set';
 
 export type DataStreamOptions = {
   /**
+   * Get an error message from an error. Default to `() => 'An error occurred.'`.
+   */
+  getErrorMessage?: (error: unknown) => string;
+
+  /**
    * Send usage parts to the client.
    * Default to true.
    */
@@ -207,17 +212,16 @@ If an error occurs, it is passed to the optional `onError` callback.
   /**
   Converts the result to a data stream.
 
-  @param data an optional StreamData object that will be merged into the stream.
-  @param getErrorMessage an optional function that converts an error to an error message.
-  @param sendUsage whether to send the usage information to the client. Defaults to true.
-  @param sendReasoning whether to send the reasoning information to the client. Defaults to false.
+  @param options.getErrorMessage an optional function that converts an error to an error message.
+  @param options.sendUsage whether to send the usage information to the client. Defaults to true.
+  @param options.sendReasoning whether to send the reasoning information to the client. Defaults to false.
+  @param options.sendSources whether to send the sources information to the client. Defaults to false.
+  @param options.experimental_sendFinish whether to send the finish information to the client. Defaults to true.
+  @param options.experimental_sendStart whether to send the start information to the client. Defaults to true.
+
   @return A data stream.
      */
-  toDataStream(
-    options?: {
-      getErrorMessage?: (error: unknown) => string;
-    } & DataStreamOptions,
-  ): ReadableStream<DataStreamText>;
+  toDataStream(options?: DataStreamOptions): ReadableStream<DataStreamText>;
 
   /**
    * Merges the result as a data stream into another data stream.
@@ -238,16 +242,13 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.status The status code.
   @param options.statusText The status text.
   @param options.headers The headers.
-  @param options.data The stream data.
   @param options.getErrorMessage An optional function that converts an error to an error message.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
      */
   pipeDataStreamToResponse(
     response: ServerResponse,
-    options?: ResponseInit & {
-      getErrorMessage?: (error: unknown) => string;
-    } & DataStreamOptions,
+    options?: ResponseInit & DataStreamOptions,
   ): void;
 
   /**
@@ -274,11 +275,7 @@ If an error occurs, it is passed to the optional `onError` callback.
 
   @return A response object.
      */
-  toDataStreamResponse(
-    options?: ResponseInit & {
-      getErrorMessage?: (error: unknown) => string;
-    } & DataStreamOptions,
-  ): Response;
+  toDataStreamResponse(options?: ResponseInit & DataStreamOptions): Response;
 
   /**
   Creates a simple text stream response.

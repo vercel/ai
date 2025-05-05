@@ -1578,9 +1578,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendReasoning = false,
     sendSources = false,
     experimental_sendFinish = true,
-  }: DataStreamOptions & {
-    getErrorMessage?: (error: unknown) => string;
-  }): ReadableStream<DataStreamText> {
+  }: DataStreamOptions = {}): ReadableStream<DataStreamText> {
     return this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, DataStreamText>({
         transform: async (chunk, controller) => {
@@ -1742,10 +1740,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendReasoning,
       sendSources,
       experimental_sendFinish,
-    }: ResponseInit &
-      DataStreamOptions & {
-        getErrorMessage?: (error: unknown) => string;
-      } = {},
+    }: ResponseInit & DataStreamOptions = {},
   ) {
     writeToServerResponse({
       response,
@@ -1780,7 +1775,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
     writer.merge(
       this.toDataStream({
-        getErrorMessage: writer.onError,
+        getErrorMessage: options?.getErrorMessage ?? writer.onError,
         sendUsage: options?.sendUsage,
         sendReasoning: options?.sendReasoning,
         sendSources: options?.sendSources,
@@ -1798,10 +1793,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendReasoning,
     sendSources,
     experimental_sendFinish,
-  }: ResponseInit &
-    DataStreamOptions & {
-      getErrorMessage?: (error: unknown) => string;
-    } = {}): Response {
+  }: ResponseInit & DataStreamOptions = {}): Response {
     return new Response(
       this.toDataStream({
         getErrorMessage,
