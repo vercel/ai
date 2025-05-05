@@ -7,10 +7,14 @@ import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
+import {
+  DataStreamText,
+  formatDataStreamPart,
+} from '../../src/data-stream/data-stream-parts';
+import { DataStreamWriter } from '../../src/data-stream/data-stream-writer';
 import { asArray } from '../../util/as-array';
 import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
-import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
 import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -34,7 +38,6 @@ import {
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { DataStreamText, formatDataStreamPart } from '../util';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,

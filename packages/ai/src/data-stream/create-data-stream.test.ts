@@ -2,8 +2,8 @@ import { delay } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { formatDataStreamPart } from 'ai';
 import { expect, it } from 'vitest';
+import { Source } from '../../core/types/language-model';
 import { DelayedPromise } from '../../util/delayed-promise';
-import { Source } from '../types/language-model';
 import { createDataStream } from './create-data-stream';
 import { DataStreamWriter } from './data-stream-writer';
 
