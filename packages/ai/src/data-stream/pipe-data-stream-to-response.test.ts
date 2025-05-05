@@ -1,7 +1,7 @@
 import { expect, it, describe } from 'vitest';
 import { pipeDataStreamToResponse } from './pipe-data-stream-to-response';
 import { formatDataStreamPart } from 'ai';
-import { createMockServerResponse } from '../test/mock-server-response';
+import { createMockServerResponse } from '../../core/test/mock-server-response';
 
 describe('pipeDataStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {

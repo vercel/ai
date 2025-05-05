@@ -1,6 +1,6 @@
 import { ServerResponse } from 'node:http';
-import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
-import { writeToServerResponse } from '../util/write-to-server-response';
+import { prepareOutgoingHttpHeaders } from '../../core/util/prepare-outgoing-http-headers';
+import { writeToServerResponse } from '../../core/util/write-to-server-response';
 import { createDataStream } from './create-data-stream';
 import { DataStreamWriter } from './data-stream-writer';
 

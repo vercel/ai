@@ -1,4 +1,4 @@
-import { DataStreamText, formatDataStreamPart } from '../util';
+import { DataStreamText, formatDataStreamPart } from './data-stream-parts';
 import { DataStreamWriter } from './data-stream-writer';
 
 export function createDataStream({

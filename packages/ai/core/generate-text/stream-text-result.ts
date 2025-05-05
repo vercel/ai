@@ -1,5 +1,6 @@
 import { ServerResponse } from 'node:http';
-import { DataStreamWriter } from '../data-stream/data-stream-writer';
+import { DataStreamText } from '../../src/data-stream/data-stream-parts';
+import { DataStreamWriter } from '../../src/data-stream/data-stream-writer';
 import { ReasoningPart } from '../prompt/content-part';
 import {
   CallWarning,
@@ -11,7 +12,6 @@ import { Source } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
-import { DataStreamText } from '../util/data-stream-parts';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage, StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';

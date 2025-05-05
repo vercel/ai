@@ -1,6 +1,6 @@
 import { JSONValue } from '@ai-sdk/provider';
-import { DataStreamText } from '../util';
-import { Source } from '../types/language-model';
+import { Source } from '../../core/types/language-model';
+import { DataStreamText } from './data-stream-parts';
 
 export interface DataStreamWriter {
   /**
