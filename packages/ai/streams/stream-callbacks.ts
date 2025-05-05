@@ -5,13 +5,6 @@ export interface StreamCallbacks {
   /** `onStart`: Called once when the stream is initialized. */
   onStart?: () => Promise<void> | void;
 
-  /**
-   * `onCompletion`: Called for each tokenized message.
-   *
-   * @deprecated Use `onFinal` instead.
-   */
-  onCompletion?: (completion: string) => Promise<void> | void;
-
   /** `onFinal`: Called once when the stream is closed with the final completion message. */
   onFinal?: (completion: string) => Promise<void> | void;
 
@@ -27,7 +20,6 @@ export interface StreamCallbacks {
  * The transform stream uses the provided callbacks to execute custom logic at different stages of the stream's lifecycle.
  * - `onStart`: Called once when the stream is initialized.
  * - `onToken`: Called for each tokenized message.
- * - `onCompletion`: Called every time a completion message is received. This can occur multiple times when using e.g. OpenAI functions
  * - `onFinal`: Called once when the stream is closed with the final completion message.
  *
  * This function is useful when you want to process a stream of messages and perform specific actions during the stream's lifecycle.
@@ -39,7 +31,6 @@ export interface StreamCallbacks {
  * const callbacks = {
  *   onStart: async () => console.log('Stream started'),
  *   onToken: async (token) => console.log(`Token: ${token}`),
- *   onCompletion: async (completion) => console.log(`Completion: ${completion}`)
  *   onFinal: async () => data.close()
  * };
  * const transformer = createCallbacksTransformer(callbacks);
@@ -67,9 +58,6 @@ export function createCallbacksTransformer(
     },
 
     async flush(): Promise<void> {
-      if (callbacks.onCompletion) {
-        await callbacks.onCompletion(aggregatedResponse);
-      }
       if (callbacks.onFinal) {
         await callbacks.onFinal(aggregatedResponse);
       }

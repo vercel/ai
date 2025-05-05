@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { getUIText, LanguageModelUsage } from 'ai';
 import { reactive } from 'vue';
 import { UIMessage, useChat } from './use-chat';
 
@@ -6,11 +7,7 @@ const onFinishCalls: Array<{
   message: UIMessage;
   options: {
     finishReason: string;
-    usage: {
-      completionTokens: number;
-      promptTokens: number;
-      totalTokens: number;
-    };
+    usage: LanguageModelUsage;
   };
 }> = reactive([]);
 
@@ -32,7 +29,7 @@ const { messages, append, data, error, status, setData } = useChat({
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
+      {{ getUIText(m.parts) }}
     </div>
 
     <button
@@ -40,7 +37,6 @@ const { messages, append, data, error, status, setData } = useChat({
       @click="
         append({
           role: 'user',
-          content: 'hi',
           parts: [{ text: 'hi', type: 'text' }],
         })
       "

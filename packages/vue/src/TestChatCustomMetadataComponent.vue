@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { generateId, getUIText } from 'ai';
 import { mockId, mockValues } from 'ai/test';
 import { useChat } from './use-chat';
-import { generateId } from 'ai';
 
 const { messages, append } = useChat({
   body: {
@@ -28,7 +28,7 @@ const { messages, append } = useChat({
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
+      {{ getUIText(m.parts) }}
     </div>
 
     <button
@@ -36,7 +36,6 @@ const { messages, append } = useChat({
       @click="
         append({
           role: 'user',
-          content: 'custom metadata component',
           parts: [{ text: 'custom metadata component', type: 'text' }],
         })
       "

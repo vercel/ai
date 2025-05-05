@@ -11,7 +11,6 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
-import { calculateLanguageModelUsage } from '../types/usage';
 import { generateId } from '../util';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
@@ -133,6 +132,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       switch (chunkType) {
         // forward:
         case 'stream-start':
+        case 'finish':
         case 'text':
         case 'reasoning':
         case 'reasoning-part-finish':
@@ -276,16 +276,6 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             });
           }
 
-          break;
-        }
-
-        case 'finish': {
-          finishChunk = {
-            type: 'finish',
-            finishReason: chunk.finishReason,
-            usage: calculateLanguageModelUsage(chunk.usage),
-            providerMetadata: chunk.providerMetadata,
-          };
           break;
         }
 

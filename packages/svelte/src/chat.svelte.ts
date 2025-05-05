@@ -180,7 +180,6 @@ export class Chat {
       id: this.#generateId(),
       createdAt: this.currentDate(),
       role: 'user',
-      content: this.input,
       parts: [...fileParts, { type: 'text', text: this.input }],
     });
 

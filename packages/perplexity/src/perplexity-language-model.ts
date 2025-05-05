@@ -166,6 +166,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: response.usage?.prompt_tokens,
         outputTokens: response.usage?.completion_tokens,
+        totalTokens: response.usage?.total_tokens ?? undefined,
       },
       request: { body },
       response: {
@@ -218,6 +219,7 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
+      totalTokens: undefined,
     };
 
     const providerMetadata: {
@@ -356,6 +358,7 @@ function getResponseMetadata({
 const perplexityUsageSchema = z.object({
   prompt_tokens: z.number(),
   completion_tokens: z.number(),
+  total_tokens: z.number().nullish(),
   citation_tokens: z.number().nullish(),
   num_search_queries: z.number().nullish(),
 });

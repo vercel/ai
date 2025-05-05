@@ -1,12 +1,12 @@
 import { JSONValue } from '@ai-sdk/provider';
-import { DataStreamString } from '../util';
-import { Source } from '../types/language-model';
+import { Source } from '../../core/types/language-model';
+import { DataStreamText } from './data-stream-parts';
 
 export interface DataStreamWriter {
   /**
    * Appends a data part to the stream.
    */
-  write(data: DataStreamString): void;
+  write(data: DataStreamText): void;
 
   /**
    * Appends a data part to the stream.
@@ -26,7 +26,7 @@ export interface DataStreamWriter {
   /**
    * Merges the contents of another stream to this stream.
    */
-  merge(stream: ReadableStream<DataStreamString>): void;
+  merge(stream: ReadableStream<DataStreamText>): void;
 
   /**
    * Error handler that is used by the data stream writer.

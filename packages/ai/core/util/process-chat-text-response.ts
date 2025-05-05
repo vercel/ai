@@ -26,14 +26,12 @@ export async function processChatTextResponse({
     id: generateId(),
     createdAt: getCurrentDate(),
     role: 'assistant' as const,
-    content: '',
     parts: [textPart],
   };
 
   await processTextStream({
     stream,
     onTextPart: chunk => {
-      resultMessage.content += chunk;
       textPart.text += chunk;
 
       // note: creating a new message object is required for Solid.js streaming
@@ -47,7 +45,11 @@ export async function processChatTextResponse({
 
   // in text mode, we don't have usage information or finish reason:
   onFinish?.(resultMessage, {
-    usage: { completionTokens: NaN, promptTokens: NaN, totalTokens: NaN },
+    usage: {
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
+    },
     finishReason: 'unknown',
   });
 }

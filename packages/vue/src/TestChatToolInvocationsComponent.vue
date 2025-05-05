@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { getToolInvocations, getUIText } from 'ai';
 import { useChat } from './use-chat';
-import { getToolInvocations } from 'ai';
 
 const { messages, append, addToolResult } = useChat({
   maxSteps: 5,
@@ -31,7 +31,7 @@ const { messages, append, addToolResult } = useChat({
         />
       </div>
       <div :data-testid="`text-${idx}`">
-        {{ m.content }}
+        {{ getUIText(m.parts) }}
       </div>
     </div>
 
@@ -40,7 +40,6 @@ const { messages, append, addToolResult } = useChat({
       @click="
         append({
           role: 'user',
-          content: 'hi',
           parts: [{ type: 'text', text: 'hi' }],
         })
       "

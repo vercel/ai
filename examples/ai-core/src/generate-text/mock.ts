@@ -8,7 +8,11 @@ async function main() {
       doGenerate: async () => ({
         content: [{ type: 'text', text: `Hello, world!` }],
         finishReason: 'stop',
-        usage: { inputTokens: 10, outputTokens: 20 },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
         warnings: [],
       }),
     }),

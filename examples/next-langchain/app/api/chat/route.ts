@@ -1,7 +1,7 @@
-import { ChatOpenAI } from '@langchain/openai';
-import { UIMessage } from 'ai';
-import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { toDataStreamResponse } from '@ai-sdk/langchain';
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
+import { ChatOpenAI } from '@langchain/openai';
+import { getUIText, UIMessage } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -21,8 +21,8 @@ export async function POST(req: Request) {
   const stream = await model.stream(
     messages.map(message =>
       message.role == 'user'
-        ? new HumanMessage(message.content)
-        : new AIMessage(message.content),
+        ? new HumanMessage(getUIText(message.parts))
+        : new AIMessage(getUIText(message.parts)),
     ),
   );
 

@@ -15,7 +15,6 @@ import {
   Schema,
 } from 'ai';
 import {
-  calculateLanguageModelUsage,
   standardizePrompt,
   prepareToolsAndToolChoice,
   prepareRetries,
@@ -366,7 +365,7 @@ functionality that can be fully encapsulated in the provider.
           case 'finish': {
             finishEvent = {
               finishReason: value.finishReason,
-              usage: calculateLanguageModelUsage(value.usage),
+              usage: value.usage,
               warnings,
               response: result.response,
             };

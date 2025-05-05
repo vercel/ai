@@ -160,11 +160,18 @@ describe('data-stream-parts', () => {
       expect(
         formatDataStreamPart('finish_message', {
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
+          usage: {
+            inputTokens: 10,
+            outputTokens: 20,
+            totalTokens: 30,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          },
         }),
-      ).toEqual(
-        `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}\n`,
-      );
+      ).toMatchInlineSnapshot(`
+        "d:{"finishReason":"stop","usage":{"inputTokens":10,"outputTokens":20,"totalTokens":30}}
+        "
+      `);
     });
 
     it('should format a finish_message stream part without usage information', () => {
@@ -176,25 +183,41 @@ describe('data-stream-parts', () => {
     });
 
     it('should parse a finish_message stream part', () => {
-      const input = `d:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20}}`;
-      expect(parseDataStreamPart(input)).toEqual({
-        type: 'finish_message',
-        value: {
-          finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
-        },
-      });
+      const input = `d:{"finishReason":"stop","usage":{"inputTokens":10,"outputTokens":20}}`;
+      expect(parseDataStreamPart(input)).toMatchInlineSnapshot(`
+        {
+          "type": "finish_message",
+          "value": {
+            "finishReason": "stop",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 10,
+              "outputTokens": 20,
+              "reasoningTokens": undefined,
+              "totalTokens": undefined,
+            },
+          },
+        }
+      `);
     });
 
     it('should parse a finish_message with null completion and prompt tokens', () => {
-      const input = `d:{"finishReason":"stop","usage":{"promptTokens":null,"completionTokens":null}}`;
-      expect(parseDataStreamPart(input)).toEqual({
-        type: 'finish_message',
-        value: {
-          finishReason: 'stop',
-          usage: { promptTokens: NaN, completionTokens: NaN },
-        },
-      });
+      const input = `d:{"finishReason":"stop","usage":{"inputTokens":null,"outputTokens":null}}`;
+      expect(parseDataStreamPart(input)).toMatchInlineSnapshot(`
+        {
+          "type": "finish_message",
+          "value": {
+            "finishReason": "stop",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": undefined,
+            },
+          },
+        }
+      `);
     });
 
     it('should parse a finish_message without usage information', () => {
@@ -213,12 +236,19 @@ describe('data-stream-parts', () => {
       expect(
         formatDataStreamPart('finish_step', {
           finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
+          usage: {
+            inputTokens: 10,
+            outputTokens: 20,
+            totalTokens: 30,
+            reasoningTokens: undefined,
+            cachedInputTokens: undefined,
+          },
           isContinued: false,
         }),
-      ).toEqual(
-        `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20},"isContinued":false}\n`,
-      );
+      ).toMatchInlineSnapshot(`
+        "e:{"finishReason":"stop","usage":{"inputTokens":10,"outputTokens":20,"totalTokens":30},"isContinued":false}
+        "
+      `);
     });
 
     it('should format a finish_step stream part without usage or continue information ', () => {
@@ -231,27 +261,43 @@ describe('data-stream-parts', () => {
     });
 
     it('should parse a finish_step stream part', () => {
-      const input = `e:{"finishReason":"stop","usage":{"promptTokens":10,"completionTokens":20},"isContinued":true}`;
-      expect(parseDataStreamPart(input)).toEqual({
-        type: 'finish_step',
-        value: {
-          finishReason: 'stop',
-          usage: { promptTokens: 10, completionTokens: 20 },
-          isContinued: true,
-        },
-      });
+      const input = `e:{"finishReason":"stop","usage":{"inputTokens":10,"outputTokens":20},"isContinued":true}`;
+      expect(parseDataStreamPart(input)).toMatchInlineSnapshot(`
+        {
+          "type": "finish_step",
+          "value": {
+            "finishReason": "stop",
+            "isContinued": true,
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 10,
+              "outputTokens": 20,
+              "reasoningTokens": undefined,
+              "totalTokens": undefined,
+            },
+          },
+        }
+      `);
     });
 
     it('should parse a finish_step with null completion and prompt tokens', () => {
-      const input = `e:{"finishReason":"stop","usage":{"promptTokens":null,"completionTokens":null}}`;
-      expect(parseDataStreamPart(input)).toEqual({
-        type: 'finish_step',
-        value: {
-          finishReason: 'stop',
-          usage: { promptTokens: NaN, completionTokens: NaN },
-          isContinued: false,
-        },
-      });
+      const input = `e:{"finishReason":"stop","usage":{"inputTokens":null,"outputTokens":null}}`;
+      expect(parseDataStreamPart(input)).toMatchInlineSnapshot(`
+        {
+          "type": "finish_step",
+          "value": {
+            "finishReason": "stop",
+            "isContinued": false,
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": undefined,
+            },
+          },
+        }
+      `);
     });
 
     it('should parse a finish_step without usage information', () => {

@@ -8,6 +8,14 @@ import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { extractReasoningMiddleware } from './extract-reasoning-middleware';
 
+const testUsage = {
+  inputTokens: 5,
+  outputTokens: 10,
+  totalTokens: 18,
+  reasoningTokens: 3,
+  cachedInputTokens: undefined,
+};
+
 describe('extractReasoningMiddleware', () => {
   describe('wrapGenerate', () => {
     it('should extract reasoning from <think> tags', async () => {
@@ -21,7 +29,7 @@ describe('extractReasoningMiddleware', () => {
               },
             ],
             finishReason: 'stop',
-            usage: { inputTokens: 10, outputTokens: 10 },
+            usage: testUsage,
             warnings: [],
           };
         },
@@ -50,7 +58,7 @@ describe('extractReasoningMiddleware', () => {
               },
             ],
             finishReason: 'stop',
-            usage: { inputTokens: 10, outputTokens: 10 },
+            usage: testUsage,
             warnings: [],
           };
         },
@@ -79,7 +87,7 @@ describe('extractReasoningMiddleware', () => {
               },
             ],
             finishReason: 'stop',
-            usage: { inputTokens: 10, outputTokens: 10 },
+            usage: testUsage,
             warnings: [],
           };
         },
@@ -110,7 +118,7 @@ describe('extractReasoningMiddleware', () => {
               },
             ],
             finishReason: 'stop',
-            usage: { inputTokens: 10, outputTokens: 10 },
+            usage: testUsage,
             warnings: [],
           };
         },
@@ -156,7 +164,7 @@ describe('extractReasoningMiddleware', () => {
               },
             ],
             finishReason: 'stop',
-            usage: { inputTokens: 10, outputTokens: 10 },
+            usage: testUsage,
             reasoning: undefined,
             warnings: [],
           };
@@ -197,7 +205,7 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           };
@@ -255,9 +263,11 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "step-finish",
               "usage": {
-                "completionTokens": 10,
-                "promptTokens": 3,
-                "totalTokens": 13,
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
               },
               "warnings": undefined,
             },
@@ -272,9 +282,11 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish",
               "usage": {
-                "completionTokens": 10,
-                "promptTokens": 3,
-                "totalTokens": 13,
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
               },
             },
           ]
@@ -299,7 +311,7 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           };
@@ -362,9 +374,11 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "step-finish",
               "usage": {
-                "completionTokens": 10,
-                "promptTokens": 3,
-                "totalTokens": 13,
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
               },
               "warnings": undefined,
             },
@@ -379,9 +393,11 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish",
               "usage": {
-                "completionTokens": 10,
-                "promptTokens": 3,
-                "totalTokens": 13,
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
               },
             },
           ]
@@ -406,7 +422,7 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           };
@@ -457,9 +473,11 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "step-finish",
               "usage": {
-                "completionTokens": 10,
-                "promptTokens": 3,
-                "totalTokens": 13,
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
               },
               "warnings": undefined,
             },
@@ -474,9 +492,11 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish",
               "usage": {
-                "completionTokens": 10,
-                "promptTokens": 3,
-                "totalTokens": 13,
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
               },
             },
           ]
@@ -501,7 +521,7 @@ describe('extractReasoningMiddleware', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           };
@@ -568,9 +588,11 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "step-finish",
               "usage": {
-                "completionTokens": 10,
-                "promptTokens": 3,
-                "totalTokens": 13,
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
               },
               "warnings": undefined,
             },
@@ -585,9 +607,11 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish",
               "usage": {
-                "completionTokens": 10,
-                "promptTokens": 3,
-                "totalTokens": 13,
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
               },
             },
           ]
@@ -633,9 +657,11 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "step-finish",
               "usage": {
-                "completionTokens": 10,
-                "promptTokens": 3,
-                "totalTokens": 13,
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
               },
               "warnings": undefined,
             },
@@ -650,9 +676,11 @@ describe('extractReasoningMiddleware', () => {
               },
               "type": "finish",
               "usage": {
-                "completionTokens": 10,
-                "promptTokens": 3,
-                "totalTokens": 13,
+                "cachedInputTokens": undefined,
+                "inputTokens": 5,
+                "outputTokens": 10,
+                "reasoningTokens": 3,
+                "totalTokens": 18,
               },
             },
           ]

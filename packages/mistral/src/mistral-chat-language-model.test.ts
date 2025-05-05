@@ -118,7 +118,6 @@ describe('doGenerate', () => {
             index: 0,
             message: {
               role: 'assistant',
-              content: '',
               tool_calls: [
                 {
                   id: 'gSIMJiOkT',
@@ -156,7 +155,6 @@ describe('doGenerate', () => {
 
   it('should extract usage', async () => {
     prepareJsonResponse({
-      content: '',
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
     });
 
@@ -164,7 +162,13 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "totalTokens": 25,
+      }
+    `);
   });
 
   it('should send additional response information', async () => {
@@ -451,6 +455,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 4,
             "outputTokens": 32,
+            "totalTokens": 36,
           },
         },
       ]
@@ -504,6 +509,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 4,
             "outputTokens": 32,
+            "totalTokens": 36,
           },
         },
       ]
@@ -581,6 +587,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 183,
             "outputTokens": 133,
+            "totalTokens": 316,
           },
         },
       ]
@@ -732,6 +739,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 4,
             "outputTokens": 32,
+            "totalTokens": 36,
           },
         },
       ]

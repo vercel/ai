@@ -190,8 +190,10 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 4,
             "outputTokens": 34,
+            "totalTokens": 38,
           },
         },
       ]
@@ -285,6 +287,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -433,6 +436,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -480,6 +484,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -527,6 +532,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -574,6 +580,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -621,6 +628,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -655,6 +663,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -785,8 +794,10 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 4,
             "outputTokens": 34,
+            "totalTokens": 38,
           },
         },
       ]
@@ -991,15 +1002,16 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "usage": {
-                "cacheReadInputTokens": 2,
                 "cacheWriteInputTokens": 3,
               },
             },
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": 2,
             "inputTokens": 4,
             "outputTokens": 34,
+            "totalTokens": 38,
           },
         },
       ]
@@ -1125,6 +1137,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -1190,6 +1203,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -1280,10 +1294,14 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      inputTokens: 4,
-      outputTokens: 34,
-    });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 4,
+        "outputTokens": 34,
+        "totalTokens": 38,
+      }
+    `);
   });
 
   it('should extract finish reason', async () => {
@@ -1555,18 +1573,23 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.providerMetadata).toEqual({
-      bedrock: {
-        usage: {
-          cacheReadInputTokens: 2,
-          cacheWriteInputTokens: 3,
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "usage": {
+            "cacheWriteInputTokens": 3,
+          },
         },
-      },
-    });
-    expect(response.usage).toEqual({
-      inputTokens: 4,
-      outputTokens: 34,
-    });
+      }
+    `);
+    expect(response.usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": 2,
+        "inputTokens": 4,
+        "outputTokens": 34,
+        "totalTokens": 38,
+      }
+    `);
   });
 
   it('should handle system messages with cache points', async () => {

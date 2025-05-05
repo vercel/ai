@@ -126,7 +126,6 @@ describe('doGenerate', () => {
 
   it('should extract usage', async () => {
     prepareJsonResponse({
-      content: '',
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
     });
 
@@ -134,9 +133,14 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "totalTokens": 25,
+      }
+    `);
   });
-
   it('should send request body', async () => {
     prepareJsonResponse({});
 
@@ -216,7 +220,6 @@ describe('doGenerate', () => {
 
   it('should extract finish reason', async () => {
     prepareJsonResponse({
-      content: '',
       finish_reason: 'stop',
     });
 
@@ -231,7 +234,6 @@ describe('doGenerate', () => {
 
   it('should support unknown finish reason', async () => {
     prepareJsonResponse({
-      content: '',
       finish_reason: 'eos',
     });
 
@@ -462,6 +464,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 10,
             "outputTokens": 362,
+            "totalTokens": 372,
           },
         },
       ]
@@ -503,6 +506,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -538,6 +542,7 @@ describe('doStream', () => {
             "usage": {
               "inputTokens": undefined,
               "outputTokens": undefined,
+              "totalTokens": undefined,
             },
           },
         ]

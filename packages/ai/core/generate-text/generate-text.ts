@@ -23,11 +23,7 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
-import {
-  addLanguageModelUsage,
-  calculateLanguageModelUsage,
-  LanguageModelUsage,
-} from '../types/usage';
+import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { removeTextAfterLastWhitespace } from '../util/remove-text-after-last-whitespace';
 import { extractContentText } from './extract-content-text';
 import { GenerateTextResult } from './generate-text-result';
@@ -304,9 +300,9 @@ A function that attempts to repair a tool call that failed to parse.
       const sources: GenerateTextResult<TOOLS, OUTPUT>['sources'] = [];
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
       let usage: LanguageModelUsage = {
-        completionTokens: 0,
-        promptTokens: 0,
-        totalTokens: 0,
+        inputTokens: undefined,
+        outputTokens: undefined,
+        totalTokens: undefined,
       };
 
       let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';
@@ -476,11 +472,7 @@ A function that attempts to repair a tool call that failed to parse.
                 abortSignal,
               });
 
-        // token usage:
-        const currentUsage = calculateLanguageModelUsage(
-          currentModelResponse.usage,
-        );
-        usage = addLanguageModelUsage(usage, currentUsage);
+        usage = addLanguageModelUsage(usage, currentModelResponse.usage);
 
         // check if another step is needed:
         let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
@@ -579,7 +571,7 @@ A function that attempts to repair a tool call that failed to parse.
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,
-          usage: currentUsage,
+          usage: currentModelResponse.usage,
           warnings: currentModelResponse.warnings,
           request: currentModelResponse.request ?? {},
           response: {

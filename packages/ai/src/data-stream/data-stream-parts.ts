@@ -1,12 +1,13 @@
 import {
+  JSONValue,
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
+  LanguageModelV2Usage,
 } from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
-import { JSONValue } from '../types';
 
-export type DataStreamString =
-  `${(typeof DataStreamStringPrefixes)[keyof typeof DataStreamStringPrefixes]}:${string}\n`;
+export type DataStreamText =
+  `${(typeof DataStreamTextPrefixes)[keyof typeof DataStreamTextPrefixes]}:${string}\n`;
 
 export interface DataStreamPart<
   CODE extends string,
@@ -193,10 +194,7 @@ const finishMessageStreamPart: DataStreamPart<
   {
     finishReason: LanguageModelV2FinishReason;
     // TODO v5 remove usage from finish event (only on step-finish)
-    usage?: {
-      promptTokens: number;
-      completionTokens: number;
-    };
+    usage?: LanguageModelV2Usage;
   }
 > = {
   code: 'd',
@@ -215,10 +213,7 @@ const finishMessageStreamPart: DataStreamPart<
 
     const result: {
       finishReason: LanguageModelV2FinishReason;
-      usage?: {
-        promptTokens: number;
-        completionTokens: number;
-      };
+      usage?: LanguageModelV2Usage;
     } = {
       finishReason: value.finishReason as LanguageModelV2FinishReason,
     };
@@ -226,22 +221,36 @@ const finishMessageStreamPart: DataStreamPart<
     if (
       'usage' in value &&
       value.usage != null &&
-      typeof value.usage === 'object' &&
-      'promptTokens' in value.usage &&
-      'completionTokens' in value.usage
+      typeof value.usage === 'object'
     ) {
       result.usage = {
-        promptTokens:
-          typeof value.usage.promptTokens === 'number'
-            ? value.usage.promptTokens
-            : Number.NaN,
-        completionTokens:
-          typeof value.usage.completionTokens === 'number'
-            ? value.usage.completionTokens
-            : Number.NaN,
+        inputTokens:
+          'inputTokens' in value.usage &&
+          typeof value.usage.inputTokens === 'number'
+            ? value.usage.inputTokens
+            : undefined,
+        outputTokens:
+          'outputTokens' in value.usage &&
+          typeof value.usage.outputTokens === 'number'
+            ? value.usage.outputTokens
+            : undefined,
+        totalTokens:
+          'totalTokens' in value.usage &&
+          typeof value.usage.totalTokens === 'number'
+            ? value.usage.totalTokens
+            : undefined,
+        reasoningTokens:
+          'reasoningTokens' in value.usage &&
+          typeof value.usage.reasoningTokens === 'number'
+            ? value.usage.reasoningTokens
+            : undefined,
+        cachedInputTokens:
+          'cachedInputTokens' in value.usage &&
+          typeof value.usage.cachedInputTokens === 'number'
+            ? value.usage.cachedInputTokens
+            : undefined,
       };
     }
-
     return {
       type: 'finish_message',
       value: result,
@@ -255,10 +264,7 @@ const finishStepStreamPart: DataStreamPart<
   {
     isContinued: boolean;
     finishReason: LanguageModelV2FinishReason;
-    usage?: {
-      promptTokens: number;
-      completionTokens: number;
-    };
+    usage?: LanguageModelV2Usage;
   }
 > = {
   code: 'e',
@@ -278,10 +284,7 @@ const finishStepStreamPart: DataStreamPart<
     const result: {
       isContinued: boolean;
       finishReason: LanguageModelV2FinishReason;
-      usage?: {
-        promptTokens: number;
-        completionTokens: number;
-      };
+      usage?: LanguageModelV2Usage;
     } = {
       finishReason: value.finishReason as LanguageModelV2FinishReason,
       isContinued: false,
@@ -290,19 +293,34 @@ const finishStepStreamPart: DataStreamPart<
     if (
       'usage' in value &&
       value.usage != null &&
-      typeof value.usage === 'object' &&
-      'promptTokens' in value.usage &&
-      'completionTokens' in value.usage
+      typeof value.usage === 'object'
     ) {
       result.usage = {
-        promptTokens:
-          typeof value.usage.promptTokens === 'number'
-            ? value.usage.promptTokens
-            : Number.NaN,
-        completionTokens:
-          typeof value.usage.completionTokens === 'number'
-            ? value.usage.completionTokens
-            : Number.NaN,
+        inputTokens:
+          'inputTokens' in value.usage &&
+          typeof value.usage.inputTokens === 'number'
+            ? value.usage.inputTokens
+            : undefined,
+        outputTokens:
+          'outputTokens' in value.usage &&
+          typeof value.usage.outputTokens === 'number'
+            ? value.usage.outputTokens
+            : undefined,
+        totalTokens:
+          'totalTokens' in value.usage &&
+          typeof value.usage.totalTokens === 'number'
+            ? value.usage.totalTokens
+            : undefined,
+        reasoningTokens:
+          'reasoningTokens' in value.usage &&
+          typeof value.usage.reasoningTokens === 'number'
+            ? value.usage.reasoningTokens
+            : undefined,
+        cachedInputTokens:
+          'cachedInputTokens' in value.usage &&
+          typeof value.usage.cachedInputTokens === 'number'
+            ? value.usage.cachedInputTokens
+            : undefined,
       };
     }
 
@@ -496,7 +514,7 @@ export type DataStreamPartType = ReturnType<DataStreamParts['parse']>;
  * 6: {"tool_call": {"id": "tool_0", "type": "function", "function": {"name": "get_current_weather", "arguments": "{\\n\\"location\\": \\"Charlottesville, Virginia\\",\\n\\"format\\": \\"celsius\\"\\n}"}}}
  *```
  */
-export const DataStreamStringPrefixes = Object.fromEntries(
+export const DataStreamTextPrefixes = Object.fromEntries(
   dataStreamParts.map(part => [part.name, part.code]),
 ) as {
   [K in DataStreamParts['name']]: (typeof dataStreamParts)[number]['code'];
@@ -541,7 +559,7 @@ It ensures type-safety for the part type and value.
 export function formatDataStreamPart<T extends keyof DataStreamPartValueType>(
   type: T,
   value: DataStreamPartValueType[T],
-): DataStreamString {
+): DataStreamText {
   const streamPart = dataStreamParts.find(part => part.name === type);
 
   if (!streamPart) {

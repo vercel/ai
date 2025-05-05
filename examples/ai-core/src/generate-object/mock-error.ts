@@ -16,7 +16,11 @@ async function main() {
             modelId: 'model-1',
           },
           finishReason: 'stop',
-          usage: { inputTokens: 10, outputTokens: 20 },
+          usage: {
+            inputTokens: 10,
+            outputTokens: 20,
+            totalTokens: 30,
+          },
         }),
       }),
       schema: z.object({ content: z.string() }),

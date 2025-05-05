@@ -1,4 +1,4 @@
-import { prepareResponseHeaders } from '../util/prepare-response-headers';
+import { prepareResponseHeaders } from '../../core/util/prepare-response-headers';
 import { createDataStream } from './create-data-stream';
 import { DataStreamWriter } from './data-stream-writer';
 

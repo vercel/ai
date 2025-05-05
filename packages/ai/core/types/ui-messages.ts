@@ -3,10 +3,13 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
-import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
-import { LanguageModelUsage } from './duplicated/usage';
-
-export type IdGenerator = () => string;
+import {
+  FetchFunction,
+  IdGenerator,
+  ToolCall,
+  ToolResult,
+} from '@ai-sdk/provider-utils';
+import { LanguageModelUsage } from './usage';
 
 /**
 Tool invocations are either tool calls or tool results. For each assistant tool call,
@@ -36,12 +39,6 @@ The timestamp of the message.
    */
   // TODO solve optionality similar id
   createdAt?: Date;
-
-  /**
-Text content of the message. Use parts when possible.
-   */
-  // TODO remove (replace with parts)
-  content: string;
 
   /**
 The role of the message.

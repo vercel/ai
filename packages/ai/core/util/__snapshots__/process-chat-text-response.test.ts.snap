@@ -3,7 +3,6 @@
 exports[`processChatTextResponse > scenario: multiple short chunks > should call the onFinish function after the stream ends 1`] = `
 [
   {
-    "content": "ABCDE",
     "createdAt": 2023-01-01T00:00:00.000Z,
     "id": "test-id",
     "parts": [
@@ -22,7 +21,6 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   {
     "data": [],
     "message": {
-      "content": "A",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
       "parts": [
@@ -38,7 +36,6 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   {
     "data": [],
     "message": {
-      "content": "AB",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
       "parts": [
@@ -54,7 +51,6 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   {
     "data": [],
     "message": {
-      "content": "ABC",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
       "parts": [
@@ -70,7 +66,6 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   {
     "data": [],
     "message": {
-      "content": "ABCD",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
       "parts": [
@@ -86,7 +81,6 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   {
     "data": [],
     "message": {
-      "content": "ABCDE",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
       "parts": [
@@ -105,7 +99,6 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
 exports[`processChatTextResponse > scenario: no text chunks > should call the onFinish function after the stream ends 1`] = `
 [
   {
-    "content": "",
     "createdAt": 2023-01-01T00:00:00.000Z,
     "id": "test-id",
     "parts": [
@@ -124,7 +117,6 @@ exports[`processChatTextResponse > scenario: no text chunks > should call the up
 exports[`processChatTextResponse > scenario: simple text response > should call the onFinish function after the stream ends 1`] = `
 [
   {
-    "content": "Hello, world!",
     "createdAt": 2023-01-01T00:00:00.000Z,
     "id": "test-id",
     "parts": [
@@ -143,7 +135,6 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
   {
     "data": [],
     "message": {
-      "content": "Hello, ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
       "parts": [
@@ -159,7 +150,6 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
   {
     "data": [],
     "message": {
-      "content": "Hello, world!",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "test-id",
       "parts": [
