@@ -277,8 +277,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
 

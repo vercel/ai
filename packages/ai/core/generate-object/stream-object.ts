@@ -500,8 +500,6 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
           inputTokens: undefined,
           outputTokens: undefined,
           totalTokens: undefined,
-          reasoningTokens: undefined,
-          cachedInputTokens: undefined,
         };
         let finishReason: LanguageModelV2FinishReason | undefined;
         let providerMetadata: ProviderMetadata | undefined;

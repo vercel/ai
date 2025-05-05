@@ -201,8 +201,6 @@ export class OpenAICompatibleCompletionLanguageModel
         inputTokens: response.usage?.prompt_tokens ?? undefined,
         outputTokens: response.usage?.completion_tokens ?? undefined,
         totalTokens: response.usage?.total_tokens ?? undefined,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
       },
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       request: { body: args },
@@ -250,8 +248,6 @@ export class OpenAICompatibleCompletionLanguageModel
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
     let isFirstChunk = true;
 

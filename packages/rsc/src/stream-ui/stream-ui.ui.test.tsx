@@ -55,8 +55,6 @@ const testUsage: LanguageModelUsage = {
   inputTokens: 3,
   outputTokens: 10,
   totalTokens: 13,
-  reasoningTokens: undefined,
-  cachedInputTokens: undefined,
 };
 
 const mockTextModel = new MockLanguageModelV2({

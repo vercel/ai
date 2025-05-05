@@ -289,7 +289,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage?.inputTokens,
         outputTokens: response.usage?.outputTokens,
         totalTokens: response.usage?.inputTokens + response.usage?.outputTokens,
-        reasoningTokens: undefined,
         cachedInputTokens: response.usage?.cacheReadInputTokens ?? undefined,
       },
       response: {
@@ -329,8 +328,6 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
 

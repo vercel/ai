@@ -375,8 +375,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
     let responseId: string | null = null;
     const ongoingToolCalls: Record<

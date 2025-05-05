@@ -16,7 +16,11 @@ async function main() {
               type: 'finish',
               finishReason: 'stop',
               logprobs: undefined,
-              usage: { inputTokens: 3, outputTokens: 10 },
+              usage: {
+                inputTokens: 3,
+                outputTokens: 10,
+                totalTokens: 13,
+              },
             },
           ],
           chunkDelayInMs: 400,

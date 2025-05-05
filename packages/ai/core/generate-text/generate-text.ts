@@ -303,8 +303,6 @@ A function that attempts to repair a tool call that failed to parse.
         inputTokens: undefined,
         outputTokens: undefined,
         totalTokens: undefined,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
       };
 
       let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';

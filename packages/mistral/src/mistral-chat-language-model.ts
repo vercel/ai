@@ -223,8 +223,6 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage.prompt_tokens,
         outputTokens: response.usage.completion_tokens,
         totalTokens: response.usage.total_tokens,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
       },
       request: { body },
       response: {
@@ -259,8 +257,6 @@ export class MistralChatLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
     let chunkNumber = 0;
     let trimLeadingSpace = false;

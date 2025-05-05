@@ -167,8 +167,6 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage?.prompt_tokens,
         outputTokens: response.usage?.completion_tokens,
         totalTokens: response.usage?.total_tokens ?? undefined,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
       },
       request: { body },
       response: {
@@ -222,8 +220,6 @@ export class PerplexityLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
 
     const providerMetadata: {

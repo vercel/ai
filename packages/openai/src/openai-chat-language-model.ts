@@ -401,8 +401,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
     let isFirstChunk = true;
 

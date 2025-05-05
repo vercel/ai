@@ -95,8 +95,6 @@ export async function processChatResponse({
     inputTokens: undefined,
     outputTokens: undefined,
     totalTokens: undefined,
-    reasoningTokens: undefined,
-    cachedInputTokens: undefined,
   };
   let finishReason: LanguageModelV2FinishReason = 'unknown';
 

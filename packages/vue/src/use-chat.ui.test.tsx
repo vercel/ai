@@ -203,8 +203,6 @@ describe('data protocol stream', () => {
             inputTokens: 1,
             outputTokens: 3,
             totalTokens: 4,
-            reasoningTokens: undefined,
-            cachedInputTokens: undefined,
           },
         }),
       ],

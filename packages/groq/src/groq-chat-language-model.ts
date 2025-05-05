@@ -211,8 +211,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage?.prompt_tokens ?? undefined,
         outputTokens: response.usage?.completion_tokens ?? undefined,
         totalTokens: response.usage?.total_tokens ?? undefined,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
       },
       response: {
         ...getResponseMetadata(response),
@@ -263,8 +261,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
     let isFirstChunk = true;
 

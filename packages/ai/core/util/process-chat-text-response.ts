@@ -51,8 +51,6 @@ export async function processChatTextResponse({
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     },
     finishReason: 'unknown',
   });

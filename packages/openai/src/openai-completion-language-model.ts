@@ -192,8 +192,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage?.prompt_tokens,
         outputTokens: response.usage?.completion_tokens,
         totalTokens: response.usage?.total_tokens,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
       },
       finishReason: mapOpenAIFinishReason(choice.finish_reason),
       request: { body: args },
@@ -244,8 +242,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
     let isFirstChunk = true;
 

@@ -22,10 +22,10 @@ and e.g. include reasoning tokens or other overhead.
   /**
 The number of reasoning tokens used.
    */
-  reasoningTokens: number | undefined;
+  reasoningTokens?: number | undefined;
 
   /**
 The number of cached input tokens.
    */
-  cachedInputTokens: number | undefined;
+  cachedInputTokens?: number | undefined;
 };

@@ -304,7 +304,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
         totalTokens: response.usage.input_tokens + response.usage.output_tokens,
-        reasoningTokens: undefined,
         cachedInputTokens: response.usage.cache_read_input_tokens ?? undefined,
       },
       request: { body: args },
@@ -347,8 +346,6 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
 
     const toolCallContentBlocks: Record<

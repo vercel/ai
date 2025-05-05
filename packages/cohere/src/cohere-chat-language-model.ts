@@ -154,8 +154,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
         totalTokens:
           response.usage.tokens.input_tokens +
           response.usage.tokens.output_tokens,
-        reasoningTokens: undefined,
-        cachedInputTokens: undefined,
       },
       request: { body: args },
       response: {
@@ -190,8 +188,6 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       inputTokens: undefined,
       outputTokens: undefined,
       totalTokens: undefined,
-      reasoningTokens: undefined,
-      cachedInputTokens: undefined,
     };
 
     let pendingToolCallDelta: {

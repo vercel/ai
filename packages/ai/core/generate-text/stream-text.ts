@@ -793,8 +793,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             inputTokens: undefined,
             outputTokens: undefined,
             totalTokens: undefined,
-            reasoningTokens: undefined,
-            cachedInputTokens: undefined,
           };
 
           // from finish:
@@ -1046,8 +1044,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             inputTokens: undefined,
             outputTokens: undefined,
             totalTokens: undefined,
-            reasoningTokens: undefined,
-            cachedInputTokens: undefined,
           };
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
@@ -1426,8 +1422,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             inputTokens: undefined,
             outputTokens: undefined,
             totalTokens: undefined,
-            reasoningTokens: undefined,
-            cachedInputTokens: undefined,
           },
           previousStepText: '',
           stepType: 'initial',
