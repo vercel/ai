@@ -1,9 +1,5 @@
 import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
-import {
-  calculateLanguageModelUsage,
-  LanguageModelUsage,
-} from '../types/duplicated/usage';
 import type {
   ReasoningUIPart,
   TextUIPart,
@@ -16,6 +12,7 @@ import { getToolInvocations } from '../ui/get-tool-invocations';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { parsePartialJson } from './parse-partial-json';
 import { processDataStream } from './process-data-stream';
+import { LanguageModelUsage } from '../types/usage';
 
 export async function processChatResponse({
   stream,
@@ -54,7 +51,6 @@ export async function processChatResponse({
         id: generateId(),
         createdAt: getCurrentDate(),
         role: 'assistant',
-        content: '',
         parts: [],
       };
 
@@ -95,9 +91,9 @@ export async function processChatResponse({
   > = {};
 
   let usage: LanguageModelUsage = {
-    completionTokens: NaN,
-    promptTokens: NaN,
-    totalTokens: NaN,
+    inputTokens: undefined,
+    outputTokens: undefined,
+    totalTokens: undefined,
   };
   let finishReason: LanguageModelV2FinishReason = 'unknown';
 
@@ -143,7 +139,6 @@ export async function processChatResponse({
         currentTextPart.text += value;
       }
 
-      message.content += value;
       execUpdate();
     },
     onReasoningPart(value) {
@@ -309,7 +304,7 @@ export async function processChatResponse({
     onFinishMessagePart(value) {
       finishReason = value.finishReason;
       if (value.usage != null) {
-        usage = calculateLanguageModelUsage(value.usage);
+        usage = value.usage;
       }
     },
     onErrorPart(error) {

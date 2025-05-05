@@ -20,18 +20,18 @@ export type GroqChatModelId =
   | (string & {});
 
 export const groqProviderOptions = z.object({
-  reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).nullish(),
+  reasoningFormat: z.enum(['parsed', 'raw', 'hidden']).optional(),
 
   /**
    * Whether to enable parallel function calling during tool use. Default to true.
    */
-  parallelToolCalls: z.boolean().nullish(),
+  parallelToolCalls: z.boolean().optional(),
 
   /**
    * A unique identifier representing your end-user, which can help OpenAI to
    * monitor and detect abuse. Learn more.
    */
-  user: z.string().nullish(),
+  user: z.string().optional(),
 });
 
 export type GroqProviderOptions = z.infer<typeof groqProviderOptions>;

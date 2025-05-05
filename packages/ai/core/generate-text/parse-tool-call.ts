@@ -3,7 +3,7 @@ import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
 import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
 import { NoSuchToolError } from '../../errors/no-such-tool-error';
 import { ToolCallRepairError } from '../../errors/tool-call-repair-error';
-import { CoreMessage } from '../prompt';
+import { ModelMessage } from '../prompt';
 import { asSchema } from '../util';
 import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
@@ -20,7 +20,7 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   tools: TOOLS | undefined;
   repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
   system: string | undefined;
-  messages: CoreMessage[];
+  messages: ModelMessage[];
 }): Promise<ToolCallUnion<TOOLS>> {
   if (tools == null) {
     throw new NoSuchToolError({ toolName: toolCall.toolName });

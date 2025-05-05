@@ -2,12 +2,11 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
-import { createIdGenerator, IDGenerator } from '@ai-sdk/provider-utils';
+import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
-import { StreamData } from '../../streams/stream-data';
 import { asArray } from '../../util/as-array';
 import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
@@ -15,7 +14,7 @@ import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
 import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { CoreAssistantMessage } from '../prompt/message';
+import { AssistantModelMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -41,7 +40,6 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { mergeStreams } from '../util/merge-streams';
 import { now as originalNow } from '../util/now';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
@@ -254,7 +252,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
     /**
 Generate a unique ID for each message.
      */
-    experimental_generateMessageId?: IDGenerator;
+    experimental_generateMessageId?: IdGenerator;
 
     /**
 When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
@@ -341,7 +339,7 @@ Internal. For test use only. May change without notice.
      */
     _internal?: {
       now?: () => number;
-      generateId?: IDGenerator;
+      generateId?: IdGenerator;
       currentDate?: () => Date;
     };
   }): StreamTextResult<TOOLS, PARTIAL_OUTPUT> {
@@ -790,9 +788,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
           const usage = recordedUsage ?? {
-            completionTokens: NaN,
-            promptTokens: NaN,
-            totalTokens: NaN,
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
           };
 
           // from finish:
@@ -837,8 +835,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       : undefined,
                 },
 
-                'ai.usage.promptTokens': usage.promptTokens,
-                'ai.usage.completionTokens': usage.completionTokens,
+                'ai.usage.inputTokens': usage.inputTokens,
+                'ai.usage.outputTokens': usage.outputTokens,
+                'ai.usage.totalTokens': usage.totalTokens,
+                'ai.usage.reasoningTokens': usage.reasoningTokens,
+                'ai.usage.cachedInputTokens': usage.cachedInputTokens,
               },
             }),
           );
@@ -1038,9 +1039,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           let stepFinishReason: FinishReason = 'unknown';
           let stepUsage: LanguageModelUsage = {
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
           };
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
@@ -1212,8 +1213,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       doStreamSpan.addEvent('ai.stream.finish');
                       doStreamSpan.setAttributes({
                         'ai.response.msToFinish': msToFinish,
-                        'ai.response.avgCompletionTokensPerSecond':
-                          (1000 * stepUsage.completionTokens) / msToFinish,
+                        'ai.response.avgOutputTokensPerSecond':
+                          (1000 * (stepUsage.outputTokens ?? 0)) / msToFinish,
                       });
 
                       break;
@@ -1305,17 +1306,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           'ai.response.timestamp':
                             stepResponse.timestamp.toISOString(),
 
-                          'ai.usage.promptTokens': stepUsage.promptTokens,
-                          'ai.usage.completionTokens':
-                            stepUsage.completionTokens,
+                          'ai.usage.inputTokens': stepUsage.inputTokens,
+                          'ai.usage.outputTokens': stepUsage.outputTokens,
+                          'ai.usage.totalTokens': stepUsage.totalTokens,
+                          'ai.usage.reasoningTokens': stepUsage.reasoningTokens,
+                          'ai.usage.cachedInputTokens':
+                            stepUsage.cachedInputTokens,
 
                           // standardized gen-ai llm span attributes:
                           'gen_ai.response.finish_reasons': [stepFinishReason],
                           'gen_ai.response.id': stepResponse.id,
                           'gen_ai.response.model': stepResponse.modelId,
-                          'gen_ai.usage.input_tokens': stepUsage.promptTokens,
-                          'gen_ai.usage.output_tokens':
-                            stepUsage.completionTokens,
+                          'gen_ai.usage.input_tokens': stepUsage.inputTokens,
+                          'gen_ai.usage.output_tokens': stepUsage.outputTokens,
                         },
                       }),
                     );
@@ -1364,7 +1367,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       // so we can assume that there is a single last assistant message:
                       const lastMessage = responseMessages[
                         responseMessages.length - 1
-                      ] as CoreAssistantMessage;
+                      ] as AssistantModelMessage;
 
                       if (typeof lastMessage.content === 'string') {
                         lastMessage.content += stepText;
@@ -1414,9 +1417,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           currentStep: 0,
           responseMessages: [],
           usage: {
-            promptTokens: 0,
-            completionTokens: 0,
-            totalTokens: 0,
+            inputTokens: undefined,
+            outputTokens: undefined,
+            totalTokens: undefined,
           },
           previousStepText: '',
           stepType: 'initial',
@@ -1689,8 +1692,11 @@ However, the LLM results are expected to be small enough to not cause issues.
                   finishReason: chunk.finishReason,
                   usage: sendUsage
                     ? {
-                        promptTokens: chunk.usage.promptTokens,
-                        completionTokens: chunk.usage.completionTokens,
+                        inputTokens: chunk.usage.inputTokens,
+                        outputTokens: chunk.usage.outputTokens,
+                        totalTokens: chunk.usage.totalTokens,
+                        reasoningTokens: chunk.usage.reasoningTokens,
+                        cachedInputTokens: chunk.usage.cachedInputTokens,
                       }
                     : undefined,
                   isContinued: chunk.isContinued,
@@ -1706,8 +1712,11 @@ However, the LLM results are expected to be small enough to not cause issues.
                     finishReason: chunk.finishReason,
                     usage: sendUsage
                       ? {
-                          promptTokens: chunk.usage.promptTokens,
-                          completionTokens: chunk.usage.completionTokens,
+                          inputTokens: chunk.usage.inputTokens,
+                          outputTokens: chunk.usage.outputTokens,
+                          totalTokens: chunk.usage.totalTokens,
+                          reasoningTokens: chunk.usage.reasoningTokens,
+                          cachedInputTokens: chunk.usage.cachedInputTokens,
                         }
                       : undefined,
                   }),
@@ -1732,7 +1741,6 @@ However, the LLM results are expected to be small enough to not cause issues.
       status,
       statusText,
       headers,
-      data,
       getErrorMessage,
       sendUsage,
       sendReasoning,
@@ -1740,7 +1748,6 @@ However, the LLM results are expected to be small enough to not cause issues.
       experimental_sendFinish,
     }: ResponseInit &
       DataStreamOptions & {
-        data?: StreamData;
         getErrorMessage?: (error: unknown) => string;
       } = {},
   ) {
@@ -1753,13 +1760,12 @@ However, the LLM results are expected to be small enough to not cause issues.
         dataStreamVersion: 'v1',
       }),
       stream: this.toDataStream({
-        data,
         getErrorMessage,
         sendUsage,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
-      }),
+      }).pipeThrough(new TextEncoderStream()),
     });
   }
 
@@ -1775,22 +1781,18 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  // TODO breaking change 5.0: remove pipeThrough(new TextEncoderStream())
   toDataStream(
     options?: DataStreamOptions & {
-      data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
     },
   ) {
-    const stream = this.toDataStreamInternal({
+    return this.toDataStreamInternal({
       getErrorMessage: options?.getErrorMessage,
       sendUsage: options?.sendUsage,
       sendReasoning: options?.sendReasoning,
       sendSources: options?.sendSources,
       experimental_sendFinish: options?.experimental_sendFinish,
-    }).pipeThrough(new TextEncoderStream());
-
-    return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
+    });
   }
 
   mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
@@ -1809,7 +1811,6 @@ However, the LLM results are expected to be small enough to not cause issues.
     headers,
     status,
     statusText,
-    data,
     getErrorMessage,
     sendUsage,
     sendReasoning,
@@ -1817,18 +1818,16 @@ However, the LLM results are expected to be small enough to not cause issues.
     experimental_sendFinish,
   }: ResponseInit &
     DataStreamOptions & {
-      data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
     } = {}): Response {
     return new Response(
       this.toDataStream({
-        data,
         getErrorMessage,
         sendUsage,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
-      }),
+      }).pipeThrough(new TextEncoderStream()),
       {
         status,
         statusText,

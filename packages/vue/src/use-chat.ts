@@ -114,7 +114,6 @@ export function useChat(
     id,
     initialMessages = [],
     initialInput = '',
-    sendExtraMessageFields,
     streamProtocol = 'data',
     onResponse,
     onFinish,
@@ -125,18 +124,10 @@ export function useChat(
     generateId = generateIdFunc,
     onToolCall,
     fetch,
-    keepLastMessageOnError = true,
     maxSteps = 1,
     experimental_prepareRequestBody,
     ...options
   }: UseChatOptions & {
-    /**
-     * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls. Must be at least 1.
-     * A maximum number is required to prevent infinite loops in the case of misconfigured tools.
-     * By default, it's set to 1, which means that only a single LLM call is made.
-     */
-    maxSteps?: number;
-
     /**
      * Experimental (Vue only). When a function is provided, it will be used
      * to prepare the request body for the chat API. This can be useful for
@@ -214,32 +205,21 @@ export function useChat(
     try {
       abortController = new AbortController();
 
-      // Do an optimistic update to the chat state to show the updated messages
-      // immediately.
-      const previousMessages = messagesSnapshot;
-      mutate(previousMessages);
+      // Do an optimistic update to show the updated messages immediately:
+      mutate(messagesSnapshot);
 
       const existingData = (streamData.value ?? []) as JSONValue[];
-
-      const constructedMessagesPayload = sendExtraMessageFields
-        ? previousMessages
-        : previousMessages.map(({ role, content, annotations, parts }) => ({
-            role,
-            content,
-            ...(annotations !== undefined && { annotations }),
-            ...(parts !== undefined && { parts }),
-          }));
 
       await callChatApi({
         api,
         body: experimental_prepareRequestBody?.({
           id: chatId,
-          messages: previousMessages,
+          messages: messagesSnapshot,
           requestData: data,
           requestBody: body,
         }) ?? {
           id: chatId,
-          messages: constructedMessagesPayload,
+          messages: messagesSnapshot,
           data,
           ...unref(metadataBody), // Use unref to unwrap the ref value
           ...body,
@@ -257,8 +237,8 @@ export function useChat(
 
           mutate([
             ...(replaceLastMessage
-              ? previousMessages.slice(0, previousMessages.length - 1)
-              : previousMessages),
+              ? messagesSnapshot.slice(0, messagesSnapshot.length - 1)
+              : messagesSnapshot),
             message,
           ]);
           if (data?.length) {
@@ -266,18 +246,12 @@ export function useChat(
           }
         },
         onFinish,
-        restoreMessagesOnFailure() {
-          // Restore the previous messages if the request fails.
-          if (!keepLastMessageOnError) {
-            mutate(previousMessages);
-          }
-        },
         generateId,
         onToolCall,
         fetch,
         // enabled use of structured clone in processChatResponse:
         lastMessage: recursiveToRaw(
-          previousMessages[previousMessages.length - 1],
+          messagesSnapshot[messagesSnapshot.length - 1],
         ),
         getCurrentDate,
       });
@@ -388,7 +362,6 @@ export function useChat(
       messages.value.concat({
         id: generateId(),
         createdAt: getCurrentDate(),
-        content: inputValue,
         role: 'user',
         parts: [...fileParts, { type: 'text', text: inputValue }],
       }),

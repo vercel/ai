@@ -14,7 +14,13 @@ import { StepResult } from './step-result';
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
-  usage: { inputTokens: 10, outputTokens: 20 },
+  usage: {
+    inputTokens: 3,
+    outputTokens: 10,
+    totalTokens: 13,
+    reasoningTokens: undefined,
+    cachedInputTokens: undefined,
+  },
   warnings: [],
 };
 
@@ -353,9 +359,9 @@ describe('result.providerMetadata', () => {
           ...dummyResponseValues,
           content: [],
           providerMetadata: {
-            anthropic: {
-              cacheCreationInputTokens: 10,
-              cacheReadInputTokens: 20,
+            exampleProvider: {
+              a: 10,
+              b: 20,
             },
           },
         }),
@@ -364,9 +370,9 @@ describe('result.providerMetadata', () => {
     });
 
     expect(result.providerMetadata).toStrictEqual({
-      anthropic: {
-        cacheCreationInputTokens: 10,
-        cacheReadInputTokens: 20,
+      exampleProvider: {
+        a: 10,
+        b: 20,
       },
     });
   });
@@ -534,7 +540,13 @@ describe('options.maxSteps', () => {
                     },
                   ],
                   finishReason: 'tool-calls',
-                  usage: { inputTokens: 10, outputTokens: 5 },
+                  usage: {
+                    inputTokens: 10,
+                    outputTokens: 5,
+                    totalTokens: 15,
+                    reasoningTokens: undefined,
+                    cachedInputTokens: undefined,
+                  },
                   response: {
                     id: 'test-id-1-from-model',
                     timestamp: new Date(0),
@@ -649,11 +661,15 @@ describe('options.maxSteps', () => {
     });
 
     it('result.usage should sum token usage', () => {
-      assert.deepStrictEqual(result.usage, {
-        completionTokens: 25,
-        promptTokens: 20,
-        totalTokens: 45,
-      });
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "cachedInputTokens": undefined,
+          "inputTokens": 13,
+          "outputTokens": 15,
+          "reasoningTokens": undefined,
+          "totalTokens": 28,
+        }
+      `);
     });
 
     it('result.steps should contain all steps', () => {
@@ -725,7 +741,13 @@ describe('options.maxSteps', () => {
                   },
                 ],
                 finishReason: 'tool-calls',
-                usage: { inputTokens: 10, outputTokens: 5 },
+                usage: {
+                  inputTokens: 10,
+                  outputTokens: 5,
+                  totalTokens: 15,
+                  reasoningTokens: undefined,
+                  cachedInputTokens: undefined,
+                },
                 response: {
                   id: 'test-id-1-from-model',
                   timestamp: new Date(0),
@@ -850,9 +872,11 @@ describe('options.maxSteps', () => {
     it('result.usage should sum token usage', () => {
       expect(result.usage).toMatchInlineSnapshot(`
         {
-          "completionTokens": 25,
-          "promptTokens": 20,
-          "totalTokens": 45,
+          "cachedInputTokens": undefined,
+          "inputTokens": 13,
+          "outputTokens": 15,
+          "reasoningTokens": undefined,
+          "totalTokens": 28,
         }
       `);
     });
@@ -894,7 +918,13 @@ describe('options.maxSteps', () => {
                     { type: 'text', text: 'part 1 \n to-be-discarded' },
                   ],
                   finishReason: 'length', // trigger continue
-                  usage: { inputTokens: 10, outputTokens: 20 },
+                  usage: {
+                    inputTokens: 10,
+                    outputTokens: 20,
+                    totalTokens: 30,
+                    reasoningTokens: undefined,
+                    cachedInputTokens: undefined,
+                  },
                   response: {
                     id: 'test-id-1-from-model',
                     timestamp: new Date(0),
@@ -952,7 +982,13 @@ describe('options.maxSteps', () => {
                       'custom-response-header': 'response-header-value',
                     },
                   },
-                  usage: { inputTokens: 30, outputTokens: 5 },
+                  usage: {
+                    inputTokens: 30,
+                    outputTokens: 5,
+                    totalTokens: 35,
+                    reasoningTokens: undefined,
+                    cachedInputTokens: undefined,
+                  },
                 };
               }
               case 2: {
@@ -1008,7 +1044,13 @@ describe('options.maxSteps', () => {
                     timestamp: new Date(20000),
                     modelId: 'test-response-model-id',
                   },
-                  usage: { inputTokens: 3, outputTokens: 2 },
+                  usage: {
+                    inputTokens: 3,
+                    outputTokens: 2,
+                    totalTokens: 5,
+                    reasoningTokens: undefined,
+                    cachedInputTokens: undefined,
+                  },
                 };
               }
               case 3: {
@@ -1063,7 +1105,13 @@ describe('options.maxSteps', () => {
                     timestamp: new Date(20000),
                     modelId: 'test-response-model-id',
                   },
-                  usage: { inputTokens: 3, outputTokens: 2 },
+                  usage: {
+                    inputTokens: 3,
+                    outputTokens: 2,
+                    totalTokens: 5,
+                    reasoningTokens: undefined,
+                    cachedInputTokens: undefined,
+                  },
                 };
               }
               default:
@@ -1115,11 +1163,15 @@ describe('options.maxSteps', () => {
     });
 
     it('result.usage should sum token usage', () => {
-      expect(result.usage).toStrictEqual({
-        completionTokens: 29,
-        promptTokens: 46,
-        totalTokens: 75,
-      });
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "cachedInputTokens": undefined,
+          "inputTokens": 46,
+          "outputTokens": 29,
+          "reasoningTokens": undefined,
+          "totalTokens": 75,
+        }
+      `);
     });
 
     it('result.steps should contain all steps', () => {
@@ -1524,12 +1576,10 @@ describe('options.messages', () => {
       messages: [
         {
           role: 'user',
-          content: 'prompt',
           parts: [{ type: 'text', text: 'prompt' }],
         },
         {
           role: 'assistant',
-          content: '',
           parts: [
             {
               type: 'tool-invocation',

@@ -77,7 +77,7 @@ describe('doGenerate', () => {
       mediaType: 'audio/wav',
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       audio_url: expect.stringMatching(/^data:audio\//),
       task: 'transcribe',
       diarize: true,

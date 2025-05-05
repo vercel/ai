@@ -1,5 +1,64 @@
 # ai
 
+## 5.0.0-canary.18
+
+### Major Changes
+
+- c60f895: chore (ai): remove useChat keepLastMessageOnError
+- a662dea: chore (ai): remove sendExtraMessageFields
+
+### Patch Changes
+
+- a571d6e: chore(provider-utils): move ToolResultContent to provider-utils
+- 332167b: chore (ai): move maxSteps into UseChatOptions
+- a8c8bd5: feat(embed-many): respect supportsParallelCalls & concurrency
+- Updated dependencies [a571d6e]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [7979f7f]
+- Updated dependencies [41fa418]
+  - @ai-sdk/provider-utils@3.0.0-canary.15
+  - @ai-sdk/provider@2.0.0-canary.14
+
+## 5.0.0-canary.17
+
+### Major Changes
+
+- f04fb4a: chore (ai): replace useChat attachments with file ui parts
+- fd1924b: chore (ai): remove redundant `mimeType` property
+- fafc3f2: chore (ai): change file to parts to use urls instead of data
+- 92cb0a2: chore (ai): rename CoreMessage to ModelMessage
+
+### Minor Changes
+
+- c9ad635: feat (ai): add filename to file ui parts
+
+### Patch Changes
+
+- 9bd5ab5: feat (provider): add providerMetadata to ImageModelV2 interface (#5977)
+
+  The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
+
+  ```js
+  const prompt = 'Santa Claus driving a Cadillac';
+
+  const { providerMetadata } = await experimental_generateImage({
+    model: openai.image('dall-e-3'),
+    prompt,
+  });
+
+  const revisedPrompt = providerMetadata.openai.images[0]?.revisedPrompt;
+
+  console.log({
+    prompt,
+    revisedPrompt,
+  });
+  ```
+
+- Updated dependencies [957b739]
+- Updated dependencies [9bd5ab5]
+  - @ai-sdk/provider-utils@3.0.0-canary.14
+  - @ai-sdk/provider@2.0.0-canary.13
+
 ## 5.0.0-canary.16
 
 ### Major Changes

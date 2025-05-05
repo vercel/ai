@@ -120,8 +120,7 @@ describe('PerplexityLanguageModel', () => {
       await perplexityModel.doGenerate({
         prompt: TEST_PROMPT,
       });
-      const requestBody = await jsonServer.calls[0].requestBody;
-      expect(requestBody).toEqual({
+      expect(await jsonServer.calls[0].requestBodyJson).toEqual({
         model: modelId,
         messages: [{ role: 'user', content: 'Hello' }],
       });
@@ -139,8 +138,7 @@ describe('PerplexityLanguageModel', () => {
         },
       });
 
-      const requestBody = await jsonServer.calls[0].requestBody;
-      expect(requestBody).toEqual({
+      expect(await jsonServer.calls[0].requestBodyJson).toEqual({
         model: modelId,
         messages: [{ role: 'user', content: 'Hello' }],
         search_recency_filter: 'month',
@@ -390,6 +388,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 10,
               "outputTokens": 20,
+              "totalTokens": undefined,
             },
           },
         ]
@@ -459,6 +458,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 10,
               "outputTokens": 20,
+              "totalTokens": undefined,
             },
           },
         ]
@@ -472,8 +472,7 @@ describe('PerplexityLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
-      const requestBody = await streamServer.calls[0].requestBody;
-      expect(requestBody).toEqual({
+      expect(await streamServer.calls[0].requestBodyJson).toEqual({
         model: modelId,
         messages: [{ role: 'user', content: 'Hello' }],
         stream: true,
@@ -544,6 +543,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 10,
               "outputTokens": 20,
+              "totalTokens": undefined,
             },
           },
         ]
@@ -606,6 +606,7 @@ describe('PerplexityLanguageModel', () => {
             "usage": {
               "inputTokens": 11,
               "outputTokens": 21,
+              "totalTokens": undefined,
             },
           },
         ]

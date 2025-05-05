@@ -27,10 +27,7 @@ import { CallWarning, LanguageModel } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
-import {
-  LanguageModelUsage,
-  calculateLanguageModelUsage,
-} from '../types/usage';
+import { LanguageModelUsage } from '../types/usage';
 import {
   DeepPartial,
   Schema,
@@ -499,7 +496,11 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
         // store information for onFinish callback:
         let warnings: LanguageModelV2CallWarning[] | undefined;
-        let usage: LanguageModelUsage | undefined;
+        let usage: LanguageModelUsage = {
+          inputTokens: undefined,
+          outputTokens: undefined,
+          totalTokens: undefined,
+        };
         let finishReason: LanguageModelV2FinishReason | undefined;
         let providerMetadata: ProviderMetadata | undefined;
         let object: RESULT | undefined;
@@ -626,7 +627,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     finishReason = chunk.finishReason;
 
                     // store usage and metadata for promises and onFinish callback:
-                    usage = calculateLanguageModelUsage(chunk.usage);
+                    usage = chunk.usage;
                     providerMetadata = chunk.providerMetadata;
 
                     controller.enqueue({
@@ -702,17 +703,19 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                         'ai.response.timestamp':
                           fullResponse.timestamp.toISOString(),
 
-                        'ai.usage.promptTokens': finalUsage.promptTokens,
-                        'ai.usage.completionTokens':
-                          finalUsage.completionTokens,
+                        'ai.usage.inputTokens': finalUsage.inputTokens,
+                        'ai.usage.outputTokens': finalUsage.outputTokens,
+                        'ai.usage.totalTokens': finalUsage.totalTokens,
+                        'ai.usage.reasoningTokens': finalUsage.reasoningTokens,
+                        'ai.usage.cachedInputTokens':
+                          finalUsage.cachedInputTokens,
 
                         // standardized gen-ai llm span attributes:
                         'gen_ai.response.finish_reasons': [finishReason],
                         'gen_ai.response.id': fullResponse.id,
                         'gen_ai.response.model': fullResponse.modelId,
-                        'gen_ai.usage.input_tokens': finalUsage.promptTokens,
-                        'gen_ai.usage.output_tokens':
-                          finalUsage.completionTokens,
+                        'gen_ai.usage.input_tokens': finalUsage.inputTokens,
+                        'gen_ai.usage.output_tokens': finalUsage.outputTokens,
                       },
                     }),
                   );
@@ -725,9 +728,12 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     selectTelemetryAttributes({
                       telemetry,
                       attributes: {
-                        'ai.usage.promptTokens': finalUsage.promptTokens,
-                        'ai.usage.completionTokens':
-                          finalUsage.completionTokens,
+                        'ai.usage.inputTokens': finalUsage.inputTokens,
+                        'ai.usage.outputTokens': finalUsage.outputTokens,
+                        'ai.usage.totalTokens': finalUsage.totalTokens,
+                        'ai.usage.reasoningTokens': finalUsage.reasoningTokens,
+                        'ai.usage.cachedInputTokens':
+                          finalUsage.cachedInputTokens,
                         'ai.response.object': {
                           output: () => JSON.stringify(object),
                         },

@@ -190,8 +190,10 @@ describe('doStream', () => {
           "finishReason": "stop",
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 4,
             "outputTokens": 34,
+            "totalTokens": 38,
           },
         },
       ]
@@ -285,6 +287,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -433,6 +436,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -480,6 +484,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -527,6 +532,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -574,6 +580,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -621,6 +628,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -655,6 +663,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -672,7 +681,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
     });
@@ -699,7 +708,7 @@ describe('doStream', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
       guardrailConfig: {
@@ -785,8 +794,10 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 4,
             "outputTokens": 34,
+            "totalTokens": 38,
           },
         },
       ]
@@ -938,7 +949,7 @@ describe('doStream', () => {
     });
 
     // Verify the outgoing request body includes "foo" at the top level.
-    const body = await server.calls[0].requestBody;
+    const body = await server.calls[0].requestBodyJson;
     expect(body).toMatchObject({ foo: 'bar' });
   });
 
@@ -991,15 +1002,16 @@ describe('doStream', () => {
           "providerMetadata": {
             "bedrock": {
               "usage": {
-                "cacheReadInputTokens": 2,
                 "cacheWriteInputTokens": 3,
               },
             },
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": 2,
             "inputTokens": 4,
             "outputTokens": 34,
+            "totalTokens": 38,
           },
         },
       ]
@@ -1036,8 +1048,7 @@ describe('doStream', () => {
       ],
     });
 
-    const requestBody = await server.calls[0].requestBody;
-    expect(requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       system: [{ text: 'System Prompt' }, { cachePoint: { type: 'default' } }],
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
     });
@@ -1126,6 +1137,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -1191,6 +1203,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -1281,10 +1294,14 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({
-      inputTokens: 4,
-      outputTokens: 34,
-    });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 4,
+        "outputTokens": 34,
+        "totalTokens": 38,
+      }
+    `);
   });
 
   it('should extract finish reason', async () => {
@@ -1314,7 +1331,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
       system: [{ text: 'System Prompt' }],
     });
@@ -1330,7 +1347,7 @@ describe('doGenerate', () => {
       topP: 0.5,
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       inferenceConfig: {
         maxOutputTokens: 100,
         temperature: 0.5,
@@ -1355,7 +1372,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       guardrailConfig: {
         guardrailIdentifier: '-1',
         guardrailVersion: '1',
@@ -1433,7 +1450,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       toolConfig: {
         tools: [
           {
@@ -1536,7 +1553,7 @@ describe('doGenerate', () => {
     });
 
     // Verify that the outgoing request body includes "foo" at its top level.
-    const body = await server.calls[0].requestBody;
+    const body = await server.calls[0].requestBodyJson;
     expect(body).toMatchObject({ foo: 'bar' });
   });
 
@@ -1556,18 +1573,23 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.providerMetadata).toEqual({
-      bedrock: {
-        usage: {
-          cacheReadInputTokens: 2,
-          cacheWriteInputTokens: 3,
+    expect(response.providerMetadata).toMatchInlineSnapshot(`
+      {
+        "bedrock": {
+          "usage": {
+            "cacheWriteInputTokens": 3,
+          },
         },
-      },
-    });
-    expect(response.usage).toEqual({
-      inputTokens: 4,
-      outputTokens: 34,
-    });
+      }
+    `);
+    expect(response.usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": 2,
+        "inputTokens": 4,
+        "outputTokens": 34,
+        "totalTokens": 38,
+      }
+    `);
   });
 
   it('should handle system messages with cache points', async () => {
@@ -1584,8 +1606,7 @@ describe('doGenerate', () => {
       ],
     });
 
-    const requestBody = await server.calls[0].requestBody;
-    expect(requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       system: [{ text: 'System Prompt' }, { cachePoint: { type: 'default' } }],
       messages: [{ role: 'user', content: [{ text: 'Hello' }] }],
     });

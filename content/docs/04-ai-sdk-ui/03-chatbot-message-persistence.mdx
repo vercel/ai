@@ -96,7 +96,6 @@ export default function Chat({
   const { input, handleInputChange, handleSubmit, messages } = useChat({
     id, // use the provided chat ID
     initialMessages, // initial messages if provided
-    sendExtraMessageFields: true, // send id and createdAt for each message
   });
 
   // simplified rendering code, extend as needed:
@@ -120,18 +119,16 @@ export default function Chat({
 ## Storing messages
 
 `useChat` sends the chat id and the messages to the backend.
-We have enabled the `sendExtraMessageFields` option to send the id and createdAt fields,
-meaning that we store messages in the `useChat` message format.
 
 <Note>
-  The `useChat` message format is different from the `CoreMessage` format. The
+  The `useChat` message format is different from the `ModelMessage` format. The
   `useChat` message format is designed for frontend display, and contains
   additional fields such as `id` and `createdAt`. We recommend storing the
   messages in the `useChat` message format.
 </Note>
 
 Storing messages is done in the `onFinish` callback of the `streamText` function.
-`onFinish` receives the messages from the AI response as a `CoreMessage[]`,
+`onFinish` receives the messages from the AI response as a `ModelMessage[]`,
 and we use the [`appendResponseMessages`](/docs/reference/ai-sdk-ui/append-response-messages)
 helper to append the AI response messages to the chat messages.
 

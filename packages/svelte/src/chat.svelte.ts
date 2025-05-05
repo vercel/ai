@@ -23,16 +23,7 @@ import {
 } from './chat-context.svelte.js';
 
 export type ChatOptions = Readonly<
-  Omit<UseChatOptions, 'keepLastMessageOnError'> & {
-    /**
-     * Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-     * Must be at least 1.
-     * A maximum number is required to prevent infinite loops in the case of misconfigured tools.
-     * By default, it's set to 1, which means that only a single LLM call is made.
-     * @default 1
-     */
-    maxSteps?: number;
-
+  UseChatOptions & {
     '~internal'?: {
       currentDate?: () => Date;
     };
@@ -189,7 +180,6 @@ export class Chat {
       id: this.#generateId(),
       createdAt: this.currentDate(),
       role: 'user',
-      content: this.input,
       parts: [...fileParts, { type: 'text', text: this.input }],
     });
 
@@ -249,21 +239,12 @@ export class Chat {
       // Optimistically update messages
       this.messages = messages;
 
-      const constructedMessagesPayload = this.#options.sendExtraMessageFields
-        ? messages
-        : messages.map(({ role, content, annotations, parts }) => ({
-            role,
-            content,
-            ...(annotations !== undefined && { annotations }),
-            ...(parts !== undefined && { parts }),
-          }));
-
       const existingData = this.data ?? [];
       await callChatApi({
         api: this.#api,
         body: {
           id: this.id,
-          messages: constructedMessagesPayload,
+          messages,
           data: chatRequest.data,
           ...$state.snapshot(this.#options.body),
           ...chatRequest.body,
@@ -275,7 +256,6 @@ export class Chat {
           ...chatRequest.headers,
         },
         abortController: () => abortController,
-        restoreMessagesOnFailure: () => {},
         onResponse: this.#options.onResponse,
         onUpdate: ({ message, data, replaceLastMessage }) => {
           this.#store.status = 'streaming';

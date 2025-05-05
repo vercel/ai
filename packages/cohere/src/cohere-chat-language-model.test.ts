@@ -141,7 +141,13 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "totalTokens": 25,
+      }
+    `);
   });
 
   it('should send additional response information', async () => {
@@ -226,7 +232,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'command-r-plus',
       messages: [
         { role: 'system', content: 'you are a friendly bot!' },
@@ -259,7 +265,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
         model: 'command-r-plus',
         messages: [
           {
@@ -332,7 +338,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'command-r-plus',
       messages: [
         { role: 'system', content: 'you are a friendly bot!' },
@@ -515,6 +521,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 34,
             "outputTokens": 12,
+            "totalTokens": 46,
           },
         },
       ]
@@ -664,6 +671,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 893,
             "outputTokens": 62,
+            "totalTokens": 955,
           },
         },
       ]
@@ -708,6 +716,7 @@ describe('doStream', () => {
             "usage": {
               "inputTokens": undefined,
               "outputTokens": undefined,
+              "totalTokens": undefined,
             },
           },
         ]
@@ -743,7 +752,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       stream: true,
       model: 'command-r-plus',
       messages: [
@@ -881,6 +890,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 10,
             "outputTokens": 5,
+            "totalTokens": 15,
           },
         },
       ]

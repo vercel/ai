@@ -50,7 +50,6 @@ describe('prepareRequestBody', () => {
       messages: [
         {
           role: 'user',
-          content: 'hi',
           id: expect.any(String),
           createdAt: expect.any(String),
           parts: [{ type: 'text', text: 'hi' }],
@@ -60,7 +59,7 @@ describe('prepareRequestBody', () => {
       requestBody: { 'request-body-key': 'request-body-value' },
     });
 
-    expect(await server.calls[0].requestBody).toBe('test-request-body');
+    expect(await server.calls[0].requestBodyJson).toBe('test-request-body');
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
@@ -199,7 +198,11 @@ describe('data protocol stream', () => {
         formatDataStreamPart('text', '.'),
         formatDataStreamPart('finish_message', {
           finishReason: 'stop',
-          usage: { completionTokens: 1, promptTokens: 3 },
+          usage: {
+            inputTokens: 1,
+            outputTokens: 3,
+            totalTokens: 4,
+          },
         }),
       ],
     };
@@ -221,14 +224,13 @@ describe('data protocol stream', () => {
           id: expect.any(String),
           createdAt: expect.any(String),
           role: 'assistant',
-          content: 'Hello, world.',
           parts: [{ text: 'Hello, world.', type: 'text' }],
         },
         options: {
           finishReason: 'stop',
           usage: {
-            completionTokens: 1,
-            promptTokens: 3,
+            inputTokens: 1,
+            outputTokens: 3,
             totalTokens: 4,
           },
         },
@@ -280,17 +282,11 @@ describe('text stream', () => {
           id: expect.any(String),
           createdAt: expect.any(String),
           role: 'assistant',
-          content: 'Hello, world.',
           parts: [{ text: 'Hello, world.', type: 'text' }],
         },
         options: {
           finishReason: 'unknown',
-          usage: {
-            // note: originally NaN (lost in JSON stringify)
-            completionTokens: null,
-            promptTokens: null,
-            totalTokens: null,
-          },
+          usage: {},
         },
       },
     ]);
@@ -327,17 +323,23 @@ describe('custom metadata', () => {
 
     await screen.findByTestId('message-1');
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      body1: 'value1',
+      body2: 'value2',
       id: expect.any(String),
       messages: [
         {
-          content: 'custom metadata component',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-0',
+          parts: [
+            {
+              text: 'custom metadata component',
+              type: 'text',
+            },
+          ],
           role: 'user',
-          parts: [{ text: 'custom metadata component', type: 'text' }],
         },
       ],
-      body1: 'value1',
-      body2: 'value2',
     });
   });
 });
@@ -469,16 +471,24 @@ describe('reload', () => {
     // setup done, click reload:
     await userEvent.click(screen.getByTestId('do-reload'));
 
-    expect(await server.calls[1].requestBody).toStrictEqual({
+    expect(await server.calls[1].requestBodyJson).toStrictEqual({
+      data: {
+        'test-data-key': 'test-data-value',
+      },
       id: expect.any(String),
       messages: [
         {
-          content: 'hi',
+          createdAt: '2025-01-01T00:00:00.000Z',
+          id: 'id-0',
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
           role: 'user',
-          parts: [{ text: 'hi', type: 'text' }],
         },
       ],
-      data: { 'test-data-key': 'test-data-value' },
       'request-body-key': 'request-body-value',
     });
 
@@ -778,11 +788,11 @@ describe('file attachments with data url', () => {
           id: 'id-0',
           createdAt: '2025-01-01T00:00:00.000Z',
           role: 'user',
-          content: 'Message with text attachment',
           parts: [
             {
               type: 'file',
               mediaType: 'text/plain',
+              filename: 'test.txt',
               url: 'data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=',
             },
             {
@@ -792,7 +802,6 @@ describe('file attachments with data url', () => {
           ],
         },
         {
-          content: 'Response to message with text attachment',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
           parts: [
@@ -835,11 +844,11 @@ describe('file attachments with data url', () => {
           role: 'user',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
-          content: 'Message with image attachment',
           parts: [
             {
               type: 'file',
               mediaType: 'image/png',
+              filename: 'test.png',
               url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
             },
             {
@@ -852,7 +861,6 @@ describe('file attachments with data url', () => {
           role: 'assistant',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
-          content: 'Response to message with image attachment',
           parts: [
             {
               type: 'text',
@@ -889,7 +897,6 @@ describe('file attachments with url', () => {
           role: 'user',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
-          content: 'Message with image attachment',
           parts: [
             {
               type: 'file',
@@ -906,7 +913,6 @@ describe('file attachments with url', () => {
           role: 'assistant',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
-          content: 'Response to message with image attachment',
           parts: [
             {
               type: 'text',
@@ -947,11 +953,11 @@ describe('attachments with empty submit', () => {
           id: 'id-0',
           createdAt: '2025-01-01T00:00:00.000Z',
           role: 'user',
-          content: '',
           parts: [
             {
               type: 'file',
               mediaType: 'image/png',
+              filename: 'test.png',
               url: 'data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50',
             },
             {
@@ -964,7 +970,6 @@ describe('attachments with empty submit', () => {
           id: 'id-1',
           createdAt: '2025-01-01T00:00:00.000Z',
           role: 'assistant',
-          content: 'Response to empty message with attachment',
           parts: [
             {
               type: 'text',
@@ -995,7 +1000,6 @@ describe('should append message with attachments', () => {
         JSON.parse(screen.getByTestId('messages').textContent ?? ''),
       ).toStrictEqual([
         {
-          content: 'Message with image attachment',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
           parts: [
@@ -1012,7 +1016,6 @@ describe('should append message with attachments', () => {
           role: 'user',
         },
         {
-          content: 'Response to message with image attachment',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
           parts: [

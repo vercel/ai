@@ -1,9 +1,9 @@
 import 'dotenv/config';
 import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
-import { streamText, CoreMessage, ToolCallPart, ToolResultPart } from 'ai';
+import { streamText, ModelMessage, ToolCallPart, ToolResultPart } from 'ai';
 import { weatherTool } from '../tools/weather-tool';
 
-const messages: CoreMessage[] = [];
+const messages: ModelMessage[] = [];
 
 async function main() {
   let toolResponseAvailable = false;

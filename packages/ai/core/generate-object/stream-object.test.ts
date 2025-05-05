@@ -3,7 +3,6 @@ import {
   convertAsyncIterableToArray,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { jsonSchema } from '../util';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod';
 import {
@@ -13,9 +12,18 @@ import {
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
+import { jsonSchema } from '../util';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
+
+const testUsage = {
+  inputTokens: 3,
+  outputTokens: 10,
+  totalTokens: 13,
+  reasoningTokens: undefined,
+  cachedInputTokens: undefined,
+};
 
 describe('streamObject', () => {
   describe('output = "object"', () => {
@@ -33,7 +41,7 @@ describe('streamObject', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           },
@@ -97,7 +105,7 @@ describe('streamObject', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           },
@@ -222,7 +230,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 2, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -252,7 +260,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 2, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -283,7 +291,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 2, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -326,7 +334,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 2, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -366,7 +374,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -378,11 +386,15 @@ describe('streamObject', () => {
         // consume stream (runs in parallel)
         convertAsyncIterableToArray(result.partialObjectStream);
 
-        assert.deepStrictEqual(await result.usage, {
-          completionTokens: 10,
-          promptTokens: 3,
-          totalTokens: 13,
-        });
+        expect(await result.usage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": undefined,
+            "inputTokens": 3,
+            "outputTokens": 10,
+            "reasoningTokens": undefined,
+            "totalTokens": 13,
+          }
+        `);
       });
     });
 
@@ -399,7 +411,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                   providerMetadata: {
                     testProvider: { testKey: 'testValue' },
                   },
@@ -439,7 +451,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
               response: { headers: { call: '2' } },
@@ -480,7 +492,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
               request: { body: 'test body' },
@@ -514,7 +526,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -545,7 +557,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -574,7 +586,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -613,7 +625,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                   providerMetadata: {
                     testProvider: { testKey: 'testValue' },
                   },
@@ -658,7 +670,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -698,7 +710,7 @@ describe('streamObject', () => {
                   {
                     type: 'finish',
                     finishReason: 'stop',
-                    usage: { inputTokens: 3, outputTokens: 10 },
+                    usage: testUsage,
                   },
                 ]),
               };
@@ -733,7 +745,7 @@ describe('streamObject', () => {
                   {
                     type: 'finish',
                     finishReason: 'stop',
-                    usage: { inputTokens: 3, outputTokens: 10 },
+                    usage: testUsage,
                   },
                 ]),
               };
@@ -766,7 +778,7 @@ describe('streamObject', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           },
@@ -837,7 +849,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -858,7 +870,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            usage: testUsage,
             finishReason: 'stop',
           });
         }
@@ -879,7 +891,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -900,7 +912,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            usage: testUsage,
             finishReason: 'stop',
           });
         }
@@ -920,7 +932,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),
@@ -941,7 +953,7 @@ describe('streamObject', () => {
               timestamp: new Date(123),
               modelId: 'model-1',
             },
-            usage: { completionTokens: 10, promptTokens: 3, totalTokens: 13 },
+            usage: testUsage,
             finishReason: 'stop',
           });
         }
@@ -989,7 +1001,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             },
@@ -1085,7 +1097,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             },
@@ -1153,7 +1165,7 @@ describe('streamObject', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              usage: { inputTokens: 3, outputTokens: 10 },
+              usage: testUsage,
             },
           ]),
         },
@@ -1213,7 +1225,7 @@ describe('streamObject', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              usage: { inputTokens: 3, outputTokens: 10 },
+              usage: testUsage,
             },
           ]),
         },
@@ -1244,7 +1256,7 @@ describe('streamObject', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              usage: { inputTokens: 3, outputTokens: 10 },
+              usage: testUsage,
             },
           ]),
         },
@@ -1279,7 +1291,7 @@ describe('streamObject', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              usage: { inputTokens: 3, outputTokens: 10 },
+              usage: testUsage,
             },
           ]),
         },
@@ -1315,7 +1327,7 @@ describe('streamObject', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              usage: { inputTokens: 3, outputTokens: 10 },
+              usage: testUsage,
             },
           ]),
         },
@@ -1381,7 +1393,7 @@ describe('streamObject', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           }),
@@ -1417,7 +1429,7 @@ describe('streamObject', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           }),
@@ -1473,7 +1485,7 @@ describe('streamObject', () => {
               {
                 type: 'finish',
                 finishReason: 'stop',
-                usage: { inputTokens: 3, outputTokens: 10 },
+                usage: testUsage,
               },
             ]),
           }),
@@ -1510,7 +1522,7 @@ describe('streamObject', () => {
             {
               type: 'finish',
               finishReason: 'stop',
-              usage: { inputTokens: 3, outputTokens: 10 },
+              usage: testUsage,
             },
           ]),
         },
@@ -1522,12 +1534,10 @@ describe('streamObject', () => {
         messages: [
           {
             role: 'user',
-            content: 'prompt',
             parts: [{ type: 'text', text: 'prompt' }],
           },
           {
             role: 'assistant',
-            content: '',
             parts: [
               {
                 type: 'tool-invocation',
@@ -1652,7 +1662,7 @@ describe('streamObject', () => {
                 {
                   type: 'finish',
                   finishReason: 'stop',
-                  usage: { inputTokens: 3, outputTokens: 10 },
+                  usage: testUsage,
                 },
               ]),
             }),

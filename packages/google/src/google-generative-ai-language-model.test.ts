@@ -297,9 +297,16 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "reasoningTokens": undefined,
+        "totalTokens": 25,
+      }
+    `);
   });
-
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -418,7 +425,7 @@ describe('doGenerate', () => {
       temperature: 0.5,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       contents: [
         {
           role: 'user',
@@ -448,7 +455,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       contents: [
         {
           role: 'user',
@@ -488,7 +495,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       generationConfig: {},
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       tools: {
@@ -527,7 +534,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       contents: [
         {
           role: 'user',
@@ -567,7 +574,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {
         responseMimeType: 'application/json',
@@ -607,7 +614,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {
         responseMimeType: 'application/json',
@@ -638,7 +645,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {},
       toolConfig: { functionCallingConfig: { mode: 'ANY' } },
@@ -705,7 +712,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {
         responseMimeType: 'application/json',
@@ -727,8 +734,7 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    const requestBody = await server.calls[0].requestBody;
-    expect(requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
       generationConfig: {},
     });
@@ -1024,7 +1030,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
         tools: { googleSearch: {} },
       });
     });
@@ -1044,7 +1050,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
         tools: { googleSearch: {} },
       });
     });
@@ -1064,7 +1070,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
         tools: { googleSearchRetrieval: {} },
       });
     });
@@ -1089,7 +1095,7 @@ describe('doGenerate', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
         tools: {
           googleSearchRetrieval: {
             dynamicRetrievalConfig: {
@@ -1238,7 +1244,7 @@ describe('doGenerate', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
@@ -1536,8 +1542,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 294,
             "outputTokens": 233,
+            "reasoningTokens": undefined,
+            "totalTokens": 527,
           },
         },
       ]
@@ -1571,7 +1580,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       contents: [
         {
           role: 'user',
@@ -1623,7 +1632,7 @@ describe('doStream', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
       generationConfig: {},
       contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
     });
@@ -1686,8 +1695,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 294,
             "outputTokens": 233,
+            "reasoningTokens": undefined,
+            "totalTokens": 527,
           },
         },
       ]
@@ -1749,7 +1761,7 @@ describe('doStream', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
         tools: { googleSearch: {} },
       });
     });
@@ -1771,7 +1783,7 @@ describe('doStream', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
         tools: { googleSearch: {} },
       });
     });
@@ -1792,7 +1804,7 @@ describe('doStream', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
         tools: { googleSearchRetrieval: {} },
       });
     });
@@ -1818,7 +1830,7 @@ describe('doStream', () => {
         },
       });
 
-      expect(await server.calls[0].requestBody).toMatchObject({
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
         tools: {
           googleSearchRetrieval: {
             dynamicRetrievalConfig: {
@@ -1926,8 +1938,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 294,
             "outputTokens": 233,
+            "reasoningTokens": undefined,
+            "totalTokens": 527,
           },
         },
       ]
@@ -2012,7 +2027,7 @@ describe('doStream', () => {
       },
     });
 
-    expect(await server.calls[0].requestBody).toMatchObject({
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
       contents: [
         {
           role: 'user',

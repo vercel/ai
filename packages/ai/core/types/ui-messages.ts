@@ -3,10 +3,13 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
-import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
-import { LanguageModelUsage } from './duplicated/usage';
-
-export type IdGenerator = () => string;
+import {
+  FetchFunction,
+  IdGenerator,
+  ToolCall,
+  ToolResult,
+} from '@ai-sdk/provider-utils';
+import { LanguageModelUsage } from './usage';
 
 /**
 Tool invocations are either tool calls or tool results. For each assistant tool call,
@@ -36,12 +39,6 @@ The timestamp of the message.
    */
   // TODO solve optionality similar id
   createdAt?: Date;
-
-  /**
-Text content of the message. Use parts when possible.
-   */
-  // TODO remove (replace with parts)
-  content: string;
 
   /**
 The role of the message.
@@ -142,6 +139,11 @@ export type FileUIPart = {
   mediaType: string;
 
   /**
+   * Optional filename of the file.
+   */
+  filename?: string;
+
+  /**
    * The URL of the file.
    * It can either be a URL to a hosted file or a [Data URL](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs).
    */
@@ -217,13 +219,6 @@ Additional data to be sent to the API endpoint.
 };
 
 export type UseChatOptions = {
-  /**
-Keeps the last message when an error happens. Defaults to `true`.
-
-@deprecated This option will be removed in the next major release.
-   */
-  keepLastMessageOnError?: boolean;
-
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
@@ -318,13 +313,6 @@ either synchronously or asynchronously.
   body?: object;
 
   /**
-   * Whether to send extra message fields such as `message.id` and `message.createdAt` to the API.
-   * Defaults to `false`. When set to `true`, the API endpoint might need to
-   * handle the extra fields before forwarding the request to the AI service.
-   */
-  sendExtraMessageFields?: boolean;
-
-  /**
 Streaming protocol that is used. Defaults to `data`.
    */
   streamProtocol?: 'data' | 'text';
@@ -334,6 +322,16 @@ Custom fetch implementation. You can use it as a middleware to intercept request
 or to provide a custom fetch implementation for e.g. testing.
     */
   fetch?: FetchFunction;
+
+  /**
+Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
+Must be at least 1.
+
+A maximum number is required to prevent infinite loops in the case of misconfigured tools.
+
+By default, it's set to 1, which means that only a single LLM call is made.
+ */
+  maxSteps?: number;
 };
 
 export type UseCompletionOptions = {

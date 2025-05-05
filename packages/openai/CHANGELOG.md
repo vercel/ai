@@ -1,5 +1,49 @@
 # @ai-sdk/openai
 
+## 2.0.0-canary.16
+
+### Patch Changes
+
+- 928fadf: fix(providers/openai): logprobs for stream alongside completion model
+- 6f231db: fix(providers): always use optional instead of mix of nullish for providerOptions
+- Updated dependencies [a571d6e]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [7979f7f]
+- Updated dependencies [41fa418]
+  - @ai-sdk/provider-utils@3.0.0-canary.15
+  - @ai-sdk/provider@2.0.0-canary.14
+
+## 2.0.0-canary.15
+
+### Patch Changes
+
+- 136819b: chore(providers/openai): re-introduce logprobs as providerMetadata
+- 9bd5ab5: feat (provider): add providerMetadata to ImageModelV2 interface (#5977)
+
+  The `experimental_generateImage` method from the `ai` package now returnes revised prompts for OpenAI's image models.
+
+  ```js
+  const prompt = 'Santa Claus driving a Cadillac';
+
+  const { providerMetadata } = await experimental_generateImage({
+    model: openai.image('dall-e-3'),
+    prompt,
+  });
+
+  const revisedPrompt = providerMetadata.openai.images[0]?.revisedPrompt;
+
+  console.log({
+    prompt,
+    revisedPrompt,
+  });
+  ```
+
+- 284353f: fix(providers/openai): zod parse error with function
+- Updated dependencies [957b739]
+- Updated dependencies [9bd5ab5]
+  - @ai-sdk/provider-utils@3.0.0-canary.14
+  - @ai-sdk/provider@2.0.0-canary.13
+
 ## 2.0.0-canary.14
 
 ### Patch Changes

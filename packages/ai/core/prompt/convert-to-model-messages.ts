@@ -6,37 +6,34 @@ import {
   ToolInvocationUIPart,
   UIMessage,
 } from '../types';
+import { getUIText } from '../ui/get-ui-text';
 import { ToolResultPart } from './content-part';
-import { AssistantContent, CoreMessage } from './message';
+import { AssistantContent, ModelMessage } from './message';
 import { MessageConversionError } from './message-conversion-error';
 
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used
 with the AI core functions (e.g. `streamText`).
  */
-export function convertToCoreMessages<TOOLS extends ToolSet = never>(
+export function convertToModelMessages<TOOLS extends ToolSet = never>(
   messages: Array<Omit<UIMessage, 'id'>>,
   options?: { tools?: TOOLS },
-) {
+): ModelMessage[] {
   const tools = options?.tools ?? ({} as TOOLS);
-  const coreMessages: CoreMessage[] = [];
+  const modelMessages: ModelMessage[] = [];
 
-  for (let i = 0; i < messages.length; i++) {
-    const message = messages[i];
-    const isLastMessage = i === messages.length - 1;
-    const { role, content } = message;
-
-    switch (role) {
+  for (const message of messages) {
+    switch (message.role) {
       case 'system': {
-        coreMessages.push({
+        modelMessages.push({
           role: 'system',
-          content,
+          content: getUIText(message.parts),
         });
         break;
       }
 
       case 'user': {
-        coreMessages.push({
+        modelMessages.push({
           role: 'user',
           content: message.parts
             .filter(
@@ -48,6 +45,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
                 ? {
                     type: 'file' as const,
                     mediaType: part.mediaType,
+                    filename: part.filename,
                     data: part.url,
                   }
                 : part,
@@ -105,7 +103,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
               }
             }
 
-            coreMessages.push({
+            modelMessages.push({
               role: 'assistant',
               content,
             });
@@ -126,7 +124,7 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
 
             // tool message with tool results
             if (stepInvocations.length > 0) {
-              coreMessages.push({
+              modelMessages.push({
                 role: 'tool',
                 content: stepInvocations.map(
                   (toolInvocation): ToolResultPart => {
@@ -198,15 +196,11 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
           break;
         }
 
-        if (content && !isLastMessage) {
-          coreMessages.push({ role: 'assistant', content });
-        }
-
         break;
       }
 
       default: {
-        const _exhaustiveCheck: never = role;
+        const _exhaustiveCheck: never = message.role;
         throw new MessageConversionError({
           originalMessage: message,
           message: `Unsupported role: ${_exhaustiveCheck}`,
@@ -215,5 +209,11 @@ export function convertToCoreMessages<TOOLS extends ToolSet = never>(
     }
   }
 
-  return coreMessages;
+  return modelMessages;
 }
+
+/**
+@deprecated Use `convertToModelMessages` instead.
+ */
+// TODO remove in AI SDK 6
+export const convertToCoreMessages = convertToModelMessages;

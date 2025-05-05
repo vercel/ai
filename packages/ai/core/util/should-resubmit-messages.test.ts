@@ -14,14 +14,12 @@ describe('shouldResubmitMessages', () => {
           {
             id: '1',
             role: 'user',
-            content: 'Hello',
             createdAt: new Date(),
             parts: [{ type: 'text', text: 'Hello' }],
           },
           {
             id: '2',
             role: 'assistant',
-            content: 'Hello',
             createdAt: new Date(),
             parts: [{ type: 'text', text: 'Hello' }],
           },
@@ -40,14 +38,12 @@ describe('shouldResubmitMessages', () => {
           {
             id: '1',
             role: 'user',
-            content: 'Hello',
             createdAt: new Date(),
             parts: [{ type: 'text', text: 'Hello' }],
           },
           {
             id: '2',
             role: 'assistant' as const,
-            content: '',
             createdAt: new Date(),
             parts: [
               {
@@ -75,7 +71,6 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
       isAssistantMessageWithCompletedToolCalls({
         id: '1',
         role: 'assistant',
-        content: '',
         createdAt: new Date(),
         parts: [
           { type: 'step-start' },
@@ -105,7 +100,6 @@ describe('isAssistantMessageWithCompletedToolCalls', () => {
       isAssistantMessageWithCompletedToolCalls({
         id: '1',
         role: 'assistant',
-        content: '',
         createdAt: new Date(),
         parts: [
           { type: 'step-start' },

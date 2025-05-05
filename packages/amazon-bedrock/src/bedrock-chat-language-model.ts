@@ -271,12 +271,9 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               ...(response.trace && typeof response.trace === 'object'
                 ? { trace: response.trace as JSONObject }
                 : {}),
-              ...(response.usage && {
+              ...(response.usage?.cacheWriteInputTokens != null && {
                 usage: {
-                  cacheReadInputTokens:
-                    response.usage?.cacheReadInputTokens ?? Number.NaN,
-                  cacheWriteInputTokens:
-                    response.usage?.cacheWriteInputTokens ?? Number.NaN,
+                  cacheWriteInputTokens: response.usage.cacheWriteInputTokens,
                 },
               }),
             },
@@ -291,6 +288,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: response.usage?.inputTokens,
         outputTokens: response.usage?.outputTokens,
+        totalTokens: response.usage?.inputTokens + response.usage?.outputTokens,
+        cachedInputTokens: response.usage?.cacheReadInputTokens ?? undefined,
       },
       response: {
         // TODO add id, timestamp, etc
@@ -328,6 +327,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
+      totalTokens: undefined,
     };
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
 
@@ -393,18 +393,18 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                 value.metadata.usage?.inputTokens ?? usage.inputTokens;
               usage.outputTokens =
                 value.metadata.usage?.outputTokens ?? usage.outputTokens;
+              usage.totalTokens =
+                (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0);
+              usage.cachedInputTokens =
+                value.metadata.usage?.cacheReadInputTokens ??
+                usage.cachedInputTokens;
 
               const cacheUsage =
-                value.metadata.usage?.cacheReadInputTokens != null ||
                 value.metadata.usage?.cacheWriteInputTokens != null
                   ? {
                       usage: {
-                        cacheReadInputTokens:
-                          value.metadata.usage?.cacheReadInputTokens ??
-                          Number.NaN,
                         cacheWriteInputTokens:
-                          value.metadata.usage?.cacheWriteInputTokens ??
-                          Number.NaN,
+                          value.metadata.usage.cacheWriteInputTokens,
                       },
                     }
                   : undefined;

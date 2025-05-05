@@ -11,9 +11,11 @@ const context = {
     modelId: '456',
   },
   usage: {
-    promptTokens: 1,
-    completionTokens: 2,
+    inputTokens: 1,
+    outputTokens: 2,
     totalTokens: 3,
+    reasoningTokens: undefined,
+    cachedInputTokens: undefined,
   },
   finishReason: 'length' as FinishReason,
 };

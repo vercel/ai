@@ -1,6 +1,6 @@
 import { ServerResponse } from 'node:http';
-import { StreamData } from '../../streams/stream-data';
 import { DataStreamWriter } from '../data-stream/data-stream-writer';
+import { ReasoningPart } from '../prompt/content-part';
 import {
   CallWarning,
   FinishReason,
@@ -11,12 +11,12 @@ import { Source } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
 import { AsyncIterableStream } from '../util/async-iterable-stream';
+import { DataStreamText } from '../util/data-stream-parts';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage, StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ReasoningPart } from '../prompt/content-part';
 
 export type DataStreamOptions = {
   /**
@@ -215,10 +215,9 @@ If an error occurs, it is passed to the optional `onError` callback.
      */
   toDataStream(
     options?: {
-      data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
     } & DataStreamOptions,
-  ): ReadableStream<Uint8Array>;
+  ): ReadableStream<DataStreamText>;
 
   /**
    * Merges the result as a data stream into another data stream.
@@ -247,7 +246,6 @@ If an error occurs, it is passed to the optional `onError` callback.
   pipeDataStreamToResponse(
     response: ServerResponse,
     options?: ResponseInit & {
-      data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
     } & DataStreamOptions,
   ): void;
@@ -278,7 +276,6 @@ If an error occurs, it is passed to the optional `onError` callback.
      */
   toDataStreamResponse(
     options?: ResponseInit & {
-      data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
     } & DataStreamOptions,
   ): Response;

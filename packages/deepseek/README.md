@@ -1,6 +1,6 @@
 # AI SDK - DeepSeek Provider
 
-The **[DeepSeek provider](https://sdk.vercel.ai/providers/ai-sdk-providers/deepseek)** for the [AI SDK](https://sdk.vercel.ai/docs) contains language model support for the [DeepSeek](https://www.deepseek.com) platform.
+The **[DeepSeek provider](https://ai-sdk.dev/providers/ai-sdk-providers/deepseek)** for the [AI SDK](https://ai-sdk.dev/docs) contains language model support for the [DeepSeek](https://www.deepseek.com) platform.
 
 ## Setup
 
@@ -32,4 +32,4 @@ const { text } = await generateText({
 
 ## Documentation
 
-Please check out the **[DeepSeek provider](https://sdk.vercel.ai/providers/ai-sdk-providers/deepseek)** for more information.
+Please check out the **[DeepSeek provider](https://ai-sdk.dev/providers/ai-sdk-providers/deepseek)** for more information.

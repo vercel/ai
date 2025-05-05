@@ -240,6 +240,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: usageMetadata?.promptTokenCount ?? undefined,
         outputTokens: usageMetadata?.candidatesTokenCount ?? undefined,
+        totalTokens: usageMetadata?.totalTokenCount ?? undefined,
+        reasoningTokens: usageMetadata?.thoughtsTokenCount ?? undefined,
+        cachedInputTokens: usageMetadata?.cachedContentTokenCount ?? undefined,
       },
       warnings,
       providerMetadata: {
@@ -286,6 +289,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
+      totalTokens: undefined,
     };
     let providerMetadata: SharedV2ProviderMetadata | undefined = undefined;
 
@@ -316,6 +320,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               usage.inputTokens = usageMetadata.promptTokenCount ?? undefined;
               usage.outputTokens =
                 usageMetadata.candidatesTokenCount ?? undefined;
+              usage.totalTokens = usageMetadata.totalTokenCount ?? undefined;
+              usage.reasoningTokens =
+                usageMetadata.thoughtsTokenCount ?? undefined;
+              usage.cachedInputTokens =
+                usageMetadata.cachedContentTokenCount ?? undefined;
             }
 
             const candidate = value.candidates?.[0];
@@ -578,6 +587,14 @@ const logprobsResultSchema = z.object({
   chosenCandidates: z.array(logprobSchema),
 });
 
+const usageSchema = z.object({
+  cachedContentTokenCount: z.number().nullish(),
+  thoughtsTokenCount: z.number().nullish(),
+  promptTokenCount: z.number().nullish(),
+  candidatesTokenCount: z.number().nullish(),
+  totalTokenCount: z.number().nullish(),
+});
+
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
@@ -589,13 +606,7 @@ const responseSchema = z.object({
       logprobsResult: logprobsResultSchema.nullish(),
     }),
   ),
-  usageMetadata: z
-    .object({
-      promptTokenCount: z.number().nullish(),
-      candidatesTokenCount: z.number().nullish(),
-      totalTokenCount: z.number().nullish(),
-    })
-    .nullish(),
+  usageMetadata: usageSchema.nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -613,11 +624,5 @@ const chunkSchema = z.object({
       }),
     )
     .nullish(),
-  usageMetadata: z
-    .object({
-      promptTokenCount: z.number().nullish(),
-      candidatesTokenCount: z.number().nullish(),
-      totalTokenCount: z.number().nullish(),
-    })
-    .nullish(),
+  usageMetadata: usageSchema.nullish(),
 });

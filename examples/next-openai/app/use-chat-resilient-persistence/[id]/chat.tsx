@@ -1,7 +1,7 @@
 'use client';
 
 import { UIMessage, useChat } from '@ai-sdk/react';
-import { createIdGenerator } from 'ai';
+import { createIdGenerator, getUIText } from 'ai';
 
 export default function Chat({
   id,
@@ -12,7 +12,6 @@ export default function Chat({
       api: '/api/use-chat-resilient-persistence',
       id, // use the provided chatId
       initialMessages, // initial messages if provided
-      sendExtraMessageFields: true, // send id and createdAt for each message
       generateId: createIdGenerator({ prefix: 'msgc', size: 16 }), // id format for client-side messages
     });
 
@@ -21,7 +20,7 @@ export default function Chat({
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
+          {getUIText(m.parts)}
         </div>
       ))}
 

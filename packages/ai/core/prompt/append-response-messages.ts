@@ -125,12 +125,10 @@ Internal. For test use only. May change without notice.
 
         if (isLastMessageAssistant) {
           const maxStep = extractMaxToolInvocationStep(
-            getToolInvocations(lastMessage as UIMessage), // TODO remove once Message is removed
+            getToolInvocations(lastMessage),
           );
 
           lastMessage.parts ??= [];
-
-          lastMessage.content = textContent;
           lastMessage.parts.push(...parts);
 
           getToolInvocationsForStep(maxStep === undefined ? 0 : maxStep + 1)
@@ -147,7 +145,6 @@ Internal. For test use only. May change without notice.
             role: 'assistant',
             id: message.id,
             createdAt: currentDate(), // generate a createdAt date for the message, will be overridden by the client
-            content: textContent,
             parts: [
               ...parts,
               ...getToolInvocationsForStep(0).map(call => ({
@@ -173,9 +170,9 @@ Internal. For test use only. May change without notice.
 
         for (const contentPart of message.content) {
           // find the tool call in the previous message:
-          const toolCall = getToolInvocations(
-            lastMessage as UIMessage, // TODO remove once Message is removed
-          ).find(call => call.toolCallId === contentPart.toolCallId);
+          const toolCall = getToolInvocations(lastMessage).find(
+            call => call.toolCallId === contentPart.toolCallId,
+          );
           const toolCallPart: ToolInvocationUIPart | undefined =
             lastMessage.parts.find(
               (part): part is ToolInvocationUIPart =>

@@ -129,7 +129,6 @@ export function useChat({
   id,
   initialMessages,
   initialInput = '',
-  sendExtraMessageFields,
   onToolCall,
   experimental_prepareRequestBody,
   maxSteps = 1,
@@ -142,7 +141,6 @@ export function useChat({
   body,
   generateId = generateIdFunc,
   fetch,
-  keepLastMessageOnError = true,
   experimental_throttle: throttleWaitMs,
   ...options
 }: UseChatOptions & {
@@ -169,16 +167,6 @@ Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-
-  /**
-Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-Must be at least 1.
-
-A maximum number is required to prevent infinite loops in the case of misconfigured tools.
-
-By default, it's set to 1, which means that only a single LLM call is made.
- */
-  maxSteps?: number;
 
   '~internal'?: {
     currentDate?: () => Date;
@@ -277,18 +265,8 @@ By default, it's set to 1, which means that only a single LLM call is made.
           throttleWaitMs,
         );
 
-        // Do an optimistic update to the chat state to show the updated messages immediately:
-        const previousMessages = messagesRef.current;
+        // Do an optimistic update to show the updated messages immediately:
         throttledMutate(chatMessages, false);
-
-        const constructedMessagesPayload = sendExtraMessageFields
-          ? chatMessages
-          : chatMessages.map(({ role, content, annotations, parts }) => ({
-              role,
-              content,
-              ...(annotations !== undefined && { annotations }),
-              ...(parts !== undefined && { parts }),
-            }));
 
         const existingData = streamDataRef.current;
 
@@ -301,7 +279,7 @@ By default, it's set to 1, which means that only a single LLM call is made.
             requestBody: chatRequest.body,
           }) ?? {
             id: chatId,
-            messages: constructedMessagesPayload,
+            messages: chatMessages,
             data: chatRequest.data,
             ...extraMetadataRef.current.body,
             ...chatRequest.body,
@@ -313,11 +291,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
             ...chatRequest.headers,
           },
           abortController: () => abortControllerRef.current,
-          restoreMessagesOnFailure() {
-            if (!keepLastMessageOnError) {
-              throttledMutate(previousMessages, false);
-            }
-          },
           onResponse,
           onUpdate({ message, data, replaceLastMessage }) {
             mutateStatus('streaming');
@@ -393,7 +366,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
       mutateStreamData,
       streamDataRef,
       streamProtocol,
-      sendExtraMessageFields,
       experimental_prepareRequestBody,
       onToolCall,
       maxSteps,
@@ -401,7 +373,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
       abortControllerRef,
       generateId,
       fetch,
-      keepLastMessageOnError,
       throttleWaitMs,
       chatId,
       getCurrentDate,
@@ -520,7 +491,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
           id: generateId(),
           createdAt: getCurrentDate(),
           role: 'user',
-          content: input,
           parts: [...fileParts, { type: 'text', text: input }],
         }),
         headers: options.headers,

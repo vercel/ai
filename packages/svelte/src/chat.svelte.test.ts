@@ -32,7 +32,12 @@ describe('data protocol stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should correctly manage streamed response in messages', async () => {
@@ -43,13 +48,11 @@ describe('data protocol stream', () => {
 
     await chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
     expect(chat.messages.at(0)).toStrictEqual(
       expect.objectContaining({
         role: 'user',
-        content: 'hi',
         parts: [{ text: 'hi', type: 'text' }],
       }),
     );
@@ -57,7 +60,7 @@ describe('data protocol stream', () => {
     expect(chat.messages.at(1)).toStrictEqual(
       expect.objectContaining({
         role: 'assistant',
-        content: 'Hello, world.',
+        parts: [{ type: 'text', text: 'Hello, world.' }],
       }),
     );
   });
@@ -70,7 +73,6 @@ describe('data protocol stream', () => {
 
     await chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
     expect(chat.data).toStrictEqual([{ t1: 'v1' }, { t1: 'v2' }]);
@@ -78,7 +80,6 @@ describe('data protocol stream', () => {
     expect(chat.messages.at(1)).toStrictEqual(
       expect.objectContaining({
         role: 'assistant',
-        content: 'Hello',
       }),
     );
   });
@@ -91,7 +92,6 @@ describe('data protocol stream', () => {
 
     await chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
     expect(chat.data).toStrictEqual([{ t1: 'v1' }]);
@@ -108,7 +108,6 @@ describe('data protocol stream', () => {
 
     await chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
     expect(chat.error).toBeInstanceOf(Error);
@@ -123,7 +122,6 @@ describe('data protocol stream', () => {
 
     await chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
     expect(chat.error).toBeInstanceOf(Error);
@@ -140,7 +138,6 @@ describe('data protocol stream', () => {
 
       const appendOperation = chat.append({
         role: 'user',
-        content: 'hi',
         parts: [{ text: 'hi', type: 'text' }],
       });
       await vi.waitFor(() => expect(chat.status).toBe('submitted'));
@@ -160,7 +157,6 @@ describe('data protocol stream', () => {
 
       chat.append({
         role: 'user',
-        content: 'hi',
         parts: [{ text: 'hi', type: 'text' }],
       });
       await vi.waitFor(() => expect(chat.status).toBe('error'));
@@ -177,7 +173,11 @@ describe('data protocol stream', () => {
         formatDataStreamPart('text', '.'),
         formatDataStreamPart('finish_message', {
           finishReason: 'stop',
-          usage: { completionTokens: 1, promptTokens: 3 },
+          usage: {
+            inputTokens: 1,
+            outputTokens: 3,
+            totalTokens: 4,
+          },
         }),
       ],
     };
@@ -185,10 +185,13 @@ describe('data protocol stream', () => {
     const onFinish = vi.fn();
     const chatWithOnFinish = new Chat({
       onFinish,
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
     });
     await chatWithOnFinish.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
@@ -197,14 +200,13 @@ describe('data protocol stream', () => {
         id: expect.any(String),
         createdAt: expect.any(Date),
         role: 'assistant',
-        content: 'Hello, world.',
         parts: [{ text: 'Hello, world.', type: 'text' }],
       },
       {
         finishReason: 'stop',
         usage: {
-          completionTokens: 1,
-          promptTokens: 3,
+          inputTokens: 1,
+          outputTokens: 3,
           totalTokens: 4,
         },
       },
@@ -220,20 +222,27 @@ describe('data protocol stream', () => {
 
       await chat.append({
         role: 'user',
-        content: 'hi',
         parts: [{ text: 'hi', type: 'text' }],
       });
 
-      expect(await server.calls[0].requestBody).toStrictEqual({
-        id: chat.id,
-        messages: [
-          {
-            role: 'user',
-            content: 'hi',
-            parts: [{ text: 'hi', type: 'text' }],
-          },
-        ],
-      });
+      expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+        {
+          "id": "id-0",
+          "messages": [
+            {
+              "createdAt": "2025-01-01T00:00:00.000Z",
+              "id": "id-1",
+              "parts": [
+                {
+                  "text": "hi",
+                  "type": "text",
+                },
+              ],
+              "role": "user",
+            },
+          ],
+        }
+      `);
     });
 
     it('should clear out messages when the id changes', async () => {
@@ -250,14 +259,13 @@ describe('data protocol stream', () => {
       });
       await chatWithId.append({
         role: 'user',
-        content: 'hi',
         parts: [{ text: 'hi', type: 'text' }],
       });
 
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
           role: 'assistant',
-          content: 'Hello, world.',
+          parts: [{ text: 'Hello, world.', type: 'text' }],
         }),
       );
 
@@ -281,14 +289,13 @@ describe('data protocol stream', () => {
       });
       await chatWithId.append({
         role: 'user',
-        content: 'hi',
         parts: [{ text: 'hi', type: 'text' }],
       });
 
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
           role: 'assistant',
-          content: 'Hello, world.',
+          parts: [{ text: 'Hello, world.', type: 'text' }],
         }),
       );
 
@@ -298,7 +305,7 @@ describe('data protocol stream', () => {
       expect(chatWithId.messages.at(1)).toStrictEqual(
         expect.objectContaining({
           role: 'assistant',
-          content: 'Hello, world.',
+          parts: [{ text: 'Hello, world.', type: 'text' }],
         }),
       );
     });
@@ -309,7 +316,13 @@ describe('text stream', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({ streamProtocol: 'text' });
+    chat = new Chat({
+      streamProtocol: 'text',
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should show streamed response', async () => {
@@ -320,23 +333,35 @@ describe('text stream', () => {
 
     await chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: 'hi',
-      }),
-    );
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Hello, world.',
-      }),
-    );
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
+            {
+              "text": "hi",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Hello, world.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should have stable message ids', async () => {
@@ -348,7 +373,6 @@ describe('text stream', () => {
 
     const appendOperation = chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
     controller.write('He');
@@ -358,7 +382,7 @@ describe('text stream', () => {
         expect.objectContaining({
           id: expect.any(String),
           role: 'assistant',
-          content: 'He',
+          parts: [{ text: 'He', type: 'text' }],
         }),
       ),
     );
@@ -373,7 +397,6 @@ describe('text stream', () => {
       expect.objectContaining({
         id,
         role: 'assistant',
-        content: 'Hello',
       }),
     );
   });
@@ -391,7 +414,6 @@ describe('text stream', () => {
     });
     await chatWithOnFinish.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
@@ -400,16 +422,11 @@ describe('text stream', () => {
         id: expect.any(String),
         createdAt: expect.any(Date),
         role: 'assistant',
-        content: 'Hello, world.',
         parts: [{ text: 'Hello, world.', type: 'text' }],
       },
       {
         finishReason: 'unknown',
-        usage: {
-          completionTokens: NaN,
-          promptTokens: NaN,
-          totalTokens: NaN,
-        },
+        usage: {},
       },
     );
   });
@@ -419,7 +436,13 @@ describe('form actions', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat({ streamProtocol: 'text' });
+    chat = new Chat({
+      streamProtocol: 'text',
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should show streamed response using handleSubmit', async () => {
@@ -438,19 +461,32 @@ describe('form actions', () => {
     await chat.handleSubmit();
 
     expect(chat.input).toBe('');
-    expect(chat.messages.at(0)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: 'hi',
-      }),
-    );
-
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Hello, world.',
-      }),
-    );
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
+            {
+              "text": "hi",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Hello, world.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
 
     await chat.handleSubmit();
     expect(chat.messages.at(2)).toBeUndefined();
@@ -478,47 +514,160 @@ describe('form actions', () => {
     expect(chat.messages.at(0)).toStrictEqual(
       expect.objectContaining({
         role: 'user',
-        content: 'hi',
       }),
     );
 
-    expect(chat.messages.at(1)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'Hello, world.',
-      }),
-    );
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
+            {
+              "text": "hi",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Hello, world.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
 
     await chat.handleSubmit(undefined, { allowEmptySubmit: true });
-    expect(chat.messages.at(2)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: '',
-      }),
-    );
 
-    expect(chat.messages.at(3)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'How can I help you?',
-      }),
-    );
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
+            {
+              "text": "hi",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Hello, world.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-3",
+          "parts": [
+            {
+              "text": "",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-4",
+          "parts": [
+            {
+              "text": "How can I help you?",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
 
     chat.input = 'What color is the sky?';
     await chat.handleSubmit();
-    expect(chat.messages.at(4)).toStrictEqual(
-      expect.objectContaining({
-        role: 'user',
-        content: 'What color is the sky?',
-      }),
-    );
 
-    expect(chat.messages.at(5)).toStrictEqual(
-      expect.objectContaining({
-        role: 'assistant',
-        content: 'The sky is blue.',
-      }),
-    );
+    expect(chat.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-1",
+          "parts": [
+            {
+              "text": "hi",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-2",
+          "parts": [
+            {
+              "text": "Hello, world.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-3",
+          "parts": [
+            {
+              "text": "",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-4",
+          "parts": [
+            {
+              "text": "How can I help you?",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-5",
+          "parts": [
+            {
+              "text": "What color is the sky?",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "createdAt": 2025-01-01T00:00:00.000Z,
+          "id": "id-6",
+          "parts": [
+            {
+              "text": "The sky is blue.",
+              "type": "text",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 });
 
@@ -554,7 +703,6 @@ describe('onToolCall', () => {
 
     const appendOperation = chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
     await vi.waitFor(() => {
@@ -606,7 +754,6 @@ describe('tool invocations', () => {
 
     const appendOperation = chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
@@ -725,7 +872,6 @@ describe('tool invocations', () => {
 
     const appendOperation = chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
@@ -786,7 +932,6 @@ describe('tool invocations', () => {
 
     await chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
@@ -836,7 +981,6 @@ describe('tool invocations', () => {
 
     chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
@@ -932,6 +1076,11 @@ describe('maxSteps', () => {
           } ${JSON.stringify(toolCall.args)}`;
         },
         maxSteps: 5,
+        id: 'test-id',
+        generateId: mockId(),
+        '~internal': {
+          currentDate: mockValues(new Date('2025-01-01')),
+        },
       });
       onToolCallInvoked = false;
     });
@@ -956,17 +1105,51 @@ describe('maxSteps', () => {
 
       await chat.append({
         role: 'user',
-        content: 'hi',
         parts: [{ text: 'hi', type: 'text' }],
       });
 
       expect(onToolCallInvoked).toBe(true);
 
-      expect(chat.messages.at(1)).toStrictEqual(
-        expect.objectContaining({
-          content: 'final result',
-        }),
-      );
+      expect(chat.messages).toMatchInlineSnapshot(`
+        [
+          {
+            "createdAt": 2025-01-01T00:00:00.000Z,
+            "id": "id-0",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+          {
+            "createdAt": 2025-01-01T00:00:00.000Z,
+            "id": "id-1",
+            "parts": [
+              {
+                "toolInvocation": {
+                  "args": {
+                    "testArg": "test-value",
+                  },
+                  "result": "test-tool-response: test-tool tool-call-0 {"testArg":"test-value"}",
+                  "state": "result",
+                  "step": 0,
+                  "toolCallId": "tool-call-0",
+                  "toolName": "test-tool",
+                },
+                "type": "tool-invocation",
+              },
+              {
+                "text": "final result",
+                "type": "text",
+              },
+            ],
+            "revisionId": "id-4",
+            "role": "assistant",
+          },
+        ]
+      `);
     });
   });
 
@@ -1008,7 +1191,6 @@ describe('maxSteps', () => {
 
       await chat.append({
         role: 'user',
-        content: 'hi',
         parts: [{ text: 'hi', type: 'text' }],
       });
 
@@ -1050,11 +1232,11 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "content": "Message with text attachment",
           "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
+              "filename": "test.txt",
               "mediaType": "text/plain",
               "type": "file",
               "url": "data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=",
@@ -1067,7 +1249,6 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "content": "Response to message with text attachment",
           "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
@@ -1082,14 +1263,16 @@ describe('file attachments with data url', () => {
       ]
     `);
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
           {
-            "content": "Message with text attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
             "parts": [
               {
+                "filename": "test.txt",
                 "mediaType": "text/plain",
                 "type": "file",
                 "url": "data:text/plain;base64,dGVzdCBmaWxlIGNvbnRlbnQ=",
@@ -1125,11 +1308,11 @@ describe('file attachments with data url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "content": "Message with image attachment",
           "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
+              "filename": "test.png",
               "mediaType": "image/png",
               "type": "file",
               "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1142,7 +1325,6 @@ describe('file attachments with data url', () => {
           "role": "user",
         },
         {
-          "content": "Response to message with image attachment",
           "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
@@ -1157,14 +1339,16 @@ describe('file attachments with data url', () => {
       ]
     `);
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
           {
-            "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
             "parts": [
               {
+                "filename": "test.png",
                 "mediaType": "image/png",
                 "type": "file",
                 "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1213,11 +1397,11 @@ describe('file attachments with url', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "content": "Message with image attachment",
           "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
+              "filename": "test.png",
               "mediaType": "image/png",
               "type": "file",
               "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1230,7 +1414,6 @@ describe('file attachments with url', () => {
           "role": "user",
         },
         {
-          "content": "Response to message with image attachment",
           "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
@@ -1245,14 +1428,16 @@ describe('file attachments with url', () => {
       ]
     `);
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
           {
-            "content": "Message with image attachment",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
             "parts": [
               {
+                "filename": "test.png",
                 "mediaType": "image/png",
                 "type": "file",
                 "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1300,11 +1485,11 @@ describe('file attachments with empty text content', () => {
     expect(chat.messages).toMatchInlineSnapshot(`
       [
         {
-          "content": "",
           "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-1",
           "parts": [
             {
+              "filename": "test.png",
               "mediaType": "image/png",
               "type": "file",
               "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1317,7 +1502,6 @@ describe('file attachments with empty text content', () => {
           "role": "user",
         },
         {
-          "content": "Response to message with image attachment",
           "createdAt": 2025-01-01T00:00:00.000Z,
           "id": "id-2",
           "parts": [
@@ -1332,14 +1516,16 @@ describe('file attachments with empty text content', () => {
       ]
     `);
 
-    expect(await server.calls[0].requestBody).toMatchInlineSnapshot(`
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
       {
         "id": "id-0",
         "messages": [
           {
-            "content": "",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
             "parts": [
               {
+                "filename": "test.png",
                 "mediaType": "image/png",
                 "type": "file",
                 "url": "data:image/png;base64,dGVzdCBpbWFnZSBjb250ZW50",
@@ -1361,7 +1547,12 @@ describe('reload', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should show streamed response', async () => {
@@ -1378,21 +1569,19 @@ describe('reload', () => {
 
     await chat.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
     expect(chat.messages.at(0)).toStrictEqual(
       expect.objectContaining({
         role: 'user',
-        content: 'hi',
       }),
     );
 
     expect(chat.messages.at(1)).toStrictEqual(
       expect.objectContaining({
         role: 'assistant',
-        content: 'first response',
+        parts: [{ text: 'first response', type: 'text' }],
       }),
     );
 
@@ -1403,18 +1592,28 @@ describe('reload', () => {
       headers: { 'header-key': 'header-value' },
     });
 
-    expect(await server.calls[1].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          content: 'hi',
-          role: 'user',
-          parts: [{ text: 'hi', type: 'text' }],
+    expect(await server.calls[1].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "test-data-key": "test-data-value",
         },
-      ],
-      data: { 'test-data-key': 'test-data-value' },
-      'request-body-key': 'request-body-value',
-    });
+        "id": "id-0",
+        "messages": [
+          {
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "request-body-key": "request-body-value",
+      }
+    `);
 
     expect(server.calls[1].requestHeaders).toStrictEqual({
       'content-type': 'application/json',
@@ -1424,7 +1623,7 @@ describe('reload', () => {
     expect(chat.messages.at(1)).toStrictEqual(
       expect.objectContaining({
         role: 'assistant',
-        content: 'second response',
+        parts: [{ text: 'second response', type: 'text' }],
       }),
     );
   });
@@ -1434,7 +1633,12 @@ describe('test sending additional fields during message submission', () => {
   let chat: Chat;
 
   beforeEach(() => {
-    chat = new Chat();
+    chat = new Chat({
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
+      },
+    });
   });
 
   it('should send annotations with the message', async () => {
@@ -1445,7 +1649,6 @@ describe('test sending additional fields during message submission', () => {
 
     await chat.append({
       role: 'user',
-      content: 'hi',
       annotations: ['this is an annotation'],
       parts: [{ text: 'hi', type: 'text' }],
     });
@@ -1453,21 +1656,30 @@ describe('test sending additional fields during message submission', () => {
     expect(chat.messages.at(0)).toStrictEqual(
       expect.objectContaining({
         role: 'user',
-        content: 'hi',
       }),
     );
 
-    expect(await server.calls[0].requestBody).toStrictEqual({
-      id: expect.any(String),
-      messages: [
-        {
-          role: 'user',
-          content: 'hi',
-          annotations: ['this is an annotation'],
-          parts: [{ text: 'hi', type: 'text' }],
-        },
-      ],
-    });
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "id": "id-0",
+        "messages": [
+          {
+            "annotations": [
+              "this is an annotation",
+            ],
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "id": "id-1",
+            "parts": [
+              {
+                "text": "hi",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+      }
+    `);
   });
 });
 
@@ -1476,7 +1688,6 @@ describe('initialMessages', () => {
   let initialMessages = $state<UIMessage[]>([
     {
       id: 'test-msg-1',
-      content: 'Test message 1',
       role: 'user',
       parts: [{ text: 'Test message 1', type: 'text' }],
     },
@@ -1494,7 +1705,7 @@ describe('initialMessages', () => {
     expect(chat.messages).toStrictEqual([
       expect.objectContaining({
         id: 'test-msg-1',
-        content: 'Test message 1',
+        parts: [{ text: 'Test message 1', type: 'text' }],
         role: 'user',
       }),
     ]);
@@ -1502,7 +1713,6 @@ describe('initialMessages', () => {
     initialMessages = [
       {
         id: 'test-msg-2',
-        content: 'Test message 2',
         role: 'user',
         parts: [{ text: 'Test message 2', type: 'text' }],
       },
@@ -1511,7 +1721,7 @@ describe('initialMessages', () => {
     expect(chat.messages).toStrictEqual([
       expect.objectContaining({
         id: 'test-msg-1',
-        content: 'Test message 1',
+        parts: [{ text: 'Test message 1', type: 'text' }],
         role: 'user',
       }),
     ]);
@@ -1531,14 +1741,12 @@ describe('synchronization', () => {
 
     await chat1.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
     expect(chat1.messages.at(0)).toStrictEqual(
       expect.objectContaining({
         role: 'user',
-        content: 'hi',
       }),
     );
     expect(chat2.messages.at(0)).toStrictEqual(chat1.messages.at(0));
@@ -1546,7 +1754,7 @@ describe('synchronization', () => {
     expect(chat1.messages.at(1)).toStrictEqual(
       expect.objectContaining({
         role: 'assistant',
-        content: 'Hello, world.',
+        parts: [{ text: 'Hello, world.', type: 'text' }],
       }),
     );
     expect(chat2.messages.at(1)).toStrictEqual(chat1.messages.at(1));
@@ -1565,7 +1773,6 @@ describe('synchronization', () => {
 
     const appendOperation = chat1.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
@@ -1606,7 +1813,6 @@ describe('generateId function', () => {
 
     await chatWithCustomId.append({
       role: 'user',
-      content: 'hi',
       parts: [{ text: 'hi', type: 'text' }],
     });
 
@@ -1614,7 +1820,6 @@ describe('generateId function', () => {
       expect.objectContaining({
         id: 'custom-id',
         role: 'user',
-        content: 'hi',
       }),
     );
 
@@ -1622,7 +1827,7 @@ describe('generateId function', () => {
       expect.objectContaining({
         id: 'custom-id',
         role: 'assistant',
-        content: 'Hello, world.',
+        parts: [{ text: 'Hello, world.', type: 'text' }],
       }),
     );
   });
