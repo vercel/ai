@@ -1572,18 +1572,14 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  private toDataStreamInternal({
+  toDataStream({
     getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
     sendReasoning = false,
     sendSources = false,
     experimental_sendFinish = true,
-  }: {
-    getErrorMessage: ((error: unknown) => string) | undefined;
-    sendUsage: boolean | undefined;
-    sendReasoning: boolean | undefined;
-    sendSources: boolean | undefined;
-    experimental_sendFinish: boolean | undefined;
+  }: DataStreamOptions & {
+    getErrorMessage?: (error: unknown) => string;
   }): ReadableStream<DataStreamText> {
     return this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, DataStreamText>({
@@ -1781,23 +1777,9 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  toDataStream(
-    options?: DataStreamOptions & {
-      getErrorMessage?: (error: unknown) => string;
-    },
-  ) {
-    return this.toDataStreamInternal({
-      getErrorMessage: options?.getErrorMessage,
-      sendUsage: options?.sendUsage,
-      sendReasoning: options?.sendReasoning,
-      sendSources: options?.sendSources,
-      experimental_sendFinish: options?.experimental_sendFinish,
-    });
-  }
-
   mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
     writer.merge(
-      this.toDataStreamInternal({
+      this.toDataStream({
         getErrorMessage: writer.onError,
         sendUsage: options?.sendUsage,
         sendReasoning: options?.sendReasoning,
