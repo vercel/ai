@@ -1572,19 +1572,13 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  private toDataStreamInternal({
+  toDataStream({
     getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
     sendReasoning = false,
     sendSources = false,
     experimental_sendFinish = true,
-  }: {
-    getErrorMessage: ((error: unknown) => string) | undefined;
-    sendUsage: boolean | undefined;
-    sendReasoning: boolean | undefined;
-    sendSources: boolean | undefined;
-    experimental_sendFinish: boolean | undefined;
-  }): ReadableStream<DataStreamText> {
+  }: DataStreamOptions = {}): ReadableStream<DataStreamText> {
     return this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, DataStreamText>({
         transform: async (chunk, controller) => {
@@ -1746,10 +1740,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       sendReasoning,
       sendSources,
       experimental_sendFinish,
-    }: ResponseInit &
-      DataStreamOptions & {
-        getErrorMessage?: (error: unknown) => string;
-      } = {},
+    }: ResponseInit & DataStreamOptions = {},
   ) {
     writeToServerResponse({
       response,
@@ -1781,24 +1772,10 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  toDataStream(
-    options?: DataStreamOptions & {
-      getErrorMessage?: (error: unknown) => string;
-    },
-  ) {
-    return this.toDataStreamInternal({
-      getErrorMessage: options?.getErrorMessage,
-      sendUsage: options?.sendUsage,
-      sendReasoning: options?.sendReasoning,
-      sendSources: options?.sendSources,
-      experimental_sendFinish: options?.experimental_sendFinish,
-    });
-  }
-
   mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
     writer.merge(
-      this.toDataStreamInternal({
-        getErrorMessage: writer.onError,
+      this.toDataStream({
+        getErrorMessage: options?.getErrorMessage ?? writer.onError,
         sendUsage: options?.sendUsage,
         sendReasoning: options?.sendReasoning,
         sendSources: options?.sendSources,
@@ -1816,10 +1793,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendReasoning,
     sendSources,
     experimental_sendFinish,
-  }: ResponseInit &
-    DataStreamOptions & {
-      getErrorMessage?: (error: unknown) => string;
-    } = {}): Response {
+  }: ResponseInit & DataStreamOptions = {}): Response {
     return new Response(
       this.toDataStream({
         getErrorMessage,
