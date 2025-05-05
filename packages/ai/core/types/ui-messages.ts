@@ -3,11 +3,14 @@ import {
   LanguageModelV2FinishReason,
   LanguageModelV2Source,
 } from '@ai-sdk/provider';
-import { FetchFunction, ToolCall, ToolResult } from '@ai-sdk/provider-utils';
+import {
+  FetchFunction,
+  IdGenerator,
+  ToolCall,
+  ToolResult,
+} from '@ai-sdk/provider-utils';
 import { ChatStore } from '../util/chat-store';
 import { LanguageModelUsage } from './usage';
-
-export type IdGenerator = () => string;
 
 /**
 Tool invocations are either tool calls or tool results. For each assistant tool call,
