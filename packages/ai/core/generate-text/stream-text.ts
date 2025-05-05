@@ -34,7 +34,7 @@ import {
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { DataStreamString, formatDataStreamPart } from '../util';
+import { DataStreamText, formatDataStreamPart } from '../util';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
@@ -1584,9 +1584,9 @@ However, the LLM results are expected to be small enough to not cause issues.
     sendReasoning: boolean | undefined;
     sendSources: boolean | undefined;
     experimental_sendFinish: boolean | undefined;
-  }): ReadableStream<DataStreamString> {
+  }): ReadableStream<DataStreamText> {
     return this.fullStream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, DataStreamString>({
+      new TransformStream<TextStreamPart<TOOLS>, DataStreamText>({
         transform: async (chunk, controller) => {
           const chunkType = chunk.type;
           switch (chunkType) {

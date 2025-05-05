@@ -7,7 +7,7 @@ import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { JSONValue } from '../types';
 
 export type DataStreamText =
-  `${(typeof DataStreamStringPrefixes)[keyof typeof DataStreamStringPrefixes]}:${string}\n`;
+  `${(typeof DataStreamTextPrefixes)[keyof typeof DataStreamTextPrefixes]}:${string}\n`;
 
 export interface DataStreamPart<
   CODE extends string,
@@ -514,7 +514,7 @@ export type DataStreamPartType = ReturnType<DataStreamParts['parse']>;
  * 6: {"tool_call": {"id": "tool_0", "type": "function", "function": {"name": "get_current_weather", "arguments": "{\\n\\"location\\": \\"Charlottesville, Virginia\\",\\n\\"format\\": \\"celsius\\"\\n}"}}}
  *```
  */
-export const DataStreamStringPrefixes = Object.fromEntries(
+export const DataStreamTextPrefixes = Object.fromEntries(
   dataStreamParts.map(part => [part.name, part.code]),
 ) as {
   [K in DataStreamParts['name']]: (typeof dataStreamParts)[number]['code'];
