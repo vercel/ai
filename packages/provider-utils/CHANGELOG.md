@@ -1,5 +1,18 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-canary.15
+
+### Major Changes
+
+- 41fa418: chore (provider-utils): return IdGenerator interface
+
+### Patch Changes
+
+- a571d6e: chore(provider-utils): move ToolResultContent to provider-utils
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [7979f7f]
+  - @ai-sdk/provider@2.0.0-canary.14
+
 ## 3.0.0-canary.14
 
 ### Major Changes
