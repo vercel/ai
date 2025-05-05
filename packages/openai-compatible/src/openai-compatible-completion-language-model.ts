@@ -200,6 +200,9 @@ export class OpenAICompatibleCompletionLanguageModel
       usage: {
         inputTokens: response.usage?.prompt_tokens ?? undefined,
         outputTokens: response.usage?.completion_tokens ?? undefined,
+        totalTokens: response.usage?.total_tokens ?? undefined,
+        reasoningTokens: undefined,
+        cachedInputTokens: undefined,
       },
       finishReason: mapOpenAICompatibleFinishReason(choice.finish_reason),
       request: { body: args },
@@ -246,6 +249,9 @@ export class OpenAICompatibleCompletionLanguageModel
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
+      totalTokens: undefined,
+      reasoningTokens: undefined,
+      cachedInputTokens: undefined,
     };
     let isFirstChunk = true;
 
@@ -288,6 +294,7 @@ export class OpenAICompatibleCompletionLanguageModel
             if (value.usage != null) {
               usage.inputTokens = value.usage.prompt_tokens ?? undefined;
               usage.outputTokens = value.usage.completion_tokens ?? undefined;
+              usage.totalTokens = value.usage.total_tokens ?? undefined;
             }
 
             const choice = value.choices[0];
@@ -321,6 +328,12 @@ export class OpenAICompatibleCompletionLanguageModel
   }
 }
 
+const usageSchema = z.object({
+  prompt_tokens: z.number(),
+  completion_tokens: z.number(),
+  total_tokens: z.number(),
+});
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const openaiCompatibleCompletionResponseSchema = z.object({
@@ -333,12 +346,7 @@ const openaiCompatibleCompletionResponseSchema = z.object({
       finish_reason: z.string(),
     }),
   ),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-    })
-    .nullish(),
+  usage: usageSchema.nullish(),
 });
 
 // limited version of the schema, focussed on what is needed for the implementation
@@ -360,12 +368,7 @@ const createOpenAICompatibleCompletionChunkSchema = <
           index: z.number(),
         }),
       ),
-      usage: z
-        .object({
-          prompt_tokens: z.number(),
-          completion_tokens: z.number(),
-        })
-        .nullish(),
+      usage: usageSchema.nullish(),
     }),
     errorSchema,
   ]);
