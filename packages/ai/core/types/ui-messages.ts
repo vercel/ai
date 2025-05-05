@@ -28,16 +28,22 @@ export type ToolInvocation =
 /**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
-export interface UIMessage {
+export interface UIMessage<METADATA> {
   /**
 A unique identifier for the message.
    */
   id: string;
 
   /**
+Message metadata. You can send additional information,
+e.g. the timestamp, model id, finish reason, token usage, and more.
+   */
+  metadata: METADATA;
+
+  /**
 The timestamp of the message.
    */
-  // TODO solve optionality similar id
+  // TODO include in metadata
   createdAt?: Date;
 
   /**
@@ -157,11 +163,11 @@ export type StepStartUIPart = {
   type: 'step-start';
 };
 
-export type CreateUIMessage = Omit<UIMessage, 'id'> & {
-  id?: UIMessage['id'];
+export type CreateUIMessage<METADATA> = Omit<UIMessage<METADATA>, 'id'> & {
+  id?: UIMessage<METADATA>['id'];
 };
 
-export type ChatRequest = {
+export type ChatRequest<MESSAGE_METADATA> = {
   /**
 An optional object of headers to be passed to the API endpoint.
  */
@@ -175,7 +181,7 @@ An optional object to be passed to the API endpoint.
   /**
 The messages of the chat.
    */
-  messages: UIMessage[];
+  messages: UIMessage<MESSAGE_METADATA>[];
 
   /**
 Additional data to be sent to the server.
@@ -218,7 +224,7 @@ Additional data to be sent to the API endpoint.
   allowEmptySubmit?: boolean;
 };
 
-export type UseChatOptions = {
+export type UseChatOptions<MESSAGE_METADATA> = {
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
@@ -235,7 +241,7 @@ export type UseChatOptions = {
   /**
    * Initial messages of the chat. Useful to load an existing chat history.
    */
-  initialMessages?: UIMessage[];
+  initialMessages?: UIMessage<MESSAGE_METADATA>[];
 
   /**
    * Initial input of the chat.
@@ -268,7 +274,7 @@ either synchronously or asynchronously.
    * @param options.finishReason The finish reason of the message.
    */
   onFinish?: (
-    message: UIMessage,
+    message: UIMessage<MESSAGE_METADATA>,
     options: {
       usage: LanguageModelUsage;
       finishReason: LanguageModelV2FinishReason;
