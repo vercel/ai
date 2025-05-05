@@ -575,8 +575,8 @@ export const groundingMetadataSchema = z.object({
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
 export const safetyRatingSchema = z.object({
-  category: z.string(),
-  probability: z.string(),
+  category: z.string().nullish(),
+  probability: z.string().nullish(),
   probabilityScore: z.number().nullish(),
   severity: z.string().nullish(),
   severityScore: z.number().nullish(),
