@@ -130,10 +130,8 @@ describe('doGenerate', () => {
 
     expect(usage).toMatchInlineSnapshot(`
       {
-        "cachedInputTokens": undefined,
         "inputTokens": 20,
         "outputTokens": 5,
-        "reasoningTokens": undefined,
         "totalTokens": 25,
       }
     `);
@@ -461,10 +459,8 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokens": 10,
             "outputTokens": 362,
-            "reasoningTokens": undefined,
             "totalTokens": 372,
           },
         },
@@ -508,10 +504,8 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokens": undefined,
             "outputTokens": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": undefined,
           },
         },
@@ -549,10 +543,8 @@ describe('doStream', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokens": undefined,
               "outputTokens": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
           },

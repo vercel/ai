@@ -386,10 +386,8 @@ describe('PerplexityLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokens": 10,
               "outputTokens": 20,
-              "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
           },
@@ -458,10 +456,8 @@ describe('PerplexityLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokens": 10,
               "outputTokens": 20,
-              "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
           },
@@ -545,10 +541,8 @@ describe('PerplexityLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokens": 10,
               "outputTokens": 20,
-              "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
           },
@@ -610,10 +604,8 @@ describe('PerplexityLanguageModel', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokens": 11,
               "outputTokens": 21,
-              "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
           },

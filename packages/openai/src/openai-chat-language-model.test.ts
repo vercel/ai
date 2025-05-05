@@ -2112,10 +2112,8 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
-            "cachedInputTokens": undefined,
             "inputTokens": undefined,
             "outputTokens": undefined,
-            "reasoningTokens": undefined,
             "totalTokens": undefined,
           },
         },
@@ -2153,10 +2151,8 @@ describe('doStream', () => {
             },
             "type": "finish",
             "usage": {
-              "cachedInputTokens": undefined,
               "inputTokens": undefined,
               "outputTokens": undefined,
-              "reasoningTokens": undefined,
               "totalTokens": undefined,
             },
           },

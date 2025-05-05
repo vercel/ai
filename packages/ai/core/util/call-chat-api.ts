@@ -2,7 +2,6 @@ import { JSONValue } from '@ai-sdk/provider';
 import { IdGenerator, UIMessage, UseChatOptions } from '../types';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
-import { request } from 'http';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -87,6 +86,7 @@ export async function callChatApi({
         update: onUpdate,
         onFinish,
         generateId,
+        getCurrentDate,
       });
       return;
     }
