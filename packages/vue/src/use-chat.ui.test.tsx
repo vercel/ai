@@ -231,8 +231,8 @@ describe('data protocol stream', () => {
         options: {
           finishReason: 'stop',
           usage: {
-            completionTokens: 1,
-            promptTokens: 3,
+            inputTokens: 1,
+            outputTokens: 3,
             totalTokens: 4,
           },
         },
@@ -289,12 +289,7 @@ describe('text stream', () => {
         },
         options: {
           finishReason: 'unknown',
-          usage: {
-            // note: originally NaN (lost in JSON stringify)
-            completionTokens: null,
-            promptTokens: null,
-            totalTokens: null,
-          },
+          usage: {},
         },
       },
     ]);
