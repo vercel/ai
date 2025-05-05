@@ -11,6 +11,5 @@ export {
   createCallbacksTransformer,
   type StreamCallbacks,
 } from '../streams/stream-callbacks';
-export { StreamData } from '../streams/stream-data';
 
 export * from '../util/constants';
