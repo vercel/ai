@@ -4,14 +4,12 @@ import {
 } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
-import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import {
   DataStreamText,
   formatDataStreamPart,
 } from '../../src/data-stream/data-stream-parts';
-import { DataStreamWriter } from '../../src/data-stream/data-stream-writer';
 import { asArray } from '../../util/as-array';
 import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
@@ -44,10 +42,7 @@ import {
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { now as originalNow } from '../util/now';
-import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
-import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
-import { writeToServerResponse } from '../util/write-to-server-response';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { asReasoningText } from './reasoning';
@@ -1730,18 +1725,5 @@ However, the LLM results are expected to be small enough to not cause issues.
         },
       }),
     );
-  }
-
-  // TODO separate
-  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    writeToServerResponse({
-      response,
-      status: init?.status,
-      statusText: init?.statusText,
-      headers: prepareOutgoingHttpHeaders(init?.headers, {
-        contentType: 'text/plain; charset=utf-8',
-      }),
-      stream: this.textStream.pipeThrough(new TextEncoderStream()),
-    });
   }
 }

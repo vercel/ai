@@ -819,37 +819,6 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.pipeTextStreamToResponse', async () => {
-    it('should write text deltas to a Node.js response-like object', async () => {
-      const mockResponse = createMockServerResponse();
-
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello' },
-            { type: 'text', text: ', ' },
-            { type: 'text', text: 'world!' },
-          ]),
-        }),
-        prompt: 'test-input',
-      });
-
-      result.pipeTextStreamToResponse(mockResponse);
-
-      await mockResponse.waitForEnd();
-
-      expect(mockResponse.statusCode).toBe(200);
-      expect(mockResponse.headers).toEqual({
-        'Content-Type': 'text/plain; charset=utf-8',
-      });
-      expect(mockResponse.getDecodedChunks()).toEqual([
-        'Hello',
-        ', ',
-        'world!',
-      ]);
-    });
-  });
-
   describe('result.toDataStream', () => {
     it('should create a data stream', async () => {
       const result = streamText({
