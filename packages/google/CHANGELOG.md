@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.2.15
+
+### Patch Changes
+
+- 2afd354: fix(providers/google): accept nullish in safetyRatings
+
 ## 1.2.14
 
 ### Patch Changes
