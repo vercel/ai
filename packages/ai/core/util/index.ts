@@ -14,7 +14,10 @@ export { callCompletionApi } from './call-completion-api';
 export { ChatStore } from './chat-store';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export { formatDataStreamPart, parseDataStreamPart } from './data-stream-parts';
-export type { DataStreamPart, DataStreamString } from './data-stream-parts';
+export type {
+  DataStreamPart,
+  DataStreamText as DataStreamString,
+} from './data-stream-parts';
 export { getTextFromDataUrl } from './data-url';
 export type { DeepPartial } from './deep-partial';
 export { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';

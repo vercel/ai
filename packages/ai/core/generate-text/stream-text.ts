@@ -7,7 +7,6 @@ import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
-import { StreamData } from '../../streams/stream-data';
 import { asArray } from '../../util/as-array';
 import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
@@ -15,7 +14,7 @@ import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
 import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { CoreAssistantMessage } from '../prompt/message';
+import { AssistantModelMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -41,7 +40,6 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { mergeStreams } from '../util/merge-streams';
 import { now as originalNow } from '../util/now';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
@@ -1369,7 +1367,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       // so we can assume that there is a single last assistant message:
                       const lastMessage = responseMessages[
                         responseMessages.length - 1
-                      ] as CoreAssistantMessage;
+                      ] as AssistantModelMessage;
 
                       if (typeof lastMessage.content === 'string') {
                         lastMessage.content += stepText;
@@ -1743,7 +1741,6 @@ However, the LLM results are expected to be small enough to not cause issues.
       status,
       statusText,
       headers,
-      data,
       getErrorMessage,
       sendUsage,
       sendReasoning,
@@ -1751,7 +1748,6 @@ However, the LLM results are expected to be small enough to not cause issues.
       experimental_sendFinish,
     }: ResponseInit &
       DataStreamOptions & {
-        data?: StreamData;
         getErrorMessage?: (error: unknown) => string;
       } = {},
   ) {
@@ -1764,13 +1760,12 @@ However, the LLM results are expected to be small enough to not cause issues.
         dataStreamVersion: 'v1',
       }),
       stream: this.toDataStream({
-        data,
         getErrorMessage,
         sendUsage,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
-      }),
+      }).pipeThrough(new TextEncoderStream()),
     });
   }
 
@@ -1786,22 +1781,18 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  // TODO breaking change 5.0: remove pipeThrough(new TextEncoderStream())
   toDataStream(
     options?: DataStreamOptions & {
-      data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
     },
   ) {
-    const stream = this.toDataStreamInternal({
+    return this.toDataStreamInternal({
       getErrorMessage: options?.getErrorMessage,
       sendUsage: options?.sendUsage,
       sendReasoning: options?.sendReasoning,
       sendSources: options?.sendSources,
       experimental_sendFinish: options?.experimental_sendFinish,
-    }).pipeThrough(new TextEncoderStream());
-
-    return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
+    });
   }
 
   mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
@@ -1820,7 +1811,6 @@ However, the LLM results are expected to be small enough to not cause issues.
     headers,
     status,
     statusText,
-    data,
     getErrorMessage,
     sendUsage,
     sendReasoning,
@@ -1828,18 +1818,16 @@ However, the LLM results are expected to be small enough to not cause issues.
     experimental_sendFinish,
   }: ResponseInit &
     DataStreamOptions & {
-      data?: StreamData;
       getErrorMessage?: (error: unknown) => string;
     } = {}): Response {
     return new Response(
       this.toDataStream({
-        data,
         getErrorMessage,
         sendUsage,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
-      }),
+      }).pipeThrough(new TextEncoderStream()),
       {
         status,
         statusText,

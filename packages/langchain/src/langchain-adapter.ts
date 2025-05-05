@@ -1,8 +1,7 @@
-import { formatDataStreamPart, DataStreamWriter, StreamData } from 'ai';
+import { DataStreamWriter, formatDataStreamPart } from 'ai';
 import {
-  mergeStreams,
-  prepareResponseHeaders,
   createCallbacksTransformer,
+  prepareResponseHeaders,
   StreamCallbacks,
 } from 'ai/internal';
 
@@ -118,7 +117,6 @@ export function toDataStreamResponse(
     | ReadableStream<string>,
   options?: {
     init?: ResponseInit;
-    data?: StreamData;
     callbacks?: StreamCallbacks;
   },
 ) {
@@ -126,14 +124,9 @@ export function toDataStreamResponse(
     stream,
     options?.callbacks,
   ).pipeThrough(new TextEncoderStream());
-  const data = options?.data;
   const init = options?.init;
 
-  const responseStream = data
-    ? mergeStreams(data.stream, dataStream)
-    : dataStream;
-
-  return new Response(responseStream, {
+  return new Response(dataStream, {
     status: init?.status ?? 200,
     statusText: init?.statusText,
     headers: prepareResponseHeaders(init?.headers, {

@@ -6,7 +6,7 @@ import {
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 import { JSONValue } from '../types';
 
-export type DataStreamString =
+export type DataStreamText =
   `${(typeof DataStreamStringPrefixes)[keyof typeof DataStreamStringPrefixes]}:${string}\n`;
 
 export interface DataStreamPart<
@@ -559,7 +559,7 @@ It ensures type-safety for the part type and value.
 export function formatDataStreamPart<T extends keyof DataStreamPartValueType>(
   type: T,
   value: DataStreamPartValueType[T],
-): DataStreamString {
+): DataStreamText {
   const streamPart = dataStreamParts.find(part => part.name === type);
 
   if (!streamPart) {
