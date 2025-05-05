@@ -228,7 +228,15 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "reasoningTokens": undefined,
+        "totalTokens": 25,
+      }
+    `);
   });
 
   it('should send request body', async () => {
@@ -329,7 +337,15 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: undefined });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 20,
+        "outputTokens": undefined,
+        "reasoningTokens": undefined,
+        "totalTokens": 20,
+      }
+    `);
   });
 
   it('should extract logprobs', async () => {
@@ -1009,11 +1025,15 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(result.providerMetadata).toStrictEqual({
-      openai: {
-        cachedPromptTokens: 1152,
-      },
-    });
+    expect(result.usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": 1152,
+        "inputTokens": 15,
+        "outputTokens": 20,
+        "reasoningTokens": undefined,
+        "totalTokens": 35,
+      }
+    `);
   });
 
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in completion_details_tokens', async () => {
@@ -1170,11 +1190,15 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(result.providerMetadata).toStrictEqual({
-      openai: {
-        reasoningTokens: 10,
-      },
-    });
+    expect(result.usage).toMatchInlineSnapshot(`
+      {
+        "cachedInputTokens": undefined,
+        "inputTokens": 15,
+        "outputTokens": 20,
+        "reasoningTokens": 10,
+        "totalTokens": 35,
+      }
+    `);
   });
 
   it('should send max_completion_tokens extension setting', async () => {
@@ -1541,8 +1565,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 17,
             "outputTokens": 227,
+            "reasoningTokens": undefined,
+            "totalTokens": 244,
           },
         },
       ]
@@ -1678,8 +1705,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 53,
             "outputTokens": 17,
+            "reasoningTokens": undefined,
+            "totalTokens": 70,
           },
         },
       ]
@@ -1822,8 +1852,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 53,
             "outputTokens": 17,
+            "reasoningTokens": undefined,
+            "totalTokens": 70,
           },
         },
       ]
@@ -1955,8 +1988,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 226,
             "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 246,
           },
         },
       ]
@@ -2029,8 +2065,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": 53,
             "outputTokens": 17,
+            "reasoningTokens": undefined,
+            "totalTokens": 70,
           },
         },
       ]
@@ -2073,8 +2112,11 @@ describe('doStream', () => {
           },
           "type": "finish",
           "usage": {
+            "cachedInputTokens": undefined,
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "reasoningTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -2111,8 +2153,11 @@ describe('doStream', () => {
             },
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": undefined,
               "outputTokens": undefined,
+              "reasoningTokens": undefined,
+              "totalTokens": undefined,
             },
           },
         ]
@@ -2256,20 +2301,21 @@ describe('doStream', () => {
 
     expect((await convertReadableStreamToArray(stream)).at(-1))
       .toMatchInlineSnapshot(`
-      {
-        "finishReason": "stop",
-        "providerMetadata": {
-          "openai": {
-            "cachedPromptTokens": 1152,
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "openai": {},
           },
-        },
-        "type": "finish",
-        "usage": {
-          "inputTokens": 15,
-          "outputTokens": 20,
-        },
-      }
-    `);
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": 1152,
+            "inputTokens": 15,
+            "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 35,
+          },
+        }
+      `);
   });
 
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in providerMetadata', async () => {
@@ -2299,21 +2345,24 @@ describe('doStream', () => {
 
     expect((await convertReadableStreamToArray(stream)).at(-1))
       .toMatchInlineSnapshot(`
-      {
-        "finishReason": "stop",
-        "providerMetadata": {
-          "openai": {
-            "acceptedPredictionTokens": 123,
-            "rejectedPredictionTokens": 456,
+        {
+          "finishReason": "stop",
+          "providerMetadata": {
+            "openai": {
+              "acceptedPredictionTokens": 123,
+              "rejectedPredictionTokens": 456,
+            },
           },
-        },
-        "type": "finish",
-        "usage": {
-          "inputTokens": 15,
-          "outputTokens": 20,
-        },
-      }
-    `);
+          "type": "finish",
+          "usage": {
+            "cachedInputTokens": undefined,
+            "inputTokens": 15,
+            "outputTokens": 20,
+            "reasoningTokens": undefined,
+            "totalTokens": 35,
+          },
+        }
+      `);
   });
 
   it('should send store extension setting', async () => {
@@ -2402,8 +2451,11 @@ describe('doStream', () => {
             },
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 17,
               "outputTokens": 227,
+              "reasoningTokens": undefined,
+              "totalTokens": 244,
             },
           },
         ]
@@ -2453,14 +2505,15 @@ describe('doStream', () => {
           {
             "finishReason": "stop",
             "providerMetadata": {
-              "openai": {
-                "reasoningTokens": 10,
-              },
+              "openai": {},
             },
             "type": "finish",
             "usage": {
+              "cachedInputTokens": undefined,
               "inputTokens": 15,
               "outputTokens": 20,
+              "reasoningTokens": 10,
+              "totalTokens": 35,
             },
           },
         ]
