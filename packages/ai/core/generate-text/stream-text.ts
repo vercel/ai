@@ -1744,14 +1744,4 @@ However, the LLM results are expected to be small enough to not cause issues.
       stream: this.textStream.pipeThrough(new TextEncoderStream()),
     });
   }
-
-  // TODO separate
-  toTextStreamResponse(init?: ResponseInit): Response {
-    return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
-      status: init?.status ?? 200,
-      headers: prepareResponseHeaders(init?.headers, {
-        contentType: 'text/plain; charset=utf-8',
-      }),
-    });
-  }
 }

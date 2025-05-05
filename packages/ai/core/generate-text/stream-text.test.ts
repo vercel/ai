@@ -1063,27 +1063,6 @@ describe('streamText', () => {
     });
   });
 
-  describe('result.toTextStreamResponse', () => {
-    it('should create a Response with a text stream', async () => {
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-      });
-
-      const response = result.toTextStreamResponse();
-
-      expect(response.status).toStrictEqual(200);
-      expect(Object.fromEntries(response.headers.entries())).toStrictEqual({
-        'content-type': 'text/plain; charset=utf-8',
-      });
-      expect(await convertResponseStreamToArray(response)).toStrictEqual([
-        'Hello',
-        ', ',
-        'world!',
-      ]);
-    });
-  });
-
   describe('result.consumeStream', () => {
     it('should ignore AbortError during stream consumption', async () => {
       const result = streamText({

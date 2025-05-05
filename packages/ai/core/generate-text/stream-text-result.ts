@@ -231,15 +231,6 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param init Optional headers, status code, and status text.
      */
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
-
-  /**
-  Creates a simple text stream response.
-  Each text delta is encoded as UTF-8 and sent as a separate chunk.
-  Non-text-delta events are ignored.
-
-  @param init Optional headers, status code, and status text.
-     */
-  toTextStreamResponse(init?: ResponseInit): Response;
 }
 
 export type TextStreamPart<TOOLS extends ToolSet> =
