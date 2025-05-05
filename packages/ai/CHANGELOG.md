@@ -1,5 +1,24 @@
 # ai
 
+## 5.0.0-canary.18
+
+### Major Changes
+
+- c60f895: chore (ai): remove useChat keepLastMessageOnError
+- a662dea: chore (ai): remove sendExtraMessageFields
+
+### Patch Changes
+
+- a571d6e: chore(provider-utils): move ToolResultContent to provider-utils
+- 332167b: chore (ai): move maxSteps into UseChatOptions
+- a8c8bd5: feat(embed-many): respect supportsParallelCalls & concurrency
+- Updated dependencies [a571d6e]
+- Updated dependencies [a8c8bd5]
+- Updated dependencies [7979f7f]
+- Updated dependencies [41fa418]
+  - @ai-sdk/provider-utils@3.0.0-canary.15
+  - @ai-sdk/provider@2.0.0-canary.14
+
 ## 5.0.0-canary.17
 
 ### Major Changes

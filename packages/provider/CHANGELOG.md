@@ -1,5 +1,15 @@
 # @ai-sdk/provider
 
+## 2.0.0-canary.14
+
+### Major Changes
+
+- 7979f7f: feat (provider): support reasoning tokens, cached input tokens, total token in usage information
+
+### Patch Changes
+
+- a8c8bd5: feat(embed-many): respect supportsParallelCalls & concurrency
+
 ## 2.0.0-canary.13
 
 ### Patch Changes
