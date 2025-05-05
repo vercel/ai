@@ -10,7 +10,6 @@ exports[`processChatResponse > scenario: delayed message annotations in onFinish
           "example": "annotation",
         },
       ],
-      "content": "text",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -37,7 +36,6 @@ exports[`processChatResponse > scenario: delayed message annotations in onFinish
   {
     "data": [],
     "message": {
-      "content": "text",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -59,7 +57,6 @@ exports[`processChatResponse > scenario: delayed message annotations in onFinish
           "example": "annotation",
         },
       ],
-      "content": "text",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -85,7 +82,6 @@ exports[`processChatResponse > scenario: message annotations in onChunk > should
         "annotation1",
         "annotation2",
       ],
-      "content": "t1t2",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -115,7 +111,6 @@ exports[`processChatResponse > scenario: message annotations in onChunk > should
       "annotations": [
         "annotation1",
       ],
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [],
@@ -130,7 +125,6 @@ exports[`processChatResponse > scenario: message annotations in onChunk > should
       "annotations": [
         "annotation1",
       ],
-      "content": "t1",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -151,7 +145,6 @@ exports[`processChatResponse > scenario: message annotations in onChunk > should
         "annotation1",
         "annotation2",
       ],
-      "content": "t1",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -172,7 +165,6 @@ exports[`processChatResponse > scenario: message annotations in onChunk > should
         "annotation1",
         "annotation2",
       ],
-      "content": "t1t2",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -198,7 +190,6 @@ exports[`processChatResponse > scenario: message annotations with existing assis
         "annotation0",
         "annotation1",
       ],
-      "content": "t1",
       "createdAt": 2023-01-02T00:00:00.000Z,
       "id": "original-id",
       "parts": [
@@ -229,7 +220,6 @@ exports[`processChatResponse > scenario: message annotations with existing assis
         "annotation0",
         "annotation1",
       ],
-      "content": "",
       "createdAt": 2023-01-02T00:00:00.000Z,
       "id": "original-id",
       "parts": [],
@@ -245,7 +235,6 @@ exports[`processChatResponse > scenario: message annotations with existing assis
         "annotation0",
         "annotation1",
       ],
-      "content": "t1",
       "createdAt": 2023-01-02T00:00:00.000Z,
       "id": "original-id",
       "parts": [
@@ -267,7 +256,6 @@ exports[`processChatResponse > scenario: onToolCall is executed > should call th
   {
     "finishReason": "stop",
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -303,7 +291,6 @@ exports[`processChatResponse > scenario: onToolCall is executed > should call th
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -328,7 +315,6 @@ exports[`processChatResponse > scenario: onToolCall is executed > should call th
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -359,7 +345,6 @@ exports[`processChatResponse > scenario: server provides file parts > should cal
   {
     "finishReason": "stop",
     "message": {
-      "content": "Here is a file:And another one:",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -396,7 +381,6 @@ exports[`processChatResponse > scenario: server provides file parts > should cal
   {
     "data": [],
     "message": {
-      "content": "Here is a file:",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -413,7 +397,6 @@ exports[`processChatResponse > scenario: server provides file parts > should cal
   {
     "data": [],
     "message": {
-      "content": "Here is a file:",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -435,7 +418,6 @@ exports[`processChatResponse > scenario: server provides file parts > should cal
   {
     "data": [],
     "message": {
-      "content": "Here is a file:And another one:",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -457,7 +439,6 @@ exports[`processChatResponse > scenario: server provides file parts > should cal
   {
     "data": [],
     "message": {
-      "content": "Here is a file:And another one:",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -489,7 +470,6 @@ exports[`processChatResponse > scenario: server provides message ids > should ca
   {
     "finishReason": "stop",
     "message": {
-      "content": "Hello, world!",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -519,7 +499,6 @@ exports[`processChatResponse > scenario: server provides message ids > should ca
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -535,7 +514,6 @@ exports[`processChatResponse > scenario: server provides message ids > should ca
   {
     "data": [],
     "message": {
-      "content": "Hello, ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -555,7 +533,6 @@ exports[`processChatResponse > scenario: server provides message ids > should ca
   {
     "data": [],
     "message": {
-      "content": "Hello, world!",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -580,7 +557,6 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   {
     "finishReason": "stop",
     "message": {
-      "content": "Hi there!",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -619,7 +595,6 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -635,7 +610,6 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -656,7 +630,6 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -681,7 +654,6 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -706,7 +678,6 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -727,7 +698,6 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -752,7 +722,6 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   {
     "data": [],
     "message": {
-      "content": "Hi there!",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "step_123",
       "parts": [
@@ -786,7 +755,6 @@ exports[`processChatResponse > scenario: server provides sources > should call t
   {
     "finishReason": "stop",
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -823,7 +791,6 @@ exports[`processChatResponse > scenario: server provides sources > should call t
   {
     "data": [],
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -840,7 +807,6 @@ exports[`processChatResponse > scenario: server provides sources > should call t
   {
     "data": [],
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -872,7 +838,6 @@ exports[`processChatResponse > scenario: server-side continue roundtrip > should
   {
     "finishReason": "stop",
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -899,7 +864,6 @@ exports[`processChatResponse > scenario: server-side continue roundtrip > should
   {
     "data": [],
     "message": {
-      "content": "The weather in London ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -916,7 +880,6 @@ exports[`processChatResponse > scenario: server-side continue roundtrip > should
   {
     "data": [],
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -938,7 +901,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip > should cal
   {
     "finishReason": "stop",
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -980,7 +942,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip > should cal
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1005,7 +966,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip > should cal
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1033,7 +993,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip > should cal
   {
     "data": [],
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1070,7 +1029,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with existin
   {
     "finishReason": "stop",
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-02T00:00:00.000Z,
       "id": "original-id",
       "parts": [
@@ -1128,7 +1086,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with existin
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-02T00:00:00.000Z,
       "id": "original-id",
       "parts": [
@@ -1157,7 +1114,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with existin
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-02T00:00:00.000Z,
       "id": "original-id",
       "parts": [
@@ -1198,7 +1154,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with existin
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-02T00:00:00.000Z,
       "id": "original-id",
       "parts": [
@@ -1242,7 +1197,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with existin
   {
     "data": [],
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-02T00:00:00.000Z,
       "id": "original-id",
       "parts": [
@@ -1295,7 +1249,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "finishReason": "stop",
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1355,7 +1308,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1373,7 +1325,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1395,7 +1346,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1429,7 +1379,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1466,7 +1415,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1512,7 +1460,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1567,7 +1514,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "finishReason": "stop",
     "message": {
-      "content": "I will use a tool to get the weather in London.The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1613,7 +1559,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "I will ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1630,7 +1575,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "I will use a tool to get the weather in London.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1647,7 +1591,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "I will use a tool to get the weather in London.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1676,7 +1619,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "I will use a tool to get the weather in London.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1708,7 +1650,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "I will use a tool to get the weather in London.The weather in London ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1744,7 +1685,6 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   {
     "data": [],
     "message": {
-      "content": "I will use a tool to get the weather in London.The weather in London is sunny.",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1785,7 +1725,6 @@ exports[`processChatResponse > scenario: simple text response > should call the 
   {
     "finishReason": "stop",
     "message": {
-      "content": "Hello, world!",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1812,7 +1751,6 @@ exports[`processChatResponse > scenario: simple text response > should call the 
   {
     "data": [],
     "message": {
-      "content": "Hello, ",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1829,7 +1767,6 @@ exports[`processChatResponse > scenario: simple text response > should call the 
   {
     "data": [],
     "message": {
-      "content": "Hello, world!",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1851,7 +1788,6 @@ exports[`processChatResponse > scenario: tool call streaming > should call the o
   {
     "finishReason": "stop",
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1887,7 +1823,6 @@ exports[`processChatResponse > scenario: tool call streaming > should call the u
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1910,7 +1845,6 @@ exports[`processChatResponse > scenario: tool call streaming > should call the u
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1935,7 +1869,6 @@ exports[`processChatResponse > scenario: tool call streaming > should call the u
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1960,7 +1893,6 @@ exports[`processChatResponse > scenario: tool call streaming > should call the u
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [
@@ -1985,7 +1917,6 @@ exports[`processChatResponse > scenario: tool call streaming > should call the u
   {
     "data": [],
     "message": {
-      "content": "",
       "createdAt": 2023-01-01T00:00:00.000Z,
       "id": "id-0",
       "parts": [

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { getUIText, JSONValue } from 'ai';
+import { computed, ref } from 'vue';
 import { UIMessage, useChat } from './use-chat';
-import { JSONValue } from 'ai';
 
 const bodyOptions = ref<{
   id: string;
@@ -29,7 +29,7 @@ const isLoading = computed(() => status.value !== 'ready');
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ m.content }}
+      {{ getUIText(m.parts) }}
     </div>
 
     <button
@@ -38,7 +38,6 @@ const isLoading = computed(() => status.value !== 'ready');
         append(
           {
             role: 'user',
-            content: 'hi',
             parts: [{ text: 'hi', type: 'text' }],
           },
           {

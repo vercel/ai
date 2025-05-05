@@ -6,7 +6,6 @@ describe('appendClientMessage', () => {
     const message: UIMessage = {
       id: '1',
       role: 'user',
-      content: 'Hello',
       parts: [{ type: 'text', text: 'Hello' }],
     };
     const result = appendClientMessage({ messages: [], message });
@@ -17,13 +16,11 @@ describe('appendClientMessage', () => {
     const existingMessage: UIMessage = {
       id: '1',
       role: 'user',
-      content: 'Hello',
       parts: [{ type: 'text', text: 'Hello' }],
     };
     const newMessage: UIMessage = {
       id: '2',
       role: 'user',
-      content: 'World',
       parts: [{ type: 'text', text: 'World' }],
     };
     const result = appendClientMessage({
@@ -37,13 +34,11 @@ describe('appendClientMessage', () => {
     const existingMessage: UIMessage = {
       id: '1',
       role: 'user',
-      content: 'Hello',
       parts: [{ type: 'text', text: 'Hello' }],
     };
     const updatedMessage: UIMessage = {
       id: '1',
       role: 'user',
-      content: 'Updated',
       parts: [{ type: 'text', text: 'Updated' }],
     };
     const result = appendClientMessage({

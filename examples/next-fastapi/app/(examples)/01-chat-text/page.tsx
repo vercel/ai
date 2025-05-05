@@ -2,6 +2,7 @@
 
 import { Card } from '@/app/components';
 import { useChat } from '@ai-sdk/react';
+import { getUIText } from 'ai';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } = useChat({
@@ -15,7 +16,9 @@ export default function Page() {
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="flex-shrink-0 w-24 text-zinc-500">{`${message.role}: `}</div>
-            <div className="flex flex-col gap-2">{message.content}</div>
+            <div className="flex flex-col gap-2">
+              {getUIText(message.parts)}
+            </div>
           </div>
         ))}
       </div>
