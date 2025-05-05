@@ -14,3 +14,10 @@ to prevent unnecessary breakages.
 
 - keep them minimal (no unused properties)
 - use `.nullish()` instead of `.optional()`
+
+## Provider Method Names
+
+For the Provider v2 interface, we require fully specified names with a "Model" suffix,
+e.g. `languageModel(id)` or `imageModel(id)`.
+However, for DX reasons it is very useful to have shorter alias names,
+e.g. `.chat(id)` or `.image(id)`.
