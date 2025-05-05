@@ -132,9 +132,14 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "totalTokens": 25,
+      }
+    `);
   });
-
   it('should send additional response information', async () => {
     prepareJsonResponse({
       id: 'test-id',
@@ -167,9 +172,14 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: undefined });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": 20,
+        "outputTokens": undefined,
+        "totalTokens": 20,
+      }
+    `);
   });
-
   it('should extract finish reason', async () => {
     prepareJsonResponse({
       content: '',
@@ -492,6 +502,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 18,
             "outputTokens": 439,
+            "totalTokens": 457,
           },
         },
       ]
@@ -554,6 +565,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 18,
             "outputTokens": 439,
+            "totalTokens": 457,
           },
         },
       ]
@@ -688,6 +700,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 18,
             "outputTokens": 439,
+            "totalTokens": 457,
           },
         },
       ]
@@ -829,6 +842,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 18,
             "outputTokens": 439,
+            "totalTokens": 457,
           },
         },
       ]
@@ -955,6 +969,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -1026,6 +1041,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 18,
             "outputTokens": 439,
+            "totalTokens": 457,
           },
         },
       ]
@@ -1064,6 +1080,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -1100,6 +1117,7 @@ describe('doStream', () => {
             "usage": {
               "inputTokens": undefined,
               "outputTokens": undefined,
+              "totalTokens": undefined,
             },
           },
         ]

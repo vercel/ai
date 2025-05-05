@@ -8,7 +8,13 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { formatDataStreamPart, getToolInvocations, UIMessage } from 'ai';
+import {
+  FinishReason,
+  formatDataStreamPart,
+  getToolInvocations,
+  LanguageModelUsage,
+  UIMessage,
+} from 'ai';
 import { mockValues } from 'ai/test';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
@@ -22,12 +28,8 @@ describe('data protocol stream', () => {
   let onFinishCalls: Array<{
     message: UIMessage;
     options: {
-      finishReason: string;
-      usage: {
-        completionTokens: number;
-        promptTokens: number;
-        totalTokens: number;
-      };
+      finishReason: FinishReason;
+      usage: LanguageModelUsage;
     };
   }> = [];
 
@@ -44,10 +46,10 @@ describe('data protocol stream', () => {
         id: idKey,
       } = useChat({
         id,
-        generateId: mockId(),
         onFinish: (message, options) => {
           onFinishCalls.push({ message, options });
         },
+        generateId: mockId(),
         '~internal': {
           currentDate: mockValues(new Date('2025-01-01')),
         },
@@ -272,7 +274,11 @@ describe('data protocol stream', () => {
     controller.write(
       formatDataStreamPart('finish_message', {
         finishReason: 'stop',
-        usage: { completionTokens: 1, promptTokens: 3 },
+        usage: {
+          inputTokens: 1,
+          outputTokens: 3,
+          totalTokens: 4,
+        },
       }),
     );
 
@@ -310,25 +316,34 @@ describe('data protocol stream', () => {
       ]);
     });
 
-    expect(onFinishCalls).toStrictEqual([
-      {
-        message: {
-          id: expect.any(String),
-          createdAt: expect.any(Date),
-          role: 'assistant',
-          content: 'Hello, world.',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
-        },
-        options: {
-          finishReason: 'stop',
-          usage: {
-            completionTokens: 1,
-            promptTokens: 3,
-            totalTokens: 4,
+    expect(onFinishCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "message": {
+            "content": "Hello, world.",
+            "createdAt": 2025-01-01T00:00:00.000Z,
+            "id": "id-2",
+            "parts": [
+              {
+                "text": "Hello, world.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          "options": {
+            "finishReason": "stop",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 1,
+              "outputTokens": 3,
+              "reasoningTokens": undefined,
+              "totalTokens": 4,
+            },
           },
         },
-      },
-    ]);
+      ]
+    `);
   });
 
   describe('id', () => {
@@ -411,12 +426,8 @@ describe('text stream', () => {
   let onFinishCalls: Array<{
     message: UIMessage;
     options: {
-      finishReason: string;
-      usage: {
-        completionTokens: number;
-        promptTokens: number;
-        totalTokens: number;
-      };
+      finishReason: FinishReason;
+      usage: LanguageModelUsage;
     };
   }> = [];
 
@@ -425,6 +436,10 @@ describe('text stream', () => {
       streamProtocol: 'text',
       onFinish: (message, options) => {
         onFinishCalls.push({ message, options });
+      },
+      generateId: mockId(),
+      '~internal': {
+        currentDate: mockValues(new Date('2025-01-01')),
       },
     });
 
@@ -510,25 +525,32 @@ describe('text stream', () => {
 
     await screen.findByTestId('message-1-text-stream');
 
-    expect(onFinishCalls).toStrictEqual([
-      {
-        message: {
-          id: expect.any(String),
-          createdAt: expect.any(Date),
-          role: 'assistant',
-          content: 'Hello, world.',
-          parts: [{ text: 'Hello, world.', type: 'text' }],
-        },
-        options: {
-          finishReason: 'unknown',
-          usage: {
-            completionTokens: NaN,
-            promptTokens: NaN,
-            totalTokens: NaN,
+    expect(onFinishCalls).toMatchInlineSnapshot(`
+      [
+        {
+          "message": {
+            "content": "Hello, world.",
+            "createdAt": 2025-01-01T00:00:00.000Z,
+            "id": "id-2",
+            "parts": [
+              {
+                "text": "Hello, world.",
+                "type": "text",
+              },
+            ],
+            "role": "assistant",
+          },
+          "options": {
+            "finishReason": "unknown",
+            "usage": {
+              "inputTokens": undefined,
+              "outputTokens": undefined,
+              "totalTokens": undefined,
+            },
           },
         },
-      },
-    ]);
+      ]
+    `);
   });
 });
 

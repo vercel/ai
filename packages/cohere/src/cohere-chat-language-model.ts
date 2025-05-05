@@ -151,6 +151,9 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: response.usage.tokens.input_tokens,
         outputTokens: response.usage.tokens.output_tokens,
+        totalTokens:
+          response.usage.tokens.input_tokens +
+          response.usage.tokens.output_tokens,
       },
       request: { body: args },
       response: {
@@ -184,6 +187,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
     const usage: LanguageModelV2Usage = {
       inputTokens: undefined,
       outputTokens: undefined,
+      totalTokens: undefined,
     };
 
     let pendingToolCallDelta: {
@@ -306,6 +310,7 @@ export class CohereChatLanguageModel implements LanguageModelV2 {
 
                 usage.inputTokens = tokens.input_tokens;
                 usage.outputTokens = tokens.output_tokens;
+                usage.totalTokens = tokens.input_tokens + tokens.output_tokens;
               }
 
               default: {

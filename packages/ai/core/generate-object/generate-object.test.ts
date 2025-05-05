@@ -10,7 +10,13 @@ import { generateObject } from './generate-object';
 
 const dummyResponseValues = {
   finishReason: 'stop' as const,
-  usage: { inputTokens: 10, outputTokens: 20 },
+  usage: {
+    inputTokens: 10,
+    outputTokens: 20,
+    totalTokens: 30,
+    reasoningTokens: undefined,
+    cachedInputTokens: undefined,
+  },
   response: { id: 'id-1', timestamp: new Date(123), modelId: 'm-1' },
   warnings: [],
 };
@@ -388,9 +394,9 @@ describe('output = "object"', () => {
             ...dummyResponseValues,
             content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
             providerMetadata: {
-              anthropic: {
-                cacheCreationInputTokens: 10,
-                cacheReadInputTokens: 20,
+              exampleProvider: {
+                a: 10,
+                b: 20,
               },
             },
           }),
@@ -400,9 +406,9 @@ describe('output = "object"', () => {
       });
 
       expect(result.providerMetadata).toStrictEqual({
-        anthropic: {
-          cacheCreationInputTokens: 10,
-          cacheReadInputTokens: 20,
+        exampleProvider: {
+          a: 10,
+          b: 20,
         },
       });
     });
@@ -573,9 +579,11 @@ describe('output = "object"', () => {
           modelId: 'm-1',
         },
         usage: {
-          completionTokens: 20,
-          promptTokens: 10,
+          inputTokens: 10,
+          outputTokens: 20,
           totalTokens: 30,
+          reasoningTokens: undefined,
+          cachedInputTokens: undefined,
         },
         finishReason: 'stop',
       });

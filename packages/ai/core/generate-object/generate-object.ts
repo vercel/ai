@@ -19,21 +19,20 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import {
-  CallWarning,
-  FinishReason,
-  LanguageModel,
-  ProviderMetadata,
-} from '../types';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderOptions } from '../types/provider-metadata';
-import { calculateLanguageModelUsage } from '../types/usage';
+import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { Schema } from '../util';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
+import {
+  CallWarning,
+  FinishReason,
+  LanguageModel,
+} from '../types/language-model';
+import { LanguageModelUsage } from '../types/usage';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -235,7 +234,7 @@ Default and recommended: 'auto' (best mode for the model).
     fn: async span => {
       let result: string;
       let finishReason: FinishReason;
-      let usage: Parameters<typeof calculateLanguageModelUsage>[0];
+      let usage: LanguageModelUsage;
       let warnings: CallWarning[] | undefined;
       let response: LanguageModelResponseMetadata;
       let request: LanguageModelRequestMetadata;
@@ -308,7 +307,7 @@ Default and recommended: 'auto' (best mode for the model).
                 message:
                   'No object generated: the model did not return a response.',
                 response: responseData,
-                usage: calculateLanguageModelUsage(result.usage),
+                usage: result.usage,
                 finishReason: result.finishReason,
               });
             }
@@ -360,7 +359,7 @@ Default and recommended: 'auto' (best mode for the model).
             cause: parseResult.error,
             text: result,
             response,
-            usage: calculateLanguageModelUsage(usage),
+            usage,
             finishReason,
           });
         }
@@ -370,7 +369,7 @@ Default and recommended: 'auto' (best mode for the model).
           {
             text: result,
             response,
-            usage: calculateLanguageModelUsage(usage),
+            usage,
           },
         );
 
@@ -380,7 +379,7 @@ Default and recommended: 'auto' (best mode for the model).
             cause: validationResult.error,
             text: result,
             response,
-            usage: calculateLanguageModelUsage(usage),
+            usage,
             finishReason,
           });
         }
@@ -433,7 +432,7 @@ Default and recommended: 'auto' (best mode for the model).
       return new DefaultGenerateObjectResult({
         object,
         finishReason,
-        usage: calculateLanguageModelUsage(usage),
+        usage,
         warnings,
         request,
         response,

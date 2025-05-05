@@ -9,7 +9,11 @@ async function main() {
     model: new MockLanguageModelV2({
       doGenerate: async () => ({
         warnings: [],
-        usage: { inputTokens: 10, outputTokens: 20 },
+        usage: {
+          inputTokens: 10,
+          outputTokens: 20,
+          totalTokens: 30,
+        },
         finishReason: 'tool-calls',
         content: [
           {

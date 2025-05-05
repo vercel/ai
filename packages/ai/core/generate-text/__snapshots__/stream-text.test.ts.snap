@@ -11,9 +11,9 @@ exports[`streamText > multiple stream consumption > should support text stream, 
 ",
     "0:"world!"
 ",
-    "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+    "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-    "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+    "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
   ],
   "fullStream": [
@@ -49,8 +49,10 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       },
       "type": "step-finish",
       "usage": {
-        "completionTokens": 10,
-        "promptTokens": 3,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
         "totalTokens": 13,
       },
       "warnings": undefined,
@@ -66,8 +68,10 @@ exports[`streamText > multiple stream consumption > should support text stream, 
       },
       "type": "finish",
       "usage": {
-        "completionTokens": 10,
-        "promptTokens": 3,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
         "totalTokens": 13,
       },
     },
@@ -221,8 +225,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         },
       ],
       "usage": {
-        "completionTokens": 10,
-        "promptTokens": 3,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
         "totalTokens": 13,
       },
       "warnings": undefined,
@@ -292,9 +298,11 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "toolCalls": [],
       "toolResults": [],
       "usage": {
-        "completionTokens": 5,
-        "promptTokens": 1,
-        "totalTokens": 6,
+        "cachedInputTokens": 3,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": 10,
+        "totalTokens": 23,
       },
       "warnings": undefined,
     },
@@ -303,9 +311,11 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   "toolCalls": [],
   "toolResults": [],
   "usage": {
-    "completionTokens": 15,
-    "promptTokens": 4,
-    "totalTokens": 19,
+    "cachedInputTokens": 3,
+    "inputTokens": 6,
+    "outputTokens": 20,
+    "reasoningTokens": 10,
+    "totalTokens": 36,
   },
   "warnings": undefined,
 }
@@ -393,8 +403,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       },
     ],
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -464,9 +476,11 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 1,
-      "totalTokens": 6,
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
     },
     "warnings": undefined,
   },
@@ -519,8 +533,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -555,9 +571,11 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 1,
-      "totalTokens": 6,
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
     },
     "warnings": undefined,
   },
@@ -574,9 +592,11 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 15,
-      "promptTokens": 4,
-      "totalTokens": 19,
+      "cachedInputTokens": 3,
+      "inputTokens": 6,
+      "outputTokens": 20,
+      "reasoningTokens": 10,
+      "totalTokens": 36,
     },
   },
 ]
@@ -595,8 +615,11 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 3,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 15,
-      "ai.usage.promptTokens": 4,
+      "ai.usage.cachedInputTokens": 3,
+      "ai.usage.inputTokens": 6,
+      "ai.usage.outputTokens": 20,
+      "ai.usage.reasoningTokens": 10,
+      "ai.usage.totalTokens": 36,
       "operation.name": "ai.streamText",
     },
     "events": [],
@@ -612,7 +635,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.prompt.tools": [
         "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
-      "ai.response.avgCompletionTokensPerSecond": 20,
+      "ai.response.avgOutputTokensPerSecond": 20,
       "ai.response.finishReason": "tool-calls",
       "ai.response.id": "id-0",
       "ai.response.model": "mock-model-id",
@@ -623,8 +646,9 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 10,
-      "ai.usage.promptTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
@@ -673,7 +697,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.prompt.tools": [
         "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
-      "ai.response.avgCompletionTokensPerSecond": 12.5,
+      "ai.response.avgOutputTokensPerSecond": 25,
       "ai.response.finishReason": "stop",
       "ai.response.id": "id-1",
       "ai.response.model": "mock-model-id",
@@ -683,8 +707,11 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
       "ai.settings.maxRetries": 2,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 5,
-      "ai.usage.promptTokens": 1,
+      "ai.usage.cachedInputTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.reasoningTokens": 10,
+      "ai.usage.totalTokens": 23,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
@@ -693,8 +720,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > should 
       "gen_ai.response.id": "id-1",
       "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 1,
-      "gen_ai.usage.output_tokens": 5,
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
       "operation.name": "ai.streamText.doStream",
     },
     "events": [
@@ -842,8 +869,10 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       },
     ],
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -913,9 +942,11 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 1,
-      "totalTokens": 6,
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
     },
     "warnings": undefined,
   },
@@ -988,9 +1019,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "toolCalls": [],
       "toolResults": [],
       "usage": {
-        "completionTokens": 20,
-        "promptTokens": 10,
-        "totalTokens": 30,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
       },
       "warnings": undefined,
     },
@@ -1040,9 +1073,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "toolCalls": [],
       "toolResults": [],
       "usage": {
-        "completionTokens": 5,
-        "promptTokens": 30,
-        "totalTokens": 35,
+        "cachedInputTokens": 3,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": 10,
+        "totalTokens": 23,
       },
       "warnings": undefined,
     },
@@ -1106,8 +1141,10 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "toolCalls": [],
       "toolResults": [],
       "usage": {
-        "completionTokens": 2,
-        "promptTokens": 3,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 2,
+        "reasoningTokens": undefined,
         "totalTokens": 5,
       },
       "warnings": undefined,
@@ -1149,8 +1186,10 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "toolCalls": [],
       "toolResults": [],
       "usage": {
-        "completionTokens": 2,
-        "promptTokens": 3,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 2,
+        "reasoningTokens": undefined,
         "totalTokens": 5,
       },
       "warnings": undefined,
@@ -1162,9 +1201,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   "toolCalls": [],
   "toolResults": [],
   "usage": {
-    "completionTokens": 29,
-    "promptTokens": 46,
-    "totalTokens": 75,
+    "cachedInputTokens": 3,
+    "inputTokens": 12,
+    "outputTokens": 24,
+    "reasoningTokens": 10,
+    "totalTokens": 46,
   },
   "warnings": undefined,
 }
@@ -1206,9 +1247,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 20,
-      "promptTokens": 10,
-      "totalTokens": 30,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
+      "totalTokens": 13,
     },
     "warnings": undefined,
   },
@@ -1258,9 +1301,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 30,
-      "totalTokens": 35,
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
     },
     "warnings": undefined,
   },
@@ -1324,8 +1369,10 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 2,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 2,
+      "reasoningTokens": undefined,
       "totalTokens": 5,
     },
     "warnings": undefined,
@@ -1367,8 +1414,10 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 2,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 2,
+      "reasoningTokens": undefined,
       "totalTokens": 5,
     },
     "warnings": undefined,
@@ -1452,9 +1501,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 20,
-      "promptTokens": 10,
-      "totalTokens": 30,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
+      "totalTokens": 13,
     },
     "warnings": undefined,
   },
@@ -1494,9 +1545,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 30,
-      "totalTokens": 35,
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
     },
     "warnings": undefined,
   },
@@ -1550,8 +1603,10 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 2,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 2,
+      "reasoningTokens": undefined,
       "totalTokens": 5,
     },
     "warnings": undefined,
@@ -1595,8 +1650,10 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 2,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 2,
+      "reasoningTokens": undefined,
       "totalTokens": 5,
     },
     "warnings": undefined,
@@ -1614,9 +1671,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 29,
-      "promptTokens": 46,
-      "totalTokens": 75,
+      "cachedInputTokens": 3,
+      "inputTokens": 12,
+      "outputTokens": 24,
+      "reasoningTokens": 10,
+      "totalTokens": 46,
     },
   },
 ]
@@ -1632,19 +1691,19 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 ",
   "0:" "
 ",
-  "e:{"finishReason":"length","usage":{"promptTokens":10,"completionTokens":20},"isContinued":true}
+  "e:{"finishReason":"length","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":true}
 ",
   "f:{"messageId":"msg-0"}
 ",
   "0:"no-whitespace"
 ",
-  "e:{"finishReason":"length","usage":{"promptTokens":30,"completionTokens":5},"isContinued":true}
+  "e:{"finishReason":"length","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":23,"reasoningTokens":10,"cachedInputTokens":3},"isContinued":true}
 ",
   "f:{"messageId":"msg-0"}
 ",
   "0:"immediatefollow  "
 ",
-  "e:{"finishReason":"length","usage":{"promptTokens":3,"completionTokens":2},"isContinued":true}
+  "e:{"finishReason":"length","usage":{"inputTokens":3,"outputTokens":2,"totalTokens":5},"isContinued":true}
 ",
   "f:{"messageId":"msg-0"}
 ",
@@ -1656,9 +1715,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 ",
   "0:"end"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":2},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":2,"totalTokens":5},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":46,"completionTokens":29}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":12,"outputTokens":24,"totalTokens":46,"reasoningTokens":10,"cachedInputTokens":3}}
 ",
 ]
 `;
@@ -1678,8 +1737,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 5,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 29,
-      "ai.usage.promptTokens": 46,
+      "ai.usage.cachedInputTokens": 3,
+      "ai.usage.inputTokens": 12,
+      "ai.usage.outputTokens": 24,
+      "ai.usage.reasoningTokens": 10,
+      "ai.usage.totalTokens": 46,
       "operation.name": "ai.streamText",
     },
     "events": [],
@@ -1691,7 +1753,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
-      "ai.response.avgCompletionTokensPerSecond": 40,
+      "ai.response.avgOutputTokensPerSecond": 20,
       "ai.response.finishReason": "length",
       "ai.response.id": "id-0",
       "ai.response.model": "mock-model-id",
@@ -1702,8 +1764,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.settings.maxRetries": 2,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 20,
-      "ai.usage.promptTokens": 10,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
@@ -1712,8 +1775,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "gen_ai.response.id": "id-0",
       "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 10,
-      "gen_ai.usage.output_tokens": 20,
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
       "operation.name": "ai.streamText.doStream",
     },
     "events": [
@@ -1736,7 +1799,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"text","text":"part 1 \\n "}]}]",
-      "ai.response.avgCompletionTokensPerSecond": 12.5,
+      "ai.response.avgOutputTokensPerSecond": 25,
       "ai.response.finishReason": "length",
       "ai.response.id": "id-1",
       "ai.response.model": "mock-model-id",
@@ -1746,8 +1809,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
       "ai.settings.maxRetries": 2,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 5,
-      "ai.usage.promptTokens": 30,
+      "ai.usage.cachedInputTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.reasoningTokens": 10,
+      "ai.usage.totalTokens": 23,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
@@ -1756,8 +1822,8 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "gen_ai.response.id": "id-1",
       "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 30,
-      "gen_ai.usage.output_tokens": 5,
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
       "operation.name": "ai.streamText.doStream",
     },
     "events": [
@@ -1780,7 +1846,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"text","text":"part 1 \\n "},{"type":"text","text":"no-whitespace"}]}]",
-      "ai.response.avgCompletionTokensPerSecond": Infinity,
+      "ai.response.avgOutputTokensPerSecond": Infinity,
       "ai.response.finishReason": "length",
       "ai.response.id": "id-2",
       "ai.response.model": "mock-model-id",
@@ -1790,8 +1856,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
       "ai.settings.maxRetries": 2,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 2,
-      "ai.usage.promptTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 2,
+      "ai.usage.totalTokens": 5,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
@@ -1824,7 +1891,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]},{"role":"assistant","content":[{"type":"text","text":"part 1 \\n "},{"type":"text","text":"no-whitespace"},{"type":"text","text":"immediatefollow  "}]}]",
-      "ai.response.avgCompletionTokensPerSecond": Infinity,
+      "ai.response.avgOutputTokensPerSecond": Infinity,
       "ai.response.finishReason": "stop",
       "ai.response.id": "id-3",
       "ai.response.model": "mock-model-id",
@@ -1835,8 +1902,9 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "ai.response.timestamp": "1970-01-01T00:00:01.000Z",
       "ai.settings.maxRetries": 2,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 2,
-      "ai.usage.promptTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 2,
+      "ai.usage.totalTokens": 5,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
@@ -1902,9 +1970,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 20,
-      "promptTokens": 10,
-      "totalTokens": 30,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
+      "totalTokens": 13,
     },
     "warnings": undefined,
   },
@@ -1954,9 +2024,11 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 5,
-      "promptTokens": 30,
-      "totalTokens": 35,
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
     },
     "warnings": undefined,
   },
@@ -2020,8 +2092,10 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 2,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 2,
+      "reasoningTokens": undefined,
       "totalTokens": 5,
     },
     "warnings": undefined,
@@ -2063,8 +2137,10 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 2,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 2,
+      "reasoningTokens": undefined,
       "totalTokens": 5,
     },
     "warnings": undefined,
@@ -2273,8 +2349,10 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
         },
       ],
       "usage": {
-        "completionTokens": 10,
-        "promptTokens": 3,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
         "totalTokens": 13,
       },
       "warnings": undefined,
@@ -2303,8 +2381,10 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
     },
   ],
   "usage": {
-    "completionTokens": 10,
-    "promptTokens": 3,
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": undefined,
@@ -2417,8 +2497,10 @@ exports[`streamText > options.onFinish > should send files 1`] = `
       "toolCalls": [],
       "toolResults": [],
       "usage": {
-        "completionTokens": 10,
-        "promptTokens": 3,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
         "totalTokens": 13,
       },
       "warnings": undefined,
@@ -2428,8 +2510,10 @@ exports[`streamText > options.onFinish > should send files 1`] = `
   "toolCalls": [],
   "toolResults": [],
   "usage": {
-    "completionTokens": 10,
-    "promptTokens": 3,
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": undefined,
@@ -2546,8 +2630,10 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
       "toolCalls": [],
       "toolResults": [],
       "usage": {
-        "completionTokens": 10,
-        "promptTokens": 3,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
         "totalTokens": 13,
       },
       "warnings": undefined,
@@ -2557,8 +2643,10 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
   "toolCalls": [],
   "toolResults": [],
   "usage": {
-    "completionTokens": 10,
-    "promptTokens": 3,
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": undefined,
@@ -2625,8 +2713,10 @@ exports[`streamText > options.output > object output > should call onFinish with
       "toolCalls": [],
       "toolResults": [],
       "usage": {
-        "completionTokens": 10,
-        "promptTokens": 3,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
         "totalTokens": 13,
       },
       "warnings": undefined,
@@ -2636,8 +2726,10 @@ exports[`streamText > options.output > object output > should call onFinish with
   "toolCalls": [],
   "toolResults": [],
   "usage": {
-    "completionTokens": 10,
-    "promptTokens": 3,
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": undefined,
@@ -2775,8 +2867,10 @@ exports[`streamText > options.transform > with base transformation > options.onF
         },
       ],
       "usage": {
-        "completionTokens": 10,
-        "promptTokens": 3,
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
         "totalTokens": 13,
       },
       "warnings": undefined,
@@ -2805,8 +2899,10 @@ exports[`streamText > options.transform > with base transformation > options.onF
     },
   ],
   "usage": {
-    "completionTokens": 10,
-    "promptTokens": 3,
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": undefined,
@@ -2891,8 +2987,10 @@ exports[`streamText > options.transform > with base transformation > options.onS
     },
   ],
   "usage": {
-    "completionTokens": 10,
-    "promptTokens": 3,
+    "cachedInputTokens": undefined,
+    "inputTokens": 3,
+    "outputTokens": 10,
+    "reasoningTokens": undefined,
     "totalTokens": 13,
   },
   "warnings": undefined,
@@ -2972,8 +3070,10 @@ exports[`streamText > options.transform > with base transformation > result.step
       },
     ],
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -2995,8 +3095,9 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 1,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 10,
-      "ai.usage.promptTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
       "operation.name": "ai.streamText",
     },
     "events": [],
@@ -3012,7 +3113,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.prompt.tools": [
         "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
-      "ai.response.avgCompletionTokensPerSecond": 20,
+      "ai.response.avgOutputTokensPerSecond": 20,
       "ai.response.finishReason": "stop",
       "ai.response.id": "id-0",
       "ai.response.model": "mock-model-id",
@@ -3023,8 +3124,9 @@ exports[`streamText > options.transform > with base transformation > telemetry s
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"VALUE"}}]",
       "ai.settings.maxRetries": 2,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 10,
-      "ai.usage.promptTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
@@ -3098,9 +3200,11 @@ exports[`streamText > options.transform > with transformation that aborts stream
   "toolCalls": [],
   "toolResults": [],
   "usage": {
-    "completionTokens": NaN,
-    "promptTokens": NaN,
-    "totalTokens": NaN,
+    "cachedInputTokens": undefined,
+    "inputTokens": undefined,
+    "outputTokens": undefined,
+    "reasoningTokens": undefined,
+    "totalTokens": undefined,
   },
   "warnings": [],
 }
@@ -3157,8 +3261,10 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -3174,8 +3280,10 @@ exports[`streamText > result.fullStream > should filter out empty text deltas 1`
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -3212,9 +3320,11 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 17,
-      "promptTokens": 53,
-      "totalTokens": 70,
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
     },
     "warnings": undefined,
   },
@@ -3229,9 +3339,11 @@ exports[`streamText > result.fullStream > should not send tool call deltas when 
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 17,
-      "promptTokens": 53,
-      "totalTokens": 70,
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
     },
   },
 ]
@@ -3276,8 +3388,10 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -3293,8 +3407,10 @@ exports[`streamText > result.fullStream > should send delayed asynchronous tool 
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -3345,8 +3461,10 @@ exports[`streamText > result.fullStream > should send files 1`] = `
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -3362,8 +3480,10 @@ exports[`streamText > result.fullStream > should send files 1`] = `
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -3452,8 +3572,10 @@ exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -3469,8 +3591,10 @@ exports[`streamText > result.fullStream > should send reasoning deltas 1`] = `
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -3527,8 +3651,10 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -3544,8 +3670,10 @@ exports[`streamText > result.fullStream > should send sources 1`] = `
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -3586,8 +3714,10 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -3603,8 +3733,10 @@ exports[`streamText > result.fullStream > should send text deltas 1`] = `
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -3688,9 +3820,11 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 17,
-      "promptTokens": 53,
-      "totalTokens": 70,
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
     },
     "warnings": undefined,
   },
@@ -3705,9 +3839,11 @@ exports[`streamText > result.fullStream > should send tool call deltas when tool
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 17,
-      "promptTokens": 53,
-      "totalTokens": 70,
+      "cachedInputTokens": 3,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": 10,
+      "totalTokens": 23,
     },
   },
 ]
@@ -3743,8 +3879,10 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -3760,8 +3898,10 @@ exports[`streamText > result.fullStream > should send tool calls 1`] = `
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -3807,8 +3947,10 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -3824,8 +3966,10 @@ exports[`streamText > result.fullStream > should send tool results 1`] = `
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -3866,8 +4010,10 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -3883,8 +4029,10 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },
@@ -3901,9 +4049,9 @@ exports[`streamText > result.mergeIntoDataStream > should merge the result into 
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -3914,9 +4062,9 @@ exports[`streamText > result.mergeIntoDataStream > should use the onError handle
 ",
   "3:"custom error message: error"
 ",
-  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
 ",
-  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+  "d:{"finishReason":"error","usage":{}}
 ",
 ]
 `;
@@ -3931,9 +4079,9 @@ exports[`streamText > result.pipeDataStreamToResponse > should create a Response
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -3944,9 +4092,9 @@ exports[`streamText > result.pipeDataStreamToResponse > should mask error messag
 ",
   "3:"An error occurred."
 ",
-  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
 ",
-  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+  "d:{"finishReason":"error","usage":{}}
 ",
 ]
 `;
@@ -3957,7 +4105,7 @@ exports[`streamText > result.pipeDataStreamToResponse > should omit message fini
 ",
   "0:"Hello, World!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
 ]
 `;
@@ -3968,9 +4116,9 @@ exports[`streamText > result.pipeDataStreamToResponse > should support custom er
 ",
   "3:"custom error message: error"
 ",
-  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
 ",
-  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+  "d:{"finishReason":"error","usage":{}}
 ",
 ]
 `;
@@ -3987,9 +4135,9 @@ exports[`streamText > result.pipeDataStreamToResponse > should support merging w
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4017,9 +4165,9 @@ exports[`streamText > result.pipeDataStreamToResponse > should write data stream
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4034,9 +4182,9 @@ exports[`streamText > result.pipeDataStreamToResponse > should write file conten
 ",
   "k:{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4069,9 +4217,9 @@ exports[`streamText > result.pipeDataStreamToResponse > should write reasoning c
 ",
   "0:" there!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4086,9 +4234,9 @@ exports[`streamText > result.pipeDataStreamToResponse > should write source cont
 ",
   "h:{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4286,8 +4434,10 @@ exports[`streamText > result.steps > should add the files from the model respons
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -4384,8 +4534,10 @@ exports[`streamText > result.steps > should add the reasoning from the model res
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -4452,8 +4604,10 @@ exports[`streamText > result.steps > should add the sources from the model respo
     "toolCalls": [],
     "toolResults": [],
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -4490,9 +4644,9 @@ exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4503,9 +4657,9 @@ exports[`streamText > result.toDataStream > should mask error messages by defaul
 ",
   "3:"An error occurred."
 ",
-  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
 ",
-  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+  "d:{"finishReason":"error","usage":{}}
 ",
 ]
 `;
@@ -4516,7 +4670,7 @@ exports[`streamText > result.toDataStream > should omit message finish event (d:
 ",
   "0:"Hello, World!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
 ]
 `;
@@ -4531,9 +4685,9 @@ exports[`streamText > result.toDataStream > should send file content 1`] = `
 ",
   "k:{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4566,9 +4720,9 @@ exports[`streamText > result.toDataStream > should send reasoning content when s
 ",
   "0:" there!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4583,9 +4737,9 @@ exports[`streamText > result.toDataStream > should send source content when send
 ",
   "h:{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4598,9 +4752,9 @@ exports[`streamText > result.toDataStream > should send tool call and tool resul
 ",
   "a:{"toolCallId":"call-1","result":"value-result"}
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4619,9 +4773,9 @@ exports[`streamText > result.toDataStream > should send tool call, tool call str
 ",
   "a:{"toolCallId":"call-1","result":"value-result"}
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4632,9 +4786,9 @@ exports[`streamText > result.toDataStream > should support custom error messages
 ",
   "3:"custom error message: error"
 ",
-  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
 ",
-  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+  "d:{"finishReason":"error","usage":{}}
 ",
 ]
 `;
@@ -4651,9 +4805,9 @@ exports[`streamText > result.toDataStream > should support merging with existing
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4681,9 +4835,9 @@ exports[`streamText > result.toDataStreamResponse > should create a Response wit
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4698,9 +4852,9 @@ exports[`streamText > result.toDataStreamResponse > should create a Response wit
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4711,9 +4865,9 @@ exports[`streamText > result.toDataStreamResponse > should mask error messages b
 ",
   "3:"An error occurred."
 ",
-  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
 ",
-  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+  "d:{"finishReason":"error","usage":{}}
 ",
 ]
 `;
@@ -4724,9 +4878,9 @@ exports[`streamText > result.toDataStreamResponse > should support custom error 
 ",
   "3:"custom error message: error"
 ",
-  "e:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0},"isContinued":false}
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
 ",
-  "d:{"finishReason":"error","usage":{"promptTokens":0,"completionTokens":0}}
+  "d:{"finishReason":"error","usage":{}}
 ",
 ]
 `;
@@ -4743,9 +4897,9 @@ exports[`streamText > result.toDataStreamResponse > should support merging with 
 ",
   "0:"world!"
 ",
-  "e:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10},"isContinued":false}
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
 ",
-  "d:{"finishReason":"stop","usage":{"promptTokens":3,"completionTokens":10}}
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
 ",
 ]
 `;
@@ -4776,8 +4930,9 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 1,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 20,
-      "ai.usage.promptTokens": 10,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
       "operation.name": "ai.streamText",
     },
     "events": [],
@@ -4788,7 +4943,7 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.model.id": "mock-model-id",
       "ai.model.provider": "mock-provider",
       "ai.operationId": "ai.streamText.doStream",
-      "ai.response.avgCompletionTokensPerSecond": 40,
+      "ai.response.avgOutputTokensPerSecond": 20,
       "ai.response.finishReason": "stop",
       "ai.response.id": "id-0",
       "ai.response.model": "mock-model-id",
@@ -4797,8 +4952,9 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "ai.response.timestamp": "1970-01-01T00:00:00.000Z",
       "ai.settings.maxRetries": 2,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 20,
-      "ai.usage.promptTokens": 10,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
@@ -4807,8 +4963,8 @@ exports[`streamText > telemetry > should not record telemetry inputs / outputs w
       "gen_ai.response.id": "id-0",
       "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 10,
-      "gen_ai.usage.output_tokens": 20,
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
       "operation.name": "ai.streamText.doStream",
     },
     "events": [
@@ -4852,8 +5008,9 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.settings.maxRetries": 2,
       "ai.settings.maxSteps": 1,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 20,
-      "ai.usage.promptTokens": 10,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
       "operation.name": "ai.streamText",
     },
     "events": [],
@@ -4869,7 +5026,7 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.prompt.tools": [
         "{"type":"function","name":"tool1","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false,"$schema":"http://json-schema.org/draft-07/schema#"}}",
       ],
-      "ai.response.avgCompletionTokensPerSecond": 40,
+      "ai.response.avgOutputTokensPerSecond": 20,
       "ai.response.finishReason": "stop",
       "ai.response.id": "id-0",
       "ai.response.model": "mock-model-id",
@@ -4880,8 +5037,9 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "ai.response.toolCalls": "[{"type":"tool-call","toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}]",
       "ai.settings.maxRetries": 2,
       "ai.settings.temperature": 0,
-      "ai.usage.completionTokens": 20,
-      "ai.usage.promptTokens": 10,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.temperature": 0,
       "gen_ai.response.finish_reasons": [
@@ -4890,8 +5048,8 @@ exports[`streamText > telemetry > should record successful tool call 1`] = `
       "gen_ai.response.id": "id-0",
       "gen_ai.response.model": "mock-model-id",
       "gen_ai.system": "mock-provider",
-      "gen_ai.usage.input_tokens": 10,
-      "gen_ai.usage.output_tokens": 20,
+      "gen_ai.usage.input_tokens": 3,
+      "gen_ai.usage.output_tokens": 10,
       "operation.name": "ai.streamText.doStream",
     },
     "events": [
@@ -4948,8 +5106,9 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
       "ai.telemetry.functionId": "test-function-id",
       "ai.telemetry.metadata.test1": "value1",
       "ai.telemetry.metadata.test2": false,
-      "ai.usage.completionTokens": 10,
-      "ai.usage.promptTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
       "operation.name": "ai.streamText test-function-id",
       "resource.name": "test-function-id",
     },
@@ -4964,7 +5123,7 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
       "ai.prompt.messages": "[{"role":"user","content":[{"type":"text","text":"test-input"}]}]",
       "ai.request.headers.header1": "value1",
       "ai.request.headers.header2": "value2",
-      "ai.response.avgCompletionTokensPerSecond": 20,
+      "ai.response.avgOutputTokensPerSecond": 20,
       "ai.response.finishReason": "stop",
       "ai.response.id": "id-0",
       "ai.response.model": "mock-model-id",
@@ -4984,8 +5143,9 @@ exports[`streamText > telemetry > should record telemetry data when enabled 1`] 
       "ai.telemetry.functionId": "test-function-id",
       "ai.telemetry.metadata.test1": "value1",
       "ai.telemetry.metadata.test2": false,
-      "ai.usage.completionTokens": 10,
-      "ai.usage.promptTokens": 3,
+      "ai.usage.inputTokens": 3,
+      "ai.usage.outputTokens": 10,
+      "ai.usage.totalTokens": 13,
       "gen_ai.request.frequency_penalty": 0.3,
       "gen_ai.request.model": "mock-model-id",
       "gen_ai.request.presence_penalty": 0.4,
@@ -5053,8 +5213,10 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     },
     "type": "step-finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
     "warnings": undefined,
@@ -5070,8 +5232,10 @@ exports[`streamText > tools with custom schema > should send tool calls 1`] = `
     },
     "type": "finish",
     "usage": {
-      "completionTokens": 10,
-      "promptTokens": 3,
+      "cachedInputTokens": undefined,
+      "inputTokens": 3,
+      "outputTokens": 10,
+      "reasoningTokens": undefined,
       "totalTokens": 13,
     },
   },

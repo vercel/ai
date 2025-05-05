@@ -134,9 +134,14 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(usage).toStrictEqual({ inputTokens: 20, outputTokens: 5 });
+    expect(usage).toMatchInlineSnapshot(`
+      {
+        "inputTokens": 20,
+        "outputTokens": 5,
+        "totalTokens": 25,
+      }
+    `);
   });
-
   it('should send request body', async () => {
     prepareJsonResponse({});
 
@@ -462,6 +467,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": 10,
             "outputTokens": 362,
+            "totalTokens": 372,
           },
         },
       ]
@@ -503,6 +509,7 @@ describe('doStream', () => {
           "usage": {
             "inputTokens": undefined,
             "outputTokens": undefined,
+            "totalTokens": undefined,
           },
         },
       ]
@@ -538,6 +545,7 @@ describe('doStream', () => {
             "usage": {
               "inputTokens": undefined,
               "outputTokens": undefined,
+              "totalTokens": undefined,
             },
           },
         ]
