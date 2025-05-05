@@ -40,7 +40,6 @@ import {
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { mergeStreams } from '../util/merge-streams';
 import { now as originalNow } from '../util/now';
 import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
 import { prepareResponseHeaders } from '../util/prepare-response-headers';
