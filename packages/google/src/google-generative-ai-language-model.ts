@@ -271,7 +271,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       providerMetadata: {
         google: {
           groundingMetadata: candidate.groundingMetadata ?? null,
-          safetyRatings: candidate.safetyRatings?.map((rating) => rating ?? null) ?? null,
+          safetyRatings: candidate.safetyRatings ?? null,
         },
       },
       sources: extractSources({
@@ -418,7 +418,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
               providerMetadata = {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
-                  safetyRatings: candidate.safetyRatings?.map((rating) => rating ?? null) ?? null,
+                  safetyRatings: candidate.safetyRatings ?? null,
                 },
               };
             }
@@ -575,8 +575,8 @@ export const groundingMetadataSchema = z.object({
 
 // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/configure-safety-filters
 export const safetyRatingSchema = z.object({
-  category: z.string(),
-  probability: z.string(),
+  category: z.string().nullish(),
+  probability: z.string().nullish(),
   probabilityScore: z.number().nullish(),
   severity: z.string().nullish(),
   severityScore: z.number().nullish(),
@@ -588,7 +588,7 @@ const responseSchema = z.object({
     z.object({
       content: contentSchema.nullish().or(z.object({}).strict()),
       finishReason: z.string().nullish(),
-      safetyRatings: z.array(safetyRatingSchema.nullish()).nullish(),
+      safetyRatings: z.array(safetyRatingSchema).nullish(),
       groundingMetadata: groundingMetadataSchema.nullish(),
     }),
   ),
@@ -609,7 +609,7 @@ const chunkSchema = z.object({
       z.object({
         content: contentSchema.nullish(),
         finishReason: z.string().nullish(),
-        safetyRatings: z.array(safetyRatingSchema.nullish()).nullish(),
+        safetyRatings: z.array(safetyRatingSchema).nullish(),
         groundingMetadata: groundingMetadataSchema.nullish(),
       }),
     )
