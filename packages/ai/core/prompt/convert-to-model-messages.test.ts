@@ -9,7 +9,6 @@ describe('convertToModelMessages', () => {
       const result = convertToModelMessages([
         {
           role: 'system',
-          content: 'System message',
           parts: [{ text: 'System message', type: 'text' }],
         },
       ]);
@@ -23,7 +22,6 @@ describe('convertToModelMessages', () => {
       const result = convertToModelMessages([
         {
           role: 'user',
-          content: 'Hello, AI!',
           parts: [{ text: 'Hello, AI!', type: 'text' }],
         },
       ]);
@@ -43,33 +41,10 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should prefer content in parts when content is empty', () => {
-      const result = convertToModelMessages([
-        {
-          role: 'user',
-          content: '', // empty content
-          parts: [
-            {
-              type: 'text',
-              text: 'hey, how is it going?',
-            },
-          ],
-        },
-      ]);
-
-      expect(result).toEqual([
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'hey, how is it going?' }],
-        },
-      ]);
-    });
-
     it('should handle user message file parts', () => {
       const result = convertToModelMessages([
         {
           role: 'user',
-          content: 'Check this image',
           parts: [
             {
               type: 'file',
@@ -102,7 +77,6 @@ describe('convertToModelMessages', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
-          content: '', // empty content
           parts: [{ type: 'text', text: 'Hello, human!' }],
         },
       ]);
@@ -119,7 +93,6 @@ describe('convertToModelMessages', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
-          content: '', // empty content
           parts: [
             {
               type: 'reasoning',
@@ -166,7 +139,6 @@ describe('convertToModelMessages', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
-          content: '', // empty content
           parts: [
             {
               type: 'file',
@@ -195,7 +167,6 @@ describe('convertToModelMessages', () => {
       const result = convertToModelMessages([
         {
           role: 'assistant',
-          content: '', // empty content
           parts: [
             { type: 'text', text: 'Let me calculate that for you.' },
             {
@@ -231,7 +202,6 @@ describe('convertToModelMessages', () => {
         [
           {
             role: 'assistant',
-            content: '', // empty content
             parts: [
               { type: 'text', text: 'Let me calculate that for you.' },
               {
@@ -258,12 +228,10 @@ describe('convertToModelMessages', () => {
       const result = convertToModelMessages([
         {
           role: 'user',
-          content: 'text1',
           parts: [{ type: 'text', text: 'text1' }],
         },
         {
           role: 'assistant',
-          content: '', // empty content
           parts: [{ type: 'text', text: 'text2' }],
         },
       ]);
@@ -283,7 +251,6 @@ describe('convertToModelMessages', () => {
         [
           {
             role: 'assistant',
-            content: '', // empty content
             parts: [
               { type: 'text', text: 'response' },
               {
@@ -351,7 +318,6 @@ describe('convertToModelMessages', () => {
         [
           {
             role: 'assistant',
-            content: '', // empty content
             parts: [
               { type: 'text', text: 'i am gonna use tool1' },
               {
@@ -415,17 +381,14 @@ describe('convertToModelMessages', () => {
       const result = convertToModelMessages([
         {
           role: 'user',
-          content: "What's the weather like?",
           parts: [{ type: 'text', text: "What's the weather like?" }],
         },
         {
           role: 'assistant',
-          content: '',
           parts: [{ type: 'text', text: "I'll check that for you." }],
         },
         {
           role: 'user',
-          content: 'Thanks!',
           parts: [{ type: 'text', text: 'Thanks!' }],
         },
       ]);
@@ -475,7 +438,6 @@ describe('convertToModelMessages', () => {
         [
           {
             role: 'assistant',
-            content: '',
             parts: [
               {
                 type: 'tool-invocation',
@@ -527,7 +489,6 @@ describe('convertToModelMessages', () => {
           },
           {
             role: 'user',
-            content: 'Thanks!',
             parts: [{ type: 'text', text: 'Thanks!' }],
           },
         ],
@@ -544,7 +505,6 @@ describe('convertToModelMessages', () => {
         convertToModelMessages([
           {
             role: 'unknown' as any,
-            content: 'unknown role message',
             parts: [{ text: 'unknown role message', type: 'text' }],
           },
         ]);

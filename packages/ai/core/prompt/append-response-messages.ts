@@ -129,8 +129,6 @@ Internal. For test use only. May change without notice.
           );
 
           lastMessage.parts ??= [];
-
-          lastMessage.content = textContent;
           lastMessage.parts.push(...parts);
 
           getToolInvocationsForStep(maxStep === undefined ? 0 : maxStep + 1)
@@ -147,7 +145,6 @@ Internal. For test use only. May change without notice.
             role: 'assistant',
             id: message.id,
             createdAt: currentDate(), // generate a createdAt date for the message, will be overridden by the client
-            content: textContent,
             parts: [
               ...parts,
               ...getToolInvocationsForStep(0).map(call => ({

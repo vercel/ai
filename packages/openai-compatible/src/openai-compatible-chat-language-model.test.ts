@@ -201,7 +201,6 @@ describe('doGenerate', () => {
 
   it('should extract usage', async () => {
     prepareJsonResponse({
-      content: '',
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
     });
 
@@ -269,7 +268,6 @@ describe('doGenerate', () => {
 
   it('should support partial usage', async () => {
     prepareJsonResponse({
-      content: '',
       usage: { prompt_tokens: 20, total_tokens: 20 },
     });
 
@@ -290,7 +288,6 @@ describe('doGenerate', () => {
 
   it('should extract finish reason', async () => {
     prepareJsonResponse({
-      content: '',
       finish_reason: 'stop',
     });
 
@@ -303,7 +300,6 @@ describe('doGenerate', () => {
 
   it('should support unknown finish reason', async () => {
     prepareJsonResponse({
-      content: '',
       finish_reason: 'eos',
     });
 
@@ -806,7 +802,6 @@ describe('doGenerate', () => {
   describe('usage details', () => {
     it('should extract detailed token usage when available', async () => {
       prepareJsonResponse({
-        content: '',
         usage: {
           prompt_tokens: 20,
           completion_tokens: 30,
@@ -847,7 +842,6 @@ describe('doGenerate', () => {
 
     it('should handle missing token details', async () => {
       prepareJsonResponse({
-        content: '',
         usage: {
           prompt_tokens: 20,
           completion_tokens: 30,
@@ -864,7 +858,6 @@ describe('doGenerate', () => {
 
     it('should handle partial token details', async () => {
       prepareJsonResponse({
-        content: '',
         usage: {
           prompt_tokens: 20,
           completion_tokens: 30,
@@ -1961,7 +1954,6 @@ describe('metadata extraction', () => {
             index: 0,
             message: {
               role: 'assistant',
-              content: 'Hello',
             },
             finish_reason: 'stop',
           },

@@ -1,6 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { getUIText } from 'ai';
 import { useLayoutEffect, useRef } from 'react';
 
 export default function Chat() {
@@ -22,7 +23,7 @@ export default function Chat() {
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.content}
+          {getUIText(m.parts)}
         </div>
       ))}
       <form onSubmit={handleSubmit}>

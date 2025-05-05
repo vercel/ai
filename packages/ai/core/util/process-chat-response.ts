@@ -51,7 +51,6 @@ export async function processChatResponse({
         id: generateId(),
         createdAt: getCurrentDate(),
         role: 'assistant',
-        content: '',
         parts: [],
       };
 
@@ -140,7 +139,6 @@ export async function processChatResponse({
         currentTextPart.text += value;
       }
 
-      message.content += value;
       execUpdate();
     },
     onReasoningPart(value) {

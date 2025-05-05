@@ -51,7 +51,6 @@ export default function Page() {
 
           append({
             role: 'user',
-            content: input,
             parts: [
               ...(await convertFileListToFileUIParts(files)),
               { type: 'text', text: input },

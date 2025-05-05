@@ -118,7 +118,6 @@ describe('doGenerate', () => {
             index: 0,
             message: {
               role: 'assistant',
-              content: '',
               tool_calls: [
                 {
                   id: 'gSIMJiOkT',
@@ -156,7 +155,6 @@ describe('doGenerate', () => {
 
   it('should extract usage', async () => {
     prepareJsonResponse({
-      content: '',
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
     });
 

@@ -12,6 +12,7 @@ import {
   FinishReason,
   formatDataStreamPart,
   getToolInvocations,
+  getUIText,
   LanguageModelUsage,
   UIMessage,
 } from 'ai';
@@ -69,7 +70,6 @@ describe('data protocol stream', () => {
             onClick={() => {
               append({
                 role: 'user',
-                content: 'hi',
                 parts: [{ text: 'hi', type: 'text' }],
               });
             }}
@@ -118,7 +118,6 @@ describe('data protocol stream', () => {
         "[
           {
             "role": "user",
-            "content": "hi",
             "parts": [
               {
                 "text": "hi",
@@ -132,7 +131,6 @@ describe('data protocol stream', () => {
             "id": "id-2",
             "createdAt": "2025-01-01T00:00:00.000Z",
             "role": "assistant",
-            "content": "Hello, world.",
             "parts": [
               {
                 "type": "text",
@@ -290,7 +288,6 @@ describe('data protocol stream', () => {
       ).toStrictEqual([
         {
           role: 'user',
-          content: 'hi',
           parts: [
             {
               text: 'hi',
@@ -304,7 +301,6 @@ describe('data protocol stream', () => {
           id: 'id-2',
           createdAt: '2025-01-01T00:00:00.000Z',
           role: 'assistant',
-          content: 'Hello, world.',
           parts: [
             {
               type: 'text',
@@ -320,7 +316,6 @@ describe('data protocol stream', () => {
       [
         {
           "message": {
-            "content": "Hello, world.",
             "createdAt": 2025-01-01T00:00:00.000Z,
             "id": "id-2",
             "parts": [
@@ -360,7 +355,6 @@ describe('data protocol stream', () => {
           "id": "first-id-0",
           "messages": [
             {
-              "content": "hi",
               "createdAt": "2025-01-01T00:00:00.000Z",
               "id": "id-1",
               "parts": [
@@ -389,7 +383,6 @@ describe('data protocol stream', () => {
           JSON.parse(screen.getByTestId('messages').textContent ?? ''),
         ).toStrictEqual([
           {
-            content: 'hi',
             createdAt: '2025-01-01T00:00:00.000Z',
             id: expect.any(String),
             parts: [
@@ -401,7 +394,6 @@ describe('data protocol stream', () => {
             role: 'user',
           },
           {
-            content: 'Hello, world.',
             createdAt: '2025-01-01T00:00:00.000Z',
             id: 'id-2',
             parts: [
@@ -451,7 +443,9 @@ describe('text stream', () => {
             <div data-testid={`message-${idx}-role`}>
               {m.role === 'user' ? 'User: ' : 'AI: '}
             </div>
-            <div data-testid={`message-${idx}-content`}>{m.content}</div>
+            <div data-testid={`message-${idx}-content`}>
+              {getUIText(m.parts)}
+            </div>
           </div>
         ))}
 
@@ -460,7 +454,6 @@ describe('text stream', () => {
           onClick={() => {
             append({
               role: 'user',
-              content: 'hi',
               parts: [{ text: 'hi', type: 'text' }],
             });
           }}
@@ -529,7 +522,6 @@ describe('text stream', () => {
       [
         {
           "message": {
-            "content": "Hello, world.",
             "createdAt": 2025-01-01T00:00:00.000Z,
             "id": "id-2",
             "parts": [
@@ -564,7 +556,7 @@ describe('form actions', () => {
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
+            {getUIText(m.parts)}
           </div>
         ))}
 
@@ -622,7 +614,7 @@ describe('form actions (with options)', () => {
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
+            {getUIText(m.parts)}
           </div>
         ))}
 
@@ -719,7 +711,7 @@ describe('prepareRequestBody', () => {
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
+            {getUIText(m.parts)}
           </div>
         ))}
 
@@ -729,7 +721,6 @@ describe('prepareRequestBody', () => {
             append(
               {
                 role: 'user',
-                content: 'hi',
                 parts: [{ text: 'hi', type: 'text' }],
               },
               {
@@ -763,7 +754,6 @@ describe('prepareRequestBody', () => {
         "id": "id-0",
         "messages": [
           {
-            "content": "hi",
             "createdAt": 2025-01-01T00:00:00.000Z,
             "id": "id-1",
             "parts": [
@@ -824,7 +814,6 @@ describe('onToolCall', () => {
           onClick={() => {
             append({
               role: 'user',
-              content: 'hi',
               parts: [{ text: 'hi', type: 'text' }],
             });
           }}
@@ -906,7 +895,6 @@ describe('tool invocations', () => {
           onClick={() => {
             append({
               role: 'user',
-              content: 'hi',
               parts: [{ text: 'hi', type: 'text' }],
             });
           }}
@@ -1157,7 +1145,7 @@ describe('maxSteps', () => {
         <div>
           {messages.map((m, idx) => (
             <div data-testid={`message-${idx}`} key={m.id}>
-              {m.content}
+              {getUIText(m.parts)}
             </div>
           ))}
 
@@ -1166,7 +1154,6 @@ describe('maxSteps', () => {
             onClick={() => {
               append({
                 role: 'user',
-                content: 'hi',
                 parts: [{ text: 'hi', type: 'text' }],
               });
             }}
@@ -1241,7 +1228,6 @@ describe('maxSteps', () => {
             onClick={() => {
               append({
                 role: 'user',
-                content: 'hi',
                 parts: [{ text: 'hi', type: 'text' }],
               });
             }}
@@ -1364,7 +1350,6 @@ describe('file attachments with data url', () => {
           id: 'id-0',
           createdAt: '2025-01-01T00:00:00.000Z',
           role: 'user',
-          content: 'Message with text attachment',
           parts: [
             {
               type: 'file',
@@ -1379,7 +1364,6 @@ describe('file attachments with data url', () => {
           ],
         },
         {
-          content: 'Response to message with text attachment',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
           parts: [
@@ -1399,7 +1383,6 @@ describe('file attachments with data url', () => {
         "id": "id-0",
         "messages": [
           {
-            "content": "Message with text attachment",
             "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-0",
             "parts": [
@@ -1448,7 +1431,6 @@ describe('file attachments with data url', () => {
           role: 'user',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
-          content: 'Message with image attachment',
           parts: [
             {
               type: 'file',
@@ -1466,7 +1448,6 @@ describe('file attachments with data url', () => {
           role: 'assistant',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
-          content: 'Response to message with image attachment',
           parts: [
             {
               type: 'text',
@@ -1483,7 +1464,6 @@ describe('file attachments with data url', () => {
         "id": "id-0",
         "messages": [
           {
-            "content": "Message with image attachment",
             "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-0",
             "parts": [
@@ -1568,7 +1548,6 @@ describe('file attachments with url', () => {
           role: 'user',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
-          content: 'Message with image attachment',
           parts: [
             {
               type: 'file',
@@ -1585,7 +1564,6 @@ describe('file attachments with url', () => {
           role: 'assistant',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
-          content: 'Response to message with image attachment',
           parts: [
             {
               type: 'text',
@@ -1602,7 +1580,6 @@ describe('file attachments with url', () => {
         "id": "id-0",
         "messages": [
           {
-            "content": "Message with image attachment",
             "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-0",
             "parts": [
@@ -1678,7 +1655,6 @@ describe('attachments with empty submit', () => {
           id: 'id-1',
           createdAt: '2025-01-01T00:00:00.000Z',
           role: 'user',
-          content: '',
           parts: [
             {
               type: 'file',
@@ -1696,7 +1672,6 @@ describe('attachments with empty submit', () => {
           id: 'id-2',
           createdAt: '2025-01-01T00:00:00.000Z',
           role: 'assistant',
-          content: 'Response to message with image attachment',
           parts: [
             {
               type: 'text',
@@ -1713,7 +1688,6 @@ describe('attachments with empty submit', () => {
         "id": "id-0",
         "messages": [
           {
-            "content": "",
             "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
@@ -1755,7 +1729,6 @@ describe('should append message with attachments', () => {
 
             append({
               role: 'user',
-              content: 'Message with image attachment',
               parts: [
                 {
                   type: 'file',
@@ -1793,7 +1766,6 @@ describe('should append message with attachments', () => {
         JSON.parse(screen.getByTestId('messages').textContent ?? ''),
       ).toStrictEqual([
         {
-          content: 'Message with image attachment',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
           parts: [
@@ -1810,7 +1782,6 @@ describe('should append message with attachments', () => {
           role: 'user',
         },
         {
-          content: 'Response to message with image attachment',
           createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-2',
           parts: [
@@ -1830,7 +1801,6 @@ describe('should append message with attachments', () => {
         "id": "id-0",
         "messages": [
           {
-            "content": "Message with image attachment",
             "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
@@ -1866,7 +1836,7 @@ describe('reload', () => {
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
+            {getUIText(m.parts)}
           </div>
         ))}
 
@@ -1875,7 +1845,6 @@ describe('reload', () => {
           onClick={() => {
             append({
               role: 'user',
-              content: 'hi',
               parts: [{ text: 'hi', type: 'text' }],
             });
           }}
@@ -1925,7 +1894,6 @@ describe('reload', () => {
         "id": "id-0",
         "messages": [
           {
-            "content": "hi",
             "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
@@ -1967,7 +1935,7 @@ describe('test sending additional fields during message submission', () => {
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
-            {m.content}
+            {getUIText(m.parts)}
           </div>
         ))}
 
@@ -1976,7 +1944,6 @@ describe('test sending additional fields during message submission', () => {
           onClick={() => {
             append({
               role: 'user',
-              content: 'hi',
               annotations: ['this is an annotation'],
               parts: [{ text: 'hi', type: 'text' }],
             });
@@ -2005,7 +1972,6 @@ describe('test sending additional fields during message submission', () => {
             "annotations": [
               "this is an annotation",
             ],
-            "content": "hi",
             "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
@@ -2034,13 +2000,11 @@ describe('initialMessages', () => {
         initialMessages: [
           {
             id: 'test-msg-1',
-            content: 'Test message',
             role: 'user',
             parts: [{ text: 'Test message', type: 'text' }],
           },
           {
             id: 'test-msg-2',
-            content: 'Test response',
             role: 'assistant',
             parts: [{ text: 'Test response', type: 'text' }],
           },
@@ -2048,7 +2012,7 @@ describe('initialMessages', () => {
       });
 
       useEffect(() => {
-        setDerivedState(messages.map(m => m.content));
+        setDerivedState(messages.map(m => getUIText(m.parts)));
       }, [messages]);
 
       if (renderCount > 10) {
@@ -2061,7 +2025,7 @@ describe('initialMessages', () => {
           <div data-testid="derived-state">{derivedState.join(', ')}</div>
           {messages.map(m => (
             <div key={m.id} data-testid={`message-${m.role}`}>
-              {m.content}
+              {getUIText(m.parts)}
             </div>
           ))}
         </div>
@@ -2100,7 +2064,6 @@ describe('initialMessages', () => {
       const [initialMessages, setInitialMessages] = useState<UIMessage[]>([
         {
           id: 'test-msg-1',
-          content: 'Test message 1',
           role: 'user',
           parts: [{ text: 'Test message 1', type: 'text' }],
         },
@@ -2113,7 +2076,7 @@ describe('initialMessages', () => {
       return (
         <div>
           <div data-testid="messages">
-            {messages.map(m => m.content).join(', ')}
+            {messages.map(m => getUIText(m.parts)).join(', ')}
           </div>
 
           <button
@@ -2122,7 +2085,6 @@ describe('initialMessages', () => {
               setInitialMessages([
                 {
                   id: 'test-msg-2',
-                  content: 'Test message 2',
                   role: 'user',
                   parts: [{ text: 'Test message 2', type: 'text' }],
                 },
@@ -2162,7 +2124,6 @@ describe('resume ongoing stream and return assistant message', () => {
           {
             id: 'msg_123',
             role: 'user',
-            content: 'hi',
             parts: [{ type: 'text', text: 'hi' }],
           },
         ],
@@ -2180,7 +2141,7 @@ describe('resume ongoing stream and return assistant message', () => {
           {messages.map((m, idx) => (
             <div data-testid={`message-${idx}`} key={m.id}>
               {m.role === 'user' ? 'User: ' : 'AI: '}
-              {m.content}
+              {getUIText(m.parts)}
             </div>
           ))}
 

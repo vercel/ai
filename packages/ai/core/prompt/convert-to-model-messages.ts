@@ -6,6 +6,7 @@ import {
   ToolInvocationUIPart,
   UIMessage,
 } from '../types';
+import { getUIText } from '../ui/get-ui-text';
 import { ToolResultPart } from './content-part';
 import { AssistantContent, ModelMessage } from './message';
 import { MessageConversionError } from './message-conversion-error';
@@ -19,24 +20,20 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
   options?: { tools?: TOOLS },
 ): ModelMessage[] {
   const tools = options?.tools ?? ({} as TOOLS);
-  const coreMessages: ModelMessage[] = [];
+  const modelMessages: ModelMessage[] = [];
 
-  for (let i = 0; i < messages.length; i++) {
-    const message = messages[i];
-    const isLastMessage = i === messages.length - 1;
-    const { role, content } = message;
-
-    switch (role) {
+  for (const message of messages) {
+    switch (message.role) {
       case 'system': {
-        coreMessages.push({
+        modelMessages.push({
           role: 'system',
-          content,
+          content: getUIText(message.parts),
         });
         break;
       }
 
       case 'user': {
-        coreMessages.push({
+        modelMessages.push({
           role: 'user',
           content: message.parts
             .filter(
@@ -106,7 +103,7 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
               }
             }
 
-            coreMessages.push({
+            modelMessages.push({
               role: 'assistant',
               content,
             });
@@ -127,7 +124,7 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
 
             // tool message with tool results
             if (stepInvocations.length > 0) {
-              coreMessages.push({
+              modelMessages.push({
                 role: 'tool',
                 content: stepInvocations.map(
                   (toolInvocation): ToolResultPart => {
@@ -199,15 +196,11 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
           break;
         }
 
-        if (content && !isLastMessage) {
-          coreMessages.push({ role: 'assistant', content });
-        }
-
         break;
       }
 
       default: {
-        const _exhaustiveCheck: never = role;
+        const _exhaustiveCheck: never = message.role;
         throw new MessageConversionError({
           originalMessage: message,
           message: `Unsupported role: ${_exhaustiveCheck}`,
@@ -216,7 +209,7 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
     }
   }
 
-  return coreMessages;
+  return modelMessages;
 }
 
 /**

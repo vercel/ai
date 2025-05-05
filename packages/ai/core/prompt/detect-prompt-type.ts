@@ -1,12 +1,12 @@
 export function detectPromptType(
   prompt: Array<any>,
-): 'ui-messages' | 'messages' | 'other' {
+): 'ui-messages' | 'model-messages' | 'other' {
   if (!Array.isArray(prompt)) {
     return 'other';
   }
 
   if (prompt.length === 0) {
-    return 'messages';
+    return 'model-messages';
   }
 
   const characteristics = prompt.map(detectSingleMessageCharacteristics);
@@ -18,7 +18,7 @@ export function detectPromptType(
       c => c === 'has-core-specific-parts' || c === 'message',
     )
   ) {
-    return 'messages';
+    return 'model-messages';
   } else {
     return 'other';
   }
