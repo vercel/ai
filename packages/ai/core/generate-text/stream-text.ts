@@ -1732,37 +1732,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  pipeDataStreamToResponse(
-    response: ServerResponse,
-    {
-      status,
-      statusText,
-      headers,
-      getErrorMessage,
-      sendUsage,
-      sendReasoning,
-      sendSources,
-      experimental_sendFinish,
-    }: ResponseInit & DataStreamOptions = {},
-  ) {
-    writeToServerResponse({
-      response,
-      status,
-      statusText,
-      headers: prepareOutgoingHttpHeaders(headers, {
-        contentType: 'text/plain; charset=utf-8',
-        dataStreamVersion: 'v1',
-      }),
-      stream: this.toDataStream({
-        getErrorMessage,
-        sendUsage,
-        sendReasoning,
-        sendSources,
-        experimental_sendFinish,
-      }).pipeThrough(new TextEncoderStream()),
-    });
-  }
-
+  // TODO separate
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
     writeToServerResponse({
       response,
@@ -1775,47 +1745,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     });
   }
 
-  mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
-    writer.merge(
-      this.toDataStream({
-        getErrorMessage: options?.getErrorMessage ?? writer.onError,
-        sendUsage: options?.sendUsage,
-        sendReasoning: options?.sendReasoning,
-        sendSources: options?.sendSources,
-        experimental_sendFinish: options?.experimental_sendFinish,
-      }),
-    );
-  }
-
-  toDataStreamResponse({
-    headers,
-    status,
-    statusText,
-    getErrorMessage,
-    sendUsage,
-    sendReasoning,
-    sendSources,
-    experimental_sendFinish,
-  }: ResponseInit & DataStreamOptions = {}): Response {
-    return new Response(
-      this.toDataStream({
-        getErrorMessage,
-        sendUsage,
-        sendReasoning,
-        sendSources,
-        experimental_sendFinish,
-      }).pipeThrough(new TextEncoderStream()),
-      {
-        status,
-        statusText,
-        headers: prepareResponseHeaders(headers, {
-          contentType: 'text/plain; charset=utf-8',
-          dataStreamVersion: 'v1',
-        }),
-      },
-    );
-  }
-
+  // TODO separate
   toTextStreamResponse(init?: ResponseInit): Response {
     return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
       status: init?.status ?? 200,
