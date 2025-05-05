@@ -1,4 +1,4 @@
-import { DataStreamString, formatDataStreamPart } from '../util';
+import { DataStreamText, formatDataStreamPart } from '../util';
 import { DataStreamWriter } from './data-stream-writer';
 
 export function createDataStream({
@@ -7,7 +7,7 @@ export function createDataStream({
 }: {
   execute: (dataStream: DataStreamWriter) => Promise<void> | void;
   onError?: (error: unknown) => string;
-}): ReadableStream<DataStreamString> {
+}): ReadableStream<DataStreamText> {
   let controller!: ReadableStreamDefaultController<string>;
 
   const ongoingStreamPromises: Promise<void>[] = [];
@@ -18,7 +18,7 @@ export function createDataStream({
     },
   });
 
-  function safeEnqueue(data: DataStreamString) {
+  function safeEnqueue(data: DataStreamText) {
     try {
       controller.enqueue(data);
     } catch (error) {
@@ -28,7 +28,7 @@ export function createDataStream({
 
   try {
     const result = execute({
-      write(data: DataStreamString) {
+      write(data: DataStreamText) {
         safeEnqueue(data);
       },
       writeData(data) {
