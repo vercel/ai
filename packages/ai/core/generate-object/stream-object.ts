@@ -463,6 +463,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
     new DelayedPromise<LanguageModelRequestMetadata>();
   private readonly responsePromise =
     new DelayedPromise<LanguageModelResponseMetadata>();
+  private readonly finishReasonPromise = new DelayedPromise<FinishReason>();
 
   private readonly baseStream: ReadableStream<ObjectStreamPart<PARTIAL>>;
 
@@ -860,7 +861,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                       controller.enqueue({ type: 'text-delta', textDelta });
                     }
 
-                    // store finish reason for telemetry:
+                    // store finish reason for telemetry and promise:
                     finishReason = chunk.finishReason;
 
                     // store usage and metadata for promises and onFinish callback:
@@ -870,6 +871,7 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
                     controller.enqueue({ ...chunk, usage, response });
 
                     // resolve promises that can be resolved now:
+                    self.finishReasonPromise.resolve(finishReason);
                     self.usagePromise.resolve(usage);
                     self.providerMetadataPromise.resolve(providerMetadata);
                     self.responsePromise.resolve({
@@ -1037,6 +1039,10 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
 
   get response() {
     return this.responsePromise.value;
+  }
+
+  get finishReason() {
+    return this.finishReasonPromise.value;
   }
 
   get partialObjectStream(): AsyncIterableStream<PARTIAL> {
