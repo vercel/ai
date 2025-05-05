@@ -1,26 +1,20 @@
 import { prepareResponseHeaders } from '../../core/util/prepare-response-headers';
-import { createDataStream } from './create-data-stream';
-import { DataStreamWriter } from './data-stream-writer';
+import { DataStreamText } from './data-stream-parts';
 
 export function createDataStreamResponse({
   status,
   statusText,
   headers,
-  execute,
-  onError,
+  dataStream,
 }: ResponseInit & {
-  execute: (dataStream: DataStreamWriter) => Promise<void> | void;
-  onError?: (error: unknown) => string;
+  dataStream: ReadableStream<DataStreamText>;
 }): Response {
-  return new Response(
-    createDataStream({ execute, onError }).pipeThrough(new TextEncoderStream()),
-    {
-      status,
-      statusText,
-      headers: prepareResponseHeaders(headers, {
-        contentType: 'text/plain; charset=utf-8',
-        dataStreamVersion: 'v1',
-      }),
-    },
-  );
+  return new Response(dataStream.pipeThrough(new TextEncoderStream()), {
+    status,
+    statusText,
+    headers: prepareResponseHeaders(headers, {
+      contentType: 'text/plain; charset=utf-8',
+      dataStreamVersion: 'v1',
+    }),
+  });
 }
