@@ -265,11 +265,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     };
     const completionTokenDetails =
       responseBody.usage?.completion_tokens_details;
-    const promptTokenDetails = responseBody.usage?.prompt_tokens_details;
-    if (completionTokenDetails?.reasoning_tokens != null) {
-      providerMetadata[this.providerOptionsName].reasoningTokens =
-        completionTokenDetails?.reasoning_tokens;
-    }
     if (completionTokenDetails?.accepted_prediction_tokens != null) {
       providerMetadata[this.providerOptionsName].acceptedPredictionTokens =
         completionTokenDetails?.accepted_prediction_tokens;
@@ -278,10 +273,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       providerMetadata[this.providerOptionsName].rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
     }
-    if (promptTokenDetails?.cached_tokens != null) {
-      providerMetadata[this.providerOptionsName].cachedPromptTokens =
-        promptTokenDetails?.cached_tokens;
-    }
 
     return {
       content,
@@ -289,6 +280,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       usage: {
         inputTokens: responseBody.usage?.prompt_tokens ?? undefined,
         outputTokens: responseBody.usage?.completion_tokens ?? undefined,
+        totalTokens: responseBody.usage?.total_tokens ?? undefined,
+        reasoningTokens:
+          responseBody.usage?.completion_tokens_details?.reasoning_tokens ??
+          undefined,
+        cachedInputTokens:
+          responseBody.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
       },
       providerMetadata,
       request: { body },
@@ -345,7 +342,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
     }> = [];
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
-    let usage: {
+    const usage: {
       completionTokens: number | undefined;
       completionTokensDetails: {
         reasoningTokens: number | undefined;
@@ -356,6 +353,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       promptTokensDetails: {
         cachedTokens: number | undefined;
       };
+      totalTokens: number | undefined;
     } = {
       completionTokens: undefined,
       completionTokensDetails: {
@@ -367,9 +365,10 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
       promptTokensDetails: {
         cachedTokens: undefined,
       },
+      totalTokens: undefined,
     };
     let isFirstChunk = true;
-    let providerOptionsName = this.providerOptionsName;
+    const providerOptionsName = this.providerOptionsName;
 
     return {
       stream: response.pipeThrough(
@@ -413,13 +412,14 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               const {
                 prompt_tokens,
                 completion_tokens,
+                total_tokens,
                 prompt_tokens_details,
                 completion_tokens_details,
               } = value.usage;
 
               usage.promptTokens = prompt_tokens ?? undefined;
               usage.completionTokens = completion_tokens ?? undefined;
-
+              usage.totalTokens = total_tokens ?? undefined;
               if (completion_tokens_details?.reasoning_tokens != null) {
                 usage.completionTokensDetails.reasoningTokens =
                   completion_tokens_details?.reasoning_tokens;
@@ -586,10 +586,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               [providerOptionsName]: {},
               ...metadataExtractor?.buildMetadata(),
             };
-            if (usage.completionTokensDetails.reasoningTokens != null) {
-              providerMetadata[providerOptionsName].reasoningTokens =
-                usage.completionTokensDetails.reasoningTokens;
-            }
             if (
               usage.completionTokensDetails.acceptedPredictionTokens != null
             ) {
@@ -602,10 +598,6 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               providerMetadata[providerOptionsName].rejectedPredictionTokens =
                 usage.completionTokensDetails.rejectedPredictionTokens;
             }
-            if (usage.promptTokensDetails.cachedTokens != null) {
-              providerMetadata[providerOptionsName].cachedPromptTokens =
-                usage.promptTokensDetails.cachedTokens;
-            }
 
             controller.enqueue({
               type: 'finish',
@@ -613,6 +605,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
               usage: {
                 inputTokens: usage.promptTokens ?? undefined,
                 outputTokens: usage.completionTokens ?? undefined,
+                totalTokens: usage.totalTokens ?? undefined,
+                reasoningTokens:
+                  usage.completionTokensDetails.reasoningTokens ?? undefined,
+                cachedInputTokens:
+                  usage.promptTokensDetails.cachedTokens ?? undefined,
               },
               providerMetadata,
             });
@@ -629,6 +626,7 @@ const openaiCompatibleTokenUsageSchema = z
   .object({
     prompt_tokens: z.number().nullish(),
     completion_tokens: z.number().nullish(),
+    total_tokens: z.number().nullish(),
     prompt_tokens_details: z
       .object({
         cached_tokens: z.number().nullish(),
