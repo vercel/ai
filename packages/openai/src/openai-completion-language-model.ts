@@ -214,8 +214,8 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       stream: true,
 
       stream_options: {
-        include_usage: true
-      }
+        include_usage: true,
+      },
     };
 
     const { responseHeaders, value: response } = await postJsonToApi({
