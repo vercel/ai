@@ -22,7 +22,7 @@ fastify.post('/stream-data', async function (request, reply) {
   // immediately start streaming the response
   const dataStream = createDataStream({
     execute: async writer => {
-      writer.writeData('initialized call');
+      writer.write({ type: 'data', value: ['initialized call'] });
 
       const result = streamText({
         model: openai('gpt-4o'),

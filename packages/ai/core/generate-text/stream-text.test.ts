@@ -836,23 +836,35 @@ describe('streamText', () => {
       expect(mockResponse.statusCode).toBe(200);
       expect(mockResponse.headers).toMatchInlineSnapshot(`
         {
-          "content-type": "text/plain; charset=utf-8",
-          "x-vercel-ai-data-stream": "v1",
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "x-accel-buffering": "no",
+          "x-vercel-ai-data-stream": "v2",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "f:{"messageId":"msg-0"}
+          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
         ",
-          "0:"Hello"
+          "data: {"type":"text","value":"Hello"}
+
         ",
-          "0:", "
+          "data: {"type":"text","value":", "}
+
         ",
-          "0:"world!"
+          "data: {"type":"text","value":"world!"}
+
         ",
-          "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+
         ",
-          "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+
+        ",
+          "data: [DONE]
+
         ",
         ]
       `);
@@ -882,25 +894,37 @@ describe('streamText', () => {
 
       expect(mockResponse.headers).toMatchInlineSnapshot(`
         {
-          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
           "custom-header": "custom-value",
-          "x-vercel-ai-data-stream": "v1",
+          "x-accel-buffering": "no",
+          "x-vercel-ai-data-stream": "v2",
         }
       `);
 
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "f:{"messageId":"msg-0"}
+          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
         ",
-          "0:"Hello"
+          "data: {"type":"text","value":"Hello"}
+
         ",
-          "0:", "
+          "data: {"type":"text","value":", "}
+
         ",
-          "0:"world!"
+          "data: {"type":"text","value":"world!"}
+
         ",
-          "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+
         ",
-          "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+
+        ",
+          "data: [DONE]
+
         ",
         ]
       `);
@@ -1016,41 +1040,62 @@ describe('streamText', () => {
       expect(mockResponse.statusCode).toBe(200);
       expect(mockResponse.headers).toMatchInlineSnapshot(`
         {
-          "content-type": "text/plain; charset=utf-8",
-          "x-vercel-ai-data-stream": "v1",
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "x-accel-buffering": "no",
+          "x-vercel-ai-data-stream": "v2",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "f:{"messageId":"msg-0"}
+          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
         ",
-          "g:{"type":"reasoning","text":"I will open the conversation"}
+          "data: {"type":"reasoning","value":{"type":"reasoning","text":"I will open the conversation"}}
+
         ",
-          "g:{"type":"reasoning","text":" with witty banter. "}
+          "data: {"type":"reasoning","value":{"type":"reasoning","text":" with witty banter. "}}
+
         ",
-          "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+          "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}}
+
         ",
-          "l:{}
+          "data: {"type":"reasoning-part-finish","value":null}
+
         ",
-          "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
+          "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}}
+
         ",
-          "l:{}
+          "data: {"type":"reasoning-part-finish","value":null}
+
         ",
-          "g:{"type":"reasoning","text":"Once the user has relaxed,"}
+          "data: {"type":"reasoning","value":{"type":"reasoning","text":"Once the user has relaxed,"}}
+
         ",
-          "g:{"type":"reasoning","text":" I will pry for valuable information."}
+          "data: {"type":"reasoning","value":{"type":"reasoning","text":" I will pry for valuable information."}}
+
         ",
-          "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+          "data: {"type":"reasoning","value":{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}}
+
         ",
-          "l:{}
+          "data: {"type":"reasoning-part-finish","value":null}
+
         ",
-          "0:"Hi"
+          "data: {"type":"text","value":"Hi"}
+
         ",
-          "0:" there!"
+          "data: {"type":"text","value":" there!"}
+
         ",
-          "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+
         ",
-          "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+
+        ",
+          "data: [DONE]
+
         ",
         ]
       `);
@@ -1073,23 +1118,35 @@ describe('streamText', () => {
       expect(mockResponse.statusCode).toBe(200);
       expect(mockResponse.headers).toMatchInlineSnapshot(`
         {
-          "content-type": "text/plain; charset=utf-8",
-          "x-vercel-ai-data-stream": "v1",
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "x-accel-buffering": "no",
+          "x-vercel-ai-data-stream": "v2",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "f:{"messageId":"msg-0"}
+          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
         ",
-          "h:{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+          "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}}
+
         ",
-          "0:"Hello!"
+          "data: {"type":"text","value":"Hello!"}
+
         ",
-          "h:{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+          "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}}
+
         ",
-          "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+
         ",
-          "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+
+        ",
+          "data: [DONE]
+
         ",
         ]
       `);
@@ -1110,23 +1167,35 @@ describe('streamText', () => {
       expect(mockResponse.statusCode).toBe(200);
       expect(mockResponse.headers).toMatchInlineSnapshot(`
         {
-          "content-type": "text/plain; charset=utf-8",
-          "x-vercel-ai-data-stream": "v1",
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "x-accel-buffering": "no",
+          "x-vercel-ai-data-stream": "v2",
         }
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "f:{"messageId":"msg-0"}
+          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
         ",
-          "k:{"mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}
+          "data: {"type":"file","value":{"mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}}
+
         ",
-          "0:"Hello!"
+          "data: {"type":"text","value":"Hello!"}
+
         ",
-          "k:{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}
+          "data: {"type":"file","value":{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}}
+
         ",
-          "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+
         ",
-          "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+
+        ",
+          "data: [DONE]
+
         ",
         ]
       `);
@@ -1390,14 +1459,43 @@ describe('streamText', () => {
       const response = result.toDataStreamResponse();
 
       expect(response.status).toStrictEqual(200);
-      expect(Object.fromEntries(response.headers.entries())).toStrictEqual({
-        'content-type': 'text/plain; charset=utf-8',
-        'x-vercel-ai-data-stream': 'v1',
-      });
-      expect(response.headers.get('Content-Type')).toStrictEqual(
-        'text/plain; charset=utf-8',
-      );
-      expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
+      expect(Object.fromEntries(response.headers.entries()))
+        .toMatchInlineSnapshot(`
+        {
+          "cache-control": "no-cache",
+          "connection": "keep-alive",
+          "content-type": "text/event-stream",
+          "x-accel-buffering": "no",
+          "x-vercel-ai-data-stream": "v2",
+        }
+      `);
+
+      expect(await convertResponseStreamToArray(response))
+        .toMatchInlineSnapshot(`
+        [
+          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
+        ",
+          "data: {"type":"text","value":"Hello"}
+
+        ",
+          "data: {"type":"text","value":", "}
+
+        ",
+          "data: {"type":"text","value":"world!"}
+
+        ",
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+
+        ",
+          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+
+        ",
+          "data: [DONE]
+
+        ",
+        ]
+      `);
     });
 
     it('should create a Response with a data stream and custom headers', async () => {
@@ -1417,12 +1515,43 @@ describe('streamText', () => {
 
       expect(response.status).toStrictEqual(201);
       expect(response.statusText).toStrictEqual('foo');
-      expect(Object.fromEntries(response.headers.entries())).toStrictEqual({
-        'content-type': 'text/plain; charset=utf-8',
-        'x-vercel-ai-data-stream': 'v1',
-        'custom-header': 'custom-value',
-      });
-      expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
+      expect(Object.fromEntries(response.headers.entries()))
+        .toMatchInlineSnapshot(`
+          {
+            "cache-control": "no-cache",
+            "connection": "keep-alive",
+            "content-type": "text/event-stream",
+            "custom-header": "custom-value",
+            "x-accel-buffering": "no",
+            "x-vercel-ai-data-stream": "v2",
+          }
+        `);
+      expect(await convertResponseStreamToArray(response))
+        .toMatchInlineSnapshot(`
+        [
+          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
+        ",
+          "data: {"type":"text","value":"Hello"}
+
+        ",
+          "data: {"type":"text","value":", "}
+
+        ",
+          "data: {"type":"text","value":"world!"}
+
+        ",
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+
+        ",
+          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+
+        ",
+          "data: [DONE]
+
+        ",
+        ]
+      `);
     });
 
     it('should mask error messages by default', async () => {

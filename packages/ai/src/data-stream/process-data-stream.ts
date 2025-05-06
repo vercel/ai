@@ -1,23 +1,16 @@
 import {
-  DataStreamPartType,
-  parseDataStreamPart,
+  createEventSourceParserStream,
+  EventSourceChunk,
+  ParseResult,
+  safeParseJSON,
+  ToolCall,
+  ToolResult,
+} from '@ai-sdk/provider-utils';
+import {
+  DataStreamPart,
+  dataStreamPartSchema,
 } from '../../src/data-stream/data-stream-parts';
-
-const NEWLINE = '\n'.charCodeAt(0);
-
-// concatenates all the chunks into a single Uint8Array
-function concatChunks(chunks: Uint8Array[], totalLength: number) {
-  const concatenatedChunks = new Uint8Array(totalLength);
-
-  let offset = 0;
-  for (const chunk of chunks) {
-    concatenatedChunks.set(chunk, offset);
-    offset += chunk.length;
-  }
-  chunks.length = 0;
-
-  return concatenatedChunks;
-}
+import { createAsyncIterableStream } from '../../core/util/async-iterable-stream';
 
 export async function processDataStream({
   stream,
@@ -39,141 +32,133 @@ export async function processDataStream({
 }: {
   stream: ReadableStream<Uint8Array>;
   onTextPart?: (
-    streamPart: (DataStreamPartType & { type: 'text' })['value'],
+    streamPart: (DataStreamPart & { type: 'text' })['value'],
   ) => Promise<void> | void;
   onReasoningPart?: (
-    streamPart: (DataStreamPartType & { type: 'reasoning' })['value'],
+    streamPart: (DataStreamPart & { type: 'reasoning' })['value'],
   ) => Promise<void> | void;
   onReasoningPartFinish?: (
-    streamPart: (DataStreamPartType & {
-      type: 'reasoning_part_finish';
+    streamPart: (DataStreamPart & {
+      type: 'reasoning-part-finish';
     })['value'],
   ) => Promise<void> | void;
   onFilePart?: (
-    streamPart: (DataStreamPartType & { type: 'file' })['value'],
+    streamPart: (DataStreamPart & { type: 'file' })['value'],
   ) => Promise<void> | void;
   onSourcePart?: (
-    streamPart: (DataStreamPartType & { type: 'source' })['value'],
+    streamPart: (DataStreamPart & { type: 'source' })['value'],
   ) => Promise<void> | void;
   onDataPart?: (
-    streamPart: (DataStreamPartType & { type: 'data' })['value'],
+    streamPart: (DataStreamPart & { type: 'data' })['value'],
   ) => Promise<void> | void;
   onErrorPart?: (
-    streamPart: (DataStreamPartType & { type: 'error' })['value'],
+    streamPart: (DataStreamPart & { type: 'error' })['value'],
   ) => Promise<void> | void;
   onToolCallStreamingStartPart?: (
-    streamPart: (DataStreamPartType & {
-      type: 'tool_call_streaming_start';
+    streamPart: (DataStreamPart & {
+      type: 'tool-call-streaming-start';
     })['value'],
   ) => Promise<void> | void;
   onToolCallDeltaPart?: (
-    streamPart: (DataStreamPartType & { type: 'tool_call_delta' })['value'],
+    streamPart: (DataStreamPart & { type: 'tool-call-delta' })['value'],
   ) => Promise<void> | void;
-  onToolCallPart?: (
-    streamPart: (DataStreamPartType & { type: 'tool_call' })['value'],
-  ) => Promise<void> | void;
+  onToolCallPart?: (streamPart: ToolCall<string, any>) => Promise<void> | void;
   onToolResultPart?: (
-    streamPart: (DataStreamPartType & { type: 'tool_result' })['value'],
+    streamPart: ToolResult<string, any, any>,
   ) => Promise<void> | void;
   onMessageAnnotationsPart?: (
-    streamPart: (DataStreamPartType & {
-      type: 'message_annotations';
+    streamPart: (DataStreamPart & {
+      type: 'message-annotations';
     })['value'],
   ) => Promise<void> | void;
   onFinishMessagePart?: (
-    streamPart: (DataStreamPartType & { type: 'finish_message' })['value'],
+    streamPart: (DataStreamPart & { type: 'finish-message' })['value'],
   ) => Promise<void> | void;
   onFinishStepPart?: (
-    streamPart: (DataStreamPartType & { type: 'finish_step' })['value'],
+    streamPart: (DataStreamPart & { type: 'finish-step' })['value'],
   ) => Promise<void> | void;
   onStartStepPart?: (
-    streamPart: (DataStreamPartType & { type: 'start_step' })['value'],
+    streamPart: (DataStreamPart & { type: 'start-step' })['value'],
   ) => Promise<void> | void;
 }): Promise<void> {
-  // implementation note: this slightly more complex algorithm is required
-  // to pass the tests in the edge environment.
+  const streamParts = createAsyncIterableStream(
+    stream
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(createEventSourceParserStream())
+      .pipeThrough(
+        new TransformStream<EventSourceChunk, ParseResult<DataStreamPart>>({
+          async transform({ data }, controller) {
+            if (data === '[DONE]') {
+              return;
+            }
 
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  const chunks: Uint8Array[] = [];
-  let totalLength = 0;
+            controller.enqueue(
+              await safeParseJSON({
+                text: data,
+                schema: dataStreamPartSchema,
+              }),
+            );
+          },
+        }),
+      ),
+  );
 
-  while (true) {
-    const { value } = await reader.read();
-
-    if (value) {
-      chunks.push(value);
-      totalLength += value.length;
-      if (value[value.length - 1] !== NEWLINE) {
-        // if the last character is not a newline, we have not read the whole JSON value
-        continue;
-      }
+  for await (const parseResult of streamParts) {
+    if (!parseResult.success) {
+      throw new Error('Failed to parse data stream part');
     }
 
-    if (chunks.length === 0) {
-      break; // we have reached the end of the stream
-    }
+    const { type, value } = parseResult.value;
 
-    const concatenatedChunks = concatChunks(chunks, totalLength);
-    totalLength = 0;
-
-    const streamParts = decoder
-      .decode(concatenatedChunks, { stream: true })
-      .split('\n')
-      .filter(line => line !== '') // splitting leaves an empty string at the end
-      .map(parseDataStreamPart);
-
-    for (const { type, value } of streamParts) {
-      switch (type) {
-        case 'text':
-          await onTextPart?.(value);
-          break;
-        case 'reasoning':
-          await onReasoningPart?.(value);
-          break;
-        case 'reasoning_part_finish':
-          await onReasoningPartFinish?.(value);
-          break;
-        case 'file':
-          await onFilePart?.(value);
-          break;
-        case 'source':
-          await onSourcePart?.(value);
-          break;
-        case 'data':
-          await onDataPart?.(value);
-          break;
-        case 'error':
-          await onErrorPart?.(value);
-          break;
-        case 'message_annotations':
-          await onMessageAnnotationsPart?.(value);
-          break;
-        case 'tool_call_streaming_start':
-          await onToolCallStreamingStartPart?.(value);
-          break;
-        case 'tool_call_delta':
-          await onToolCallDeltaPart?.(value);
-          break;
-        case 'tool_call':
-          await onToolCallPart?.(value);
-          break;
-        case 'tool_result':
-          await onToolResultPart?.(value);
-          break;
-        case 'finish_message':
-          await onFinishMessagePart?.(value);
-          break;
-        case 'finish_step':
-          await onFinishStepPart?.(value);
-          break;
-        case 'start_step':
-          await onStartStepPart?.(value);
-          break;
-        default: {
-          const exhaustiveCheck: never = type;
-          throw new Error(`Unknown stream part type: ${exhaustiveCheck}`);
-        }
+    switch (type) {
+      case 'text':
+        await onTextPart?.(value);
+        break;
+      case 'reasoning':
+        await onReasoningPart?.(value);
+        break;
+      case 'reasoning-part-finish':
+        await onReasoningPartFinish?.(value);
+        break;
+      case 'file':
+        await onFilePart?.(value);
+        break;
+      case 'source':
+        await onSourcePart?.(value);
+        break;
+      case 'data':
+        await onDataPart?.(value);
+        break;
+      case 'error':
+        await onErrorPart?.(value);
+        break;
+      case 'message-annotations':
+        await onMessageAnnotationsPart?.(value);
+        break;
+      case 'tool-call-streaming-start':
+        await onToolCallStreamingStartPart?.(value);
+        break;
+      case 'tool-call-delta':
+        await onToolCallDeltaPart?.(value);
+        break;
+      case 'tool-call':
+        await onToolCallPart?.(value as ToolCall<string, any>);
+        break;
+      case 'tool-result':
+        await onToolResultPart?.(value as ToolResult<string, any, any>);
+        break;
+      case 'finish-message':
+        await onFinishMessagePart?.(value);
+        break;
+      case 'finish-step':
+        await onFinishStepPart?.(value);
+        break;
+      case 'start-step':
+        await onStartStepPart?.(value);
+        break;
+      default: {
+        const exhaustiveCheck: never = type;
+        throw new Error(`Unknown stream part type: ${exhaustiveCheck}`);
       }
     }
   }

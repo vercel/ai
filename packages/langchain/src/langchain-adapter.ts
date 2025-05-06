@@ -1,4 +1,4 @@
-import { formatDataStreamPart } from 'ai';
+import { DataStreamPart } from 'ai';
 import { createCallbacksTransformer, StreamCallbacks } from 'ai/internal';
 
 type LangChainImageDetail = 'auto' | 'low' | 'high';
@@ -84,11 +84,10 @@ export function toDataStream(
       }),
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
-    .pipeThrough(new TextDecoderStream())
     .pipeThrough(
-      new TransformStream({
+      new TransformStream<string, DataStreamPart>({
         transform: async (chunk, controller) => {
-          controller.enqueue(formatDataStreamPart('text', chunk));
+          controller.enqueue({ type: 'text', value: chunk });
         },
       }),
     );

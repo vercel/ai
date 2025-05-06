@@ -19,7 +19,7 @@ createServer(async (req, res) => {
       // immediately start streaming the response
       const dataStream = createDataStream({
         execute: writer => {
-          writer.writeData('initialized call');
+          writer.write({ type: 'data', value: ['initialized call'] });
 
           const result = streamText({
             model: openai('gpt-4o'),

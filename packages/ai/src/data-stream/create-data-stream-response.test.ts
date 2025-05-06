@@ -3,7 +3,6 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createDataStreamResponse } from './create-data-stream-response';
-import { formatDataStreamPart } from './data-stream-parts';
 
 describe('createDataStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {
@@ -14,7 +13,7 @@ describe('createDataStreamResponse', () => {
         'Custom-Header': 'test',
       },
       dataStream: convertArrayToReadableStream([
-        formatDataStreamPart('data', ['test-data']),
+        { type: 'data', value: ['test-data'] },
       ]),
     });
 
@@ -24,38 +23,55 @@ describe('createDataStreamResponse', () => {
     expect(response.statusText).toBe('OK');
 
     // Verify headers
-    expect(response.headers.get('Content-Type')).toBe(
-      'text/plain; charset=utf-8',
-    );
-    expect(response.headers.get('X-Vercel-AI-Data-Stream')).toBe('v1');
-    expect(response.headers.get('Custom-Header')).toBe('test');
+    expect(Object.fromEntries(response.headers.entries()))
+      .toMatchInlineSnapshot(`
+      {
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
+        "custom-header": "test",
+        "x-accel-buffering": "no",
+        "x-vercel-ai-data-stream": "v2",
+      }
+    `);
 
-    // Verify encoded stream content
-    const decoder = new TextDecoder();
-    const encodedStream = response.body!;
-    const chunks = await convertReadableStreamToArray(encodedStream);
-    const decodedChunks = chunks.map(chunk => decoder.decode(chunk));
+    expect(
+      await convertReadableStreamToArray(
+        response.body!.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"data","value":["test-data"]}
 
-    expect(decodedChunks).toEqual([
-      formatDataStreamPart('data', ['test-data']),
-    ]);
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
   });
 
   it('should handle errors in the stream', async () => {
     const response = createDataStreamResponse({
       status: 200,
       dataStream: convertArrayToReadableStream([
-        formatDataStreamPart('error', 'Custom error message'),
+        { type: 'error', value: 'Custom error message' },
       ]),
     });
 
-    const decoder = new TextDecoder();
-    const encodedStream = response.body!;
-    const chunks = await convertReadableStreamToArray(encodedStream);
-    const decodedChunks = chunks.map(chunk => decoder.decode(chunk));
+    expect(
+      await convertReadableStreamToArray(
+        response.body!.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"error","value":"Custom error message"}
 
-    expect(decodedChunks).toEqual([
-      formatDataStreamPart('error', 'Custom error message'),
-    ]);
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
   });
 });

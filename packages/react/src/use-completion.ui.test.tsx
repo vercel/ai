@@ -7,6 +7,11 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { setupTestComponent } from './setup-test-component';
 import { useCompletion } from './use-completion';
+import { DataStreamPart } from 'ai';
+
+function formatDataStreamPart(part: DataStreamPart) {
+  return `data: ${JSON.stringify(part)}\n\n`;
+}
 
 const server = createTestServer({
   '/api/completion': {},
@@ -54,7 +59,12 @@ describe('stream data stream', () => {
     beforeEach(async () => {
       server.urls['/api/completion'].response = {
         type: 'stream-chunks',
-        chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+        chunks: [
+          formatDataStreamPart({ type: 'text', value: 'Hello' }),
+          formatDataStreamPart({ type: 'text', value: ',' }),
+          formatDataStreamPart({ type: 'text', value: ' world' }),
+          formatDataStreamPart({ type: 'text', value: '.' }),
+        ],
       };
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
     });
@@ -88,7 +98,7 @@ describe('stream data stream', () => {
 
       await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
 
-      controller.write('0:"Hello"\n');
+      controller.write(formatDataStreamPart({ type: 'text', value: 'Hello' }));
 
       await waitFor(() => {
         expect(screen.getByTestId('loading')).toHaveTextContent('true');

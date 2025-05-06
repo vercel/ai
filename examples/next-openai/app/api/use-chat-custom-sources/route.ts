@@ -7,12 +7,15 @@ export async function POST(req: Request) {
   const dataStream = createDataStream({
     execute: writer => {
       // write a custom url source to the stream:
-      writer.writeSource({
+      writer.write({
         type: 'source',
-        sourceType: 'url',
-        id: 'source-1',
-        url: 'https://example.com',
-        title: 'Example Source',
+        value: {
+          type: 'source',
+          sourceType: 'url',
+          id: 'source-1',
+          url: 'https://example.com',
+          title: 'Example Source',
+        },
       });
 
       const result = streamText({

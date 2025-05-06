@@ -1,6 +1,5 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { createMockServerResponse } from '../../core/test/mock-server-response';
-import { formatDataStreamPart } from './data-stream-parts';
 import { pipeDataStreamToResponse } from './pipe-data-stream-to-response';
 
 describe('pipeDataStreamToResponse', () => {
@@ -15,7 +14,7 @@ describe('pipeDataStreamToResponse', () => {
         'Custom-Header': 'test',
       },
       dataStream: convertArrayToReadableStream([
-        formatDataStreamPart('data', ['test-data']),
+        { type: 'data', value: ['test-data'] },
       ]),
     });
 
@@ -29,17 +28,27 @@ describe('pipeDataStreamToResponse', () => {
     // Verify headers
     expect(mockResponse.headers).toMatchInlineSnapshot(`
       {
-        "content-type": "text/plain; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
         "custom-header": "test",
-        "x-vercel-ai-data-stream": "v1",
+        "x-accel-buffering": "no",
+        "x-vercel-ai-data-stream": "v2",
       }
     `);
 
     // Verify written data using decoded chunks
     const decodedChunks = mockResponse.getDecodedChunks();
-    expect(decodedChunks).toStrictEqual([
-      formatDataStreamPart('data', ['test-data']),
-    ]);
+    expect(decodedChunks).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"data","value":["test-data"]}
+
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
   });
 
   it('should handle errors in the stream', async () => {
@@ -49,7 +58,7 @@ describe('pipeDataStreamToResponse', () => {
       response: mockResponse,
       status: 200,
       dataStream: convertArrayToReadableStream([
-        formatDataStreamPart('error', 'Custom error message'),
+        { type: 'error', value: 'Custom error message' },
       ]),
     });
 
@@ -58,8 +67,15 @@ describe('pipeDataStreamToResponse', () => {
 
     // Verify error handling using decoded chunks
     const decodedChunks = mockResponse.getDecodedChunks();
-    expect(decodedChunks).toStrictEqual([
-      formatDataStreamPart('error', 'Custom error message'),
-    ]);
+    expect(decodedChunks).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"error","value":"Custom error message"}
+
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
   });
 });

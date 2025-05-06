@@ -17,23 +17,31 @@ export default defineLazyEventHandler(async () => {
     // immediately start streaming (solves RAG issues with status, etc.)
     const dataStream = createDataStream({
       execute: writer => {
-        writer.writeData('initialized call');
+        writer.write({ type: 'data', value: ['initialized call'] });
 
         const result = streamText({
           model: openai('gpt-4o'),
           messages,
           onChunk() {
-            writer.writeMessageAnnotation({ chunk: '123' });
+            writer.write({
+              type: 'message-annotations',
+              value: [{ chunk: '123' }],
+            });
           },
           onFinish() {
             // message annotation:
-            writer.writeMessageAnnotation({
-              id: generateId(), // e.g. id from saved DB record
-              other: 'information',
+            writer.write({
+              type: 'message-annotations',
+              value: [
+                {
+                  id: generateId(), // e.g. id from saved DB record
+                  other: 'information',
+                },
+              ],
             });
 
             // call annotation:
-            writer.writeData('call completed');
+            writer.write({ type: 'data', value: ['call completed'] });
           },
         });
 
