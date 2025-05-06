@@ -1526,9 +1526,8 @@ describe('streamText', () => {
             "x-vercel-ai-data-stream": "v2",
           }
         `);
-      expect(
-        await convertResponseStreamToArray(response),
-      ).toMatchInlineSnapshot(`
+      expect(await convertResponseStreamToArray(response))
+        .toMatchInlineSnapshot(`
         [
           "data: {"type":"start-step","value":{"messageId":"msg-0"}}
 

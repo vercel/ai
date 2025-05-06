@@ -19,7 +19,7 @@ app.post('/stream-data', async (req: Request, res: Response) => {
 
   const dataStream = createDataStream({
     execute: async writer => {
-      writer.writeData('initialized call');
+      writer.write({ type: 'data', value: ['initialized call'] });
 
       const result = streamText({
         model: openai('gpt-4o'),

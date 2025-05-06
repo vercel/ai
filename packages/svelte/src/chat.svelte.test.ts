@@ -3,7 +3,7 @@ import {
   mockId,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { formatDataStreamPart, getToolInvocations, type UIMessage } from 'ai';
+import { getToolInvocations, type UIMessage } from 'ai';
 import { render } from '@testing-library/svelte';
 import { Chat } from './chat.svelte.js';
 import ChatSynchronization from './tests/chat-synchronization.svelte';
