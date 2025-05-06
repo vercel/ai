@@ -125,13 +125,6 @@ Custom headers to include in the requests.
   headers?: Record<string, string>;
 
   /**
-OpenAI compatibility mode. Should be set to `strict` when using the OpenAI API,
-and `compatible` when using 3rd party providers. In `compatible` mode, newer
-information such as streamOptions are not being sent. Defaults to 'compatible'.
-   */
-  compatibility?: 'strict' | 'compatible';
-
-  /**
 Provider name. Overrides the `openai` default name for 3rd party providers.
    */
   name?: string;
@@ -152,9 +145,6 @@ export function createOpenAI(
   const baseURL =
     withoutTrailingSlash(options.baseURL) ?? 'https://api.openai.com/v1';
 
-  // we default to compatible, because strict breaks providers like Groq:
-  const compatibility = options.compatibility ?? 'compatible';
-
   const providerName = options.name ?? 'openai';
 
   const getHeaders = () => ({
@@ -173,7 +163,6 @@ export function createOpenAI(
       provider: `${providerName}.chat`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
-      compatibility,
       fetch: options.fetch,
     });
 
@@ -182,7 +171,6 @@ export function createOpenAI(
       provider: `${providerName}.completion`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
-      compatibility,
       fetch: options.fetch,
     });
 
@@ -272,8 +260,6 @@ export function createOpenAI(
 }
 
 /**
-Default OpenAI provider instance. It uses 'strict' compatibility mode.
+Default OpenAI provider instance.
  */
-export const openai = createOpenAI({
-  compatibility: 'strict', // strict for OpenAI API
-});
+export const openai = createOpenAI();

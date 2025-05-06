@@ -2,9 +2,14 @@ import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/provider-utils/test';
-import { Completion } from './completion.svelte.js';
 import { render } from '@testing-library/svelte';
+import type { DataStreamPart } from 'ai';
+import { Completion } from './completion.svelte.js';
 import CompletionSynchronization from './tests/completion-synchronization.svelte';
+
+function formatDataStreamPart(part: DataStreamPart) {
+  return `data: ${JSON.stringify(part)}\n\n`;
+}
 
 const server = createTestServer({
   '/api/completion': {},
@@ -14,7 +19,12 @@ describe('Completion', () => {
   it('should render a data stream', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
-      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      chunks: [
+        formatDataStreamPart({ type: 'text', value: 'Hello' }),
+        formatDataStreamPart({ type: 'text', value: ',' }),
+        formatDataStreamPart({ type: 'text', value: ' world' }),
+        formatDataStreamPart({ type: 'text', value: '.' }),
+      ],
     };
 
     const completion = new Completion();
@@ -36,7 +46,12 @@ describe('Completion', () => {
   it('should call `onFinish` callback', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
-      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      chunks: [
+        formatDataStreamPart({ type: 'text', value: 'Hello' }),
+        formatDataStreamPart({ type: 'text', value: ',' }),
+        formatDataStreamPart({ type: 'text', value: ' world' }),
+        formatDataStreamPart({ type: 'text', value: '.' }),
+      ],
     };
 
     const onFinish = vi.fn();
@@ -83,7 +98,12 @@ describe('Completion', () => {
       },
       {
         type: 'stream-chunks',
-        chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+        chunks: [
+          formatDataStreamPart({ type: 'text', value: 'Hello' }),
+          formatDataStreamPart({ type: 'text', value: ',' }),
+          formatDataStreamPart({ type: 'text', value: ' world' }),
+          formatDataStreamPart({ type: 'text', value: '.' }),
+        ],
       },
     ];
 
@@ -101,7 +121,12 @@ describe('synchronization', () => {
   it('correctly synchronizes content between hook instances', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
-      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      chunks: [
+        formatDataStreamPart({ type: 'text', value: 'Hello' }),
+        formatDataStreamPart({ type: 'text', value: ',' }),
+        formatDataStreamPart({ type: 'text', value: ' world' }),
+        formatDataStreamPart({ type: 'text', value: '.' }),
+      ],
     };
 
     const {
@@ -132,7 +157,7 @@ describe('synchronization', () => {
       expect(completion2.loading).toBe(true);
     });
 
-    controller.write('0:"Hello"\n');
+    controller.write(formatDataStreamPart({ type: 'text', value: 'Hello' }));
     await vi.waitFor(() => {
       expect(completion1.completion).toBe('Hello');
       expect(completion2.completion).toBe('Hello');

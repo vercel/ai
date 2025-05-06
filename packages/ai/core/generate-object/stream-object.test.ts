@@ -8,7 +8,7 @@ import { z } from 'zod';
 import {
   NoObjectGeneratedError,
   verifyNoObjectGeneratedError,
-} from '../../errors/no-object-generated-error';
+} from '../../src/error/no-object-generated-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
@@ -348,16 +348,20 @@ describe('streamObject', () => {
         await mockResponse.waitForEnd();
 
         expect(mockResponse.statusCode).toBe(200);
-        expect(mockResponse.headers).toEqual({
-          'Content-Type': 'text/plain; charset=utf-8',
-        });
-        expect(mockResponse.getDecodedChunks()).toEqual([
-          '{ ',
-          '"content": "Hello, ',
-          'world',
-          '!"',
-          ' }',
-        ]);
+        expect(mockResponse.headers).toMatchInlineSnapshot(`
+          {
+            "content-type": "text/plain; charset=utf-8",
+          }
+        `);
+        expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+          [
+            "{ ",
+            ""content": "Hello, ",
+            "world",
+            "!"",
+            " }",
+          ]
+        `);
       });
     });
 

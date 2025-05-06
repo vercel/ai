@@ -1,6 +1,10 @@
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
-import { createDataStream, streamText } from 'ai';
+import {
+  createDataStream,
+  DataStreamToSSETransformStream,
+  streamText,
+} from 'ai';
 import 'dotenv/config';
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
@@ -23,15 +27,15 @@ app.post('/', async c => {
 app.post('/stream-data', async c => {
   // immediately start streaming the response
   const dataStream = createDataStream({
-    execute: async dataStreamWriter => {
-      dataStreamWriter.writeData('initialized call');
+    execute: async writer => {
+      writer.write({ type: 'data', value: ['initialized call'] });
 
       const result = streamText({
         model: openai('gpt-4o'),
         prompt: 'Invent a new holiday and describe its traditions.',
       });
 
-      result.mergeIntoDataStream(dataStreamWriter);
+      writer.merge(result.toDataStream());
     },
     onError: error => {
       // Error messages are masked by default for security reasons.
@@ -40,12 +44,19 @@ app.post('/stream-data', async c => {
     },
   });
 
-  // Mark the response as a v1 data stream:
-  c.header('X-Vercel-AI-Data-Stream', 'v1');
-  c.header('Content-Type', 'text/plain; charset=utf-8');
+  // Mark the response as a v2 data stream:
+  c.header('content-type', 'text/event-stream');
+  c.header('cache-control', 'no-cache');
+  c.header('connection', 'keep-alive');
+  c.header('x-vercel-ai-data-stream', 'v2');
+  c.header('x-accel-buffering', 'no'); // disable nginx buffering
 
   return stream(c, stream =>
-    stream.pipe(dataStream.pipeThrough(new TextEncoderStream())),
+    stream.pipe(
+      dataStream
+        .pipeThrough(new DataStreamToSSETransformStream())
+        .pipeThrough(new TextEncoderStream()),
+    ),
   );
 });
 

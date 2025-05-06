@@ -1,21 +1,21 @@
-import { expect, it, describe } from 'vitest';
-import { pipeDataStreamToResponse } from './pipe-data-stream-to-response';
-import { formatDataStreamPart } from 'ai';
+import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { createMockServerResponse } from '../../core/test/mock-server-response';
+import { pipeDataStreamToResponse } from './pipe-data-stream-to-response';
 
 describe('pipeDataStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeDataStreamToResponse(mockResponse, {
+    pipeDataStreamToResponse({
+      response: mockResponse,
       status: 200,
       statusText: 'OK',
       headers: {
         'Custom-Header': 'test',
       },
-      execute: dataStream => {
-        dataStream.writeData('test-data');
-      },
+      dataStream: convertArrayToReadableStream([
+        { type: 'data', value: ['test-data'] },
+      ]),
     });
 
     // Wait for the stream to finish writing
@@ -26,28 +26,40 @@ describe('pipeDataStreamToResponse', () => {
     expect(mockResponse.statusMessage).toBe('OK');
 
     // Verify headers
-    expect(mockResponse.headers).toMatchObject({
-      'Content-Type': 'text/plain; charset=utf-8',
-      'X-Vercel-AI-Data-Stream': 'v1',
-      'Custom-Header': 'test',
-    });
+    expect(mockResponse.headers).toMatchInlineSnapshot(`
+      {
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
+        "custom-header": "test",
+        "x-accel-buffering": "no",
+        "x-vercel-ai-data-stream": "v2",
+      }
+    `);
 
     // Verify written data using decoded chunks
     const decodedChunks = mockResponse.getDecodedChunks();
-    expect(decodedChunks).toStrictEqual([
-      formatDataStreamPart('data', ['test-data']),
-    ]);
+    expect(decodedChunks).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"data","value":["test-data"]}
+
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
   });
 
   it('should handle errors in the stream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeDataStreamToResponse(mockResponse, {
+    pipeDataStreamToResponse({
+      response: mockResponse,
       status: 200,
-      execute: () => {
-        throw new Error('test error');
-      },
-      onError: () => 'Custom error message',
+      dataStream: convertArrayToReadableStream([
+        { type: 'error', value: 'Custom error message' },
+      ]),
     });
 
     // Wait for the stream to finish writing
@@ -55,8 +67,15 @@ describe('pipeDataStreamToResponse', () => {
 
     // Verify error handling using decoded chunks
     const decodedChunks = mockResponse.getDecodedChunks();
-    expect(decodedChunks).toStrictEqual([
-      formatDataStreamPart('error', 'Custom error message'),
-    ]);
+    expect(decodedChunks).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"error","value":"Custom error message"}
+
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
   });
 });

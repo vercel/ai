@@ -1,5 +1,10 @@
 import { openai } from '@ai-sdk/openai';
-import { createDataStreamResponse, UIMessage, streamText } from 'ai';
+import {
+  createDataStreamResponse,
+  UIMessage,
+  streamText,
+  createDataStream,
+} from 'ai';
 import { processToolCalls } from './utils';
 import { tools } from './tools';
 
@@ -9,14 +14,14 @@ export const maxDuration = 30;
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
-  return createDataStreamResponse({
-    execute: async dataStream => {
+  const dataStream = createDataStream({
+    execute: async writer => {
       // Utility function to handle tools that require human confirmation
       // Checks for confirmation in last message and then runs associated tool
       const processedMessages = await processToolCalls(
         {
           messages,
-          dataStream,
+          dataStream: writer,
           tools,
         },
         {
@@ -36,7 +41,9 @@ export async function POST(req: Request) {
         tools,
       });
 
-      result.mergeIntoDataStream(dataStream);
+      writer.merge(result.toDataStream());
     },
   });
+
+  return createDataStreamResponse({ dataStream });
 }

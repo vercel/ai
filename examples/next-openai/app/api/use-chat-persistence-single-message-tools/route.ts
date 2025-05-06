@@ -3,6 +3,7 @@ import { loadChat, saveChat } from '@util/chat-store';
 import {
   appendClientMessage,
   appendResponseMessages,
+  createDataStream,
   createDataStreamResponse,
   createIdGenerator,
   streamText,
@@ -29,11 +30,11 @@ export async function POST(req: Request) {
   });
 
   // immediately start streaming (solves RAG issues with status, etc.)
-  return createDataStreamResponse({
-    execute: dataStream => {
-      dataStream.writeMessageAnnotation({
-        start: 'start',
-        count: count++,
+  const dataStream = createDataStream({
+    execute: writer => {
+      writer.write({
+        type: 'message-annotations',
+        value: [{ start: 'start', count: count++ }],
       });
 
       const result = streamText({
@@ -63,9 +64,9 @@ export async function POST(req: Request) {
                   Math.floor(Math.random() * weatherOptions.length)
                 ];
 
-              dataStream.writeMessageAnnotation({
-                city,
-                weather,
+              writer.write({
+                type: 'message-annotations',
+                value: [{ city, weather }],
               });
 
               return weather;
@@ -103,7 +104,7 @@ export async function POST(req: Request) {
         },
       });
 
-      result.mergeIntoDataStream(dataStream);
+      writer.merge(result.toDataStream());
     },
     onError: error => {
       // Error messages are masked by default for security reasons.
@@ -111,4 +112,6 @@ export async function POST(req: Request) {
       return error instanceof Error ? error.message : String(error);
     },
   });
+
+  return createDataStreamResponse({ dataStream });
 }

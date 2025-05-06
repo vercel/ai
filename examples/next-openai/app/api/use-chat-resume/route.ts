@@ -11,6 +11,7 @@ import {
   generateId,
   UIMessage,
   streamText,
+  DataStreamToSSETransformStream,
 } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
   await appendStreamId({ chatId: id, streamId });
 
   const stream = createDataStream({
-    execute: dataStream => {
+    execute: writer => {
       const result = streamText({
         model: openai('gpt-4o'),
         messages,
@@ -56,12 +57,14 @@ export async function POST(req: Request) {
         },
       });
 
-      result.mergeIntoDataStream(dataStream);
+      writer.merge(result.toDataStream());
     },
   });
 
   return new Response(
-    await streamContext.resumableStream(streamId, () => stream),
+    await streamContext.resumableStream(streamId, () =>
+      stream.pipeThrough(new DataStreamToSSETransformStream()),
+    ),
   );
 }
 
@@ -94,6 +97,8 @@ export async function GET(request: Request) {
   });
 
   return new Response(
-    await streamContext.resumableStream(recentStreamId, () => emptyDataStream),
+    await streamContext.resumableStream(recentStreamId, () =>
+      emptyDataStream.pipeThrough(new DataStreamToSSETransformStream()),
+    ),
   );
 }

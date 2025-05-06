@@ -1,6 +1,5 @@
 import { ServerResponse } from 'node:http';
-import { DataStreamText } from '../../src/data-stream/data-stream-parts';
-import { DataStreamWriter } from '../../src/data-stream/data-stream-writer';
+import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
 import { ReasoningPart } from '../prompt/content-part';
 import {
   CallWarning,
@@ -20,9 +19,11 @@ import { ToolSet } from './tool-set';
 
 export type DataStreamOptions = {
   /**
-   * Get an error message from an error. Default to `() => 'An error occurred.'`.
+   * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
+   *
+   * @return error message to include in the data stream.
    */
-  getErrorMessage?: (error: unknown) => string;
+  onError?: (error: unknown) => string;
 
   /**
    * Send usage parts to the client.
@@ -221,23 +222,10 @@ If an error occurs, it is passed to the optional `onError` callback.
 
   @return A data stream.
      */
-  toDataStream(options?: DataStreamOptions): ReadableStream<DataStreamText>;
-
-  /**
-   * Merges the result as a data stream into another data stream.
-   *
-   * @param dataStream A data stream writer.
-   * @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
-   * @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
-   */
-  mergeIntoDataStream(
-    dataStream: DataStreamWriter,
-    options?: DataStreamOptions,
-  ): void;
+  toDataStream(options?: DataStreamOptions): ReadableStream<DataStreamPart>;
 
   /**
   Writes data stream output to a Node.js response-like object.
-
   @param response A Node.js response-like object (ServerResponse).
   @param options.status The status code.
   @param options.statusText The status text.
@@ -255,7 +243,6 @@ If an error occurs, it is passed to the optional `onError` callback.
   Writes text delta output to a Node.js response-like object.
   It sets a `Content-Type` header to `text/plain; charset=utf-8` and
   writes each text delta as a separate chunk.
-
   @param response A Node.js response-like object (ServerResponse).
   @param init Optional headers, status code, and status text.
      */
@@ -264,7 +251,6 @@ If an error occurs, it is passed to the optional `onError` callback.
   /**
   Converts the result to a streamed response object with a stream data part stream.
   It can be used with the `useChat` and `useCompletion` hooks.
-
   @param options.status The status code.
   @param options.statusText The status text.
   @param options.headers The headers.
@@ -272,7 +258,6 @@ If an error occurs, it is passed to the optional `onError` callback.
   @param options.getErrorMessage An optional function that converts an error to an error message.
   @param options.sendUsage Whether to send the usage information to the client. Defaults to true.
   @param options.sendReasoning Whether to send the reasoning information to the client. Defaults to false.
-
   @return A response object.
      */
   toDataStreamResponse(options?: ResponseInit & DataStreamOptions): Response;
@@ -281,7 +266,6 @@ If an error occurs, it is passed to the optional `onError` callback.
   Creates a simple text stream response.
   Each text delta is encoded as UTF-8 and sent as a separate chunk.
   Non-text-delta events are ignored.
-
   @param init Optional headers, status code, and status text.
      */
   toTextStreamResponse(init?: ResponseInit): Response;

@@ -1,32 +1,29 @@
 import { ServerResponse } from 'node:http';
-import { prepareOutgoingHttpHeaders } from '../../core/util/prepare-outgoing-http-headers';
+import { prepareHeaders } from '../../core/util/prepare-headers';
 import { writeToServerResponse } from '../../core/util/write-to-server-response';
-import { createDataStream } from './create-data-stream';
-import { DataStreamWriter } from './data-stream-writer';
+import { dataStreamHeaders } from './data-stream-headers';
+import { DataStreamPart } from './data-stream-parts';
+import { DataStreamToSSETransformStream } from './data-stream-to-sse-transform-stream';
 
-export function pipeDataStreamToResponse(
-  response: ServerResponse,
-  {
-    status,
-    statusText,
-    headers,
-    execute,
-    onError,
-  }: ResponseInit & {
-    execute: (writer: DataStreamWriter) => Promise<void> | void;
-    onError?: (error: unknown) => string;
-  },
-): void {
+export function pipeDataStreamToResponse({
+  response,
+  status,
+  statusText,
+  headers,
+  dataStream,
+}: {
+  response: ServerResponse;
+  dataStream: ReadableStream<DataStreamPart>;
+} & ResponseInit): void {
   writeToServerResponse({
     response,
     status,
     statusText,
-    headers: prepareOutgoingHttpHeaders(headers, {
-      contentType: 'text/plain; charset=utf-8',
-      dataStreamVersion: 'v1',
-    }),
-    stream: createDataStream({ execute, onError }).pipeThrough(
-      new TextEncoderStream(),
+    headers: Object.fromEntries(
+      prepareHeaders(headers, dataStreamHeaders).entries(),
     ),
+    stream: dataStream
+      .pipeThrough(new DataStreamToSSETransformStream())
+      .pipeThrough(new TextEncoderStream()),
   });
 }

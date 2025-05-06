@@ -4,14 +4,9 @@ import {
 } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
-import { ServerResponse } from 'node:http';
-import { InvalidArgumentError } from '../../errors/invalid-argument-error';
-import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
-import {
-  DataStreamText,
-  formatDataStreamPart,
-} from '../../src/data-stream/data-stream-parts';
-import { DataStreamWriter } from '../../src/data-stream/data-stream-writer';
+import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
+import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
+import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
 import { asArray } from '../../util/as-array';
 import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
@@ -44,10 +39,7 @@ import {
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { now as originalNow } from '../util/now';
-import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
-import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
-import { writeToServerResponse } from '../util/write-to-server-response';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { asReasoningText } from './reasoning';
@@ -67,6 +59,11 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ServerResponse } from 'node:http';
+import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
+import { createDataStreamResponse } from '../../src/data-stream/create-data-stream-response';
+import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
+import { pipeDataStreamToResponse } from '../../src/data-stream/pipe-data-stream-to-response';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1576,148 +1573,141 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toDataStream({
-    getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
+    onError = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
     sendReasoning = false,
     sendSources = false,
     experimental_sendFinish = true,
-  }: DataStreamOptions = {}): ReadableStream<DataStreamText> {
+  }: DataStreamOptions = {}): ReadableStream<DataStreamPart> {
     return this.fullStream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, DataStreamText>({
+      new TransformStream<TextStreamPart<TOOLS>, DataStreamPart>({
         transform: async (chunk, controller) => {
           const chunkType = chunk.type;
           switch (chunkType) {
             case 'text': {
-              controller.enqueue(formatDataStreamPart('text', chunk.text));
+              controller.enqueue({ type: 'text', value: chunk.text });
               break;
             }
 
             case 'reasoning': {
               if (sendReasoning) {
-                controller.enqueue(formatDataStreamPart('reasoning', chunk));
+                controller.enqueue({ type: 'reasoning', value: chunk });
               }
               break;
             }
 
             case 'reasoning-part-finish': {
               if (sendReasoning) {
-                controller.enqueue(
-                  formatDataStreamPart('reasoning_part_finish', {}),
-                );
+                controller.enqueue({
+                  type: 'reasoning-part-finish',
+                  value: null,
+                });
               }
               break;
             }
 
             case 'file': {
-              controller.enqueue(
-                // TODO update protocol to v2 or replace with event stream
-                formatDataStreamPart('file', {
+              controller.enqueue({
+                type: 'file',
+                value: {
                   mediaType: chunk.file.mediaType,
                   url: `data:${chunk.file.mediaType};base64,${chunk.file.base64}`,
-                }),
-              );
+                },
+              });
               break;
             }
 
             case 'source': {
               if (sendSources) {
-                controller.enqueue(formatDataStreamPart('source', chunk));
+                controller.enqueue({ type: 'source', value: chunk });
               }
               break;
             }
 
             case 'tool-call-streaming-start': {
-              controller.enqueue(
-                formatDataStreamPart('tool_call_streaming_start', {
+              controller.enqueue({
+                type: 'tool-call-streaming-start',
+                value: {
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
-                }),
-              );
+                },
+              });
               break;
             }
 
             case 'tool-call-delta': {
-              controller.enqueue(
-                formatDataStreamPart('tool_call_delta', {
+              controller.enqueue({
+                type: 'tool-call-delta',
+                value: {
                   toolCallId: chunk.toolCallId,
                   argsTextDelta: chunk.argsTextDelta,
-                }),
-              );
+                },
+              });
               break;
             }
 
             case 'tool-call': {
-              controller.enqueue(
-                formatDataStreamPart('tool_call', {
+              controller.enqueue({
+                type: 'tool-call',
+                value: {
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   args: chunk.args,
-                }),
-              );
+                },
+              });
               break;
             }
 
             case 'tool-result': {
-              controller.enqueue(
-                formatDataStreamPart('tool_result', {
+              controller.enqueue({
+                type: 'tool-result',
+                value: {
                   toolCallId: chunk.toolCallId,
                   result: chunk.result,
-                }),
-              );
+                },
+              });
               break;
             }
 
             case 'error': {
-              controller.enqueue(
-                formatDataStreamPart('error', getErrorMessage(chunk.error)),
-              );
+              controller.enqueue({
+                type: 'error',
+                value: onError(chunk.error),
+              });
               break;
             }
 
             case 'step-start': {
-              controller.enqueue(
-                formatDataStreamPart('start_step', {
+              controller.enqueue({
+                type: 'start-step',
+                value: {
                   messageId: chunk.messageId,
-                }),
-              );
+                },
+              });
               break;
             }
 
             case 'step-finish': {
-              controller.enqueue(
-                formatDataStreamPart('finish_step', {
+              controller.enqueue({
+                type: 'finish-step',
+                value: {
                   finishReason: chunk.finishReason,
-                  usage: sendUsage
-                    ? {
-                        inputTokens: chunk.usage.inputTokens,
-                        outputTokens: chunk.usage.outputTokens,
-                        totalTokens: chunk.usage.totalTokens,
-                        reasoningTokens: chunk.usage.reasoningTokens,
-                        cachedInputTokens: chunk.usage.cachedInputTokens,
-                      }
-                    : undefined,
+                  usage: sendUsage ? chunk.usage : undefined,
                   isContinued: chunk.isContinued,
-                }),
-              );
+                },
+              });
               break;
             }
 
             case 'finish': {
               if (experimental_sendFinish) {
-                controller.enqueue(
-                  formatDataStreamPart('finish_message', {
+                controller.enqueue({
+                  type: 'finish-message',
+                  value: {
                     finishReason: chunk.finishReason,
-                    usage: sendUsage
-                      ? {
-                          inputTokens: chunk.usage.inputTokens,
-                          outputTokens: chunk.usage.outputTokens,
-                          totalTokens: chunk.usage.totalTokens,
-                          reasoningTokens: chunk.usage.reasoningTokens,
-                          cachedInputTokens: chunk.usage.cachedInputTokens,
-                        }
-                      : undefined,
-                  }),
-                );
+                    usage: sendUsage ? chunk.usage : undefined,
+                  },
+                });
               }
               break;
             }
@@ -1735,93 +1725,63 @@ However, the LLM results are expected to be small enough to not cause issues.
   pipeDataStreamToResponse(
     response: ServerResponse,
     {
-      status,
-      statusText,
-      headers,
-      getErrorMessage,
+      onError,
       sendUsage,
       sendReasoning,
       sendSources,
       experimental_sendFinish,
+      experimental_sendStart,
+      ...init
     }: ResponseInit & DataStreamOptions = {},
   ) {
-    writeToServerResponse({
+    pipeDataStreamToResponse({
       response,
-      status,
-      statusText,
-      headers: prepareOutgoingHttpHeaders(headers, {
-        contentType: 'text/plain; charset=utf-8',
-        dataStreamVersion: 'v1',
-      }),
-      stream: this.toDataStream({
-        getErrorMessage,
+      dataStream: this.toDataStream({
+        onError,
         sendUsage,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
-      }).pipeThrough(new TextEncoderStream()),
+        experimental_sendStart,
+      }),
+      ...init,
     });
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    writeToServerResponse({
+    pipeTextStreamToResponse({
       response,
-      status: init?.status,
-      statusText: init?.statusText,
-      headers: prepareOutgoingHttpHeaders(init?.headers, {
-        contentType: 'text/plain; charset=utf-8',
-      }),
-      stream: this.textStream.pipeThrough(new TextEncoderStream()),
+      textStream: this.textStream,
+      ...init,
     });
   }
 
-  mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
-    writer.merge(
-      this.toDataStream({
-        getErrorMessage: options?.getErrorMessage ?? writer.onError,
-        sendUsage: options?.sendUsage,
-        sendReasoning: options?.sendReasoning,
-        sendSources: options?.sendSources,
-        experimental_sendFinish: options?.experimental_sendFinish,
-      }),
-    );
-  }
-
   toDataStreamResponse({
-    headers,
-    status,
-    statusText,
-    getErrorMessage,
+    onError,
     sendUsage,
     sendReasoning,
     sendSources,
     experimental_sendFinish,
+    experimental_sendStart,
+    ...init
   }: ResponseInit & DataStreamOptions = {}): Response {
-    return new Response(
-      this.toDataStream({
-        getErrorMessage,
+    return createDataStreamResponse({
+      dataStream: this.toDataStream({
+        onError,
         sendUsage,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
-      }).pipeThrough(new TextEncoderStream()),
-      {
-        status,
-        statusText,
-        headers: prepareResponseHeaders(headers, {
-          contentType: 'text/plain; charset=utf-8',
-          dataStreamVersion: 'v1',
-        }),
-      },
-    );
+        experimental_sendStart,
+      }),
+      ...init,
+    });
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {
-    return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
-      status: init?.status ?? 200,
-      headers: prepareResponseHeaders(init?.headers, {
-        contentType: 'text/plain; charset=utf-8',
-      }),
+    return createTextStreamResponse({
+      textStream: this.textStream,
+      ...init,
     });
   }
 }

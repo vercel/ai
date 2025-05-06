@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { Schema } from '../util';
 
 export function validateObjectGenerationInput({

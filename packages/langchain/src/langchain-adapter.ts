@@ -1,9 +1,5 @@
-import { DataStreamWriter, formatDataStreamPart } from 'ai';
-import {
-  createCallbacksTransformer,
-  prepareResponseHeaders,
-  StreamCallbacks,
-} from 'ai/internal';
+import { DataStreamPart } from 'ai';
+import { createCallbacksTransformer, StreamCallbacks } from 'ai/internal';
 
 type LangChainImageDetail = 'auto' | 'low' | 'high';
 
@@ -44,7 +40,14 @@ type LangChainStreamEvent = {
   data: any;
 };
 
-function toDataStreamInternal(
+/**
+Converts LangChain output streams to an AI SDK Data Stream.
+
+The following streams are supported:
+- `LangChainAIMessageChunk` streams (LangChain `model.stream` output)
+- `string` streams (LangChain `StringOutputParser` output)
+ */
+export function toDataStream(
   stream:
     | ReadableStream<LangChainStreamEvent>
     | ReadableStream<LangChainAIMessageChunk>
@@ -81,69 +84,13 @@ function toDataStreamInternal(
       }),
     )
     .pipeThrough(createCallbacksTransformer(callbacks))
-    .pipeThrough(new TextDecoderStream())
     .pipeThrough(
-      new TransformStream({
+      new TransformStream<string, DataStreamPart>({
         transform: async (chunk, controller) => {
-          controller.enqueue(formatDataStreamPart('text', chunk));
+          controller.enqueue({ type: 'text', value: chunk });
         },
       }),
     );
-}
-
-/**
-Converts LangChain output streams to an AI SDK Data Stream.
-
-The following streams are supported:
-- `LangChainAIMessageChunk` streams (LangChain `model.stream` output)
-- `string` streams (LangChain `StringOutputParser` output)
- */
-export function toDataStream(
-  stream:
-    | ReadableStream<LangChainStreamEvent>
-    | ReadableStream<LangChainAIMessageChunk>
-    | ReadableStream<string>,
-  callbacks?: StreamCallbacks,
-) {
-  return toDataStreamInternal(stream, callbacks).pipeThrough(
-    new TextEncoderStream(),
-  );
-}
-
-export function toDataStreamResponse(
-  stream:
-    | ReadableStream<LangChainStreamEvent>
-    | ReadableStream<LangChainAIMessageChunk>
-    | ReadableStream<string>,
-  options?: {
-    init?: ResponseInit;
-    callbacks?: StreamCallbacks;
-  },
-) {
-  const dataStream = toDataStreamInternal(
-    stream,
-    options?.callbacks,
-  ).pipeThrough(new TextEncoderStream());
-  const init = options?.init;
-
-  return new Response(dataStream, {
-    status: init?.status ?? 200,
-    statusText: init?.statusText,
-    headers: prepareResponseHeaders(init?.headers, {
-      contentType: 'text/plain; charset=utf-8',
-      dataStreamVersion: 'v1',
-    }),
-  });
-}
-
-export function mergeIntoDataStream(
-  stream:
-    | ReadableStream<LangChainStreamEvent>
-    | ReadableStream<LangChainAIMessageChunk>
-    | ReadableStream<string>,
-  options: { dataStream: DataStreamWriter; callbacks?: StreamCallbacks },
-) {
-  options.dataStream.merge(toDataStreamInternal(stream, options.callbacks));
 }
 
 function forwardAIMessageChunk(

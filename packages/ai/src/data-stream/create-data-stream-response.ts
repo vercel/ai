@@ -1,26 +1,24 @@
-import { prepareResponseHeaders } from '../../core/util/prepare-response-headers';
-import { createDataStream } from './create-data-stream';
-import { DataStreamWriter } from './data-stream-writer';
+import { prepareHeaders } from '../../core/util/prepare-headers';
+import { dataStreamHeaders } from './data-stream-headers';
+import { DataStreamPart } from './data-stream-parts';
+import { DataStreamToSSETransformStream } from './data-stream-to-sse-transform-stream';
 
 export function createDataStreamResponse({
   status,
   statusText,
   headers,
-  execute,
-  onError,
+  dataStream,
 }: ResponseInit & {
-  execute: (dataStream: DataStreamWriter) => Promise<void> | void;
-  onError?: (error: unknown) => string;
+  dataStream: ReadableStream<DataStreamPart>;
 }): Response {
   return new Response(
-    createDataStream({ execute, onError }).pipeThrough(new TextEncoderStream()),
+    dataStream
+      .pipeThrough(new DataStreamToSSETransformStream())
+      .pipeThrough(new TextEncoderStream()),
     {
       status,
       statusText,
-      headers: prepareResponseHeaders(headers, {
-        contentType: 'text/plain; charset=utf-8',
-        dataStreamVersion: 'v1',
-      }),
+      headers: prepareHeaders(headers, dataStreamHeaders),
     },
   );
 }

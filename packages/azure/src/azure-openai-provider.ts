@@ -150,7 +150,6 @@ export function createAzure(
       provider: 'azure.chat',
       url,
       headers: getHeaders,
-      compatibility: 'strict',
       fetch: options.fetch,
     });
 
@@ -158,7 +157,6 @@ export function createAzure(
     new OpenAICompletionLanguageModel(modelId, {
       provider: 'azure.completion',
       url,
-      compatibility: 'strict',
       headers: getHeaders,
       fetch: options.fetch,
     });

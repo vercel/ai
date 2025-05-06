@@ -1,5 +1,10 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { createDataStreamResponse, generateId, streamText } from 'ai';
+import {
+  createDataStream,
+  createDataStreamResponse,
+  generateId,
+  streamText,
+} from 'ai';
 
 export default defineLazyEventHandler(async () => {
   const openai = createOpenAI({
@@ -10,29 +15,37 @@ export default defineLazyEventHandler(async () => {
     const { messages } = await readBody(event);
 
     // immediately start streaming (solves RAG issues with status, etc.)
-    return createDataStreamResponse({
-      execute: dataStream => {
-        dataStream.writeData('initialized call');
+    const dataStream = createDataStream({
+      execute: writer => {
+        writer.write({ type: 'data', value: ['initialized call'] });
 
         const result = streamText({
           model: openai('gpt-4o'),
           messages,
           onChunk() {
-            dataStream.writeMessageAnnotation({ chunk: '123' });
+            writer.write({
+              type: 'message-annotations',
+              value: [{ chunk: '123' }],
+            });
           },
           onFinish() {
             // message annotation:
-            dataStream.writeMessageAnnotation({
-              id: generateId(), // e.g. id from saved DB record
-              other: 'information',
+            writer.write({
+              type: 'message-annotations',
+              value: [
+                {
+                  id: generateId(), // e.g. id from saved DB record
+                  other: 'information',
+                },
+              ],
             });
 
             // call annotation:
-            dataStream.writeData('call completed');
+            writer.write({ type: 'data', value: ['call completed'] });
           },
         });
 
-        result.mergeIntoDataStream(dataStream);
+        writer.merge(result.toDataStream());
       },
       onError: error => {
         // Error messages are masked by default for security reasons.
@@ -40,5 +53,7 @@ export default defineLazyEventHandler(async () => {
         return error instanceof Error ? error.message : String(error);
       },
     });
+
+    return createDataStreamResponse({ dataStream });
   });
 });

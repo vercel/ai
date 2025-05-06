@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { InvalidToolArgumentsError } from '../../errors/invalid-tool-arguments-error';
-import { NoSuchToolError } from '../../errors/no-such-tool-error';
+import { InvalidToolArgumentsError } from '../../src/error/invalid-tool-arguments-error';
+import { NoSuchToolError } from '../../src/error/no-such-tool-error';
 import { tool } from '../tool';
 import { parseToolCall } from './parse-tool-call';
-import { ToolCallRepairError } from '../../errors/tool-call-repair-error';
+import { ToolCallRepairError } from '../../src/error/tool-call-repair-error';
 
 it('should successfully parse a valid tool call', async () => {
   const result = await parseToolCall({

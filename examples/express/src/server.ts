@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { pipeDataStreamToResponse, streamText } from 'ai';
+import { createDataStream, pipeDataStreamToResponse, streamText } from 'ai';
 import 'dotenv/config';
 import express, { Request, Response } from 'express';
 
@@ -16,16 +16,17 @@ app.post('/', async (req: Request, res: Response) => {
 
 app.post('/stream-data', async (req: Request, res: Response) => {
   // immediately start streaming the response
-  pipeDataStreamToResponse(res, {
-    execute: async dataStreamWriter => {
-      dataStreamWriter.writeData('initialized call');
+
+  const dataStream = createDataStream({
+    execute: async writer => {
+      writer.write({ type: 'data', value: ['initialized call'] });
 
       const result = streamText({
         model: openai('gpt-4o'),
         prompt: 'Invent a new holiday and describe its traditions.',
       });
 
-      result.mergeIntoDataStream(dataStreamWriter);
+      writer.merge(result.toDataStream());
     },
     onError: error => {
       // Error messages are masked by default for security reasons.
@@ -33,6 +34,8 @@ app.post('/stream-data', async (req: Request, res: Response) => {
       return error instanceof Error ? error.message : String(error);
     },
   });
+
+  pipeDataStreamToResponse({ response: res, dataStream });
 });
 
 app.listen(8080, () => {
