@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   // Check if we have a cached response
   const cached = cache.get(key);
   if (cached != null) {
-    return new Response(formatDataStreamPart('text', cached), {
+    return new Response(`data: ${cached}\n\n`, {
       status: 200,
       headers: { 'Content-Type': 'text/plain' },
     });
