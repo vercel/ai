@@ -9,9 +9,9 @@ description: Monitor your AI SDK applications with Laminar
 
 Laminar features:
 
-- [tracing compatible with AI SDK and more](https://docs.lmnr.ai/tracing/introduction),
-- [evaluations](https://docs.lmnr.ai/evaluations/introduction),
-- [browser agent observability](https://docs.lmnr.ai/tracing/browser-agent-observability)
+- [Tracing compatible with AI SDK and more](https://docs.lmnr.ai/tracing/introduction),
+- [Evaluations](https://docs.lmnr.ai/evaluations/introduction),
+- [Browser agent observability](https://docs.lmnr.ai/tracing/browser-agent-observability)
 
 <Note>
   A version of this guide is available in [Laminar's
@@ -38,29 +38,38 @@ To start with Laminar's tracing, first [install](https://docs.lmnr.ai/installati
   </Tab>
 </Tabs>
 
-### Get your project API key
+### Get your project API key and set in the environment
 
 Then, either sign up on [Laminar](https://www.lmnr.ai) or self-host an instance ([github](https://github.com/lmnr-ai/lmnr)) and create a new project.
 
 In the project settings, create and copy the API key.
 
-### Initialize tracing
+In your .env
 
-Then, initialize tracing in your application:
-
-```javascript
-import { Laminar } from '@lmnr-ai/lmnr';
-
-Laminar.initialize({
-  projectApiKey: '...',
-});
+```bash
+LMNR_PROJECT_API_KEY=...
 ```
 
-This must be done once in your application, as early as possible, but _after_ other tracing libraries (e.g. `@vercel/otel`, `@sentry/node`) are initialized.
+## Next.js
 
-Read more in Laminar [docs](https://docs.lmnr.ai/tracing/introduction#1-get-your-project-api-key).
+### Initialize tracing
+
+In Next.js, Laminar initialization should be done in `instrumentation.{ts,js}`:
+
+```javascript
+export async function register() {
+  // prevent this from running in the edge runtime
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { Laminar } = await import('@lmnr-ai/lmnr');
+    Laminar.initialize({
+      projectApiKey: process.env.LMNR_API_KEY,
+    });
+  }
+}
+```
 
 ### Tracing AI SDK calls
+
 Then, when you call AI SDK functions in any of your API routes, add the Laminar tracer to the `experimental_telemetry` option.
 
 ```javascript highlight="3,8-11"
@@ -88,39 +97,7 @@ This will create spans for `ai.generateText`. Laminar collects and displays the 
 - Input and output price
 - Additional metadata and span attributes
 
-## Next.js
-
-In Next.js, Laminar initialization should be done in `instrumentation.{ts,js}`:
-
-```javascript
-export async function register() {
-  // prevent this from running in the edge runtime
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    const { Laminar } = await import('@lmnr-ai/lmnr');
-    Laminar.initialize({
-      projectApiKey: process.env.LMNR_API_KEY,
-    });
-  }
-}
-```
-
-Then, when you call AI SDK functions in any of your API routes, add the Laminar tracer to the `experimental_telemetry` option.
-
-```javascript highlight="4,9-12"
-// /api/.../route.ts
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-import { getTracer } from '@lmnr-ai/lmnr';
-
-const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
-  prompt: 'What is Laminar flow?',
-  experimental_telemetry: {
-    isEnabled: true,
-    tracer: getTracer(),
-  },
-});
-```
+### Older versions of Next.js
 
 If you are using 13.4 ≤ Next.js < 15, you will also need to enable the experimental instrumentation hook. Place the following in your `next.config.js`:
 
@@ -148,7 +125,7 @@ export async function register() {
     const { Laminar } = await import('@lmnr-ai/lmnr');
     // Make sure to initialize Laminar **after** `@registerOTel`
     Laminar.initialize({
-      projectApiKey: process.env.LMNR_API_KEY,
+      projectApiKey: process.env.LMNR_PROJECT_API_KEY,
     });
   }
 }
@@ -163,7 +140,7 @@ For an advanced configuration that allows you to trace all Next.js traces via La
 
 ### Usage with `@sentry/node`
 
-Laminar can work with `@sentry/node` to trace AI SDK calls. The default Laminar setup is the following:
+Laminar can work with `@sentry/node` to trace AI SDK calls. Make sure to initialize Laminar **after** `Sentry.init`:
 
 ```javascript
 export async function register() {
@@ -177,7 +154,7 @@ export async function register() {
 
     // Make sure to initialize Laminar **after** `Sentry.init`
     Laminar.initialize({
-      projectApiKey: process.env.LMNR_API_KEY,
+      projectApiKey: process.env.LMNR_PROJECT_API_KEY,
     });
   }
 }
@@ -188,7 +165,76 @@ This will ensure that
 - Whatever is instrumented by Sentry is sent to your Sentry backend,
 - AI SDK and other LLM or browser agent traces are sent via Laminar.
 
-## Configuration
+## Node.js
+
+### Initialize tracing
+
+Then, initialize tracing in your application:
+
+```javascript
+import { Laminar } from '@lmnr-ai/lmnr';
+
+Laminar.initialize();
+```
+
+This must be done once in your application, as early as possible, but _after_ other tracing libraries (e.g. `@sentry/node`) are initialized.
+
+Read more in Laminar [docs](https://docs.lmnr.ai/tracing/introduction#1-get-your-project-api-key).
+
+### Tracing AI SDK calls
+
+Then, when you call AI SDK functions in any of your API routes, add the Laminar tracer to the `experimental_telemetry` option.
+
+```javascript highlight="3,8-11"
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+import { getTracer } from '@lmnr-ai/lmnr';
+
+const { text } = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'What is Laminar flow?',
+  experimental_telemetry: {
+    isEnabled: true,
+    tracer: getTracer(),
+  },
+});
+```
+
+This will create spans for `ai.generateText`. Laminar collects and displays the following information:
+
+- LLM call input and output
+- Start and end time
+- Duration / latency
+- Provider and model used
+- Input and output tokens
+- Input and output price
+- Additional metadata and span attributes
+
+### Usage with `@sentry/node`
+
+Laminar can work with `@sentry/node` to trace AI SDK calls. Make sure to initialize Laminar **after** `Sentry.init`:
+
+```javascript
+const Sentry = await import('@sentry/node');
+const { Laminar } = await import('@lmnr-ai/lmnr');
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+});
+
+Laminar.initialize({
+  projectApiKey: process.env.LMNR_PROJECT_API_KEY,
+});
+```
+
+This will ensure that
+
+- Whatever is instrumented by Sentry is sent to your Sentry backend,
+- AI SDK and other LLM or browser agent traces are sent via Laminar.
+
+The two libraries allow for additional advanced configuration, but the default setup above is recommended.
+
+## Additional configuration
 
 ### Nested spans
 
