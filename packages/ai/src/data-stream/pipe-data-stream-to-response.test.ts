@@ -27,11 +27,13 @@ describe('pipeDataStreamToResponse', () => {
     expect(mockResponse.statusMessage).toBe('OK');
 
     // Verify headers
-    expect(mockResponse.headers).toMatchObject({
-      'Content-Type': 'text/plain; charset=utf-8',
-      'X-Vercel-AI-Data-Stream': 'v1',
-      'Custom-Header': 'test',
-    });
+    expect(mockResponse.headers).toMatchInlineSnapshot(`
+      {
+        "content-type": "text/plain; charset=utf-8",
+        "custom-header": "test",
+        "x-vercel-ai-data-stream": "v1",
+      }
+    `);
 
     // Verify written data using decoded chunks
     const decodedChunks = mockResponse.getDecodedChunks();

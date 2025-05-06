@@ -1,5 +1,5 @@
 import { ServerResponse } from 'node:http';
-import { prepareOutgoingHttpHeaders } from '../../core/util/prepare-outgoing-http-headers';
+import { prepareHeaders } from '../../core/util/prepare-headers';
 import { writeToServerResponse } from '../../core/util/write-to-server-response';
 import { DataStreamText } from './data-stream-parts';
 
@@ -17,10 +17,12 @@ export function pipeDataStreamToResponse({
     response,
     status,
     statusText,
-    headers: prepareOutgoingHttpHeaders(headers, {
-      contentType: 'text/plain; charset=utf-8',
-      dataStreamVersion: 'v1',
-    }),
+    headers: Object.fromEntries(
+      prepareHeaders(headers, {
+        'content-type': 'text/plain; charset=utf-8',
+        'x-vercel-ai-data-stream': 'v1',
+      }).entries(),
+    ),
     stream: dataStream.pipeThrough(new TextEncoderStream()),
   });
 }

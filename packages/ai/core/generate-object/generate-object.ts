@@ -19,20 +19,20 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
-import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
-import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
-import { Schema } from '../util';
-import { prepareResponseHeaders } from '../util/prepare-response-headers';
-import { GenerateObjectResult } from './generate-object-result';
-import { getOutputStrategy } from './output-strategy';
-import { validateObjectGenerationInput } from './validate-object-generation-input';
 import {
   CallWarning,
   FinishReason,
   LanguageModel,
 } from '../types/language-model';
+import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
+import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
+import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { Schema } from '../util';
+import { prepareHeaders } from '../util/prepare-headers';
+import { GenerateObjectResult } from './generate-object-result';
+import { getOutputStrategy } from './output-strategy';
+import { validateObjectGenerationInput } from './validate-object-generation-input';
 
 const originalGenerateId = createIdGenerator({ prefix: 'aiobj', size: 24 });
 
@@ -472,8 +472,8 @@ class DefaultGenerateObjectResult<T> implements GenerateObjectResult<T> {
   toJsonResponse(init?: ResponseInit): Response {
     return new Response(JSON.stringify(this.object), {
       status: init?.status ?? 200,
-      headers: prepareResponseHeaders(init?.headers, {
-        contentType: 'application/json; charset=utf-8',
+      headers: prepareHeaders(init?.headers, {
+        'content-type': 'application/json; charset=utf-8',
       }),
     });
   }

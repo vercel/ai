@@ -1,4 +1,4 @@
-import { prepareResponseHeaders } from '../../core/util/prepare-response-headers';
+import { prepareHeaders } from '../../core/util/prepare-headers';
 
 export function createTextStreamResponse({
   status,
@@ -11,8 +11,8 @@ export function createTextStreamResponse({
   return new Response(textStream.pipeThrough(new TextEncoderStream()), {
     status: status ?? 200,
     statusText,
-    headers: prepareResponseHeaders(headers, {
-      contentType: 'text/plain; charset=utf-8',
+    headers: prepareHeaders(headers, {
+      'content-type': 'text/plain; charset=utf-8',
     }),
   });
 }

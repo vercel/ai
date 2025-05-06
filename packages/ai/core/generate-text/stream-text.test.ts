@@ -834,11 +834,28 @@ describe('streamText', () => {
       await mockResponse.waitForEnd();
 
       expect(mockResponse.statusCode).toBe(200);
-      expect(mockResponse.headers).toEqual({
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1',
-      });
-      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+      expect(mockResponse.headers).toMatchInlineSnapshot(`
+        {
+          "content-type": "text/plain; charset=utf-8",
+          "x-vercel-ai-data-stream": "v1",
+        }
+      `);
+      expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+        [
+          "f:{"messageId":"msg-0"}
+        ",
+          "0:"Hello"
+        ",
+          "0:", "
+        ",
+          "0:"world!"
+        ",
+          "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+        ",
+          "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+        ",
+        ]
+      `);
     });
 
     it('should create a Response with a data stream and custom headers', async () => {
@@ -863,13 +880,30 @@ describe('streamText', () => {
       expect(mockResponse.statusCode).toBe(201);
       expect(mockResponse.statusMessage).toBe('foo');
 
-      expect(mockResponse.headers).toEqual({
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1',
-        'custom-header': 'custom-value',
-      });
+      expect(mockResponse.headers).toMatchInlineSnapshot(`
+        {
+          "content-type": "text/plain; charset=utf-8",
+          "custom-header": "custom-value",
+          "x-vercel-ai-data-stream": "v1",
+        }
+      `);
 
-      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+      expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+        [
+          "f:{"messageId":"msg-0"}
+        ",
+          "0:"Hello"
+        ",
+          "0:", "
+        ",
+          "0:"world!"
+        ",
+          "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+        ",
+          "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+        ",
+        ]
+      `);
     });
 
     it('should mask error messages by default', async () => {
@@ -980,11 +1014,46 @@ describe('streamText', () => {
       await mockResponse.waitForEnd();
 
       expect(mockResponse.statusCode).toBe(200);
-      expect(mockResponse.headers).toEqual({
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1',
-      });
-      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+      expect(mockResponse.headers).toMatchInlineSnapshot(`
+        {
+          "content-type": "text/plain; charset=utf-8",
+          "x-vercel-ai-data-stream": "v1",
+        }
+      `);
+      expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+        [
+          "f:{"messageId":"msg-0"}
+        ",
+          "g:{"type":"reasoning","text":"I will open the conversation"}
+        ",
+          "g:{"type":"reasoning","text":" with witty banter. "}
+        ",
+          "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+        ",
+          "l:{}
+        ",
+          "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
+        ",
+          "l:{}
+        ",
+          "g:{"type":"reasoning","text":"Once the user has relaxed,"}
+        ",
+          "g:{"type":"reasoning","text":" I will pry for valuable information."}
+        ",
+          "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+        ",
+          "l:{}
+        ",
+          "0:"Hi"
+        ",
+          "0:" there!"
+        ",
+          "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+        ",
+          "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+        ",
+        ]
+      `);
     });
 
     it('should write source content to a Node.js response-like object', async () => {
@@ -1002,11 +1071,28 @@ describe('streamText', () => {
       await mockResponse.waitForEnd();
 
       expect(mockResponse.statusCode).toBe(200);
-      expect(mockResponse.headers).toEqual({
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1',
-      });
-      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+      expect(mockResponse.headers).toMatchInlineSnapshot(`
+        {
+          "content-type": "text/plain; charset=utf-8",
+          "x-vercel-ai-data-stream": "v1",
+        }
+      `);
+      expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+        [
+          "f:{"messageId":"msg-0"}
+        ",
+          "h:{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+        ",
+          "0:"Hello!"
+        ",
+          "h:{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+        ",
+          "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+        ",
+          "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+        ",
+        ]
+      `);
     });
 
     it('should write file content to a Node.js response-like object', async () => {
@@ -1022,11 +1108,28 @@ describe('streamText', () => {
       await mockResponse.waitForEnd();
 
       expect(mockResponse.statusCode).toBe(200);
-      expect(mockResponse.headers).toEqual({
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1',
-      });
-      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+      expect(mockResponse.headers).toMatchInlineSnapshot(`
+        {
+          "content-type": "text/plain; charset=utf-8",
+          "x-vercel-ai-data-stream": "v1",
+        }
+      `);
+      expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+        [
+          "f:{"messageId":"msg-0"}
+        ",
+          "k:{"mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}
+        ",
+          "0:"Hello!"
+        ",
+          "k:{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}
+        ",
+          "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+        ",
+          "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+        ",
+        ]
+      `);
     });
   });
 
@@ -1050,9 +1153,11 @@ describe('streamText', () => {
       await mockResponse.waitForEnd();
 
       expect(mockResponse.statusCode).toBe(200);
-      expect(mockResponse.headers).toEqual({
-        'Content-Type': 'text/plain; charset=utf-8',
-      });
+      expect(mockResponse.headers).toMatchInlineSnapshot(`
+        {
+          "content-type": "text/plain; charset=utf-8",
+        }
+      `);
       expect(mockResponse.getDecodedChunks()).toEqual([
         'Hello',
         ', ',
