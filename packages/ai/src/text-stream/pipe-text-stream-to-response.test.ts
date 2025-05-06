@@ -6,7 +6,8 @@ describe('pipeTextStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeTextStreamToResponse(mockResponse, {
+    pipeTextStreamToResponse({
+      response: mockResponse,
       status: 200,
       statusText: 'OK',
       headers: {

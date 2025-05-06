@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   await appendStreamId({ chatId: id, streamId });
 
   const stream = createDataStream({
-    execute: dataStream => {
+    execute: writer => {
       const result = streamText({
         model: openai('gpt-4o'),
         messages,
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
         },
       });
 
-      result.mergeIntoDataStream(dataStream);
+      writer.merge(result.toDataStream());
     },
   });
 

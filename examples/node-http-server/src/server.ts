@@ -11,7 +11,7 @@ createServer(async (req, res) => {
         prompt: 'Invent a new holiday and describe its traditions.',
       });
 
-      pipeDataStreamToResponse(res, { dataStream: result.toDataStream() });
+      result.pipeDataStreamToResponse(res);
       break;
     }
 
@@ -35,7 +35,7 @@ createServer(async (req, res) => {
         },
       });
 
-      pipeDataStreamToResponse(res, { dataStream });
+      pipeDataStreamToResponse({ response: res, dataStream });
       break;
     }
   }

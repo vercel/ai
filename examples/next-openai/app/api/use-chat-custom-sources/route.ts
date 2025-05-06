@@ -1,13 +1,13 @@
 import { openai } from '@ai-sdk/openai';
-import { createDataStreamResponse, streamText } from 'ai';
+import { createDataStream, createDataStreamResponse, streamText } from 'ai';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  return createDataStreamResponse({
-    execute: dataStream => {
+  const dataStream = createDataStream({
+    execute: writer => {
       // write a custom url source to the stream:
-      dataStream.writeSource({
+      writer.writeSource({
         type: 'source',
         sourceType: 'url',
         id: 'source-1',
@@ -20,7 +20,9 @@ export async function POST(req: Request) {
         messages,
       });
 
-      result.mergeIntoDataStream(dataStream);
+      writer.merge(result.toDataStream());
     },
   });
+
+  return createDataStreamResponse({ dataStream });
 }

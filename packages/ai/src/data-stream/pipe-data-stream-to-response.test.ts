@@ -7,7 +7,8 @@ describe('pipeDataStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeDataStreamToResponse(mockResponse, {
+    pipeDataStreamToResponse({
+      response: mockResponse,
       status: 200,
       statusText: 'OK',
       headers: {
@@ -42,7 +43,8 @@ describe('pipeDataStreamToResponse', () => {
   it('should handle errors in the stream', async () => {
     const mockResponse = createMockServerResponse();
 
-    pipeDataStreamToResponse(mockResponse, {
+    pipeDataStreamToResponse({
+      response: mockResponse,
       status: 200,
       dataStream: convertArrayToReadableStream([
         formatDataStreamPart('error', 'Custom error message'),

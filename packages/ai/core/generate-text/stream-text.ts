@@ -1744,7 +1744,8 @@ However, the LLM results are expected to be small enough to not cause issues.
       ...init
     }: ResponseInit & DataStreamOptions = {},
   ) {
-    pipeDataStreamToResponse(response, {
+    pipeDataStreamToResponse({
+      response,
       dataStream: this.toDataStream({
         getErrorMessage,
         sendUsage,
@@ -1758,7 +1759,8 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    pipeTextStreamToResponse(response, {
+    pipeTextStreamToResponse({
+      response,
       textStream: this.textStream,
       ...init,
     });

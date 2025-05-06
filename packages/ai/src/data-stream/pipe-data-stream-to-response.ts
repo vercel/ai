@@ -3,17 +3,16 @@ import { prepareOutgoingHttpHeaders } from '../../core/util/prepare-outgoing-htt
 import { writeToServerResponse } from '../../core/util/write-to-server-response';
 import { DataStreamText } from './data-stream-parts';
 
-export function pipeDataStreamToResponse(
-  response: ServerResponse,
-  {
-    status,
-    statusText,
-    headers,
-    dataStream,
-  }: ResponseInit & {
-    dataStream: ReadableStream<DataStreamText>;
-  },
-): void {
+export function pipeDataStreamToResponse({
+  response,
+  status,
+  statusText,
+  headers,
+  dataStream,
+}: {
+  response: ServerResponse;
+  dataStream: ReadableStream<DataStreamText>;
+} & ResponseInit): void {
   writeToServerResponse({
     response,
     status,

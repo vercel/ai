@@ -3,6 +3,7 @@ import { loadChat, saveChat } from '@util/chat-store';
 import {
   appendClientMessage,
   appendResponseMessages,
+  createDataStream,
   createDataStreamResponse,
   createIdGenerator,
   streamText,
@@ -25,8 +26,8 @@ export async function POST(req: Request) {
   });
 
   // immediately start streaming (solves RAG issues with status, etc.)
-  return createDataStreamResponse({
-    execute: dataStream => {
+  const dataStream = createDataStream({
+    execute: writer => {
       const result = streamText({
         model: google('gemini-2.0-flash-exp'),
         providerOptions: {
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
         },
       });
 
-      result.mergeIntoDataStream(dataStream);
+      writer.merge(result.toDataStream());
     },
     onError: error => {
       // Error messages are masked by default for security reasons.
@@ -57,4 +58,6 @@ export async function POST(req: Request) {
       return error instanceof Error ? error.message : String(error);
     },
   });
+
+  return createDataStreamResponse({ dataStream });
 }
