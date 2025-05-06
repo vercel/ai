@@ -1,5 +1,5 @@
 ---
-'ai': patch
+'ai': major
 ---
 
 chore(ui-utils): merge into ai package

@@ -1,6 +1,6 @@
 ---
-'@ai-sdk/google-vertex': patch
-'@ai-sdk/anthropic': patch
+'@ai-sdk/google-vertex': major
+'@ai-sdk/anthropic': major
 ---
 
 chore(providers/anthropic): switch to providerOptions

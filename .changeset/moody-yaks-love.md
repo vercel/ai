@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/google': patch
+'@ai-sdk/google': major
 ---
 
 chore(providers/google): update embedding model to use providerOptions

@@ -1,9 +1,9 @@
 ---
-'@ai-sdk/provider': patch
-'@ai-sdk/mistral': patch
-'@ai-sdk/openai': patch
-'@ai-sdk/azure': patch
-'ai': patch
+'@ai-sdk/provider': major
+'@ai-sdk/mistral': major
+'@ai-sdk/openai': major
+'@ai-sdk/azure': major
+'ai': major
 ---
 
 chore(embedding-models): remove remaining settings

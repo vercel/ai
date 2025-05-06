@@ -1,5 +1,5 @@
 ---
-'ai': patch
+'ai': major
 ---
 
 chore: remove ai/react

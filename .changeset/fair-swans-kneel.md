@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/google-vertex': patch
+'@ai-sdk/google-vertex': major
 ---
 
 chore(providers/google-vertex): update embedding model to use providerOptions

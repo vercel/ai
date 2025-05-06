@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/langchain': patch
+'@ai-sdk/langchain': major
 ---
 
 chore(providers/langchain): extract to separate package

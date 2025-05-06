@@ -1,6 +1,6 @@
 ---
-'@ai-sdk/openai': patch
-'@ai-sdk/azure': patch
+'@ai-sdk/openai': major
+'@ai-sdk/azure': major
 ---
 
 chore(providers/openai): remove & enable strict compatibility by default

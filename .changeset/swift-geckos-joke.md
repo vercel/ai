@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/openai': patch
+'@ai-sdk/openai': major
 ---
 
 fix(providers/openai): logprobs for stream alongside completion model

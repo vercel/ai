@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/openai': patch
+'@ai-sdk/openai': major
 ---
 
 chore(providers/openai): re-introduce logprobs as providerMetadata

@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/mistral': patch
+'@ai-sdk/mistral': major
 ---
 
 chore(providers/mistral): convert to providerOptions

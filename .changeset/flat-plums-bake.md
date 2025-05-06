@@ -1,5 +1,5 @@
 ---
-'ai': minor
+'ai': patch
 ---
 
 feat (core): Add finishReason field to NoObjectGeneratedError
