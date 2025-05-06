@@ -92,13 +92,20 @@ console.log(`Image saved to ${filename}`);
 
 ### Image Model Settings
 
-When creating an image model, you can customize the generation behavior with optional settings:
+You can customize the generation behavior with optional settings:
 
 ```ts
-const model = luma.image('photon-1', {
+const { image } = await generateImage({
+  model: luma.image('photon-1'),
+  prompt: 'A serene mountain landscape at sunset',
+  aspectRatio: '16:9',
   maxImagesPerCall: 1, // Maximum number of images to generate per API call
-  pollIntervalMillis: 5000, // How often to check for completed images (in ms)
-  maxPollAttempts: 10, // Maximum number of polling attempts before timeout
+  providerOptions: {
+    luma: {
+      pollIntervalMillis: 5000, // How often to check for completed images (in ms)
+      maxPollAttempts: 10, // Maximum number of polling attempts before timeout
+    }
+  }
 });
 ```
 
