@@ -1,32 +1,15 @@
-import { JSONValue } from '@ai-sdk/provider';
-import { Source } from '../../core/types/language-model';
-import { DataStreamText } from './data-stream-parts';
+import { DataStreamPart } from './data-stream-parts';
 
 export interface DataStreamWriter {
   /**
-   * Appends a data part to the stream.
+   * Appends a data stream part to the stream.
    */
-  write(data: DataStreamText): void;
-
-  /**
-   * Appends a data part to the stream.
-   */
-  writeData(value: JSONValue): void;
-
-  /**
-   * Appends a message annotation to the stream.
-   */
-  writeMessageAnnotation(value: JSONValue): void;
-
-  /**
-   * Appends a source part to the stream.
-   */
-  writeSource(source: Source): void;
+  write(part: DataStreamPart): void;
 
   /**
    * Merges the contents of another stream to this stream.
    */
-  merge(stream: ReadableStream<DataStreamText>): void;
+  merge(stream: ReadableStream<DataStreamPart>): void;
 
   /**
    * Error handler that is used by the data stream writer.

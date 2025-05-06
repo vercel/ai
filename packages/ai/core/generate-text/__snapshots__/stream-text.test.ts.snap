@@ -3,18 +3,51 @@
 exports[`streamText > multiple stream consumption > should support text stream, ai stream, full stream on single result object 1`] = `
 {
   "dataStream": [
-    "f:{"messageId":"msg-0"}
-",
-    "0:"Hello"
-",
-    "0:", "
-",
-    "0:"world!"
-",
-    "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
-",
-    "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
-",
+    {
+      "type": "start-step",
+      "value": {
+        "messageId": "msg-0",
+      },
+    },
+    {
+      "type": "text",
+      "value": "Hello",
+    },
+    {
+      "type": "text",
+      "value": ", ",
+    },
+    {
+      "type": "text",
+      "value": "world!",
+    },
+    {
+      "type": "finish-step",
+      "value": {
+        "finishReason": "stop",
+        "isContinued": false,
+        "usage": {
+          "cachedInputTokens": undefined,
+          "inputTokens": 3,
+          "outputTokens": 10,
+          "reasoningTokens": undefined,
+          "totalTokens": 13,
+        },
+      },
+    },
+    {
+      "type": "finish-message",
+      "value": {
+        "finishReason": "stop",
+        "usage": {
+          "cachedInputTokens": undefined,
+          "inputTokens": 3,
+          "outputTokens": 10,
+          "reasoningTokens": undefined,
+          "totalTokens": 13,
+        },
+      },
+    },
   ],
   "fullStream": [
     {
@@ -1683,42 +1716,137 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > should generate correct data stream 1`] = `
 [
-  "f:{"messageId":"msg-0"}
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "text",
+    "value": "part ",
+  },
+  {
+    "type": "text",
+    "value": "1 
 ",
-  "0:"part "
-",
-  "0:"1 \\n"
-",
-  "0:" "
-",
-  "e:{"finishReason":"length","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":true}
-",
-  "f:{"messageId":"msg-0"}
-",
-  "0:"no-whitespace"
-",
-  "e:{"finishReason":"length","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":23,"reasoningTokens":10,"cachedInputTokens":3},"isContinued":true}
-",
-  "f:{"messageId":"msg-0"}
-",
-  "0:"immediatefollow  "
-",
-  "e:{"finishReason":"length","usage":{"inputTokens":3,"outputTokens":2,"totalTokens":5},"isContinued":true}
-",
-  "f:{"messageId":"msg-0"}
-",
-  "0:"final "
-",
-  "0:"value keep all "
-",
-  "0:"whitespace\\n "
-",
-  "0:"end"
-",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":2,"totalTokens":5},"isContinued":false}
-",
-  "d:{"finishReason":"stop","usage":{"inputTokens":12,"outputTokens":24,"totalTokens":46,"reasoningTokens":10,"cachedInputTokens":3}}
-",
+  },
+  {
+    "type": "text",
+    "value": " ",
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "length",
+      "isContinued": true,
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "text",
+    "value": "no-whitespace",
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "length",
+      "isContinued": true,
+      "usage": {
+        "cachedInputTokens": 3,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": 10,
+        "totalTokens": 23,
+      },
+    },
+  },
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "text",
+    "value": "immediatefollow  ",
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "length",
+      "isContinued": true,
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 2,
+        "reasoningTokens": undefined,
+        "totalTokens": 5,
+      },
+    },
+  },
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "text",
+    "value": "final ",
+  },
+  {
+    "type": "text",
+    "value": "value keep all ",
+  },
+  {
+    "type": "text",
+    "value": "whitespace
+ ",
+  },
+  {
+    "type": "text",
+    "value": "end",
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "stop",
+      "isContinued": false,
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 2,
+        "reasoningTokens": undefined,
+        "totalTokens": 5,
+      },
+    },
+  },
+  {
+    "type": "finish-message",
+    "value": {
+      "finishReason": "stop",
+      "usage": {
+        "cachedInputTokens": 3,
+        "inputTokens": 12,
+        "outputTokens": 24,
+        "reasoningTokens": 10,
+        "totalTokens": 46,
+      },
+    },
+  },
 ]
 `;
 
@@ -4041,50 +4169,77 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
 
 exports[`streamText > result.pipeDataStreamToResponse > should mask error messages by default 1`] = `
 [
-  "f:{"messageId":"msg-0"}
+  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
 ",
-  "3:"An error occurred."
+  "data: {"type":"error","value":"An error occurred."}
+
 ",
-  "e:{"finishReason":"error","usage":{},"isContinued":false}
+  "data: {"type":"finish-step","value":{"finishReason":"error","usage":{},"isContinued":false}}
+
 ",
-  "d:{"finishReason":"error","usage":{}}
+  "data: {"type":"finish-message","value":{"finishReason":"error","usage":{}}}
+
+",
+  "data: [DONE]
+
 ",
 ]
 `;
 
 exports[`streamText > result.pipeDataStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
 [
-  "f:{"messageId":"msg-0"}
+  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
 ",
-  "0:"Hello, World!"
+  "data: {"type":"text","value":"Hello, World!"}
+
 ",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+  "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+
+",
+  "data: [DONE]
+
 ",
 ]
 `;
 
 exports[`streamText > result.pipeDataStreamToResponse > should support custom error messages 1`] = `
 [
-  "f:{"messageId":"msg-0"}
+  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
 ",
-  "3:"custom error message: error"
+  "data: {"type":"error","value":"custom error message: error"}
+
 ",
-  "e:{"finishReason":"error","usage":{},"isContinued":false}
+  "data: {"type":"finish-step","value":{"finishReason":"error","usage":{},"isContinued":false}}
+
 ",
-  "d:{"finishReason":"error","usage":{}}
+  "data: {"type":"finish-message","value":{"finishReason":"error","usage":{}}}
+
+",
+  "data: [DONE]
+
 ",
 ]
 `;
 
 exports[`streamText > result.pipeDataStreamToResponse > should suppress usage information when sendUsage is false 1`] = `
 [
-  "f:{"messageId":"msg-0"}
+  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
 ",
-  "0:"Hello, World!"
+  "data: {"type":"text","value":"Hello, World!"}
+
 ",
-  "e:{"finishReason":"stop","isContinued":false}
+  "data: {"type":"finish-step","value":{"finishReason":"stop","isContinued":false}}
+
 ",
-  "d:{"finishReason":"stop"}
+  "data: {"type":"finish-message","value":{"finishReason":"stop"}}
+
+",
+  "data: [DONE]
+
 ",
 ]
 `;
@@ -4484,245 +4639,682 @@ exports[`streamText > result.textStream > should swallow error to prevent server
 
 exports[`streamText > result.toDataStream > should create a data stream 1`] = `
 [
-  "f:{"messageId":"msg-0"}
-",
-  "0:"Hello"
-",
-  "0:", "
-",
-  "0:"world!"
-",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
-",
-  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
-",
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "text",
+    "value": "Hello",
+  },
+  {
+    "type": "text",
+    "value": ", ",
+  },
+  {
+    "type": "text",
+    "value": "world!",
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "stop",
+      "isContinued": false,
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
+  {
+    "type": "finish-message",
+    "value": {
+      "finishReason": "stop",
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
 ]
 `;
 
 exports[`streamText > result.toDataStream > should mask error messages by default 1`] = `
 [
-  "f:{"messageId":"msg-0"}
-",
-  "3:"An error occurred."
-",
-  "e:{"finishReason":"error","usage":{},"isContinued":false}
-",
-  "d:{"finishReason":"error","usage":{}}
-",
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "error",
+    "value": "An error occurred.",
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "error",
+      "isContinued": false,
+      "usage": {
+        "inputTokens": undefined,
+        "outputTokens": undefined,
+        "totalTokens": undefined,
+      },
+    },
+  },
+  {
+    "type": "finish-message",
+    "value": {
+      "finishReason": "error",
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": undefined,
+        "outputTokens": undefined,
+        "reasoningTokens": undefined,
+        "totalTokens": undefined,
+      },
+    },
+  },
 ]
 `;
 
 exports[`streamText > result.toDataStream > should omit message finish event (d:) when sendFinish is false 1`] = `
 [
-  "f:{"messageId":"msg-0"}
-",
-  "0:"Hello, World!"
-",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
-",
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "text",
+    "value": "Hello, World!",
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "stop",
+      "isContinued": false,
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
 ]
 `;
 
 exports[`streamText > result.toDataStream > should send file content 1`] = `
 [
-  "f:{"messageId":"msg-0"}
-",
-  "k:{"mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}
-",
-  "0:"Hello!"
-",
-  "k:{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}
-",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
-",
-  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
-",
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "file",
+    "value": {
+      "mediaType": "text/plain",
+      "url": "data:text/plain;base64,Hello World",
+    },
+  },
+  {
+    "type": "text",
+    "value": "Hello!",
+  },
+  {
+    "type": "file",
+    "value": {
+      "mediaType": "image/jpeg",
+      "url": "data:image/jpeg;base64,QkFVRw==",
+    },
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "stop",
+      "isContinued": false,
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
+  {
+    "type": "finish-message",
+    "value": {
+      "finishReason": "stop",
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
 ]
 `;
 
 exports[`streamText > result.toDataStream > should send reasoning content when sendReasoning is true 1`] = `
 [
-  "f:{"messageId":"msg-0"}
-",
-  "g:{"type":"reasoning","text":"I will open the conversation"}
-",
-  "g:{"type":"reasoning","text":" with witty banter. "}
-",
-  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
-",
-  "l:{}
-",
-  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
-",
-  "l:{}
-",
-  "g:{"type":"reasoning","text":"Once the user has relaxed,"}
-",
-  "g:{"type":"reasoning","text":" I will pry for valuable information."}
-",
-  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
-",
-  "l:{}
-",
-  "0:"Hi"
-",
-  "0:" there!"
-",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
-",
-  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
-",
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "reasoning",
+    "value": {
+      "text": "I will open the conversation",
+      "type": "reasoning",
+    },
+  },
+  {
+    "type": "reasoning",
+    "value": {
+      "text": " with witty banter. ",
+      "type": "reasoning",
+    },
+  },
+  {
+    "type": "reasoning",
+    "value": {
+      "providerMetadata": {
+        "testProvider": {
+          "signature": "1234567890",
+        },
+      },
+      "text": "",
+      "type": "reasoning",
+    },
+  },
+  {
+    "type": "reasoning-part-finish",
+    "value": null,
+  },
+  {
+    "type": "reasoning",
+    "value": {
+      "providerMetadata": {
+        "testProvider": {
+          "redactedData": "redacted-reasoning-data",
+        },
+      },
+      "text": "",
+      "type": "reasoning",
+    },
+  },
+  {
+    "type": "reasoning-part-finish",
+    "value": null,
+  },
+  {
+    "type": "reasoning",
+    "value": {
+      "text": "Once the user has relaxed,",
+      "type": "reasoning",
+    },
+  },
+  {
+    "type": "reasoning",
+    "value": {
+      "text": " I will pry for valuable information.",
+      "type": "reasoning",
+    },
+  },
+  {
+    "type": "reasoning",
+    "value": {
+      "providerMetadata": {
+        "testProvider": {
+          "signature": "1234567890",
+        },
+      },
+      "text": "",
+      "type": "reasoning",
+    },
+  },
+  {
+    "type": "reasoning-part-finish",
+    "value": null,
+  },
+  {
+    "type": "text",
+    "value": "Hi",
+  },
+  {
+    "type": "text",
+    "value": " there!",
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "stop",
+      "isContinued": false,
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
+  {
+    "type": "finish-message",
+    "value": {
+      "finishReason": "stop",
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
 ]
 `;
 
 exports[`streamText > result.toDataStream > should send source content when sendSources is true 1`] = `
 [
-  "f:{"messageId":"msg-0"}
-",
-  "h:{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
-",
-  "0:"Hello!"
-",
-  "h:{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
-",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
-",
-  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
-",
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "source",
+    "value": {
+      "id": "123",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example",
+      "type": "source",
+      "url": "https://example.com",
+    },
+  },
+  {
+    "type": "text",
+    "value": "Hello!",
+  },
+  {
+    "type": "source",
+    "value": {
+      "id": "456",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value2",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example 2",
+      "type": "source",
+      "url": "https://example.com/2",
+    },
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "stop",
+      "isContinued": false,
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
+  {
+    "type": "finish-message",
+    "value": {
+      "finishReason": "stop",
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
 ]
 `;
 
 exports[`streamText > result.toDataStream > should send tool call and tool result stream parts 1`] = `
 [
-  "f:{"messageId":"msg-0"}
-",
-  "9:{"toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}
-",
-  "a:{"toolCallId":"call-1","result":"value-result"}
-",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
-",
-  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
-",
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "tool-call",
+    "value": {
+      "args": {
+        "value": "value",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+    },
+  },
+  {
+    "type": "tool-result",
+    "value": {
+      "result": "value-result",
+      "toolCallId": "call-1",
+    },
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "stop",
+      "isContinued": false,
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
+  {
+    "type": "finish-message",
+    "value": {
+      "finishReason": "stop",
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
 ]
 `;
 
 exports[`streamText > result.toDataStream > should send tool call, tool call stream start, tool call deltas, and tool result stream parts when tool call delta flag is enabled 1`] = `
 [
-  "f:{"messageId":"msg-0"}
-",
-  "b:{"toolCallId":"call-1","toolName":"tool1"}
-",
-  "c:{"toolCallId":"call-1","argsTextDelta":"{ \\"value\\":"}
-",
-  "c:{"toolCallId":"call-1","argsTextDelta":" \\"value\\" }"}
-",
-  "9:{"toolCallId":"call-1","toolName":"tool1","args":{"value":"value"}}
-",
-  "a:{"toolCallId":"call-1","result":"value-result"}
-",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
-",
-  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
-",
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "tool-call-streaming-start",
+    "value": {
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+    },
+  },
+  {
+    "type": "tool-call-delta",
+    "value": {
+      "argsTextDelta": "{ "value":",
+      "toolCallId": "call-1",
+    },
+  },
+  {
+    "type": "tool-call-delta",
+    "value": {
+      "argsTextDelta": " "value" }",
+      "toolCallId": "call-1",
+    },
+  },
+  {
+    "type": "tool-call",
+    "value": {
+      "args": {
+        "value": "value",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+    },
+  },
+  {
+    "type": "tool-result",
+    "value": {
+      "result": "value-result",
+      "toolCallId": "call-1",
+    },
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "stop",
+      "isContinued": false,
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
+  {
+    "type": "finish-message",
+    "value": {
+      "finishReason": "stop",
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": 3,
+        "outputTokens": 10,
+        "reasoningTokens": undefined,
+        "totalTokens": 13,
+      },
+    },
+  },
 ]
 `;
 
 exports[`streamText > result.toDataStream > should support custom error messages 1`] = `
 [
-  "f:{"messageId":"msg-0"}
-",
-  "3:"custom error message: error"
-",
-  "e:{"finishReason":"error","usage":{},"isContinued":false}
-",
-  "d:{"finishReason":"error","usage":{}}
-",
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "error",
+    "value": "custom error message: error",
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "error",
+      "isContinued": false,
+      "usage": {
+        "inputTokens": undefined,
+        "outputTokens": undefined,
+        "totalTokens": undefined,
+      },
+    },
+  },
+  {
+    "type": "finish-message",
+    "value": {
+      "finishReason": "error",
+      "usage": {
+        "cachedInputTokens": undefined,
+        "inputTokens": undefined,
+        "outputTokens": undefined,
+        "reasoningTokens": undefined,
+        "totalTokens": undefined,
+      },
+    },
+  },
 ]
 `;
 
 exports[`streamText > result.toDataStream > should suppress usage information when sendUsage is false 1`] = `
 [
-  "f:{"messageId":"msg-0"}
-",
-  "0:"Hello, World!"
-",
-  "e:{"finishReason":"stop","isContinued":false}
-",
-  "d:{"finishReason":"stop"}
-",
+  {
+    "type": "start-step",
+    "value": {
+      "messageId": "msg-0",
+    },
+  },
+  {
+    "type": "text",
+    "value": "Hello, World!",
+  },
+  {
+    "type": "finish-step",
+    "value": {
+      "finishReason": "stop",
+      "isContinued": false,
+      "usage": undefined,
+    },
+  },
+  {
+    "type": "finish-message",
+    "value": {
+      "finishReason": "stop",
+      "usage": undefined,
+    },
+  },
 ]
 `;
 
 exports[`streamText > result.toDataStreamResponse > should create a Response with a data stream 1`] = `
 [
-  "f:{"messageId":"msg-0"}
+  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
 ",
-  "0:"Hello"
+  "data: {"type":"text","value":"Hello"}
+
 ",
-  "0:", "
+  "data: {"type":"text","value":", "}
+
 ",
-  "0:"world!"
+  "data: {"type":"text","value":"world!"}
+
 ",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+  "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+
 ",
-  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+  "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+
+",
+  "data: [DONE]
+
 ",
 ]
 `;
 
 exports[`streamText > result.toDataStreamResponse > should create a Response with a data stream and custom headers 1`] = `
 [
-  "f:{"messageId":"msg-0"}
+  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
 ",
-  "0:"Hello"
+  "data: {"type":"text","value":"Hello"}
+
 ",
-  "0:", "
+  "data: {"type":"text","value":", "}
+
 ",
-  "0:"world!"
+  "data: {"type":"text","value":"world!"}
+
 ",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+  "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+
 ",
-  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+  "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+
+",
+  "data: [DONE]
+
 ",
 ]
 `;
 
 exports[`streamText > result.toDataStreamResponse > should mask error messages by default 1`] = `
 [
-  "f:{"messageId":"msg-0"}
+  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
 ",
-  "3:"An error occurred."
+  "data: {"type":"error","value":"An error occurred."}
+
 ",
-  "e:{"finishReason":"error","usage":{},"isContinued":false}
+  "data: {"type":"finish-step","value":{"finishReason":"error","usage":{},"isContinued":false}}
+
 ",
-  "d:{"finishReason":"error","usage":{}}
+  "data: {"type":"finish-message","value":{"finishReason":"error","usage":{}}}
+
+",
+  "data: [DONE]
+
 ",
 ]
 `;
 
 exports[`streamText > result.toDataStreamResponse > should support custom error messages 1`] = `
 [
-  "f:{"messageId":"msg-0"}
+  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
 ",
-  "3:"custom error message: error"
+  "data: {"type":"error","value":"custom error message: error"}
+
 ",
-  "e:{"finishReason":"error","usage":{},"isContinued":false}
+  "data: {"type":"finish-step","value":{"finishReason":"error","usage":{},"isContinued":false}}
+
 ",
-  "d:{"finishReason":"error","usage":{}}
+  "data: {"type":"finish-message","value":{"finishReason":"error","usage":{}}}
+
+",
+  "data: [DONE]
+
 ",
 ]
 `;
 
 exports[`streamText > result.toDataStreamResponse > should suppress usage information when sendUsage is false 1`] = `
 [
-  "f:{"messageId":"msg-0"}
+  "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+
 ",
-  "0:"Hello, World!"
+  "data: {"type":"text","value":"Hello, World!"}
+
 ",
-  "e:{"finishReason":"stop","isContinued":false}
+  "data: {"type":"finish-step","value":{"finishReason":"stop","isContinued":false}}
+
 ",
-  "d:{"finishReason":"stop"}
+  "data: {"type":"finish-message","value":{"finishReason":"stop"}}
+
+",
+  "data: [DONE]
+
 ",
 ]
 `;

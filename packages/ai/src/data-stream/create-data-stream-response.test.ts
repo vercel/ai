@@ -3,7 +3,6 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createDataStreamResponse } from './create-data-stream-response';
-import { formatDataStreamPart } from './data-stream-parts';
 
 describe('createDataStreamResponse', () => {
   it('should create a Response with correct headers and encoded stream', async () => {
@@ -14,7 +13,7 @@ describe('createDataStreamResponse', () => {
         'Custom-Header': 'test',
       },
       dataStream: convertArrayToReadableStream([
-        formatDataStreamPart('data', ['test-data']),
+        { type: 'data', value: ['test-data'] },
       ]),
     });
 
@@ -36,16 +35,23 @@ describe('createDataStreamResponse', () => {
     const chunks = await convertReadableStreamToArray(encodedStream);
     const decodedChunks = chunks.map(chunk => decoder.decode(chunk));
 
-    expect(decodedChunks).toEqual([
-      formatDataStreamPart('data', ['test-data']),
-    ]);
+    expect(decodedChunks).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"data","value":["test-data"]}
+
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
   });
 
   it('should handle errors in the stream', async () => {
     const response = createDataStreamResponse({
       status: 200,
       dataStream: convertArrayToReadableStream([
-        formatDataStreamPart('error', 'Custom error message'),
+        { type: 'error', value: 'Custom error message' },
       ]),
     });
 
@@ -54,8 +60,15 @@ describe('createDataStreamResponse', () => {
     const chunks = await convertReadableStreamToArray(encodedStream);
     const decodedChunks = chunks.map(chunk => decoder.decode(chunk));
 
-    expect(decodedChunks).toEqual([
-      formatDataStreamPart('error', 'Custom error message'),
-    ]);
+    expect(decodedChunks).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"error","value":"Custom error message"}
+
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
   });
 });

@@ -1,60 +1,28 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { formatDataStreamPart } from 'ai';
-import { expect, it } from 'vitest';
-import { Source } from '../../core/types/language-model';
 import { DelayedPromise } from '../../util/delayed-promise';
 import { createDataStream } from './create-data-stream';
+import { DataStreamPart } from './data-stream-parts';
 import { DataStreamWriter } from './data-stream-writer';
 
 describe('createDataStream', () => {
-  it('should send single data json and close the stream', async () => {
+  it('should send data stream part and close the stream', async () => {
     const stream = createDataStream({
       execute: dataStream => {
-        dataStream.writeData('1a');
+        dataStream.write({ type: 'data', value: ['1a'] });
       },
     });
 
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      formatDataStreamPart('data', ['1a']),
-    ]);
-  });
-
-  it('should send message annotation and close the stream', async () => {
-    const stream = createDataStream({
-      execute: dataStream => {
-        dataStream.writeMessageAnnotation({
-          type: 'message-annotation',
-          value: '1a',
-        });
-      },
-    });
-
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      formatDataStreamPart('message_annotations', [
-        { type: 'message-annotation', value: '1a' },
-      ]),
-    ]);
-  });
-
-  it('should send tool result and close the stream', async () => {
-    const stream = createDataStream({
-      execute: dataStream => {
-        dataStream.write(
-          formatDataStreamPart('tool_result', {
-            toolCallId: 'tool-call-id',
-            result: '1a',
-          }),
-        );
-      },
-    });
-
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      formatDataStreamPart('tool_result', {
-        toolCallId: 'tool-call-id',
-        result: '1a',
-      }),
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "data",
+          "value": [
+            "1a",
+          ],
+        },
+      ]
+    `);
   });
 
   it('should forward a single stream with 2 elements', async () => {
@@ -63,8 +31,8 @@ describe('createDataStream', () => {
         dataStream.merge(
           new ReadableStream({
             start(controller) {
-              controller.enqueue(formatDataStreamPart('data', ['1a']));
-              controller.enqueue(formatDataStreamPart('data', ['1b']));
+              controller.enqueue({ type: 'data', value: ['1a'] });
+              controller.enqueue({ type: 'data', value: ['1b'] });
               controller.close();
             },
           }),
@@ -72,10 +40,22 @@ describe('createDataStream', () => {
       },
     });
 
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      formatDataStreamPart('data', ['1a']),
-      formatDataStreamPart('data', ['1b']),
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "data",
+          "value": [
+            "1a",
+          ],
+        },
+        {
+          "type": "data",
+          "value": [
+            "1b",
+          ],
+        },
+      ]
+    `);
   });
 
   it('should send async message annotation and close the stream', async () => {
@@ -84,24 +64,31 @@ describe('createDataStream', () => {
     const stream = createDataStream({
       execute: async dataStream => {
         await waitPromise.value;
-        dataStream.writeData('1a');
+        dataStream.write({ type: 'data', value: ['1a'] });
       },
     });
 
     waitPromise.resolve(undefined);
 
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      formatDataStreamPart('data', ['1a']),
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "data",
+          "value": [
+            "1a",
+          ],
+        },
+      ]
+    `);
   });
 
   it('should forward elements from multiple streams and data parts', async () => {
-    let controller1: ReadableStreamDefaultController<string>;
-    let controller2: ReadableStreamDefaultController<string>;
+    let controller1: ReadableStreamDefaultController<DataStreamPart>;
+    let controller2: ReadableStreamDefaultController<DataStreamPart>;
 
     const stream = createDataStream({
       execute: dataStream => {
-        dataStream.writeData('data-part-1');
+        dataStream.write({ type: 'data', value: ['data-part-1'] });
 
         dataStream.merge(
           new ReadableStream({
@@ -111,9 +98,9 @@ describe('createDataStream', () => {
           }),
         );
 
-        controller1!.enqueue('1a');
-        dataStream.writeData('data-part-2');
-        controller1!.enqueue('1b');
+        controller1!.enqueue({ type: 'data', value: ['1a'] });
+        dataStream.write({ type: 'data', value: ['data-part-2'] });
+        controller1!.enqueue({ type: 'data', value: ['1b'] });
 
         dataStream.merge(
           new ReadableStream({
@@ -123,35 +110,87 @@ describe('createDataStream', () => {
           }),
         );
 
-        dataStream.writeData('data-part-3');
+        dataStream.write({ type: 'data', value: ['data-part-3'] });
       },
     });
 
-    controller2!.enqueue('2a');
-    controller1!.enqueue('1c');
-    controller2!.enqueue('2b');
+    controller2!.enqueue({ type: 'data', value: ['2a'] });
+    controller1!.enqueue({ type: 'data', value: ['1c'] });
+    controller2!.enqueue({ type: 'data', value: ['2b'] });
     controller2!.close();
-    controller1!.enqueue('1d');
-    controller1!.enqueue('1e');
+    controller1!.enqueue({ type: 'data', value: ['1d'] });
+    controller1!.enqueue({ type: 'data', value: ['1e'] });
     controller1!.close();
 
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      formatDataStreamPart('data', ['data-part-1']),
-      formatDataStreamPart('data', ['data-part-2']),
-      formatDataStreamPart('data', ['data-part-3']),
-      '1a',
-      '2a',
-      '1b',
-      '2b',
-      '1c',
-      '1d',
-      '1e',
-    ]);
+    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
+      [
+        {
+          "type": "data",
+          "value": [
+            "data-part-1",
+          ],
+        },
+        {
+          "type": "data",
+          "value": [
+            "data-part-2",
+          ],
+        },
+        {
+          "type": "data",
+          "value": [
+            "data-part-3",
+          ],
+        },
+        {
+          "type": "data",
+          "value": [
+            "1a",
+          ],
+        },
+        {
+          "type": "data",
+          "value": [
+            "2a",
+          ],
+        },
+        {
+          "type": "data",
+          "value": [
+            "1b",
+          ],
+        },
+        {
+          "type": "data",
+          "value": [
+            "2b",
+          ],
+        },
+        {
+          "type": "data",
+          "value": [
+            "1c",
+          ],
+        },
+        {
+          "type": "data",
+          "value": [
+            "1d",
+          ],
+        },
+        {
+          "type": "data",
+          "value": [
+            "1e",
+          ],
+        },
+      ]
+    `);
   });
 
   it('should add error parts when stream errors', async () => {
-    let controller1: ReadableStreamDefaultController<string>;
-    let controller2: ReadableStreamDefaultController<string>;
+    let controller1: ReadableStreamDefaultController<DataStreamPart>;
+    let controller2: ReadableStreamDefaultController<DataStreamPart>;
 
     const stream = createDataStream({
       execute: dataStream => {
@@ -173,17 +212,17 @@ describe('createDataStream', () => {
       onError: () => 'error-message',
     });
 
-    controller1!.enqueue('1a');
+    controller1!.enqueue({ type: 'data', value: ['1a'] });
     controller1!.error(new Error('1-error'));
-    controller2!.enqueue('2a');
-    controller2!.enqueue('2b');
+    controller2!.enqueue({ type: 'data', value: ['2a'] });
+    controller2!.enqueue({ type: 'data', value: ['2b'] });
     controller2!.close();
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
-      '1a',
-      '2a',
-      '2b',
-      formatDataStreamPart('error', 'error-message'),
+      { type: 'data', value: ['1a'] },
+      { type: 'data', value: ['2a'] },
+      { type: 'data', value: ['2b'] },
+      { type: 'error', value: 'error-message' },
     ]);
   });
 
@@ -196,7 +235,7 @@ describe('createDataStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
-      formatDataStreamPart('error', 'error-message'),
+      { type: 'error', value: 'error-message' },
     ]);
   });
 
@@ -209,43 +248,7 @@ describe('createDataStream', () => {
     });
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
-      formatDataStreamPart('error', 'error-message'),
-    ]);
-  });
-
-  it('should send source data and close the stream', async () => {
-    const source: Source = {
-      type: 'source',
-      sourceType: 'url',
-      id: 'source-1',
-      url: 'https://example.com',
-      title: 'Example Source',
-      providerMetadata: {
-        provider: {
-          key: 'value',
-        },
-      },
-    };
-
-    const stream = createDataStream({
-      execute: dataStream => {
-        dataStream.writeSource(source);
-      },
-    });
-
-    expect(await convertReadableStreamToArray(stream)).toEqual([
-      formatDataStreamPart('source', {
-        type: 'source',
-        sourceType: 'url',
-        id: 'source-1',
-        url: 'https://example.com',
-        title: 'Example Source',
-        providerMetadata: {
-          provider: {
-            key: 'value',
-          },
-        },
-      }),
+      { type: 'error', value: 'error-message' },
     ]);
   });
 
@@ -254,22 +257,24 @@ describe('createDataStream', () => {
 
     const stream = createDataStream({
       execute: dataStreamArg => {
-        dataStreamArg.writeData('1a');
+        dataStreamArg.write({ type: 'data', value: ['1a'] });
         dataStream = dataStreamArg;
       },
     });
 
     expect(await convertReadableStreamToArray(stream)).toEqual([
-      formatDataStreamPart('data', ['1a']),
+      { type: 'data', value: ['1a'] },
     ]);
 
-    expect(() => dataStream!.writeData('1b')).not.toThrow();
+    expect(() =>
+      dataStream!.write({ type: 'data', value: ['1b'] }),
+    ).not.toThrow();
   });
 
   it('should support writing from delayed merged streams', async () => {
     let dataStream: DataStreamWriter;
-    let controller1: ReadableStreamDefaultController<string>;
-    let controller2: ReadableStreamDefaultController<string>;
+    let controller1: ReadableStreamDefaultController<DataStreamPart>;
+    let controller2: ReadableStreamDefaultController<DataStreamPart>;
     let done = false;
 
     const stream = createDataStream({
@@ -287,7 +292,7 @@ describe('createDataStream', () => {
       },
     });
 
-    const result: string[] = [];
+    const result: DataStreamPart[] = [];
     const reader = stream.getReader();
     async function pull() {
       const { value, done } = await reader.read();
@@ -297,7 +302,7 @@ describe('createDataStream', () => {
     // function is finished
     expect(done).toBe(true);
 
-    controller1!.enqueue('1a');
+    controller1!.enqueue({ type: 'data', value: ['1a'] });
     await pull();
 
     // controller1 is still open, create 2nd stream
@@ -315,11 +320,14 @@ describe('createDataStream', () => {
     await delay(); // relinquish control
 
     // it should still be able to write to controller2
-    controller2!.enqueue('2a');
+    controller2!.enqueue({ type: 'data', value: ['2a'] });
     controller2!.close();
 
     await pull();
 
-    expect(result).toEqual(['1a', '2a']);
+    expect(result).toEqual([
+      { type: 'data', value: ['1a'] },
+      { type: 'data', value: ['2a'] },
+    ]);
   });
 });
