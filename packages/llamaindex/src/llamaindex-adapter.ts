@@ -1,7 +1,6 @@
 import { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
-import { formatDataStreamPart, DataStreamWriter, StreamData } from 'ai';
+import { formatDataStreamPart, DataStreamWriter } from 'ai';
 import {
-  mergeStreams,
   prepareResponseHeaders,
   createCallbacksTransformer,
   StreamCallbacks,
@@ -49,26 +48,24 @@ export function toDataStreamResponse(
   stream: AsyncIterable<EngineResponse>,
   options: {
     init?: ResponseInit;
-    data?: StreamData;
     callbacks?: StreamCallbacks;
   } = {},
 ) {
-  const { init, data, callbacks } = options;
-  const dataStream = toDataStreamInternal(stream, callbacks).pipeThrough(
-    new TextEncoderStream(),
-  );
-  const responseStream = data
-    ? mergeStreams(data.stream, dataStream)
-    : dataStream;
+  const { init, callbacks } = options;
 
-  return new Response(responseStream, {
-    status: init?.status ?? 200,
-    statusText: init?.statusText,
-    headers: prepareResponseHeaders(init?.headers, {
-      contentType: 'text/plain; charset=utf-8',
-      dataStreamVersion: 'v1',
-    }),
-  });
+  return new Response(
+    toDataStreamInternal(stream, callbacks).pipeThrough(
+      new TextEncoderStream(),
+    ),
+    {
+      status: init?.status ?? 200,
+      statusText: init?.statusText,
+      headers: prepareResponseHeaders(init?.headers, {
+        contentType: 'text/plain; charset=utf-8',
+        dataStreamVersion: 'v1',
+      }),
+    },
+  );
 }
 
 export function mergeIntoDataStream(

@@ -15,8 +15,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { StreamData } from '../../streams/stream-data';
-import { createDataStream } from '../data-stream/create-data-stream';
+import { createDataStream } from '../../src/data-stream/create-data-stream';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
@@ -873,34 +872,6 @@ describe('streamText', () => {
       expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
     });
 
-    it('should support merging with existing stream data', async () => {
-      const mockResponse = createMockServerResponse();
-
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-
-      const streamData = new StreamData();
-      streamData.append('stream-data-value');
-      streamData.close();
-
-      result.pipeDataStreamToResponse(mockResponse, {
-        data: streamData,
-      });
-
-      await mockResponse.waitForEnd();
-
-      expect(mockResponse.statusCode).toBe(200);
-      expect(mockResponse.headers).toEqual({
-        'Content-Type': 'text/plain; charset=utf-8',
-        'X-Vercel-AI-Data-Stream': 'v1',
-      });
-
-      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
-    });
-
     it('should mask error messages by default', async () => {
       const mockResponse = createMockServerResponse();
 
@@ -935,7 +906,7 @@ describe('streamText', () => {
       });
 
       result.pipeDataStreamToResponse(mockResponse, {
-        getErrorMessage: error => `custom error message: ${error}`,
+        onError: error => `custom error message: ${error}`,
       });
 
       await mockResponse.waitForEnd();
@@ -1099,30 +1070,7 @@ describe('streamText', () => {
 
       const dataStream = result.toDataStream();
 
-      expect(
-        await convertReadableStreamToArray(
-          dataStream.pipeThrough(new TextDecoderStream()),
-        ),
-      ).toMatchSnapshot();
-    });
-
-    it('should support merging with existing stream data', async () => {
-      const result = streamText({
-        model: createTestModel(),
-        ...defaultSettings(),
-      });
-
-      const streamData = new StreamData();
-      streamData.append('stream-data-value');
-      streamData.close();
-
-      const dataStream = result.toDataStream({ data: streamData });
-
-      expect(
-        await convertReadableStreamToArray(
-          dataStream.pipeThrough(new TextDecoderStream()),
-        ),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
 
     it('should send tool call and tool result stream parts', async () => {
@@ -1167,9 +1115,7 @@ describe('streamText', () => {
       });
 
       expect(
-        await convertReadableStreamToArray(
-          result.toDataStream().pipeThrough(new TextDecoderStream()),
-        ),
+        await convertReadableStreamToArray(result.toDataStream()),
       ).toMatchSnapshot();
     });
 
@@ -1216,9 +1162,7 @@ describe('streamText', () => {
       });
 
       expect(
-        await convertReadableStreamToArray(
-          result.toDataStream().pipeThrough(new TextDecoderStream()),
-        ),
+        await convertReadableStreamToArray(result.toDataStream()),
       ).toMatchSnapshot();
     });
 
@@ -1234,11 +1178,7 @@ describe('streamText', () => {
 
       const dataStream = result.toDataStream();
 
-      expect(
-        await convertReadableStreamToArray(
-          dataStream.pipeThrough(new TextDecoderStream()),
-        ),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
 
     it('should support custom error messages', async () => {
@@ -1252,14 +1192,10 @@ describe('streamText', () => {
       });
 
       const dataStream = result.toDataStream({
-        getErrorMessage: error => `custom error message: ${error}`,
+        onError: error => `custom error message: ${error}`,
       });
 
-      expect(
-        await convertReadableStreamToArray(
-          dataStream.pipeThrough(new TextDecoderStream()),
-        ),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
 
     it('should suppress usage information when sendUsage is false', async () => {
@@ -1279,11 +1215,7 @@ describe('streamText', () => {
 
       const dataStream = result.toDataStream({ sendUsage: false });
 
-      expect(
-        await convertReadableStreamToArray(
-          dataStream.pipeThrough(new TextDecoderStream()),
-        ),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
 
     it('should omit message finish event (d:) when sendFinish is false', async () => {
@@ -1305,11 +1237,7 @@ describe('streamText', () => {
         experimental_sendFinish: false,
       });
 
-      expect(
-        await convertReadableStreamToArray(
-          dataStream.pipeThrough(new TextDecoderStream()),
-        ),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
 
     it('should send reasoning content when sendReasoning is true', async () => {
@@ -1320,11 +1248,7 @@ describe('streamText', () => {
 
       const dataStream = result.toDataStream({ sendReasoning: true });
 
-      expect(
-        await convertReadableStreamToArray(
-          dataStream.pipeThrough(new TextDecoderStream()),
-        ),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
 
     it('should send source content when sendSources is true', async () => {
@@ -1335,11 +1259,7 @@ describe('streamText', () => {
 
       const dataStream = result.toDataStream({ sendSources: true });
 
-      expect(
-        await convertReadableStreamToArray(
-          dataStream.pipeThrough(new TextDecoderStream()),
-        ),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
 
     it('should send file content', async () => {
@@ -1350,11 +1270,7 @@ describe('streamText', () => {
 
       const dataStream = result.toDataStream();
 
-      expect(
-        await convertReadableStreamToArray(
-          dataStream.pipeThrough(new TextDecoderStream()),
-        ),
-      ).toMatchSnapshot();
+      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
   });
 
@@ -1404,26 +1320,6 @@ describe('streamText', () => {
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
     });
 
-    it('should support merging with existing stream data', async () => {
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-
-      const streamData = new StreamData();
-      streamData.append('stream-data-value');
-      streamData.close();
-
-      const response = result.toDataStreamResponse({ data: streamData });
-
-      expect(response.status).toStrictEqual(200);
-      expect(response.headers.get('Content-Type')).toStrictEqual(
-        'text/plain; charset=utf-8',
-      );
-      expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
-    });
-
     it('should mask error messages by default', async () => {
       const result = streamText({
         model: createTestModel({
@@ -1452,7 +1348,7 @@ describe('streamText', () => {
       });
 
       const response = result.toDataStreamResponse({
-        getErrorMessage: error => `custom error message: ${error}`,
+        onError: error => `custom error message: ${error}`,
       });
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
@@ -1477,45 +1373,6 @@ describe('streamText', () => {
       const response = result.toDataStreamResponse({ sendUsage: false });
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
-    });
-  });
-
-  describe('result.mergeIntoDataStream', () => {
-    it('should merge the result into a data stream', async () => {
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-
-      const dataStream = createDataStream({
-        execute(writer) {
-          result.mergeIntoDataStream(writer);
-        },
-      });
-
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
-    });
-
-    it('should use the onError handler from the data stream', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'error', error: 'error' },
-          ]),
-        }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-
-      const dataStream = createDataStream({
-        execute(writer) {
-          result.mergeIntoDataStream(writer);
-        },
-        onError: error => `custom error message: ${error}`,
-      });
-
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
   });
 
@@ -1654,9 +1511,7 @@ describe('streamText', () => {
       expect({
         textStream: await convertAsyncIterableToArray(result.textStream),
         fullStream: await convertAsyncIterableToArray(result.fullStream),
-        dataStream: await convertReadableStreamToArray(
-          result.toDataStream().pipeThrough(new TextDecoderStream()),
-        ),
+        dataStream: await convertReadableStreamToArray(result.toDataStream()),
       }).toMatchSnapshot();
     });
   });
@@ -2905,9 +2760,7 @@ describe('streamText', () => {
         const dataStream = result.toDataStream();
 
         expect(
-          await convertReadableStreamToArray(
-            dataStream.pipeThrough(new TextDecoderStream()),
-          ),
+          await convertReadableStreamToArray(dataStream),
         ).toMatchSnapshot();
       });
 

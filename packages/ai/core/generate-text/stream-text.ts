@@ -4,18 +4,19 @@ import {
 } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
-import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
-import { StreamData } from '../../streams/stream-data';
+import {
+  DataStreamText,
+  formatDataStreamPart,
+} from '../../src/data-stream/data-stream-parts';
 import { asArray } from '../../util/as-array';
 import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
-import { DataStreamWriter } from '../data-stream/data-stream-writer';
 import { CallSettings } from '../prompt/call-settings';
 import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { CoreAssistantMessage } from '../prompt/message';
+import { AssistantModelMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -35,18 +36,13 @@ import {
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { DataStreamString, formatDataStreamPart } from '../util';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
-import { mergeStreams } from '../util/merge-streams';
 import { now as originalNow } from '../util/now';
-import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
-import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
-import { writeToServerResponse } from '../util/write-to-server-response';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { asReasoningText } from './reasoning';
@@ -66,6 +62,11 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ServerResponse } from 'node:http';
+import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
+import { createDataStreamResponse } from '../../src/data-stream/create-data-stream-response';
+import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
+import { pipeDataStreamToResponse } from '../../src/data-stream/pipe-data-stream-to-response';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1369,7 +1370,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       // so we can assume that there is a single last assistant message:
                       const lastMessage = responseMessages[
                         responseMessages.length - 1
-                      ] as CoreAssistantMessage;
+                      ] as AssistantModelMessage;
 
                       if (typeof lastMessage.content === 'string') {
                         lastMessage.content += stepText;
@@ -1574,21 +1575,15 @@ However, the LLM results are expected to be small enough to not cause issues.
     );
   }
 
-  private toDataStreamInternal({
-    getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
+  toDataStream({
+    onError = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
     sendReasoning = false,
     sendSources = false,
     experimental_sendFinish = true,
-  }: {
-    getErrorMessage: ((error: unknown) => string) | undefined;
-    sendUsage: boolean | undefined;
-    sendReasoning: boolean | undefined;
-    sendSources: boolean | undefined;
-    experimental_sendFinish: boolean | undefined;
-  }): ReadableStream<DataStreamString> {
+  }: DataStreamOptions = {}): ReadableStream<DataStreamText> {
     return this.fullStream.pipeThrough(
-      new TransformStream<TextStreamPart<TOOLS>, DataStreamString>({
+      new TransformStream<TextStreamPart<TOOLS>, DataStreamText>({
         transform: async (chunk, controller) => {
           const chunkType = chunk.type;
           switch (chunkType) {
@@ -1674,7 +1669,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'error': {
               controller.enqueue(
-                formatDataStreamPart('error', getErrorMessage(chunk.error)),
+                formatDataStreamPart('error', onError(chunk.error)),
               );
               break;
             }
@@ -1740,123 +1735,63 @@ However, the LLM results are expected to be small enough to not cause issues.
   pipeDataStreamToResponse(
     response: ServerResponse,
     {
-      status,
-      statusText,
-      headers,
-      data,
-      getErrorMessage,
+      onError,
       sendUsage,
       sendReasoning,
       sendSources,
       experimental_sendFinish,
-    }: ResponseInit &
-      DataStreamOptions & {
-        data?: StreamData;
-        getErrorMessage?: (error: unknown) => string;
-      } = {},
+      experimental_sendStart,
+      ...init
+    }: ResponseInit & DataStreamOptions = {},
   ) {
-    writeToServerResponse({
+    pipeDataStreamToResponse({
       response,
-      status,
-      statusText,
-      headers: prepareOutgoingHttpHeaders(headers, {
-        contentType: 'text/plain; charset=utf-8',
-        dataStreamVersion: 'v1',
-      }),
-      stream: this.toDataStream({
-        data,
-        getErrorMessage,
+      dataStream: this.toDataStream({
+        onError,
         sendUsage,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
+        experimental_sendStart,
       }),
+      ...init,
     });
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    writeToServerResponse({
+    pipeTextStreamToResponse({
       response,
-      status: init?.status,
-      statusText: init?.statusText,
-      headers: prepareOutgoingHttpHeaders(init?.headers, {
-        contentType: 'text/plain; charset=utf-8',
-      }),
-      stream: this.textStream.pipeThrough(new TextEncoderStream()),
+      textStream: this.textStream,
+      ...init,
     });
   }
 
-  // TODO breaking change 5.0: remove pipeThrough(new TextEncoderStream())
-  toDataStream(
-    options?: DataStreamOptions & {
-      data?: StreamData;
-      getErrorMessage?: (error: unknown) => string;
-    },
-  ) {
-    const stream = this.toDataStreamInternal({
-      getErrorMessage: options?.getErrorMessage,
-      sendUsage: options?.sendUsage,
-      sendReasoning: options?.sendReasoning,
-      sendSources: options?.sendSources,
-      experimental_sendFinish: options?.experimental_sendFinish,
-    }).pipeThrough(new TextEncoderStream());
-
-    return options?.data ? mergeStreams(options?.data.stream, stream) : stream;
-  }
-
-  mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
-    writer.merge(
-      this.toDataStreamInternal({
-        getErrorMessage: writer.onError,
-        sendUsage: options?.sendUsage,
-        sendReasoning: options?.sendReasoning,
-        sendSources: options?.sendSources,
-        experimental_sendFinish: options?.experimental_sendFinish,
-      }),
-    );
-  }
-
   toDataStreamResponse({
-    headers,
-    status,
-    statusText,
-    data,
-    getErrorMessage,
+    onError,
     sendUsage,
     sendReasoning,
     sendSources,
     experimental_sendFinish,
-  }: ResponseInit &
-    DataStreamOptions & {
-      data?: StreamData;
-      getErrorMessage?: (error: unknown) => string;
-    } = {}): Response {
-    return new Response(
-      this.toDataStream({
-        data,
-        getErrorMessage,
+    experimental_sendStart,
+    ...init
+  }: ResponseInit & DataStreamOptions = {}): Response {
+    return createDataStreamResponse({
+      dataStream: this.toDataStream({
+        onError,
         sendUsage,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
+        experimental_sendStart,
       }),
-      {
-        status,
-        statusText,
-        headers: prepareResponseHeaders(headers, {
-          contentType: 'text/plain; charset=utf-8',
-          dataStreamVersion: 'v1',
-        }),
-      },
-    );
+      ...init,
+    });
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {
-    return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
-      status: init?.status ?? 200,
-      headers: prepareResponseHeaders(init?.headers, {
-        contentType: 'text/plain; charset=utf-8',
-      }),
+    return createTextStreamResponse({
+      textStream: this.textStream,
+      ...init,
     });
   }
 }

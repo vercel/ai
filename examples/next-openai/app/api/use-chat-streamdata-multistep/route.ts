@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
+  createDataStream,
   createDataStreamResponse,
   streamText,
   tool,
@@ -10,8 +11,8 @@ import { z } from 'zod';
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  return createDataStreamResponse({
-    execute: async dataStream => {
+  const dataStream = createDataStream({
+    execute: async writer => {
       // step 1 example: forced tool call
       const result1 = streamText({
         model: openai('gpt-4o-mini'),
@@ -27,9 +28,11 @@ export async function POST(req: Request) {
       });
 
       // forward the initial result to the client without the finish event:
-      result1.mergeIntoDataStream(dataStream, {
-        experimental_sendFinish: false, // omit the finish event
-      });
+      writer.merge(
+        result1.toDataStream({
+          experimental_sendFinish: false, // omit the finish event
+        }),
+      );
 
       // note: you can use any programming construct here, e.g. if-else, loops, etc.
       // workflow programming is normal programming with this approach.
@@ -48,9 +51,13 @@ export async function POST(req: Request) {
       });
 
       // forward the 2nd result to the client (incl. the finish event):
-      result2.mergeIntoDataStream(dataStream, {
-        experimental_sendStart: false, // omit the start event
-      });
+      writer.merge(
+        result2.toDataStream({
+          experimental_sendStart: false, // omit the start event
+        }),
+      );
     },
   });
+
+  return createDataStreamResponse({ dataStream });
 }
