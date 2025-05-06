@@ -11,7 +11,7 @@
   "dependencies": {
     "@ai-sdk/openai": "1.3.21",
     "@ai-sdk/react": "1.2.11",
-    "ai": "4.3.13",
+    "ai": "4.3.14",
     "next": "latest",
     "openai": "4.52.6",
     "react": "^18",
