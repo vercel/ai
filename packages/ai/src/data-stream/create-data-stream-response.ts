@@ -1,4 +1,4 @@
-import { prepareResponseHeaders } from '../../core/util/prepare-response-headers';
+import { prepareHeaders } from '../../core/util/prepare-headers';
 import { DataStreamText } from './data-stream-parts';
 
 export function createDataStreamResponse({
@@ -12,9 +12,9 @@ export function createDataStreamResponse({
   return new Response(dataStream.pipeThrough(new TextEncoderStream()), {
     status,
     statusText,
-    headers: prepareResponseHeaders(headers, {
-      contentType: 'text/plain; charset=utf-8',
-      dataStreamVersion: 'v1',
+    headers: prepareHeaders(headers, {
+      'content-type': 'text/plain; charset=utf-8',
+      'x-vercel-ai-data-stream': 'v1',
     }),
   });
 }
