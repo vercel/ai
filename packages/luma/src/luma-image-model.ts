@@ -125,12 +125,12 @@ export class LumaImageModel implements ImageModelV2 {
     abortSignal: AbortSignal | undefined,
     imageSettings?: LumaImageSettings,
   ): Promise<string> {
-    let attemptCount = 0;
     const url = this.getLumaGenerationsUrl(generationId);
     const maxPollAttempts =
       imageSettings?.maxPollAttempts ?? this.maxPollAttempts;
     const pollIntervalMillis =
       imageSettings?.pollIntervalMillis ?? this.pollIntervalMillis;
+
     for (let i = 0; i < maxPollAttempts; i++) {
       const { value: statusResponse } = await getFromApi({
         url,
