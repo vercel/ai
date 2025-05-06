@@ -64,8 +64,6 @@ describe('generateImage', () => {
       providerOptions: {
         'mock-provider': {
           style: 'vivid',
-          // maxImagesPerCall is not passed to doGenerate
-          maxImagesPerCall: 3,
         },
       },
       headers: { 'custom-request-header': 'request-header-value' },

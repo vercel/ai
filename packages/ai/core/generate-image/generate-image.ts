@@ -36,6 +36,7 @@ export async function generateImage({
   model,
   prompt,
   n = 1,
+  maxImagesPerCall,
   size,
   aspectRatio,
   seed,
@@ -58,6 +59,11 @@ The prompt that should be used to generate the image.
 Number of images to generate.
    */
   n?: number;
+
+  /**
+Number of images to generate.
+   */
+  maxImagesPerCall?: number;
 
   /**
 Size of the images to generate. Must have the format `{width}x{height}`. If not provided, the default size will be used.
@@ -110,15 +116,10 @@ Only applicable for HTTP-based providers.
 }): Promise<GenerateImageResult> {
   const { retry } = prepareRetries({ maxRetries: maxRetriesArg });
 
-  // extract maxImagesPerCall from providerOptions as it's not meant to be passed to `doGenerate()`
-  const [
-    [providerName, { maxImagesPerCall, ...generateProviderOptions } = {}] = [],
-  ] = Object.entries(providerOptions ?? {});
-
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
   const maxImagesPerCallWithDefault =
-    (maxImagesPerCall as number) ?? model.maxImagesPerCall ?? 1;
+    maxImagesPerCall ?? model.maxImagesPerCall ?? 1;
 
   // parallelize calls to the model:
   const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
@@ -142,9 +143,7 @@ Only applicable for HTTP-based providers.
           size,
           aspectRatio,
           seed,
-          providerOptions: providerName
-            ? { [providerName]: generateProviderOptions }
-            : {},
+          providerOptions: providerOptions ?? {},
         }),
       ),
     ),
