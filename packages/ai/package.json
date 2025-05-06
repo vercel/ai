@@ -4,8 +4,8 @@
   "description": "AI SDK by Vercel - The AI Toolkit for TypeScript and JavaScript",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
   "types": "./dist/index.d.ts",
   "files": [
     "dist/**/*",
@@ -29,28 +29,40 @@
   },
   "exports": {
     "./package.json": "./package.json",
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    },
-    "./internal": {
-      "types": "./dist/internal/index.d.ts",
-      "import": "./dist/internal/index.mjs",
-      "module": "./dist/internal/index.mjs",
-      "require": "./dist/internal/index.js"
-    },
-    "./test": {
-      "types": "./dist/test/index.d.ts",
-      "import": "./dist/test/index.mjs",
-      "module": "./dist/test/index.mjs",
-      "require": "./dist/test/index.js"
-    },
-    "./mcp-stdio": {
-      "types": "./dist/mcp-stdio/index.d.ts",
-      "import": "./dist/mcp-stdio/index.mjs",
-      "module": "./dist/mcp-stdio/index.mjs",
-      "require": "./dist/mcp-stdio/index.js"
+    ".": "./index.ts",
+    "./internal": "./internal/index.ts",
+    "./test": "./test/index.ts",
+    "./mcp-stdio": "./mcp-stdio/index.ts"
+  },
+  "publishConfig": {
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "access": "public",
+    "exports": {
+      "./package.json": "./package.json",
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.mjs",
+        "require": "./dist/index.js"
+      },
+      "./internal": {
+        "types": "./dist/internal/index.d.ts",
+        "import": "./dist/internal/index.mjs",
+        "module": "./dist/internal/index.mjs",
+        "require": "./dist/internal/index.js"
+      },
+      "./test": {
+        "types": "./dist/test/index.d.ts",
+        "import": "./dist/test/index.mjs",
+        "module": "./dist/test/index.mjs",
+        "require": "./dist/test/index.js"
+      },
+      "./mcp-stdio": {
+        "types": "./dist/mcp-stdio/index.d.ts",
+        "import": "./dist/mcp-stdio/index.mjs",
+        "module": "./dist/mcp-stdio/index.mjs",
+        "require": "./dist/mcp-stdio/index.js"
+      }
     }
   },
   "dependencies": {
@@ -74,9 +86,6 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "homepage": "https://ai-sdk.dev/docs",
   "repository": {

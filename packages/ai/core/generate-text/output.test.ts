@@ -1,6 +1,6 @@
 import { fail } from 'assert';
 import { z } from 'zod';
-import { verifyNoObjectGeneratedError } from '../../errors/no-object-generated-error';
+import { verifyNoObjectGeneratedError } from '../test/errors';
 import { object } from './output';
 import { FinishReason } from '../types';
 

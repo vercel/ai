@@ -2,7 +2,7 @@ import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import assert, { fail } from 'node:assert';
 import { z } from 'zod';
-import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../../errors/no-object-generated-error';
+import { verifyNoObjectGeneratedError as originalVerifyNoObjectGeneratedError } from '../test/errors';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { jsonSchema } from '../util';
