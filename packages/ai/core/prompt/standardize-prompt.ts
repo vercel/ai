@@ -4,7 +4,6 @@ import { Message } from '@ai-sdk/ui-utils';
 import { z } from 'zod';
 import { ToolSet } from '../generate-text/tool-set';
 import { convertToCoreMessages } from './convert-to-core-messages';
-import { detectPromptType } from './detect-prompt-type';
 import { CoreMessage, coreMessageSchema } from './message';
 import { Prompt } from './prompt';
 
