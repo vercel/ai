@@ -1576,7 +1576,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toDataStream({
-    getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
+    onError = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
     sendReasoning = false,
     sendSources = false,
@@ -1669,7 +1669,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'error': {
               controller.enqueue(
-                formatDataStreamPart('error', getErrorMessage(chunk.error)),
+                formatDataStreamPart('error', onError(chunk.error)),
               );
               break;
             }
@@ -1735,7 +1735,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   pipeDataStreamToResponse(
     response: ServerResponse,
     {
-      getErrorMessage,
+      onError,
       sendUsage,
       sendReasoning,
       sendSources,
@@ -1747,7 +1747,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     pipeDataStreamToResponse({
       response,
       dataStream: this.toDataStream({
-        getErrorMessage,
+        onError,
         sendUsage,
         sendReasoning,
         sendSources,
@@ -1767,7 +1767,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toDataStreamResponse({
-    getErrorMessage,
+    onError,
     sendUsage,
     sendReasoning,
     sendSources,
@@ -1777,7 +1777,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: ResponseInit & DataStreamOptions = {}): Response {
     return createDataStreamResponse({
       dataStream: this.toDataStream({
-        getErrorMessage,
+        onError,
         sendUsage,
         sendReasoning,
         sendSources,

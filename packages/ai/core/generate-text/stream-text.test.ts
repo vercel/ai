@@ -906,7 +906,7 @@ describe('streamText', () => {
       });
 
       result.pipeDataStreamToResponse(mockResponse, {
-        getErrorMessage: error => `custom error message: ${error}`,
+        onError: error => `custom error message: ${error}`,
       });
 
       await mockResponse.waitForEnd();
@@ -1192,7 +1192,7 @@ describe('streamText', () => {
       });
 
       const dataStream = result.toDataStream({
-        getErrorMessage: error => `custom error message: ${error}`,
+        onError: error => `custom error message: ${error}`,
       });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
@@ -1348,7 +1348,7 @@ describe('streamText', () => {
       });
 
       const response = result.toDataStreamResponse({
-        getErrorMessage: error => `custom error message: ${error}`,
+        onError: error => `custom error message: ${error}`,
       });
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();

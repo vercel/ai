@@ -19,9 +19,11 @@ import { ToolSet } from './tool-set';
 
 export type DataStreamOptions = {
   /**
-   * Get an error message from an error. Default to `() => 'An error occurred.'`.
+   * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
+   *
+   * @return error message to include in the data stream.
    */
-  getErrorMessage?: (error: unknown) => string;
+  onError?: (error: unknown) => string;
 
   /**
    * Send usage parts to the client.
