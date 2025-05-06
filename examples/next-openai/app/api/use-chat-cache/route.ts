@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { formatDataStreamPart, streamText } from 'ai';
+import { streamText } from 'ai';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
