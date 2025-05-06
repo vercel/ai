@@ -133,7 +133,7 @@ describe('TogetherAIProvider', () => {
       const modelId = 'stabilityai/stable-diffusion-xl';
       const settings = { maxImagesPerCall: 4 };
 
-      const model = provider.image(modelId, settings);
+      const model = provider.imageModel(modelId, settings);
 
       expect(TogetherAIImageModel).toHaveBeenCalledWith(
         modelId,
@@ -152,7 +152,7 @@ describe('TogetherAIProvider', () => {
       });
       const modelId = 'stabilityai/stable-diffusion-xl';
 
-      provider.image(modelId);
+      provider.imageModel(modelId);
 
       expect(TogetherAIImageModel).toHaveBeenCalledWith(
         modelId,

@@ -66,7 +66,7 @@ const createImageModel = (
   modelId: string,
   additionalTests: ((model: ImageModelV2) => void)[] = [],
 ): ModelWithCapabilities<ImageModelV2> => {
-  const model = vertex.image(modelId);
+  const model = vertex.imageModel(modelId);
 
   if (additionalTests.length > 0) {
     describe.each([createModelObject(model)])(

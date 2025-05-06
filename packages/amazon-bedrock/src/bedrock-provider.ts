@@ -63,7 +63,7 @@ Custom headers to include in the requests.
   /**
 Custom fetch implementation. You can use it as a middleware to intercept requests,
 or to provide a custom fetch implementation for e.g. testing.
-*/
+   */
   fetch?: FetchFunction;
 
   /**
@@ -85,11 +85,18 @@ export interface AmazonBedrockProvider extends ProviderV2 {
 
   embedding(modelId: BedrockEmbeddingModelId): EmbeddingModelV2<string>;
 
+  /**
+Creates a model for image generation.
+@deprecated Use `imageModel` instead.
+   */
   image(
     modelId: BedrockImageModelId,
     settings?: BedrockImageSettings,
   ): ImageModelV2;
 
+  /**
+Creates a model for image generation.
+   */
   imageModel(
     modelId: BedrockImageModelId,
     settings?: BedrockImageSettings,

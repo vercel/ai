@@ -142,7 +142,7 @@ describe('google-vertex-provider', () => {
       project: 'test-project',
       location: 'test-location',
     });
-    provider.image('imagen-3.0-generate-002');
+    provider.imageModel('imagen-3.0-generate-002');
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
       'imagen-3.0-generate-002',
@@ -164,7 +164,7 @@ describe('google-vertex-provider', () => {
     const imageSettings = {
       maxImagesPerCall: 4,
     };
-    provider.image('imagen-3.0-generate-002', imageSettings);
+    provider.imageModel('imagen-3.0-generate-002', imageSettings);
 
     expect(GoogleVertexImageModel).toHaveBeenCalledWith(
       'imagen-3.0-generate-002',

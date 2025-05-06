@@ -56,7 +56,8 @@ Creates a chat model for text generation.
 
   /**
 Creates a model for image generation.
-  */
+@deprecated Use `imageModel` instead.
+*/
   image(
     modelId: DeepInfraImageModelId,
     settings?: DeepInfraImageSettings,
@@ -64,7 +65,7 @@ Creates a model for image generation.
 
   /**
 Creates a model for image generation.
-  */
+*/
   imageModel(
     modelId: DeepInfraImageModelId,
     settings?: DeepInfraImageSettings,

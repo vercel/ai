@@ -138,7 +138,7 @@ describe('DeepInfraProvider', () => {
       const modelId = 'deepinfra-image-model';
       const settings = { maxImagesPerCall: 2 };
 
-      const model = provider.image(modelId, settings);
+      const model = provider.imageModel(modelId, settings);
 
       expect(model).toBeInstanceOf(DeepInfraImageModel);
       expect(DeepInfraImageModel).toHaveBeenCalledWith(
@@ -155,7 +155,7 @@ describe('DeepInfraProvider', () => {
       const provider = createDeepInfra();
       const modelId = 'deepinfra-image-model';
 
-      const model = provider.image(modelId);
+      const model = provider.imageModel(modelId);
 
       expect(model).toBeInstanceOf(DeepInfraImageModel);
       expect(DeepInfraImageModel).toHaveBeenCalledWith(
@@ -170,7 +170,7 @@ describe('DeepInfraProvider', () => {
       const provider = createDeepInfra({ baseURL: customBaseURL });
       const modelId = 'deepinfra-image-model';
 
-      const model = provider.image(modelId);
+      const model = provider.imageModel(modelId);
 
       expect(DeepInfraImageModel).toHaveBeenCalledWith(
         modelId,

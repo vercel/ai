@@ -18,7 +18,7 @@ describe('createReplicate', () => {
 
   it('creates an image model instance', () => {
     const provider = createReplicate({ apiToken: 'test-token' });
-    const model = provider.image('black-forest-labs/flux-schnell');
+    const model = provider.imageModel('black-forest-labs/flux-schnell');
     expect(model).toBeInstanceOf(ReplicateImageModel);
   });
 });

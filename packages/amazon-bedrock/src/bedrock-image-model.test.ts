@@ -118,15 +118,15 @@ describe('doGenerate', () => {
   });
 
   it('should respect maxImagesPerCall setting', async () => {
-    const customModel = provider.image('amazon.nova-canvas-v1:0', {
+    const customModel = provider.imageModel('amazon.nova-canvas-v1:0', {
       maxImagesPerCall: 2,
     });
     expect(customModel.maxImagesPerCall).toBe(2);
 
-    const defaultModel = provider.image('amazon.nova-canvas-v1:0');
+    const defaultModel = provider.imageModel('amazon.nova-canvas-v1:0');
     expect(defaultModel.maxImagesPerCall).toBe(5); // 'amazon.nova-canvas-v1:0','s default from settings
 
-    const unknownModel = provider.image('unknown-model' as any);
+    const unknownModel = provider.imageModel('unknown-model' as any);
     expect(unknownModel.maxImagesPerCall).toBe(1); // fallback for unknown models
   });
 

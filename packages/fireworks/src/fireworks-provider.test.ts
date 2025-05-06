@@ -132,7 +132,7 @@ describe('FireworksProvider', () => {
       const modelId = 'accounts/fireworks/models/flux-1-dev-fp8';
       const settings = { maxImagesPerCall: 2 };
 
-      const model = provider.image(modelId, settings);
+      const model = provider.imageModel(modelId, settings);
 
       expect(model).toBeInstanceOf(FireworksImageModel);
       expect(FireworksImageModel).toHaveBeenCalledWith(
@@ -149,7 +149,7 @@ describe('FireworksProvider', () => {
       const provider = createFireworks();
       const modelId = 'accounts/fireworks/models/flux-1-dev-fp8';
 
-      const model = provider.image(modelId);
+      const model = provider.imageModel(modelId);
 
       expect(model).toBeInstanceOf(FireworksImageModel);
       expect(FireworksImageModel).toHaveBeenCalledWith(
@@ -164,7 +164,7 @@ describe('FireworksProvider', () => {
       const provider = createFireworks({ baseURL: customBaseURL });
       const modelId = 'accounts/fireworks/models/flux-1-dev-fp8';
 
-      const model = provider.image(modelId);
+      const model = provider.imageModel(modelId);
 
       expect(FireworksImageModel).toHaveBeenCalledWith(
         modelId,

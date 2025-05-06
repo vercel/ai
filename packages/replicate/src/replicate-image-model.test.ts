@@ -5,7 +5,7 @@ import { ReplicateImageModel } from './replicate-image-model';
 const prompt = 'The Loch Ness monster getting a manicure';
 
 const provider = createReplicate({ apiToken: 'test-api-token' });
-const model = provider.image('black-forest-labs/flux-schnell');
+const model = provider.imageModel('black-forest-labs/flux-schnell');
 
 describe('doGenerate', () => {
   const testDate = new Date(2024, 0, 1);
@@ -108,7 +108,7 @@ describe('doGenerate', () => {
       },
     });
 
-    await provider.image('black-forest-labs/flux-schnell').doGenerate({
+    await provider.imageModel('black-forest-labs/flux-schnell').doGenerate({
       prompt,
       n: 1,
       size: undefined,
@@ -271,7 +271,7 @@ describe('doGenerate', () => {
   it('should set version in request body for versioned models', async () => {
     prepareResponse();
 
-    const versionedModel = provider.image(
+    const versionedModel = provider.imageModel(
       'bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637',
     );
 

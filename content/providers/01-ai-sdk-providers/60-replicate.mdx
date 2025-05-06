@@ -65,7 +65,7 @@ You can use the following optional settings to customize the Replicate provider 
 
 ## Image Models
 
-You can create Replicate image models using the `.image()` factory method.
+You can create Replicate image models using the `.imageModel()` factory method.
 For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
 
 <Note>
@@ -106,7 +106,7 @@ import { experimental_generateImage as generateImage } from 'ai';
 import { writeFile } from 'node:fs/promises';
 
 const { image } = await generateImage({
-  model: replicate.image('black-forest-labs/flux-schnell'),
+  model: replicate.imageModel('black-forest-labs/flux-schnell'),
   prompt: 'The Loch Ness Monster getting a manicure',
   aspectRatio: '16:9',
 });
@@ -123,7 +123,7 @@ import { replicate } from '@ai-sdk/replicate';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: replicate.image('recraft-ai/recraft-v3'),
+  model: replicate.imageModel('recraft-ai/recraft-v3'),
   prompt: 'The Loch Ness Monster getting a manicure',
   size: '1365x1024',
   providerOptions: {
@@ -141,7 +141,7 @@ import { replicate } from '@ai-sdk/replicate';
 import { experimental_generateImage as generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: replicate.image(
+  model: replicate.imageModel(
     'bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637',
   ),
   prompt: 'The Loch Ness Monster getting a manicure',

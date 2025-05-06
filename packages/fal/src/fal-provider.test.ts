@@ -16,7 +16,7 @@ describe('createFal', () => {
       const provider = createFal();
       const modelId = 'fal-ai/flux/dev';
 
-      const model = provider.image(modelId);
+      const model = provider.imageModel(modelId);
 
       expect(model).toBeInstanceOf(FalImageModel);
       expect(FalImageModel).toHaveBeenCalledWith(
@@ -34,7 +34,7 @@ describe('createFal', () => {
       const modelId = 'fal-ai/flux/dev';
       const settings = { maxImagesPerCall: 3 };
 
-      const model = provider.image(modelId, settings);
+      const model = provider.imageModel(modelId, settings);
 
       expect(model).toBeInstanceOf(FalImageModel);
       expect(FalImageModel).toHaveBeenCalledWith(
@@ -60,7 +60,7 @@ describe('createFal', () => {
       });
       const modelId = 'fal-ai/flux/dev';
 
-      provider.image(modelId);
+      provider.imageModel(modelId);
 
       expect(FalImageModel).toHaveBeenCalledWith(
         modelId,

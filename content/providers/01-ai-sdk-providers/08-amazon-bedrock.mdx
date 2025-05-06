@@ -476,7 +476,7 @@ The following optional provider options are available for Bedrock Titan embeddin
 ## Image Models
 
 You can create models that call the Bedrock API [Bedrock API](https://docs.aws.amazon.com/nova/latest/userguide/image-generation.html)
-using the `.image()` factory method.
+using the `.imageModel()` factory method.
 
 For more on the Amazon Nova Canvas image model, see the [Nova Canvas
 Overview](https://docs.aws.amazon.com/ai/responsible-ai/nova-canvas/overview.html).
@@ -486,7 +486,7 @@ Overview](https://docs.aws.amazon.com/ai/responsible-ai/nova-canvas/overview.htm
 </Note>
 
 ```ts
-const model = bedrock.image('amazon.nova-canvas-v1:0');
+const model = bedrock.imageModel('amazon.nova-canvas-v1:0');
 ```
 
 You can then generate images with the `experimental_generateImage` function:
