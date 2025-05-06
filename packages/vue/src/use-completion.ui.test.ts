@@ -5,9 +5,14 @@ import {
 import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { findByText, screen } from '@testing-library/vue';
+import { DataStreamPart } from 'ai';
 import TestCompletionComponent from './TestCompletionComponent.vue';
 import TestCompletionTextStreamComponent from './TestCompletionTextStreamComponent.vue';
 import { setupTestComponent } from './setup-test-component';
+
+function formatDataStreamPart(part: DataStreamPart) {
+  return `data: ${JSON.stringify(part)}\n\n`;
+}
 
 const server = createTestServer({
   '/api/completion': {},
@@ -19,7 +24,12 @@ describe('stream data stream', () => {
   it('should show streamed response', async () => {
     server.urls['/api/completion'].response = {
       type: 'stream-chunks',
-      chunks: ['0:"Hello"\n', '0:","\n', '0:" world"\n', '0:"."\n'],
+      chunks: [
+        formatDataStreamPart({ type: 'text', value: 'Hello' }),
+        formatDataStreamPart({ type: 'text', value: ',' }),
+        formatDataStreamPart({ type: 'text', value: ' world' }),
+        formatDataStreamPart({ type: 'text', value: '.' }),
+      ],
     };
 
     await userEvent.type(screen.getByTestId('input'), 'hi{enter}');
@@ -41,7 +51,7 @@ describe('stream data stream', () => {
       await screen.findByTestId('loading');
       expect(screen.getByTestId('loading')).toHaveTextContent('true');
 
-      controller.write('0:"Hello"\n');
+      controller.write(formatDataStreamPart({ type: 'text', value: 'Hello' }));
       controller.close();
 
       await findByText(await screen.findByTestId('loading'), 'false');

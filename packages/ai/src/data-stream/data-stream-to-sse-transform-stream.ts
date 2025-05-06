@@ -6,8 +6,8 @@ export class DataStreamToSSETransformStream extends TransformStream<
 > {
   constructor() {
     super({
-      transform(chunk, controller) {
-        controller.enqueue(`data: ${JSON.stringify(chunk)}\n\n`);
+      transform(part, controller) {
+        controller.enqueue(`data: ${JSON.stringify(part)}\n\n`);
       },
       flush(controller) {
         controller.enqueue('data: [DONE]\n\n');
