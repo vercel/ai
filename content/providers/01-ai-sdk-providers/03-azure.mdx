@@ -458,12 +458,19 @@ You can create models that call the Azure OpenAI image generation API (DALL-E) u
 const model = azure.imageModel('your-dalle-deployment-name');
 ```
 
-Azure OpenAI image models support several additional settings. You can pass them as an options argument:
+Azure OpenAI image models support several additional settings. You can pass them as `providerOptions.azure` when generating the image:
 
 ```ts
-const model = azure.imageModel('your-dalle-deployment-name', {
-  user: 'test-user', // optional unique user identifier
-  responseFormat: 'url', // 'url' or 'b64_json', defaults to 'url'
+await generateImage({
+  model: azure.imageModel('your-dalle-deployment-name'),
+  prompt: 'A photorealistic image of a cat astronaut floating in space',
+  size: '1024x1024', // '1024x1024', '1792x1024', or '1024x1792' for DALL-E 3
+  providerOptions: {
+    azure: {
+      user: 'test-user', // optional unique user identifier
+      responseFormat: 'url', // 'url' or 'b64_json', defaults to 'url'
+    },
+  },
 });
 ```
 
