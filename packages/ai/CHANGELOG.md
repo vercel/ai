@@ -1,5 +1,11 @@
 # ai
 
+## 4.3.14
+
+### Patch Changes
+
+- a295521: feat(message-validator): include more details in error messages
+
 ## 4.3.13
 
 ### Patch Changes

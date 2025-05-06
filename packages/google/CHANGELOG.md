@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 1.2.16
+
+### Patch Changes
+
+- 0ca6f2f: feat(providers/google): add gemini-2.5-pro-preview-05-06
+
 ## 1.2.15
 
 ### Patch Changes
