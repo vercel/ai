@@ -5,3 +5,5 @@
 ---
 
 feat: add speech with experimental_generateSpeech
+
+Commit: https://github.com/vercel/ai/pull/5802

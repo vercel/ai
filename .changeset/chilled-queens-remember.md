@@ -3,3 +3,5 @@
 ---
 
 chore (provider): cleanup request and rawRequest (language model v2)
+
+Commit: https://github.com/vercel/ai/pull/5634

@@ -9,3 +9,5 @@ add createTextStreamResponse function
 change createDataStreamResponse function to accept a DataStream and not a DataStreamWriter
 change pipeDataStreamToResponse function to accept a DataStream and not a DataStreamWriter
 change pipeDataStreamToResponse function to have a single parameter
+
+Commit: https://github.com/vercel/ai/pull/6158

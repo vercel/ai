@@ -7,3 +7,5 @@
 ---
 
 chore(embedding-models): remove remaining settings
+
+Commit: https://github.com/vercel/ai/pull/5989

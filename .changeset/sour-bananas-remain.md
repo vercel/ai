@@ -23,3 +23,5 @@ console.log({
   revisedPrompt,
 });
 ```
+
+Commit: https://github.com/vercel/ai/pull/5977

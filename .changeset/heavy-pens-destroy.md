@@ -14,3 +14,5 @@
 ---
 
 chore(embedding-model): add v2 interface
+
+Commit: https://github.com/vercel/ai/pull/5696

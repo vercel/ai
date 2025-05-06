@@ -3,3 +3,5 @@
 ---
 
 feat(provider/openai): add o3 & o4-mini with developer systemMessageMode
+
+Commit: https://github.com/vercel/ai/pull/6002

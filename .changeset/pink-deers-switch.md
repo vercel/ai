@@ -4,3 +4,5 @@
 ---
 
 feat: add provider option schemas for vertex imagegen and google genai
+
+Commit: https://github.com/vercel/ai/pull/6172
