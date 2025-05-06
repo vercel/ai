@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/google",
-  "version": "1.2.14",
+  "version": "1.2.15",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
