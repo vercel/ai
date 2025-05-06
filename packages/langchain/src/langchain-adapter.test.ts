@@ -13,13 +13,17 @@ describe('toDataStream', () => {
 
     expect(await convertReadableStreamToArray(toDataStream(inputStream)))
       .toMatchInlineSnapshot(`
-      [
-        "0:"Hello"
-      ",
-        "0:"World"
-      ",
-      ]
-    `);
+        [
+          {
+            "type": "text",
+            "value": "Hello",
+          },
+          {
+            "type": "text",
+            "value": "World",
+          },
+        ]
+      `);
   });
 
   it('should convert ReadableStream<string> (LangChain StringOutputParser)', async () => {
@@ -27,13 +31,17 @@ describe('toDataStream', () => {
 
     expect(await convertReadableStreamToArray(toDataStream(inputStream)))
       .toMatchInlineSnapshot(`
-      [
-        "0:"Hello"
-      ",
-        "0:"World"
-      ",
-      ]
-    `);
+        [
+          {
+            "type": "text",
+            "value": "Hello",
+          },
+          {
+            "type": "text",
+            "value": "World",
+          },
+        ]
+      `);
   });
 
   it('should convert ReadableStream<LangChainStreamEvent>', async () => {
@@ -44,12 +52,16 @@ describe('toDataStream', () => {
 
     expect(await convertReadableStreamToArray(toDataStream(inputStream)))
       .toMatchInlineSnapshot(`
-      [
-        "0:"Hello"
-      ",
-        "0:"World"
-      ",
-      ]
-    `);
+        [
+          {
+            "type": "text",
+            "value": "Hello",
+          },
+          {
+            "type": "text",
+            "value": "World",
+          },
+        ]
+      `);
   });
 });
