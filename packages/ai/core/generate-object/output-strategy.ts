@@ -10,7 +10,7 @@ import {
 import { safeValidateTypes, ValidationResult } from '@ai-sdk/provider-utils';
 import { asSchema, DeepPartial, Schema } from '../util';
 import { z } from 'zod';
-import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
+import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,

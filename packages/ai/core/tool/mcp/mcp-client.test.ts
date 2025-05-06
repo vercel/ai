@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MCPClientError } from '../../../errors';
+import { MCPClientError } from '../../../src/error/mcp-client-error';
 import { createMCPClient } from './mcp-client';
 import { MockMCPTransport } from './mock-mcp-transport';
 import { CallToolResult } from './types';
