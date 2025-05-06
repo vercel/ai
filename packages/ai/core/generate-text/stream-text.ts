@@ -4,14 +4,12 @@ import {
 } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
-import { ServerResponse } from 'node:http';
 import { InvalidArgumentError } from '../../errors/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
 import {
   DataStreamText,
   formatDataStreamPart,
 } from '../../src/data-stream/data-stream-parts';
-import { DataStreamWriter } from '../../src/data-stream/data-stream-writer';
 import { asArray } from '../../util/as-array';
 import { consumeStream } from '../../util/consume-stream';
 import { DelayedPromise } from '../../util/delayed-promise';
@@ -44,10 +42,7 @@ import {
 } from '../util/async-iterable-stream';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import { now as originalNow } from '../util/now';
-import { prepareOutgoingHttpHeaders } from '../util/prepare-outgoing-http-headers';
-import { prepareResponseHeaders } from '../util/prepare-response-headers';
 import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
-import { writeToServerResponse } from '../util/write-to-server-response';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { asReasoningText } from './reasoning';
@@ -67,6 +62,11 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ServerResponse } from 'node:http';
+import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
+import { createDataStreamResponse } from '../../src/data-stream/create-data-stream-response';
+import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
+import { pipeDataStreamToResponse } from '../../src/data-stream/pipe-data-stream-to-response';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1576,7 +1576,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toDataStream({
-    getErrorMessage = () => 'An error occurred.', // mask error messages for safety by default
+    onError = () => 'An error occurred.', // mask error messages for safety by default
     sendUsage = true,
     sendReasoning = false,
     sendSources = false,
@@ -1669,7 +1669,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'error': {
               controller.enqueue(
-                formatDataStreamPart('error', getErrorMessage(chunk.error)),
+                formatDataStreamPart('error', onError(chunk.error)),
               );
               break;
             }
@@ -1735,93 +1735,63 @@ However, the LLM results are expected to be small enough to not cause issues.
   pipeDataStreamToResponse(
     response: ServerResponse,
     {
-      status,
-      statusText,
-      headers,
-      getErrorMessage,
+      onError,
       sendUsage,
       sendReasoning,
       sendSources,
       experimental_sendFinish,
+      experimental_sendStart,
+      ...init
     }: ResponseInit & DataStreamOptions = {},
   ) {
-    writeToServerResponse({
+    pipeDataStreamToResponse({
       response,
-      status,
-      statusText,
-      headers: prepareOutgoingHttpHeaders(headers, {
-        contentType: 'text/plain; charset=utf-8',
-        dataStreamVersion: 'v1',
-      }),
-      stream: this.toDataStream({
-        getErrorMessage,
+      dataStream: this.toDataStream({
+        onError,
         sendUsage,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
-      }).pipeThrough(new TextEncoderStream()),
+        experimental_sendStart,
+      }),
+      ...init,
     });
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    writeToServerResponse({
+    pipeTextStreamToResponse({
       response,
-      status: init?.status,
-      statusText: init?.statusText,
-      headers: prepareOutgoingHttpHeaders(init?.headers, {
-        contentType: 'text/plain; charset=utf-8',
-      }),
-      stream: this.textStream.pipeThrough(new TextEncoderStream()),
+      textStream: this.textStream,
+      ...init,
     });
   }
 
-  mergeIntoDataStream(writer: DataStreamWriter, options?: DataStreamOptions) {
-    writer.merge(
-      this.toDataStream({
-        getErrorMessage: options?.getErrorMessage ?? writer.onError,
-        sendUsage: options?.sendUsage,
-        sendReasoning: options?.sendReasoning,
-        sendSources: options?.sendSources,
-        experimental_sendFinish: options?.experimental_sendFinish,
-      }),
-    );
-  }
-
   toDataStreamResponse({
-    headers,
-    status,
-    statusText,
-    getErrorMessage,
+    onError,
     sendUsage,
     sendReasoning,
     sendSources,
     experimental_sendFinish,
+    experimental_sendStart,
+    ...init
   }: ResponseInit & DataStreamOptions = {}): Response {
-    return new Response(
-      this.toDataStream({
-        getErrorMessage,
+    return createDataStreamResponse({
+      dataStream: this.toDataStream({
+        onError,
         sendUsage,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
-      }).pipeThrough(new TextEncoderStream()),
-      {
-        status,
-        statusText,
-        headers: prepareResponseHeaders(headers, {
-          contentType: 'text/plain; charset=utf-8',
-          dataStreamVersion: 'v1',
-        }),
-      },
-    );
+        experimental_sendStart,
+      }),
+      ...init,
+    });
   }
 
   toTextStreamResponse(init?: ResponseInit): Response {
-    return new Response(this.textStream.pipeThrough(new TextEncoderStream()), {
-      status: init?.status ?? 200,
-      headers: prepareResponseHeaders(init?.headers, {
-        contentType: 'text/plain; charset=utf-8',
-      }),
+    return createTextStreamResponse({
+      textStream: this.textStream,
+      ...init,
     });
   }
 }

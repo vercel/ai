@@ -5,7 +5,7 @@ export function createDataStream({
   execute,
   onError = () => 'An error occurred.', // mask error messages for safety by default
 }: {
-  execute: (dataStream: DataStreamWriter) => Promise<void> | void;
+  execute: (writer: DataStreamWriter) => Promise<void> | void;
   onError?: (error: unknown) => string;
 }): ReadableStream<DataStreamText> {
   let controller!: ReadableStreamDefaultController<string>;

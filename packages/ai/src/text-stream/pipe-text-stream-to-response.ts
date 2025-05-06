@@ -1,17 +1,16 @@
 import { ServerResponse } from 'node:http';
 import { prepareOutgoingHttpHeaders } from '../../core/util/prepare-outgoing-http-headers';
 import { writeToServerResponse } from '../../core/util/write-to-server-response';
-import { DataStreamText } from './data-stream-parts';
 
-export function pipeDataStreamToResponse({
+export function pipeTextStreamToResponse({
   response,
   status,
   statusText,
   headers,
-  dataStream,
+  textStream,
 }: {
   response: ServerResponse;
-  dataStream: ReadableStream<DataStreamText>;
+  textStream: ReadableStream<string>;
 } & ResponseInit): void {
   writeToServerResponse({
     response,
@@ -19,8 +18,7 @@ export function pipeDataStreamToResponse({
     statusText,
     headers: prepareOutgoingHttpHeaders(headers, {
       contentType: 'text/plain; charset=utf-8',
-      dataStreamVersion: 'v1',
     }),
-    stream: dataStream.pipeThrough(new TextEncoderStream()),
+    stream: textStream.pipeThrough(new TextEncoderStream()),
   });
 }

@@ -23,15 +23,15 @@ app.post('/', async c => {
 app.post('/stream-data', async c => {
   // immediately start streaming the response
   const dataStream = createDataStream({
-    execute: async dataStreamWriter => {
-      dataStreamWriter.writeData('initialized call');
+    execute: async writer => {
+      writer.writeData('initialized call');
 
       const result = streamText({
         model: openai('gpt-4o'),
         prompt: 'Invent a new holiday and describe its traditions.',
       });
 
-      result.mergeIntoDataStream(dataStreamWriter);
+      writer.merge(result.toDataStream());
     },
     onError: error => {
       // Error messages are masked by default for security reasons.

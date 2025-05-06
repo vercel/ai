@@ -1,20 +1,18 @@
 import { prepareResponseHeaders } from '../../core/util/prepare-response-headers';
-import { DataStreamText } from './data-stream-parts';
 
-export function createDataStreamResponse({
+export function createTextStreamResponse({
   status,
   statusText,
   headers,
-  dataStream,
+  textStream,
 }: ResponseInit & {
-  dataStream: ReadableStream<DataStreamText>;
+  textStream: ReadableStream<string>;
 }): Response {
-  return new Response(dataStream.pipeThrough(new TextEncoderStream()), {
-    status,
+  return new Response(textStream.pipeThrough(new TextEncoderStream()), {
+    status: status ?? 200,
     statusText,
     headers: prepareResponseHeaders(headers, {
       contentType: 'text/plain; charset=utf-8',
-      dataStreamVersion: 'v1',
     }),
   });
 }

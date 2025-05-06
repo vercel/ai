@@ -28,4 +28,4 @@ export { cosineSimilarity } from './util/cosine-similarity';
 export { simulateReadableStream } from './util/simulate-readable-stream';
 
 // directory exports from /src
-export * from '../src/data-stream';
+export * from '../src/';

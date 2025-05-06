@@ -4039,36 +4039,6 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
 ]
 `;
 
-exports[`streamText > result.mergeIntoDataStream > should merge the result into a data stream 1`] = `
-[
-  "f:{"messageId":"msg-0"}
-",
-  "0:"Hello"
-",
-  "0:", "
-",
-  "0:"world!"
-",
-  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
-",
-  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
-",
-]
-`;
-
-exports[`streamText > result.mergeIntoDataStream > should use the onError handler from the data stream 1`] = `
-[
-  "f:{"messageId":"msg-0"}
-",
-  "3:"custom error message: error"
-",
-  "e:{"finishReason":"error","usage":{},"isContinued":false}
-",
-  "d:{"finishReason":"error","usage":{}}
-",
-]
-`;
-
 exports[`streamText > result.pipeDataStreamToResponse > should create a Response with a data stream and custom headers 1`] = `
 [
   "f:{"messageId":"msg-0"}

@@ -906,7 +906,7 @@ describe('streamText', () => {
       });
 
       result.pipeDataStreamToResponse(mockResponse, {
-        getErrorMessage: error => `custom error message: ${error}`,
+        onError: error => `custom error message: ${error}`,
       });
 
       await mockResponse.waitForEnd();
@@ -1192,7 +1192,7 @@ describe('streamText', () => {
       });
 
       const dataStream = result.toDataStream({
-        getErrorMessage: error => `custom error message: ${error}`,
+        onError: error => `custom error message: ${error}`,
       });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
@@ -1348,7 +1348,7 @@ describe('streamText', () => {
       });
 
       const response = result.toDataStreamResponse({
-        getErrorMessage: error => `custom error message: ${error}`,
+        onError: error => `custom error message: ${error}`,
       });
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
@@ -1373,45 +1373,6 @@ describe('streamText', () => {
       const response = result.toDataStreamResponse({ sendUsage: false });
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
-    });
-  });
-
-  describe('result.mergeIntoDataStream', () => {
-    it('should merge the result into a data stream', async () => {
-      const result = streamText({
-        model: createTestModel(),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-
-      const dataStream = createDataStream({
-        execute(writer) {
-          result.mergeIntoDataStream(writer);
-        },
-      });
-
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
-    });
-
-    it('should use the onError handler from the data stream', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'error', error: 'error' },
-          ]),
-        }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-
-      const dataStream = createDataStream({
-        execute(writer) {
-          result.mergeIntoDataStream(writer);
-        },
-        onError: error => `custom error message: ${error}`,
-      });
-
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
   });
 
