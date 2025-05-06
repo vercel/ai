@@ -115,7 +115,7 @@ For more information, see Laminar's [Next.js guide](https://docs.lmnr.ai/tracing
 
 Laminar can live alongside `@vercel/otel` and trace AI SDK calls. The default Laminar setup will ensure that
 
-- regular Next.js traces are sent via `@vercel/otel` to your Telemetry backend such as Datadog or New Relic,
+- regular Next.js traces are sent via `@vercel/otel` to your Telemetry backend configured with Vercel,
 - AI SDK and other LLM or browser agent traces are sent via Laminar.
 
 ```javascript
@@ -176,7 +176,7 @@ Laminar.initialize();
 
 This must be done once in your application, as early as possible, but _after_ other tracing libraries (e.g. `@sentry/node`) are initialized.
 
-Read more in Laminar [docs](https://docs.lmnr.ai/tracing/introduction#1-get-your-project-api-key).
+Read more in Laminar [docs](https://docs.lmnr.ai/tracing/introduction).
 
 ### Tracing AI SDK calls
 
