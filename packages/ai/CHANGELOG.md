@@ -1,5 +1,22 @@
 # ai
 
+## 5.0.0-canary.19
+
+### Major Changes
+
+- 2d03e19: chore (ai): remove StreamCallbacks.onCompletion
+- 319b989: chore (ai): remove content from ui messages
+- 441d042: chore (ui): data stream protocol v2 with SSEs
+- dcc549b: remove StreamTextResult.mergeIntoDataStream method
+  rename DataStreamOptions.getErrorMessage to onError
+  add pipeTextStreamToResponse function
+  add createTextStreamResponse function
+  change createDataStreamResponse function to accept a DataStream and not a DataStreamWriter
+  change pipeDataStreamToResponse function to accept a DataStream and not a DataStreamWriter
+  change pipeDataStreamToResponse function to have a single parameter
+- cb2b53a: chore (ai): refactor header preparation
+- e244a78: chore (ai): remove StreamData and mergeStreams
+
 ## 5.0.0-canary.18
 
 ### Major Changes
