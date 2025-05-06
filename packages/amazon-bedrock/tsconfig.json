@@ -1,5 +1,9 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
+  "compilerOptions": {
+    "moduleResolution": "node16",
+    "module": "Node16"
+  },
   "include": ["."],
   "exclude": ["*/dist", "dist", "build", "node_modules"]
 }
