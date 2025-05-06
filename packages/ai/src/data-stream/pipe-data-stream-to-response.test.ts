@@ -28,9 +28,12 @@ describe('pipeDataStreamToResponse', () => {
     // Verify headers
     expect(mockResponse.headers).toMatchInlineSnapshot(`
       {
-        "content-type": "text/plain; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
         "custom-header": "test",
-        "x-vercel-ai-data-stream": "v1",
+        "x-accel-buffering": "no",
+        "x-vercel-ai-data-stream": "v2",
       }
     `);
 

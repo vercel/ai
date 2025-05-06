@@ -23,19 +23,23 @@ describe('createDataStreamResponse', () => {
     expect(response.statusText).toBe('OK');
 
     // Verify headers
-    expect(response.headers.get('Content-Type')).toBe(
-      'text/plain; charset=utf-8',
-    );
-    expect(response.headers.get('X-Vercel-AI-Data-Stream')).toBe('v1');
-    expect(response.headers.get('Custom-Header')).toBe('test');
+    expect(Object.fromEntries(response.headers.entries()))
+      .toMatchInlineSnapshot(`
+      {
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream",
+        "custom-header": "test",
+        "x-accel-buffering": "no",
+        "x-vercel-ai-data-stream": "v2",
+      }
+    `);
 
-    // Verify encoded stream content
-    const decoder = new TextDecoder();
-    const encodedStream = response.body!;
-    const chunks = await convertReadableStreamToArray(encodedStream);
-    const decodedChunks = chunks.map(chunk => decoder.decode(chunk));
-
-    expect(decodedChunks).toMatchInlineSnapshot(`
+    expect(
+      await convertReadableStreamToArray(
+        response.body!.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toMatchInlineSnapshot(`
       [
         "data: {"type":"data","value":["test-data"]}
 
@@ -55,12 +59,11 @@ describe('createDataStreamResponse', () => {
       ]),
     });
 
-    const decoder = new TextDecoder();
-    const encodedStream = response.body!;
-    const chunks = await convertReadableStreamToArray(encodedStream);
-    const decodedChunks = chunks.map(chunk => decoder.decode(chunk));
-
-    expect(decodedChunks).toMatchInlineSnapshot(`
+    expect(
+      await convertReadableStreamToArray(
+        response.body!.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toMatchInlineSnapshot(`
       [
         "data: {"type":"error","value":"Custom error message"}
 
