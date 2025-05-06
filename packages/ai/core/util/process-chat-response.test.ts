@@ -1,7 +1,7 @@
 import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { DataStreamPart } from '../../src';
-import { DataStreamToSSETransformStream } from '../../src/data-stream/data-stream-to-sse-transform-stream';
+import { JsonToSseTransformStream } from '../../src/data-stream/json-to-sse-transform-stream';
 import { JSONValue, LanguageModelUsage, UIMessage } from '../types';
 import { processChatResponse } from './process-chat-response';
 
@@ -9,7 +9,7 @@ function createDataProtocolStream(
   parts: DataStreamPart[],
 ): ReadableStream<Uint8Array> {
   return convertArrayToReadableStream(parts)
-    .pipeThrough(new DataStreamToSSETransformStream())
+    .pipeThrough(new JsonToSseTransformStream())
     .pipeThrough(new TextEncoderStream());
 }
 

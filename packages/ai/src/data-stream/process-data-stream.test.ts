@@ -1,13 +1,13 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
-import { DataStreamToSSETransformStream } from './data-stream-to-sse-transform-stream';
+import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { processDataStream } from './process-data-stream';
 
 function createReadableStream(
   parts: DataStreamPart[],
 ): ReadableStream<Uint8Array> {
   return convertArrayToReadableStream(parts)
-    .pipeThrough(new DataStreamToSSETransformStream())
+    .pipeThrough(new JsonToSseTransformStream())
     .pipeThrough(new TextEncoderStream());
 }
 
