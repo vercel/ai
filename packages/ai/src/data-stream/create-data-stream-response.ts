@@ -1,5 +1,7 @@
 import { prepareHeaders } from '../../core/util/prepare-headers';
-import { DataStreamText } from './data-stream-parts';
+import { dataStreamHeaders } from './data-stream-headers';
+import { DataStreamPart } from './data-stream-parts';
+import { DataStreamToSSETransformStream } from './data-stream-to-sse-transform-stream';
 
 export function createDataStreamResponse({
   status,
@@ -7,14 +9,16 @@ export function createDataStreamResponse({
   headers,
   dataStream,
 }: ResponseInit & {
-  dataStream: ReadableStream<DataStreamText>;
+  dataStream: ReadableStream<DataStreamPart>;
 }): Response {
-  return new Response(dataStream.pipeThrough(new TextEncoderStream()), {
-    status,
-    statusText,
-    headers: prepareHeaders(headers, {
-      'content-type': 'text/plain; charset=utf-8',
-      'x-vercel-ai-data-stream': 'v1',
-    }),
-  });
+  return new Response(
+    dataStream
+      .pipeThrough(new DataStreamToSSETransformStream())
+      .pipeThrough(new TextEncoderStream()),
+    {
+      status,
+      statusText,
+      headers: prepareHeaders(headers, dataStreamHeaders),
+    },
+  );
 }

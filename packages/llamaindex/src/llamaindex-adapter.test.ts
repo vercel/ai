@@ -13,12 +13,16 @@ describe('toDataStream', () => {
 
     expect(await convertReadableStreamToArray(toDataStream(inputStream)))
       .toMatchInlineSnapshot(`
-      [
-        "0:"Hello"
-      ",
-        "0:"World"
-      ",
-      ]
-    `);
+        [
+          {
+            "type": "text",
+            "value": "Hello",
+          },
+          {
+            "type": "text",
+            "value": "World",
+          },
+        ]
+      `);
   });
 });

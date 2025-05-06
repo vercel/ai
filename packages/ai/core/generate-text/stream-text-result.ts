@@ -1,5 +1,5 @@
 import { ServerResponse } from 'node:http';
-import { DataStreamText } from '../../src/data-stream/data-stream-parts';
+import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
 import { ReasoningPart } from '../prompt/content-part';
 import {
   CallWarning,
@@ -222,7 +222,7 @@ If an error occurs, it is passed to the optional `onError` callback.
 
   @return A data stream.
      */
-  toDataStream(options?: DataStreamOptions): ReadableStream<DataStreamText>;
+  toDataStream(options?: DataStreamOptions): ReadableStream<DataStreamPart>;
 
   /**
   Writes data stream output to a Node.js response-like object.

@@ -231,7 +231,9 @@ export async function processChatResponse({
       // In the future we should make this non-blocking, which
       // requires additional state management for error handling etc.
       if (onToolCall) {
-        const result = await onToolCall({ toolCall: value });
+        const result = await onToolCall({
+          toolCall: value,
+        });
         if (result != null) {
           updateToolInvocationPart(value.toolCallId, {
             state: 'result',
@@ -304,7 +306,7 @@ export async function processChatResponse({
     onFinishMessagePart(value) {
       finishReason = value.finishReason;
       if (value.usage != null) {
-        usage = value.usage;
+        usage = value.usage as LanguageModelUsage;
       }
     },
     onErrorPart(error) {

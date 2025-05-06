@@ -11,6 +11,7 @@ import {
   generateId,
   UIMessage,
   streamText,
+  DataStreamToSSETransformStream,
 } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
@@ -61,7 +62,9 @@ export async function POST(req: Request) {
   });
 
   return new Response(
-    await streamContext.resumableStream(streamId, () => stream),
+    await streamContext.resumableStream(streamId, () =>
+      stream.pipeThrough(new DataStreamToSSETransformStream()),
+    ),
   );
 }
 
@@ -94,6 +97,8 @@ export async function GET(request: Request) {
   });
 
   return new Response(
-    await streamContext.resumableStream(recentStreamId, () => emptyDataStream),
+    await streamContext.resumableStream(recentStreamId, () =>
+      emptyDataStream.pipeThrough(new DataStreamToSSETransformStream()),
+    ),
   );
 }

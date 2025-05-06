@@ -1,7 +1,9 @@
 import { ServerResponse } from 'node:http';
 import { prepareHeaders } from '../../core/util/prepare-headers';
 import { writeToServerResponse } from '../../core/util/write-to-server-response';
-import { DataStreamText } from './data-stream-parts';
+import { dataStreamHeaders } from './data-stream-headers';
+import { DataStreamPart } from './data-stream-parts';
+import { DataStreamToSSETransformStream } from './data-stream-to-sse-transform-stream';
 
 export function pipeDataStreamToResponse({
   response,
@@ -11,18 +13,17 @@ export function pipeDataStreamToResponse({
   dataStream,
 }: {
   response: ServerResponse;
-  dataStream: ReadableStream<DataStreamText>;
+  dataStream: ReadableStream<DataStreamPart>;
 } & ResponseInit): void {
   writeToServerResponse({
     response,
     status,
     statusText,
     headers: Object.fromEntries(
-      prepareHeaders(headers, {
-        'content-type': 'text/plain; charset=utf-8',
-        'x-vercel-ai-data-stream': 'v1',
-      }).entries(),
+      prepareHeaders(headers, dataStreamHeaders).entries(),
     ),
-    stream: dataStream.pipeThrough(new TextEncoderStream()),
+    stream: dataStream
+      .pipeThrough(new DataStreamToSSETransformStream())
+      .pipeThrough(new TextEncoderStream()),
   });
 }

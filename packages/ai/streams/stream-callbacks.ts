@@ -37,8 +37,7 @@ export interface StreamCallbacks {
  */
 export function createCallbacksTransformer(
   callbacks: StreamCallbacks | undefined = {},
-): TransformStream<string, Uint8Array> {
-  const textEncoder = new TextEncoder();
+): TransformStream<string, string> {
   let aggregatedResponse = '';
 
   return new TransformStream({
@@ -47,7 +46,7 @@ export function createCallbacksTransformer(
     },
 
     async transform(message, controller): Promise<void> {
-      controller.enqueue(textEncoder.encode(message));
+      controller.enqueue(message);
 
       aggregatedResponse += message;
 

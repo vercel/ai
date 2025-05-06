@@ -32,9 +32,9 @@ export async function POST(req: Request) {
   // immediately start streaming (solves RAG issues with status, etc.)
   const dataStream = createDataStream({
     execute: writer => {
-      writer.writeMessageAnnotation({
-        start: 'start',
-        count: count++,
+      writer.write({
+        type: 'message-annotations',
+        value: [{ start: 'start', count: count++ }],
       });
 
       const result = streamText({
@@ -64,9 +64,9 @@ export async function POST(req: Request) {
                   Math.floor(Math.random() * weatherOptions.length)
                 ];
 
-              writer.writeMessageAnnotation({
-                city,
-                weather,
+              writer.write({
+                type: 'message-annotations',
+                value: [{ city, weather }],
               });
 
               return weather;

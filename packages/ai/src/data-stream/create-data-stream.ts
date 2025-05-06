@@ -1,4 +1,4 @@
-import { DataStreamText, formatDataStreamPart } from './data-stream-parts';
+import { DataStreamPart } from './data-stream-parts';
 import { DataStreamWriter } from './data-stream-writer';
 
 export function createDataStream({
@@ -7,8 +7,8 @@ export function createDataStream({
 }: {
   execute: (writer: DataStreamWriter) => Promise<void> | void;
   onError?: (error: unknown) => string;
-}): ReadableStream<DataStreamText> {
-  let controller!: ReadableStreamDefaultController<string>;
+}): ReadableStream<DataStreamPart> {
+  let controller!: ReadableStreamDefaultController<DataStreamPart>;
 
   const ongoingStreamPromises: Promise<void>[] = [];
 
@@ -18,7 +18,7 @@ export function createDataStream({
     },
   });
 
-  function safeEnqueue(data: DataStreamText) {
+  function safeEnqueue(data: DataStreamPart) {
     try {
       controller.enqueue(data);
     } catch (error) {
@@ -28,17 +28,8 @@ export function createDataStream({
 
   try {
     const result = execute({
-      write(data: DataStreamText) {
-        safeEnqueue(data);
-      },
-      writeData(data) {
-        safeEnqueue(formatDataStreamPart('data', [data]));
-      },
-      writeMessageAnnotation(annotation) {
-        safeEnqueue(formatDataStreamPart('message_annotations', [annotation]));
-      },
-      writeSource(source) {
-        safeEnqueue(formatDataStreamPart('source', source));
+      write(part: DataStreamPart) {
+        safeEnqueue(part);
       },
       merge(streamArg) {
         ongoingStreamPromises.push(
@@ -50,7 +41,7 @@ export function createDataStream({
               safeEnqueue(value);
             }
           })().catch(error => {
-            safeEnqueue(formatDataStreamPart('error', onError(error)));
+            safeEnqueue({ type: 'error', value: onError(error) });
           }),
         );
       },
@@ -60,12 +51,12 @@ export function createDataStream({
     if (result) {
       ongoingStreamPromises.push(
         result.catch(error => {
-          safeEnqueue(formatDataStreamPart('error', onError(error)));
+          safeEnqueue({ type: 'error', value: onError(error) });
         }),
       );
     }
   } catch (error) {
-    safeEnqueue(formatDataStreamPart('error', onError(error)));
+    safeEnqueue({ type: 'error', value: onError(error) });
   }
 
   // Wait until all ongoing streams are done. This approach enables merging
