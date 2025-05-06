@@ -524,10 +524,14 @@ Documentation](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-r
 
 ### Image Model Settings
 
-When creating an image model, you can customize the generation behavior with optional settings:
+You can customize the generation behavior with optional options:
 
 ```ts
-const model = bedrock.imageModel('amazon.nova-canvas-v1:0', {
+await generateImage({
+  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  prompt: 'A beautiful sunset over a calm ocean',
+  size: '512x512',
+  seed: 42,
   maxImagesPerCall: 1, // Maximum number of images to generate per API call
 });
 ```
