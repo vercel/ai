@@ -1,7 +1,6 @@
 import {
   convertToModelMessages,
   DataStreamWriter,
-  formatDataStreamPart,
   Tool,
   ToolExecutionOptions,
   ToolSet,
@@ -98,12 +97,13 @@ export async function processToolCalls<
       }
 
       // Forward updated tool result to the client.
-      dataStream.write(
-        formatDataStreamPart('tool_result', {
+      dataStream.write({
+        type: 'tool-result',
+        value: {
           toolCallId: toolInvocation.toolCallId,
           result,
-        }),
-      );
+        },
+      });
 
       // Return updated toolInvocation with the actual result.
       return {
