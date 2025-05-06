@@ -151,7 +151,7 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
 
     // Extract embeddings from Cohere response
     let embeddings: number[][] = [];
-    
+
     // Handle different response formats based on embedding_types
     // If multiple embedding_types are requested, the response contains an object with embeddings
     // keyed by type (e.g., {"float": [...], "int8": [...]})
@@ -162,15 +162,17 @@ export class BedrockEmbeddingModel implements EmbeddingModelV1<string> {
       // Complex case: multiple embedding types returns an object with embeddings keyed by type
       // We'll use the 'float' embeddings if available, otherwise take the first type's embeddings
       const embeddingTypes = Object.keys(response.embeddings);
-      const preferredType = embeddingTypes.includes('float') ? 'float' : embeddingTypes[0];
+      const preferredType = embeddingTypes.includes('float')
+        ? 'float'
+        : embeddingTypes[0];
       embeddings = response.embeddings[preferredType] || [];
     }
-    
+
     // Cohere doesn't provide token count in the response
     // Instead, estimate 1 token per 4 characters as mentioned in the docs
     const tokenEstimate = values.reduce(
       (sum, text) => sum + Math.ceil(text.length / 4),
-      0
+      0,
     );
 
     return {
@@ -192,7 +194,7 @@ const CohereEmbeddingResponseSchema = z.object({
     // For single embedding type: array of embeddings
     z.array(z.array(z.number())),
     // For multiple embedding types: object with embeddings keyed by type
-    z.record(z.string(), z.array(z.array(z.number())))
+    z.record(z.string(), z.array(z.array(z.number()))),
   ]),
   id: z.string(),
   response_type: z.string(),

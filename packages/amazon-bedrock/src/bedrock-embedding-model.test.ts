@@ -10,7 +10,8 @@ const mockEmbeddings = [
 const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
-const mockImageUri = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/example';
+const mockImageUri =
+  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/example';
 
 const titanEmbedUrl = `https://bedrock-runtime.us-east-1.amazonaws.com/model/${encodeURIComponent(
   'amazon.titan-embed-text-v2:0',
@@ -282,7 +283,7 @@ describe('doEmbed with Cohere models', () => {
   it('should use default cohere settings if not specified', async () => {
     const cohereModelWithDefaults = new BedrockEmbeddingModel(
       'cohere.embed-english-v3',
-      {},  // No cohere settings specified
+      {}, // No cohere settings specified
       {
         baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
         headers: {},
@@ -297,9 +298,9 @@ describe('doEmbed with Cohere models', () => {
     const body = await server.calls[0].requestBody;
     expect(body).toEqual({
       texts: [testValues[0]],
-      input_type: 'search_document',  // Default value
-      truncate: 'NONE',  // Default value
-      embedding_types: ['float'],  // Default value
+      input_type: 'search_document', // Default value
+      truncate: 'NONE', // Default value
+      embedding_types: ['float'], // Default value
     });
   });
 
@@ -377,7 +378,7 @@ describe('doEmbed with Cohere models', () => {
         JSON.stringify({
           embeddings: {
             float: [mockEmbeddings[0]],
-            int8: [[1, 2, 3, 4, 5]]
+            int8: [[1, 2, 3, 4, 5]],
           },
           id: 'emb_345678',
           response_type: 'embeddings_multiple',
@@ -431,7 +432,7 @@ describe('doEmbed with Cohere models', () => {
         JSON.stringify({
           embeddings: {
             int8: [[1, 2, 3, 4, 5]],
-            binary: [[0, 1, 0, 1, 0]]
+            binary: [[0, 1, 0, 1, 0]],
           },
           id: 'emb_901234',
           response_type: 'embeddings_multiple',

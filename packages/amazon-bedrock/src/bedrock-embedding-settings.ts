@@ -12,7 +12,12 @@ export interface CohereEmbeddingSettings {
   /**
    * Prepends special tokens to differentiate each type from one another (default: "search_document").
    */
-  input_type?: 'search_document' | 'search_query' | 'classification' | 'clustering' | 'image';
+  input_type?:
+    | 'search_document'
+    | 'search_query'
+    | 'classification'
+    | 'clustering'
+    | 'image';
 
   /**
    * Specifies how the API handles inputs longer than the maximum token length.
