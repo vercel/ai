@@ -11,9 +11,8 @@ describe('toDataStream', () => {
       { delta: 'World' },
     ]);
 
-    expect(
-      await convertReadableStreamToArray(toDataStream(inputStream)),
-    ).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(toDataStream(inputStream)))
+      .toMatchInlineSnapshot(`
       [
         "0:"Hello"
       ",

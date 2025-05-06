@@ -11,9 +11,8 @@ describe('toDataStream', () => {
       { content: [{ type: 'text', text: 'World' }] },
     ]);
 
-    expect(
-      await convertReadableStreamToArray(toDataStream(inputStream)),
-    ).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(toDataStream(inputStream)))
+      .toMatchInlineSnapshot(`
       [
         "0:"Hello"
       ",
@@ -26,9 +25,8 @@ describe('toDataStream', () => {
   it('should convert ReadableStream<string> (LangChain StringOutputParser)', async () => {
     const inputStream = convertArrayToReadableStream(['Hello', 'World']);
 
-    expect(
-      await convertReadableStreamToArray(toDataStream(inputStream)),
-    ).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(toDataStream(inputStream)))
+      .toMatchInlineSnapshot(`
       [
         "0:"Hello"
       ",
@@ -44,9 +42,8 @@ describe('toDataStream', () => {
       { event: 'on_chat_model_stream', data: { chunk: { content: 'World' } } },
     ]);
 
-    expect(
-      await convertReadableStreamToArray(toDataStream(inputStream)),
-    ).toMatchInlineSnapshot(`
+    expect(await convertReadableStreamToArray(toDataStream(inputStream)))
+      .toMatchInlineSnapshot(`
       [
         "0:"Hello"
       ",
