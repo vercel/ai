@@ -1,5 +1,5 @@
 ---
-'ai': patch
+'ai': major
 ---
 
 remove deprecated `CoreTool*` types

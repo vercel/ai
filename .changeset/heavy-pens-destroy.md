@@ -1,16 +1,16 @@
 ---
-'@ai-sdk/openai-compatible': patch
-'@ai-sdk/amazon-bedrock': patch
-'@ai-sdk/google-vertex': patch
-'@ai-sdk/togetherai': patch
-'@ai-sdk/deepinfra': patch
-'@ai-sdk/fireworks': patch
-'@ai-sdk/provider': patch
-'@ai-sdk/mistral': patch
-'@ai-sdk/cohere': patch
-'@ai-sdk/google': patch
-'@ai-sdk/openai': patch
-'ai': patch
+'@ai-sdk/openai-compatible': major
+'@ai-sdk/amazon-bedrock': major
+'@ai-sdk/google-vertex': major
+'@ai-sdk/togetherai': major
+'@ai-sdk/deepinfra': major
+'@ai-sdk/fireworks': major
+'@ai-sdk/provider': major
+'@ai-sdk/mistral': major
+'@ai-sdk/cohere': major
+'@ai-sdk/google': major
+'@ai-sdk/openai': major
+'ai': major
 ---
 
 chore(embedding-model): add v2 interface

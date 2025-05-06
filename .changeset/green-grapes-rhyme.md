@@ -1,7 +1,7 @@
 ---
-'@ai-sdk/openai-compatible': patch
-'@ai-sdk/openai': patch
-'@ai-sdk/azure': patch
+'@ai-sdk/openai-compatible': major
+'@ai-sdk/openai': major
+'@ai-sdk/azure': major
 ---
 
 chore(providers/openai): update completion model to use providerOptions

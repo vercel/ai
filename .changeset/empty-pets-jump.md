@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/openai': patch
+'@ai-sdk/openai': major
 ---
 
 chore(providers/openai-transcription): switch to providerOptions

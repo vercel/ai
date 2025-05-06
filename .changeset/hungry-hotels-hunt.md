@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/amazon-bedrock': patch
+'@ai-sdk/amazon-bedrock': major
 '@ai-sdk/provider': patch
 'ai': patch
 ---

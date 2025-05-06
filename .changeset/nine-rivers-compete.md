@@ -1,6 +1,6 @@
 ---
-'@ai-sdk/google-vertex': patch
-'@ai-sdk/google': patch
+'@ai-sdk/google-vertex': major
+'@ai-sdk/google': major
 ---
 
 chore(providers/google): switch to providerOptions

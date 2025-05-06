@@ -1,12 +1,12 @@
 ---
-'@ai-sdk/openai-compatible': patch
-'@ai-sdk/amazon-bedrock': patch
-'@ai-sdk/togetherai': patch
-'@ai-sdk/deepinfra': patch
-'@ai-sdk/fireworks': patch
-'@ai-sdk/cerebras': patch
-'@ai-sdk/deepseek': patch
-'@ai-sdk/xai': patch
+'@ai-sdk/openai-compatible': major
+'@ai-sdk/amazon-bedrock': major
+'@ai-sdk/togetherai': major
+'@ai-sdk/deepinfra': major
+'@ai-sdk/fireworks': major
+'@ai-sdk/cerebras': major
+'@ai-sdk/deepseek': major
+'@ai-sdk/xai': major
 ---
 
 feat(providers/openai-compatible): convert to providerOptions

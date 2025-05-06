@@ -1,5 +1,5 @@
 ---
-'ai': patch
+'ai': major
 ---
 
 Removed deprecated `options.throwErrorForEmptyVectors` from `cosineSimilarity()`. Since `throwErrorForEmptyVectors` was the only option the entire `options` argument was removed.

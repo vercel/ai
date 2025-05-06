@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/openai-compatible': patch
+'@ai-sdk/openai-compatible': major
 ---
 
 chore(openai-compatible): remove simulateStreaming

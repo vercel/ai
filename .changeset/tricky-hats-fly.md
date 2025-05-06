@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/provider': patch
+'@ai-sdk/provider': major
 ---
 
 Remove `Experimental_LanguageModelV2Middleware` type

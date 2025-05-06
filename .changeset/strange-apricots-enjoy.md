@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/groq': patch
+'@ai-sdk/groq': major
 ---
 
 chore(providers/groq): convert to providerOptions

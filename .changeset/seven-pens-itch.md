@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/provider-utils': patch
+'@ai-sdk/provider-utils': major
 ---
 
 chore (utils): remove unused test helpers

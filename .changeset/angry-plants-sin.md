@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/amazon-bedrock': patch
+'@ai-sdk/amazon-bedrock': major
 ---
 
 chore(providers/bedrock): convert to providerOptions

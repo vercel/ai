@@ -1,12 +1,12 @@
 ---
-'@ai-sdk/openai-compatible': patch
-'@ai-sdk/google-vertex': patch
-'@ai-sdk/provider': patch
-'@ai-sdk/mistral': patch
-'@ai-sdk/cohere': patch
-'@ai-sdk/google': patch
-'@ai-sdk/openai': patch
-'ai': patch
+'@ai-sdk/openai-compatible': major
+'@ai-sdk/google-vertex': major
+'@ai-sdk/provider': major
+'@ai-sdk/mistral': major
+'@ai-sdk/cohere': major
+'@ai-sdk/google': major
+'@ai-sdk/openai': major
+'ai': major
 ---
 
 chore(embedding-model-v2): rename rawResponse to response

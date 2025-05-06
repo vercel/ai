@@ -1,5 +1,5 @@
 ---
-'ai': patch
+'ai': major
 ---
 
 chore(providers/llamaindex): extract to separate package

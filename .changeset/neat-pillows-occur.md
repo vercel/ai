@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/provider': patch
+'@ai-sdk/provider': major
 ---
 
 chore (provider): extract shared provider options and metadata (spec)

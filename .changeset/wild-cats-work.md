@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/cohere': patch
+'@ai-sdk/cohere': major
 ---
 
 chore(providers/cohere): convert to providerOptions

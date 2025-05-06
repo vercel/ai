@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/provider': patch
+'@ai-sdk/provider': major
 ---
 
 chore (provider): extract LanguageModelV2File
