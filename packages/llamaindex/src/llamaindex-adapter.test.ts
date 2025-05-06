@@ -11,11 +11,15 @@ describe('toDataStream', () => {
       { delta: 'World' },
     ]);
 
-    assert.deepStrictEqual(
-      await convertReadableStreamToArray(
-        toDataStream(inputStream).pipeThrough(new TextDecoderStream()),
-      ),
-      ['0:"Hello"\n', '0:"World"\n'],
-    );
+    expect(
+      await convertReadableStreamToArray(toDataStream(inputStream)),
+    ).toMatchInlineSnapshot(`
+      [
+        "0:"Hello"
+      ",
+        "0:"World"
+      ",
+      ]
+    `);
   });
 });
