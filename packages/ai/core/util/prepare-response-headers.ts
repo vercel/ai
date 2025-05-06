@@ -4,7 +4,7 @@ export function prepareResponseHeaders(
     contentType,
     dataStreamVersion,
   }: { contentType: string; dataStreamVersion?: 'v1' | undefined },
-) {
+): Headers {
   const responseHeaders = new Headers(headers ?? {});
 
   if (!responseHeaders.has('Content-Type')) {

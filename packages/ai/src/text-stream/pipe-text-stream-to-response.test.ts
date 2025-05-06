@@ -24,13 +24,14 @@ describe('pipeTextStreamToResponse', () => {
     expect(mockResponse.statusMessage).toBe('OK');
 
     // Verify headers
-    expect(mockResponse.headers).toMatchObject({
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Custom-Header': 'test',
-    });
+    expect(mockResponse.headers).toMatchInlineSnapshot(`
+      {
+        "content-type": "text/plain; charset=utf-8",
+        "custom-header": "test",
+      }
+    `);
 
     // Verify written data using decoded chunks
-    const decodedChunks = mockResponse.getDecodedChunks();
-    expect(decodedChunks).toStrictEqual(['test-data']);
+    expect(mockResponse.getDecodedChunks()).toStrictEqual(['test-data']);
   });
 });

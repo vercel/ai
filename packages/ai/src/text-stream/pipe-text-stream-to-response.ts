@@ -1,5 +1,5 @@
 import { ServerResponse } from 'node:http';
-import { prepareOutgoingHttpHeaders } from '../../core/util/prepare-outgoing-http-headers';
+import { prepareResponseHeaders } from '../../core/util/prepare-response-headers';
 import { writeToServerResponse } from '../../core/util/write-to-server-response';
 
 export function pipeTextStreamToResponse({
@@ -16,9 +16,11 @@ export function pipeTextStreamToResponse({
     response,
     status,
     statusText,
-    headers: prepareOutgoingHttpHeaders(headers, {
-      contentType: 'text/plain; charset=utf-8',
-    }),
+    headers: Object.fromEntries(
+      prepareResponseHeaders(headers, {
+        contentType: 'text/plain; charset=utf-8',
+      }).entries(),
+    ),
     stream: textStream.pipeThrough(new TextEncoderStream()),
   });
 }

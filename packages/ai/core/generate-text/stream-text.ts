@@ -1687,15 +1687,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               controller.enqueue(
                 formatDataStreamPart('finish_step', {
                   finishReason: chunk.finishReason,
-                  usage: sendUsage
-                    ? {
-                        inputTokens: chunk.usage.inputTokens,
-                        outputTokens: chunk.usage.outputTokens,
-                        totalTokens: chunk.usage.totalTokens,
-                        reasoningTokens: chunk.usage.reasoningTokens,
-                        cachedInputTokens: chunk.usage.cachedInputTokens,
-                      }
-                    : undefined,
+                  usage: sendUsage ? chunk.usage : undefined,
                   isContinued: chunk.isContinued,
                 }),
               );
@@ -1707,15 +1699,7 @@ However, the LLM results are expected to be small enough to not cause issues.
                 controller.enqueue(
                   formatDataStreamPart('finish_message', {
                     finishReason: chunk.finishReason,
-                    usage: sendUsage
-                      ? {
-                          inputTokens: chunk.usage.inputTokens,
-                          outputTokens: chunk.usage.outputTokens,
-                          totalTokens: chunk.usage.totalTokens,
-                          reasoningTokens: chunk.usage.reasoningTokens,
-                          cachedInputTokens: chunk.usage.cachedInputTokens,
-                        }
-                      : undefined,
+                    usage: sendUsage ? chunk.usage : undefined,
                   }),
                 );
               }

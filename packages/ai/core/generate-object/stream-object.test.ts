@@ -348,16 +348,20 @@ describe('streamObject', () => {
         await mockResponse.waitForEnd();
 
         expect(mockResponse.statusCode).toBe(200);
-        expect(mockResponse.headers).toEqual({
-          'Content-Type': 'text/plain; charset=utf-8',
-        });
-        expect(mockResponse.getDecodedChunks()).toEqual([
-          '{ ',
-          '"content": "Hello, ',
-          'world',
-          '!"',
-          ' }',
-        ]);
+        expect(mockResponse.headers).toMatchInlineSnapshot(`
+          {
+            "content-type": "text/plain; charset=utf-8",
+          }
+        `);
+        expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+          [
+            "{ ",
+            ""content": "Hello, ",
+            "world",
+            "!"",
+            " }",
+          ]
+        `);
       });
     });
 
