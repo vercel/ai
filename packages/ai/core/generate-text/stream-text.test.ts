@@ -819,6 +819,248 @@ describe('streamText', () => {
     });
   });
 
+  describe('result.pipeDataStreamToResponse', async () => {
+    it('should write data stream parts to a Node.js response-like object', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse);
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.statusCode).toBe(200);
+      expect(mockResponse.headers).toEqual({
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1',
+      });
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should create a Response with a data stream and custom headers', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse, {
+        status: 201,
+        statusText: 'foo',
+        headers: {
+          'custom-header': 'custom-value',
+        },
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.statusCode).toBe(201);
+      expect(mockResponse.statusMessage).toBe('foo');
+
+      expect(mockResponse.headers).toEqual({
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1',
+        'custom-header': 'custom-value',
+      });
+
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should mask error messages by default', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse);
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should support custom error messages', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse, {
+        getErrorMessage: error => `custom error message: ${error}`,
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should suppress usage information when sendUsage is false', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse, { sendUsage: false });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should omit message finish event (d:) when sendFinish is false', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse, {
+        experimental_sendFinish: false,
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should write reasoning content to a Node.js response-like object', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: modelWithReasoning,
+        ...defaultSettings(),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse, {
+        sendReasoning: true,
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.statusCode).toBe(200);
+      expect(mockResponse.headers).toEqual({
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1',
+      });
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should write source content to a Node.js response-like object', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: modelWithSources,
+        ...defaultSettings(),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse, {
+        sendSources: true,
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.statusCode).toBe(200);
+      expect(mockResponse.headers).toEqual({
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1',
+      });
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+
+    it('should write file content to a Node.js response-like object', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: modelWithFiles,
+        ...defaultSettings(),
+      });
+
+      result.pipeDataStreamToResponse(mockResponse);
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.statusCode).toBe(200);
+      expect(mockResponse.headers).toEqual({
+        'Content-Type': 'text/plain; charset=utf-8',
+        'X-Vercel-AI-Data-Stream': 'v1',
+      });
+      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
+    });
+  });
+
+  describe('result.pipeTextStreamToResponse', async () => {
+    it('should write text deltas to a Node.js response-like object', async () => {
+      const mockResponse = createMockServerResponse();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: 'Hello' },
+            { type: 'text', text: ', ' },
+            { type: 'text', text: 'world!' },
+          ]),
+        }),
+        prompt: 'test-input',
+      });
+
+      result.pipeTextStreamToResponse(mockResponse);
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.statusCode).toBe(200);
+      expect(mockResponse.headers).toEqual({
+        'Content-Type': 'text/plain; charset=utf-8',
+      });
+      expect(mockResponse.getDecodedChunks()).toEqual([
+        'Hello',
+        ', ',
+        'world!',
+      ]);
+    });
+  });
+
   describe('result.toDataStream', () => {
     it('should create a data stream', async () => {
       const result = streamText({
@@ -1029,6 +1271,129 @@ describe('streamText', () => {
       const dataStream = result.toDataStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
+    });
+  });
+
+  describe('result.toDataStreamResponse', () => {
+    it('should create a Response with a data stream', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      const response = result.toDataStreamResponse();
+
+      expect(response.status).toStrictEqual(200);
+      expect(Object.fromEntries(response.headers.entries())).toStrictEqual({
+        'content-type': 'text/plain; charset=utf-8',
+        'x-vercel-ai-data-stream': 'v1',
+      });
+      expect(response.headers.get('Content-Type')).toStrictEqual(
+        'text/plain; charset=utf-8',
+      );
+      expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
+    });
+
+    it('should create a Response with a data stream and custom headers', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      const response = result.toDataStreamResponse({
+        status: 201,
+        statusText: 'foo',
+        headers: {
+          'custom-header': 'custom-value',
+        },
+      });
+
+      expect(response.status).toStrictEqual(201);
+      expect(response.statusText).toStrictEqual('foo');
+      expect(Object.fromEntries(response.headers.entries())).toStrictEqual({
+        'content-type': 'text/plain; charset=utf-8',
+        'x-vercel-ai-data-stream': 'v1',
+        'custom-header': 'custom-value',
+      });
+      expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
+    });
+
+    it('should mask error messages by default', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      const response = result.toDataStreamResponse();
+
+      expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
+    });
+
+    it('should support custom error messages', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: 'error' },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      const response = result.toDataStreamResponse({
+        getErrorMessage: error => `custom error message: ${error}`,
+      });
+
+      expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
+    });
+
+    it('should suppress usage information when sendUsage is false', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text', text: 'Hello, World!' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        experimental_generateMessageId: mockId({ prefix: 'msg' }),
+      });
+
+      const response = result.toDataStreamResponse({ sendUsage: false });
+
+      expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
+    });
+  });
+
+  describe('result.toTextStreamResponse', () => {
+    it('should create a Response with a text stream', async () => {
+      const result = streamText({
+        model: createTestModel(),
+        prompt: 'test-input',
+      });
+
+      const response = result.toTextStreamResponse();
+
+      expect(response.status).toStrictEqual(200);
+      expect(Object.fromEntries(response.headers.entries())).toStrictEqual({
+        'content-type': 'text/plain; charset=utf-8',
+      });
+      expect(await convertResponseStreamToArray(response)).toStrictEqual([
+        'Hello',
+        ', ',
+        'world!',
+      ]);
     });
   });
 

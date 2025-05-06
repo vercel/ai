@@ -4039,6 +4039,159 @@ exports[`streamText > result.fullStream > should use fallback response metadata 
 ]
 `;
 
+exports[`streamText > result.pipeDataStreamToResponse > should create a Response with a data stream and custom headers 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+",
+]
+`;
+
+exports[`streamText > result.pipeDataStreamToResponse > should mask error messages by default 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "3:"An error occurred."
+",
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{}}
+",
+]
+`;
+
+exports[`streamText > result.pipeDataStreamToResponse > should omit message finish event (d:) when sendFinish is false 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello, World!"
+",
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+",
+]
+`;
+
+exports[`streamText > result.pipeDataStreamToResponse > should support custom error messages 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "3:"custom error message: error"
+",
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{}}
+",
+]
+`;
+
+exports[`streamText > result.pipeDataStreamToResponse > should suppress usage information when sendUsage is false 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello, World!"
+",
+  "e:{"finishReason":"stop","isContinued":false}
+",
+  "d:{"finishReason":"stop"}
+",
+]
+`;
+
+exports[`streamText > result.pipeDataStreamToResponse > should write data stream parts to a Node.js response-like object 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+",
+]
+`;
+
+exports[`streamText > result.pipeDataStreamToResponse > should write file content to a Node.js response-like object 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "k:{"mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}
+",
+  "0:"Hello!"
+",
+  "k:{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}
+",
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+",
+]
+`;
+
+exports[`streamText > result.pipeDataStreamToResponse > should write reasoning content to a Node.js response-like object 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "g:{"type":"reasoning","text":"I will open the conversation"}
+",
+  "g:{"type":"reasoning","text":" with witty banter. "}
+",
+  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+",
+  "l:{}
+",
+  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"redactedData":"redacted-reasoning-data"}}}
+",
+  "l:{}
+",
+  "g:{"type":"reasoning","text":"Once the user has relaxed,"}
+",
+  "g:{"type":"reasoning","text":" I will pry for valuable information."}
+",
+  "g:{"type":"reasoning","text":"","providerMetadata":{"testProvider":{"signature":"1234567890"}}}
+",
+  "l:{}
+",
+  "0:"Hi"
+",
+  "0:" there!"
+",
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+",
+]
+`;
+
+exports[`streamText > result.pipeDataStreamToResponse > should write source content to a Node.js response-like object 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "h:{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}
+",
+  "0:"Hello!"
+",
+  "h:{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}
+",
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+",
+]
+`;
+
 exports[`streamText > result.reasoning > should contain reasoning from model response 1`] = `
 [
   {
@@ -4592,6 +4745,79 @@ exports[`streamText > result.toDataStream > should support custom error messages
 `;
 
 exports[`streamText > result.toDataStream > should suppress usage information when sendUsage is false 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello, World!"
+",
+  "e:{"finishReason":"stop","isContinued":false}
+",
+  "d:{"finishReason":"stop"}
+",
+]
+`;
+
+exports[`streamText > result.toDataStreamResponse > should create a Response with a data stream 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStreamResponse > should create a Response with a data stream and custom headers 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "0:"Hello"
+",
+  "0:", "
+",
+  "0:"world!"
+",
+  "e:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}
+",
+  "d:{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStreamResponse > should mask error messages by default 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "3:"An error occurred."
+",
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStreamResponse > should support custom error messages 1`] = `
+[
+  "f:{"messageId":"msg-0"}
+",
+  "3:"custom error message: error"
+",
+  "e:{"finishReason":"error","usage":{},"isContinued":false}
+",
+  "d:{"finishReason":"error","usage":{}}
+",
+]
+`;
+
+exports[`streamText > result.toDataStreamResponse > should suppress usage information when sendUsage is false 1`] = `
 [
   "f:{"messageId":"msg-0"}
 ",

@@ -62,6 +62,11 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ServerResponse } from 'node:http';
+import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
+import { createDataStreamResponse } from '../../src/data-stream/create-data-stream-response';
+import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
+import { pipeDataStreamToResponse } from '../../src/data-stream/pipe-data-stream-to-response';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -1725,5 +1730,66 @@ However, the LLM results are expected to be small enough to not cause issues.
         },
       }),
     );
+  }
+
+  pipeDataStreamToResponse(
+    response: ServerResponse,
+    {
+      getErrorMessage,
+      sendUsage,
+      sendReasoning,
+      sendSources,
+      experimental_sendFinish,
+      experimental_sendStart,
+      ...init
+    }: ResponseInit & DataStreamOptions = {},
+  ) {
+    pipeDataStreamToResponse(response, {
+      dataStream: this.toDataStream({
+        getErrorMessage,
+        sendUsage,
+        sendReasoning,
+        sendSources,
+        experimental_sendFinish,
+        experimental_sendStart,
+      }),
+      ...init,
+    });
+  }
+
+  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
+    pipeTextStreamToResponse(response, {
+      textStream: this.textStream,
+      ...init,
+    });
+  }
+
+  toDataStreamResponse({
+    getErrorMessage,
+    sendUsage,
+    sendReasoning,
+    sendSources,
+    experimental_sendFinish,
+    experimental_sendStart,
+    ...init
+  }: ResponseInit & DataStreamOptions = {}): Response {
+    return createDataStreamResponse({
+      dataStream: this.toDataStream({
+        getErrorMessage,
+        sendUsage,
+        sendReasoning,
+        sendSources,
+        experimental_sendFinish,
+        experimental_sendStart,
+      }),
+      ...init,
+    });
+  }
+
+  toTextStreamResponse(init?: ResponseInit): Response {
+    return createTextStreamResponse({
+      textStream: this.textStream,
+      ...init,
+    });
   }
 }
