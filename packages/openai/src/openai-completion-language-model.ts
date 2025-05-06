@@ -30,7 +30,6 @@ import {
 
 type OpenAICompletionConfig = {
   provider: string;
-  compatibility: 'strict' | 'compatible';
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
@@ -214,11 +213,9 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       ...args,
       stream: true,
 
-      // only include stream_options when in strict compatibility mode:
-      stream_options:
-        this.config.compatibility === 'strict'
-          ? { include_usage: true }
-          : undefined,
+      stream_options: {
+        include_usage: true
+      }
     };
 
     const { responseHeaders, value: response } = await postJsonToApi({
