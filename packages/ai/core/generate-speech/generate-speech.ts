@@ -1,5 +1,5 @@
 import { JSONValue, SpeechModelV1 } from '@ai-sdk/provider';
-import { NoSpeechGeneratedError } from '../../errors/no-speech-generated-error';
+import { NoSpeechGeneratedError } from '../../src/error/no-speech-generated-error';
 import { prepareRetries } from '../prompt/prepare-retries';
 import { ProviderOptions } from '../types/provider-metadata';
 import { SpeechWarning } from '../types/speech-model';

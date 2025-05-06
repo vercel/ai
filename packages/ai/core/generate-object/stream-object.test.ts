@@ -8,7 +8,7 @@ import { z } from 'zod';
 import {
   NoObjectGeneratedError,
   verifyNoObjectGeneratedError,
-} from '../../errors/no-object-generated-error';
+} from '../../src/error/no-object-generated-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';

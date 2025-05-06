@@ -3,7 +3,7 @@ import { mockId } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
-import { ToolExecutionError } from '../../errors';
+import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';

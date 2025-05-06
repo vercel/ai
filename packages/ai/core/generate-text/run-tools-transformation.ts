@@ -3,7 +3,7 @@ import {
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
 import { Tracer } from '@opentelemetry/api';
-import { ToolExecutionError } from '../../errors';
+import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { ModelMessage } from '../prompt/message';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { recordSpan } from '../telemetry/record-span';

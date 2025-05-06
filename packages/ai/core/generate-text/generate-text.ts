@@ -4,9 +4,9 @@ import {
 } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
-import { InvalidArgumentError } from '../../errors/invalid-argument-error';
-import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
-import { ToolExecutionError } from '../../errors/tool-execution-error';
+import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
+import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
+import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { AssistantModelMessage, ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { ReasoningPart } from '../prompt/content-part';
