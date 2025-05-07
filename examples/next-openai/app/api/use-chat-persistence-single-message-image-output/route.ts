@@ -3,6 +3,7 @@ import { loadChat, saveChat } from '@util/chat-store';
 import {
   appendClientMessage,
   appendResponseMessages,
+  convertToModelMessages,
   createDataStream,
   createDataStreamResponse,
   createIdGenerator,
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
         providerOptions: {
           google: { responseModalities: ['TEXT', 'IMAGE'] },
         },
-        messages,
+        messages: convertToModelMessages(messages),
         // id format for server-side messages:
         experimental_generateMessageId: createIdGenerator({
           prefix: 'msgs',
