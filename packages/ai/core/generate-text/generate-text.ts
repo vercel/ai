@@ -11,7 +11,6 @@ import { prepareRetries } from '../../src/util/prepare-retries';
 import { removeTextAfterLastWhitespace } from '../../src/util/remove-text-after-last-whitespace';
 import { AssistantModelMessage, ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
-import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -25,12 +24,17 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import {
+  asContent,
+  extractFiles,
+  extractReasoning,
+  extractSources,
+} from './as-content';
 import { extractContentText } from './extract-content-text';
 import { GenerateTextResult } from './generate-text-result';
-import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import { asReasoningText, convertReasoningContentToParts } from './reasoning';
+import { asReasoningText } from './reasoning';
 import { ResponseMessage, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
@@ -294,7 +298,6 @@ A function that attempts to repair a tool call that failed to parse.
       > & { response: { id: string; timestamp: Date; modelId: string } };
       let currentToolCalls: ToolCallArray<TOOLS> = [];
       let currentToolResults: ToolResultArray<TOOLS> = [];
-      let currentReasoning: Array<ReasoningPart> = [];
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       let text = '';
@@ -495,6 +498,13 @@ A function that attempts to repair a tool call that failed to parse.
           }
         }
 
+        // content:
+        const stepContent = asContent({
+          content: currentModelResponse.content,
+          toolCalls: currentToolCalls,
+          toolResults: currentToolResults,
+        });
+
         // text:
         const originalText =
           extractContentText(currentModelResponse.content) ?? '';
@@ -514,11 +524,7 @@ A function that attempts to repair a tool call that failed to parse.
             ? text + stepText
             : stepText;
 
-        currentReasoning = convertReasoningContentToParts(
-          currentModelResponse.content,
-        );
-
-        // sources:
+        // sources (since we collect them for all steps):
         sources.push(
           ...currentModelResponse.content.filter(
             part => part.type === 'source',
@@ -546,10 +552,12 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               text,
-              files: asFiles(currentModelResponse.content),
-              reasoning: convertReasoningContentToParts(
-                currentModelResponse.content,
-              ),
+              files: extractFiles(stepContent),
+              reasoning: extractReasoning(stepContent).map(part => ({
+                type: 'reasoning',
+                text: part.text,
+                providerOptions: part.providerMetadata,
+              })),
               tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
               toolResults: currentToolResults,
@@ -562,13 +570,12 @@ A function that attempts to repair a tool call that failed to parse.
         // Add step information (after response messages are updated):
         const currentStepResult: StepResult<TOOLS> = {
           stepType,
+          content: stepContent,
           text: stepText,
-          reasoningText: asReasoningText(currentReasoning),
-          reasoning: currentReasoning,
-          files: asFiles(currentModelResponse.content),
-          sources: currentModelResponse.content.filter(
-            part => part.type === 'source',
-          ),
+          reasoningText: asReasoningText(extractReasoning(stepContent)),
+          reasoning: extractReasoning(stepContent),
+          files: extractFiles(stepContent),
+          sources: extractSources(stepContent),
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,
@@ -626,30 +633,11 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        content: [
-          ...currentModelResponse.content.map(part => {
-            switch (part.type) {
-              case 'text':
-              case 'reasoning':
-              case 'source':
-                return part;
-
-              case 'file': {
-                return {
-                  type: 'file' as const,
-                  file: new DefaultGeneratedFile(part),
-                };
-              }
-
-              case 'tool-call': {
-                return currentToolCalls.find(
-                  toolCall => toolCall.toolCallId === part.toolCallId,
-                )!;
-              }
-            }
-          }),
-          ...currentToolResults,
-        ],
+        content: asContent({
+          content: currentModelResponse.content,
+          toolCalls: currentToolCalls,
+          toolResults: currentToolResults,
+        }),
         resolvedOutput,
         finishReason: currentModelResponse.finishReason,
         usage,
@@ -802,13 +790,13 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 
   get files() {
-    return this.content
-      .filter(part => part.type === 'file')
-      .map(part => part.file);
+    return extractFiles(this.content);
   }
 
   get reasoningText() {
-    const texts = this.reasoning.map(part => part.text);
+    const texts = this.content
+      .filter(part => part.type === 'reasoning')
+      .map(part => part.text);
     return texts.length > 0 ? texts.join('') : undefined;
   }
 
@@ -836,12 +824,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 
     return this.resolvedOutput;
   }
-}
-
-function asFiles(content: Array<LanguageModelV2Content>): Array<GeneratedFile> {
-  return content
-    .filter(part => part.type === 'file')
-    .map(part => new DefaultGeneratedFile(part));
 }
 
 function asToolCalls(content: Array<LanguageModelV2Content>) {

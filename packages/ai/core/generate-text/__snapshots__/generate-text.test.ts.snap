@@ -3,6 +3,25 @@
 exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should be called for each step 1`] = `
 [
   {
+    "content": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
@@ -79,6 +98,12 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     "warnings": [],
   },
   {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -194,6 +219,25 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
 exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should contain all steps 1`] = `
 [
   {
+    "content": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
@@ -270,6 +314,12 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     "warnings": [],
   },
   {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -344,6 +394,25 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
 exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
 [
   {
+    "content": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
@@ -420,6 +489,12 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
     "warnings": [],
   },
   {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -535,6 +610,25 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
 exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > result.steps should contain all steps 1`] = `
 [
   {
+    "content": [
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
@@ -611,6 +705,12 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
     "warnings": [],
   },
   {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -685,6 +785,13 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
 exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onStepFinish should be called for each step 1`] = `
 [
   {
+    "content": [
+      {
+        "text": "part 1 
+ to-be-discarded",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -728,6 +835,36 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "warnings": [],
   },
   {
+    "content": [
+      {
+        "text": "no-whitespace",
+        "type": "text",
+      },
+      {
+        "file": DefaultGeneratedFile {
+          "base64Data": undefined,
+          "mediaType": "image/png",
+          "uint8ArrayData": Uint8Array [
+            1,
+            2,
+            3,
+          ],
+        },
+        "type": "file",
+      },
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "type": "source",
+        "url": "https://example.com",
+      },
+    ],
     "files": [
       DefaultGeneratedFile {
         "base64Data": undefined,
@@ -799,6 +936,36 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "warnings": [],
   },
   {
+    "content": [
+      {
+        "text": "immediatefollow  ",
+        "type": "text",
+      },
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "type": "source",
+        "url": "https://example.com/2",
+      },
+      {
+        "id": "789",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value3",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 3",
+        "type": "source",
+        "url": "https://example.com/3",
+      },
+    ],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -874,6 +1041,21 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onS
     "warnings": [],
   },
   {
+    "content": [
+      {
+        "text": "  final value keep all whitespace
+ end",
+        "type": "text",
+      },
+      {
+        "file": DefaultGeneratedFile {
+          "base64Data": "QkFVRw==",
+          "mediaType": "image/jpeg",
+          "uint8ArrayData": undefined,
+        },
+        "type": "file",
+      },
+    ],
     "files": [
       DefaultGeneratedFile {
         "base64Data": "QkFVRw==",
@@ -992,6 +1174,13 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
 exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > result.steps should contain all steps 1`] = `
 [
   {
+    "content": [
+      {
+        "text": "part 1 
+ to-be-discarded",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -1035,6 +1224,36 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "warnings": [],
   },
   {
+    "content": [
+      {
+        "text": "no-whitespace",
+        "type": "text",
+      },
+      {
+        "file": DefaultGeneratedFile {
+          "base64Data": undefined,
+          "mediaType": "image/png",
+          "uint8ArrayData": Uint8Array [
+            1,
+            2,
+            3,
+          ],
+        },
+        "type": "file",
+      },
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "type": "source",
+        "url": "https://example.com",
+      },
+    ],
     "files": [
       DefaultGeneratedFile {
         "base64Data": undefined,
@@ -1106,6 +1325,36 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "warnings": [],
   },
   {
+    "content": [
+      {
+        "text": "immediatefollow  ",
+        "type": "text",
+      },
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "type": "source",
+        "url": "https://example.com/2",
+      },
+      {
+        "id": "789",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value3",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 3",
+        "type": "source",
+        "url": "https://example.com/3",
+      },
+    ],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -1181,6 +1430,21 @@ exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > res
     "warnings": [],
   },
   {
+    "content": [
+      {
+        "text": "  final value keep all whitespace
+ end",
+        "type": "text",
+      },
+      {
+        "file": DefaultGeneratedFile {
+          "base64Data": "QkFVRw==",
+          "mediaType": "image/jpeg",
+          "uint8ArrayData": undefined,
+        },
+        "type": "file",
+      },
+    ],
     "files": [
       DefaultGeneratedFile {
         "base64Data": "QkFVRw==",
@@ -1427,13 +1691,9 @@ exports[`result.sources > should contain sources 1`] = `
 exports[`result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
   {
-    "files": [],
-    "finishReason": "stop",
-    "isContinued": false,
-    "providerMetadata": undefined,
-    "reasoning": [
+    "content": [
       {
-        "providerOptions": {
+        "providerMetadata": {
           "testProvider": {
             "signature": "signature",
           },
@@ -1442,7 +1702,35 @@ exports[`result.steps > should add the reasoning from the model response to the 
         "type": "reasoning",
       },
       {
-        "providerOptions": {
+        "providerMetadata": {
+          "testProvider": {
+            "redactedData": "redacted-reasoning-data",
+          },
+        },
+        "text": "",
+        "type": "reasoning",
+      },
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
+    "files": [],
+    "finishReason": "stop",
+    "isContinued": false,
+    "providerMetadata": undefined,
+    "reasoning": [
+      {
+        "providerMetadata": {
+          "testProvider": {
+            "signature": "signature",
+          },
+        },
+        "text": "I will open the conversation with witty banter.",
+        "type": "reasoning",
+      },
+      {
+        "providerMetadata": {
           "testProvider": {
             "redactedData": "redacted-reasoning-data",
           },
@@ -1510,9 +1798,35 @@ exports[`result.steps > should add the reasoning from the model response to the 
 exports[`result.steps > should contain files 1`] = `
 [
   {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+      {
+        "file": DefaultGeneratedFile {
+          "base64Data": "AQID",
+          "mediaType": "image/png",
+          "uint8ArrayData": Uint8Array [
+            1,
+            2,
+            3,
+          ],
+        },
+        "type": "file",
+      },
+      {
+        "file": DefaultGeneratedFile {
+          "base64Data": "QkFVRw==",
+          "mediaType": "image/jpeg",
+          "uint8ArrayData": undefined,
+        },
+        "type": "file",
+      },
+    ],
     "files": [
       DefaultGeneratedFile {
-        "base64Data": undefined,
+        "base64Data": "AQID",
         "mediaType": "image/png",
         "uint8ArrayData": Uint8Array [
           1,
@@ -1581,6 +1895,36 @@ exports[`result.steps > should contain files 1`] = `
 exports[`result.steps > should contain sources 1`] = `
 [
   {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "type": "source",
+        "url": "https://example.com",
+      },
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "type": "source",
+        "url": "https://example.com/2",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
