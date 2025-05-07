@@ -744,12 +744,7 @@ async function executeTools<TOOLS extends ToolSet>({
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
-  readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
-  readonly files: GenerateTextResult<TOOLS, OUTPUT>['files'];
-  readonly reasoningText: GenerateTextResult<TOOLS, OUTPUT>['reasoningText'];
-  readonly reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
-  readonly toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
-  readonly toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
+  readonly content: GenerateTextResult<TOOLS, OUTPUT>['content'];
   readonly finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
   readonly usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
   readonly warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
@@ -760,17 +755,11 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   >['providerMetadata'];
   readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
   readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
-  readonly sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
 
   private readonly resolvedOutput: OUTPUT;
 
   constructor(options: {
-    text: GenerateTextResult<TOOLS, OUTPUT>['text'];
-    files: GenerateTextResult<TOOLS, OUTPUT>['files'];
-    reasoning: GenerateTextResult<TOOLS, OUTPUT>['reasoningText'];
-    reasoningDetails: GenerateTextResult<TOOLS, OUTPUT>['reasoning'];
-    toolCalls: GenerateTextResult<TOOLS, OUTPUT>['toolCalls'];
-    toolResults: GenerateTextResult<TOOLS, OUTPUT>['toolResults'];
+    content: GenerateTextResult<TOOLS, OUTPUT>['content'];
     finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
     usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
     warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
@@ -779,14 +768,8 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     response: GenerateTextResult<TOOLS, OUTPUT>['response'];
     request: GenerateTextResult<TOOLS, OUTPUT>['request'];
     resolvedOutput: OUTPUT;
-    sources: GenerateTextResult<TOOLS, OUTPUT>['sources'];
   }) {
-    this.text = options.text;
-    this.files = options.files;
-    this.reasoningText = options.reasoning;
-    this.reasoning = options.reasoningDetails;
-    this.toolCalls = options.toolCalls;
-    this.toolResults = options.toolResults;
+    this.content = options.content;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
@@ -795,7 +778,39 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.steps = options.steps;
     this.providerMetadata = options.providerMetadata;
     this.resolvedOutput = options.resolvedOutput;
-    this.sources = options.sources;
+  }
+
+  get text() {
+    return this.content
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('');
+  }
+
+  get files() {
+    return this.content
+      .filter(part => part.type === 'file')
+      .map(part => part.file);
+  }
+
+  get reasoningText() {
+    return this.reasoning.map(part => part.text).join('');
+  }
+
+  get reasoning() {
+    return this.content.filter(part => part.type === 'reasoning');
+  }
+
+  get toolCalls() {
+    return this.content.filter(part => part.type === 'tool-call');
+  }
+
+  get toolResults() {
+    return this.content.filter(part => part.type === 'tool-result');
+  }
+
+  get sources() {
+    return this.content.filter(part => part.type === 'source');
   }
 
   get experimental_output() {
