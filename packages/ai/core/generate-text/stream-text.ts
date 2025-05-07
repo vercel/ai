@@ -64,7 +64,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { asContent } from './as-content';
 import { ContentPart } from './content-part';
 
 const originalGenerateId = createIdGenerator({
@@ -649,6 +648,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedStepText += part.text;
           recordedContinuationText += part.text;
           recordedFullText += part.text;
+
+          const latestContent = recordedContent[recordedContent.length - 1];
+          if (latestContent?.type === 'text') {
+            latestContent.text += part.text;
+          } else {
+            recordedContent.push({ type: 'text', text: part.text });
+          }
         }
 
         if (part.type === 'reasoning') {
@@ -665,24 +671,32 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           }
         }
 
-        if (part.type === 'reasoning-part-finish') {
+        if (
+          part.type === 'reasoning-part-finish' &&
+          activeReasoningPart != null
+        ) {
+          recordedContent.push(activeReasoningPart);
           activeReasoningPart = undefined;
         }
 
         if (part.type === 'file') {
+          recordedContent.push({ type: 'file', file: part.file });
           stepFiles.push(part.file);
         }
 
         if (part.type === 'source') {
+          recordedContent.push(part);
           recordedSources.push(part);
           recordedStepSources.push(part);
         }
 
         if (part.type === 'tool-call') {
+          recordedContent.push(part);
           recordedToolCalls.push(part);
         }
 
         if (part.type === 'tool-result') {
+          recordedContent.push(part);
           recordedToolResults.push(part);
         }
 
@@ -746,6 +760,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           recordedSteps.push(currentStepResult);
 
+          recordedContent = [];
           recordedToolCalls = [];
           recordedToolResults = [];
           recordedStepText = '';
