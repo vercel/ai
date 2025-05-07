@@ -95,6 +95,114 @@ const modelWithReasoning = new MockLanguageModelV2({
   },
 });
 
+describe('result.content', () => {
+  it('should generate content', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV2({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [
+            { type: 'text', text: 'Hello, world!' },
+            {
+              type: 'source',
+              sourceType: 'url',
+              id: '123',
+              url: 'https://example.com',
+              title: 'Example',
+              providerMetadata: { provider: { custom: 'value' } },
+            },
+            {
+              type: 'file',
+              data: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+            {
+              type: 'reasoning',
+              text: 'I will open the conversation with witty banter.',
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            { type: 'text', text: 'More text' },
+          ],
+        },
+      }),
+      prompt: 'prompt',
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async args => {
+            expect(args).toStrictEqual({ value: 'value' });
+            return 'result1';
+          },
+        },
+      },
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+        {
+          "id": "123",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example",
+          "type": "source",
+          "url": "https://example.com",
+        },
+        {
+          "file": DefaultGeneratedFile {
+            "base64Data": undefined,
+            "mediaType": "image/png",
+            "uint8ArrayData": Uint8Array [
+              1,
+              2,
+              3,
+            ],
+          },
+          "type": "file",
+        },
+        {
+          "text": "I will open the conversation with witty banter.",
+          "type": "reasoning",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+        {
+          "text": "More text",
+          "type": "text",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "result": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+});
+
 describe('result.text', () => {
   it('should generate text', async () => {
     const result = await generateText({
@@ -887,6 +995,17 @@ describe('options.maxSteps', () => {
 
     it('onStepFinish should be called for each step', () => {
       expect(onStepFinishResults).toMatchSnapshot();
+    });
+
+    it('content should contain content from the last step', () => {
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ]
+      `);
     });
   });
 
