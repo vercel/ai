@@ -25,9 +25,9 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import { asContent, extractFiles } from './as-content';
 import { extractContentText } from './extract-content-text';
 import { GenerateTextResult } from './generate-text-result';
-import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { asReasoningText, convertReasoningContentToParts } from './reasoning';
@@ -37,8 +37,6 @@ import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ContentPart } from './content-part';
-import { asContent } from './as-content';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -497,6 +495,13 @@ A function that attempts to repair a tool call that failed to parse.
           }
         }
 
+        // content:
+        const stepContent = asContent({
+          content: currentModelResponse.content,
+          toolCalls: currentToolCalls,
+          toolResults: currentToolResults,
+        });
+
         // text:
         const originalText =
           extractContentText(currentModelResponse.content) ?? '';
@@ -548,7 +553,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               text,
-              files: asFiles(currentModelResponse.content),
+              files: extractFiles(stepContent),
               reasoning: convertReasoningContentToParts(
                 currentModelResponse.content,
               ),
@@ -562,17 +567,14 @@ A function that attempts to repair a tool call that failed to parse.
         }
 
         // Add step information (after response messages are updated):
+
         const currentStepResult: StepResult<TOOLS> = {
           stepType,
-          content: asContent({
-            content: currentModelResponse.content,
-            toolCalls: currentToolCalls,
-            toolResults: currentToolResults,
-          }),
+          content: stepContent,
           text: stepText,
           reasoningText: asReasoningText(currentReasoning),
           reasoning: currentReasoning,
-          files: asFiles(currentModelResponse.content),
+          files: extractFiles(stepContent),
           sources: currentModelResponse.content.filter(
             part => part.type === 'source',
           ),
@@ -790,13 +792,13 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 
   get files() {
-    return this.content
-      .filter(part => part.type === 'file')
-      .map(part => part.file);
+    return extractFiles(this.content);
   }
 
   get reasoningText() {
-    const texts = this.reasoning.map(part => part.text);
+    const texts = this.content
+      .filter(part => part.type === 'reasoning')
+      .map(part => part.text);
     return texts.length > 0 ? texts.join('') : undefined;
   }
 
@@ -824,12 +826,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
 
     return this.resolvedOutput;
   }
-}
-
-function asFiles(content: Array<LanguageModelV2Content>): Array<GeneratedFile> {
-  return content
-    .filter(part => part.type === 'file')
-    .map(part => new DefaultGeneratedFile(part));
 }
 
 function asToolCalls(content: Array<LanguageModelV2Content>) {

@@ -1805,7 +1805,7 @@ exports[`result.steps > should contain files 1`] = `
       },
       {
         "file": DefaultGeneratedFile {
-          "base64Data": undefined,
+          "base64Data": "AQID",
           "mediaType": "image/png",
           "uint8ArrayData": Uint8Array [
             1,
@@ -1826,7 +1826,7 @@ exports[`result.steps > should contain files 1`] = `
     ],
     "files": [
       DefaultGeneratedFile {
-        "base64Data": undefined,
+        "base64Data": "AQID",
         "mediaType": "image/png",
         "uint8ArrayData": Uint8Array [
           1,

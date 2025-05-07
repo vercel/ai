@@ -1,8 +1,8 @@
 import { LanguageModelV2Content } from '@ai-sdk/provider';
+import { ContentPart } from './content-part';
+import { DefaultGeneratedFile, GeneratedFile } from './generated-file';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
-import { ContentPart } from './content-part';
-import { DefaultGeneratedFile } from './generated-file';
 import { ToolSet } from './tool-set';
 
 export function asContent<TOOLS extends ToolSet>({
@@ -38,4 +38,10 @@ export function asContent<TOOLS extends ToolSet>({
     }),
     ...toolResults,
   ];
+}
+
+export function extractFiles(
+  content: Array<ContentPart<ToolSet>>,
+): Array<GeneratedFile> {
+  return content.filter(part => part.type === 'file').map(part => part.file);
 }
