@@ -22,11 +22,15 @@ Maximum number of tokens to generate.
   maxOutputTokens?: number;
 
   /**
-Temperature setting.
+Temperature setting. Options:
+
+- `number`: The temperature value to use.
+- `best`: The AI SDK provider will decide the best temperature to use.
+- `provider-default`: The AI SDK provider will remove the temperature from the request.
 
 It is recommended to set either `temperature` or `topP`, but not both.
  */
-  temperature?: number;
+  temperature?: number | 'best' | 'provider-default';
 
   /**
 Stop sequences.
