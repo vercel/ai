@@ -1,4 +1,4 @@
-import { UIMessage } from '../types';
+import { UIMessage } from './ui-messages';
 
 /**
  * Appends a client message to the messages array.

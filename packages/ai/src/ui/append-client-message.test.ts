@@ -1,5 +1,5 @@
+import { UIMessage } from './ui-messages';
 import { appendClientMessage } from './append-client-message';
-import { UIMessage } from '../types';
 
 describe('appendClientMessage', () => {
   it('should append a new message to an empty array', () => {
