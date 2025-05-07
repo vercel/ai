@@ -41,54 +41,43 @@ export async function standardizePrompt(
     });
   }
 
-  // type: prompt
-  if (prompt.prompt != null) {
-    // validate that prompt is a string
-    if (typeof prompt.prompt !== 'string') {
-      throw new InvalidPromptError({
-        prompt,
-        message: 'prompt must be a string',
-      });
-    }
+  let messages: ModelMessage[];
 
-    return {
-      system: prompt.system,
-      messages: [
-        {
-          role: 'user',
-          content: prompt.prompt,
-        },
-      ],
-    };
-  }
-
-  // type: messages
-  if (prompt.messages != null) {
-    if (prompt.messages.length === 0) {
-      throw new InvalidPromptError({
-        prompt,
-        message: 'messages must not be empty',
-      });
-    }
-
-    const validationResult = await safeValidateTypes({
-      value: prompt.messages,
-      schema: z.array(modelMessageSchema),
+  if (prompt.prompt != null && typeof prompt.prompt === 'string') {
+    messages = [{ role: 'user', content: prompt.prompt }];
+  } else if (prompt.prompt != null && Array.isArray(prompt.prompt)) {
+    messages = prompt.prompt;
+  } else if (prompt.messages != null) {
+    messages = prompt.messages;
+  } else {
+    throw new InvalidPromptError({
+      prompt,
+      message: 'prompt or messages must be defined',
     });
-
-    if (!validationResult.success) {
-      throw new InvalidPromptError({
-        prompt,
-        message: 'messages must be an array of ModelMessage or UIMessage',
-        cause: validationResult.error,
-      });
-    }
-
-    return {
-      messages: prompt.messages,
-      system: prompt.system,
-    };
   }
 
-  throw new Error('unreachable');
+  if (messages.length === 0) {
+    throw new InvalidPromptError({
+      prompt,
+      message: 'messages must not be empty',
+    });
+  }
+
+  const validationResult = await safeValidateTypes({
+    value: messages,
+    schema: z.array(modelMessageSchema),
+  });
+
+  if (!validationResult.success) {
+    throw new InvalidPromptError({
+      prompt,
+      message: 'messages must be an array of ModelMessage',
+      cause: validationResult.error,
+    });
+  }
+
+  return {
+    messages,
+    system: prompt.system,
+  };
 }
