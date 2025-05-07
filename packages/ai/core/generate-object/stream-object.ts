@@ -411,8 +411,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       endWhenDone: false,
       fn: async rootSpan => {
         const standardizedPrompt = await standardizePrompt({
-          prompt: { system, prompt, messages },
-          tools: undefined,
+          system,
+          prompt,
+          messages,
         });
 
         const callOptions = {

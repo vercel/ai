@@ -241,8 +241,9 @@ Default and recommended: 'auto' (best mode for the model).
       let resultProviderMetadata: ProviderMetadata | undefined;
 
       const standardizedPrompt = await standardizePrompt({
-        prompt: { system, prompt, messages },
-        tools: undefined,
+        system,
+        prompt,
+        messages,
       });
 
       const promptMessages = await convertToLanguageModelPrompt({

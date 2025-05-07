@@ -258,8 +258,9 @@ A function that attempts to repair a tool call that failed to parse.
   });
 
   const initialPrompt = await standardizePrompt({
-    prompt: { system, prompt, messages },
-    tools,
+    system,
+    prompt,
+    messages,
   });
 
   const tracer = getTracer(telemetry);

@@ -929,8 +929,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           messageId: string;
         }) {
           const initialPrompt = await standardizePrompt({
-            prompt: { system, prompt, messages },
-            tools,
+            system,
+            prompt,
+            messages,
           });
 
           const stepInputMessages = [
