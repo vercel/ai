@@ -6,7 +6,7 @@
 
 ## `embedMany` now makes parallel requests, with a configurable `maxParallelCalls` option
 
-Before all requests in embedMany were made sequentially. Now, they are made in parallel, with a configurable `maxParallelCalls` option.
+Before all requests in `embedMany` were made sequentially. Now, they are made in parallel, with a configurable `maxParallelCalls` option.
 
 To restrict the number of parallel requests, you can do:
 
