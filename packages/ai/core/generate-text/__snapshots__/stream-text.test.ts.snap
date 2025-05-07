@@ -119,6 +119,12 @@ exports[`streamText > multiple stream consumption > should support text stream, 
 
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
 {
+  "content": [
+    {
+      "text": "Hello, world!",
+      "type": "text",
+    },
+  ],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
@@ -179,6 +185,30 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   "sources": [],
   "steps": [
     {
+      "content": [
+        {
+          "providerOptions": undefined,
+          "text": "thinking",
+          "type": "reasoning",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "result": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ],
       "files": [],
       "finishReason": "tool-calls",
       "isContinued": false,
@@ -267,6 +297,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "warnings": undefined,
     },
     {
+      "content": [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+      ],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -357,6 +393,30 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFinish should send correct information 1`] = `
 [
   {
+    "content": [
+      {
+        "providerOptions": undefined,
+        "text": "thinking",
+        "type": "reasoning",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
@@ -445,6 +505,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "warnings": undefined,
   },
   {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -823,6 +889,30 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value promises > result.steps should contain all steps 1`] = `
 [
   {
+    "content": [
+      {
+        "providerOptions": undefined,
+        "text": "thinking",
+        "type": "reasoning",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "value",
+        },
+        "result": "result1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
@@ -911,6 +1001,12 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "warnings": undefined,
   },
   {
+    "content": [
+      {
+        "text": "Hello, world!",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -988,6 +1084,13 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
 
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onFinish should send correct information 1`] = `
 {
+  "content": [
+    {
+      "text": "final value keep all whitespace
+ end",
+      "type": "text",
+    },
+  ],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
@@ -1019,6 +1122,13 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   "sources": [],
   "steps": [
     {
+      "content": [
+        {
+          "text": "part 1 
+ ",
+          "type": "text",
+        },
+      ],
       "files": [],
       "finishReason": "length",
       "isContinued": true,
@@ -1061,6 +1171,24 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "warnings": undefined,
     },
     {
+      "content": [
+        {
+          "id": "123",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example",
+          "type": "source",
+          "url": "https://example.com",
+        },
+        {
+          "text": "no-whitespace",
+          "type": "text",
+        },
+      ],
       "files": [],
       "finishReason": "length",
       "isContinued": true,
@@ -1115,6 +1243,36 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "warnings": undefined,
     },
     {
+      "content": [
+        {
+          "id": "456",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value2",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example 2",
+          "type": "source",
+          "url": "https://example.com/2",
+        },
+        {
+          "text": "immediatefollow  ",
+          "type": "text",
+        },
+        {
+          "id": "789",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value3",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example 3",
+          "type": "source",
+          "url": "https://example.com/3",
+        },
+      ],
       "files": [],
       "finishReason": "length",
       "isContinued": true,
@@ -1183,6 +1341,13 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "warnings": undefined,
     },
     {
+      "content": [
+        {
+          "text": "final value keep all whitespace
+ end",
+          "type": "text",
+        },
+      ],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -1247,6 +1412,13 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onStepFinish should send correct information 1`] = `
 [
   {
+    "content": [
+      {
+        "text": "part 1 
+ ",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -1289,6 +1461,24 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "type": "source",
+        "url": "https://example.com",
+      },
+      {
+        "text": "no-whitespace",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -1343,6 +1533,36 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "type": "source",
+        "url": "https://example.com/2",
+      },
+      {
+        "text": "immediatefollow  ",
+        "type": "text",
+      },
+      {
+        "id": "789",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value3",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 3",
+        "type": "source",
+        "url": "https://example.com/3",
+      },
+    ],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -1411,6 +1631,13 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [
+      {
+        "text": "final value keep all whitespace
+ end",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -2065,6 +2292,13 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > value promises > result.steps should contain all steps 1`] = `
 [
   {
+    "content": [
+      {
+        "text": "part 1 
+ ",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -2107,6 +2341,24 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "type": "source",
+        "url": "https://example.com",
+      },
+      {
+        "text": "no-whitespace",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -2161,6 +2413,36 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "type": "source",
+        "url": "https://example.com/2",
+      },
+      {
+        "text": "immediatefollow  ",
+        "type": "text",
+      },
+      {
+        "id": "789",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value3",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 3",
+        "type": "source",
+        "url": "https://example.com/3",
+      },
+    ],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -2229,6 +2511,13 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [
+      {
+        "text": "final value keep all whitespace
+ end",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -2348,6 +2637,33 @@ exports[`streamText > options.onChunk > should return events in order 1`] = `
 
 exports[`streamText > options.onFinish > should send correct information 1`] = `
 {
+  "content": [
+    {
+      "text": "Hello, ",
+      "type": "text",
+    },
+    {
+      "args": {
+        "value": "value",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+    {
+      "args": {
+        "value": "value",
+      },
+      "result": "value-result",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+    {
+      "text": "world!",
+      "type": "text",
+    },
+  ],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": {
@@ -2401,6 +2717,33 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
   "sources": [],
   "steps": [
     {
+      "content": [
+        {
+          "text": "Hello, ",
+          "type": "text",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "result": "value-result",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+        {
+          "text": "world!",
+          "type": "text",
+        },
+      ],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -2521,6 +2864,30 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
 
 exports[`streamText > options.onFinish > should send files 1`] = `
 {
+  "content": [
+    {
+      "file": DefaultGeneratedFileWithType {
+        "base64Data": "Hello World",
+        "mediaType": "text/plain",
+        "type": "file",
+        "uint8ArrayData": undefined,
+      },
+      "type": "file",
+    },
+    {
+      "text": "Hello!",
+      "type": "text",
+    },
+    {
+      "file": DefaultGeneratedFileWithType {
+        "base64Data": "QkFVRw==",
+        "mediaType": "image/jpeg",
+        "type": "file",
+        "uint8ArrayData": undefined,
+      },
+      "type": "file",
+    },
+  ],
   "files": [
     DefaultGeneratedFileWithType {
       "base64Data": "Hello World",
@@ -2571,6 +2938,30 @@ exports[`streamText > options.onFinish > should send files 1`] = `
   "sources": [],
   "steps": [
     {
+      "content": [
+        {
+          "file": DefaultGeneratedFileWithType {
+            "base64Data": "Hello World",
+            "mediaType": "text/plain",
+            "type": "file",
+            "uint8ArrayData": undefined,
+          },
+          "type": "file",
+        },
+        {
+          "text": "Hello!",
+          "type": "text",
+        },
+        {
+          "file": DefaultGeneratedFileWithType {
+            "base64Data": "QkFVRw==",
+            "mediaType": "image/jpeg",
+            "type": "file",
+            "uint8ArrayData": undefined,
+          },
+          "type": "file",
+        },
+      ],
       "files": [
         DefaultGeneratedFileWithType {
           "base64Data": "Hello World",
@@ -2650,6 +3041,36 @@ exports[`streamText > options.onFinish > should send files 1`] = `
 
 exports[`streamText > options.onFinish > should send sources 1`] = `
 {
+  "content": [
+    {
+      "id": "123",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example",
+      "type": "source",
+      "url": "https://example.com",
+    },
+    {
+      "text": "Hello!",
+      "type": "text",
+    },
+    {
+      "id": "456",
+      "providerMetadata": {
+        "provider": {
+          "custom": "value2",
+        },
+      },
+      "sourceType": "url",
+      "title": "Example 2",
+      "type": "source",
+      "url": "https://example.com/2",
+    },
+  ],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
@@ -2702,6 +3123,36 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
   ],
   "steps": [
     {
+      "content": [
+        {
+          "id": "123",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example",
+          "type": "source",
+          "url": "https://example.com",
+        },
+        {
+          "text": "Hello!",
+          "type": "text",
+        },
+        {
+          "id": "456",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value2",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example 2",
+          "type": "source",
+          "url": "https://example.com/2",
+        },
+      ],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -2783,6 +3234,12 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
 
 exports[`streamText > options.output > object output > should call onFinish with the correct content 1`] = `
 {
+  "content": [
+    {
+      "text": "{ "value": "Hello, world!" }",
+      "type": "text",
+    },
+  ],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
@@ -2810,6 +3267,12 @@ exports[`streamText > options.output > object output > should call onFinish with
   "sources": [],
   "steps": [
     {
+      "content": [
+        {
+          "text": "{ "value": "Hello, world!" }",
+          "type": "text",
+        },
+      ],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -2866,6 +3329,33 @@ exports[`streamText > options.output > object output > should call onFinish with
 
 exports[`streamText > options.transform > with base transformation > options.onFinish should receive transformed data 1`] = `
 {
+  "content": [
+    {
+      "text": "HELLO, ",
+      "type": "text",
+    },
+    {
+      "args": {
+        "value": "VALUE",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+    {
+      "args": {
+        "value": "VALUE",
+      },
+      "result": "VALUE-RESULT",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+    {
+      "text": "WORLD!",
+      "type": "text",
+    },
+  ],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": {
@@ -2919,6 +3409,33 @@ exports[`streamText > options.transform > with base transformation > options.onF
   "sources": [],
   "steps": [
     {
+      "content": [
+        {
+          "text": "HELLO, ",
+          "type": "text",
+        },
+        {
+          "args": {
+            "value": "VALUE",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+        {
+          "args": {
+            "value": "VALUE",
+          },
+          "result": "VALUE-RESULT",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+        {
+          "text": "WORLD!",
+          "type": "text",
+        },
+      ],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -3039,6 +3556,33 @@ exports[`streamText > options.transform > with base transformation > options.onF
 
 exports[`streamText > options.transform > with base transformation > options.onStepFinish should receive transformed data 1`] = `
 {
+  "content": [
+    {
+      "text": "HELLO, ",
+      "type": "text",
+    },
+    {
+      "args": {
+        "value": "VALUE",
+      },
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-call",
+    },
+    {
+      "args": {
+        "value": "VALUE",
+      },
+      "result": "VALUE-RESULT",
+      "toolCallId": "call-1",
+      "toolName": "tool1",
+      "type": "tool-result",
+    },
+    {
+      "text": "WORLD!",
+      "type": "text",
+    },
+  ],
   "files": [],
   "finishReason": "stop",
   "isContinued": false,
@@ -3128,6 +3672,29 @@ exports[`streamText > options.transform > with base transformation > options.onS
 exports[`streamText > options.transform > with base transformation > result.steps should be transformed 1`] = `
 [
   {
+    "content": [
+      {
+        "text": "HELLO, WORLD!",
+        "type": "text",
+      },
+      {
+        "args": {
+          "value": "VALUE",
+        },
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-call",
+      },
+      {
+        "args": {
+          "value": "VALUE",
+        },
+        "result": "RESULT1",
+        "toolCallId": "call-1",
+        "toolName": "tool1",
+        "type": "tool-result",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -3298,6 +3865,12 @@ exports[`streamText > options.transform > with base transformation > telemetry s
 
 exports[`streamText > options.transform > with transformation that aborts stream > options.onStepFinish should be called 1`] = `
 {
+  "content": [
+    {
+      "text": "Hello, ",
+      "type": "text",
+    },
+  ],
   "files": [],
   "finishReason": "stop",
   "isContinued": false,
@@ -4383,6 +4956,30 @@ exports[`streamText > result.sources > should contain sources 1`] = `
 exports[`streamText > result.steps > should add the files from the model response to the step result 1`] = `
 [
   {
+    "content": [
+      {
+        "file": DefaultGeneratedFileWithType {
+          "base64Data": "Hello World",
+          "mediaType": "text/plain",
+          "type": "file",
+          "uint8ArrayData": undefined,
+        },
+        "type": "file",
+      },
+      {
+        "text": "Hello!",
+        "type": "text",
+      },
+      {
+        "file": DefaultGeneratedFileWithType {
+          "base64Data": "QkFVRw==",
+          "mediaType": "image/jpeg",
+          "type": "file",
+          "uint8ArrayData": undefined,
+        },
+        "type": "file",
+      },
+    ],
     "files": [
       DefaultGeneratedFileWithType {
         "base64Data": "Hello World",
@@ -4451,6 +5048,39 @@ exports[`streamText > result.steps > should add the files from the model respons
 exports[`streamText > result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
   {
+    "content": [
+      {
+        "providerOptions": {
+          "testProvider": {
+            "signature": "1234567890",
+          },
+        },
+        "text": "I will open the conversation with witty banter. ",
+        "type": "reasoning",
+      },
+      {
+        "providerOptions": {
+          "testProvider": {
+            "redactedData": "redacted-reasoning-data",
+          },
+        },
+        "text": "",
+        "type": "reasoning",
+      },
+      {
+        "providerOptions": {
+          "testProvider": {
+            "signature": "1234567890",
+          },
+        },
+        "text": "Once the user has relaxed, I will pry for valuable information.",
+        "type": "reasoning",
+      },
+      {
+        "text": "Hi there!",
+        "type": "text",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -4551,6 +5181,36 @@ exports[`streamText > result.steps > should add the reasoning from the model res
 exports[`streamText > result.steps > should add the sources from the model response to the step result 1`] = `
 [
   {
+    "content": [
+      {
+        "id": "123",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example",
+        "type": "source",
+        "url": "https://example.com",
+      },
+      {
+        "text": "Hello!",
+        "type": "text",
+      },
+      {
+        "id": "456",
+        "providerMetadata": {
+          "provider": {
+            "custom": "value2",
+          },
+        },
+        "sourceType": "url",
+        "title": "Example 2",
+        "type": "source",
+        "url": "https://example.com/2",
+      },
+    ],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
