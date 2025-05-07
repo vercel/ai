@@ -1,4 +1,3 @@
-import { UIMessage } from '../types';
 import { ModelMessage } from './message';
 
 /**
@@ -19,5 +18,5 @@ A simple text prompt. You can either use `prompt` or `messages` but not both.
   /**
 A list of messages. You can either use `prompt` or `messages` but not both.
    */
-  messages?: Array<ModelMessage> | Array<Omit<UIMessage, 'id'>>;
+  messages?: Array<ModelMessage>;
 };

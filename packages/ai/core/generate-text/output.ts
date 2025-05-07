@@ -2,7 +2,7 @@ import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
 import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { asSchema, DeepPartial, parsePartialJson, Schema } from '../../core';
-import { NoObjectGeneratedError } from '../../errors';
+import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { FinishReason } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';

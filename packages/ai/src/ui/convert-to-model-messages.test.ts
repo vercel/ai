@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { tool } from '../tool/tool';
 import { convertToModelMessages } from './convert-to-model-messages';
-import { ModelMessage } from './message';
+import { ModelMessage } from '../../core/prompt/message';
+import { tool } from '../../core/tool/tool';
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {

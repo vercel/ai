@@ -4,6 +4,7 @@ import {
   UIMessage,
   streamText,
   createDataStream,
+  convertToModelMessages,
 } from 'ai';
 import { processToolCalls } from './utils';
 import { tools } from './tools';
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
 
       const result = streamText({
         model: openai('gpt-4o'),
-        messages: processedMessages,
+        messages: convertToModelMessages(processedMessages),
         tools,
       });
 

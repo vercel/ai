@@ -9,7 +9,7 @@ import {
 import { createIdGenerator } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
 import { z } from 'zod';
-import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
+import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
 import { DelayedPromise } from '../../util/delayed-promise';
@@ -411,8 +411,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       endWhenDone: false,
       fn: async rootSpan => {
         const standardizedPrompt = await standardizePrompt({
-          prompt: { system, prompt, messages },
-          tools: undefined,
+          system,
+          prompt,
+          messages,
         });
 
         const callOptions = {

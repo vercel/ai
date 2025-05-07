@@ -23,8 +23,8 @@ export { ToolCallRepairError } from './tool-call-repair-error';
 export { ToolExecutionError } from './tool-execution-error';
 export { MCPClientError } from './mcp-client-error';
 
-export { InvalidDataContentError } from '../core/prompt/invalid-data-content-error';
-export { InvalidMessageRoleError } from '../core/prompt/invalid-message-role-error';
-export { MessageConversionError } from '../core/prompt/message-conversion-error';
-export { DownloadError } from '../util/download-error';
-export { RetryError } from '../util/retry-error';
+export { InvalidDataContentError } from '../../core/prompt/invalid-data-content-error';
+export { InvalidMessageRoleError } from '../../core/prompt/invalid-message-role-error';
+export { MessageConversionError } from '../../core/prompt/message-conversion-error';
+export { DownloadError } from '../../util/download-error';
+export { RetryError } from '../../util/retry-error';

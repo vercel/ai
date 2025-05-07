@@ -1,8 +1,4 @@
-import {
-  ToolInvocation,
-  ToolInvocationUIPart,
-  UIMessage,
-} from '../types/ui-messages';
+import { ToolInvocation, ToolInvocationUIPart, UIMessage } from './ui-messages';
 
 export function getToolInvocations(message: UIMessage): ToolInvocation[] {
   return message.parts

@@ -7,6 +7,7 @@ import {
 import { openai } from '@ai-sdk/openai';
 import {
   appendResponseMessages,
+  convertToModelMessages,
   createDataStream,
   generateId,
   JsonToSseTransformStream,
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
     execute: writer => {
       const result = streamText({
         model: openai('gpt-4o'),
-        messages,
+        messages: convertToModelMessages(messages),
         onFinish: async ({ response }) => {
           await saveChat({
             id,

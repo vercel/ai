@@ -1,10 +1,6 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
-import { UIMessage } from '../types';
 import { z } from 'zod';
-import { ToolSet } from '../generate-text/tool-set';
-import { convertToModelMessages } from './convert-to-model-messages';
-import { detectPromptType } from './detect-prompt-type';
 import { ModelMessage, modelMessageSchema } from './message';
 import { Prompt } from './prompt';
 
@@ -20,13 +16,9 @@ export type StandardizedPrompt = {
   messages: ModelMessage[];
 };
 
-export async function standardizePrompt<TOOLS extends ToolSet>({
-  prompt,
-  tools,
-}: {
-  prompt: Prompt;
-  tools: undefined | TOOLS;
-}): Promise<StandardizedPrompt> {
+export async function standardizePrompt(
+  prompt: Prompt,
+): Promise<StandardizedPrompt> {
   if (prompt.prompt == null && prompt.messages == null) {
     throw new InvalidPromptError({
       prompt,
@@ -72,23 +64,7 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
 
   // type: messages
   if (prompt.messages != null) {
-    const promptType = detectPromptType(prompt.messages);
-
-    if (promptType === 'other') {
-      throw new InvalidPromptError({
-        prompt,
-        message: 'messages must be an array of ModelMessage or UIMessage',
-      });
-    }
-
-    const messages: ModelMessage[] =
-      promptType === 'ui-messages'
-        ? convertToModelMessages(prompt.messages as Omit<UIMessage, 'id'>[], {
-            tools,
-          })
-        : (prompt.messages as ModelMessage[]);
-
-    if (messages.length === 0) {
+    if (prompt.messages.length === 0) {
       throw new InvalidPromptError({
         prompt,
         message: 'messages must not be empty',
@@ -96,7 +72,7 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
     }
 
     const validationResult = await safeValidateTypes({
-      value: messages,
+      value: prompt.messages,
       schema: z.array(modelMessageSchema),
     });
 
@@ -109,7 +85,7 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
     }
 
     return {
-      messages,
+      messages: prompt.messages,
       system: prompt.system,
     };
   }

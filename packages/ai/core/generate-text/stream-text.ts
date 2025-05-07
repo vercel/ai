@@ -4,8 +4,8 @@ import {
 } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
-import { InvalidArgumentError } from '../../errors/invalid-argument-error';
-import { NoOutputSpecifiedError } from '../../errors/no-output-specified-error';
+import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
+import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
 import { asArray } from '../../util/as-array';
 import { consumeStream } from '../../util/consume-stream';
@@ -929,8 +929,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           messageId: string;
         }) {
           const initialPrompt = await standardizePrompt({
-            prompt: { system, prompt, messages },
-            tools,
+            system,
+            prompt,
+            messages,
           });
 
           const stepInputMessages = [

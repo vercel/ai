@@ -3,7 +3,7 @@ import { mockId } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
 import { Output } from '.';
-import { ToolExecutionError } from '../../errors';
+import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
@@ -1519,86 +1519,6 @@ describe('tools with custom schema', () => {
 });
 
 describe('options.messages', () => {
-  it('should detect and convert ui messages', async () => {
-    const result = await generateText({
-      model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt }) => {
-          expect(prompt).toStrictEqual([
-            {
-              content: [
-                {
-                  providerOptions: undefined,
-                  text: 'prompt',
-                  type: 'text',
-                },
-              ],
-              providerOptions: undefined,
-              role: 'user',
-            },
-            {
-              content: [
-                {
-                  args: {
-                    value: 'test-value',
-                  },
-                  providerOptions: undefined,
-                  toolCallId: 'call-1',
-                  toolName: 'test-tool',
-                  type: 'tool-call',
-                },
-              ],
-              providerOptions: undefined,
-              role: 'assistant',
-            },
-            {
-              content: [
-                {
-                  content: undefined,
-                  isError: undefined,
-                  providerOptions: undefined,
-                  result: 'test result',
-                  toolCallId: 'call-1',
-                  toolName: 'test-tool',
-                  type: 'tool-result',
-                },
-              ],
-              providerOptions: undefined,
-              role: 'tool',
-            },
-          ]);
-
-          return {
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello, world!' }],
-          };
-        },
-      }),
-      messages: [
-        {
-          role: 'user',
-          parts: [{ type: 'text', text: 'prompt' }],
-        },
-        {
-          role: 'assistant',
-          parts: [
-            {
-              type: 'tool-invocation',
-              toolInvocation: {
-                state: 'result',
-                toolCallId: 'call-1',
-                toolName: 'test-tool',
-                args: { value: 'test-value' },
-                result: 'test result',
-              },
-            },
-          ],
-        },
-      ],
-    });
-
-    expect(result.text).toStrictEqual('Hello, world!');
-  });
-
   it('should support models that use "this" context in supportedUrls', async () => {
     let supportedUrlsCalled = false;
     class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {

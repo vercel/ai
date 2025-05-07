@@ -1,7 +1,7 @@
 import { JSONSchema7 } from '@ai-sdk/provider';
 import { jsonSchema } from '../../util';
 import { z, ZodType } from 'zod';
-import { MCPClientError } from '../../../errors';
+import { MCPClientError } from '../../../src/error/mcp-client-error';
 import { tool, Tool, ToolExecutionOptions } from '../tool';
 import {
   JSONRPCError,

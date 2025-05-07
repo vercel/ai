@@ -5,7 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { NoObjectGeneratedError } from '../../errors/no-object-generated-error';
+import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { extractContentText } from '../generate-text/extract-content-text';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -241,8 +241,9 @@ Default and recommended: 'auto' (best mode for the model).
       let resultProviderMetadata: ProviderMetadata | undefined;
 
       const standardizedPrompt = await standardizePrompt({
-        prompt: { system, prompt, messages },
-        tools: undefined,
+        system,
+        prompt,
+        messages,
       });
 
       const promptMessages = await convertToLanguageModelPrompt({

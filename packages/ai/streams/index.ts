@@ -1,2 +1,2 @@
 export * from '../core/index';
-export * from '../errors/index';
+export * from '../src/error/index';
