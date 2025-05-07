@@ -1,8 +1,14 @@
 import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
-import { safeParseJSON, safeValidateTypes } from '@ai-sdk/provider-utils';
+import {
+  asSchema,
+  safeParseJSON,
+  safeValidateTypes,
+  Schema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod';
-import { asSchema, DeepPartial, parsePartialJson, Schema } from '../../core';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
+import { DeepPartial } from '../../src/util/deep-partial';
+import { parsePartialJson } from '../../src/util/parse-partial-json';
 import { FinishReason } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';

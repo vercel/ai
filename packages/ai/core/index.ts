@@ -1,13 +1,3 @@
-// re-exports:
-export {
-  asSchema,
-  createIdGenerator,
-  generateId,
-  jsonSchema,
-  type Schema,
-} from '@ai-sdk/provider-utils';
-export type { IdGenerator } from '@ai-sdk/provider-utils';
-
 // directory exports:
 export * from './embed';
 export * from './generate-image';
@@ -23,6 +13,3 @@ export * from './types';
 
 // telemetry types:
 export type { TelemetrySettings } from './telemetry/telemetry-settings';
-
-// directory exports from /src
-export * from '../src/';
