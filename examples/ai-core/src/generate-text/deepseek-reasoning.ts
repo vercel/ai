@@ -8,13 +8,7 @@ async function main() {
     prompt: 'How many "r"s are in the word "strawberry"?',
   });
 
-  console.log('Reasoning:');
-  console.log(result.reasoningText);
-  console.log();
-
-  console.log('Text:');
-  console.log(result.text);
-  console.log();
+  console.log(result.content);
 
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
