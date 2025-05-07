@@ -1,5 +1,12 @@
 # @ai-sdk/cohere
 
+## 2.0.0-canary.17
+
+### Patch Changes
+
+- Updated dependencies [87b828f]
+  - @ai-sdk/provider-utils@3.0.0-canary.16
+
 ## 2.0.0-canary.16
 
 ### Patch Changes

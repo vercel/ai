@@ -1,5 +1,28 @@
 # ai
 
+## 5.0.0-canary.20
+
+### Major Changes
+
+- 13fef90: chore (ai): remove automatic conversion of UI messages to model messages
+- 496bbc1: chore (ui): inline/remove ChatRequest type
+- da70d79: chore (ai): remove getUIText helper
+- c7710a9: chore (ai): rename DataStreamToSSETransformStream to JsonToSseTransformStream
+- 35fc02c: chore (ui): rename RequestOptions to CompletionRequestOptions
+- b983b51: feat (ai): support model message array in prompt
+
+### Minor Changes
+
+- bcea599: feat (ai): add content to generateText result
+- 48d675a: feat (ai): add content to streamText result
+
+### Patch Changes
+
+- e90d45d: chore (rsc): move HANGING_STREAM_WARNING_TIME constant into @ai-sdk/rsc package
+- bc3109f: chore (ai): push stream-callbacks into langchain/llamaindex adapters
+- Updated dependencies [87b828f]
+  - @ai-sdk/provider-utils@3.0.0-canary.16
+
 ## 5.0.0-canary.19
 
 ### Major Changes
