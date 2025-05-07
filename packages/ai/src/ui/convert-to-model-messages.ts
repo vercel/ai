@@ -2,7 +2,6 @@ import { ToolSet } from '../../core/generate-text/tool-set';
 import { ToolResultPart } from '../../core/prompt/content-part';
 import { AssistantContent, ModelMessage } from '../../core/prompt/message';
 import { MessageConversionError } from '../../core/prompt/message-conversion-error';
-import { getUIText } from './get-ui-text';
 import {
   FileUIPart,
   ReasoningUIPart,
@@ -27,7 +26,9 @@ export function convertToModelMessages<TOOLS extends ToolSet = never>(
       case 'system': {
         modelMessages.push({
           role: 'system',
-          content: getUIText(message.parts),
+          content: message.parts
+            .map(part => (part.type === 'text' ? part.text : ''))
+            .join(''),
         });
         break;
       }

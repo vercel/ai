@@ -12,7 +12,6 @@ import {
   DataStreamPart,
   FinishReason,
   getToolInvocations,
-  getUIText,
   LanguageModelUsage,
   UIMessage,
 } from 'ai';
@@ -472,7 +471,9 @@ describe('text stream', () => {
               {m.role === 'user' ? 'User: ' : 'AI: '}
             </div>
             <div data-testid={`message-${idx}-content`}>
-              {getUIText(m.parts)}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
             </div>
           </div>
         ))}
@@ -584,7 +585,9 @@ describe('form actions', () => {
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
-            {getUIText(m.parts)}
+            {m.parts
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join('')}
           </div>
         ))}
 
@@ -642,7 +645,9 @@ describe('form actions (with options)', () => {
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
-            {getUIText(m.parts)}
+            {m.parts
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join('')}
           </div>
         ))}
 
@@ -739,7 +744,9 @@ describe('prepareRequestBody', () => {
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
-            {getUIText(m.parts)}
+            {m.parts
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join('')}
           </div>
         ))}
 
@@ -1215,7 +1222,9 @@ describe('maxSteps', () => {
         <div>
           {messages.map((m, idx) => (
             <div data-testid={`message-${idx}`} key={m.id}>
-              {getUIText(m.parts)}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
             </div>
           ))}
 
@@ -1939,7 +1948,9 @@ describe('reload', () => {
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
-            {getUIText(m.parts)}
+            {m.parts
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join('')}
           </div>
         ))}
 
@@ -2042,7 +2053,9 @@ describe('test sending additional fields during message submission', () => {
         {messages.map((m, idx) => (
           <div data-testid={`message-${idx}`} key={m.id}>
             {m.role === 'user' ? 'User: ' : 'AI: '}
-            {getUIText(m.parts)}
+            {m.parts
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join('')}
           </div>
         ))}
 
@@ -2119,7 +2132,13 @@ describe('initialMessages', () => {
       });
 
       useEffect(() => {
-        setDerivedState(messages.map(m => getUIText(m.parts)));
+        setDerivedState(
+          messages.map(m =>
+            m.parts
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join(''),
+          ),
+        );
       }, [messages]);
 
       if (renderCount > 10) {
@@ -2132,7 +2151,9 @@ describe('initialMessages', () => {
           <div data-testid="derived-state">{derivedState.join(', ')}</div>
           {messages.map(m => (
             <div key={m.id} data-testid={`message-${m.role}`}>
-              {getUIText(m.parts)}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
             </div>
           ))}
         </div>
@@ -2183,7 +2204,13 @@ describe('initialMessages', () => {
       return (
         <div>
           <div data-testid="messages">
-            {messages.map(m => getUIText(m.parts)).join(', ')}
+            {messages
+              .map(m =>
+                m.parts
+                  .map(part => (part.type === 'text' ? part.text : ''))
+                  .join(''),
+              )
+              .join(', ')}
           </div>
 
           <button
@@ -2248,7 +2275,9 @@ describe('resume ongoing stream and return assistant message', () => {
           {messages.map((m, idx) => (
             <div data-testid={`message-${idx}`} key={m.id}>
               {m.role === 'user' ? 'User: ' : 'AI: '}
-              {getUIText(m.parts)}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
             </div>
           ))}
 
