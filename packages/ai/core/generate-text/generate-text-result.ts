@@ -4,6 +4,7 @@ import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage, StepResult } from './step-result';
 import { ToolCallArray } from './tool-call';
@@ -15,6 +16,11 @@ The result of a `generateText` call.
 It contains the generated text, the tool calls that were made during the generation, and the results of the tool calls.
  */
 export interface GenerateTextResult<TOOLS extends ToolSet, OUTPUT> {
+  /**
+The content that was generated.
+   */
+  readonly content: Array<ContentPart<TOOLS>>;
+
   /**
 The generated text.
      */

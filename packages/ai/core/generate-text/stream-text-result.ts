@@ -16,6 +16,7 @@ import { ResponseMessage, StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ContentPart } from './content-part';
 
 export type DataStreamOptions = {
   /**
@@ -272,12 +273,8 @@ If an error occurs, it is passed to the optional `onError` callback.
 }
 
 export type TextStreamPart<TOOLS extends ToolSet> =
-  | { type: 'text'; text: string }
-  | { type: 'reasoning'; text: string; providerMetadata?: ProviderMetadata }
+  | ContentPart<TOOLS>
   | { type: 'reasoning-part-finish' }
-  | ({ type: 'source' } & Source)
-  | { type: 'file'; file: GeneratedFile } // different because of GeneratedFile object
-  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
   | {
       type: 'tool-call-streaming-start';
       toolCallId: string;
@@ -289,9 +286,6 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       toolName: string;
       argsTextDelta: string;
     }
-  | ({
-      type: 'tool-result';
-    } & ToolResultUnion<TOOLS>)
   | {
       type: 'step-start';
       messageId: string;
