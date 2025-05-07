@@ -187,6 +187,7 @@ describe('doGenerate', () => {
         'x-request-id': 'test-request-id',
         'x-ratelimit-remaining': '123',
       },
+      body: expect.any(Object),
     });
   });
 

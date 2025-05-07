@@ -252,6 +252,7 @@ describe('OpenAICompatibleImageModel', () => {
           timestamp: testDate,
           modelId: 'dall-e-3',
           headers: expect.any(Object),
+          body: expect.any(Object),
         });
       });
     });
