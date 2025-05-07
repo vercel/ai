@@ -505,6 +505,28 @@ const { image } = await generateImage({
 });
 ```
 
+By default, the `TEXT_IMAGE` task type is assumed, but this can be changed by setting the `taskType` provider option, and passing all task parameters as provider options. For example:
+
+```ts
+import { bedrock } from '@ai-sdk/amazon-bedrock';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const imageWithBackground = fs.readFileSync('./path/to/image.png');
+
+const { image } = await generateImage({
+  model: bedrock.imageModel('amazon.nova-canvas-v1:0'),
+  prompt: '' /* Ignored */,
+  size: '512x512',
+  seed: 42,
+  providerOptions: {
+    bedrock: {
+      taskType: 'BACKGROUND_REMOVAL',
+      image: imageWithBackground.toString('base64'),
+    },
+  },
+});
+```
+
 Documentation for additional settings can be found within the [Amazon Bedrock
 User Guide for Amazon Nova
 Documentation](https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html).
