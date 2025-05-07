@@ -388,15 +388,18 @@ Add a `GET` method to `/api/chat` that:
 
 ```ts filename="app/api/chat/route.ts"
 import { loadStreams } from '@/util/chat-store';
-import { createDataStream } from 'ai';
+import { createDataStream, getMessagesByChatId } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
+import { differenceInSeconds } from 'date-fns';
 
 const streamContext = createResumableStreamContext({
   waitUntil: after,
 });
 
 export async function GET(request: Request) {
+  const resumeRequestedAt = new Date();
+
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get('chatId');
 
@@ -420,9 +423,46 @@ export async function GET(request: Request) {
     execute: () => {},
   });
 
-  return new Response(
-    await streamContext.resumableStream(recentStreamId, () => emptyDataStream),
+  const stream = await streamContext.resumableStream(
+    recentStreamId,
+    () => emptyDataStream,
   );
+
+  /*
+   * For when the generation is "active" during SSR but the
+   * resumable stream has concluded after reaching this point.
+   */
+  if (!stream) {
+    const messages = await getMessagesByChatId({ id: chatId });
+    const mostRecentMessage = messages.at(-1);
+
+    if (!mostRecentMessage) {
+      return new Response(emptyDataStream, { status: 200 });
+    }
+
+    if (mostRecentMessage.role !== 'assistant') {
+      return new Response(emptyDataStream, { status: 200 });
+    }
+
+    const messageCreatedAt = new Date(mostRecentMessage.createdAt);
+
+    if (differenceInSeconds(resumeRequestedAt, messageCreatedAt) > 15) {
+      return new Response(emptyDataStream, { status: 200 });
+    }
+
+    const restoredStream = createDataStream({
+      execute: buffer => {
+        buffer.writeData({
+          type: 'append-message',
+          message: JSON.stringify(mostRecentMessage),
+        });
+      },
+    });
+
+    return new Response(restoredStream, { status: 200 });
+  }
+
+  return new Response(stream, { status: 200 });
 }
 ```
 
