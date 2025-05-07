@@ -18,6 +18,18 @@ const result = generateText({
 
 After:
 
-TODO
+```ts
+import { wrapLanguageModel, simulateStreamingMiddleware } from 'ai';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: simulateStreamingMiddleware(),
+});
+
+const result = generateText({
+  model,
+  prompt: 'Hello, world!',
+});
+```
 
 Commit: https://github.com/vercel/ai/pull/5639
