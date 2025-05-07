@@ -119,6 +119,7 @@ exports[`streamText > multiple stream consumption > should support text stream, 
 
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onFinish should send correct information 1`] = `
 {
+  "content": [],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
@@ -179,6 +180,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   "sources": [],
   "steps": [
     {
+      "content": [],
       "files": [],
       "finishReason": "tool-calls",
       "isContinued": false,
@@ -267,6 +269,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "warnings": undefined,
     },
     {
+      "content": [],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -357,6 +360,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFinish should send correct information 1`] = `
 [
   {
+    "content": [],
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
@@ -445,6 +449,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     "warnings": undefined,
   },
   {
+    "content": [],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -823,6 +828,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value promises > result.steps should contain all steps 1`] = `
 [
   {
+    "content": [],
     "files": [],
     "finishReason": "tool-calls",
     "isContinued": false,
@@ -911,6 +917,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     "warnings": undefined,
   },
   {
+    "content": [],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -988,6 +995,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
 
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onFinish should send correct information 1`] = `
 {
+  "content": [],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
@@ -1019,6 +1027,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
   "sources": [],
   "steps": [
     {
+      "content": [],
       "files": [],
       "finishReason": "length",
       "isContinued": true,
@@ -1061,6 +1070,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "warnings": undefined,
     },
     {
+      "content": [],
       "files": [],
       "finishReason": "length",
       "isContinued": true,
@@ -1115,6 +1125,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "warnings": undefined,
     },
     {
+      "content": [],
       "files": [],
       "finishReason": "length",
       "isContinued": true,
@@ -1183,6 +1194,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
       "warnings": undefined,
     },
     {
+      "content": [],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -1247,6 +1259,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > callbacks > onStepFinish should send correct information 1`] = `
 [
   {
+    "content": [],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -1289,6 +1302,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -1343,6 +1357,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -1411,6 +1426,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -2065,6 +2081,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
 exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, continue > value promises > result.steps should contain all steps 1`] = `
 [
   {
+    "content": [],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -2107,6 +2124,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -2161,6 +2179,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [],
     "files": [],
     "finishReason": "length",
     "isContinued": true,
@@ -2229,6 +2248,7 @@ exports[`streamText > options.maxSteps > 4 steps: initial, continue, continue, c
     "warnings": undefined,
   },
   {
+    "content": [],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -2348,6 +2368,7 @@ exports[`streamText > options.onChunk > should return events in order 1`] = `
 
 exports[`streamText > options.onFinish > should send correct information 1`] = `
 {
+  "content": [],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": {
@@ -2401,6 +2422,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
   "sources": [],
   "steps": [
     {
+      "content": [],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -2521,6 +2543,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
 
 exports[`streamText > options.onFinish > should send files 1`] = `
 {
+  "content": [],
   "files": [
     DefaultGeneratedFileWithType {
       "base64Data": "Hello World",
@@ -2571,6 +2594,7 @@ exports[`streamText > options.onFinish > should send files 1`] = `
   "sources": [],
   "steps": [
     {
+      "content": [],
       "files": [
         DefaultGeneratedFileWithType {
           "base64Data": "Hello World",
@@ -2650,6 +2674,7 @@ exports[`streamText > options.onFinish > should send files 1`] = `
 
 exports[`streamText > options.onFinish > should send sources 1`] = `
 {
+  "content": [],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
@@ -2702,6 +2727,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
   ],
   "steps": [
     {
+      "content": [],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -2783,6 +2809,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
 
 exports[`streamText > options.output > object output > should call onFinish with the correct content 1`] = `
 {
+  "content": [],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
@@ -2810,6 +2837,7 @@ exports[`streamText > options.output > object output > should call onFinish with
   "sources": [],
   "steps": [
     {
+      "content": [],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -2866,6 +2894,7 @@ exports[`streamText > options.output > object output > should call onFinish with
 
 exports[`streamText > options.transform > with base transformation > options.onFinish should receive transformed data 1`] = `
 {
+  "content": [],
   "files": [],
   "finishReason": "stop",
   "providerMetadata": {
@@ -2919,6 +2948,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
   "sources": [],
   "steps": [
     {
+      "content": [],
       "files": [],
       "finishReason": "stop",
       "isContinued": false,
@@ -3039,6 +3069,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
 
 exports[`streamText > options.transform > with base transformation > options.onStepFinish should receive transformed data 1`] = `
 {
+  "content": [],
   "files": [],
   "finishReason": "stop",
   "isContinued": false,
@@ -3128,6 +3159,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
 exports[`streamText > options.transform > with base transformation > result.steps should be transformed 1`] = `
 [
   {
+    "content": [],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -3298,6 +3330,7 @@ exports[`streamText > options.transform > with base transformation > telemetry s
 
 exports[`streamText > options.transform > with transformation that aborts stream > options.onStepFinish should be called 1`] = `
 {
+  "content": [],
   "files": [],
   "finishReason": "stop",
   "isContinued": false,
@@ -4383,6 +4416,7 @@ exports[`streamText > result.sources > should contain sources 1`] = `
 exports[`streamText > result.steps > should add the files from the model response to the step result 1`] = `
 [
   {
+    "content": [],
     "files": [
       DefaultGeneratedFileWithType {
         "base64Data": "Hello World",
@@ -4451,6 +4485,7 @@ exports[`streamText > result.steps > should add the files from the model respons
 exports[`streamText > result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
   {
+    "content": [],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
@@ -4551,6 +4586,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
 exports[`streamText > result.steps > should add the sources from the model response to the step result 1`] = `
 [
   {
+    "content": [],
     "files": [],
     "finishReason": "stop",
     "isContinued": false,
