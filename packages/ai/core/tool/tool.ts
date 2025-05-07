@@ -1,8 +1,8 @@
-import { ToolResultContent } from '../prompt/tool-result-content';
-import { ModelMessage } from '../prompt/message';
-import { z } from 'zod';
-import { Schema } from '../util';
 import { JSONObject, JSONValue } from '@ai-sdk/provider';
+import { Schema } from '@ai-sdk/provider-utils';
+import { z } from 'zod';
+import { ModelMessage } from '../prompt/message';
+import { ToolResultContent } from '../prompt/tool-result-content';
 
 export type ToolParameters<T = JSONObject> = z.Schema<T> | Schema<T>;
 

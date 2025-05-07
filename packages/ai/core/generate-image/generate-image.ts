@@ -1,19 +1,18 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
 import { NoImageGeneratedError } from '../../src/error/no-image-generated-error';
 import {
+  detectMediaType,
+  imageMediaTypeSignatures,
+} from '../../src/util/detect-media-type';
+import { prepareRetries } from '../../src/util/prepare-retries';
+import {
   DefaultGeneratedFile,
   GeneratedFile,
 } from '../generate-text/generated-file';
-import { prepareRetries } from '../prompt/prepare-retries';
-import { ProviderMetadata } from '../types';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { GenerateImageResult } from './generate-image-result';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-} from '../util/detect-media-type';
 import { ProviderOptions } from '../types/provider-metadata';
+import { GenerateImageResult } from './generate-image-result';
 
 /**
 Generates images using an image model.

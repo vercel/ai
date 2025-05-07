@@ -1,4 +1,4 @@
-import { prepareHeaders } from '../../core/util/prepare-headers';
+import { prepareHeaders } from '../util/prepare-headers';
 import { dataStreamHeaders } from './data-stream-headers';
 import { DataStreamPart } from './data-stream-parts';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';

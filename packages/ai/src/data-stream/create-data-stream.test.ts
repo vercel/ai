@@ -1,6 +1,6 @@
 import { delay } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
-import { DelayedPromise } from '../../util/delayed-promise';
+import { DelayedPromise } from '../util/delayed-promise';
 import { createDataStream } from './create-data-stream';
 import { DataStreamPart } from './data-stream-parts';
 import { DataStreamWriter } from './data-stream-writer';

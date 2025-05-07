@@ -3,10 +3,10 @@ import {
   LanguageModelV2ProviderDefinedTool,
   LanguageModelV2ToolChoice,
 } from '@ai-sdk/provider';
-import { asSchema } from '../util';
+import { asSchema } from '@ai-sdk/provider-utils';
+import { isNonEmptyObject } from '../../src/util/is-non-empty-object';
 import { ToolSet } from '../generate-text';
 import { ToolChoice } from '../types/language-model';
-import { isNonEmptyObject } from '../util/is-non-empty-object';
 
 export function prepareToolsAndToolChoice<TOOLS extends ToolSet>({
   tools,

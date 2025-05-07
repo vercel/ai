@@ -1,8 +1,8 @@
+import { JSONValue } from '@ai-sdk/provider';
 import { expectTypeOf } from 'vitest';
 import { z } from 'zod';
-import { JSONValue } from '@ai-sdk/provider';
+import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import { streamObject } from './stream-object';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
 
 describe('streamObject', () => {
   it('should support enum types', async () => {
