@@ -1,4 +1,5 @@
-import { prepareRetries } from '../prompt/prepare-retries';
+import { prepareRetries } from '../../src/util/prepare-retries';
+import { splitArray } from '../../src/util/split-array';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
@@ -6,7 +7,6 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { Embedding, EmbeddingModel, ProviderOptions } from '../types';
-import { splitArray } from '../util/split-array';
 import { EmbedManyResult } from './embed-many-result';
 
 /**

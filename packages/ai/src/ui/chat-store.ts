@@ -1,4 +1,3 @@
-import { generateId as generateIdFunction, parsePartialJson } from '.';
 import type {
   ReasoningUIPart,
   TextUIPart,
@@ -6,6 +5,7 @@ import type {
   ToolInvocationUIPart,
   UIMessage,
 } from '../types';
+import { generateId as generateIdFunction, parsePartialJson } from '../util';
 
 interface ChatStoreSubscriber {
   onChatMessagesChanged?: (id: string) => void;

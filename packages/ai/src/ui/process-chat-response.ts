@@ -1,8 +1,8 @@
 import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from '../../core/types/usage';
-import { parsePartialJson } from '../../core/util/parse-partial-json';
 import { processDataStream } from '../data-stream/process-data-stream';
+import { parsePartialJson } from '../util/parse-partial-json';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import type {

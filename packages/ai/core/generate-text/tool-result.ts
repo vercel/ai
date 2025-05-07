@@ -1,5 +1,5 @@
+import { ValueOf } from '../../src/util/value-of';
 import { Tool } from '../tool';
-import { ValueOf } from '../util/value-of';
 import { ToolSet } from './tool-set';
 
 export type { ToolResult } from '@ai-sdk/provider-utils';

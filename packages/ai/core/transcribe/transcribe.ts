@@ -1,16 +1,16 @@
 import { JSONValue, TranscriptionModelV1 } from '@ai-sdk/provider';
 import { NoTranscriptGeneratedError } from '../../src/error/no-transcript-generated-error';
-import { download } from '../../util/download';
-import { DataContent } from '../prompt';
-import { convertDataContentToUint8Array } from '../prompt/data-content';
-import { prepareRetries } from '../prompt/prepare-retries';
-import { ProviderOptions } from '../types/provider-metadata';
-import { TranscriptionWarning } from '../types/transcription-model';
-import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import {
   audioMediaTypeSignatures,
   detectMediaType,
-} from '../util/detect-media-type';
+} from '../../src/util/detect-media-type';
+import { download } from '../../src/util/download';
+import { prepareRetries } from '../../src/util/prepare-retries';
+import { DataContent } from '../prompt';
+import { convertDataContentToUint8Array } from '../prompt/data-content';
+import { ProviderOptions } from '../types/provider-metadata';
+import { TranscriptionWarning } from '../types/transcription-model';
+import { TranscriptionModelResponseMetadata } from '../types/transcription-model-response-metadata';
 import { TranscriptionResult } from './transcribe-result';
 
 /**

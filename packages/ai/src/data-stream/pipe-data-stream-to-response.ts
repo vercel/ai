@@ -1,6 +1,6 @@
 import { ServerResponse } from 'node:http';
-import { prepareHeaders } from '../../core/util/prepare-headers';
-import { writeToServerResponse } from '../../core/util/write-to-server-response';
+import { prepareHeaders } from '../util/prepare-headers';
+import { writeToServerResponse } from '../util/write-to-server-response';
 import { dataStreamHeaders } from './data-stream-headers';
 import { DataStreamPart } from './data-stream-parts';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';

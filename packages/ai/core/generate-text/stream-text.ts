@@ -4,18 +4,30 @@ import {
 } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
+import { ServerResponse } from 'node:http';
+import { createDataStreamResponse } from '../../src/data-stream/create-data-stream-response';
+import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
+import { pipeDataStreamToResponse } from '../../src/data-stream/pipe-data-stream-to-response';
 import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
-import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
-import { asArray } from '../../util/as-array';
-import { consumeStream } from '../../util/consume-stream';
-import { DelayedPromise } from '../../util/delayed-promise';
+import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
+import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
+import { asArray } from '../../src/util/as-array';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../../src/util/async-iterable-stream';
+import { consumeStream } from '../../src/util/consume-stream';
+import { createStitchableStream } from '../../src/util/create-stitchable-stream';
+import { DelayedPromise } from '../../src/util/delayed-promise';
+import { now as originalNow } from '../../src/util/now';
+import { prepareRetries } from '../../src/util/prepare-retries';
+import { splitOnLastWhitespace } from '../../src/util/split-on-last-whitespace';
 import { CallSettings } from '../prompt/call-settings';
 import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { AssistantModelMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
-import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -33,13 +45,6 @@ import {
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import {
-  AsyncIterableStream,
-  createAsyncIterableStream,
-} from '../util/async-iterable-stream';
-import { createStitchableStream } from '../util/create-stitchable-stream';
-import { now as originalNow } from '../util/now';
-import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { asReasoningText } from './reasoning';
@@ -59,11 +64,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ServerResponse } from 'node:http';
-import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
-import { createDataStreamResponse } from '../../src/data-stream/create-data-stream-response';
-import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { pipeDataStreamToResponse } from '../../src/data-stream/pipe-data-stream-to-response';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',

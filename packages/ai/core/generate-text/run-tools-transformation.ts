@@ -2,6 +2,7 @@ import {
   LanguageModelV2CallWarning,
   LanguageModelV2StreamPart,
 } from '@ai-sdk/provider';
+import { generateId } from '@ai-sdk/provider-utils';
 import { Tracer } from '@opentelemetry/api';
 import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { ModelMessage } from '../prompt/message';
@@ -11,7 +12,6 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
 import { Source } from '../types/language-model';
-import { generateId } from '../util';
 import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
 import { ToolCallUnion } from './tool-call';

@@ -5,7 +5,7 @@ import {
   LanguageModelV2StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import { delay } from '@ai-sdk/provider-utils';
+import { delay, jsonSchema } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -15,13 +15,11 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { createDataStream } from '../../src/data-stream/create-data-stream';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
 import { Tool, tool } from '../tool/tool';
-import { jsonSchema } from '../util';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';

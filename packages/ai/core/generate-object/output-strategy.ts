@@ -7,20 +7,25 @@ import {
   TypeValidationError,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
-import { safeValidateTypes, ValidationResult } from '@ai-sdk/provider-utils';
-import { asSchema, DeepPartial, Schema } from '../util';
+import {
+  asSchema,
+  safeValidateTypes,
+  Schema,
+  ValidationResult,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import {
   AsyncIterableStream,
   createAsyncIterableStream,
-} from '../util/async-iterable-stream';
-import { ObjectStreamPart } from './stream-object-result';
+} from '../../src/util/async-iterable-stream';
+import { DeepPartial } from '../../src/util/deep-partial';
 import {
   FinishReason,
   LanguageModelResponseMetadata,
   LanguageModelUsage,
 } from '../types';
+import { ObjectStreamPart } from './stream-object-result';
 
 export interface OutputStrategy<PARTIAL, RESULT, ELEMENT_STREAM> {
   readonly type: 'object' | 'array' | 'enum' | 'no-schema';
