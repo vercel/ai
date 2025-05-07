@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getToolInvocations, getUIText } from 'ai';
+import { getToolInvocations } from 'ai';
 import { useChat } from './use-chat';
 
 const { messages, handleSubmit, input } = useChat({
@@ -21,7 +21,9 @@ const { messages, handleSubmit, input } = useChat({
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ getUIText(m.parts) }}
+      {{
+        m.parts.map(part => (part.type === 'text' ? part.text : '')).join('')
+      }}
 
       <div
         v-for="invocation in getToolInvocations(m)"

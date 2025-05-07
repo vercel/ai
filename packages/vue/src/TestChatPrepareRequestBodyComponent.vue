@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getUIText, JSONValue } from 'ai';
+import { JSONValue } from 'ai';
 import { computed, ref } from 'vue';
 import { UIMessage, useChat } from './use-chat';
 
@@ -29,7 +29,9 @@ const isLoading = computed(() => status.value !== 'ready');
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ getUIText(m.parts) }}
+      {{
+        m.parts.map(part => (part.type === 'text' ? part.text : '')).join('')
+      }}
     </div>
 
     <button

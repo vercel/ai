@@ -1,7 +1,7 @@
 'use client';
 
 import { UIMessage, useChat } from '@ai-sdk/react';
-import { createIdGenerator, getUIText } from 'ai';
+import { createIdGenerator } from 'ai';
 
 export default function Chat({
   id,
@@ -20,7 +20,9 @@ export default function Chat({
       {messages.map(m => (
         <div key={m.id} className="whitespace-pre-wrap">
           {m.role === 'user' ? 'User: ' : 'AI: '}
-          {getUIText(m.parts)}
+          {m.parts
+            .map(part => (part.type === 'text' ? part.text : ''))
+            .join('')}
         </div>
       ))}
 
