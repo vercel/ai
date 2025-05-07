@@ -1,5 +1,4 @@
 import type {
-  ChatRequest,
   ChatRequestOptions,
   CreateUIMessage,
   FileUIPart,
@@ -242,7 +241,12 @@ Default is undefined, which disables throttling.
 
   const triggerRequest = useCallback(
     async (
-      chatRequest: ChatRequest,
+      chatRequest: {
+        headers?: Record<string, string> | Headers;
+        body?: object;
+        messages: UIMessage[];
+        data?: JSONValue;
+      },
       requestType: 'generate' | 'resume' = 'generate',
     ) => {
       mutateStatus('submitted');
