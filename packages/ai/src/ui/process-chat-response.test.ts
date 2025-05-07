@@ -2,15 +2,15 @@ import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { LanguageModelUsage } from '../../core/types/usage';
 import { DataStreamPart } from '../../src';
-import { DataStreamToSSETransformStream } from '../../src/data-stream/data-stream-to-sse-transform-stream';
-import { processChatResponse } from './process-chat-response';
+import { JsonToSseTransformStream } from '../../src/data-stream/json-to-sse-transform-stream';
 import { UIMessage } from './ui-messages';
+import { processChatResponse } from './process-chat-response';
 
 function createDataProtocolStream(
   parts: DataStreamPart[],
 ): ReadableStream<Uint8Array> {
   return convertArrayToReadableStream(parts)
-    .pipeThrough(new DataStreamToSSETransformStream())
+    .pipeThrough(new JsonToSseTransformStream())
     .pipeThrough(new TextEncoderStream());
 }
 
