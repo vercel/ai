@@ -1,6 +1,6 @@
-import { UIMessage } from '../types';
-import { getToolInvocations } from '../ui/get-tool-invocations';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
+import { getToolInvocations } from './get-tool-invocations';
+import { UIMessage } from './ui-messages';
 
 export function shouldResubmitMessages({
   originalMaxToolInvocationStep,

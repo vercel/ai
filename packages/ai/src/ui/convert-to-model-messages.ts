@@ -1,15 +1,15 @@
-import { ToolSet } from '../generate-text/tool-set';
+import { ToolSet } from '../../core/generate-text/tool-set';
+import { ToolResultPart } from '../../core/prompt/content-part';
+import { AssistantContent, ModelMessage } from '../../core/prompt/message';
+import { MessageConversionError } from '../../core/prompt/message-conversion-error';
+import { getUIText } from './get-ui-text';
 import {
   FileUIPart,
   ReasoningUIPart,
   TextUIPart,
   ToolInvocationUIPart,
   UIMessage,
-} from '../types';
-import { getUIText } from '../ui/get-ui-text';
-import { ToolResultPart } from './content-part';
-import { AssistantContent, ModelMessage } from './message';
-import { MessageConversionError } from './message-conversion-error';
+} from './ui-messages';
 
 /**
 Converts an array of messages from useChat into an array of CoreMessages that can be used

@@ -1,9 +1,9 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
-import { UIMessage } from '../types';
 import { z } from 'zod';
+import { convertToModelMessages } from '../../src/ui/convert-to-model-messages';
+import { UIMessage } from '../../src/ui/ui-messages';
 import { ToolSet } from '../generate-text/tool-set';
-import { convertToModelMessages } from './convert-to-model-messages';
 import { detectPromptType } from './detect-prompt-type';
 import { ModelMessage, modelMessageSchema } from './message';
 import { Prompt } from './prompt';

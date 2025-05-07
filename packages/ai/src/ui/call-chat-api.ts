@@ -1,8 +1,9 @@
 import { JSONValue } from '@ai-sdk/provider';
-import { UIMessage, UseChatOptions } from '../types';
+import { IdGenerator } from '@ai-sdk/provider-utils';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
-import { IdGenerator } from '@ai-sdk/provider-utils';
+import { UIMessage } from './ui-messages';
+import { UseChatOptions } from './use-chat';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;

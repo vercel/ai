@@ -1,9 +1,10 @@
-import { LanguageModelV2FinishReason } from '@ai-sdk/provider';
+import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
+import { LanguageModelUsage } from '../../core/types/usage';
 import { DataStreamPart } from '../../src';
 import { DataStreamToSSETransformStream } from '../../src/data-stream/data-stream-to-sse-transform-stream';
-import { JSONValue, LanguageModelUsage, UIMessage } from '../types';
 import { processChatResponse } from './process-chat-response';
+import { UIMessage } from './ui-messages';
 
 function createDataProtocolStream(
   parts: DataStreamPart[],
