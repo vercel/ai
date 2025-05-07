@@ -102,6 +102,7 @@ export class OpenAICompatibleImageModel implements ImageModelV1 {
         timestamp: currentDate,
         modelId: this.modelId,
         headers: responseHeaders,
+        body: response,
       },
     };
   }
