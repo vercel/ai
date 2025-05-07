@@ -17,10 +17,7 @@ import {
 import { DeepInfraChatModelId } from './deepinfra-chat-options';
 import { DeepInfraEmbeddingModelId } from './deepinfra-embedding-options';
 import { DeepInfraCompletionModelId } from './deepinfra-completion-options';
-import {
-  DeepInfraImageModelId,
-  DeepInfraImageSettings,
-} from './deepinfra-image-settings';
+import { DeepInfraImageModelId } from './deepinfra-image-settings';
 import { DeepInfraImageModel } from './deepinfra-image-model';
 
 export interface DeepInfraProviderSettings {
@@ -56,19 +53,14 @@ Creates a chat model for text generation.
 
   /**
 Creates a model for image generation.
+@deprecated Use `imageModel` instead.
   */
-  image(
-    modelId: DeepInfraImageModelId,
-    settings?: DeepInfraImageSettings,
-  ): ImageModelV2;
+  image(modelId: DeepInfraImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
   */
-  imageModel(
-    modelId: DeepInfraImageModelId,
-    settings?: DeepInfraImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: DeepInfraImageModelId): ImageModelV2;
 
   /**
 Creates a chat model for text generation.
@@ -136,11 +128,8 @@ export function createDeepInfra(
       getCommonModelConfig('embedding'),
     );
 
-  const createImageModel = (
-    modelId: DeepInfraImageModelId,
-    settings: DeepInfraImageSettings = {},
-  ) =>
-    new DeepInfraImageModel(modelId, settings, {
+  const createImageModel = (modelId: DeepInfraImageModelId) =>
+    new DeepInfraImageModel(modelId, {
       ...getCommonModelConfig('image'),
       baseURL: baseURL
         ? `${baseURL}/inference`

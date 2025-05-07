@@ -16,7 +16,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { XaiChatModelId, supportsStructuredOutputs } from './xai-chat-options';
 import { XaiErrorData, xaiErrorSchema } from './xai-error';
-import { XaiImageModelId, XaiImageSettings } from './xai-image-settings';
+import { XaiImageModelId } from './xai-image-settings';
 
 const xaiErrorStructure: ProviderErrorStructure<XaiErrorData> = {
   errorSchema: xaiErrorSchema,
@@ -41,16 +41,14 @@ Creates an Xai chat model for text generation.
 
   /**
 Creates an Xai image model for image generation.
+@deprecated Use `imageModel` instead.
    */
-  image(modelId: XaiImageModelId, settings?: XaiImageSettings): ImageModelV2;
+  image(modelId: XaiImageModelId): ImageModelV2;
 
   /**
 Creates an Xai image model for image generation.
    */
-  imageModel(
-    modelId: XaiImageModelId,
-    settings?: XaiImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: XaiImageModelId): ImageModelV2;
 }
 
 export interface XaiProviderSettings {
@@ -102,11 +100,8 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const createImageModel = (
-    modelId: XaiImageModelId,
-    settings: XaiImageSettings = {},
-  ) => {
-    return new OpenAICompatibleImageModel(modelId, settings, {
+  const createImageModel = (modelId: XaiImageModelId) => {
+    return new OpenAICompatibleImageModel(modelId, {
       provider: 'xai.image',
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,

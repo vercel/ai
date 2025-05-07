@@ -5,7 +5,7 @@ import {
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
 import { LumaImageModel } from './luma-image-model';
-import { LumaImageModelId, LumaImageSettings } from './luma-image-settings';
+import { LumaImageModelId } from './luma-image-settings';
 
 export interface LumaProviderSettings {
   /**
@@ -31,16 +31,14 @@ or to provide a custom fetch implementation for e.g. testing.
 export interface LumaProvider extends ProviderV2 {
   /**
 Creates a model for image generation.
+@deprecated Use `imageModel` instead.
   */
-  image(modelId: LumaImageModelId, settings?: LumaImageSettings): ImageModelV2;
+  image(modelId: LumaImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(
-    modelId: LumaImageModelId,
-    settings?: LumaImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: LumaImageModelId): ImageModelV2;
 }
 
 const defaultBaseURL = 'https://api.lumalabs.ai';
@@ -56,11 +54,8 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
     ...options.headers,
   });
 
-  const createImageModel = (
-    modelId: LumaImageModelId,
-    settings: LumaImageSettings = {},
-  ) =>
-    new LumaImageModel(modelId, settings, {
+  const createImageModel = (modelId: LumaImageModelId) =>
+    new LumaImageModel(modelId, {
       provider: 'luma.image',
       baseURL: baseURL ?? defaultBaseURL,
       headers: getHeaders,

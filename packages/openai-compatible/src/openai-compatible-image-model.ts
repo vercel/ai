@@ -11,10 +11,7 @@ import {
   defaultOpenAICompatibleErrorStructure,
   ProviderErrorStructure,
 } from './openai-compatible-error';
-import {
-  OpenAICompatibleImageModelId,
-  OpenAICompatibleImageSettings,
-} from './openai-compatible-image-settings';
+import { OpenAICompatibleImageModelId } from './openai-compatible-image-settings';
 
 export type OpenAICompatibleImageModelConfig = {
   provider: string;
@@ -29,10 +26,7 @@ export type OpenAICompatibleImageModelConfig = {
 
 export class OpenAICompatibleImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
-
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 10;
-  }
+  readonly maxImagesPerCall = 10;
 
   get provider(): string {
     return this.config.provider;
@@ -40,7 +34,6 @@ export class OpenAICompatibleImageModel implements ImageModelV2 {
 
   constructor(
     readonly modelId: OpenAICompatibleImageModelId,
-    private readonly settings: OpenAICompatibleImageSettings,
     private readonly config: OpenAICompatibleImageModelConfig,
   ) {}
 
@@ -85,7 +78,6 @@ export class OpenAICompatibleImageModel implements ImageModelV2 {
         size,
         ...(providerOptions.openai ?? {}),
         response_format: 'b64_json',
-        ...(this.settings.user ? { user: this.settings.user } : {}),
       },
       failedResponseHandler: createJsonErrorResponseHandler(
         this.config.errorStructure ?? defaultOpenAICompatibleErrorStructure,

@@ -18,10 +18,7 @@ import { TogetherAIChatModelId } from './togetherai-chat-options';
 import { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
 import { TogetherAICompletionModelId } from './togetherai-completion-options';
 import { TogetherAIImageModel } from './togetherai-image-model';
-import {
-  TogetherAIImageModelId,
-  TogetherAIImageSettings,
-} from './togetherai-image-settings';
+import { TogetherAIImageModelId } from './togetherai-image-settings';
 
 export interface TogetherAIProviderSettings {
   /**
@@ -72,16 +69,14 @@ Creates a text embedding model for text generation.
   ): EmbeddingModelV2<string>;
 
   /**
-  Creates a model for image generation.
-   */
-  image(
-    modelId: TogetherAIImageModelId,
-    settings?: TogetherAIImageSettings,
-  ): ImageModelV2;
+Creates a model for image generation.
+@deprecated Use `imageModel` instead.
+*/
+  image(modelId: TogetherAIImageModelId): ImageModelV2;
 
   /**
-  Creates a model for image generation.
-   */
+Creates a model for image generation.
+*/
   imageModel(modelId: TogetherAIImageModelId): ImageModelV2;
 }
 
@@ -133,11 +128,8 @@ export function createTogetherAI(
       getCommonModelConfig('embedding'),
     );
 
-  const createImageModel = (
-    modelId: TogetherAIImageModelId,
-    settings: TogetherAIImageSettings = {},
-  ) =>
-    new TogetherAIImageModel(modelId, settings, {
+  const createImageModel = (modelId: TogetherAIImageModelId) =>
+    new TogetherAIImageModel(modelId, {
       ...getCommonModelConfig('image'),
       baseURL: baseURL ?? 'https://api.together.xyz/v1/',
     });

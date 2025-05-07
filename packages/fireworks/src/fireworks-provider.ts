@@ -20,10 +20,7 @@ import { FireworksChatModelId } from './fireworks-chat-options';
 import { FireworksCompletionModelId } from './fireworks-completion-options';
 import { FireworksEmbeddingModelId } from './fireworks-embedding-options';
 import { FireworksImageModel } from './fireworks-image-model';
-import {
-  FireworksImageModelId,
-  FireworksImageSettings,
-} from './fireworks-image-options';
+import { FireworksImageModelId } from './fireworks-image-options';
 
 export type FireworksErrorData = z.infer<typeof fireworksErrorSchema>;
 
@@ -87,19 +84,14 @@ Creates a text embedding model for text generation.
 
   /**
 Creates a model for image generation.
+@deprecated Use `imageModel` instead.
 */
-  image(
-    modelId: FireworksImageModelId,
-    settings?: FireworksImageSettings,
-  ): ImageModelV2;
+  image(modelId: FireworksImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
 */
-  imageModel(
-    modelId: FireworksImageModelId,
-    settings?: FireworksImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: FireworksImageModelId): ImageModelV2;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
@@ -150,11 +142,8 @@ export function createFireworks(
       errorStructure: fireworksErrorStructure,
     });
 
-  const createImageModel = (
-    modelId: FireworksImageModelId,
-    settings: FireworksImageSettings = {},
-  ) =>
-    new FireworksImageModel(modelId, settings, {
+  const createImageModel = (modelId: FireworksImageModelId) =>
+    new FireworksImageModel(modelId, {
       ...getCommonModelConfig('image'),
       baseURL: baseURL ?? defaultBaseURL,
     });

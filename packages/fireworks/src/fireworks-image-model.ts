@@ -6,10 +6,7 @@ import {
   FetchFunction,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import {
-  FireworksImageModelId,
-  FireworksImageSettings,
-} from './fireworks-image-options';
+import { FireworksImageModelId } from './fireworks-image-options';
 
 interface FireworksImageModelBackendConfig {
   urlFormat: 'workflows' | 'image_generation';
@@ -72,18 +69,14 @@ interface FireworksImageModelConfig {
 
 export class FireworksImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
     readonly modelId: FireworksImageModelId,
-    readonly settings: FireworksImageSettings,
     private config: FireworksImageModelConfig,
   ) {}
 

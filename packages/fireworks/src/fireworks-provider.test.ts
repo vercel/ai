@@ -130,14 +130,12 @@ describe('FireworksProvider', () => {
     it('should construct an image model with correct configuration', () => {
       const provider = createFireworks();
       const modelId = 'accounts/fireworks/models/flux-1-dev-fp8';
-      const settings = { maxImagesPerCall: 2 };
 
-      const model = provider.image(modelId, settings);
+      const model = provider.image(modelId);
 
       expect(model).toBeInstanceOf(FireworksImageModel);
       expect(FireworksImageModel).toHaveBeenCalledWith(
         modelId,
-        settings,
         expect.objectContaining({
           provider: 'fireworks.image',
           baseURL: 'https://api.fireworks.ai/inference/v1',
@@ -154,7 +152,6 @@ describe('FireworksProvider', () => {
       expect(model).toBeInstanceOf(FireworksImageModel);
       expect(FireworksImageModel).toHaveBeenCalledWith(
         modelId,
-        {},
         expect.any(Object),
       );
     });
@@ -164,11 +161,10 @@ describe('FireworksProvider', () => {
       const provider = createFireworks({ baseURL: customBaseURL });
       const modelId = 'accounts/fireworks/models/flux-1-dev-fp8';
 
-      const model = provider.image(modelId);
+      provider.image(modelId);
 
       expect(FireworksImageModel).toHaveBeenCalledWith(
         modelId,
-        expect.any(Object),
         expect.objectContaining({
           baseURL: customBaseURL,
         }),
