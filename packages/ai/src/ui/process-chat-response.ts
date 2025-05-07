@@ -1,18 +1,18 @@
 import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
-import { processDataStream } from '../../src/data-stream/process-data-stream';
+import { LanguageModelUsage } from '../../core/types/usage';
+import { parsePartialJson } from '../../core/util/parse-partial-json';
+import { processDataStream } from '../data-stream/process-data-stream';
+import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
+import { getToolInvocations } from './get-tool-invocations';
 import type {
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
   UIMessage,
-  UseChatOptions,
-} from '../types/ui-messages';
-import { LanguageModelUsage } from '../types/usage';
-import { getToolInvocations } from '../ui/get-tool-invocations';
-import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
-import { parsePartialJson } from './parse-partial-json';
+} from './ui-messages';
+import { UseChatOptions } from './use-chat';
 
 export async function processChatResponse({
   stream,

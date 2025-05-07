@@ -1,4 +1,4 @@
-import { UIMessage } from '../types';
+import { UIMessage } from '../../src/ui/ui-messages';
 import { detectPromptType } from './detect-prompt-type';
 import type { ModelMessage } from './message';
 
