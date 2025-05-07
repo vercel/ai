@@ -11,10 +11,7 @@ import { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-options';
 import { GoogleVertexImageModel } from './google-vertex-image-model';
-import {
-  GoogleVertexImageModelId,
-  GoogleVertexImageSettings,
-} from './google-vertex-image-settings';
+import { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import { GoogleVertexModelId } from './google-vertex-options';
 
 export interface GoogleVertexProvider extends ProviderV2 {
@@ -28,18 +25,12 @@ Creates a model for text generation.
   /**
    * Creates a model for image generation.
    */
-  image(
-    modelId: GoogleVertexImageModelId,
-    settings?: GoogleVertexImageSettings,
-  ): ImageModelV2;
+  image(modelId: GoogleVertexImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(
-    modelId: GoogleVertexImageModelId,
-    settings?: GoogleVertexImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: GoogleVertexImageModelId): ImageModelV2;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -135,10 +126,8 @@ export function createVertex(
   const createEmbeddingModel = (modelId: GoogleVertexEmbeddingModelId) =>
     new GoogleVertexEmbeddingModel(modelId, createConfig('embedding'));
 
-  const createImageModel = (
-    modelId: GoogleVertexImageModelId,
-    settings: GoogleVertexImageSettings = {},
-  ) => new GoogleVertexImageModel(modelId, settings, createConfig('image'));
+  const createImageModel = (modelId: GoogleVertexImageModelId) =>
+    new GoogleVertexImageModel(modelId, createConfig('image'));
 
   const provider = function (modelId: GoogleVertexModelId) {
     if (new.target) {

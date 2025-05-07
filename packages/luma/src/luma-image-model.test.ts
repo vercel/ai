@@ -10,14 +10,12 @@ function createBasicModel({
   headers,
   fetch,
   currentDate,
-  settings,
 }: {
   headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
-  settings?: any;
 } = {}) {
-  return new LumaImageModel('test-model', settings ?? {}, {
+  return new LumaImageModel('test-model', {
     provider: 'luma',
     baseURL: 'https://api.example.com',
     headers: headers ?? (() => ({ 'api-key': 'test-key' })),
@@ -148,6 +146,32 @@ describe('LumaImageModel', () => {
       });
     });
 
+    it('should not pass providerOptions.{pollIntervalMillis,maxPollAttempts}', async () => {
+      const model = createBasicModel();
+
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        size: undefined,
+        aspectRatio: '16:9',
+        seed: undefined,
+        providerOptions: {
+          luma: {
+            pollIntervalMillis: 1000,
+            maxPollAttempts: 5,
+            additional_param: 'value',
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        prompt,
+        aspect_ratio: '16:9',
+        model: 'test-model',
+        additional_param: 'value',
+      });
+    });
+
     it('should handle API errors', async () => {
       server.urls[
         'https://api.example.com/dream-machine/v1/generations/image'
@@ -271,22 +295,6 @@ describe('LumaImageModel', () => {
       expect(model.provider).toBe('luma');
       expect(model.modelId).toBe('test-model');
       expect(model.specificationVersion).toBe('v2');
-      expect(model.maxImagesPerCall).toBe(1);
-    });
-
-    it('should use maxImagesPerCall from settings', () => {
-      const model = createBasicModel({
-        settings: {
-          maxImagesPerCall: 4,
-        },
-      });
-
-      expect(model.maxImagesPerCall).toBe(4);
-    });
-
-    it('should default maxImagesPerCall to 1 when not specified', () => {
-      const model = createBasicModel();
-
       expect(model.maxImagesPerCall).toBe(1);
     });
   });

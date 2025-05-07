@@ -34,15 +34,11 @@ describe('doGenerate', () => {
     },
   });
 
-  const model = new BedrockImageModel(
-    'amazon.nova-canvas-v1:0',
-    {},
-    {
-      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
-      headers: mockConfigHeaders,
-      fetch: fakeFetchWithAuth,
-    },
-  );
+  const model = new BedrockImageModel('amazon.nova-canvas-v1:0', {
+    baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+    headers: mockConfigHeaders,
+    fetch: fakeFetchWithAuth,
+  });
 
   it('should pass the model and the settings', async () => {
     await model.doGenerate({
@@ -83,21 +79,17 @@ describe('doGenerate', () => {
       'shared-header': 'options-shared',
     };
 
-    const modelWithHeaders = new BedrockImageModel(
-      'amazon.nova-canvas-v1:0',
-      {},
-      {
-        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
-        headers: {
-          'model-header': 'model-value',
-          'shared-header': 'model-shared',
-        },
-        fetch: injectFetchHeaders({
-          'signed-header': 'signed-value',
-          authorization: 'AWS4-HMAC-SHA256...',
-        }),
+    const modelWithHeaders = new BedrockImageModel('amazon.nova-canvas-v1:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: {
+        'model-header': 'model-value',
+        'shared-header': 'model-shared',
       },
-    );
+      fetch: injectFetchHeaders({
+        'signed-header': 'signed-value',
+        authorization: 'AWS4-HMAC-SHA256...',
+      }),
+    });
 
     await modelWithHeaders.doGenerate({
       prompt,
@@ -118,11 +110,6 @@ describe('doGenerate', () => {
   });
 
   it('should respect maxImagesPerCall setting', async () => {
-    const customModel = provider.image('amazon.nova-canvas-v1:0', {
-      maxImagesPerCall: 2,
-    });
-    expect(customModel.maxImagesPerCall).toBe(2);
-
     const defaultModel = provider.image('amazon.nova-canvas-v1:0');
     expect(defaultModel.maxImagesPerCall).toBe(5); // 'amazon.nova-canvas-v1:0','s default from settings
 
@@ -166,17 +153,13 @@ describe('doGenerate', () => {
   it('should include response data with timestamp, modelId and headers', async () => {
     const testDate = new Date('2024-03-15T12:00:00Z');
 
-    const customModel = new BedrockImageModel(
-      'amazon.nova-canvas-v1:0',
-      {},
-      {
-        baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
-        headers: () => ({}),
-        _internal: {
-          currentDate: () => testDate,
-        },
+    const customModel = new BedrockImageModel('amazon.nova-canvas-v1:0', {
+      baseUrl: () => 'https://bedrock-runtime.us-east-1.amazonaws.com',
+      headers: () => ({}),
+      _internal: {
+        currentDate: () => testDate,
       },
-    );
+    });
 
     const result = await customModel.doGenerate({
       prompt,

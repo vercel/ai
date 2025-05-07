@@ -180,7 +180,6 @@ describe('doGenerate', () => {
   it('should return response metadata', async () => {
     const modelWithTimestamp = new ReplicateImageModel(
       'black-forest-labs/flux-schnell',
-      {},
       {
         provider: 'replicate',
         baseURL: 'https://api.replicate.com',
@@ -210,7 +209,6 @@ describe('doGenerate', () => {
   it('should include response headers in metadata', async () => {
     const modelWithTimestamp = new ReplicateImageModel(
       'black-forest-labs/flux-schnell',
-      {},
       {
         provider: 'replicate',
         baseURL: 'https://api.replicate.com',

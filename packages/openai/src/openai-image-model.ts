@@ -9,7 +9,6 @@ import { OpenAIConfig } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
 import {
   OpenAIImageModelId,
-  OpenAIImageSettings,
   modelMaxImagesPerCall,
   hasDefaultResponseFormat,
 } from './openai-image-settings';
@@ -24,9 +23,7 @@ export class OpenAIImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
 
   get maxImagesPerCall(): number {
-    return (
-      this.settings.maxImagesPerCall ?? modelMaxImagesPerCall[this.modelId] ?? 1
-    );
+    return modelMaxImagesPerCall[this.modelId] ?? 1;
   }
 
   get provider(): string {
@@ -35,7 +32,6 @@ export class OpenAIImageModel implements ImageModelV2 {
 
   constructor(
     readonly modelId: OpenAIImageModelId,
-    private readonly settings: OpenAIImageSettings,
     private readonly config: OpenAIImageModelConfig,
   ) {}
 

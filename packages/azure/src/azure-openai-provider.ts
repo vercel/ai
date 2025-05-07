@@ -3,7 +3,6 @@ import {
   OpenAICompletionLanguageModel,
   OpenAIEmbeddingModel,
   OpenAIImageModel,
-  OpenAIImageSettings,
   OpenAIResponsesLanguageModel,
   OpenAITranscriptionModel,
 } from '@ai-sdk/openai/internal';
@@ -48,15 +47,12 @@ Creates an Azure OpenAI completion model for text generation.
    * Creates an Azure OpenAI DALL-E model for image generation.
    * @deprecated Use `imageModel` instead.
    */
-  image(deploymentId: string, settings?: OpenAIImageSettings): ImageModelV2;
+  image(deploymentId: string): ImageModelV2;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  imageModel(
-    deploymentId: string,
-    settings?: OpenAIImageSettings,
-  ): ImageModelV2;
+  imageModel(deploymentId: string): ImageModelV2;
 
   /**
 @deprecated Use `textEmbeddingModel` instead.
@@ -181,11 +177,8 @@ export function createAzure(
       fetch: options.fetch,
     });
 
-  const createImageModel = (
-    modelId: string,
-    settings: OpenAIImageSettings = {},
-  ) =>
-    new OpenAIImageModel(modelId, settings, {
+  const createImageModel = (modelId: string) =>
+    new OpenAIImageModel(modelId, {
       provider: 'azure.image',
       url,
       headers: getHeaders,
