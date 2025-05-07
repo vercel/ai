@@ -21,25 +21,6 @@ describe('createLuma', () => {
       expect(model).toBeInstanceOf(LumaImageModel);
       expect(LumaImageModel).toHaveBeenCalledWith(
         modelId,
-        {},
-        expect.objectContaining({
-          provider: 'luma.image',
-          baseURL: 'https://api.lumalabs.ai',
-        }),
-      );
-    });
-
-    it('should construct an image model with custom settings', () => {
-      const provider = createLuma();
-      const modelId = 'luma-v1';
-      const settings = { maxImagesPerCall: 2 };
-
-      const model = provider.image(modelId, settings);
-
-      expect(model).toBeInstanceOf(LumaImageModel);
-      expect(LumaImageModel).toHaveBeenCalledWith(
-        modelId,
-        settings,
         expect.objectContaining({
           provider: 'luma.image',
           baseURL: 'https://api.lumalabs.ai',
@@ -64,7 +45,6 @@ describe('createLuma', () => {
 
       expect(LumaImageModel).toHaveBeenCalledWith(
         modelId,
-        {},
         expect.objectContaining({
           baseURL: customBaseURL,
           headers: expect.any(Function),

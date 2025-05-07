@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.0-canary.16
+
+### Patch Changes
+
+- 87b828f: fix(provider-utils): fix SSE parser bug (CRLF)
+
 ## 3.0.0-canary.15
 
 ### Major Changes

@@ -6,10 +6,7 @@ import {
   FetchFunction,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
-import {
-  TogetherAIImageModelId,
-  TogetherAIImageSettings,
-} from './togetherai-image-settings';
+import { TogetherAIImageModelId } from './togetherai-image-settings';
 import { z } from 'zod';
 
 interface TogetherAIImageModelConfig {
@@ -24,18 +21,14 @@ interface TogetherAIImageModelConfig {
 
 export class TogetherAIImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
+  readonly maxImagesPerCall = 1;
 
   get provider(): string {
     return this.config.provider;
   }
 
-  get maxImagesPerCall(): number {
-    return this.settings.maxImagesPerCall ?? 1;
-  }
-
   constructor(
     readonly modelId: TogetherAIImageModelId,
-    readonly settings: TogetherAIImageSettings,
     private config: TogetherAIImageModelConfig,
   ) {}
 

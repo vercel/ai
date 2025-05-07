@@ -5,7 +5,7 @@ import {
   LanguageModelV2StreamPart,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import { delay } from '@ai-sdk/provider-utils';
+import { delay, jsonSchema } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -15,13 +15,11 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
-import { createDataStream } from '../../src/data-stream/create-data-stream';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
 import { mockValues } from '../test/mock-values';
 import { Tool, tool } from '../tool/tool';
-import { jsonSchema } from '../util';
 import { object, text } from './output';
 import { StepResult } from './step-result';
 import { streamText } from './stream-text';
@@ -3335,94 +3333,6 @@ describe('streamText', () => {
   });
 
   describe('options.messages', () => {
-    it('should detect and convert ui messages', async () => {
-      const result = streamText({
-        model: new MockLanguageModelV2({
-          doStream: async ({ prompt }) => {
-            expect(prompt).toStrictEqual([
-              {
-                content: [
-                  {
-                    providerOptions: undefined,
-                    text: 'prompt',
-                    type: 'text',
-                  },
-                ],
-                providerOptions: undefined,
-                role: 'user',
-              },
-              {
-                content: [
-                  {
-                    args: {
-                      value: 'test-value',
-                    },
-                    providerOptions: undefined,
-                    toolCallId: 'call-1',
-                    toolName: 'test-tool',
-                    type: 'tool-call',
-                  },
-                ],
-                providerOptions: undefined,
-                role: 'assistant',
-              },
-              {
-                content: [
-                  {
-                    content: undefined,
-                    isError: undefined,
-                    providerOptions: undefined,
-                    result: 'test result',
-                    toolCallId: 'call-1',
-                    toolName: 'test-tool',
-                    type: 'tool-result',
-                  },
-                ],
-                providerOptions: undefined,
-                role: 'tool',
-              },
-            ]);
-
-            return {
-              stream: convertArrayToReadableStream([
-                { type: 'text', text: 'Hello' },
-                {
-                  type: 'finish',
-                  finishReason: 'stop',
-                  usage: testUsage,
-                },
-              ]),
-            };
-          },
-        }),
-        messages: [
-          {
-            role: 'user',
-            parts: [{ type: 'text', text: 'prompt' }],
-          },
-          {
-            role: 'assistant',
-            parts: [
-              {
-                type: 'tool-invocation',
-                toolInvocation: {
-                  state: 'result',
-                  toolCallId: 'call-1',
-                  toolName: 'test-tool',
-                  args: { value: 'test-value' },
-                  result: 'test result',
-                },
-              },
-            ],
-          },
-        ],
-      });
-
-      expect(
-        await convertAsyncIterableToArray(result.textStream),
-      ).toStrictEqual(['Hello']);
-    });
-
     it('should support models that use "this" context in supportedUrls', async () => {
       let supportedUrlsCalled = false;
       class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {

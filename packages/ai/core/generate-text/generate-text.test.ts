@@ -1,4 +1,5 @@
 import { LanguageModelV2CallOptions } from '@ai-sdk/provider';
+import { jsonSchema } from '@ai-sdk/provider-utils';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import assert from 'node:assert';
 import { z } from 'zod';
@@ -7,7 +8,6 @@ import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import { tool } from '../tool/tool';
-import { jsonSchema } from '../util';
 import { generateText } from './generate-text';
 import { GenerateTextResult } from './generate-text-result';
 import { StepResult } from './step-result';
@@ -93,6 +93,114 @@ const modelWithReasoning = new MockLanguageModelV2({
       { type: 'text', text: 'Hello, world!' },
     ],
   },
+});
+
+describe('result.content', () => {
+  it('should generate content', async () => {
+    const result = await generateText({
+      model: new MockLanguageModelV2({
+        doGenerate: {
+          ...dummyResponseValues,
+          content: [
+            { type: 'text', text: 'Hello, world!' },
+            {
+              type: 'source',
+              sourceType: 'url',
+              id: '123',
+              url: 'https://example.com',
+              title: 'Example',
+              providerMetadata: { provider: { custom: 'value' } },
+            },
+            {
+              type: 'file',
+              data: new Uint8Array([1, 2, 3]),
+              mediaType: 'image/png',
+            },
+            {
+              type: 'reasoning',
+              text: 'I will open the conversation with witty banter.',
+            },
+            {
+              type: 'tool-call',
+              toolCallType: 'function',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              args: `{ "value": "value" }`,
+            },
+            { type: 'text', text: 'More text' },
+          ],
+        },
+      }),
+      prompt: 'prompt',
+      tools: {
+        tool1: {
+          parameters: z.object({ value: z.string() }),
+          execute: async args => {
+            expect(args).toStrictEqual({ value: 'value' });
+            return 'result1';
+          },
+        },
+      },
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Hello, world!",
+          "type": "text",
+        },
+        {
+          "id": "123",
+          "providerMetadata": {
+            "provider": {
+              "custom": "value",
+            },
+          },
+          "sourceType": "url",
+          "title": "Example",
+          "type": "source",
+          "url": "https://example.com",
+        },
+        {
+          "file": DefaultGeneratedFile {
+            "base64Data": undefined,
+            "mediaType": "image/png",
+            "uint8ArrayData": Uint8Array [
+              1,
+              2,
+              3,
+            ],
+          },
+          "type": "file",
+        },
+        {
+          "text": "I will open the conversation with witty banter.",
+          "type": "reasoning",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-call",
+        },
+        {
+          "text": "More text",
+          "type": "text",
+        },
+        {
+          "args": {
+            "value": "value",
+          },
+          "result": "result1",
+          "toolCallId": "call-1",
+          "toolName": "tool1",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
 });
 
 describe('result.text', () => {
@@ -888,6 +996,17 @@ describe('options.maxSteps', () => {
     it('onStepFinish should be called for each step', () => {
       expect(onStepFinishResults).toMatchSnapshot();
     });
+
+    it('content should contain content from the last step', () => {
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "Hello, world!",
+            "type": "text",
+          },
+        ]
+      `);
+    });
   });
 
   describe('4 steps: initial, continue, continue, continue', () => {
@@ -1519,86 +1638,6 @@ describe('tools with custom schema', () => {
 });
 
 describe('options.messages', () => {
-  it('should detect and convert ui messages', async () => {
-    const result = await generateText({
-      model: new MockLanguageModelV2({
-        doGenerate: async ({ prompt }) => {
-          expect(prompt).toStrictEqual([
-            {
-              content: [
-                {
-                  providerOptions: undefined,
-                  text: 'prompt',
-                  type: 'text',
-                },
-              ],
-              providerOptions: undefined,
-              role: 'user',
-            },
-            {
-              content: [
-                {
-                  args: {
-                    value: 'test-value',
-                  },
-                  providerOptions: undefined,
-                  toolCallId: 'call-1',
-                  toolName: 'test-tool',
-                  type: 'tool-call',
-                },
-              ],
-              providerOptions: undefined,
-              role: 'assistant',
-            },
-            {
-              content: [
-                {
-                  content: undefined,
-                  isError: undefined,
-                  providerOptions: undefined,
-                  result: 'test result',
-                  toolCallId: 'call-1',
-                  toolName: 'test-tool',
-                  type: 'tool-result',
-                },
-              ],
-              providerOptions: undefined,
-              role: 'tool',
-            },
-          ]);
-
-          return {
-            ...dummyResponseValues,
-            content: [{ type: 'text', text: 'Hello, world!' }],
-          };
-        },
-      }),
-      messages: [
-        {
-          role: 'user',
-          parts: [{ type: 'text', text: 'prompt' }],
-        },
-        {
-          role: 'assistant',
-          parts: [
-            {
-              type: 'tool-invocation',
-              toolInvocation: {
-                state: 'result',
-                toolCallId: 'call-1',
-                toolName: 'test-tool',
-                args: { value: 'test-value' },
-                result: 'test result',
-              },
-            },
-          ],
-        },
-      ],
-    });
-
-    expect(result.text).toStrictEqual('Hello, world!');
-  });
-
   it('should support models that use "this" context in supportedUrls', async () => {
     let supportedUrlsCalled = false;
     class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {

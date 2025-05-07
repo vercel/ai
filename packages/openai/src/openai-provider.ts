@@ -18,10 +18,7 @@ import { OpenAICompletionModelId } from './openai-completion-options';
 import { OpenAIEmbeddingModel } from './openai-embedding-model';
 import { OpenAIEmbeddingModelId } from './openai-embedding-options';
 import { OpenAIImageModel } from './openai-image-model';
-import {
-  OpenAIImageModelId,
-  OpenAIImageSettings,
-} from './openai-image-settings';
+import { OpenAIImageModelId } from './openai-image-settings';
 import { openaiTools } from './openai-tools';
 import { OpenAITranscriptionModel } from './openai-transcription-model';
 import { OpenAITranscriptionModelId } from './openai-transcription-options';
@@ -76,19 +73,14 @@ Creates a model for text embeddings.
 
   /**
 Creates a model for image generation.
+@deprecated Use `imageModel` instead.
    */
-  image(
-    modelId: OpenAIImageModelId,
-    settings?: OpenAIImageSettings,
-  ): ImageModelV2;
+  image(modelId: OpenAIImageModelId): ImageModelV2;
 
   /**
 Creates a model for image generation.
    */
-  imageModel(
-    modelId: OpenAIImageModelId,
-    settings?: OpenAIImageSettings,
-  ): ImageModelV2;
+  imageModel(modelId: OpenAIImageModelId): ImageModelV2;
 
   /**
 Creates a model for transcription.
@@ -190,11 +182,8 @@ export function createOpenAI(
       fetch: options.fetch,
     });
 
-  const createImageModel = (
-    modelId: OpenAIImageModelId,
-    settings: OpenAIImageSettings = {},
-  ) =>
-    new OpenAIImageModel(modelId, settings, {
+  const createImageModel = (modelId: OpenAIImageModelId) =>
+    new OpenAIImageModel(modelId, {
       provider: `${providerName}.image`,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,

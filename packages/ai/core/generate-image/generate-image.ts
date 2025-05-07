@@ -1,19 +1,18 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
 import { NoImageGeneratedError } from '../../src/error/no-image-generated-error';
 import {
+  detectMediaType,
+  imageMediaTypeSignatures,
+} from '../../src/util/detect-media-type';
+import { prepareRetries } from '../../src/util/prepare-retries';
+import {
   DefaultGeneratedFile,
   GeneratedFile,
 } from '../generate-text/generated-file';
-import { prepareRetries } from '../prompt/prepare-retries';
-import { ProviderMetadata } from '../types';
 import { ImageGenerationWarning } from '../types/image-model';
 import { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
-import { GenerateImageResult } from './generate-image-result';
-import {
-  detectMediaType,
-  imageMediaTypeSignatures,
-} from '../util/detect-media-type';
 import { ProviderOptions } from '../types/provider-metadata';
+import { GenerateImageResult } from './generate-image-result';
 
 /**
 Generates images using an image model.
@@ -36,6 +35,7 @@ export async function generateImage({
   model,
   prompt,
   n = 1,
+  maxImagesPerCall,
   size,
   aspectRatio,
   seed,
@@ -58,6 +58,11 @@ The prompt that should be used to generate the image.
 Number of images to generate.
    */
   n?: number;
+
+  /**
+Number of images to generate.
+   */
+  maxImagesPerCall?: number;
 
   /**
 Size of the images to generate. Must have the format `{width}x{height}`. If not provided, the default size will be used.
@@ -112,18 +117,20 @@ Only applicable for HTTP-based providers.
 
   // default to 1 if the model has not specified limits on
   // how many images can be generated in a single call
-  const maxImagesPerCall = model.maxImagesPerCall ?? 1;
+  const maxImagesPerCallWithDefault =
+    maxImagesPerCall ?? model.maxImagesPerCall ?? 1;
 
   // parallelize calls to the model:
-  const callCount = Math.ceil(n / maxImagesPerCall);
+  const callCount = Math.ceil(n / maxImagesPerCallWithDefault);
   const callImageCounts = Array.from({ length: callCount }, (_, i) => {
     if (i < callCount - 1) {
-      return maxImagesPerCall;
+      return maxImagesPerCallWithDefault;
     }
 
-    const remainder = n % maxImagesPerCall;
-    return remainder === 0 ? maxImagesPerCall : remainder;
+    const remainder = n % maxImagesPerCallWithDefault;
+    return remainder === 0 ? maxImagesPerCallWithDefault : remainder;
   });
+
   const results = await Promise.all(
     callImageCounts.map(async callImageCount =>
       retry(() =>

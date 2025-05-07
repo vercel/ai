@@ -1,10 +1,6 @@
 import { openai } from '@ai-sdk/openai';
 import { serve } from '@hono/node-server';
-import {
-  createDataStream,
-  DataStreamToSSETransformStream,
-  streamText,
-} from 'ai';
+import { createDataStream, JsonToSseTransformStream, streamText } from 'ai';
 import 'dotenv/config';
 import { Hono } from 'hono';
 import { stream } from 'hono/streaming';
@@ -54,7 +50,7 @@ app.post('/stream-data', async c => {
   return stream(c, stream =>
     stream.pipe(
       dataStream
-        .pipeThrough(new DataStreamToSSETransformStream())
+        .pipeThrough(new JsonToSseTransformStream())
         .pipeThrough(new TextEncoderStream()),
     ),
   );

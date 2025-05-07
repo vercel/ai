@@ -1,5 +1,15 @@
 # @ai-sdk/azure
 
+## 2.0.0-canary.18
+
+### Patch Changes
+
+- 52ce942: chore(providers/openai): remove & enable strict compatibility by default
+- Updated dependencies [52ce942]
+- Updated dependencies [87b828f]
+  - @ai-sdk/openai@2.0.0-canary.17
+  - @ai-sdk/provider-utils@3.0.0-canary.16
+
 ## 2.0.0-canary.17
 
 ### Patch Changes

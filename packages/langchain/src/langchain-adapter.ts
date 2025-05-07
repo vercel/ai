@@ -1,5 +1,8 @@
 import { DataStreamPart } from 'ai';
-import { createCallbacksTransformer, StreamCallbacks } from 'ai/internal';
+import {
+  createCallbacksTransformer,
+  StreamCallbacks,
+} from './stream-callbacks';
 
 type LangChainImageDetail = 'auto' | 'low' | 'high';
 

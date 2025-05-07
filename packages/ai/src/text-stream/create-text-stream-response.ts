@@ -1,4 +1,4 @@
-import { prepareHeaders } from '../../core/util/prepare-headers';
+import { prepareHeaders } from '../util/prepare-headers';
 
 export function createTextStreamResponse({
   status,

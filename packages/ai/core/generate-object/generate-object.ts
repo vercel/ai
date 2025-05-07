@@ -3,14 +3,19 @@ import {
   JSONValue,
   TypeValidationError,
 } from '@ai-sdk/provider';
-import { createIdGenerator, safeParseJSON } from '@ai-sdk/provider-utils';
+import {
+  createIdGenerator,
+  safeParseJSON,
+  Schema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
+import { prepareHeaders } from '../../src/util/prepare-headers';
+import { prepareRetries } from '../../src/util/prepare-retries';
 import { extractContentText } from '../generate-text/extract-content-text';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
-import { prepareRetries } from '../prompt/prepare-retries';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -28,8 +33,6 @@ import { LanguageModelRequestMetadata } from '../types/language-model-request-me
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
-import { Schema } from '../util';
-import { prepareHeaders } from '../util/prepare-headers';
 import { GenerateObjectResult } from './generate-object-result';
 import { getOutputStrategy } from './output-strategy';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
@@ -241,8 +244,9 @@ Default and recommended: 'auto' (best mode for the model).
       let resultProviderMetadata: ProviderMetadata | undefined;
 
       const standardizedPrompt = await standardizePrompt({
-        prompt: { system, prompt, messages },
-        tools: undefined,
+        system,
+        prompt,
+        messages,
       });
 
       const promptMessages = await convertToLanguageModelPrompt({

@@ -1,6 +1,6 @@
 'use client';
 
-import { getToolInvocations, getUIText, ToolInvocation, UIMessage } from 'ai';
+import { getToolInvocations, ToolInvocation, UIMessage } from 'ai';
 import { useChat } from '@ai-sdk/react';
 
 export default function Chat() {
@@ -29,7 +29,9 @@ export default function Chat() {
         return (
           <div key={m.id} className="whitespace-pre-wrap">
             {isNewRole && <strong>{`${m.role}: `}</strong>}
-            {getUIText(m.parts)}
+            {m.parts
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join('')}
             {/** TODO switch to parts */}
             {getToolInvocations(m as UIMessage).map(
               (toolInvocation: ToolInvocation) => {

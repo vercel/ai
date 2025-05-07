@@ -1,9 +1,9 @@
 import { ServerResponse } from 'node:http';
-import { prepareHeaders } from '../../core/util/prepare-headers';
-import { writeToServerResponse } from '../../core/util/write-to-server-response';
+import { prepareHeaders } from '../util/prepare-headers';
+import { writeToServerResponse } from '../util/write-to-server-response';
 import { dataStreamHeaders } from './data-stream-headers';
 import { DataStreamPart } from './data-stream-parts';
-import { DataStreamToSSETransformStream } from './data-stream-to-sse-transform-stream';
+import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 
 export function pipeDataStreamToResponse({
   response,
@@ -23,7 +23,7 @@ export function pipeDataStreamToResponse({
       prepareHeaders(headers, dataStreamHeaders).entries(),
     ),
     stream: dataStream
-      .pipeThrough(new DataStreamToSSETransformStream())
+      .pipeThrough(new JsonToSseTransformStream())
       .pipeThrough(new TextEncoderStream()),
   });
 }

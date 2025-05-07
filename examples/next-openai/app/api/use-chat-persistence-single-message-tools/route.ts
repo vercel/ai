@@ -3,6 +3,7 @@ import { loadChat, saveChat } from '@util/chat-store';
 import {
   appendClientMessage,
   appendResponseMessages,
+  convertToModelMessages,
   createDataStream,
   createDataStreamResponse,
   createIdGenerator,
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
 
       const result = streamText({
         model: openai('gpt-4o'),
-        messages,
+        messages: convertToModelMessages(messages),
         toolCallStreaming: true,
         maxSteps: 5, // multi-steps for server-side tools
         tools: {

@@ -6,17 +6,24 @@ import {
   LanguageModelV2Usage,
   SharedV2ProviderMetadata,
 } from '@ai-sdk/provider';
-import { createIdGenerator } from '@ai-sdk/provider-utils';
+import { createIdGenerator, Schema } from '@ai-sdk/provider-utils';
 import { ServerResponse } from 'http';
 import { z } from 'zod';
 import { NoObjectGeneratedError } from '../../src/error/no-object-generated-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { DelayedPromise } from '../../util/delayed-promise';
+import { DeepPartial, isDeepEqualData, parsePartialJson } from '../../src/util';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../../src/util/async-iterable-stream';
+import { createStitchableStream } from '../../src/util/create-stitchable-stream';
+import { DelayedPromise } from '../../src/util/delayed-promise';
+import { now as originalNow } from '../../src/util/now';
+import { prepareRetries } from '../../src/util/prepare-retries';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
-import { prepareRetries } from '../prompt/prepare-retries';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -30,19 +37,7 @@ import { LanguageModelRequestMetadata } from '../types/language-model-request-me
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { LanguageModelUsage } from '../types/usage';
-import {
-  DeepPartial,
-  Schema,
-  isDeepEqualData,
-  parsePartialJson,
-} from '../util';
-import {
-  AsyncIterableStream,
-  createAsyncIterableStream,
-} from '../util/async-iterable-stream';
-import { createStitchableStream } from '../util/create-stitchable-stream';
-import { now as originalNow } from '../util/now';
-import { OutputStrategy, getOutputStrategy } from './output-strategy';
+import { getOutputStrategy, OutputStrategy } from './output-strategy';
 import { ObjectStreamPart, StreamObjectResult } from './stream-object-result';
 import { validateObjectGenerationInput } from './validate-object-generation-input';
 
@@ -411,8 +406,9 @@ class DefaultStreamObjectResult<PARTIAL, RESULT, ELEMENT_STREAM>
       endWhenDone: false,
       fn: async rootSpan => {
         const standardizedPrompt = await standardizePrompt({
-          prompt: { system, prompt, messages },
-          tools: undefined,
+          system,
+          prompt,
+          messages,
         });
 
         const callOptions = {

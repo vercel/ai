@@ -1,10 +1,6 @@
 import { InvalidPromptError } from '@ai-sdk/provider';
 import { safeValidateTypes } from '@ai-sdk/provider-utils';
-import { UIMessage } from '../types';
 import { z } from 'zod';
-import { ToolSet } from '../generate-text/tool-set';
-import { convertToModelMessages } from './convert-to-model-messages';
-import { detectPromptType } from './detect-prompt-type';
 import { ModelMessage, modelMessageSchema } from './message';
 import { Prompt } from './prompt';
 
@@ -20,13 +16,9 @@ export type StandardizedPrompt = {
   messages: ModelMessage[];
 };
 
-export async function standardizePrompt<TOOLS extends ToolSet>({
-  prompt,
-  tools,
-}: {
-  prompt: Prompt;
-  tools: undefined | TOOLS;
-}): Promise<StandardizedPrompt> {
+export async function standardizePrompt(
+  prompt: Prompt,
+): Promise<StandardizedPrompt> {
   if (prompt.prompt == null && prompt.messages == null) {
     throw new InvalidPromptError({
       prompt,
@@ -49,70 +41,43 @@ export async function standardizePrompt<TOOLS extends ToolSet>({
     });
   }
 
-  // type: prompt
-  if (prompt.prompt != null) {
-    // validate that prompt is a string
-    if (typeof prompt.prompt !== 'string') {
-      throw new InvalidPromptError({
-        prompt,
-        message: 'prompt must be a string',
-      });
-    }
+  let messages: ModelMessage[];
 
-    return {
-      system: prompt.system,
-      messages: [
-        {
-          role: 'user',
-          content: prompt.prompt,
-        },
-      ],
-    };
-  }
-
-  // type: messages
-  if (prompt.messages != null) {
-    const promptType = detectPromptType(prompt.messages);
-
-    if (promptType === 'other') {
-      throw new InvalidPromptError({
-        prompt,
-        message: 'messages must be an array of ModelMessage or UIMessage',
-      });
-    }
-
-    const messages: ModelMessage[] =
-      promptType === 'ui-messages'
-        ? convertToModelMessages(prompt.messages as Omit<UIMessage, 'id'>[], {
-            tools,
-          })
-        : (prompt.messages as ModelMessage[]);
-
-    if (messages.length === 0) {
-      throw new InvalidPromptError({
-        prompt,
-        message: 'messages must not be empty',
-      });
-    }
-
-    const validationResult = await safeValidateTypes({
-      value: messages,
-      schema: z.array(modelMessageSchema),
+  if (prompt.prompt != null && typeof prompt.prompt === 'string') {
+    messages = [{ role: 'user', content: prompt.prompt }];
+  } else if (prompt.prompt != null && Array.isArray(prompt.prompt)) {
+    messages = prompt.prompt;
+  } else if (prompt.messages != null) {
+    messages = prompt.messages;
+  } else {
+    throw new InvalidPromptError({
+      prompt,
+      message: 'prompt or messages must be defined',
     });
-
-    if (!validationResult.success) {
-      throw new InvalidPromptError({
-        prompt,
-        message: 'messages must be an array of ModelMessage or UIMessage',
-        cause: validationResult.error,
-      });
-    }
-
-    return {
-      messages,
-      system: prompt.system,
-    };
   }
 
-  throw new Error('unreachable');
+  if (messages.length === 0) {
+    throw new InvalidPromptError({
+      prompt,
+      message: 'messages must not be empty',
+    });
+  }
+
+  const validationResult = await safeValidateTypes({
+    value: messages,
+    schema: z.array(modelMessageSchema),
+  });
+
+  if (!validationResult.success) {
+    throw new InvalidPromptError({
+      prompt,
+      message: 'messages must be an array of ModelMessage',
+      cause: validationResult.error,
+    });
+  }
+
+  return {
+    messages,
+    system: prompt.system,
+  };
 }

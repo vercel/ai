@@ -258,8 +258,9 @@ functionality that can be fully encapsulated in the provider.
   const { retry } = prepareRetries({ maxRetries });
 
   const validatedPrompt = await standardizePrompt({
-    prompt: { system, prompt, messages },
-    tools: undefined, // streamUI tools don't support multi-modal tool result conversion
+    system,
+    prompt,
+    messages,
   });
   const result = await retry(async () =>
     model.doStream({

@@ -1,4 +1,3 @@
-import { UIMessage } from '../types';
 import { ModelMessage } from './message';
 
 /**
@@ -12,12 +11,16 @@ System message to include in the prompt. Can be used with `prompt` or `messages`
   system?: string;
 
   /**
-A simple text prompt. You can either use `prompt` or `messages` but not both.
- */
-  prompt?: string;
+A prompt. It can be either a text prompt or a list of messages.
+
+You can either use `prompt` or `messages` but not both.
+*/
+  prompt?: string | Array<ModelMessage>;
 
   /**
-A list of messages. You can either use `prompt` or `messages` but not both.
+A list of messages.
+
+You can either use `prompt` or `messages` but not both.
    */
-  messages?: Array<ModelMessage> | Array<Omit<UIMessage, 'id'>>;
+  messages?: Array<ModelMessage>;
 };

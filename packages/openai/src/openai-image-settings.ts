@@ -12,11 +12,3 @@ export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
 };
 
 export const hasDefaultResponseFormat = new Set(['gpt-image-1']);
-
-export interface OpenAIImageSettings {
-  /**
-Override the maximum number of images per call (default is dependent on the
-model, or 1 for an unknown model).
-   */
-  maxImagesPerCall?: number;
-}

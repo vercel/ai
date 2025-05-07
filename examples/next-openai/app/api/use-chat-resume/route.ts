@@ -7,11 +7,12 @@ import {
 import { openai } from '@ai-sdk/openai';
 import {
   appendResponseMessages,
+  convertToModelMessages,
   createDataStream,
   generateId,
-  UIMessage,
+  JsonToSseTransformStream,
   streamText,
-  DataStreamToSSETransformStream,
+  UIMessage,
 } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
     execute: writer => {
       const result = streamText({
         model: openai('gpt-4o'),
-        messages,
+        messages: convertToModelMessages(messages),
         onFinish: async ({ response }) => {
           await saveChat({
             id,
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
 
   return new Response(
     await streamContext.resumableStream(streamId, () =>
-      stream.pipeThrough(new DataStreamToSSETransformStream()),
+      stream.pipeThrough(new JsonToSseTransformStream()),
     ),
   );
 }
@@ -98,7 +99,7 @@ export async function GET(request: Request) {
 
   return new Response(
     await streamContext.resumableStream(recentStreamId, () =>
-      emptyDataStream.pipeThrough(new DataStreamToSSETransformStream()),
+      emptyDataStream.pipeThrough(new JsonToSseTransformStream()),
     ),
   );
 }

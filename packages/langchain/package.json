@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/langchain",
-  "version": "1.0.0-canary.7",
+  "version": "1.0.0-canary.8",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -32,8 +32,7 @@
     }
   },
   "dependencies": {
-    "ai": "workspace:*",
-    "@ai-sdk/provider-utils": "workspace:*"
+    "ai": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

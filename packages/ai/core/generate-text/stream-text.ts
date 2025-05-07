@@ -4,18 +4,30 @@ import {
 } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
+import { ServerResponse } from 'node:http';
+import { createDataStreamResponse } from '../../src/data-stream/create-data-stream-response';
+import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
+import { pipeDataStreamToResponse } from '../../src/data-stream/pipe-data-stream-to-response';
 import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
-import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
-import { asArray } from '../../util/as-array';
-import { consumeStream } from '../../util/consume-stream';
-import { DelayedPromise } from '../../util/delayed-promise';
+import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
+import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
+import { asArray } from '../../src/util/as-array';
+import {
+  AsyncIterableStream,
+  createAsyncIterableStream,
+} from '../../src/util/async-iterable-stream';
+import { consumeStream } from '../../src/util/consume-stream';
+import { createStitchableStream } from '../../src/util/create-stitchable-stream';
+import { DelayedPromise } from '../../src/util/delayed-promise';
+import { now as originalNow } from '../../src/util/now';
+import { prepareRetries } from '../../src/util/prepare-retries';
+import { splitOnLastWhitespace } from '../../src/util/split-on-last-whitespace';
 import { CallSettings } from '../prompt/call-settings';
 import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { AssistantModelMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
-import { prepareRetries } from '../prompt/prepare-retries';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
@@ -33,13 +45,8 @@ import {
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import {
-  AsyncIterableStream,
-  createAsyncIterableStream,
-} from '../util/async-iterable-stream';
-import { createStitchableStream } from '../util/create-stitchable-stream';
-import { now as originalNow } from '../util/now';
-import { splitOnLastWhitespace } from '../util/split-on-last-whitespace';
+import { extractFiles, extractReasoning, extractSources } from './as-content';
+import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { asReasoningText } from './reasoning';
@@ -59,11 +66,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ServerResponse } from 'node:http';
-import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
-import { createDataStreamResponse } from '../../src/data-stream/create-data-stream-response';
-import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { pipeDataStreamToResponse } from '../../src/data-stream/pipe-data-stream-to-response';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -504,6 +506,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   private readonly stepsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['steps']>
   >();
+  private readonly contentPromise = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['content']>
+  >();
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
@@ -591,13 +596,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedContinuationText = '';
     let recordedFullText = '';
 
-    let stepReasoning: Array<ReasoningPart> = [];
-    let stepFiles: Array<GeneratedFile> = [];
     let activeReasoningPart: undefined | ReasoningPart = undefined;
 
-    let recordedStepSources: LanguageModelV2Source[] = [];
+    let recordedContent: Array<ContentPart<TOOLS>> = [];
     const recordedSources: LanguageModelV2Source[] = [];
-
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;
     } = {
@@ -643,6 +645,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedStepText += part.text;
           recordedContinuationText += part.text;
           recordedFullText += part.text;
+
+          const latestContent = recordedContent[recordedContent.length - 1];
+          if (latestContent?.type === 'text') {
+            latestContent.text += part.text;
+          } else {
+            recordedContent.push({ type: 'text', text: part.text });
+          }
         }
 
         if (part.type === 'reasoning') {
@@ -652,39 +661,44 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               text: part.text,
               providerOptions: part.providerMetadata,
             };
-            stepReasoning.push(activeReasoningPart);
+            recordedContent.push(activeReasoningPart);
           } else {
             activeReasoningPart.text += part.text;
             activeReasoningPart.providerOptions = part.providerMetadata;
           }
         }
 
-        if (part.type === 'reasoning-part-finish') {
+        if (
+          part.type === 'reasoning-part-finish' &&
+          activeReasoningPart != null
+        ) {
           activeReasoningPart = undefined;
         }
 
         if (part.type === 'file') {
-          stepFiles.push(part.file);
+          recordedContent.push({ type: 'file', file: part.file });
         }
 
         if (part.type === 'source') {
+          recordedContent.push(part);
           recordedSources.push(part);
-          recordedStepSources.push(part);
         }
 
         if (part.type === 'tool-call') {
+          recordedContent.push(part);
           recordedToolCalls.push(part);
         }
 
         if (part.type === 'tool-result') {
+          recordedContent.push(part);
           recordedToolResults.push(part);
         }
 
         if (part.type === 'step-finish') {
           const stepMessages = toResponseMessages({
             text: recordedContinuationText,
-            files: stepFiles,
-            reasoning: stepReasoning,
+            files: extractFiles(recordedContent),
+            reasoning: extractReasoning(recordedContent),
             tools: tools ?? ({} as TOOLS),
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
@@ -716,11 +730,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = {
             stepType,
+            content: recordedContent,
             text: recordedStepText,
-            reasoningText: asReasoningText(stepReasoning),
-            reasoning: stepReasoning,
-            files: stepFiles,
-            sources: recordedStepSources,
+            reasoningText: asReasoningText(extractReasoning(recordedContent)),
+            reasoning: extractReasoning(recordedContent),
+            files: extractFiles(recordedContent),
+            sources: extractSources(recordedContent),
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
             finishReason: part.finishReason,
@@ -739,12 +754,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           recordedSteps.push(currentStepResult);
 
+          recordedContent = [];
           recordedToolCalls = [];
           recordedToolResults = [];
           recordedStepText = '';
-          recordedStepSources = [];
-          stepReasoning = [];
-          stepFiles = [];
           activeReasoningPart = undefined;
 
           if (nextStepType !== 'done') {
@@ -776,6 +789,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // from last step (when there are errors there may be no last step)
           const lastStep = recordedSteps[recordedSteps.length - 1];
 
+          self.contentPromise.resolve(lastStep.content);
           self.warningsPromise.resolve(lastStep.warnings);
           self.requestPromise.resolve(lastStep.request);
           self.responsePromise.resolve(lastStep.response);
@@ -807,6 +821,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           await onFinish?.({
             finishReason,
             usage,
+            content: lastStep.content,
             text: recordedFullText,
             reasoningText: lastStep.reasoningText,
             reasoning: lastStep.reasoning,
@@ -929,8 +944,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           messageId: string;
         }) {
           const initialPrompt = await standardizePrompt({
-            prompt: { system, prompt, messages },
-            tools,
+            system,
+            prompt,
+            messages,
           });
 
           const stepInputMessages = [
@@ -1439,6 +1455,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       );
       self.closeStream();
     });
+  }
+
+  get content() {
+    return this.contentPromise.value;
   }
 
   get warnings() {

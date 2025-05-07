@@ -5,15 +5,12 @@ describe('message prompt', () => {
   it('should throw InvalidPromptError when system message has parts', async () => {
     await expect(async () => {
       await standardizePrompt({
-        prompt: {
-          messages: [
-            {
-              role: 'system',
-              content: [{ type: 'text', text: 'test' }] as any,
-            },
-          ],
-        },
-        tools: undefined,
+        messages: [
+          {
+            role: 'system',
+            content: [{ type: 'text', text: 'test' }] as any,
+          },
+        ],
       });
     }).rejects.toThrow(InvalidPromptError);
   });
@@ -21,10 +18,7 @@ describe('message prompt', () => {
   it('should throw InvalidPromptError when messages array is empty', async () => {
     await expect(async () => {
       await standardizePrompt({
-        prompt: {
-          messages: [],
-        },
-        tools: undefined,
+        messages: [],
       });
     }).rejects.toThrow(InvalidPromptError);
   });

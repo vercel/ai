@@ -8,7 +8,6 @@ import { FetchFunction, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 import { OpenAICompatibleChatLanguageModel } from './openai-compatible-chat-language-model';
 import { OpenAICompatibleCompletionLanguageModel } from './openai-compatible-completion-language-model';
 import { OpenAICompatibleEmbeddingModel } from './openai-compatible-embedding-model';
-import { OpenAICompatibleImageSettings } from './openai-compatible-image-settings';
 import { OpenAICompatibleImageModel } from './openai-compatible-image-model';
 
 export interface OpenAICompatibleProvider<
@@ -130,15 +129,8 @@ export function createOpenAICompatible<
       ...getCommonModelConfig('embedding'),
     });
 
-  const createImageModel = (
-    modelId: IMAGE_MODEL_IDS,
-    settings: OpenAICompatibleImageSettings = {},
-  ) =>
-    new OpenAICompatibleImageModel(
-      modelId,
-      settings,
-      getCommonModelConfig('image'),
-    );
+  const createImageModel = (modelId: IMAGE_MODEL_IDS) =>
+    new OpenAICompatibleImageModel(modelId, getCommonModelConfig('image'));
 
   const provider = (modelId: CHAT_MODEL_IDS) => createLanguageModel(modelId);
 

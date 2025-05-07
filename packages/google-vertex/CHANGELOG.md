@@ -1,5 +1,14 @@
 # @ai-sdk/google-vertex
 
+## 3.0.0-canary.17
+
+### Patch Changes
+
+- Updated dependencies [87b828f]
+  - @ai-sdk/provider-utils@3.0.0-canary.16
+  - @ai-sdk/anthropic@2.0.0-canary.16
+  - @ai-sdk/google@2.0.0-canary.17
+
 ## 3.0.0-canary.16
 
 ### Patch Changes

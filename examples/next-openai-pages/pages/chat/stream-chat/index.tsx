@@ -1,5 +1,4 @@
 import { useChat } from '@ai-sdk/react';
-import { getUIText } from 'ai';
 
 export default function Page() {
   const { messages, input, handleSubmit, handleInputChange, status } = useChat({
@@ -12,7 +11,11 @@ export default function Page() {
         {messages.map(message => (
           <div key={message.id} className="flex flex-row gap-2">
             <div className="w-24 text-zinc-500">{`${message.role}: `}</div>
-            <div className="w-full">{getUIText(message.parts)}</div>
+            <div className="w-full">
+              {message.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
           </div>
         ))}
       </div>

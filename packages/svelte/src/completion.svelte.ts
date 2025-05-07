@@ -1,9 +1,9 @@
 import {
-  generateId,
-  type UseCompletionOptions,
-  type JSONValue,
-  type RequestOptions,
   callCompletionApi,
+  generateId,
+  type CompletionRequestOptions,
+  type JSONValue,
+  type UseCompletionOptions,
 } from 'ai';
 import {
   KeyedCompletionStore,
@@ -86,7 +86,7 @@ export class Completion {
   /**
    * Send a new prompt to the API endpoint and update the completion state.
    */
-  complete = async (prompt: string, options?: RequestOptions) =>
+  complete = async (prompt: string, options?: CompletionRequestOptions) =>
     this.#triggerRequest(prompt, options);
 
   /** Form submission handler to automatically reset input and call the completion API */
@@ -97,7 +97,10 @@ export class Completion {
     }
   };
 
-  #triggerRequest = async (prompt: string, options?: RequestOptions) => {
+  #triggerRequest = async (
+    prompt: string,
+    options?: CompletionRequestOptions,
+  ) => {
     return callCompletionApi({
       api: this.#api,
       prompt,

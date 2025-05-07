@@ -87,16 +87,13 @@ const { images } = await generateImage({
 
 Each image model has an internal limit on how many images it can generate in a single API call. The AI SDK manages this automatically by batching requests appropriately when you request multiple images using the `n` parameter. By default, the SDK uses provider-documented limits (for example, DALL-E 3 can only generate 1 image per call, while DALL-E 2 supports up to 10).
 
-If needed, you can override this behavior using the `maxImagesPerCall` setting when configuring your model. This is particularly useful when working with new or custom models where the default batch size might not be optimal:
+If needed, you can override this behavior using the `maxImagesPerCall` setting when generating your image. This is particularly useful when working with new or custom models where the default batch size might not be optimal:
 
 ```tsx
-const model = openai.image('dall-e-2', {
-  maxImagesPerCall: 5, // Override the default batch size
-});
-
 const { images } = await generateImage({
-  model,
+  model: openai.image('dall-e-2'),
   prompt: 'Santa Claus driving a Cadillac',
+  maxImagesPerCall: 5, // Override the default batch size
   n: 10, // Will make 2 calls of 5 images each
 });
 ```
