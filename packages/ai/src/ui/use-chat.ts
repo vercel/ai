@@ -1,8 +1,7 @@
+import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { FetchFunction, IdGenerator, ToolCall } from '@ai-sdk/provider-utils';
-import { UIMessage } from './ui-messages';
 import { LanguageModelUsage } from '../../core/types/usage';
-import { LanguageModelV2FinishReason } from '../../../provider/src/language-model/v2/language-model-v2-finish-reason';
-import { JSONValue } from '@ai-sdk/provider';
+import { UIMessage } from './ui-messages';
 
 export type ChatRequest = {
   /**
