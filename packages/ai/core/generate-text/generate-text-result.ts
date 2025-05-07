@@ -4,6 +4,7 @@ import { Source } from '../types/language-model';
 import { LanguageModelRequestMetadata } from '../types/language-model-request-metadata';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
+import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage, StepResult } from './step-result';
 import { ToolCallArray } from './tool-call';
@@ -16,7 +17,12 @@ It contains the generated text, the tool calls that were made during the generat
  */
 export interface GenerateTextResult<TOOLS extends ToolSet, OUTPUT> {
   /**
-The generated text.
+The content that was generated in the last step.
+   */
+  readonly content: Array<ContentPart<TOOLS>>;
+
+  /**
+The generated text. If you are using continue steps, this can include text from all steps.
      */
   readonly text: string;
 
@@ -32,7 +38,8 @@ has only generated text.
   readonly reasoningText: string | undefined;
 
   /**
-The files that were generated. Empty array if no files were generated.
+The files that were generated in the last step.
+Empty array if no files were generated.
      */
   readonly files: Array<GeneratedFile>;
 

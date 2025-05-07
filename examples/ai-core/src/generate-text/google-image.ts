@@ -22,7 +22,7 @@ async function main() {
     },
   });
 
-  console.log(result.text);
+  console.log(result.content);
 }
 
 main().catch(console.error);
