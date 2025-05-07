@@ -1709,9 +1709,6 @@ importers:
 
   packages/langchain:
     dependencies:
-      '@ai-sdk/provider-utils':
-        specifier: workspace:*
-        version: link:../provider-utils
       ai:
         specifier: workspace:*
         version: link:../ai
@@ -1731,9 +1728,6 @@ importers:
 
   packages/llamaindex:
     dependencies:
-      '@ai-sdk/provider-utils':
-        specifier: workspace:*
-        version: link:../provider-utils
       ai:
         specifier: workspace:*
         version: link:../ai

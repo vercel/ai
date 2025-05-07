@@ -1,6 +1,9 @@
-import { convertAsyncIteratorToReadableStream } from '@ai-sdk/provider-utils';
 import { DataStreamPart } from 'ai';
-import { createCallbacksTransformer, StreamCallbacks } from 'ai/internal';
+import { convertAsyncIteratorToReadableStream } from 'ai/internal';
+import {
+  createCallbacksTransformer,
+  StreamCallbacks,
+} from './stream-callbacks';
 
 type EngineResponse = {
   delta: string;
