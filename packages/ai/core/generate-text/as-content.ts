@@ -45,3 +45,9 @@ export function extractFiles(
 ): Array<GeneratedFile> {
   return content.filter(part => part.type === 'file').map(part => part.file);
 }
+
+export function extractReasoning(
+  content: Array<ContentPart<ToolSet>>,
+): Array<ContentPart<ToolSet> & { type: 'reasoning' }> {
+  return content.filter(part => part.type === 'reasoning');
+}

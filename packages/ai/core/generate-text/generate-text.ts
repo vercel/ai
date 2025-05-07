@@ -11,7 +11,6 @@ import { prepareRetries } from '../../src/util/prepare-retries';
 import { removeTextAfterLastWhitespace } from '../../src/util/remove-text-after-last-whitespace';
 import { AssistantModelMessage, ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
-import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
@@ -25,12 +24,12 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { asContent, extractFiles } from './as-content';
+import { asContent, extractFiles, extractReasoning } from './as-content';
 import { extractContentText } from './extract-content-text';
 import { GenerateTextResult } from './generate-text-result';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import { asReasoningText, convertReasoningContentToParts } from './reasoning';
+import { asReasoningText } from './reasoning';
 import { ResponseMessage, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
@@ -294,7 +293,6 @@ A function that attempts to repair a tool call that failed to parse.
       > & { response: { id: string; timestamp: Date; modelId: string } };
       let currentToolCalls: ToolCallArray<TOOLS> = [];
       let currentToolResults: ToolResultArray<TOOLS> = [];
-      let currentReasoning: Array<ReasoningPart> = [];
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       let text = '';
@@ -521,10 +519,6 @@ A function that attempts to repair a tool call that failed to parse.
             ? text + stepText
             : stepText;
 
-        currentReasoning = convertReasoningContentToParts(
-          currentModelResponse.content,
-        );
-
         // sources:
         sources.push(
           ...currentModelResponse.content.filter(
@@ -554,9 +548,11 @@ A function that attempts to repair a tool call that failed to parse.
             ...toResponseMessages({
               text,
               files: extractFiles(stepContent),
-              reasoning: convertReasoningContentToParts(
-                currentModelResponse.content,
-              ),
+              reasoning: extractReasoning(stepContent).map(part => ({
+                type: 'reasoning',
+                text: part.text,
+                providerOptions: part.providerMetadata,
+              })),
               tools: tools ?? ({} as TOOLS),
               toolCalls: currentToolCalls,
               toolResults: currentToolResults,
@@ -567,13 +563,12 @@ A function that attempts to repair a tool call that failed to parse.
         }
 
         // Add step information (after response messages are updated):
-
         const currentStepResult: StepResult<TOOLS> = {
           stepType,
           content: stepContent,
           text: stepText,
-          reasoningText: asReasoningText(currentReasoning),
-          reasoning: currentReasoning,
+          reasoningText: asReasoningText(extractReasoning(stepContent)),
+          reasoning: extractReasoning(stepContent),
           files: extractFiles(stepContent),
           sources: currentModelResponse.content.filter(
             part => part.type === 'source',

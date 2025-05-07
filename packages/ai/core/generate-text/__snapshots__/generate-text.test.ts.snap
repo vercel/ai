@@ -1721,7 +1721,7 @@ exports[`result.steps > should add the reasoning from the model response to the 
     "providerMetadata": undefined,
     "reasoning": [
       {
-        "providerOptions": {
+        "providerMetadata": {
           "testProvider": {
             "signature": "signature",
           },
@@ -1730,7 +1730,7 @@ exports[`result.steps > should add the reasoning from the model response to the 
         "type": "reasoning",
       },
       {
-        "providerOptions": {
+        "providerMetadata": {
           "testProvider": {
             "redactedData": "redacted-reasoning-data",
           },
