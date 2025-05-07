@@ -453,12 +453,33 @@ The following optional settings are available for Bedrock Titan embedding models
 
   Flag indicating whether or not to normalize the output embeddings. Defaults to true.
 
+Bedrock Cohere embedding models (like cohere.embed-english-v3) support additional settings:
+
+```ts
+const model = bedrock.embedding('cohere.embed-english-v3', {
+  inputType: 'search_document', // optional, type of input being embedded
+  truncate: 'END' // optional, how to handle inputs that exceed the token limit
+})
+```
+
+The following optional settings are available for Bedrock Cohere embedding models:
+
+- **inputType**: _'search_document' | 'search_query' | 'classification' | 'clustering'_
+
+  Specifies the type of input being embedded. Default is 'search_document'.
+
+- **truncate**: _'NONE' | 'START' | 'END'_
+
+  Controls how input is truncated if it exceeds the token limit. Default is 'NONE'.
+
 ### Model Capabilities
 
-| Model                          | Default Dimensions | Custom Dimensions   |
-| ------------------------------ | ------------------ | ------------------- |
-| `amazon.titan-embed-text-v1`   | 1536               | <Cross size={18} /> |
-| `amazon.titan-embed-text-v2:0` | 1024               | <Check size={18} /> |
+| Model                          | Default Dimensions | Custom Dimensions   | Additional Features |
+| ------------------------------ | ------------------ | ------------------- | ------------------- |
+| `amazon.titan-embed-text-v1`   | 1536               | <Cross size={18} /> | None |
+| `amazon.titan-embed-text-v2:0` | 1024               | <Check size={18} /> | None |
+| `cohere.embed-english-v3`      | 1024               | <Cross size={18} /> | Search, classification, clustering |
+| `cohere.embed-multilingual-v3` | 1024               | <Cross size={18} /> | Search, classification, clustering |
 
 ## Image Models
 
