@@ -1,9 +1,4 @@
-import { DataStreamPart } from './data-stream-parts';
-
-export class DataStreamToSSETransformStream extends TransformStream<
-  DataStreamPart,
-  string
-> {
+export class JsonToSseTransformStream extends TransformStream<unknown, string> {
   constructor() {
     super({
       transform(part, controller) {
