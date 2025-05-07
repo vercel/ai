@@ -8,7 +8,6 @@ import {
   isAssistantMessageWithCompletedToolCalls,
   shouldResubmitMessages,
   updateToolCallResult,
-  type ChatRequest,
   type ChatRequestOptions,
   type CreateUIMessage,
   type JSONValue,
@@ -183,7 +182,12 @@ export class Chat {
       parts: [...fileParts, { type: 'text', text: this.input }],
     });
 
-    const chatRequest: ChatRequest = {
+    const chatRequest: {
+      headers?: Record<string, string> | Headers;
+      body?: object;
+      messages: UIMessage[];
+      data?: JSONValue;
+    } = {
       messages,
       headers: options.headers,
       body: options.body,
@@ -222,7 +226,12 @@ export class Chat {
     }
   };
 
-  #triggerRequest = async (chatRequest: ChatRequest) => {
+  #triggerRequest = async (chatRequest: {
+    headers?: Record<string, string> | Headers;
+    body?: object;
+    messages: UIMessage[];
+    data?: JSONValue;
+  }) => {
     this.#store.status = 'submitted';
     this.#store.error = undefined;
 

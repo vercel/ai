@@ -3,28 +3,6 @@ import { FetchFunction, IdGenerator, ToolCall } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from '../../core/types/usage';
 import { UIMessage } from './ui-messages';
 
-export type ChatRequest = {
-  /**
-  An optional object of headers to be passed to the API endpoint.
-   */
-  headers?: Record<string, string> | Headers;
-
-  /**
-  An optional object to be passed to the API endpoint.
-  */
-  body?: object;
-
-  /**
-  The messages of the chat.
-     */
-  messages: UIMessage[];
-
-  /**
-  Additional data to be sent to the server.
-     */
-  data?: JSONValue;
-};
-
 export type ChatRequestOptions = {
   /**
   Additional headers that should be to be passed to the API endpoint.

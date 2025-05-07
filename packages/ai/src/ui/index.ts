@@ -16,5 +16,8 @@ export {
 } from './should-resubmit-messages';
 export * from './ui-messages';
 export { updateToolCallResult } from './update-tool-call-result';
-export * from './use-chat';
-export * from './use-completion';
+export { type UseChatOptions, type ChatRequestOptions } from './use-chat';
+export {
+  type UseCompletionOptions,
+  type CompletionRequestOptions,
+} from './use-completion';
