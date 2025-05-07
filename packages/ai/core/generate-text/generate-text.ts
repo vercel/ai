@@ -24,7 +24,12 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { asContent, extractFiles, extractReasoning } from './as-content';
+import {
+  asContent,
+  extractFiles,
+  extractReasoning,
+  extractSources,
+} from './as-content';
 import { extractContentText } from './extract-content-text';
 import { GenerateTextResult } from './generate-text-result';
 import { Output } from './output';
@@ -519,7 +524,7 @@ A function that attempts to repair a tool call that failed to parse.
             ? text + stepText
             : stepText;
 
-        // sources:
+        // sources (since we collect them for all steps):
         sources.push(
           ...currentModelResponse.content.filter(
             part => part.type === 'source',
@@ -570,9 +575,7 @@ A function that attempts to repair a tool call that failed to parse.
           reasoningText: asReasoningText(extractReasoning(stepContent)),
           reasoning: extractReasoning(stepContent),
           files: extractFiles(stepContent),
-          sources: currentModelResponse.content.filter(
-            part => part.type === 'source',
-          ),
+          sources: extractSources(stepContent),
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,

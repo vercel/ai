@@ -51,3 +51,9 @@ export function extractReasoning(
 ): Array<ContentPart<ToolSet> & { type: 'reasoning' }> {
   return content.filter(part => part.type === 'reasoning');
 }
+
+export function extractSources(
+  content: Array<ContentPart<ToolSet>>,
+): Array<ContentPart<ToolSet> & { type: 'source' }> {
+  return content.filter(part => part.type === 'source');
+}
