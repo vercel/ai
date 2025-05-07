@@ -54,6 +54,11 @@ describe('user messages', () => {
             data: Buffer.from(fileData).toString('base64'),
             mimeType: 'application/pdf',
           },
+          {
+            type: 'file',
+            data: Buffer.from(fileData).toString('base64'),
+            mimeType: 'application/msword',
+          },
         ],
       },
     ]);
@@ -72,6 +77,15 @@ describe('user messages', () => {
           {
             document: {
               format: 'pdf',
+              name: expect.any(String),
+              source: {
+                bytes: 'AAECAw==',
+              },
+            },
+          },
+          {
+            document: {
+              format: 'doc',
               name: expect.any(String),
               source: {
                 bytes: 'AAECAw==',
@@ -505,14 +519,52 @@ describe('tool messages', () => {
                 {
                   type: 'image',
                   data: 'base64data',
-                  mimeType: 'image/webp', // unsupported format
+                  mimeType: 'image/avif', // unsupported format
                 },
               ],
             },
           ],
         },
       ]),
-    ).toThrow('Unsupported image format: webp');
+    ).toThrow(
+      'Unsupported image mime type: image/avif, expected one of: image/jpeg, image/png, image/gif, image/webp',
+    );
+  });
+
+  it('should throw an error for missing mime type in tool result image content', () => {
+    expect(() =>
+      convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              image: new Uint8Array([0, 1, 2, 3]),
+              mimeType: '',
+            },
+          ],
+        },
+      ]),
+    ).toThrow('Image mime type is required in user message part content');
+  });
+
+  it('should throw an error for unsupported file mime type in tool result content', () => {
+    expect(() =>
+      convertToBedrockChatMessages([
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'base64data',
+              mimeType: 'application/rtf',
+            },
+          ],
+        },
+      ]),
+    ).toThrow(
+      'Unsupported file mime type: application/rtf, expected one of: application/pdf, text/csv, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/html, text/plain, text/markdown',
+    );
   });
 
   it('should throw error for missing mime type in tool result image content', () => {
