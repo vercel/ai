@@ -1,15 +1,16 @@
-import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { TypeValidationError } from '@ai-sdk/provider';
+import { StandardSchemaV1 } from '@standard-schema/spec';
 
 /**
  * Used to mark validator functions so we can support both Zod and custom schemas.
  */
 export const validatorSymbol = Symbol.for('vercel.ai.validator');
 
-export type ValidationResult<T extends StandardSchemaV1> =
-  | { success: true; value: StandardSchemaV1.SuccessResult<T>["value"] }
+export type ValidationResult<OBJECT> =
+  | { success: true; value: OBJECT }
   | { success: false; error: Error };
 
-export type Validator<T extends StandardSchemaV1> = {
+export type Validator<OBJECT = unknown> = {
   /**
    * Used to mark validator functions so we can support both Zod and custom schemas.
    */
@@ -19,7 +20,7 @@ export type Validator<T extends StandardSchemaV1> = {
    * Optional. Validates that the structure of a value matches this schema,
    * and returns a typed version of the value if it does.
    */
-  readonly validate?: (value: StandardSchemaV1.InferInput<T>) => PromiseLike<ValidationResult<T>> | ValidationResult<T>;
+  readonly validate?: (value: unknown) => PromiseLike<ValidationResult<OBJECT>>;
 };
 
 /**
@@ -27,13 +28,15 @@ export type Validator<T extends StandardSchemaV1> = {
  *
  * @param validate A validation function for the schema.
  */
-export function validator<T extends StandardSchemaV1>(
-  validate?: undefined | ((value: StandardSchemaV1.InferInput<T>) => PromiseLike<ValidationResult<T>> | ValidationResult<T>),
-): Validator<T> {
+export function validator<OBJECT>(
+  validate?:
+    | undefined
+    | ((value: unknown) => PromiseLike<ValidationResult<OBJECT>>),
+): Validator<OBJECT> {
   return { [validatorSymbol]: true, validate };
 }
 
-export function isValidator<T extends StandardSchemaV1>(value: unknown): value is Validator<T> {
+export function isValidator(value: unknown): value is Validator {
   return (
     typeof value === 'object' &&
     value !== null &&
@@ -43,32 +46,32 @@ export function isValidator<T extends StandardSchemaV1>(value: unknown): value i
   );
 }
 
-export function asValidator<T extends StandardSchemaV1>(
-  schema: Validator<T> | T,
-): Validator<T> {
-  return isValidator<T>(schema) ? schema : standardSchemaValidator<T>(schema);
+export function asValidator<OBJECT>(
+  value: Validator<OBJECT> | StandardSchemaV1<OBJECT>,
+): Validator<OBJECT> {
+  return isValidator(value) ? value : standardSchemaValidator(value);
 }
 
-export function standardSchemaValidator<T extends StandardSchemaV1>(
-  schema: T,
-): Validator<T> {
-  // @ts-expect-error
-  return validator<T>(function validate(value: StandardSchemaV1.InferInput<T>) {
-    const result = schema['~standard'].validate(value);
-    // @ts-expect-error
-    return result instanceof Promise ? result.then(toValidationResult) : toValidationResult(result)
+export function standardSchemaValidator<OBJECT>(
+  standardSchema: StandardSchemaV1<OBJECT>,
+): Validator<OBJECT> {
+  return validator(async value => {
+    const result = await standardSchema['~standard'].validate(value);
+
+    return result.issues == null
+      ? { success: true, value: result.value }
+      : {
+        success: false,
+        error: new TypeValidationError({
+          value,
+          cause: result.issues,
+        }),
+      };
   });
 }
 
-export function toValidationResult<T extends StandardSchemaV1>(
-  result: StandardSchemaV1.Result<T>,
-): ValidationResult<T> {
-  if (result.issues) {
-    return {
-      success: false,
-      error: Object.assign(new Error('validation error'), { issues: result.issues }),
-    };
-  }
 
-  return { success: true, value: result.value };
-}
+
+
+
+
