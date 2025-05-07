@@ -1,5 +1,17 @@
 import { FetchFunction } from '@ai-sdk/provider-utils';
 
+export type CompletionRequestOptions = {
+  /**
+  An optional object of headers to be passed to the API endpoint.
+   */
+  headers?: Record<string, string> | Headers;
+
+  /**
+  An optional object to be passed to the API endpoint.
+     */
+  body?: object;
+};
+
 export type UseCompletionOptions = {
   /**
    * The API endpoint that accepts a `{ prompt: string }` object and returns

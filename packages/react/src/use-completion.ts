@@ -1,6 +1,6 @@
 import {
+  CompletionRequestOptions,
   JSONValue,
-  RequestOptions,
   UseCompletionOptions,
   callCompletionApi,
 } from 'ai';
@@ -18,7 +18,7 @@ export type UseCompletionHelpers = {
    */
   complete: (
     prompt: string,
-    options?: RequestOptions,
+    options?: CompletionRequestOptions,
   ) => Promise<string | null | undefined>;
   /** The error object of the API request */
   error: undefined | Error;
@@ -125,7 +125,7 @@ export function useCompletion({
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async (prompt: string, options?: RequestOptions) =>
+    async (prompt: string, options?: CompletionRequestOptions) =>
       callCompletionApi({
         api,
         prompt,

@@ -1,4 +1,8 @@
-import type { JSONValue, RequestOptions, UseCompletionOptions } from 'ai';
+import type {
+  CompletionRequestOptions,
+  JSONValue,
+  UseCompletionOptions,
+} from 'ai';
 import { callCompletionApi } from 'ai';
 import swrv from 'swrv';
 import type { Ref } from 'vue';
@@ -16,7 +20,7 @@ export type UseCompletionHelpers = {
    */
   complete: (
     prompt: string,
-    options?: RequestOptions,
+    options?: CompletionRequestOptions,
   ) => Promise<string | null | undefined>;
   /**
    * Abort the current API request but keep the generated tokens.
@@ -100,7 +104,10 @@ export function useCompletion({
 
   let abortController: AbortController | null = null;
 
-  async function triggerRequest(prompt: string, options?: RequestOptions) {
+  async function triggerRequest(
+    prompt: string,
+    options?: CompletionRequestOptions,
+  ) {
     const existingData = (streamData.value ?? []) as JSONValue[];
     return callCompletionApi({
       api,
