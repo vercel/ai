@@ -4,6 +4,12 @@
 'ai': patch
 ---
 
-feat(embed-many): respect supportsParallelCalls & concurrency
+## `embedMany` now makes parallel requests, with a configurable `maxParallelCalls` option
+
+Before:
+
+```ts
+
+```
 
 Commit: https://github.com/vercel/ai/pull/6108
