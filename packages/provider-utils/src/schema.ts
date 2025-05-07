@@ -1,5 +1,6 @@
-import { Validator, validatorSymbol } from './validator';
 import { JSONSchema7 } from '@ai-sdk/provider';
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { Validator, validatorSymbol } from './validator';
 import { z } from 'zod';
 import { zodSchema } from './zod-schema';
 
@@ -8,7 +9,7 @@ import { zodSchema } from './zod-schema';
  */
 const schemaSymbol = Symbol.for('vercel.ai.schema');
 
-export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
+export type Schema<T extends StandardSchemaV1 = StandardSchemaV1> = Validator<T> & {
   /**
    * Used to mark schemas so we can support both Zod and custom schemas.
    */
@@ -17,7 +18,7 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
   /**
    * Schema type for inference.
    */
-  _type: OBJECT;
+  _type: T;
 
   /**
    * The JSON Schema for the schema. It is passed to the providers.
@@ -31,19 +32,19 @@ export type Schema<OBJECT = unknown> = Validator<OBJECT> & {
  * @param jsonSchema The JSON Schema for the schema.
  * @param options.validate Optional. A validation function for the schema.
  */
-export function jsonSchema<OBJECT = unknown>(
+export function jsonSchema<T extends StandardSchemaV1 = StandardSchemaV1>(
   jsonSchema: JSONSchema7,
   {
     validate,
   }: {
     validate?: (
       value: unknown,
-    ) => { success: true; value: OBJECT } | { success: false; error: Error };
+    ) => { success: true; value: T } | { success: false; error: Error };
   } = {},
-): Schema<OBJECT> {
+): Schema<T> {
   return {
     [schemaSymbol]: true,
-    _type: undefined as OBJECT, // should never be used directly
+    _type: undefined as unknown as T, // should never be used directly
     [validatorSymbol]: true,
     jsonSchema,
     validate,
@@ -61,14 +62,14 @@ function isSchema(value: unknown): value is Schema {
   );
 }
 
-export function asSchema<OBJECT>(
-  schema: z.Schema<OBJECT, z.ZodTypeDef, any> | Schema<OBJECT> | undefined,
-): Schema<OBJECT> {
+export function asSchema<T extends StandardSchemaV1>(
+  schema: Schema<T> | undefined,
+): Schema<T> {
   return schema == null
     ? jsonSchema({
-        properties: {},
-        additionalProperties: false,
-      })
+      properties: {},
+      additionalProperties: false,
+    })
     : isSchema(schema)
       ? schema
       : zodSchema(schema);
