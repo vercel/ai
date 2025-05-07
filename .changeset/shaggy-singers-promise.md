@@ -1,5 +1,5 @@
 ---
-'@ai-sdk/provider-utils': major
+'@ai-sdk/provider-utils': patch
 ---
 
-SSE parser bug (CRLF should be handled correctly)
+fix(provider-utils): fix SSE parser bug (CRLF)
