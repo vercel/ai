@@ -1,3 +1,4 @@
+import { jsonSchema } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
@@ -9,11 +10,10 @@ import {
   NoObjectGeneratedError,
   verifyNoObjectGeneratedError,
 } from '../../src/error/no-object-generated-error';
+import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { createMockServerResponse } from '../test/mock-server-response';
 import { MockTracer } from '../test/mock-tracer';
-import { jsonSchema } from '../util';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
 import { streamObject } from './stream-object';
 import { StreamObjectResult } from './stream-object-result';
 

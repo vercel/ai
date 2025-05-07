@@ -6,11 +6,8 @@ import {
   ToolCall,
   ToolResult,
 } from '@ai-sdk/provider-utils';
-import {
-  DataStreamPart,
-  dataStreamPartSchema,
-} from '../../src/data-stream/data-stream-parts';
-import { createAsyncIterableStream } from '../../core/util/async-iterable-stream';
+import { createAsyncIterableStream } from '../util/async-iterable-stream';
+import { DataStreamPart, dataStreamPartSchema } from './data-stream-parts';
 
 export async function processDataStream({
   stream,

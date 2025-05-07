@@ -5,12 +5,12 @@ import {
   LanguageModelV2TextPart,
 } from '@ai-sdk/provider';
 import { isUrlSupported } from '@ai-sdk/provider-utils';
-import { download } from '../../util/download';
-import { ModelMessage } from '../prompt/message';
 import {
   detectMediaType,
   imageMediaTypeSignatures,
-} from '../util/detect-media-type';
+} from '../../src/util/detect-media-type';
+import { download } from '../../src/util/download';
+import { ModelMessage } from '../prompt/message';
 import { FilePart, ImagePart, TextPart } from './content-part';
 import {
   convertToLanguageModelV2DataContent,

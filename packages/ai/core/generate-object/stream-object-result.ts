@@ -1,4 +1,5 @@
 import { ServerResponse } from 'http';
+import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import {
   CallWarning,
   FinishReason,
@@ -7,7 +8,6 @@ import {
   ProviderMetadata,
 } from '../types';
 import { LanguageModelUsage } from '../types/usage';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
 
 /**
 The result of a `streamObject` call that contains the partial object stream and additional information.

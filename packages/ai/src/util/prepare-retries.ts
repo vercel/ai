@@ -2,7 +2,7 @@ import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import {
   RetryFunction,
   retryWithExponentialBackoff,
-} from '../../util/retry-with-exponential-backoff';
+} from '../../src/util/retry-with-exponential-backoff';
 
 /**
  * Validate and prepare retries.

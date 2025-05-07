@@ -1,14 +1,14 @@
 import { JSONValue, SpeechModelV1 } from '@ai-sdk/provider';
 import { NoSpeechGeneratedError } from '../../src/error/no-speech-generated-error';
-import { prepareRetries } from '../prompt/prepare-retries';
+import {
+  audioMediaTypeSignatures,
+  detectMediaType,
+} from '../../src/util/detect-media-type';
+import { prepareRetries } from '../../src/util/prepare-retries';
 import { ProviderOptions } from '../types/provider-metadata';
 import { SpeechWarning } from '../types/speech-model';
 import { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import { SpeechResult } from './generate-speech-result';
-import {
-  audioMediaTypeSignatures,
-  detectMediaType,
-} from '../util/detect-media-type';
 import {
   DefaultGeneratedAudioFile,
   GeneratedAudioFile,

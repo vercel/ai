@@ -1,4 +1,4 @@
-import { createResolvablePromise } from '../../util/create-resolvable-promise';
+import { createResolvablePromise } from './create-resolvable-promise';
 
 /**
  * Creates a stitchable stream that can pipe one stream at a time.

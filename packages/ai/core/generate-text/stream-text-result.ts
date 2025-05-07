@@ -1,5 +1,6 @@
 import { ServerResponse } from 'node:http';
 import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
+import { AsyncIterableStream } from '../../src/util/async-iterable-stream';
 import { ReasoningPart } from '../prompt/content-part';
 import {
   CallWarning,
@@ -10,13 +11,12 @@ import {
 import { Source } from '../types/language-model';
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { LanguageModelUsage } from '../types/usage';
-import { AsyncIterableStream } from '../util/async-iterable-stream';
+import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage, StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ContentPart } from './content-part';
 
 export type DataStreamOptions = {
   /**
