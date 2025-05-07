@@ -964,64 +964,6 @@ describe('telemetry', () => {
 });
 
 describe('options.messages', () => {
-  it('should detect and convert ui messages', async () => {
-    const model = new MockLanguageModelV2({
-      doGenerate: {
-        ...dummyResponseValues,
-        content: [{ type: 'text', text: '{ "content": "Hello, world!" }' }],
-      },
-    });
-
-    const result = await generateObject({
-      model,
-      schema: z.object({ content: z.string() }),
-      messages: [
-        {
-          role: 'user',
-          parts: [{ type: 'text', text: 'prompt' }],
-        },
-        {
-          role: 'assistant',
-          parts: [
-            {
-              type: 'tool-invocation',
-              toolInvocation: {
-                state: 'result',
-                toolCallId: 'call-1',
-                toolName: 'test-tool',
-                args: { value: 'test-value' },
-                result: 'test result',
-              },
-            },
-          ],
-        },
-      ],
-    });
-
-    expect(result.object).toStrictEqual({ content: 'Hello, world!' });
-
-    expect(model.doGenerateCalls[0].responseFormat).toMatchInlineSnapshot(`
-      {
-        "description": undefined,
-        "name": undefined,
-        "schema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "additionalProperties": false,
-          "properties": {
-            "content": {
-              "type": "string",
-            },
-          },
-          "required": [
-            "content",
-          ],
-          "type": "object",
-        },
-        "type": "json",
-      }
-    `);
-  });
-
   it('should support models that use "this" context in supportedUrls', async () => {
     let supportedUrlsCalled = false;
     class MockLanguageModelWithImageSupport extends MockLanguageModelV2 {
