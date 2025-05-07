@@ -47,12 +47,7 @@ Empty array if no files were generated.
 Sources that have been used as input to generate the response.
 For multi-step generation, the sources are accumulated from all steps.
    */
-  readonly sources: Source[];
-
-  /**
-The generated structured output. It uses the `experimental_output` specification.
-   */
-  readonly experimental_output: OUTPUT;
+  readonly sources: Array<Source>;
 
   /**
   The tool calls that were made during the generation.
@@ -78,13 +73,6 @@ The generated structured output. It uses the `experimental_output` specification
   Warnings from the model provider (e.g. unsupported settings)
    */
   readonly warnings: CallWarning[] | undefined;
-
-  /**
-Details for all steps.
-You can use this to get information about intermediate steps,
-such as the tool calls or the response headers.
-   */
-  readonly steps: Array<StepResult<TOOLS>>;
 
   /**
 Additional request information.
@@ -117,4 +105,16 @@ from the provider to the AI SDK and enable provider-specific
 results that can be fully encapsulated in the provider.
    */
   readonly providerMetadata: ProviderMetadata | undefined;
+
+  /**
+Details for all steps.
+You can use this to get information about intermediate steps,
+such as the tool calls or the response headers.
+   */
+  readonly steps: Array<StepResult<TOOLS>>;
+
+  /**
+The generated structured output. It uses the `experimental_output` specification.
+   */
+  readonly experimental_output: OUTPUT;
 }

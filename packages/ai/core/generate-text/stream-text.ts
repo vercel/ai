@@ -64,6 +64,8 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { asContent } from './as-content';
+import { ContentPart } from './content-part';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -504,6 +506,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   private readonly stepsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['steps']>
   >();
+  private readonly contentPromise = new DelayedPromise<
+    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['content']>
+  >();
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
@@ -606,6 +611,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       modelId: model.modelId,
       messages: [],
     };
+    let recordedContent: Array<ContentPart<TOOLS>> = [];
     let recordedToolCalls: ToolCallUnion<TOOLS>[] = [];
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
@@ -716,6 +722,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = {
             stepType,
+            content: recordedContent,
             text: recordedStepText,
             reasoningText: asReasoningText(stepReasoning),
             reasoning: stepReasoning,
@@ -776,6 +783,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           // from last step (when there are errors there may be no last step)
           const lastStep = recordedSteps[recordedSteps.length - 1];
 
+          self.contentPromise.resolve(lastStep.content);
           self.warningsPromise.resolve(lastStep.warnings);
           self.requestPromise.resolve(lastStep.request);
           self.responsePromise.resolve(lastStep.response);
@@ -807,6 +815,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           await onFinish?.({
             finishReason,
             usage,
+            content: lastStep.content,
             text: recordedFullText,
             reasoningText: lastStep.reasoningText,
             reasoning: lastStep.reasoning,
@@ -1440,6 +1449,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       );
       self.closeStream();
     });
+  }
+
+  get content() {
+    return this.contentPromise.value;
   }
 
   get warnings() {

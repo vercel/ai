@@ -37,6 +37,8 @@ import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ContentPart } from './content-part';
+import { asContent } from './as-content';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -562,6 +564,11 @@ A function that attempts to repair a tool call that failed to parse.
         // Add step information (after response messages are updated):
         const currentStepResult: StepResult<TOOLS> = {
           stepType,
+          content: asContent({
+            content: currentModelResponse.content,
+            toolCalls: currentToolCalls,
+            toolResults: currentToolResults,
+          }),
           text: stepText,
           reasoningText: asReasoningText(currentReasoning),
           reasoning: currentReasoning,
@@ -626,30 +633,11 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        content: [
-          ...currentModelResponse.content.map(part => {
-            switch (part.type) {
-              case 'text':
-              case 'reasoning':
-              case 'source':
-                return part;
-
-              case 'file': {
-                return {
-                  type: 'file' as const,
-                  file: new DefaultGeneratedFile(part),
-                };
-              }
-
-              case 'tool-call': {
-                return currentToolCalls.find(
-                  toolCall => toolCall.toolCallId === part.toolCallId,
-                )!;
-              }
-            }
-          }),
-          ...currentToolResults,
-        ],
+        content: asContent({
+          content: currentModelResponse.content,
+          toolCalls: currentToolCalls,
+          toolResults: currentToolResults,
+        }),
         resolvedOutput,
         finishReason: currentModelResponse.finishReason,
         usage,
