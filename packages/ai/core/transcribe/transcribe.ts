@@ -1,5 +1,5 @@
 import { JSONValue, TranscriptionModelV1 } from '@ai-sdk/provider';
-import { NoTranscriptGeneratedError } from '../../errors/no-transcript-generated-error';
+import { NoTranscriptGeneratedError } from '../../src/error/no-transcript-generated-error';
 import { download } from '../../util/download';
 import { DataContent } from '../prompt';
 import { convertDataContentToUint8Array } from '../prompt/data-content';

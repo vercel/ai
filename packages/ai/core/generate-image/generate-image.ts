@@ -1,5 +1,5 @@
 import { ImageModelV2, ImageModelV2ProviderMetadata } from '@ai-sdk/provider';
-import { NoImageGeneratedError } from '../../errors/no-image-generated-error';
+import { NoImageGeneratedError } from '../../src/error/no-image-generated-error';
 import {
   DefaultGeneratedFile,
   GeneratedFile,

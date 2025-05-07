@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from '../../errors/invalid-argument-error';
+import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import {
   RetryFunction,
   retryWithExponentialBackoff,
