@@ -1,5 +1,22 @@
 # @ai-sdk/llamaindex
 
+## 1.0.0-canary.8
+
+### Patch Changes
+
+- bc3109f: chore (ai): push stream-callbacks into langchain/llamaindex adapters
+- Updated dependencies [13fef90]
+- Updated dependencies [e90d45d]
+- Updated dependencies [bc3109f]
+- Updated dependencies [496bbc1]
+- Updated dependencies [da70d79]
+- Updated dependencies [bcea599]
+- Updated dependencies [48d675a]
+- Updated dependencies [c7710a9]
+- Updated dependencies [35fc02c]
+- Updated dependencies [b983b51]
+  - ai@5.0.0-canary.20
+
 ## 1.0.0-canary.7
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ai-sdk/luma
 
+## 1.0.0-canary.16
+
+### Patch Changes
+
+- Updated dependencies [87b828f]
+  - @ai-sdk/provider-utils@3.0.0-canary.16
+
 ## 1.0.0-canary.15
 
 ### Patch Changes
