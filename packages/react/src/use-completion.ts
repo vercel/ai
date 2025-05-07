@@ -198,6 +198,7 @@ export function useCompletion({
   const handleSubmit = useCallback(
     (event?: { preventDefault?: () => void }) => {
       event?.preventDefault?.();
+	  setInput('')
       return input ? complete(input) : undefined;
     },
     [input, complete],
