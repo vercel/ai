@@ -17,12 +17,12 @@ It contains the generated text, the tool calls that were made during the generat
  */
 export interface GenerateTextResult<TOOLS extends ToolSet, OUTPUT> {
   /**
-The content that was generated.
+The content that was generated in the last step.
    */
   readonly content: Array<ContentPart<TOOLS>>;
 
   /**
-The generated text.
+The generated text. If you are using continue steps, this can include text from all steps.
      */
   readonly text: string;
 
@@ -38,7 +38,8 @@ has only generated text.
   readonly reasoningText: string | undefined;
 
   /**
-The files that were generated. Empty array if no files were generated.
+The files that were generated in the last step.
+Empty array if no files were generated.
      */
   readonly files: Array<GeneratedFile>;
 

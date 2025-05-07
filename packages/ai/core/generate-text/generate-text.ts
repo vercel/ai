@@ -626,13 +626,31 @@ A function that attempts to repair a tool call that failed to parse.
 
       return new DefaultGenerateTextResult({
         text,
-        files: asFiles(currentModelResponse.content),
-        reasoning: asReasoningText(currentReasoning),
-        reasoningDetails: currentReasoning,
-        sources,
+        content: [
+          ...currentModelResponse.content.map(part => {
+            switch (part.type) {
+              case 'text':
+              case 'reasoning':
+              case 'source':
+                return part;
+
+              case 'file': {
+                return {
+                  type: 'file' as const,
+                  file: new DefaultGeneratedFile(part),
+                };
+              }
+
+              case 'tool-call': {
+                return currentToolCalls.find(
+                  toolCall => toolCall.toolCallId === part.toolCallId,
+                )!;
+              }
+            }
+          }),
+          ...currentToolResults,
+        ],
         resolvedOutput,
-        toolCalls: currentToolCalls,
-        toolResults: currentToolResults,
         finishReason: currentModelResponse.finishReason,
         usage,
         warnings: currentModelResponse.warnings,
@@ -744,6 +762,7 @@ async function executeTools<TOOLS extends ToolSet>({
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
+  readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
   readonly content: GenerateTextResult<TOOLS, OUTPUT>['content'];
   readonly finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
   readonly usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
@@ -759,6 +778,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   private readonly resolvedOutput: OUTPUT;
 
   constructor(options: {
+    text: GenerateTextResult<TOOLS, OUTPUT>['text'];
     content: GenerateTextResult<TOOLS, OUTPUT>['content'];
     finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
     usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
@@ -769,6 +789,7 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     request: GenerateTextResult<TOOLS, OUTPUT>['request'];
     resolvedOutput: OUTPUT;
   }) {
+    this.text = options.text;
     this.content = options.content;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
@@ -780,13 +801,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.resolvedOutput = options.resolvedOutput;
   }
 
-  get text() {
-    return this.content
-      .filter(part => part.type === 'text')
-      .map(part => part.text)
-      .join('');
-  }
-
   get files() {
     return this.content
       .filter(part => part.type === 'file')
@@ -794,7 +808,8 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 
   get reasoningText() {
-    return this.reasoning.map(part => part.text).join('');
+    const texts = this.reasoning.map(part => part.text);
+    return texts.length > 0 ? texts.join('') : undefined;
   }
 
   get reasoning() {
@@ -810,7 +825,8 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   }
 
   get sources() {
-    return this.content.filter(part => part.type === 'source');
+    // return sources from all steps:
+    return this.steps.flatMap(step => step.sources);
   }
 
   get experimental_output() {
