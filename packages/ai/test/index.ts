@@ -1,5 +1,7 @@
 export {
+  convertArrayToAsyncIterable,
   convertArrayToReadableStream,
+  convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
 export { MockEmbeddingModelV2 } from '../core/test/mock-embedding-model-v2';

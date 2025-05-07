@@ -1,7 +1,7 @@
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
-} from '@ai-sdk/provider-utils/test';
+} from 'ai/test';
 import { toDataStream } from './langchain-adapter';
 
 describe('toDataStream', () => {
