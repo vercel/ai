@@ -2,7 +2,7 @@
 '@ai-sdk/openai-compatible': major
 ---
 
-## Removed `simulateStreaming` from `@ai-sdk/openai` in favour of using middleware instead
+## `simulateStreaming` model option has been replaced with  `simulateStreamingMiddleware()` middleware
 
 Before:
 
