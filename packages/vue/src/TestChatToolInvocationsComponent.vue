@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getToolInvocations, getUIText } from 'ai';
+import { getToolInvocations } from 'ai';
 import { useChat } from './use-chat';
 
 const { messages, append, addToolResult } = useChat({
@@ -31,7 +31,9 @@ const { messages, append, addToolResult } = useChat({
         />
       </div>
       <div :data-testid="`text-${idx}`">
-        {{ getUIText(m.parts) }}
+        {{
+          m.parts.map(part => (part.type === 'text' ? part.text : '')).join('')
+        }}
       </div>
     </div>
 

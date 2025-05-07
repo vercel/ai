@@ -9,7 +9,6 @@ export {
 } from './convert-to-model-messages';
 export { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 export { getToolInvocations } from './get-tool-invocations';
-export { getUIText } from './get-ui-text';
 export { processTextStream } from './process-text-stream';
 export {
   isAssistantMessageWithCompletedToolCalls,

@@ -1,7 +1,6 @@
 'use client';
 
 import { UIMessage, useChat } from '@ai-sdk/react';
-import { getUIText } from 'ai';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, data, setData } =
@@ -26,7 +25,9 @@ export default function Chat() {
       {messages?.map((m: UIMessage) => (
         <div key={m.id} className="whitespace-pre-wrap">
           <strong>{`${m.role}: `}</strong>
-          {getUIText(m.parts)}
+          {m.parts
+            .map(part => (part.type === 'text' ? part.text : ''))
+            .join('')}
           {m.annotations && (
             <pre className="p-4 text-sm bg-gray-100">
               {JSON.stringify(m.annotations, null, 2)}

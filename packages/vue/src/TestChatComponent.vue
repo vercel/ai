@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getUIText, LanguageModelUsage } from 'ai';
+import { LanguageModelUsage } from 'ai';
 import { reactive } from 'vue';
 import { UIMessage, useChat } from './use-chat';
 
@@ -29,7 +29,9 @@ const { messages, append, data, error, status, setData } = useChat({
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ getUIText(m.parts) }}
+      {{
+        m.parts.map(part => (part.type === 'text' ? part.text : '')).join('')
+      }}
     </div>
 
     <button
