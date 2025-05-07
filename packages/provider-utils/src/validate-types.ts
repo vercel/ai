@@ -1,5 +1,5 @@
 import { TypeValidationError } from '@ai-sdk/provider';
-import { z } from 'zod';
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { Validator, asValidator } from './validator';
 
 /**
@@ -16,7 +16,7 @@ export async function validateTypes<T>({
   schema: inputSchema,
 }: {
   value: unknown;
-  schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
+  schema: StandardSchemaV1<T> | Validator<T>;
 }): Promise<T> {
   const result = await safeValidateTypes({ value, schema: inputSchema });
 
@@ -41,7 +41,7 @@ export async function safeValidateTypes<T>({
   schema,
 }: {
   value: unknown;
-  schema: z.Schema<T, z.ZodTypeDef, any> | Validator<T>;
+  schema: StandardSchemaV1<T> | Validator<T>;
 }): Promise<
   { success: true; value: T } | { success: false; error: TypeValidationError }
 > {

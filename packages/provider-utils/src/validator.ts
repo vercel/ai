@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 /**
  * Used to mark validator functions so we can support both Zod and custom schemas.
@@ -19,7 +19,7 @@ export type Validator<OBJECT = unknown> = {
    * Optional. Validates that the structure of a value matches this schema,
    * and returns a typed version of the value if it does.
    */
-  readonly validate?: (value: unknown) => ValidationResult<OBJECT>;
+  readonly validate?: (value: unknown) => PromiseLike<ValidationResult<OBJECT>> | ValidationResult<OBJECT>;
 };
 
 /**
@@ -44,18 +44,29 @@ export function isValidator(value: unknown): value is Validator {
 }
 
 export function asValidator<OBJECT>(
-  value: Validator<OBJECT> | z.Schema<OBJECT, z.ZodTypeDef, any>,
+  value: Validator<OBJECT> | StandardSchemaV1<OBJECT>,
 ): Validator<OBJECT> {
-  return isValidator(value) ? value : zodValidator(value);
+  return isValidator(value) ? value : standardSchemaValidator(value);
 }
 
-export function zodValidator<OBJECT>(
-  zodSchema: z.Schema<OBJECT, z.ZodTypeDef, any>,
+export function standardSchemaValidator<OBJECT>(
+  schema: StandardSchemaV1,
 ): Validator<OBJECT> {
-  return validator(value => {
-    const result = zodSchema.safeParse(value);
-    return result.success
-      ? { success: true, value: result.data }
-      : { success: false, error: result.error };
+  return validator((value: StandardSchemaV1.InferOutput<OBJECT>) => {
+    let result = schema['~standard'].validate(value);
+    return result instanceof Promise ? result.then(toValidationResult) : toValidationResult(result)
   });
+}
+
+export function toValidationResult<OBJECT>(
+  result: StandardSchemaV1.Result<OBJECT>,
+): ValidationResult<OBJECT> {
+  if (result.issues) {
+    return {
+      success: false,
+      error: Object.assign(new Error('validation error'), { issues: result.issues }),
+    };
+  }
+
+  return { success: true, value: result.value };
 }
