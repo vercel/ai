@@ -2,7 +2,9 @@
 '@ai-sdk/provider': major
 ---
 
-## All model settings arguments have been unified to a shared `providerOptions` configuration object
+## All model settings arguments have been unified to a shared `providerOptions` configuration option
+
+### `generateText`
 
 Before:
 
