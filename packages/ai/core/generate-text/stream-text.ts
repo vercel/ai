@@ -45,6 +45,8 @@ import {
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
+import { extractFiles, extractReasoning, extractSources } from './as-content';
+import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { asReasoningText } from './reasoning';
@@ -64,7 +66,6 @@ import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ContentPart } from './content-part';
 
 const originalGenerateId = createIdGenerator({
   prefix: 'aitxt',
@@ -595,13 +596,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedContinuationText = '';
     let recordedFullText = '';
 
-    let stepReasoning: Array<ReasoningPart> = [];
-    let stepFiles: Array<GeneratedFile> = [];
     let activeReasoningPart: undefined | ReasoningPart = undefined;
 
-    let recordedStepSources: LanguageModelV2Source[] = [];
+    let recordedContent: Array<ContentPart<TOOLS>> = [];
     const recordedSources: LanguageModelV2Source[] = [];
-
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;
     } = {
@@ -610,7 +608,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       modelId: model.modelId,
       messages: [],
     };
-    let recordedContent: Array<ContentPart<TOOLS>> = [];
     let recordedToolCalls: ToolCallUnion<TOOLS>[] = [];
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
@@ -664,7 +661,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               text: part.text,
               providerOptions: part.providerMetadata,
             };
-            stepReasoning.push(activeReasoningPart);
+            recordedContent.push(activeReasoningPart);
           } else {
             activeReasoningPart.text += part.text;
             activeReasoningPart.providerOptions = part.providerMetadata;
@@ -675,19 +672,16 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           part.type === 'reasoning-part-finish' &&
           activeReasoningPart != null
         ) {
-          recordedContent.push(activeReasoningPart);
           activeReasoningPart = undefined;
         }
 
         if (part.type === 'file') {
           recordedContent.push({ type: 'file', file: part.file });
-          stepFiles.push(part.file);
         }
 
         if (part.type === 'source') {
           recordedContent.push(part);
           recordedSources.push(part);
-          recordedStepSources.push(part);
         }
 
         if (part.type === 'tool-call') {
@@ -703,8 +697,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         if (part.type === 'step-finish') {
           const stepMessages = toResponseMessages({
             text: recordedContinuationText,
-            files: stepFiles,
-            reasoning: stepReasoning,
+            files: extractFiles(recordedContent),
+            reasoning: extractReasoning(recordedContent),
             tools: tools ?? ({} as TOOLS),
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
@@ -738,10 +732,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             stepType,
             content: recordedContent,
             text: recordedStepText,
-            reasoningText: asReasoningText(stepReasoning),
-            reasoning: stepReasoning,
-            files: stepFiles,
-            sources: recordedStepSources,
+            reasoningText: asReasoningText(extractReasoning(recordedContent)),
+            reasoning: extractReasoning(recordedContent),
+            files: extractFiles(recordedContent),
+            sources: extractSources(recordedContent),
             toolCalls: recordedToolCalls,
             toolResults: recordedToolResults,
             finishReason: part.finishReason,
@@ -764,9 +758,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedToolCalls = [];
           recordedToolResults = [];
           recordedStepText = '';
-          recordedStepSources = [];
-          stepReasoning = [];
-          stepFiles = [];
           activeReasoningPart = undefined;
 
           if (nextStepType !== 'done') {
