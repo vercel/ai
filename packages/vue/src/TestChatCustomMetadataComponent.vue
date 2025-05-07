@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { generateId, getUIText } from 'ai';
+import { generateId } from 'ai';
 import { mockId, mockValues } from 'ai/test';
 import { useChat } from './use-chat';
 
@@ -28,7 +28,9 @@ const { messages, append } = useChat({
       :data-testid="`message-${idx}`"
     >
       {{ m.role === 'user' ? 'User: ' : 'AI: ' }}
-      {{ getUIText(m.parts) }}
+      {{
+        m.parts.map(part => (part.type === 'text' ? part.text : '')).join('')
+      }}
     </div>
 
     <button
