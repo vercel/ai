@@ -23,12 +23,8 @@ Maximum number of tokens to generate.
 
   /**
 Temperature setting. The range depends on the provider and model.
-
-- `number`: The temperature value to use.
-- `stable`: The provider will choose the most stable temperature to use for the model.
-- `none`: The provider will remove the temperature from the request.
  */
-  temperature?: number | 'stable' | 'none';
+  temperature?: number;
 
   /**
 Stop sequences.
@@ -39,8 +35,6 @@ Providers may have limits on the number of stop sequences.
 
   /**
 Nucleus sampling.
-
-It is recommended to set either `temperature` or `topP`, but not both.
  */
   topP?: number;
 
