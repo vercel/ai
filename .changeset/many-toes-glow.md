@@ -12,5 +12,7 @@
 ---
 
 fix (image-model): `specificationVersion: v1` -> `v2`
+refactor (image-model): rename `ImageModelV1` to `ImageModelV2`
 
+Commit: https://github.com/vercel/ai/pull/5936
 Commit: https://github.com/vercel/ai/pull/5975
