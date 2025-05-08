@@ -30,21 +30,41 @@ export function defaultSettingsMiddleware({
     middlewareVersion: 'v2',
     transformParams: async ({ params }) => {
       return {
-        ...settings,
         ...params,
 
         // apply defaults to undefined values
-        maxOutputTokens: params.maxOutputTokens ?? settings.maxOutputTokens,
-        temperature: params.temperature ?? settings.temperature,
-        stopSequences: params.stopSequences ?? settings.stopSequences,
-        topP: params.topP ?? settings.topP,
-        topK: params.topK ?? settings.topK,
-        presencePenalty: params.presencePenalty ?? settings.presencePenalty,
-        frequencyPenalty: params.frequencyPenalty ?? settings.frequencyPenalty,
-        responseFormat: params.responseFormat ?? settings.responseFormat,
-        seed: params.seed ?? settings.seed,
-        tools: params.tools ?? settings.tools,
-        toolChoice: params.toolChoice ?? settings.toolChoice,
+        maxOutputTokens:
+          params.maxOutputTokens === undefined
+            ? settings.maxOutputTokens
+            : params.maxOutputTokens,
+        temperature:
+          params.temperature === undefined
+            ? settings.temperature
+            : params.temperature,
+        stopSequences:
+          params.stopSequences === undefined
+            ? settings.stopSequences
+            : params.stopSequences,
+        topP: params.topP === undefined ? settings.topP : params.topP,
+        topK: params.topK === undefined ? settings.topK : params.topK,
+        presencePenalty:
+          params.presencePenalty === undefined
+            ? settings.presencePenalty
+            : params.presencePenalty,
+        frequencyPenalty:
+          params.frequencyPenalty === undefined
+            ? settings.frequencyPenalty
+            : params.frequencyPenalty,
+        responseFormat:
+          params.responseFormat === undefined
+            ? settings.responseFormat
+            : params.responseFormat,
+        seed: params.seed === undefined ? settings.seed : params.seed,
+        tools: params.tools === undefined ? settings.tools : params.tools,
+        toolChoice:
+          params.toolChoice === undefined
+            ? settings.toolChoice
+            : params.toolChoice,
 
         // headers: deep merge
         headers: mergeObjects(settings.headers, params.headers),

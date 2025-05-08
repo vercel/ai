@@ -175,9 +175,22 @@ describe('defaultSettingsMiddleware', () => {
       expect(result.temperature).toBe(0.7);
     });
 
-    it('should use param temperature if default temperature is 0', async () => {
+    it('should not use default temperature if param temperature is null', async () => {
       const middleware = defaultSettingsMiddleware({
-        settings: { temperature: 0 },
+        settings: { temperature: 0.7 },
+      });
+
+      const result = await middleware.transformParams!({
+        type: 'generate',
+        params: { ...BASE_PARAMS, temperature: null as any },
+      });
+
+      expect(result.temperature).toBe(null);
+    });
+
+    it('should use param temperature by default', async () => {
+      const middleware = defaultSettingsMiddleware({
+        settings: { temperature: 0.7 },
       });
 
       const result = await middleware.transformParams!({
