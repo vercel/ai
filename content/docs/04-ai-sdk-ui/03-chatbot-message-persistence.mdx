@@ -428,37 +428,38 @@ export async function GET(request: Request) {
     () => emptyDataStream,
   );
 
+  if (stream) {
+    return new Response(stream, { status: 200 });
+  }
+
   /*
    * For when the generation is "active" during SSR but the
    * resumable stream has concluded after reaching this point.
    */
-  if (!stream) {
-    const messages = await getMessagesByChatId({ id: chatId });
-    const mostRecentMessage = messages.at(-1);
 
-    if (!mostRecentMessage || mostRecentMessage.role !== 'assistant') {
-      return new Response(emptyDataStream, { status: 200 });
-    }
+  const messages = await getMessagesByChatId({ id: chatId });
+  const mostRecentMessage = messages.at(-1);
 
-    const messageCreatedAt = new Date(mostRecentMessage.createdAt);
-
-    if (differenceInSeconds(resumeRequestedAt, messageCreatedAt) > 15) {
-      return new Response(emptyDataStream, { status: 200 });
-    }
-
-    const restoredStream = createDataStream({
-      execute: buffer => {
-        buffer.writeData({
-          type: 'append-message',
-          message: JSON.stringify(mostRecentMessage),
-        });
-      },
-    });
-
-    return new Response(restoredStream, { status: 200 });
+  if (!mostRecentMessage || mostRecentMessage.role !== 'assistant') {
+    return new Response(emptyDataStream, { status: 200 });
   }
 
-  return new Response(stream, { status: 200 });
+  const messageCreatedAt = new Date(mostRecentMessage.createdAt);
+
+  if (differenceInSeconds(resumeRequestedAt, messageCreatedAt) > 15) {
+    return new Response(emptyDataStream, { status: 200 });
+  }
+
+  const streamWithMessage = createDataStream({
+    execute: buffer => {
+      buffer.writeData({
+        type: 'append-message',
+        message: JSON.stringify(mostRecentMessage),
+      });
+    },
+  });
+
+  return new Response(streamWithMessage, { status: 200 });
 }
 ```
 
