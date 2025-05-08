@@ -359,14 +359,14 @@ export function Chat() {
 
   return (
     <div>
-      <Messages>
+      <Messages/>
       <Input/>
     </div>
   )
 }
 ```
 
-For a more resilient implementation that handles race conditions that occur in-flight during a resume request, you can use the following `useAutoResume` hook. This will automatically process the `append-message` SSE data part streamed by the server.
+For a more resilient implementation that handles race conditions that can occur in-flight during a resume request, you can use the following `useAutoResume` hook. This will automatically process the `append-message` SSE data part streamed by the server.
 
 ```tsx filename="app/hooks/use-auto-resume.ts"
 'use client';
@@ -406,8 +406,7 @@ export function useAutoResume({
   }, []);
 
   useEffect(() => {
-    if (!data) return;
-    if (data.length === 0) return;
+    if (!data || data.length === 0) return;
 
     const dataPart = data[0] as DataPart;
 
@@ -442,7 +441,7 @@ export function Chat() {
 
   return (
     <div>
-      <Messages>
+      <Messages/>
       <Input/>
     </div>
   )
