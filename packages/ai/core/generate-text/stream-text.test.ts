@@ -4502,7 +4502,7 @@ describe('streamText', () => {
             },
             "seed": undefined,
             "stopSequences": undefined,
-            "temperature": 0,
+            "temperature": undefined,
             "toolChoice": undefined,
             "tools": undefined,
             "topK": undefined,

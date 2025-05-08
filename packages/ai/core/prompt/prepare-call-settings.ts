@@ -2,7 +2,7 @@ import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { CallSettings } from './call-settings';
 
 /**
- * Validates call settings and sets default values.
+ * Validates call settings and returns a new object with limited values.
  */
 export function prepareCallSettings({
   maxOutputTokens,
@@ -11,12 +11,12 @@ export function prepareCallSettings({
   topK,
   presencePenalty,
   frequencyPenalty,
-  stopSequences,
   seed,
+  stopSequences,
 }: Omit<CallSettings, 'abortSignal' | 'headers' | 'maxRetries'>): Omit<
   CallSettings,
-  'abortSignal' | 'headers' | 'maxRetries' | 'temperature'
-> & { temperature?: number } {
+  'abortSignal' | 'headers' | 'maxRetries'
+> {
   if (maxOutputTokens != null) {
     if (!Number.isInteger(maxOutputTokens)) {
       throw new InvalidArgumentError({
@@ -97,15 +97,12 @@ export function prepareCallSettings({
 
   return {
     maxOutputTokens,
-    temperature: temperature ?? (temperature === null ? undefined : 0),
+    temperature,
     topP,
     topK,
     presencePenalty,
     frequencyPenalty,
-    stopSequences:
-      stopSequences != null && stopSequences.length > 0
-        ? stopSequences
-        : undefined,
+    stopSequences,
     seed,
   };
 }
