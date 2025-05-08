@@ -391,15 +391,12 @@ import { loadStreams } from '@/util/chat-store';
 import { createDataStream, getMessagesByChatId } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
-import { differenceInSeconds } from 'date-fns';
 
 const streamContext = createResumableStreamContext({
   waitUntil: after,
 });
 
 export async function GET(request: Request) {
-  const resumeRequestedAt = new Date();
-
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get('chatId');
 
@@ -445,10 +442,6 @@ export async function GET(request: Request) {
   }
 
   const messageCreatedAt = new Date(mostRecentMessage.createdAt);
-
-  if (differenceInSeconds(resumeRequestedAt, messageCreatedAt) > 15) {
-    return new Response(emptyDataStream, { status: 200 });
-  }
 
   const streamWithMessage = createDataStream({
     execute: buffer => {
