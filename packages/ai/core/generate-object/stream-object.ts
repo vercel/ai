@@ -93,8 +93,68 @@ functionality that can be fully encapsulated in the provider.
 
 /**
 Generate a structured, typed object for a given prompt and schema using a language model.
+
 This function streams the output. If you do not want to stream the output, use `generateObject` instead.
-@return
+
+@param model - The language model to use.
+@param tools - Tools that are accessible to and can be called by the model. The model needs to support calling tools.
+
+@param system - A system message that will be part of the prompt.
+@param prompt - A simple text prompt. You can either use `prompt` or `messages` but not both.
+@param messages - A list of messages. You can either use `prompt` or `messages` but not both.
+
+@param maxOutputTokens - Maximum number of tokens to generate.
+@param temperature - Temperature setting.
+The value is passed through to the provider. The range depends on the provider and model.
+
+- `number`: The temperature value to use.
+- `stable`: The provider will choose the most stable temperature to use for the model.
+- `none`: The provider will remove the temperature from the request.
+
+It is recommended to set either `temperature` or `topP`, but not both.
+@param topP - Nucleus sampling.
+The value is passed through to the provider. The range depends on the provider and model.
+It is recommended to set either `temperature` or `topP`, but not both.
+@param topK - Only sample from the top K options for each subsequent token.
+Used to remove "long tail" low probability responses.
+Recommended for advanced use cases only. You usually only need to use temperature.
+@param presencePenalty - Presence penalty setting.
+It affects the likelihood of the model to repeat information that is already in the prompt.
+The value is passed through to the provider. The range depends on the provider and model.
+@param frequencyPenalty - Frequency penalty setting.
+It affects the likelihood of the model to repeatedly use the same words or phrases.
+The value is passed through to the provider. The range depends on the provider and model.
+@param stopSequences - Stop sequences.
+If set, the model will stop generating text when one of the stop sequences is generated.
+@param seed - The seed (integer) to use for random sampling.
+If set and supported by the model, calls will generate deterministic results.
+
+@param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
+@param abortSignal - An optional abort signal that can be used to cancel the call.
+@param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+
+@param schema - The schema of the object that the model should generate.
+@param schemaName - Optional name of the output that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema name.
+@param schemaDescription - Optional description of the output that should be generated.
+Used by some providers for additional LLM guidance, e.g.
+via tool or schema description.
+
+@param output - The type of the output.
+
+- 'object': The output is an object.
+- 'array': The output is an array.
+- 'enum': The output is an enum.
+- 'no-schema': The output is not a schema.
+
+@param experimental_telemetry - Optional telemetry configuration (experimental).
+
+@param providerOptions - Additional provider-specific options. They are passed through
+to the provider from the AI SDK and enable provider-specific
+functionality that can be fully encapsulated in the provider.
+
+@returns
 A result object for accessing the partial object stream and additional information.
  */
 export function streamObject<

@@ -5,15 +5,17 @@ Maximum number of tokens to generate.
   maxOutputTokens?: number;
 
   /**
-Temperature setting. This is a number between 0 (almost no randomness) and
-1 (very random).
+Temperature setting. The range depends on the provider and model.
+
+- `number`: The temperature value to use.
+- `stable`: The provider will choose the most stable temperature to use for the model.
+- `none`: The provider will remove the temperature from the request.
 
 It is recommended to set either `temperature` or `topP`, but not both.
-Use `null` to use the provider's default temperature.
 
-@default 0
+The provider should apply "stable" as the temperature if it is not set.
    */
-  temperature?: number | null;
+  temperature?: number | 'stable' | 'none';
 
   /**
 Nucleus sampling. This is a number between 0 and 1.

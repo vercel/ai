@@ -1727,17 +1727,38 @@ describe('options.output', () => {
         experimental_output: Output.text(),
       });
 
-      expect(callOptions!).toEqual({
-        temperature: 0,
-        responseFormat: { type: 'text' },
-        prompt: [
-          {
-            content: [{ text: 'prompt', type: 'text' }],
-            providerOptions: undefined,
-            role: 'user',
+      expect(callOptions!).toMatchInlineSnapshot(`
+        {
+          "abortSignal": undefined,
+          "frequencyPenalty": undefined,
+          "headers": undefined,
+          "maxOutputTokens": undefined,
+          "presencePenalty": undefined,
+          "prompt": [
+            {
+              "content": [
+                {
+                  "text": "prompt",
+                  "type": "text",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ],
+          "providerOptions": undefined,
+          "responseFormat": {
+            "type": "text",
           },
-        ],
-      });
+          "seed": undefined,
+          "stopSequences": undefined,
+          "temperature": undefined,
+          "toolChoice": undefined,
+          "tools": undefined,
+          "topK": undefined,
+          "topP": undefined,
+        }
+      `);
     });
   });
 
@@ -1778,26 +1799,51 @@ describe('options.output', () => {
         }),
       });
 
-      expect(callOptions!).toEqual({
-        temperature: 0,
-        responseFormat: {
-          type: 'json',
-          schema: {
-            $schema: 'http://json-schema.org/draft-07/schema#',
-            additionalProperties: false,
-            properties: { value: { type: 'string' } },
-            required: ['value'],
-            type: 'object',
+      expect(callOptions!).toMatchInlineSnapshot(`
+        {
+          "abortSignal": undefined,
+          "frequencyPenalty": undefined,
+          "headers": undefined,
+          "maxOutputTokens": undefined,
+          "presencePenalty": undefined,
+          "prompt": [
+            {
+              "content": [
+                {
+                  "text": "prompt",
+                  "type": "text",
+                },
+              ],
+              "providerOptions": undefined,
+              "role": "user",
+            },
+          ],
+          "providerOptions": undefined,
+          "responseFormat": {
+            "schema": {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "additionalProperties": false,
+              "properties": {
+                "value": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "value",
+              ],
+              "type": "object",
+            },
+            "type": "json",
           },
-        },
-        prompt: [
-          {
-            content: [{ text: 'prompt', type: 'text' }],
-            providerOptions: undefined,
-            role: 'user',
-          },
-        ],
-      });
+          "seed": undefined,
+          "stopSequences": undefined,
+          "temperature": undefined,
+          "toolChoice": undefined,
+          "tools": undefined,
+          "topK": undefined,
+          "topP": undefined,
+        }
+      `);
     });
   });
 });

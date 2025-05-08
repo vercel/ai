@@ -78,6 +78,11 @@ This function does not stream the output. If you want to stream the output, use 
 @param maxOutputTokens - Maximum number of tokens to generate.
 @param temperature - Temperature setting.
 The value is passed through to the provider. The range depends on the provider and model.
+
+- `number`: The temperature value to use.
+- `stable`: The provider will choose the most stable temperature to use for the model.
+- `none`: The provider will remove the temperature from the request.
+
 It is recommended to set either `temperature` or `topP`, but not both.
 @param topP - Nucleus sampling.
 The value is passed through to the provider. The range depends on the provider and model.
