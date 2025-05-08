@@ -89,7 +89,7 @@ it('should correctly prepare provider-defined tools', () => {
 });
 
 it('should correctly prepare provider-defined web_search tool', () => {
-  // Test with basic web_search tool
+  // Test with basic web_search tool (no optional args)
   let result = prepareTools({
     type: 'regular',
     tools: [
@@ -108,7 +108,7 @@ it('should correctly prepare provider-defined web_search tool', () => {
     },
   ]);
   expect(result.toolWarnings).toEqual([]);
-  expect(result.betas.has('WEB_SEARCH_TOOL_20250305_SUPPORT')).toBe(true); // Assuming a beta flag might be set
+  expect(result.betas.has('WEB_SEARCH_TOOL_20250305_SUPPORT')).toBe(false);
 
   // Test with max_uses
   result = prepareTools({
