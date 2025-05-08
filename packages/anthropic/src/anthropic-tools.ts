@@ -19,6 +19,13 @@ export type ToolResultContent = Array<
       data: string; // base64 encoded png image, e.g. screenshot
       mimeType?: string; // e.g. 'image/png';
     }
+  | {
+      type: 'web_search_result';
+      url: string;
+      title: string;
+      encrypted_content: string;
+      page_age: string;
+    }
 >;
 
 const Bash20241022Parameters = z.object({
@@ -510,6 +517,56 @@ function computerTool_20250124<RESULT>(options: {
   };
 }
 
+const WebSearch20250305Parameters = z.object({
+  input: z.string(),
+});
+
+/**
+ * Creates a tool to give direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff. Claude automatically cites sources from search results as part of its answer. Must have name "bash".
+ * 
+ * Domains should not include the HTTP/HTTPS scheme (use example.com instead of https://example.com). Subdomains are automatically included (example.com covers docs.example.com). Subpaths are supported (example.com/blog). You can use either allowed_domains or blocked_domains, but not both in the same request. 
+ *
+ * @param max_uses - Limit the number of searches per request. Optional.
+ * @param allowed_domains - Only include results from these domains. Optional.
+ * @param blocked_domains - Never include results from these domains. Optional.
+ * @param user_location - Localize search results. Optional.
+ */
+function webSearchTool_20250305<RESULT>(options: {
+  max_uses?: number;
+  allowed_domains?: string[];
+  blocked_domains?: string[];
+  user_location?: {
+    type: 'approximate',
+    city: string,
+    region: string,
+    country: string,
+    timezone: string
+  };
+  execute?: ExecuteFunction<
+    {
+      input: string
+    },
+    RESULT
+  >;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+}): {
+  type: 'provider-defined';
+  id: 'anthropic.web_search_20250305';
+  args: {};
+  parameters: typeof WebSearch20250305Parameters;
+  execute: ExecuteFunction<z.infer<typeof WebSearch20250305Parameters>, RESULT>;
+  experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
+} {
+  return {
+    type: 'provider-defined',
+    id: 'anthropic.web_search_20250305',
+    args: {},
+    parameters: WebSearch20250305Parameters,
+    execute: options.execute,
+    experimental_toToolResultContent: options.experimental_toToolResultContent,
+  };
+}
+
 export const anthropicTools = {
   bash_20241022: bashTool_20241022,
   bash_20250124: bashTool_20250124,
@@ -517,4 +574,5 @@ export const anthropicTools = {
   textEditor_20250124: textEditorTool_20250124,
   computer_20241022: computerTool_20241022,
   computer_20250124: computerTool_20250124,
+  webSearch_20250305: webSearchTool_20250305,
 };

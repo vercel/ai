@@ -86,6 +86,12 @@ export function prepareTools(
               type: 'bash_20241022',
             });
             break;
+          case 'anthropic.web_search_20250305':
+            anthropicTools.push({
+              name: tool.name,
+              type: 'web_search_20250305',
+            });
+            break;
           default:
             toolWarnings.push({ type: 'unsupported-tool', tool });
             break;
