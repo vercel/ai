@@ -341,28 +341,28 @@ The following are the pre-requisities for your chat application to support resum
 To resume a chat stream, you will use the `experimental_resume` function returned by the `useChat` hook. You will call this function during the initial mount of the hook inside the main chat component.
 
 ```tsx filename="app/components/chat.tsx"
-'use client'
+'use client';
 
-import { useChat } from "@ai-sdk/react";
-import { Input } from "@/components/input";
-import { Messages } from "@/components/messages";
+import { useChat } from '@ai-sdk/react';
+import { Input } from '@/components/input';
+import { Messages } from '@/components/messages';
 
 export function Chat() {
-  const { experimental_resume } = useChat({id});
+  const { experimental_resume } = useChat({ id });
 
   useEffect(() => {
     experimental_resume();
 
     // we use an empty dependency array to
     // ensure this effect runs only once
-  }, [])
+  }, []);
 
   return (
     <div>
-      <Messages/>
-      <Input/>
+      <Messages />
+      <Input />
     </div>
-  )
+  );
 }
 ```
 
@@ -421,15 +421,15 @@ export function useAutoResume({
 You can then use this hook in your chat component as follows.
 
 ```tsx filename="app/components/chat.tsx"
-'use client'
+'use client';
 
-import { useChat } from "@ai-sdk/react";
-import { Input } from "@/components/input";
-import { Messages } from "@/components/messages";
-import { useAutoResume } from "@/hooks/use-auto-resume"
+import { useChat } from '@ai-sdk/react';
+import { Input } from '@/components/input';
+import { Messages } from '@/components/messages';
+import { useAutoResume } from '@/hooks/use-auto-resume';
 
 export function Chat() {
-  const { experimental_resume, data, setMessages } = useChat({id});
+  const { experimental_resume, data, setMessages } = useChat({ id });
 
   useAutoResume({
     autoResume: true,
@@ -437,14 +437,14 @@ export function Chat() {
     experimental_resume,
     data,
     setMessages,
-  })
+  });
 
   return (
     <div>
-      <Messages/>
-      <Input/>
+      <Messages />
+      <Input />
     </div>
-  )
+  );
 }
 ```
 
