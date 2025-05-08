@@ -19,13 +19,6 @@ export type ToolResultContent = Array<
       data: string; // base64 encoded png image, e.g. screenshot
       mimeType?: string; // e.g. 'image/png';
     }
-  | {
-      type: 'web_search_result';
-      url: string;
-      title: string;
-      encrypted_content: string;
-      page_age: string;
-    }
 >;
 
 const Bash20241022Parameters = z.object({
@@ -552,7 +545,18 @@ function webSearchTool_20250305<RESULT>(options: {
 }): {
   type: 'provider-defined';
   id: 'anthropic.web_search_20250305';
-  args: {};
+  args: {
+    max_uses?: number;
+    allowed_domains?: string[];
+    blocked_domains?: string[];
+    user_location?: {
+      type: 'approximate',
+      city: string,
+      region: string,
+      country: string,
+      timezone: string
+    };
+  };
   parameters: typeof WebSearch20250305Parameters;
   execute: ExecuteFunction<z.infer<typeof WebSearch20250305Parameters>, RESULT>;
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
@@ -560,7 +564,12 @@ function webSearchTool_20250305<RESULT>(options: {
   return {
     type: 'provider-defined',
     id: 'anthropic.web_search_20250305',
-    args: {},
+    args: {
+      max_uses: options.max_uses,
+      allowed_domains: options.allowed_domains,
+      blocked_domains: options.blocked_domains,
+      user_location: options.user_location,
+    },
     parameters: WebSearch20250305Parameters,
     execute: options.execute,
     experimental_toToolResultContent: options.experimental_toToolResultContent,

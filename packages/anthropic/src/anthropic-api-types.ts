@@ -96,10 +96,16 @@ export interface AnthropicToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
+// New type for web search tool result errors
+export interface AnthropicWebSearchToolResultErrorContent {
+  type: 'web_search_tool_result_error';
+  error_code: string; // e.g., 'max_uses_exceeded', 'too_many_requests', etc.
+}
+
 export interface AnthropicWebSearchToolResultContent {
   type: 'web_search_tool_result';
   tool_use_id: string;
-  content: string | Array<AnthropicTextContent | AnthropicImageContent>;
+  content: Array<AnthropicWebSearchContent> | AnthropicWebSearchToolResultErrorContent; // Updated
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
 }
