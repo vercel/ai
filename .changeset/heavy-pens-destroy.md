@@ -14,5 +14,9 @@
 ---
 
 chore(embedding-model): add v2 interface
+chore(embedding-model-v2): rename rawResponse to response
+feat(embedding-model-v2): add providerOptions
 
+Commit: https://github.com/vercel/ai/pull/5698
+Commit: https://github.com/vercel/ai/pull/5699
 Commit: https://github.com/vercel/ai/pull/5696
