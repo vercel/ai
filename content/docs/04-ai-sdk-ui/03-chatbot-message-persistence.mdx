@@ -341,28 +341,110 @@ The following are the pre-requisities for your chat application to support resum
 To resume a chat stream, you will use the `experimental_resume` function returned by the `useChat` hook. You will call this function during the initial mount of the hook inside the main chat component.
 
 ```tsx filename="app/components/chat.tsx"
-'use client'
+'use client';
 
-import { useChat } from "@ai-sdk/react";
-import { Input } from "@/components/input";
-import { Messages } from "@/components/messages";
+import { useChat } from '@ai-sdk/react';
+import { Input } from '@/components/input';
+import { Messages } from '@/components/messages';
 
 export function Chat() {
-  const { experimental_resume } = useChat({id});
+  const { experimental_resume } = useChat({ id });
 
   useEffect(() => {
     experimental_resume();
 
     // we use an empty dependency array to
     // ensure this effect runs only once
-  }, [])
+  }, []);
 
   return (
     <div>
-      <Messages>
-      <Input/>
+      <Messages />
+      <Input />
     </div>
-  )
+  );
+}
+```
+
+For a more resilient implementation that handles race conditions that can occur in-flight during a resume request, you can use the following `useAutoResume` hook. This will automatically process the `append-message` SSE data part streamed by the server.
+
+```tsx filename="app/hooks/use-auto-resume.ts"
+'use client';
+
+import { useEffect } from 'react';
+import type { UIMessage } from 'ai';
+import type { UseChatHelpers } from '@ai-sdk/react';
+
+export type DataPart = { type: 'append-message'; message: string };
+
+export interface Props {
+  autoResume: boolean;
+  initialMessages: UIMessage[];
+  experimental_resume: UseChatHelpers['experimental_resume'];
+  data: UseChatHelpers['data'];
+  setMessages: UseChatHelpers['setMessages'];
+}
+
+export function useAutoResume({
+  autoResume,
+  initialMessages,
+  experimental_resume,
+  data,
+  setMessages,
+}: Props) {
+  useEffect(() => {
+    if (!autoResume) return;
+
+    const mostRecentMessage = initialMessages.at(-1);
+
+    if (mostRecentMessage?.role === 'user') {
+      experimental_resume();
+    }
+
+    // we intentionally run this once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!data || data.length === 0) return;
+
+    const dataPart = data[0] as DataPart;
+
+    if (dataPart.type === 'append-message') {
+      const message = JSON.parse(dataPart.message) as UIMessage;
+      setMessages([...initialMessages, message]);
+    }
+  }, [data, initialMessages, setMessages]);
+}
+```
+
+You can then use this hook in your chat component as follows.
+
+```tsx filename="app/components/chat.tsx"
+'use client';
+
+import { useChat } from '@ai-sdk/react';
+import { Input } from '@/components/input';
+import { Messages } from '@/components/messages';
+import { useAutoResume } from '@/hooks/use-auto-resume';
+
+export function Chat() {
+  const { experimental_resume, data, setMessages } = useChat({ id });
+
+  useAutoResume({
+    autoResume: true,
+    initialMessages: [],
+    experimental_resume,
+    data,
+    setMessages,
+  });
+
+  return (
+    <div>
+      <Messages />
+      <Input />
+    </div>
+  );
 }
 ```
 
@@ -388,7 +470,7 @@ Add a `GET` method to `/api/chat` that:
 
 ```ts filename="app/api/chat/route.ts"
 import { loadStreams } from '@/util/chat-store';
-import { createDataStream } from 'ai';
+import { createDataStream, getMessagesByChatId } from 'ai';
 import { after } from 'next/server';
 import { createResumableStreamContext } from 'resumable-stream';
 
@@ -420,9 +502,39 @@ export async function GET(request: Request) {
     execute: () => {},
   });
 
-  return new Response(
-    await streamContext.resumableStream(recentStreamId, () => emptyDataStream),
+  const stream = await streamContext.resumableStream(
+    recentStreamId,
+    () => emptyDataStream,
   );
+
+  if (stream) {
+    return new Response(stream, { status: 200 });
+  }
+
+  /*
+   * For when the generation is "active" during SSR but the
+   * resumable stream has concluded after reaching this point.
+   */
+
+  const messages = await getMessagesByChatId({ id: chatId });
+  const mostRecentMessage = messages.at(-1);
+
+  if (!mostRecentMessage || mostRecentMessage.role !== 'assistant') {
+    return new Response(emptyDataStream, { status: 200 });
+  }
+
+  const messageCreatedAt = new Date(mostRecentMessage.createdAt);
+
+  const streamWithMessage = createDataStream({
+    execute: buffer => {
+      buffer.writeData({
+        type: 'append-message',
+        message: JSON.stringify(mostRecentMessage),
+      });
+    },
+  });
+
+  return new Response(streamWithMessage, { status: 200 });
 }
 ```
 
