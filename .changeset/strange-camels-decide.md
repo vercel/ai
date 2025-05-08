@@ -9,6 +9,29 @@
 'ai': major
 ---
 
-chore(embedding-model-v2): rename rawResponse to response
+## Rename `.rawResponse` to `.response`
+
+### `embed`
+
+Before:
+
+```ts
+import { embed } from 'ai';
+
+const { rawResponse } = await embed();
+```
+
+After:
+
+```ts
+import { embed } from 'ai';
+
+const { response } = await embed();
+```
+
+### `LanguageModelV2`
+
+Also renamed to `rawResponse` to `response`
 
 Commit: https://github.com/vercel/ai/pull/5699
+Commit: https://github.com/vercel/ai/pull/5604
