@@ -13,9 +13,96 @@
 'ai': major
 ---
 
-chore(embedding-model): add v2 interface
-chore(embedding-model-v2): rename rawResponse to response
-feat(embedding-model-v2): add providerOptions
+## Embedding Model V2
+
+### Rename `.rawResponse` to `.response`
+
+#### `embed`
+
+Before:
+
+```ts
+import { embed } from 'ai';
+
+const { rawResponse } = await embed();
+```
+
+After:
+
+```ts
+import { embed } from 'ai';
+
+const { response } = await embed();
+```
+
+#### `LanguageModelV2`
+
+Also renamed to `rawResponse` to `response`
+
+
+### Switch to `providerOptions`
+
+#### `embed`
+
+Before:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: openai('gpt-4o', {
+    dimensions: 10
+  }),
+});
+```
+
+After:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: openai('gpt-4o'),
+  providerOptions: {
+    openai: {
+      dimensions: 10
+    }
+  }
+})
+```
+
+#### `embedMany`
+
+Before:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { embedMany } from 'ai';
+
+const { embeddings } = await embedMany({
+  model: openai('gpt-4o', {
+    dimensions: 10
+  }),
+})
+```
+
+After:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { embedMany } from 'ai';
+
+embedMany({
+  model: openai('gpt-4o'),
+  providerOptions: {
+    openai: {
+      dimensions: 10
+    }
+  }
+})
+```
 
 Commit: https://github.com/vercel/ai/pull/5698
 Commit: https://github.com/vercel/ai/pull/5699
