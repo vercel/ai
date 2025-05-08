@@ -88,6 +88,142 @@ it('should correctly prepare provider-defined tools', () => {
   expect(result.toolWarnings).toEqual([]);
 });
 
+it('should correctly prepare provider-defined web_search tool', () => {
+  // Test with basic web_search tool
+  let result = prepareTools({
+    type: 'regular',
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'anthropic.web_search_20250305',
+        name: 'web_search',
+        args: {},
+      },
+    ],
+  });
+  expect(result.tools).toEqual([
+    {
+      name: 'web_search',
+      type: 'web_search_20250305',
+    },
+  ]);
+  expect(result.toolWarnings).toEqual([]);
+  expect(result.betas.has('WEB_SEARCH_TOOL_20250305_SUPPORT')).toBe(true); // Assuming a beta flag might be set
+
+  // Test with max_uses
+  result = prepareTools({
+    type: 'regular',
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'anthropic.web_search_20250305',
+        name: 'web_search',
+        args: { max_uses: 3 },
+      },
+    ],
+  });
+  expect(result.tools).toEqual([
+    {
+      name: 'web_search',
+      type: 'web_search_20250305',
+      max_uses: 3,
+    },
+  ]);
+
+  // Test with allowed_domains
+  result = prepareTools({
+    type: 'regular',
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'anthropic.web_search_20250305',
+        name: 'web_search',
+        args: { allowed_domains: ['example.com'] },
+      },
+    ],
+  });
+  expect(result.tools).toEqual([
+    {
+      name: 'web_search',
+      type: 'web_search_20250305',
+      allowed_domains: ['example.com'],
+    },
+  ]);
+
+  // Test with blocked_domains
+  result = prepareTools({
+    type: 'regular',
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'anthropic.web_search_20250305',
+        name: 'web_search',
+        args: { blocked_domains: ['blocked.com'] },
+      },
+    ],
+  });
+  expect(result.tools).toEqual([
+    {
+      name: 'web_search',
+      type: 'web_search_20250305',
+      blocked_domains: ['blocked.com'],
+    },
+  ]);
+
+  // Test with user_location
+  const userLocation = {
+    type: 'approximate' as const,
+    city: 'San Francisco',
+    region: 'CA',
+    country: 'US',
+    timezone: 'America/Los_Angeles',
+  };
+  result = prepareTools({
+    type: 'regular',
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'anthropic.web_search_20250305',
+        name: 'web_search',
+        args: { user_location: userLocation },
+      },
+    ],
+  });
+  expect(result.tools).toEqual([
+    {
+      name: 'web_search',
+      type: 'web_search_20250305',
+      user_location: userLocation,
+    },
+  ]);
+
+  // Test with all parameters
+  result = prepareTools({
+    type: 'regular',
+    tools: [
+      {
+        type: 'provider-defined',
+        id: 'anthropic.web_search_20250305',
+        name: 'web_search',
+        args: {
+          max_uses: 5,
+          allowed_domains: ['example.com', 'another.org'],
+          user_location: userLocation,
+        },
+      },
+    ],
+  });
+  expect(result.tools).toEqual([
+    {
+      name: 'web_search',
+      type: 'web_search_20250305',
+      max_uses: 5,
+      allowed_domains: ['example.com', 'another.org'],
+      user_location: userLocation,
+    },
+  ]);
+});
+
 it('should add warnings for unsupported tools', () => {
   const result = prepareTools({
     type: 'regular',
