@@ -106,6 +106,10 @@ export type UseChatHelpers = {
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as (typeof import('swrv'))['default']) || swrv;
 const store: Record<string, UIMessage[] | undefined> = {};
+const statusStore: Record<
+  string,
+  Ref<'submitted' | 'streaming' | 'ready' | 'error'>
+> = {};
 
 export function useChat(
   {
@@ -164,7 +168,11 @@ export function useChat(
     () => store[key] ?? fillMessageParts(initialMessages),
   );
 
-  const status = ref<'submitted' | 'streaming' | 'ready' | 'error'>('ready');
+  const status =
+    statusStore[chatId] ??
+    (statusStore[chatId] = ref<'submitted' | 'streaming' | 'ready' | 'error'>(
+      'ready',
+    ));
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
   messagesData.value ??= fillMessageParts(initialMessages);
