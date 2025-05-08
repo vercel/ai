@@ -1,0 +1,92 @@
+---
+title: Hypermode
+description: Learn how to use the Hypermode provider for the AI SDK.
+---
+
+# Hypermode Provider
+
+The [Hypermode](https://hypermode.com/) provider contains language model support for the [Hypermode Model Router](https://docs.hypermode.com/model-router).
+
+## Setup
+
+The Hypermode provider is available via the `@ai-sdk/hypermode` module. You can install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/hypermode" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/hypermode" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/hypermode" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+You can import the default provider instance `hypermode` from `@ai-sdk/hypermode`:
+
+```ts
+import { hypermode } from '@ai-sdk/hypermode';
+```
+
+For custom configuration, you can import `createHypermode` and create a provider instance with your settings:
+
+```ts
+import { createHypermode } from '@ai-sdk/hypermode';
+
+const hypermode = createHypermode({
+  apiKey: process.env.HYPERMODE_API_KEY ?? '',
+});
+```
+
+You can obtain your Hypermode API key from the [Hypermode console](https://hypermode.com/login).
+
+You can use the following optional settings to customize the Hypermode provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls. The default prefix is `https://models.hypermode.host/v1`.
+
+- **apiKey** _string_
+
+  API key sent using the `Authorization` header. Defaults to the `HYPERMODE_API_KEY` environment variable.
+
+- **headers** _Record<string,string>_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise<Response>_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Language Models
+
+You can create language models using a provider instance:
+
+```ts
+import { hypermode } from '@ai-sdk/hypermode';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: hypermode('meta-llama/llama-4-scout-17b-16e-instruct'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+```
+
+Hypermode language models can also be used with the `streamText` function (see [AI SDK Core](/docs/ai-sdk-core)).
+
+## Embedding Models
+
+You can generate embeddings using Hypermode embedding models:
+
+```ts
+import { hypermode } from '@ai-sdk/hypermode';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: hypermode.embedding('nomic-ai/nomic-embed-text-v1.5'),
+  value: 'The quick brown fox jumps over the lazy dog.',
+});
+```
