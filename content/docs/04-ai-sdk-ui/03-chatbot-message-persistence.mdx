@@ -374,7 +374,8 @@ For a more resilient implementation that handles race conditions that occur in-f
 import { useEffect } from 'react';
 import type { UIMessage } from 'ai';
 import type { UseChatHelpers } from '@ai-sdk/react';
-import type { DataPart } from '@/lib/types';
+
+export type DataPart = { type: 'append-message'; message: string };
 
 export interface Props {
   autoResume: boolean;
