@@ -516,28 +516,28 @@ const WebSearch20250305Parameters = z.object({
 
 /**
  * Creates a tool to give direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff. Claude automatically cites sources from search results as part of its answer. Must have name "bash".
- * 
- * Domains should not include the HTTP/HTTPS scheme (use example.com instead of https://example.com). Subdomains are automatically included (example.com covers docs.example.com). Subpaths are supported (example.com/blog). You can use either allowed_domains or blocked_domains, but not both in the same request. 
+ *
+ * Domains should not include the HTTP/HTTPS scheme (use example.com instead of https://example.com). Subdomains are automatically included (example.com covers docs.example.com). Subpaths are supported (example.com/blog). You can use either allowed_domains or blocked_domains, but not both in the same request.
  *
  * @param max_uses - Limit the number of searches per request. Optional.
  * @param allowed_domains - Only include results from these domains. Optional.
  * @param blocked_domains - Never include results from these domains. Optional.
  * @param user_location - Localize search results. Optional.
  */
-function webSearchTool_20250305<RESULT>(options: {
+function webSearchTool_20250305<RESULT>(options?: {
   max_uses?: number;
   allowed_domains?: string[];
   blocked_domains?: string[];
   user_location?: {
-    type: 'approximate',
-    city: string,
-    region: string,
-    country: string,
-    timezone: string
+    type: 'approximate';
+    city: string;
+    region: string;
+    country: string;
+    timezone: string;
   };
   execute?: ExecuteFunction<
     {
-      input: string
+      input: string;
     },
     RESULT
   >;
@@ -550,29 +550,32 @@ function webSearchTool_20250305<RESULT>(options: {
     allowed_domains?: string[];
     blocked_domains?: string[];
     user_location?: {
-      type: 'approximate',
-      city: string,
-      region: string,
-      country: string,
-      timezone: string
+      type: 'approximate';
+      city: string;
+      region: string;
+      country: string;
+      timezone: string;
     };
   };
   parameters: typeof WebSearch20250305Parameters;
-  execute: ExecuteFunction<z.infer<typeof WebSearch20250305Parameters>, RESULT>;
+  execute?: ExecuteFunction<
+    z.infer<typeof WebSearch20250305Parameters>,
+    RESULT
+  >;
   experimental_toToolResultContent?: (result: RESULT) => ToolResultContent;
 } {
   return {
     type: 'provider-defined',
     id: 'anthropic.web_search_20250305',
     args: {
-      max_uses: options.max_uses,
-      allowed_domains: options.allowed_domains,
-      blocked_domains: options.blocked_domains,
-      user_location: options.user_location,
+      max_uses: options?.max_uses,
+      allowed_domains: options?.allowed_domains,
+      blocked_domains: options?.blocked_domains,
+      user_location: options?.user_location,
     },
     parameters: WebSearch20250305Parameters,
-    execute: options.execute,
-    experimental_toToolResultContent: options.experimental_toToolResultContent,
+    execute: options?.execute,
+    experimental_toToolResultContent: options?.experimental_toToolResultContent,
   };
 }
 

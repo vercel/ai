@@ -440,10 +440,10 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV1 {
                     return;
                   }
 
-                  case 'tool_use': 
+                  case 'tool_use':
                   case 'server_tool_use':
                   case 'web_search_result':
-                  case 'web_search_tool_result':  {
+                  case 'web_search_tool_result': {
                     toolCallContentBlocks[value.index] = {
                       toolCallId: value.content_block.id,
                       toolName: value.content_block.name,

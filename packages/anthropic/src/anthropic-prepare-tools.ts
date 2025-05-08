@@ -95,11 +95,11 @@ export function prepareTools(
                 allowed_domains?: string[];
                 blocked_domains?: string[];
                 user_location?: {
-                  type: 'approximate',
-                  city: string,
-                  region: string,
-                  country: string,
-                  timezone: string
+                  type: 'approximate';
+                  city: string;
+                  region: string;
+                  country: string;
+                  timezone: string;
                 };
               }),
             });

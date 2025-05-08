@@ -105,7 +105,9 @@ export interface AnthropicWebSearchToolResultErrorContent {
 export interface AnthropicWebSearchToolResultContent {
   type: 'web_search_tool_result';
   tool_use_id: string;
-  content: Array<AnthropicWebSearchContent> | AnthropicWebSearchToolResultErrorContent; // Updated
+  content:
+    | Array<AnthropicWebSearchContent>
+    | AnthropicWebSearchToolResultErrorContent; // Updated
   is_error: boolean | undefined;
   cache_control: AnthropicCacheControl | undefined;
 }
@@ -131,19 +133,19 @@ export type AnthropicTool =
       name: string;
       type: 'bash_20250124' | 'bash_20241022';
     }
-    | {
+  | {
       name: string;
       type: 'web_search_20250305';
       max_uses?: number;
       allowed_domains?: string[];
       blocked_domains?: string[];
       user_location?: {
-        type: 'approximate',
-        city: string,
-        region: string,
-        country: string,
-        timezone: string
-      }
+        type: 'approximate';
+        city: string;
+        region: string;
+        country: string;
+        timezone: string;
+      };
     };
 
 export type AnthropicToolChoice =

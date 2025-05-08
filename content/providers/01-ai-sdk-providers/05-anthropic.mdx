@@ -347,6 +347,39 @@ Parameters:
 
 These tools can be used in conjunction with the `sonnet-3-5-sonnet-20240620` model to enable more complex interactions and tasks.
 
+### Web Search Tool
+
+The web search tool gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff. Claude automatically cites sources from search results as part of its answer.
+
+1. Minimal example
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-3-7-sonnet-20250219'),
+  prompt: 'How many analytics events are included on Vercel's free plan?',,
+  tools: {
+    web_search: anthropic.tools.web_search_20250305(),
+  },
+});
+```
+
+2. With optional arguments
+
+```ts
+const result = await generateText({
+  model: anthropic('claude-3-7-sonnet-20250219'),
+  prompt: 'How many analytics events are included on Vercel's free plan?',,
+  tools: {
+    web_search: anthropic.tools.web_search_20250305({
+      max_uses: 2,
+      allowed_domains: ['vercel.com'],
+    }),
+  },
+});
+```
+
+Refer to the [Anthropic Web Search Tool documentation](https://docs.anthropic.com/en/docs/build-with-claude/tool-use/web-search-tool) for more details on the optional arguments.
+
 ### PDF support
 
 Anthropic Sonnet `claude-3-5-sonnet-20241022` supports reading PDF files.
@@ -409,15 +442,15 @@ and the `mimeType` should be set to `'application/pdf'`.
 
 ### Model Capabilities
 
-| Model                        | Image Input         | Object Generation   | Tool Usage          | Computer Use        |
-| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `claude-3-7-sonnet-20250219` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-5-sonnet-20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `claude-3-5-sonnet-20240620` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-5-haiku-20241022`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-opus-20240229`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-sonnet-20240229`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `claude-3-haiku-20240307`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
+| Model                        | Image Input         | Object Generation   | Tool Usage          | Computer Use        | Web Search Tool     |
+| ---------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `claude-3-7-sonnet-20250219` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-5-sonnet-20241022` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-3-5-sonnet-20240620` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `claude-3-5-haiku-20241022`  | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> |
+| `claude-3-opus-20240229`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `claude-3-sonnet-20240229`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `claude-3-haiku-20240307`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [Anthropic
