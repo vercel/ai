@@ -295,8 +295,6 @@ A function that attempts to repair a tool call that failed to parse.
       let text = '';
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
-      let stepType: 'initial' | 'tool-result' | 'done' = 'initial';
-
       do {
         const stepInputMessages = [
           ...initialPrompt.messages,
@@ -462,16 +460,6 @@ A function that attempts to repair a tool call that failed to parse.
                 abortSignal,
               });
 
-        // check if another step is needed:
-        const nextStepType: 'done' | 'tool-result' =
-          ++stepCount < maxSteps &&
-          // there are tool calls:
-          currentToolCalls.length > 0 &&
-          // all current tool calls have results:
-          currentToolResults.length === currentToolCalls.length
-            ? 'tool-result'
-            : 'done';
-
         // content:
         const stepContent = asContent({
           content: currentModelResponse.content,
@@ -517,9 +505,13 @@ A function that attempts to repair a tool call that failed to parse.
         };
         steps.push(currentStepResult);
         await onStepFinish?.(currentStepResult);
-
-        stepType = nextStepType;
-      } while (stepType !== 'done');
+      } while (
+        ++stepCount < maxSteps &&
+        // there are tool calls:
+        currentToolCalls.length > 0 &&
+        // all current tool calls have results:
+        currentToolResults.length === currentToolCalls.length
+      );
 
       // Add response information to the span:
       span.setAttributes(
