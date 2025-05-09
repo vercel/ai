@@ -662,60 +662,60 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.resolvedOutput = options.resolvedOutput;
   }
 
-  private get currentStep() {
+  private get lastStep() {
     return this.steps[this.steps.length - 1];
   }
 
   get content() {
-    return this.currentStep.content;
+    return this.lastStep.content;
   }
 
   get text() {
-    return this.currentStep.text;
+    return this.lastStep.text;
   }
 
   get files() {
-    return this.currentStep.files;
+    return this.lastStep.files;
   }
 
   get reasoningText() {
-    return this.currentStep.reasoningText;
+    return this.lastStep.reasoningText;
   }
 
   get reasoning() {
-    return this.currentStep.reasoning;
+    return this.lastStep.reasoning;
   }
 
   get toolCalls() {
-    return this.currentStep.toolCalls;
+    return this.lastStep.toolCalls;
   }
 
   get toolResults() {
-    return this.currentStep.toolResults;
+    return this.lastStep.toolResults;
   }
 
   get sources() {
-    return this.currentStep.sources;
+    return this.lastStep.sources;
   }
 
   get finishReason() {
-    return this.currentStep.finishReason;
+    return this.lastStep.finishReason;
   }
 
   get warnings() {
-    return this.currentStep.warnings;
+    return this.lastStep.warnings;
   }
 
   get providerMetadata() {
-    return this.currentStep.providerMetadata;
+    return this.lastStep.providerMetadata;
   }
 
   get response() {
-    return this.currentStep.response;
+    return this.lastStep.response;
   }
 
   get request() {
-    return this.currentStep.request;
+    return this.lastStep.request;
   }
 
   get usage() {
