@@ -447,50 +447,14 @@ function createOutputTransformStream<
 class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
 {
-  private readonly warningsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['warnings']>
-  >();
   private readonly usagePromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
   >();
   private readonly finishReasonPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['finishReason']>
   >();
-  private readonly providerMetadataPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['providerMetadata']>
-  >();
-  private readonly textPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['text']>
-  >();
-  private readonly reasoningPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoningText']>
-  >();
-  private readonly reasoningDetailsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoning']>
-  >();
-  private readonly sourcesPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['sources']>
-  >();
-  private readonly filesPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['files']>
-  >();
-  private readonly toolCallsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolCalls']>
-  >();
-  private readonly toolResultsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolResults']>
-  >();
-  private readonly requestPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['request']>
-  >();
-  private readonly responsePromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['response']>
-  >();
   private readonly stepsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['steps']>
-  >();
-  private readonly contentPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['content']>
   >();
 
   private readonly addStream: (
@@ -709,22 +673,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             return; // no steps recorded (e.g. in error scenario)
           }
 
-          // from last step (when there are errors there may be no last step)
-          const lastStep = recordedSteps[recordedSteps.length - 1];
-
-          self.contentPromise.resolve(lastStep.content);
-          self.warningsPromise.resolve(lastStep.warnings);
-          self.requestPromise.resolve(lastStep.request);
-          self.responsePromise.resolve(lastStep.response);
-          self.toolCallsPromise.resolve(lastStep.toolCalls);
-          self.toolResultsPromise.resolve(lastStep.toolResults);
-          self.providerMetadataPromise.resolve(lastStep.providerMetadata);
-          self.reasoningPromise.resolve(lastStep.reasoningText);
-          self.reasoningDetailsPromise.resolve(lastStep.reasoning);
-          self.textPromise.resolve(lastStep.text);
-          self.sourcesPromise.resolve(lastStep.sources);
-          self.filesPromise.resolve(lastStep.files);
-
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
           const usage = recordedUsage ?? {
@@ -741,6 +689,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.stepsPromise.resolve(recordedSteps);
 
           // call onFinish callback:
+          const lastStep = recordedSteps[recordedSteps.length - 1];
           await onFinish?.({
             finishReason,
             usage,
@@ -1277,12 +1226,60 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     });
   }
 
+  get steps() {
+    return this.stepsPromise.value;
+  }
+
+  private get lastStep() {
+    return this.steps.then(steps => steps[steps.length - 1]);
+  }
+
   get content() {
-    return this.contentPromise.value;
+    return this.lastStep.then(step => step.content);
   }
 
   get warnings() {
-    return this.warningsPromise.value;
+    return this.lastStep.then(step => step.warnings);
+  }
+
+  get providerMetadata() {
+    return this.lastStep.then(step => step.providerMetadata);
+  }
+
+  get text() {
+    return this.lastStep.then(step => step.text);
+  }
+
+  get reasoningText() {
+    return this.lastStep.then(step => step.reasoningText);
+  }
+
+  get reasoning() {
+    return this.lastStep.then(step => step.reasoning);
+  }
+
+  get sources() {
+    return this.lastStep.then(step => step.sources);
+  }
+
+  get files() {
+    return this.lastStep.then(step => step.files);
+  }
+
+  get toolCalls() {
+    return this.lastStep.then(step => step.toolCalls);
+  }
+
+  get toolResults() {
+    return this.lastStep.then(step => step.toolResults);
+  }
+
+  get request() {
+    return this.lastStep.then(step => step.request);
+  }
+
+  get response() {
+    return this.lastStep.then(step => step.response);
   }
 
   get usage() {
@@ -1291,50 +1288,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   get finishReason() {
     return this.finishReasonPromise.value;
-  }
-
-  get providerMetadata() {
-    return this.providerMetadataPromise.value;
-  }
-
-  get text() {
-    return this.textPromise.value;
-  }
-
-  get reasoningText() {
-    return this.reasoningPromise.value;
-  }
-
-  get reasoning() {
-    return this.reasoningDetailsPromise.value;
-  }
-
-  get sources() {
-    return this.sourcesPromise.value;
-  }
-
-  get files() {
-    return this.filesPromise.value;
-  }
-
-  get toolCalls() {
-    return this.toolCallsPromise.value;
-  }
-
-  get toolResults() {
-    return this.toolResultsPromise.value;
-  }
-
-  get request() {
-    return this.requestPromise.value;
-  }
-
-  get response() {
-    return this.responsePromise.value;
-  }
-
-  get steps() {
-    return this.stepsPromise.value;
   }
 
   /**
