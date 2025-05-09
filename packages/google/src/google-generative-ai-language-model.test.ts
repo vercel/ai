@@ -33,6 +33,21 @@ const SAFETY_RATINGS = [
   },
 ];
 
+type TestTokenDetail = { modality: string; tokenCount: number };
+
+const TEST_PROMPT_TOKENS_DETAILS: TestTokenDetail[] = [
+  { modality: 'TEXT', tokenCount: 10 },
+];
+const TEST_CACHE_TOKENS_DETAILS: TestTokenDetail[] = [
+  { modality: 'IMAGE', tokenCount: 20 },
+];
+const TEST_CANDIDATES_TOKENS_DETAILS: TestTokenDetail[] = [
+  { modality: 'AUDIO', tokenCount: 30 },
+];
+const TEST_TOOL_USE_PROMPT_TOKENS_DETAILS: TestTokenDetail[] = [
+  { modality: 'VIDEO', tokenCount: 40 },
+];
+
 const provider = createGoogleGenerativeAI({
   apiKey: 'test-api-key',
   generateId: () => 'test-id',
@@ -194,20 +209,32 @@ describe('doGenerate', () => {
 
   const prepareJsonResponse = ({
     content = '',
-    usage = {
+    usageMetadata = {
       promptTokenCount: 1,
       candidatesTokenCount: 2,
       totalTokenCount: 3,
+      cachedContentTokenCount: null,
+      thoughtsTokenCount: null,
+      promptTokensDetails: null,
+      cacheTokensDetails: null,
+      candidatesTokensDetails: null,
+      toolUsePromptTokensDetails: null,
     },
     headers,
     groundingMetadata,
     url = TEST_URL_GEMINI_PRO,
   }: {
     content?: string;
-    usage?: {
-      promptTokenCount: number;
-      candidatesTokenCount: number;
-      totalTokenCount: number;
+    usageMetadata?: {
+      promptTokenCount: number | null;
+      candidatesTokenCount: number | null;
+      totalTokenCount?: number | null;
+      cachedContentTokenCount?: number | null;
+      thoughtsTokenCount?: number | null;
+      promptTokensDetails?: TestTokenDetail[] | null;
+      cacheTokensDetails?: TestTokenDetail[] | null;
+      candidatesTokensDetails?: TestTokenDetail[] | null;
+      toolUsePromptTokensDetails?: TestTokenDetail[] | null;
     };
     headers?: Record<string, string>;
     groundingMetadata?: GoogleGenerativeAIGroundingMetadata;
@@ -235,7 +262,7 @@ describe('doGenerate', () => {
           },
         ],
         promptFeedback: { safetyRatings: SAFETY_RATINGS },
-        usageMetadata: usage,
+        usageMetadata,
       },
     };
   };
@@ -254,7 +281,7 @@ describe('doGenerate', () => {
 
   it('should extract usage', async () => {
     prepareJsonResponse({
-      usage: {
+      usageMetadata: {
         promptTokenCount: 20,
         candidatesTokenCount: 5,
         totalTokenCount: 25,
@@ -377,7 +404,7 @@ describe('doGenerate', () => {
 
     expect(rawResponse?.headers).toStrictEqual({
       // default headers:
-      'content-length': '804',
+      'content-length': '979',
       'content-type': 'application/json',
 
       // custom header
@@ -1014,6 +1041,96 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should expose all token details in providerMetadata when available in doGenerate', async () => {
+    prepareJsonResponse({
+      content: 'test response',
+      usageMetadata: {
+        promptTokenCount: 1,
+        candidatesTokenCount: 1,
+        cachedContentTokenCount: 5,
+        thoughtsTokenCount: 2,
+        promptTokensDetails: TEST_PROMPT_TOKENS_DETAILS,
+        cacheTokensDetails: TEST_CACHE_TOKENS_DETAILS,
+        candidatesTokensDetails: TEST_CANDIDATES_TOKENS_DETAILS,
+        toolUsePromptTokensDetails: TEST_TOOL_USE_PROMPT_TOKENS_DETAILS,
+      },
+    });
+
+    const { providerMetadata } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.cachedContentTokenCount).toBe(5);
+    expect(providerMetadata?.google.thoughtsTokenCount).toBe(2);
+    expect(providerMetadata?.google.promptTokensDetails).toEqual(
+      TEST_PROMPT_TOKENS_DETAILS,
+    );
+    expect(providerMetadata?.google.cacheTokensDetails).toEqual(
+      TEST_CACHE_TOKENS_DETAILS,
+    );
+    expect(providerMetadata?.google.candidatesTokensDetails).toEqual(
+      TEST_CANDIDATES_TOKENS_DETAILS,
+    );
+    expect(providerMetadata?.google.toolUsePromptTokensDetails).toEqual(
+      TEST_TOOL_USE_PROMPT_TOKENS_DETAILS,
+    );
+  });
+
+  it('should set token details to null in providerMetadata when absent in usageMetadata in doGenerate', async () => {
+    prepareJsonResponse({
+      content: 'test response',
+      usageMetadata: {
+        promptTokenCount: 1,
+        candidatesTokenCount: 1,
+      },
+    });
+
+    const { providerMetadata } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.cachedContentTokenCount).toBeNull();
+    expect(providerMetadata?.google.thoughtsTokenCount).toBeNull();
+    expect(providerMetadata?.google.promptTokensDetails).toBeNull();
+    expect(providerMetadata?.google.cacheTokensDetails).toBeNull();
+    expect(providerMetadata?.google.candidatesTokensDetails).toBeNull();
+    expect(providerMetadata?.google.toolUsePromptTokensDetails).toBeNull();
+  });
+
+  it('should set token details to null in providerMetadata when usageMetadata itself is absent in doGenerate', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'test' }], role: 'model' },
+            finishReason: 'STOP',
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+      },
+    };
+
+    const { providerMetadata, usage } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage.promptTokens).toBeNaN();
+    expect(usage.completionTokens).toBeNaN();
+    expect(providerMetadata?.google.cachedContentTokenCount).toBeNull();
+    expect(providerMetadata?.google.thoughtsTokenCount).toBeNull();
+    expect(providerMetadata?.google.promptTokensDetails).toBeNull();
+    expect(providerMetadata?.google.cacheTokensDetails).toBeNull();
+    expect(providerMetadata?.google.candidatesTokensDetails).toBeNull();
+    expect(providerMetadata?.google.toolUsePromptTokensDetails).toBeNull();
+  });
+
   describe('search tool selection', () => {
     const provider = createGoogleGenerativeAI({
       apiKey: 'test-api-key',
@@ -1326,6 +1443,17 @@ describe('doStream', () => {
     headers,
     groundingMetadata,
     url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent',
+    usageMetadata = {
+      promptTokenCount: 294,
+      candidatesTokenCount: 233,
+      totalTokenCount: 527,
+      cachedContentTokenCount: null,
+      thoughtsTokenCount: null,
+      promptTokensDetails: null,
+      cacheTokensDetails: null,
+      candidatesTokensDetails: null,
+      toolUsePromptTokensDetails: null,
+    },
   }: {
     content: string[];
     headers?: Record<string, string>;
@@ -1336,6 +1464,17 @@ describe('doStream', () => {
       | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
       | typeof TEST_URL_GEMINI_1_0_PRO
       | typeof TEST_URL_GEMINI_1_5_FLASH;
+    usageMetadata?: {
+      promptTokenCount: number | null;
+      candidatesTokenCount: number | null;
+      totalTokenCount?: number | null;
+      cachedContentTokenCount?: number | null;
+      thoughtsTokenCount?: number | null;
+      promptTokensDetails?: TestTokenDetail[] | null;
+      cacheTokensDetails?: TestTokenDetail[] | null;
+      candidatesTokensDetails?: TestTokenDetail[] | null;
+      toolUsePromptTokensDetails?: TestTokenDetail[] | null;
+    };
   }) => {
     server.urls[url].response = {
       headers,
@@ -1352,13 +1491,8 @@ describe('doStream', () => {
                 ...(groundingMetadata && { groundingMetadata }),
               },
             ],
-            // Include usage metadata only in the last chunk
             ...(index === content.length - 1 && {
-              usageMetadata: {
-                promptTokenCount: 294,
-                candidatesTokenCount: 233,
-                totalTokenCount: 527,
-              },
+              usageMetadata,
             }),
           })}\n\n`,
       ),
@@ -1459,6 +1593,12 @@ describe('doStream', () => {
         providerMetadata: {
           google: {
             groundingMetadata: null,
+            cacheTokensDetails: null,
+            candidatesTokensDetails: null,
+            toolUsePromptTokensDetails: null,
+            promptTokensDetails: null,
+            thoughtsTokenCount: null,
+            cachedContentTokenCount: null,
             safetyRatings: [
               {
                 category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
@@ -1607,6 +1747,12 @@ describe('doStream', () => {
         providerMetadata: {
           google: {
             groundingMetadata: null,
+            cacheTokensDetails: null,
+            candidatesTokensDetails: null,
+            toolUsePromptTokensDetails: null,
+            promptTokensDetails: null,
+            thoughtsTokenCount: null,
+            cachedContentTokenCount: null,
             safetyRatings: [
               {
                 category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
@@ -1826,6 +1972,386 @@ describe('doStream', () => {
     const events = await convertReadableStreamToArray(stream);
 
     expect(events.filter(event => event.type === 'error')).toEqual([]); // no errors
+    expect(events.filter(event => event.type === 'file')).toEqual([
+      { type: 'file', mimeType: 'text/plain', data: 'test' },
+    ]);
+  });
+
+  it('should set finishReason to tool-calls when chunk contains functionCall', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Initial text response' }],
+                role: 'model',
+              },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    functionCall: {
+                      name: 'test-tool',
+                      args: { value: 'example value' },
+                    },
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 10,
+            candidatesTokenCount: 20,
+            totalTokenCount: 30,
+          },
+        })}\n\n`,
+      ],
+    };
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: {
+        type: 'regular',
+        tools: [
+          {
+            type: 'function',
+            name: 'test-tool',
+            parameters: {
+              type: 'object',
+              properties: { value: { type: 'string' } },
+              required: ['value'],
+              additionalProperties: false,
+              $schema: 'http://json-schema.org/draft-07/schema#',
+            },
+          },
+        ],
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual(
+      'tool-calls',
+    );
+  });
+
+  it('should only pass valid provider options', async () => {
+    prepareStreamResponse({ content: [''] });
+
+    await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+      providerMetadata: {
+        google: { foo: 'bar', responseModalities: ['TEXT', 'IMAGE'] },
+      },
+    });
+
+    expect(await server.calls[0].requestBody).toMatchObject({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: 'Hello' }],
+        },
+      ],
+      generationConfig: {
+        responseModalities: ['TEXT', 'IMAGE'],
+      },
+    });
+  });
+
+  it('should expose all token details in providerMetadata on finish when available in doStream', async () => {
+    prepareStreamResponse({
+      content: ['test stream chunk'],
+      usageMetadata: {
+        promptTokenCount: 10,
+        candidatesTokenCount: 20,
+        cachedContentTokenCount: 5,
+        thoughtsTokenCount: 3,
+        promptTokensDetails: TEST_PROMPT_TOKENS_DETAILS,
+        cacheTokensDetails: TEST_CACHE_TOKENS_DETAILS,
+        candidatesTokensDetails: TEST_CANDIDATES_TOKENS_DETAILS,
+        toolUsePromptTokensDetails: TEST_TOOL_USE_PROMPT_TOKENS_DETAILS,
+      },
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent).toBeDefined();
+    if (finishEvent && finishEvent.type === 'finish') {
+      expect(finishEvent.providerMetadata?.google.cachedContentTokenCount).toBe(
+        5,
+      );
+      expect(finishEvent.providerMetadata?.google.thoughtsTokenCount).toBe(3);
+      expect(finishEvent.providerMetadata?.google.promptTokensDetails).toEqual(
+        TEST_PROMPT_TOKENS_DETAILS,
+      );
+      expect(finishEvent.providerMetadata?.google.cacheTokensDetails).toEqual(
+        TEST_CACHE_TOKENS_DETAILS,
+      );
+      expect(
+        finishEvent.providerMetadata?.google.candidatesTokensDetails,
+      ).toEqual(TEST_CANDIDATES_TOKENS_DETAILS);
+      expect(
+        finishEvent.providerMetadata?.google.toolUsePromptTokensDetails,
+      ).toEqual(TEST_TOOL_USE_PROMPT_TOKENS_DETAILS);
+    }
+  });
+
+  it('should set token details to null in providerMetadata on finish when absent in usageMetadata in doStream', async () => {
+    prepareStreamResponse({
+      content: ['test stream chunk'],
+      usageMetadata: {
+        promptTokenCount: 10,
+        candidatesTokenCount: 20,
+      },
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent).toBeDefined();
+    if (finishEvent && finishEvent.type === 'finish') {
+      expect(
+        finishEvent.providerMetadata?.google.cachedContentTokenCount,
+      ).toBeNull();
+      expect(
+        finishEvent.providerMetadata?.google.thoughtsTokenCount,
+      ).toBeNull();
+      expect(
+        finishEvent.providerMetadata?.google.promptTokensDetails,
+      ).toBeNull();
+      expect(
+        finishEvent.providerMetadata?.google.cacheTokensDetails,
+      ).toBeNull();
+      expect(
+        finishEvent.providerMetadata?.google.candidatesTokensDetails,
+      ).toBeNull();
+      expect(
+        finishEvent.providerMetadata?.google.toolUsePromptTokensDetails,
+      ).toBeNull();
+    }
+  });
+
+  it('should set token details to null in providerMetadata on finish when usageMetadata itself is absent in last chunk of doStream', async () => {
+    server.urls[
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:streamGenerateContent'
+    ].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'final chunk' }], role: 'model' },
+              finishReason: 'STOP',
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}
+
+`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent).toBeDefined();
+    if (finishEvent && finishEvent.type === 'finish') {
+      expect(finishEvent.usage.promptTokens).toBeNaN();
+      expect(finishEvent.usage.completionTokens).toBeNaN();
+      expect(
+        finishEvent.providerMetadata?.google.cachedContentTokenCount,
+      ).toBeNull();
+      expect(
+        finishEvent.providerMetadata?.google.thoughtsTokenCount,
+      ).toBeNull();
+      expect(
+        finishEvent.providerMetadata?.google.promptTokensDetails,
+      ).toBeNull();
+      expect(
+        finishEvent.providerMetadata?.google.cacheTokensDetails,
+      ).toBeNull();
+      expect(
+        finishEvent.providerMetadata?.google.candidatesTokensDetails,
+      ).toBeNull();
+      expect(
+        finishEvent.providerMetadata?.google.toolUsePromptTokensDetails,
+      ).toBeNull();
+    }
+  });
+
+  it('should stream text deltas', async () => {
+    prepareStreamResponse({ content: ['Hello', ', ', 'world!'] });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(await convertReadableStreamToArray(stream)).toStrictEqual([
+      { type: 'text-delta', textDelta: 'Hello' },
+      { type: 'text-delta', textDelta: ', ' },
+      { type: 'text-delta', textDelta: 'world!' },
+      {
+        type: 'finish',
+        finishReason: 'stop',
+        providerMetadata: {
+          google: {
+            cacheTokensDetails: null,
+            candidatesTokensDetails: null,
+            toolUsePromptTokensDetails: null,
+            promptTokensDetails: null,
+            thoughtsTokenCount: null,
+            cachedContentTokenCount: null,
+            groundingMetadata: null,
+            safetyRatings: [
+              {
+                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                probability: 'NEGLIGIBLE',
+              },
+              {
+                category: 'HARM_CATEGORY_HATE_SPEECH',
+                probability: 'NEGLIGIBLE',
+              },
+              {
+                category: 'HARM_CATEGORY_HARASSMENT',
+                probability: 'NEGLIGIBLE',
+              },
+              {
+                category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                probability: 'NEGLIGIBLE',
+              },
+            ],
+          },
+        },
+        usage: { promptTokens: 294, completionTokens: 233 },
+      },
+    ]);
+  });
+
+  it('should stream source events', async () => {
+    prepareStreamResponse({
+      content: ['Some initial text'],
+      groundingMetadata: {
+        groundingChunks: [
+          {
+            web: {
+              uri: 'https://source.example.com',
+              title: 'Source Title',
+            },
+          },
+        ],
+      },
+    });
+
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+    const sourceEvents = events.filter(event => event.type === 'source');
+
+    expect(sourceEvents).toEqual([
+      {
+        type: 'source',
+        source: {
+          id: 'test-id',
+          sourceType: 'url',
+          title: 'Source Title',
+          url: 'https://source.example.com',
+        },
+      },
+    ]);
+  });
+
+  it('should stream files', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  { inlineData: { data: 'test', mimeType: 'text/plain' } },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: [
+                {
+                  category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                  probability: 'NEGLIGIBLE',
+                  probabilityScore: 0.1,
+                  severity: 'LOW',
+                  severityScore: 0.2,
+                  blocked: false,
+                },
+              ],
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: null,
+            candidatesTokenCount: null,
+            cachedContentTokenCount: null,
+            thoughtsTokenCount: null,
+            promptTokensDetails: null,
+            cacheTokensDetails: null,
+            candidatesTokensDetails: null,
+            toolUsePromptTokensDetails: null,
+          },
+        })}
+
+`,
+      ],
+    };
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.filter(event => event.type === 'error')).toEqual([]);
     expect(events.filter(event => event.type === 'file')).toEqual([
       { type: 'file', mimeType: 'text/plain', data: 'test' },
     ]);
