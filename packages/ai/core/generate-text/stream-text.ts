@@ -598,7 +598,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedUsage: LanguageModelUsage | undefined = undefined;
-    let stepType: 'initial' | 'tool-result' = 'initial';
     const recordedSteps: StepResult<TOOLS>[] = [];
     let rootSpan!: Span;
 
@@ -719,16 +718,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedToolResults = [];
           recordedStepText = '';
           activeReasoningPart = undefined;
-
-          if (
-            currentStep + 1 < maxSteps &&
-            // there are tool calls:
-            recordedToolCalls.length > 0 &&
-            // all current tool calls have results:
-            recordedToolResults.length === recordedToolCalls.length
-          ) {
-            stepType = 'tool-result';
-          }
 
           recordedResponse.messages.push(...stepMessages);
         }
