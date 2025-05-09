@@ -293,13 +293,7 @@ A function that attempts to repair a tool call that failed to parse.
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
       let text = '';
-      const sources: GenerateTextResult<TOOLS, OUTPUT>['sources'] = [];
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
-      let usage: LanguageModelUsage = {
-        inputTokens: undefined,
-        outputTokens: undefined,
-        totalTokens: undefined,
-      };
 
       let stepType: 'initial' | 'tool-result' | 'done' = 'initial';
 
@@ -468,8 +462,6 @@ A function that attempts to repair a tool call that failed to parse.
                 abortSignal,
               });
 
-        usage = addLanguageModelUsage(usage, currentModelResponse.usage);
-
         // check if another step is needed:
         const nextStepType: 'done' | 'tool-result' =
           ++stepCount < maxSteps &&
@@ -491,13 +483,6 @@ A function that attempts to repair a tool call that failed to parse.
         const stepText = extractContentText(currentModelResponse.content) ?? '';
 
         text = stepText;
-
-        // sources (since we collect them for all steps):
-        sources.push(
-          ...currentModelResponse.content.filter(
-            part => part.type === 'source',
-          ),
-        );
 
         // append to messages for potential next step:
         responseMessages.push(
@@ -563,27 +548,16 @@ A function that attempts to repair a tool call that failed to parse.
         }),
       );
 
-      const resolvedOutput = await output?.parseOutput(
-        { text },
-        {
-          response: currentModelResponse.response,
-          usage,
-          finishReason: currentModelResponse.finishReason,
-        },
-      );
-
       return new DefaultGenerateTextResult({
-        resolvedOutput,
-        finishReason: currentModelResponse.finishReason,
-        usage,
-        warnings: currentModelResponse.warnings,
-        request: currentModelResponse.request ?? {},
-        response: {
-          ...currentModelResponse.response,
-          messages: responseMessages,
-        },
         steps,
-        providerMetadata: currentModelResponse.providerMetadata,
+        resolvedOutput: await output?.parseOutput(
+          { text },
+          {
+            response: currentModelResponse.response,
+            usage: currentModelResponse.usage,
+            finishReason: currentModelResponse.finishReason,
+          },
+        ),
       });
     },
   });
@@ -685,73 +659,87 @@ async function executeTools<TOOLS extends ToolSet>({
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
-  readonly finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
-  readonly usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
-  readonly warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
-  readonly providerMetadata: GenerateTextResult<
-    TOOLS,
-    OUTPUT
-  >['providerMetadata'];
-  readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
-  readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
 
   private readonly resolvedOutput: OUTPUT;
 
   constructor(options: {
-    finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
-    usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
-    warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
-    providerMetadata: GenerateTextResult<TOOLS, OUTPUT>['providerMetadata'];
-    response: GenerateTextResult<TOOLS, OUTPUT>['response'];
-    request: GenerateTextResult<TOOLS, OUTPUT>['request'];
     resolvedOutput: OUTPUT;
   }) {
-    this.finishReason = options.finishReason;
-    this.usage = options.usage;
-    this.warnings = options.warnings;
-    this.request = options.request;
-    this.response = options.response;
     this.steps = options.steps;
-    this.providerMetadata = options.providerMetadata;
     this.resolvedOutput = options.resolvedOutput;
   }
 
-  get content() {
-    return this.lastStep.content;
-  }
-
-  get text() {
-    return this.lastStep.text;
-  }
-
-  get lastStep() {
+  private get currentStep() {
     return this.steps[this.steps.length - 1];
   }
 
+  get content() {
+    return this.currentStep.content;
+  }
+
+  get text() {
+    return this.currentStep.text;
+  }
+
   get files() {
-    return this.lastStep.files;
+    return this.currentStep.files;
   }
 
   get reasoningText() {
-    return this.lastStep.reasoningText;
+    return this.currentStep.reasoningText;
   }
 
   get reasoning() {
-    return this.lastStep.reasoning;
+    return this.currentStep.reasoning;
   }
 
   get toolCalls() {
-    return this.lastStep.toolCalls;
+    return this.currentStep.toolCalls;
   }
 
   get toolResults() {
-    return this.lastStep.toolResults;
+    return this.currentStep.toolResults;
   }
 
   get sources() {
-    return this.lastStep.sources;
+    return this.currentStep.sources;
+  }
+
+  get finishReason() {
+    return this.currentStep.finishReason;
+  }
+
+  get warnings() {
+    return this.currentStep.warnings;
+  }
+
+  get providerMetadata() {
+    return this.currentStep.providerMetadata;
+  }
+
+  get response() {
+    return this.currentStep.response;
+  }
+
+  get request() {
+    return this.currentStep.request;
+  }
+
+  get usage() {
+    return this.steps.reduce(
+      (totalUsage, step) => {
+        return addLanguageModelUsage(totalUsage, step.usage);
+      },
+      {
+        inputTokens: undefined,
+        outputTokens: undefined,
+        totalTokens: undefined,
+        reasoningTokens: undefined,
+        cachedInputTokens: undefined,
+      } as LanguageModelUsage,
+    );
   }
 
   get experimental_output() {
