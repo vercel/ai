@@ -797,7 +797,6 @@ describe('tool invocations', () => {
       formatDataStreamPart({
         type: 'finish-step',
         value: {
-          isContinued: false,
           finishReason: 'tool-calls',
         },
       }),
