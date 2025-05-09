@@ -44,7 +44,6 @@ import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { extractFiles, extractReasoning, extractSources } from './as-content';
 import { ContentPart } from './content-part';
-import { GeneratedFile } from './generated-file';
 import { Output } from './output';
 import { asReasoningText } from './reasoning';
 import {
