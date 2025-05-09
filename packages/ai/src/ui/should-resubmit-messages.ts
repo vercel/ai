@@ -55,10 +55,6 @@ export function isAssistantMessageWithCompletedToolCalls(
 
   return (
     lastStepToolInvocations.length > 0 &&
-    lastStepToolInvocations.every(
-      part =>
-        'result' in part.toolInvocation &&
-        part.toolInvocation.result !== undefined,
-    )
+    lastStepToolInvocations.every(part => 'result' in part.toolInvocation)
   );
 }
