@@ -130,7 +130,7 @@ Callback that is set using the `onFinish` option.
 @param event - The event that is passed to the callback.
  */
 export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
-  event: Omit<StepResult<TOOLS>, 'stepType'> & {
+  event: StepResult<TOOLS> & {
     /**
 Details for all steps.
    */
@@ -688,14 +688,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // determine the next step type
           const currentStep = recordedSteps.length;
-          const nextStepType: 'done' | 'tool-result' =
-            currentStep + 1 < maxSteps &&
-            // there are tool calls:
-            recordedToolCalls.length > 0 &&
-            // all current tool calls have results:
-            recordedToolResults.length === recordedToolCalls.length
-              ? 'tool-result'
-              : 'done';
 
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = {
@@ -728,8 +720,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedStepText = '';
           activeReasoningPart = undefined;
 
-          if (nextStepType !== 'done') {
-            stepType = nextStepType;
+          if (
+            currentStep + 1 < maxSteps &&
+            // there are tool calls:
+            recordedToolCalls.length > 0 &&
+            // all current tool calls have results:
+            recordedToolResults.length === recordedToolCalls.length
+          ) {
+            stepType = 'tool-result';
           }
 
           recordedResponse.messages.push(...stepMessages);
@@ -1196,15 +1194,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       ? JSON.stringify(stepToolCalls)
                       : undefined;
 
-                  // determine the next step type
-                  const nextStepType: 'done' | 'tool-result' =
-                    currentStep + 1 < maxSteps && // there are tool calls:
-                    stepToolCalls.length > 0 &&
-                    // all current tool calls have results:
-                    stepToolResults.length === stepToolCalls.length
-                      ? 'tool-result'
-                      : 'done';
-
                   // record telemetry information first to ensure best effort timing
                   try {
                     doStreamSpan.setAttributes(
@@ -1260,20 +1249,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 
-                  if (nextStepType === 'done') {
-                    controller.enqueue({
-                      type: 'finish',
-                      finishReason: stepFinishReason,
-                      usage: combinedUsage,
-                      providerMetadata: stepProviderMetadata,
-                      response: {
-                        ...stepResponse,
-                        headers: response?.headers,
-                      },
-                    });
-
-                    self.closeStream(); // close the stitchable stream
-                  } else {
+                  if (
+                    currentStep + 1 < maxSteps && // there are tool calls:
+                    stepToolCalls.length > 0 &&
+                    // all current tool calls have results:
+                    stepToolResults.length === stepToolCalls.length
+                  ) {
                     // append to messages for the next step:
                     responseMessages.push(
                       ...toResponseMessages({
@@ -1290,6 +1271,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       usage: combinedUsage,
                       messageId: generateMessageId(),
                     });
+                  } else {
+                    controller.enqueue({
+                      type: 'finish',
+                      finishReason: stepFinishReason,
+                      usage: combinedUsage,
+                      providerMetadata: stepProviderMetadata,
+                      response: {
+                        ...stepResponse,
+                        headers: response?.headers,
+                      },
+                    });
+
+                    self.closeStream(); // close the stitchable stream
                   }
                 },
               }),
