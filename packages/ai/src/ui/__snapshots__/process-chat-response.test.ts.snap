@@ -817,67 +817,6 @@ exports[`processChatResponse > scenario: server provides sources > should call t
 ]
 `;
 
-exports[`processChatResponse > scenario: server-side continue roundtrip > should call the onFinish function with the correct arguments 1`] = `
-[
-  {
-    "finishReason": "stop",
-    "message": {
-      "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "id-0",
-      "parts": [
-        {
-          "text": "The weather in London is sunny.",
-          "type": "text",
-        },
-      ],
-      "role": "assistant",
-    },
-    "usage": {
-      "inputTokens": 7,
-      "outputTokens": 14,
-      "totalTokens": 21,
-    },
-  },
-]
-`;
-
-exports[`processChatResponse > scenario: server-side continue roundtrip > should call the update function with the correct arguments 1`] = `
-[
-  {
-    "data": [],
-    "message": {
-      "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "id-0",
-      "parts": [
-        {
-          "text": "The weather in London ",
-          "type": "text",
-        },
-      ],
-      "revisionId": "id-1",
-      "role": "assistant",
-    },
-    "replaceLastMessage": false,
-  },
-  {
-    "data": [],
-    "message": {
-      "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "id-0",
-      "parts": [
-        {
-          "text": "The weather in London is sunny.",
-          "type": "text",
-        },
-      ],
-      "revisionId": "id-2",
-      "role": "assistant",
-    },
-    "replaceLastMessage": false,
-  },
-]
-`;
-
 exports[`processChatResponse > scenario: server-side tool roundtrip > should call the onFinish function with the correct arguments 1`] = `
 [
   {

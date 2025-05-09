@@ -22,7 +22,6 @@ import { createStitchableStream } from '../../src/util/create-stitchable-stream'
 import { DelayedPromise } from '../../src/util/delayed-promise';
 import { now as originalNow } from '../../src/util/now';
 import { prepareRetries } from '../../src/util/prepare-retries';
-import { splitOnLastWhitespace } from '../../src/util/split-on-last-whitespace';
 import { CallSettings } from '../prompt/call-settings';
 import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
@@ -133,7 +132,7 @@ Callback that is set using the `onFinish` option.
 @param event - The event that is passed to the callback.
  */
 export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
-  event: Omit<StepResult<TOOLS>, 'stepType' | 'isContinued'> & {
+  event: Omit<StepResult<TOOLS>, 'stepType'> & {
     /**
 Details for all steps.
    */
@@ -207,7 +206,6 @@ export function streamText<
   maxSteps = 1,
   experimental_generateMessageId: generateMessageId = originalGenerateMessageId,
   experimental_output: output,
-  experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   providerOptions,
   experimental_toolCallStreaming = false,
@@ -255,13 +253,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
 Generate a unique ID for each message.
      */
     experimental_generateMessageId?: IdGenerator;
-
-    /**
-When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
-
-By default, it's set to false.
-     */
-    experimental_continueSteps?: boolean;
 
     /**
 Optional telemetry configuration (experimental).
@@ -363,7 +354,6 @@ Internal. For test use only. May change without notice.
     repairToolCall,
     maxSteps,
     output,
-    continueSteps,
     providerOptions,
     onChunk,
     onError,
@@ -538,7 +528,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     repairToolCall,
     maxSteps,
     output,
-    continueSteps,
     providerOptions,
     now,
     currentDate,
@@ -566,7 +555,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     repairToolCall: ToolCallRepairFunction<TOOLS> | undefined;
     maxSteps: number;
     output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
-    continueSteps: boolean;
     providerOptions: ProviderOptions | undefined;
     now: () => number;
     currentDate: () => Date;
@@ -612,7 +600,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedUsage: LanguageModelUsage | undefined = undefined;
-    let stepType: 'initial' | 'continue' | 'tool-result' = 'initial';
+    let stepType: 'initial' | 'tool-result' = 'initial';
     const recordedSteps: StepResult<TOOLS>[] = [];
     let rootSpan!: Span;
 
@@ -704,24 +692,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // determine the next step type
           const currentStep = recordedSteps.length;
-          let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
-          if (currentStep + 1 < maxSteps) {
-            if (
-              continueSteps &&
-              part.finishReason === 'length' &&
-              // only use continue when there are no tool calls:
-              recordedToolCalls.length === 0
-            ) {
-              nextStepType = 'continue';
-            } else if (
-              // there are tool calls:
-              recordedToolCalls.length > 0 &&
-              // all current tool calls have results:
-              recordedToolResults.length === recordedToolCalls.length
-            ) {
-              nextStepType = 'tool-result';
-            }
-          }
+          const nextStepType: 'done' | 'tool-result' =
+            currentStep + 1 < maxSteps &&
+            // there are tool calls:
+            recordedToolCalls.length > 0 &&
+            // all current tool calls have results:
+            recordedToolResults.length === recordedToolCalls.length
+              ? 'tool-result'
+              : 'done';
 
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = {
@@ -743,7 +721,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               messages: [...recordedResponse.messages, ...stepMessages],
             },
             providerMetadata: part.providerMetadata,
-            isContinued: part.isContinued,
           };
 
           await onStepFinish?.(currentStepResult);
@@ -760,10 +737,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             stepType = nextStepType;
           }
 
-          if (nextStepType !== 'continue') {
-            recordedResponse.messages.push(...stepMessages);
-            recordedContinuationText = '';
-          }
+          recordedResponse.messages.push(...stepMessages);
+          recordedContinuationText = '';
         }
 
         if (part.type === 'finish') {
@@ -1129,38 +1104,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   const chunkType = chunk.type;
                   switch (chunkType) {
                     case 'text': {
-                      if (continueSteps) {
-                        // when a new step starts, leading whitespace is to be discarded
-                        // when there is already preceding whitespace in the chunk buffer
-                        const trimmedChunkText =
-                          inWhitespacePrefix && hasLeadingWhitespace
-                            ? chunk.text.trimStart()
-                            : chunk.text;
-
-                        if (trimmedChunkText.length === 0) {
-                          break;
-                        }
-
-                        inWhitespacePrefix = false;
-                        chunkBuffer += trimmedChunkText;
-
-                        const split = splitOnLastWhitespace(chunkBuffer);
-
-                        // publish the text until the last whitespace:
-                        if (split != null) {
-                          chunkBuffer = split.suffix;
-
-                          await publishTextChunk({
-                            controller,
-                            chunk: {
-                              type: 'text',
-                              text: split.prefix + split.whitespace,
-                            },
-                          });
-                        }
-                      } else {
-                        await publishTextChunk({ controller, chunk });
-                      }
+                      await publishTextChunk({ controller, chunk });
                       break;
                     }
 
@@ -1267,40 +1211,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       : undefined;
 
                   // determine the next step type
-                  let nextStepType: 'done' | 'continue' | 'tool-result' =
-                    'done';
-                  if (currentStep + 1 < maxSteps) {
-                    if (
-                      continueSteps &&
-                      stepFinishReason === 'length' &&
-                      // only use continue when there are no tool calls:
-                      stepToolCalls.length === 0
-                    ) {
-                      nextStepType = 'continue';
-                    } else if (
-                      // there are tool calls:
-                      stepToolCalls.length > 0 &&
-                      // all current tool calls have results:
-                      stepToolResults.length === stepToolCalls.length
-                    ) {
-                      nextStepType = 'tool-result';
-                    }
-                  }
-
-                  // when using continuation, publish buffer on final step or if there
-                  // was no whitespace in the step:
-                  if (
-                    continueSteps &&
-                    chunkBuffer.length > 0 &&
-                    (nextStepType !== 'continue' || // when the next step is a regular step, publish the buffer
-                      (stepType === 'continue' && !chunkTextPublished)) // when the next step is a continue step, publish the buffer if no text was published in the step
-                  ) {
-                    await publishTextChunk({
-                      controller,
-                      chunk: { type: 'text', text: chunkBuffer },
-                    });
-                    chunkBuffer = '';
-                  }
+                  const nextStepType: 'done' | 'tool-result' =
+                    currentStep + 1 < maxSteps && // there are tool calls:
+                    stepToolCalls.length > 0 &&
+                    // all current tool calls have results:
+                    stepToolResults.length === stepToolCalls.length
+                      ? 'tool-result'
+                      : 'done';
 
                   // record telemetry information first to ensure best effort timing
                   try {
@@ -1352,7 +1269,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       headers: response?.headers,
                     },
                     warnings,
-                    isContinued: nextStepType === 'continue',
                     messageId,
                   });
 
@@ -1419,11 +1335,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       stepType: nextStepType,
                       previousStepText: fullStepText,
                       hasLeadingWhitespace: hasWhitespaceSuffix,
-                      messageId:
-                        // keep the same id when continuing a step:
-                        nextStepType === 'continue'
-                          ? messageId
-                          : generateMessageId(),
+                      messageId: generateMessageId(),
                     });
                   }
                 },
@@ -1717,7 +1629,6 @@ However, the LLM results are expected to be small enough to not cause issues.
                 value: {
                   finishReason: chunk.finishReason,
                   usage: sendUsage ? chunk.usage : undefined,
-                  isContinued: chunk.isContinued,
                 },
               });
               break;

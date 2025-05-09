@@ -8,8 +8,7 @@ import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { ToolExecutionError } from '../../src/error/tool-execution-error';
 import { prepareRetries } from '../../src/util/prepare-retries';
-import { removeTextAfterLastWhitespace } from '../../src/util/remove-text-after-last-whitespace';
-import { AssistantModelMessage, ModelMessage } from '../prompt';
+import { ModelMessage } from '../prompt';
 import { CallSettings } from '../prompt/call-settings';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
@@ -125,7 +124,6 @@ export async function generateText<
   maxSteps = 1,
   experimental_generateMessageId: generateMessageId = originalGenerateMessageId,
   experimental_output: output,
-  experimental_continueSteps: continueSteps = false,
   experimental_telemetry: telemetry,
   providerOptions,
   experimental_activeTools: activeTools,
@@ -167,13 +165,6 @@ By default, it's set to 1, which means that only a single LLM call is made.
 Generate a unique ID for each message.
      */
     experimental_generateMessageId?: IdGenerator;
-
-    /**
-When enabled, the model will perform additional steps if the finish reason is "length" (experimental).
-
-By default, it's set to false.
-     */
-    experimental_continueSteps?: boolean;
 
     /**
 Optional telemetry configuration (experimental).
@@ -309,7 +300,7 @@ A function that attempts to repair a tool call that failed to parse.
         totalTokens: undefined,
       };
 
-      let stepType: 'initial' | 'tool-result' | 'continue' | 'done' = 'initial';
+      let stepType: 'initial' | 'tool-result' | 'done' = 'initial';
 
       do {
         const stepInputMessages = [
@@ -479,24 +470,14 @@ A function that attempts to repair a tool call that failed to parse.
         usage = addLanguageModelUsage(usage, currentModelResponse.usage);
 
         // check if another step is needed:
-        let nextStepType: 'done' | 'continue' | 'tool-result' = 'done';
-        if (++stepCount < maxSteps) {
-          if (
-            continueSteps &&
-            currentModelResponse.finishReason === 'length' &&
-            // only use continue when there are no tool calls:
-            currentToolCalls.length === 0
-          ) {
-            nextStepType = 'continue';
-          } else if (
-            // there are tool calls:
-            currentToolCalls.length > 0 &&
-            // all current tool calls have results:
-            currentToolResults.length === currentToolCalls.length
-          ) {
-            nextStepType = 'tool-result';
-          }
-        }
+        const nextStepType: 'done' | 'tool-result' =
+          ++stepCount < maxSteps &&
+          // there are tool calls:
+          currentToolCalls.length > 0 &&
+          // all current tool calls have results:
+          currentToolResults.length === currentToolCalls.length
+            ? 'tool-result'
+            : 'done';
 
         // content:
         const stepContent = asContent({
@@ -506,23 +487,9 @@ A function that attempts to repair a tool call that failed to parse.
         });
 
         // text:
-        const originalText =
-          extractContentText(currentModelResponse.content) ?? '';
-        const stepTextLeadingWhitespaceTrimmed =
-          stepType === 'continue' && // only for continue steps
-          text.trimEnd() !== text // only trim when there is preceding whitespace
-            ? originalText.trimStart()
-            : originalText;
+        const stepText = extractContentText(currentModelResponse.content) ?? '';
 
-        const stepText =
-          nextStepType === 'continue'
-            ? removeTextAfterLastWhitespace(stepTextLeadingWhitespaceTrimmed)
-            : stepTextLeadingWhitespaceTrimmed;
-
-        text =
-          nextStepType === 'continue' || stepType === 'continue'
-            ? text + stepText
-            : stepText;
+        text = stepText;
 
         // sources (since we collect them for all steps):
         sources.push(
@@ -532,32 +499,14 @@ A function that attempts to repair a tool call that failed to parse.
         );
 
         // append to messages for potential next step:
-        if (stepType === 'continue') {
-          // continue step: update the last assistant message
-          // continue is only possible when there are no tool calls,
-          // so we can assume that there is a single last assistant message:
-          const lastMessage = responseMessages[
-            responseMessages.length - 1
-          ] as AssistantModelMessage;
-
-          if (typeof lastMessage.content === 'string') {
-            lastMessage.content += stepText;
-          } else {
-            lastMessage.content.push({
-              text: stepText,
-              type: 'text',
-            });
-          }
-        } else {
-          responseMessages.push(
-            ...toResponseMessages({
-              content: stepContent,
-              tools: tools ?? ({} as TOOLS),
-              messageId: generateMessageId(),
-              generateMessageId,
-            }),
-          );
-        }
+        responseMessages.push(
+          ...toResponseMessages({
+            content: stepContent,
+            tools: tools ?? ({} as TOOLS),
+            messageId: generateMessageId(),
+            generateMessageId,
+          }),
+        );
 
         // Add step information (after response messages are updated):
         const currentStepResult: StepResult<TOOLS> = {
@@ -580,7 +529,6 @@ A function that attempts to repair a tool call that failed to parse.
             messages: structuredClone(responseMessages),
           },
           providerMetadata: currentModelResponse.providerMetadata,
-          isContinued: nextStepType === 'continue',
         };
         steps.push(currentStepResult);
         await onStepFinish?.(currentStepResult);
