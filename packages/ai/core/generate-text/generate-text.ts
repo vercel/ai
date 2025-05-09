@@ -23,19 +23,13 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import {
-  asContent,
-  extractFiles,
-  extractReasoning,
-  extractSources,
-} from './as-content';
+import { asContent } from './as-content';
 import { extractContentText } from './extract-content-text';
 import { GenerateTextResult } from './generate-text-result';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import { asReasoningText } from './reasoning';
 import { ResponseMessage } from './response-message';
-import { StepResult } from './step-result';
+import { DefaultStepResult, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
@@ -292,16 +286,7 @@ A function that attempts to repair a tool call that failed to parse.
       let currentToolResults: ToolResultArray<TOOLS> = [];
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
-      let text = '';
-      const sources: GenerateTextResult<TOOLS, OUTPUT>['sources'] = [];
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
-      let usage: LanguageModelUsage = {
-        inputTokens: undefined,
-        outputTokens: undefined,
-        totalTokens: undefined,
-      };
-
-      let stepType: 'initial' | 'tool-result' | 'done' = 'initial';
 
       do {
         const stepInputMessages = [
@@ -468,36 +453,12 @@ A function that attempts to repair a tool call that failed to parse.
                 abortSignal,
               });
 
-        usage = addLanguageModelUsage(usage, currentModelResponse.usage);
-
-        // check if another step is needed:
-        const nextStepType: 'done' | 'tool-result' =
-          ++stepCount < maxSteps &&
-          // there are tool calls:
-          currentToolCalls.length > 0 &&
-          // all current tool calls have results:
-          currentToolResults.length === currentToolCalls.length
-            ? 'tool-result'
-            : 'done';
-
         // content:
         const stepContent = asContent({
           content: currentModelResponse.content,
           toolCalls: currentToolCalls,
           toolResults: currentToolResults,
         });
-
-        // text:
-        const stepText = extractContentText(currentModelResponse.content) ?? '';
-
-        text = stepText;
-
-        // sources (since we collect them for all steps):
-        sources.push(
-          ...currentModelResponse.content.filter(
-            part => part.type === 'source',
-          ),
-        );
 
         // append to messages for potential next step:
         responseMessages.push(
@@ -510,32 +471,29 @@ A function that attempts to repair a tool call that failed to parse.
         );
 
         // Add step information (after response messages are updated):
-        const currentStepResult: StepResult<TOOLS> = {
-          stepType,
+        const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
           content: stepContent,
-          text: stepText,
-          reasoningText: asReasoningText(extractReasoning(stepContent)),
-          reasoning: extractReasoning(stepContent),
-          files: extractFiles(stepContent),
-          sources: extractSources(stepContent),
-          toolCalls: currentToolCalls,
-          toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,
           usage: currentModelResponse.usage,
           warnings: currentModelResponse.warnings,
+          providerMetadata: currentModelResponse.providerMetadata,
           request: currentModelResponse.request ?? {},
           response: {
             ...currentModelResponse.response,
             // deep clone msgs to avoid mutating past messages in multi-step:
             messages: structuredClone(responseMessages),
           },
-          providerMetadata: currentModelResponse.providerMetadata,
-        };
+        });
+
         steps.push(currentStepResult);
         await onStepFinish?.(currentStepResult);
-
-        stepType = nextStepType;
-      } while (stepType !== 'done');
+      } while (
+        ++stepCount < maxSteps &&
+        // there are tool calls:
+        currentToolCalls.length > 0 &&
+        // all current tool calls have results:
+        currentToolResults.length === currentToolCalls.length
+      );
 
       // Add response information to the span:
       span.setAttributes(
@@ -563,33 +521,18 @@ A function that attempts to repair a tool call that failed to parse.
         }),
       );
 
-      const resolvedOutput = await output?.parseOutput(
-        { text },
-        {
-          response: currentModelResponse.response,
-          usage,
-          finishReason: currentModelResponse.finishReason,
-        },
-      );
+      const lastStep = steps[steps.length - 1];
 
       return new DefaultGenerateTextResult({
-        text,
-        content: asContent({
-          content: currentModelResponse.content,
-          toolCalls: currentToolCalls,
-          toolResults: currentToolResults,
-        }),
-        resolvedOutput,
-        finishReason: currentModelResponse.finishReason,
-        usage,
-        warnings: currentModelResponse.warnings,
-        request: currentModelResponse.request ?? {},
-        response: {
-          ...currentModelResponse.response,
-          messages: responseMessages,
-        },
         steps,
-        providerMetadata: currentModelResponse.providerMetadata,
+        resolvedOutput: await output?.parseOutput(
+          { text: lastStep.text },
+          {
+            response: lastStep.response,
+            usage: lastStep.usage,
+            finishReason: lastStep.finishReason,
+          },
+        ),
       });
     },
   });
@@ -691,71 +634,87 @@ async function executeTools<TOOLS extends ToolSet>({
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
-  readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
-  readonly content: GenerateTextResult<TOOLS, OUTPUT>['content'];
-  readonly finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
-  readonly usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
-  readonly warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
   readonly steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
-  readonly providerMetadata: GenerateTextResult<
-    TOOLS,
-    OUTPUT
-  >['providerMetadata'];
-  readonly response: GenerateTextResult<TOOLS, OUTPUT>['response'];
-  readonly request: GenerateTextResult<TOOLS, OUTPUT>['request'];
 
   private readonly resolvedOutput: OUTPUT;
 
   constructor(options: {
-    text: GenerateTextResult<TOOLS, OUTPUT>['text'];
-    content: GenerateTextResult<TOOLS, OUTPUT>['content'];
-    finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
-    usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
-    warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
     steps: GenerateTextResult<TOOLS, OUTPUT>['steps'];
-    providerMetadata: GenerateTextResult<TOOLS, OUTPUT>['providerMetadata'];
-    response: GenerateTextResult<TOOLS, OUTPUT>['response'];
-    request: GenerateTextResult<TOOLS, OUTPUT>['request'];
     resolvedOutput: OUTPUT;
   }) {
-    this.text = options.text;
-    this.content = options.content;
-    this.finishReason = options.finishReason;
-    this.usage = options.usage;
-    this.warnings = options.warnings;
-    this.request = options.request;
-    this.response = options.response;
     this.steps = options.steps;
-    this.providerMetadata = options.providerMetadata;
     this.resolvedOutput = options.resolvedOutput;
   }
 
+  private get lastStep() {
+    return this.steps[this.steps.length - 1];
+  }
+
+  get content() {
+    return this.lastStep.content;
+  }
+
+  get text() {
+    return this.lastStep.text;
+  }
+
   get files() {
-    return extractFiles(this.content);
+    return this.lastStep.files;
   }
 
   get reasoningText() {
-    const texts = this.content
-      .filter(part => part.type === 'reasoning')
-      .map(part => part.text);
-    return texts.length > 0 ? texts.join('') : undefined;
+    return this.lastStep.reasoningText;
   }
 
   get reasoning() {
-    return this.content.filter(part => part.type === 'reasoning');
+    return this.lastStep.reasoning;
   }
 
   get toolCalls() {
-    return this.content.filter(part => part.type === 'tool-call');
+    return this.lastStep.toolCalls;
   }
 
   get toolResults() {
-    return this.content.filter(part => part.type === 'tool-result');
+    return this.lastStep.toolResults;
   }
 
   get sources() {
-    // return sources from all steps:
-    return this.steps.flatMap(step => step.sources);
+    return this.lastStep.sources;
+  }
+
+  get finishReason() {
+    return this.lastStep.finishReason;
+  }
+
+  get warnings() {
+    return this.lastStep.warnings;
+  }
+
+  get providerMetadata() {
+    return this.lastStep.providerMetadata;
+  }
+
+  get response() {
+    return this.lastStep.response;
+  }
+
+  get request() {
+    return this.lastStep.request;
+  }
+
+  get usage() {
+    return this.steps.reduce(
+      (totalUsage, step) => {
+        return addLanguageModelUsage(totalUsage, step.usage);
+      },
+      {
+        inputTokens: undefined,
+        outputTokens: undefined,
+        totalTokens: undefined,
+        reasoningTokens: undefined,
+        cachedInputTokens: undefined,
+      } as LanguageModelUsage,
+    );
   }
 
   get experimental_output() {

@@ -182,7 +182,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
   },
   "sources": [],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "providerMetadata": undefined,
@@ -207,17 +207,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
           "type": "tool-result",
         },
       ],
-      "files": [],
       "finishReason": "tool-calls",
       "providerMetadata": undefined,
-      "reasoning": [
-        {
-          "providerMetadata": undefined,
-          "text": "thinking",
-          "type": "reasoning",
-        },
-      ],
-      "reasoningText": "thinking",
       "request": {},
       "response": {
         "headers": {
@@ -260,30 +251,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [],
-      "stepType": "initial",
-      "text": "",
-      "toolCalls": [
-        {
-          "args": {
-            "value": "value",
-          },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-      ],
-      "toolResults": [
-        {
-          "args": {
-            "value": "value",
-          },
-          "result": "result1",
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-result",
-        },
-      ],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -293,18 +260,15 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       },
       "warnings": undefined,
     },
-    {
+    DefaultStepResult {
       "content": [
         {
           "text": "Hello, world!",
           "type": "text",
         },
       ],
-      "files": [],
       "finishReason": "stop",
       "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -357,11 +321,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
-      "sources": [],
-      "stepType": "tool-result",
-      "text": "Hello, world!",
-      "toolCalls": [],
-      "toolResults": [],
       "usage": {
         "cachedInputTokens": 3,
         "inputTokens": 3,
@@ -388,7 +347,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
 
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbacks > onStepFinish should send correct information 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "providerMetadata": undefined,
@@ -413,17 +372,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "type": "tool-result",
       },
     ],
-    "files": [],
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
-    "reasoning": [
-      {
-        "providerMetadata": undefined,
-        "text": "thinking",
-        "type": "reasoning",
-      },
-    ],
-    "reasoningText": "thinking",
     "request": {},
     "response": {
       "headers": {
@@ -466,30 +416,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "stepType": "initial",
-    "text": "",
-    "toolCalls": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "toolResults": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -499,18 +425,15 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
     },
     "warnings": undefined,
   },
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -563,11 +486,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
-    "sources": [],
-    "stepType": "tool-result",
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": 3,
       "inputTokens": 3,
@@ -875,7 +793,7 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
 
 exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value promises > result.steps should contain all steps 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "providerMetadata": undefined,
@@ -900,17 +818,8 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
         "type": "tool-result",
       },
     ],
-    "files": [],
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
-    "reasoning": [
-      {
-        "providerMetadata": undefined,
-        "text": "thinking",
-        "type": "reasoning",
-      },
-    ],
-    "reasoningText": "thinking",
     "request": {},
     "response": {
       "headers": {
@@ -953,30 +862,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "stepType": "initial",
-    "text": "",
-    "toolCalls": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "toolResults": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -986,18 +871,15 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
     },
     "warnings": undefined,
   },
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": {
@@ -1050,11 +932,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
-    "sources": [],
-    "stepType": "tool-result",
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": 3,
       "inputTokens": 3,
@@ -1222,7 +1099,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
   },
   "sources": [],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "text": "Hello, ",
@@ -1250,15 +1127,12 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
           "type": "text",
         },
       ],
-      "files": [],
       "finishReason": "stop",
       "providerMetadata": {
         "testProvider": {
           "testKey": "testValue",
         },
       },
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -1304,30 +1178,6 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [],
-      "stepType": "initial",
-      "text": "Hello, world!",
-      "toolCalls": [
-        {
-          "args": {
-            "value": "value",
-          },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-      ],
-      "toolResults": [
-        {
-          "args": {
-            "value": "value",
-          },
-          "result": "value-result",
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-result",
-        },
-      ],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -1446,7 +1296,7 @@ exports[`streamText > options.onFinish > should send files 1`] = `
   },
   "sources": [],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "file": DefaultGeneratedFileWithType {
@@ -1471,24 +1321,8 @@ exports[`streamText > options.onFinish > should send files 1`] = `
           "type": "file",
         },
       ],
-      "files": [
-        DefaultGeneratedFileWithType {
-          "base64Data": "Hello World",
-          "mediaType": "text/plain",
-          "type": "file",
-          "uint8ArrayData": undefined,
-        },
-        DefaultGeneratedFileWithType {
-          "base64Data": "QkFVRw==",
-          "mediaType": "image/jpeg",
-          "type": "file",
-          "uint8ArrayData": undefined,
-        },
-      ],
       "finishReason": "stop",
       "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -1518,11 +1352,6 @@ exports[`streamText > options.onFinish > should send files 1`] = `
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [],
-      "stepType": "initial",
-      "text": "Hello!",
-      "toolCalls": [],
-      "toolResults": [],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -1630,7 +1459,7 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
     },
   ],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "id": "123",
@@ -1661,11 +1490,8 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
           "url": "https://example.com/2",
         },
       ],
-      "files": [],
       "finishReason": "stop",
       "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -1685,36 +1511,6 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [
-        {
-          "id": "123",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value",
-            },
-          },
-          "sourceType": "url",
-          "title": "Example",
-          "type": "source",
-          "url": "https://example.com",
-        },
-        {
-          "id": "456",
-          "providerMetadata": {
-            "provider": {
-              "custom": "value2",
-            },
-          },
-          "sourceType": "url",
-          "title": "Example 2",
-          "type": "source",
-          "url": "https://example.com/2",
-        },
-      ],
-      "stepType": "initial",
-      "text": "Hello!",
-      "toolCalls": [],
-      "toolResults": [],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -1773,18 +1569,15 @@ exports[`streamText > options.output > object output > should call onFinish with
   },
   "sources": [],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "text": "{ "value": "Hello, world!" }",
           "type": "text",
         },
       ],
-      "files": [],
       "finishReason": "stop",
       "providerMetadata": undefined,
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": undefined,
@@ -1804,11 +1597,6 @@ exports[`streamText > options.output > object output > should call onFinish with
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [],
-      "stepType": "initial",
-      "text": "{ "value": "Hello, world!" }",
-      "toolCalls": [],
-      "toolResults": [],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -1918,7 +1706,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
   },
   "sources": [],
   "steps": [
-    {
+    DefaultStepResult {
       "content": [
         {
           "text": "HELLO, ",
@@ -1946,15 +1734,12 @@ exports[`streamText > options.transform > with base transformation > options.onF
           "type": "text",
         },
       ],
-      "files": [],
       "finishReason": "stop",
       "providerMetadata": {
         "testProvider": {
           "testKey": "TEST VALUE",
         },
       },
-      "reasoning": [],
-      "reasoningText": undefined,
       "request": {},
       "response": {
         "headers": {
@@ -2000,30 +1785,6 @@ exports[`streamText > options.transform > with base transformation > options.onF
         "modelId": "mock-model-id",
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
-      "sources": [],
-      "stepType": "initial",
-      "text": "HELLO, WORLD!",
-      "toolCalls": [
-        {
-          "args": {
-            "value": "VALUE",
-          },
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-call",
-        },
-      ],
-      "toolResults": [
-        {
-          "args": {
-            "value": "VALUE",
-          },
-          "result": "VALUE-RESULT",
-          "toolCallId": "call-1",
-          "toolName": "tool1",
-          "type": "tool-result",
-        },
-      ],
       "usage": {
         "cachedInputTokens": undefined,
         "inputTokens": 3,
@@ -2068,7 +1829,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
 `;
 
 exports[`streamText > options.transform > with base transformation > options.onStepFinish should receive transformed data 1`] = `
-{
+DefaultStepResult {
   "content": [
     {
       "text": "HELLO, ",
@@ -2096,15 +1857,12 @@ exports[`streamText > options.transform > with base transformation > options.onS
       "type": "text",
     },
   ],
-  "files": [],
   "finishReason": "stop",
   "providerMetadata": {
     "testProvider": {
       "testKey": "TEST VALUE",
     },
   },
-  "reasoning": [],
-  "reasoningText": undefined,
   "request": {},
   "response": {
     "headers": {
@@ -2150,30 +1908,6 @@ exports[`streamText > options.transform > with base transformation > options.onS
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
-  "sources": [],
-  "stepType": "initial",
-  "text": "HELLO, WORLD!",
-  "toolCalls": [
-    {
-      "args": {
-        "value": "VALUE",
-      },
-      "toolCallId": "call-1",
-      "toolName": "tool1",
-      "type": "tool-call",
-    },
-  ],
-  "toolResults": [
-    {
-      "args": {
-        "value": "VALUE",
-      },
-      "result": "VALUE-RESULT",
-      "toolCallId": "call-1",
-      "toolName": "tool1",
-      "type": "tool-result",
-    },
-  ],
   "usage": {
     "cachedInputTokens": undefined,
     "inputTokens": 3,
@@ -2187,7 +1921,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
 
 exports[`streamText > options.transform > with base transformation > result.steps should be transformed 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "HELLO, WORLD!",
@@ -2211,11 +1945,8 @@ exports[`streamText > options.transform > with base transformation > result.step
         "type": "tool-result",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -2255,30 +1986,6 @@ exports[`streamText > options.transform > with base transformation > result.step
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "stepType": "initial",
-    "text": "HELLO, WORLD!",
-    "toolCalls": [
-      {
-        "args": {
-          "value": "VALUE",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "toolResults": [
-      {
-        "args": {
-          "value": "VALUE",
-        },
-        "result": "RESULT1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -2376,18 +2083,15 @@ exports[`streamText > options.transform > with base transformation > telemetry s
 `;
 
 exports[`streamText > options.transform > with transformation that aborts stream > options.onStepFinish should be called 1`] = `
-{
+DefaultStepResult {
   "content": [
     {
       "text": "Hello, ",
       "type": "text",
     },
   ],
-  "files": [],
   "finishReason": "stop",
   "providerMetadata": undefined,
-  "reasoning": [],
-  "reasoningText": undefined,
   "request": {},
   "response": {
     "id": "response-id",
@@ -2406,11 +2110,6 @@ exports[`streamText > options.transform > with transformation that aborts stream
     "modelId": "mock-model-id",
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
-  "sources": [],
-  "stepType": "initial",
-  "text": "Hello, ",
-  "toolCalls": [],
-  "toolResults": [],
   "usage": {
     "cachedInputTokens": undefined,
     "inputTokens": undefined,
@@ -3455,7 +3154,7 @@ exports[`streamText > result.sources > should contain sources 1`] = `
 
 exports[`streamText > result.steps > should add the files from the model response to the step result 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "file": DefaultGeneratedFileWithType {
@@ -3480,24 +3179,8 @@ exports[`streamText > result.steps > should add the files from the model respons
         "type": "file",
       },
     ],
-    "files": [
-      DefaultGeneratedFileWithType {
-        "base64Data": "Hello World",
-        "mediaType": "text/plain",
-        "type": "file",
-        "uint8ArrayData": undefined,
-      },
-      DefaultGeneratedFileWithType {
-        "base64Data": "QkFVRw==",
-        "mediaType": "image/jpeg",
-        "type": "file",
-        "uint8ArrayData": undefined,
-      },
-    ],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3527,11 +3210,6 @@ exports[`streamText > result.steps > should add the files from the model respons
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "stepType": "initial",
-    "text": "Hello!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -3546,7 +3224,7 @@ exports[`streamText > result.steps > should add the files from the model respons
 
 exports[`streamText > result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "providerMetadata": {
@@ -3580,39 +3258,8 @@ exports[`streamText > result.steps > should add the reasoning from the model res
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [
-      {
-        "providerMetadata": {
-          "testProvider": {
-            "signature": "1234567890",
-          },
-        },
-        "text": "I will open the conversation with witty banter. ",
-        "type": "reasoning",
-      },
-      {
-        "providerMetadata": {
-          "testProvider": {
-            "redactedData": "redacted-reasoning-data",
-          },
-        },
-        "text": "",
-        "type": "reasoning",
-      },
-      {
-        "providerMetadata": {
-          "testProvider": {
-            "signature": "1234567890",
-          },
-        },
-        "text": "Once the user has relaxed, I will pry for valuable information.",
-        "type": "reasoning",
-      },
-    ],
-    "reasoningText": "I will open the conversation with witty banter. Once the user has relaxed, I will pry for valuable information.",
     "request": {},
     "response": {
       "headers": undefined,
@@ -3659,11 +3306,6 @@ exports[`streamText > result.steps > should add the reasoning from the model res
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "stepType": "initial",
-    "text": "Hi there!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -3678,7 +3320,7 @@ exports[`streamText > result.steps > should add the reasoning from the model res
 
 exports[`streamText > result.steps > should add the sources from the model response to the step result 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "id": "123",
@@ -3709,11 +3351,8 @@ exports[`streamText > result.steps > should add the sources from the model respo
         "url": "https://example.com/2",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "headers": undefined,
@@ -3733,36 +3372,6 @@ exports[`streamText > result.steps > should add the sources from the model respo
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-    ],
-    "stepType": "initial",
-    "text": "Hello!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,

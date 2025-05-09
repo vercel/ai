@@ -1,7 +1,4 @@
-import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2Source,
-} from '@ai-sdk/provider';
+import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -42,16 +39,14 @@ import {
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { extractFiles, extractReasoning, extractSources } from './as-content';
 import { ContentPart } from './content-part';
 import { Output } from './output';
-import { asReasoningText } from './reasoning';
 import { ResponseMessage } from './response-message';
 import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
-import { StepResult } from './step-result';
+import { DefaultStepResult, StepResult } from './step-result';
 import {
   ConsumeStreamOptions,
   DataStreamOptions,
@@ -130,7 +125,7 @@ Callback that is set using the `onFinish` option.
 @param event - The event that is passed to the callback.
  */
 export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
-  event: Omit<StepResult<TOOLS>, 'stepType'> & {
+  event: StepResult<TOOLS> & {
     /**
 Details for all steps.
    */
@@ -452,50 +447,14 @@ function createOutputTransformStream<
 class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
 {
-  private readonly warningsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['warnings']>
-  >();
   private readonly usagePromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
   >();
   private readonly finishReasonPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['finishReason']>
   >();
-  private readonly providerMetadataPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['providerMetadata']>
-  >();
-  private readonly textPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['text']>
-  >();
-  private readonly reasoningPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoningText']>
-  >();
-  private readonly reasoningDetailsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['reasoning']>
-  >();
-  private readonly sourcesPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['sources']>
-  >();
-  private readonly filesPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['files']>
-  >();
-  private readonly toolCallsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolCalls']>
-  >();
-  private readonly toolResultsPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['toolResults']>
-  >();
-  private readonly requestPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['request']>
-  >();
-  private readonly responsePromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['response']>
-  >();
   private readonly stepsPromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['steps']>
-  >();
-  private readonly contentPromise = new DelayedPromise<
-    Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['content']>
   >();
 
   private readonly addStream: (
@@ -575,17 +534,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     this.output = output;
 
-    // event processor for telemetry, invoking callbacks, etc.
-    // The event processor reads the transformed stream to enable correct
-    // recording of the final transformed outputs.
-    let recordedStepText = '';
-
     let activeReasoningPart:
       | undefined
       | (ContentPart<TOOLS> & { type: 'reasoning' }) = undefined;
 
     let recordedContent: Array<ContentPart<TOOLS>> = [];
-    const recordedSources: LanguageModelV2Source[] = [];
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;
     } = {
@@ -594,12 +547,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       modelId: model.modelId,
       messages: [],
     };
-    let recordedToolCalls: ToolCallUnion<TOOLS>[] = [];
-    let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedUsage: LanguageModelUsage | undefined = undefined;
-    let stepType: 'initial' | 'tool-result' = 'initial';
+
     const recordedSteps: StepResult<TOOLS>[] = [];
+
     let rootSpan!: Span;
 
     const eventProcessor = new TransformStream<
@@ -628,8 +580,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'text') {
-          recordedStepText += part.text;
-
           const latestContent = recordedContent[recordedContent.length - 1];
           if (latestContent?.type === 'text') {
             latestContent.text += part.text;
@@ -665,17 +615,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
         if (part.type === 'source') {
           recordedContent.push(part);
-          recordedSources.push(part);
         }
 
         if (part.type === 'tool-call') {
           recordedContent.push(part);
-          recordedToolCalls.push(part);
         }
 
         if (part.type === 'tool-result') {
           recordedContent.push(part);
-          recordedToolResults.push(part);
         }
 
         if (part.type === 'step-finish') {
@@ -686,28 +633,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             generateMessageId,
           });
 
-          // determine the next step type
-          const currentStep = recordedSteps.length;
-          const nextStepType: 'done' | 'tool-result' =
-            currentStep + 1 < maxSteps &&
-            // there are tool calls:
-            recordedToolCalls.length > 0 &&
-            // all current tool calls have results:
-            recordedToolResults.length === recordedToolCalls.length
-              ? 'tool-result'
-              : 'done';
-
           // Add step information (after response messages are updated):
-          const currentStepResult: StepResult<TOOLS> = {
-            stepType,
+          const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: recordedContent,
-            text: recordedStepText,
-            reasoningText: asReasoningText(extractReasoning(recordedContent)),
-            reasoning: extractReasoning(recordedContent),
-            files: extractFiles(recordedContent),
-            sources: extractSources(recordedContent),
-            toolCalls: recordedToolCalls,
-            toolResults: recordedToolResults,
             finishReason: part.finishReason,
             usage: part.usage,
             warnings: part.warnings,
@@ -717,21 +645,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               messages: [...recordedResponse.messages, ...stepMessages],
             },
             providerMetadata: part.providerMetadata,
-          };
+          });
 
           await onStepFinish?.(currentStepResult);
 
           recordedSteps.push(currentStepResult);
 
           recordedContent = [];
-          recordedToolCalls = [];
-          recordedToolResults = [];
-          recordedStepText = '';
           activeReasoningPart = undefined;
-
-          if (nextStepType !== 'done') {
-            stepType = nextStepType;
-          }
 
           recordedResponse.messages.push(...stepMessages);
         }
@@ -752,19 +673,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             return; // no steps recorded (e.g. in error scenario)
           }
 
-          // from last step (when there are errors there may be no last step)
-          const lastStep = recordedSteps[recordedSteps.length - 1];
-
-          self.contentPromise.resolve(lastStep.content);
-          self.warningsPromise.resolve(lastStep.warnings);
-          self.requestPromise.resolve(lastStep.request);
-          self.responsePromise.resolve(lastStep.response);
-          self.toolCallsPromise.resolve(lastStep.toolCalls);
-          self.toolResultsPromise.resolve(lastStep.toolResults);
-          self.providerMetadataPromise.resolve(lastStep.providerMetadata);
-          self.reasoningPromise.resolve(lastStep.reasoningText);
-          self.reasoningDetailsPromise.resolve(lastStep.reasoning);
-
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
           const usage = recordedUsage ?? {
@@ -778,12 +686,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.usagePromise.resolve(usage);
 
           // aggregate results:
-          self.textPromise.resolve(lastStep.text);
-          self.sourcesPromise.resolve(recordedSources);
-          self.filesPromise.resolve(lastStep.files);
           self.stepsPromise.resolve(recordedSteps);
 
           // call onFinish callback:
+          const lastStep = recordedSteps[recordedSteps.length - 1];
           await onFinish?.({
             finishReason,
             usage,
@@ -795,7 +701,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             sources: lastStep.sources,
             toolCalls: lastStep.toolCalls,
             toolResults: lastStep.toolResults,
-            request: lastStep.request ?? {},
+            request: lastStep.request,
             response: lastStep.response,
             warnings: lastStep.warnings,
             providerMetadata: lastStep.providerMetadata,
@@ -1197,15 +1103,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       ? JSON.stringify(stepToolCalls)
                       : undefined;
 
-                  // determine the next step type
-                  const nextStepType: 'done' | 'tool-result' =
-                    currentStep + 1 < maxSteps && // there are tool calls:
-                    stepToolCalls.length > 0 &&
-                    // all current tool calls have results:
-                    stepToolResults.length === stepToolCalls.length
-                      ? 'tool-result'
-                      : 'done';
-
                   // record telemetry information first to ensure best effort timing
                   try {
                     doStreamSpan.setAttributes(
@@ -1261,20 +1158,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
 
-                  if (nextStepType === 'done') {
-                    controller.enqueue({
-                      type: 'finish',
-                      finishReason: stepFinishReason,
-                      usage: combinedUsage,
-                      providerMetadata: stepProviderMetadata,
-                      response: {
-                        ...stepResponse,
-                        headers: response?.headers,
-                      },
-                    });
-
-                    self.closeStream(); // close the stitchable stream
-                  } else {
+                  if (
+                    currentStep + 1 < maxSteps && // there are tool calls:
+                    stepToolCalls.length > 0 &&
+                    // all current tool calls have results:
+                    stepToolResults.length === stepToolCalls.length
+                  ) {
                     // append to messages for the next step:
                     responseMessages.push(
                       ...toResponseMessages({
@@ -1291,6 +1180,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       usage: combinedUsage,
                       messageId: generateMessageId(),
                     });
+                  } else {
+                    controller.enqueue({
+                      type: 'finish',
+                      finishReason: stepFinishReason,
+                      usage: combinedUsage,
+                      providerMetadata: stepProviderMetadata,
+                      response: {
+                        ...stepResponse,
+                        headers: response?.headers,
+                      },
+                    });
+
+                    self.closeStream(); // close the stitchable stream
                   }
                 },
               }),
@@ -1324,12 +1226,60 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     });
   }
 
+  get steps() {
+    return this.stepsPromise.value;
+  }
+
+  private get lastStep() {
+    return this.steps.then(steps => steps[steps.length - 1]);
+  }
+
   get content() {
-    return this.contentPromise.value;
+    return this.lastStep.then(step => step.content);
   }
 
   get warnings() {
-    return this.warningsPromise.value;
+    return this.lastStep.then(step => step.warnings);
+  }
+
+  get providerMetadata() {
+    return this.lastStep.then(step => step.providerMetadata);
+  }
+
+  get text() {
+    return this.lastStep.then(step => step.text);
+  }
+
+  get reasoningText() {
+    return this.lastStep.then(step => step.reasoningText);
+  }
+
+  get reasoning() {
+    return this.lastStep.then(step => step.reasoning);
+  }
+
+  get sources() {
+    return this.lastStep.then(step => step.sources);
+  }
+
+  get files() {
+    return this.lastStep.then(step => step.files);
+  }
+
+  get toolCalls() {
+    return this.lastStep.then(step => step.toolCalls);
+  }
+
+  get toolResults() {
+    return this.lastStep.then(step => step.toolResults);
+  }
+
+  get request() {
+    return this.lastStep.then(step => step.request);
+  }
+
+  get response() {
+    return this.lastStep.then(step => step.response);
   }
 
   get usage() {
@@ -1338,50 +1288,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   get finishReason() {
     return this.finishReasonPromise.value;
-  }
-
-  get providerMetadata() {
-    return this.providerMetadataPromise.value;
-  }
-
-  get text() {
-    return this.textPromise.value;
-  }
-
-  get reasoningText() {
-    return this.reasoningPromise.value;
-  }
-
-  get reasoning() {
-    return this.reasoningDetailsPromise.value;
-  }
-
-  get sources() {
-    return this.sourcesPromise.value;
-  }
-
-  get files() {
-    return this.filesPromise.value;
-  }
-
-  get toolCalls() {
-    return this.toolCallsPromise.value;
-  }
-
-  get toolResults() {
-    return this.toolResultsPromise.value;
-  }
-
-  get request() {
-    return this.requestPromise.value;
-  }
-
-  get response() {
-    return this.responsePromise.value;
-  }
-
-  get steps() {
-    return this.stepsPromise.value;
   }
 
   /**
