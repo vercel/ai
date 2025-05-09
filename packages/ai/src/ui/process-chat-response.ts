@@ -286,11 +286,11 @@ export async function processChatResponse({
 
       execUpdate();
     },
-    onFinishStepPart(value) {
+    onFinishStepPart() {
       step += 1;
 
       // reset the current text and reasoning parts
-      currentTextPart = value.isContinued ? currentTextPart : undefined;
+      currentTextPart = undefined;
       currentReasoningPart = undefined;
     },
     onStartStepPart(value) {
