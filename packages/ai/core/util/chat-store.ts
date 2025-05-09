@@ -1,8 +1,4 @@
-import {
-  generateId,
-  generateId as generateIdFunction,
-  parsePartialJson,
-} from '.';
+import { generateId as generateIdFunction, parsePartialJson } from '.';
 import type {
   ReasoningUIPart,
   TextUIPart,
@@ -35,31 +31,18 @@ const ChatStoreEventMap = {
 
 export interface ChatStoreInitialization {
   chats?: Record<string, Pick<ChatState, 'messages'>>;
-  onChatStoreChange?: ({
-    event,
-    chatId,
-    state,
-  }: {
-    event: ChatStoreEvent;
-    chatId: string;
-    state: ChatState;
-  }) => void;
+  generateId?: () => string;
 }
 
 export interface ChatState {
   status: 'submitted' | 'streaming' | 'ready' | 'error';
   messages: UIMessage[];
-  step?: number;
   activeResponse?: {
     message: UIMessage;
     partialState: {
       textPart?: TextUIPart;
       reasoningPart?: ReasoningUIPart;
-      reasoningTextDetail?: { type: 'text'; text: string; signature?: string };
-      tools?: Record<
-        string,
-        { step: number; text: string; index: number; toolName: string }
-      >;
+      toolParts?: Record<string, ToolInvocationUIPart>;
     };
   };
   error?: Error;
@@ -68,9 +51,12 @@ export interface ChatState {
 export class ChatStore {
   private chats: Map<string, ChatState>;
   private subscribers: Set<ChatStoreSubscriber>;
-  private onChatStoreChange?: ChatStoreInitialization['onChatStoreChange'];
+  private generateId: () => string;
 
-  constructor({ chats = {}, onChatStoreChange }: ChatStoreInitialization = {}) {
+  constructor({
+    chats = {},
+    generateId = generateIdFunction,
+  }: ChatStoreInitialization = {}) {
     this.chats = new Map(
       Object.entries(chats).map(([id, state]) => [
         id,
@@ -79,12 +65,11 @@ export class ChatStore {
           status: 'ready',
           activeResponse: undefined,
           error: undefined,
-          step: 0,
         },
       ]),
     );
     this.subscribers = new Set();
-    this.onChatStoreChange = onChatStoreChange;
+    this.generateId = generateId;
   }
 
   get totalChats() {
@@ -117,75 +102,6 @@ export class ChatStore {
     this.emitEvent({ id, event: ChatStoreEvent.ChatErrorChanged });
   }
 
-  // TODO: Re-evaluate subscribe strategy
-  private emitEvent({ id, event }: { id: string; event: ChatStoreEvent }) {
-    for (const subscriber of this.subscribers) {
-      const handler = ChatStoreEventMap[event];
-      if (handler) {
-        subscriber[handler]?.(id);
-      }
-    }
-
-    if (this.onChatStoreChange) {
-      const state = this.chats.get(id);
-      if (state) {
-        this.onChatStoreChange({
-          event,
-          chatId: id,
-          state,
-        });
-      }
-    }
-  }
-
-  subscribe(subscriber: ChatStoreSubscriber): () => void {
-    this.subscribers.add(subscriber);
-    return () => this.subscribers.delete(subscriber);
-  }
-
-  private getStep(id: string): number {
-    const chat = this.chats.get(id);
-    if (!chat) return 0;
-    return chat.step ?? 0;
-  }
-
-  private resetActiveResponseState(id: string) {
-    const chat = this.chats.get(id);
-    if (!chat) return;
-
-    chat.step = -1;
-    chat.activeResponse = undefined;
-    chat.error = undefined;
-    chat.status = 'ready';
-    this.emitEvent({ id, event: ChatStoreEvent.ChatStatusChanged });
-    this.emitEvent({ id, event: ChatStoreEvent.ChatErrorChanged });
-  }
-
-  private calculateActiveResponseStep(id: string) {
-    const chat = this.chats.get(id);
-    if (!chat) return;
-
-    const activeResponse = chat?.activeResponse;
-
-    if (activeResponse?.message.role === 'assistant') {
-      chat.step =
-        activeResponse.message.parts?.reduce((max, part) => {
-          if (part.type === 'tool-invocation') {
-            return Math.max(max, part.toolInvocation.step ?? 0) ?? 0;
-          }
-          return max;
-        }, 0) ?? -1;
-    } else {
-      chat.step = -1;
-    }
-  }
-
-  incrementStep(id: string) {
-    const chat = this.chats.get(id);
-    if (!chat) return;
-    chat.step = (chat.step ?? -1) + 1;
-  }
-
   getMessages(id: string) {
     const chat = this.chats.get(id);
     if (!chat) return;
@@ -196,6 +112,31 @@ export class ChatStore {
     const chat = this.chats.get(id);
     if (!chat) return;
     return chat.messages[chat.messages.length - 1];
+  }
+
+  subscribe(subscriber: ChatStoreSubscriber): () => void {
+    this.subscribers.add(subscriber);
+    return () => this.subscribers.delete(subscriber);
+  }
+
+  setMessages({ id, messages }: { id: string; messages: UIMessage[] }) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    chat.messages = [...messages];
+    this.emitEvent({ id, event: ChatStoreEvent.ChatMessagesChanged });
+  }
+
+  appendMessage({ id, message }: { id: string; message: UIMessage }) {
+    const chat = this.chats.get(id);
+    if (!chat) return;
+
+    if (message.role === 'user') {
+      this.resetActiveResponse(id);
+    }
+
+    chat.messages = [...chat.messages, { ...message }];
+    this.emitEvent({ id, event: ChatStoreEvent.ChatMessagesChanged });
   }
 
   removeAssistantResponse(id: string) {
@@ -213,45 +154,63 @@ export class ChatStore {
     }
 
     this.setMessages({ id, messages: chat.messages.slice(0, -1) });
-    this.resetActiveResponseState(id);
+    this.resetActiveResponse(id);
   }
 
-  setMessages({ id, messages }: { id: string; messages: UIMessage[] }) {
-    const chat = this.chats.get(id);
-    if (!chat) return;
-
-    chat.messages = [...messages];
-    this.calculateActiveResponseStep(id);
-    this.emitEvent({ id, event: ChatStoreEvent.ChatMessagesChanged });
+  private emitEvent({ id, event }: { id: string; event: ChatStoreEvent }) {
+    for (const subscriber of this.subscribers) {
+      const handler = ChatStoreEventMap[event];
+      if (handler) {
+        subscriber[handler]?.(id);
+      }
+    }
   }
 
-  appendMessage({ id, message }: { id: string; message: UIMessage }) {
+  private calculateStep(id: string) {
     const chat = this.chats.get(id);
-    if (!chat) return;
+    if (!chat) return 0;
 
-    if (message.role === 'user') {
-      this.resetActiveResponseState(id);
+    if (
+      !chat.activeResponse ||
+      chat.activeResponse.message.role !== 'assistant'
+    ) {
+      return 0;
     }
 
-    chat.messages = [...chat.messages, { ...message }];
-    this.emitEvent({ id, event: ChatStoreEvent.ChatMessagesChanged });
+    return (
+      chat.activeResponse.message.parts?.reduce((max, part) => {
+        if (part.type === 'tool-invocation') {
+          return Math.max(max, part.toolInvocation.step ?? 0) ?? 0;
+        }
+        return max;
+      }, 0) ?? 0
+    );
+  }
+
+  private resetActiveResponse(id: string) {
+    const chat = this.chats.get(id);
+    if (!chat || !chat.activeResponse) return;
+
+    chat.activeResponse = undefined;
+    chat.error = undefined;
+    chat.status = 'ready';
+    this.emitEvent({ id, event: ChatStoreEvent.ChatStatusChanged });
+    this.emitEvent({ id, event: ChatStoreEvent.ChatErrorChanged });
   }
 
   private initializeActiveResponse({
     chatId,
     messageId,
-    customGenerateId = generateId,
   }: {
     chatId: string;
     messageId?: string;
-    customGenerateId?: () => string;
   }) {
     const chat = this.chats.get(chatId);
     if (!chat) return;
 
     chat.activeResponse = {
       message: {
-        id: messageId ?? customGenerateId(),
+        id: messageId ?? this.generateId(),
         createdAt: new Date(),
         role: 'assistant',
         content: '',
@@ -262,22 +221,14 @@ export class ChatStore {
     chat.messages.push(chat.activeResponse.message);
   }
 
-  /**
-   * Main method for updating active response based on native
-   * UIMessage['parts'] (e.g. text, reasoning, tool-invocation, step-start, source, file)
-   *
-   * Misc. updates should use updateActiveResponse method
-   */
   addOrUpdateAssistantMessageParts({
     chatId,
-    generateId = generateIdFunction,
     partDelta,
     messageId,
   }: {
     chatId: string;
     partDelta: UIMessage['parts'][number];
     messageId?: string;
-    generateId?: () => string;
   }) {
     const chat = this.chats.get(chatId);
     if (!chat) return;
@@ -362,7 +313,7 @@ export class ChatStore {
     this.emitEvent({ id: chatId, event: ChatStoreEvent.ChatMessagesChanged });
   }
 
-  resetTempParts({
+  clearStepPartialState({
     id,
     isContinued = false,
   }: {
@@ -370,28 +321,17 @@ export class ChatStore {
     isContinued?: boolean;
   }) {
     const chat = this.chats.get(id);
-    if (!chat) return;
+    if (!chat || !chat.activeResponse) return;
 
-    if (isContinued) {
-      chat.activeResponse = {
-        ...chat.activeResponse,
-        partialState: {
-          ...chat.activeResponse?.partialState,
-          reasoningPart: undefined,
-          reasoningTextDetail: undefined,
-        },
-      } as ChatState['activeResponse'];
-    } else {
-      chat.activeResponse = {
-        ...chat.activeResponse,
-        partialState: {
-          ...chat.activeResponse?.partialState,
-          textPart: undefined,
-          reasoningPart: undefined,
-          reasoningTextDetail: undefined,
-        },
-      } as ChatState['activeResponse'];
-    }
+    const partialState = {
+      toolParts: chat.activeResponse?.partialState?.toolParts,
+      reasoningPart: undefined,
+      textPart: isContinued
+        ? chat.activeResponse?.partialState?.textPart
+        : undefined,
+    };
+
+    chat.activeResponse.partialState = partialState;
   }
 
   private addOrUpdateToolInvocation({
@@ -405,105 +345,55 @@ export class ChatStore {
   }) {
     if (!activeResponse) return;
 
-    const step = this.getStep(chatId);
     const { toolCallId } = toolInvocation;
     const { message, partialState } = activeResponse;
-    // Do we want a shallow copy of message and partialState? And at the end assign them back? W.r.t. how Solid works
 
-    if (message.toolInvocations == null) message.toolInvocations = [];
-    if (!partialState.tools) partialState.tools = {};
+    if (!partialState.toolParts) partialState.toolParts = {};
 
-    const maybeExistingCallState = partialState.tools[toolCallId];
-    const maybeExistingInvocation = message.toolInvocations.find(
-      invocation => invocation.toolCallId === toolCallId,
-    );
-    const toolName =
-      maybeExistingInvocation?.toolName ||
-      maybeExistingCallState?.toolName ||
-      toolInvocation.toolName;
+    const existingToolPart = partialState.toolParts[toolCallId] || {};
+    const existingToolInvocation = existingToolPart?.toolInvocation;
 
-    const updatedToolInvocation = {
-      toolName,
-      step,
-      toolCallId,
-      state: toolInvocation.state,
-      args: maybeExistingInvocation?.args,
-      result:
-        maybeExistingInvocation && 'result' in maybeExistingInvocation
-          ? maybeExistingInvocation.result
-          : undefined,
-    };
+    if (existingToolInvocation) {
+      existingToolInvocation.state = toolInvocation.state;
 
-    if (maybeExistingCallState) {
       switch (toolInvocation.state) {
         case 'partial-call': {
-          maybeExistingCallState.text += toolInvocation.args;
-          const { value: partialArgs } = parsePartialJson(
-            maybeExistingCallState.text,
-          );
-          updatedToolInvocation.args = partialArgs;
+          const args = existingToolInvocation.args + toolInvocation.args;
+          const { value: partialArgs } = await parsePartialJson(args);
+          existingToolInvocation.args = partialArgs;
           break;
         }
         case 'call': {
-          maybeExistingCallState.text = toolInvocation.args;
-          updatedToolInvocation.args = toolInvocation.args;
+          existingToolInvocation.args = toolInvocation.args;
           break;
         }
         case 'result': {
-          updatedToolInvocation.result = toolInvocation.result;
+          // @ts-ignore - caused by `result` not existing on ToolCall type
+          existingToolInvocation.result = toolInvocation.result;
           break;
         }
         default: {
           throw new Error('Invalid tool invocation state');
         }
-      }
-
-      message.toolInvocations[maybeExistingCallState.index] =
-        updatedToolInvocation;
-
-      const existingPart = message.parts.find(
-        part =>
-          part.type === 'tool-invocation' &&
-          part.toolInvocation.toolCallId === toolInvocation.toolCallId,
-      ) as ToolInvocationUIPart;
-
-      if (existingPart) {
-        existingPart.toolInvocation = updatedToolInvocation;
       }
     } else {
-      switch (toolInvocation.state) {
-        case 'result': {
-          throw new Error('tool_result must be preceded by a tool_call');
-        }
-        case 'call': {
-          partialState.tools[toolInvocation.toolCallId] = {
-            text: toolInvocation.args,
-            step,
-            toolName,
-            index: message.toolInvocations.length,
-          };
-          break;
-        }
-        case 'partial-call': {
-          partialState.tools[toolInvocation.toolCallId] = {
-            text: toolInvocation.args ?? '',
-            step,
-            toolName,
-            index: message.toolInvocations.length,
-          };
-          break;
-        }
-        default: {
-          throw new Error('Invalid tool invocation state');
-        }
+      if (toolInvocation.state === 'result') {
+        throw new Error('tool_result must be preceded by a tool_call');
       }
 
-      const withStep = { ...toolInvocation, step };
-      message.toolInvocations.push(withStep);
-      message.parts.push({
+      const partialToolPart: ToolInvocationUIPart = {
         type: 'tool-invocation',
-        toolInvocation: withStep,
-      });
+        toolInvocation: {
+          args: toolInvocation.args ?? '',
+          step: this.calculateStep(chatId),
+          toolName: toolInvocation.toolName,
+          state: toolInvocation.state,
+          toolCallId,
+        } as ToolInvocation,
+      };
+
+      partialState.toolParts[toolCallId] = partialToolPart;
+      message.parts.push(partialToolPart);
     }
   }
 
@@ -516,82 +406,44 @@ export class ChatStore {
   }) {
     if (!activeResponse) return;
 
-    const detail = reasoning.details[0];
-    const isRedacted = detail?.type === 'redacted';
-    const maybeSignature =
-      detail?.type === 'text' && detail?.signature
-        ? detail.signature
-        : undefined;
+    const partialReasoning = activeResponse.partialState.reasoningPart;
 
-    /**
-     * First we handle Reasoning Text Detail:
-     *
-     * 1. Reset if we received a redacted part
-     * 2. Append/update if Reasoning Text Detail exists
-     * 3. Initialize if reasoning text detail is undefined
-     * 4. Only push the detail if parent reasoning part exists
-     */
-    if (isRedacted) {
-      activeResponse.partialState.reasoningTextDetail = undefined;
+    const { text: reasoningTextDelta, providerMetadata } = reasoning;
+
+    const isFinishedPart =
+      partialReasoning &&
+      reasoningTextDelta === '' &&
+      providerMetadata === undefined;
+
+    // Clear temporary state on `reasoning_part_finish`:
+    if (isFinishedPart) {
+      activeResponse.partialState.reasoningPart = undefined;
+      return;
     }
 
-    const { reasoningTextDetail, reasoningPart } = activeResponse.partialState;
-
-    if (reasoningTextDetail) {
-      reasoningTextDetail.text += reasoning.reasoning;
-      if (maybeSignature) reasoningTextDetail.signature = maybeSignature;
-    } else {
-      activeResponse.partialState.reasoningTextDetail = {
-        type: 'text',
-        text: reasoning.reasoning,
-        signature: maybeSignature,
-      };
-
-      if (reasoningPart) {
-        reasoningPart.details.push(
-          activeResponse.partialState.reasoningTextDetail,
-        );
-      }
-    }
-
-    /**
-     * Then, we handle the Reasoning Part:
-     * 1. If Reasoning Part exists, append reasoning text
-     * 2. Otherwise, we initialize the entire reasoning part
-     */
-    if (reasoningPart) {
-      reasoningPart.reasoning += reasoning.reasoning;
+    if (partialReasoning) {
+      partialReasoning.text += reasoningTextDelta;
     } else {
       activeResponse.partialState.reasoningPart = {
         type: 'reasoning',
-        reasoning: reasoning.reasoning,
-        details: reasoningTextDetail ? [reasoningTextDetail] : [],
+        text: reasoningTextDelta,
       };
       activeResponse.message.parts.push(
         activeResponse.partialState.reasoningPart,
       );
     }
 
-    if (isRedacted) {
-      activeResponse.partialState.reasoningPart?.details.push(detail);
+    // Only update provider metadata if defined in the reasoning part:
+    if (providerMetadata) {
+      activeResponse.partialState.reasoningPart!.providerMetadata =
+        providerMetadata;
     }
-
-    activeResponse.message.reasoning =
-      (activeResponse.message.reasoning ?? '') + reasoning.reasoning;
   }
 
   clear(id?: string) {
     if (id) {
-      this.chats.set(id, {
-        messages: [],
-        status: 'ready',
-        activeResponse: undefined,
-        error: undefined,
-        step: 0,
-      });
-      this.emitEvent({ id, event: ChatStoreEvent.ChatMessagesChanged });
-      this.emitEvent({ id, event: ChatStoreEvent.ChatStatusChanged });
-      this.emitEvent({ id, event: ChatStoreEvent.ChatErrorChanged });
+      this.setMessages({ id, messages: [] });
+      this.resetActiveResponse(id);
     } else {
       const ids = Array.from(this.chats.keys());
       for (const id of ids) {
