@@ -1,5 +1,6 @@
 import { AISDKError } from '@ai-sdk/provider';
-import { ResponseMessage } from '../../core/generate-text/step-result';
+import { ResponseMessage } from '../../core/generate-text/response-message';
+import { convertDataContentToBase64String } from '../../core/prompt/data-content';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
 import { getToolInvocations } from './get-tool-invocations';
 import {
@@ -11,7 +12,6 @@ import {
   ToolInvocationUIPart,
   UIMessage,
 } from './ui-messages';
-import { convertDataContentToBase64String } from '../../core/prompt/data-content';
 
 /**
  * Appends the ResponseMessage[] from the response to a Message[] (for useChat).
