@@ -51,7 +51,7 @@ import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
-import { StepResult } from './step-result';
+import { DefaultStepResult, StepResult } from './step-result';
 import {
   ConsumeStreamOptions,
   DataStreamOptions,
@@ -575,17 +575,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
     this.output = output;
 
-    // event processor for telemetry, invoking callbacks, etc.
-    // The event processor reads the transformed stream to enable correct
-    // recording of the final transformed outputs.
-    let recordedStepText = '';
-
     let activeReasoningPart:
       | undefined
       | (ContentPart<TOOLS> & { type: 'reasoning' }) = undefined;
 
     let recordedContent: Array<ContentPart<TOOLS>> = [];
-    const recordedSources: LanguageModelV2Source[] = [];
     const recordedResponse: LanguageModelResponseMetadata & {
       messages: Array<ResponseMessage>;
     } = {
@@ -594,11 +588,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       modelId: model.modelId,
       messages: [],
     };
-    let recordedToolCalls: ToolCallUnion<TOOLS>[] = [];
-    let recordedToolResults: ToolResultUnion<TOOLS>[] = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
     let recordedUsage: LanguageModelUsage | undefined = undefined;
+
     const recordedSteps: StepResult<TOOLS>[] = [];
+
     let rootSpan!: Span;
 
     const eventProcessor = new TransformStream<
@@ -627,8 +621,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
         }
 
         if (part.type === 'text') {
-          recordedStepText += part.text;
-
           const latestContent = recordedContent[recordedContent.length - 1];
           if (latestContent?.type === 'text') {
             latestContent.text += part.text;
@@ -664,17 +656,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
         if (part.type === 'source') {
           recordedContent.push(part);
-          recordedSources.push(part);
         }
 
         if (part.type === 'tool-call') {
           recordedContent.push(part);
-          recordedToolCalls.push(part);
         }
 
         if (part.type === 'tool-result') {
           recordedContent.push(part);
-          recordedToolResults.push(part);
         }
 
         if (part.type === 'step-finish') {
@@ -685,19 +674,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             generateMessageId,
           });
 
-          // determine the next step type
-          const currentStep = recordedSteps.length;
-
           // Add step information (after response messages are updated):
-          const currentStepResult: StepResult<TOOLS> = {
+          const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             content: recordedContent,
-            text: recordedStepText,
-            reasoningText: asReasoningText(extractReasoning(recordedContent)),
-            reasoning: extractReasoning(recordedContent),
-            files: extractFiles(recordedContent),
-            sources: extractSources(recordedContent),
-            toolCalls: recordedToolCalls,
-            toolResults: recordedToolResults,
             finishReason: part.finishReason,
             usage: part.usage,
             warnings: part.warnings,
@@ -707,16 +686,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               messages: [...recordedResponse.messages, ...stepMessages],
             },
             providerMetadata: part.providerMetadata,
-          };
+          });
 
           await onStepFinish?.(currentStepResult);
 
           recordedSteps.push(currentStepResult);
 
           recordedContent = [];
-          recordedToolCalls = [];
-          recordedToolResults = [];
-          recordedStepText = '';
           activeReasoningPart = undefined;
 
           recordedResponse.messages.push(...stepMessages);
@@ -750,6 +726,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.providerMetadataPromise.resolve(lastStep.providerMetadata);
           self.reasoningPromise.resolve(lastStep.reasoningText);
           self.reasoningDetailsPromise.resolve(lastStep.reasoning);
+          self.textPromise.resolve(lastStep.text);
+          self.sourcesPromise.resolve(lastStep.sources);
+          self.filesPromise.resolve(lastStep.files);
 
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
@@ -764,9 +743,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.usagePromise.resolve(usage);
 
           // aggregate results:
-          self.textPromise.resolve(lastStep.text);
-          self.sourcesPromise.resolve(recordedSources);
-          self.filesPromise.resolve(lastStep.files);
           self.stepsPromise.resolve(recordedSteps);
 
           // call onFinish callback:
@@ -781,7 +757,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             sources: lastStep.sources,
             toolCalls: lastStep.toolCalls,
             toolResults: lastStep.toolResults,
-            request: lastStep.request ?? {},
+            request: lastStep.request,
             response: lastStep.response,
             warnings: lastStep.warnings,
             providerMetadata: lastStep.providerMetadata,
