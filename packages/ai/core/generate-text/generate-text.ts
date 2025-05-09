@@ -501,16 +501,8 @@ A function that attempts to repair a tool call that failed to parse.
         // append to messages for potential next step:
         responseMessages.push(
           ...toResponseMessages({
-            text,
-            files: extractFiles(stepContent),
-            reasoning: extractReasoning(stepContent).map(part => ({
-              type: 'reasoning',
-              text: part.text,
-              providerOptions: part.providerMetadata,
-            })),
+            content: stepContent,
             tools: tools ?? ({} as TOOLS),
-            toolCalls: currentToolCalls,
-            toolResults: currentToolResults,
             messageId: generateMessageId(),
             generateMessageId,
           }),

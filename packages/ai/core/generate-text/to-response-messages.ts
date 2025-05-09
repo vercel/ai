@@ -1,60 +1,47 @@
-import { ToolResultPart } from '../prompt';
-import { ReasoningPart } from '../prompt/content-part';
-import { GeneratedFile } from './generated-file';
+import { AssistantContent, ToolContent, ToolResultPart } from '../prompt';
+import { ContentPart } from './content-part';
 import { ResponseMessage } from './step-result';
-import { ToolCallArray } from './tool-call';
-import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
 
 /**
 Converts the result of a `generateText` or `streamText` call to a list of response messages.
  */
 export function toResponseMessages<TOOLS extends ToolSet>({
-  text = '',
-  files,
-  reasoning,
+  content: inputContent,
   tools,
-  toolCalls,
-  toolResults,
   messageId,
   generateMessageId,
 }: {
-  text: string | undefined;
-  files: Array<GeneratedFile>;
-  reasoning: Array<ReasoningPart>;
+  content: Array<ContentPart<TOOLS>>;
   tools: TOOLS;
-  toolCalls: ToolCallArray<TOOLS>;
-  toolResults: ToolResultArray<TOOLS>;
   messageId: string;
   generateMessageId: () => string;
 }): Array<ResponseMessage> {
   const responseMessages: Array<ResponseMessage> = [];
 
-  const content = [];
-
-  // TODO language model v2: switch to order response content (instead of type-based ordering)
-
-  for (const part of reasoning) {
-    content.push(part);
-  }
-
-  if (files.length > 0) {
-    content.push(
-      ...files.map(file => ({
-        type: 'file' as const,
-        data: file.base64,
-        mediaType: file.mediaType,
-      })),
-    );
-  }
-
-  if (text.length > 0) {
-    content.push({ type: 'text' as const, text });
-  }
-
-  if (toolCalls.length > 0) {
-    content.push(...toolCalls);
-  }
+  const content: AssistantContent = inputContent
+    .filter(part => part.type !== 'tool-result' && part.type !== 'source')
+    .filter(part => part.type !== 'text' || part.text.length > 0)
+    .map(part => {
+      switch (part.type) {
+        case 'text':
+          return part;
+        case 'reasoning':
+          return {
+            type: 'reasoning' as const,
+            text: part.text,
+            providerOptions: part.providerMetadata,
+          };
+        case 'file':
+          return {
+            type: 'file' as const,
+            data: part.file.base64,
+            mediaType: part.file.mediaType,
+          };
+        case 'tool-call':
+          return part;
+      }
+    });
 
   if (content.length > 0) {
     responseMessages.push({
@@ -64,29 +51,33 @@ export function toResponseMessages<TOOLS extends ToolSet>({
     });
   }
 
-  if (toolResults.length > 0) {
+  const toolResultContent: ToolContent = inputContent
+    .filter(part => part.type === 'tool-result')
+    .map((toolResult): ToolResultPart => {
+      const tool = tools[toolResult.toolName];
+      return tool?.experimental_toToolResultContent != null
+        ? {
+            type: 'tool-result',
+            toolCallId: toolResult.toolCallId,
+            toolName: toolResult.toolName,
+            result: tool.experimental_toToolResultContent(toolResult.result),
+            experimental_content: tool.experimental_toToolResultContent(
+              toolResult.result,
+            ),
+          }
+        : {
+            type: 'tool-result',
+            toolCallId: toolResult.toolCallId,
+            toolName: toolResult.toolName,
+            result: toolResult.result,
+          };
+    });
+
+  if (toolResultContent.length > 0) {
     responseMessages.push({
       role: 'tool',
       id: generateMessageId(),
-      content: toolResults.map((toolResult): ToolResultPart => {
-        const tool = tools[toolResult.toolName];
-        return tool?.experimental_toToolResultContent != null
-          ? {
-              type: 'tool-result',
-              toolCallId: toolResult.toolCallId,
-              toolName: toolResult.toolName,
-              result: tool.experimental_toToolResultContent(toolResult.result),
-              experimental_content: tool.experimental_toToolResultContent(
-                toolResult.result,
-              ),
-            }
-          : {
-              type: 'tool-result',
-              toolCallId: toolResult.toolCallId,
-              toolName: toolResult.toolName,
-              result: toolResult.result,
-            };
-      }),
+      content: toolResultContent,
     });
   }
 

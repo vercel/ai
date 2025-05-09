@@ -1117,6 +1117,10 @@ exports[`result.steps > should contain files 1`] = `
         {
           "content": [
             {
+              "text": "Hello, world!",
+              "type": "text",
+            },
+            {
               "data": "AQID",
               "mediaType": "image/png",
               "type": "file",
@@ -1125,10 +1129,6 @@ exports[`result.steps > should contain files 1`] = `
               "data": "QkFVRw==",
               "mediaType": "image/jpeg",
               "type": "file",
-            },
-            {
-              "text": "Hello, world!",
-              "type": "text",
             },
           ],
           "id": "msg-0",
