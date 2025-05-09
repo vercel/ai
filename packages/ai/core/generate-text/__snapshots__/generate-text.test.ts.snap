@@ -777,7 +777,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
 exports[`result.files > should contain files 1`] = `
 [
   DefaultGeneratedFile {
-    "base64Data": undefined,
+    "base64Data": "AQID",
     "mediaType": "image/png",
     "uint8ArrayData": Uint8Array [
       1,

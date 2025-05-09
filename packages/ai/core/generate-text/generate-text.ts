@@ -573,12 +573,6 @@ A function that attempts to repair a tool call that failed to parse.
       );
 
       return new DefaultGenerateTextResult({
-        text,
-        content: asContent({
-          content: currentModelResponse.content,
-          toolCalls: currentToolCalls,
-          toolResults: currentToolResults,
-        }),
         resolvedOutput,
         finishReason: currentModelResponse.finishReason,
         usage,
@@ -691,8 +685,6 @@ async function executeTools<TOOLS extends ToolSet>({
 class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   implements GenerateTextResult<TOOLS, OUTPUT>
 {
-  readonly text: GenerateTextResult<TOOLS, OUTPUT>['text'];
-  readonly content: GenerateTextResult<TOOLS, OUTPUT>['content'];
   readonly finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
   readonly usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
   readonly warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
@@ -707,8 +699,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
   private readonly resolvedOutput: OUTPUT;
 
   constructor(options: {
-    text: GenerateTextResult<TOOLS, OUTPUT>['text'];
-    content: GenerateTextResult<TOOLS, OUTPUT>['content'];
     finishReason: GenerateTextResult<TOOLS, OUTPUT>['finishReason'];
     usage: GenerateTextResult<TOOLS, OUTPUT>['usage'];
     warnings: GenerateTextResult<TOOLS, OUTPUT>['warnings'];
@@ -718,8 +708,6 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     request: GenerateTextResult<TOOLS, OUTPUT>['request'];
     resolvedOutput: OUTPUT;
   }) {
-    this.text = options.text;
-    this.content = options.content;
     this.finishReason = options.finishReason;
     this.usage = options.usage;
     this.warnings = options.warnings;
@@ -730,32 +718,40 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.resolvedOutput = options.resolvedOutput;
   }
 
+  get content() {
+    return this.lastStep.content;
+  }
+
+  get text() {
+    return this.lastStep.text;
+  }
+
+  get lastStep() {
+    return this.steps[this.steps.length - 1];
+  }
+
   get files() {
-    return extractFiles(this.content);
+    return this.lastStep.files;
   }
 
   get reasoningText() {
-    const texts = this.content
-      .filter(part => part.type === 'reasoning')
-      .map(part => part.text);
-    return texts.length > 0 ? texts.join('') : undefined;
+    return this.lastStep.reasoningText;
   }
 
   get reasoning() {
-    return this.content.filter(part => part.type === 'reasoning');
+    return this.lastStep.reasoning;
   }
 
   get toolCalls() {
-    return this.content.filter(part => part.type === 'tool-call');
+    return this.lastStep.toolCalls;
   }
 
   get toolResults() {
-    return this.content.filter(part => part.type === 'tool-result');
+    return this.lastStep.toolResults;
   }
 
   get sources() {
-    // return sources from all steps:
-    return this.steps.flatMap(step => step.sources);
+    return this.lastStep.sources;
   }
 
   get experimental_output() {

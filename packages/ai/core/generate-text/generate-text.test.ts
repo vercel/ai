@@ -163,7 +163,7 @@ describe('result.content', () => {
         },
         {
           "file": DefaultGeneratedFile {
-            "base64Data": undefined,
+            "base64Data": "AQID",
             "mediaType": "image/png",
             "uint8ArrayData": Uint8Array [
               1,
