@@ -7,17 +7,18 @@ import { toResponseMessages } from './to-response-messages';
 describe('toResponseMessages', () => {
   it('should return an assistant message with text when no tool calls or results', () => {
     const result = toResponseMessages({
-      text: 'Hello, world!',
-      files: [],
-      reasoning: [],
+      content: [
+        {
+          type: 'text',
+          text: 'Hello, world!',
+        },
+      ],
       tools: {
         testTool: {
           description: 'A test tool',
           parameters: z.object({}),
         },
       },
-      toolCalls: [],
-      toolResults: [],
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -33,16 +34,11 @@ describe('toResponseMessages', () => {
 
   it('should include tool calls in the assistant message', () => {
     const result = toResponseMessages({
-      text: 'Using a tool',
-      files: [],
-      reasoning: [],
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          parameters: z.object({}),
+      content: [
+        {
+          type: 'text',
+          text: 'Using a tool',
         },
-      },
-      toolCalls: [
         {
           type: 'tool-call',
           toolCallId: '123',
@@ -50,7 +46,12 @@ describe('toResponseMessages', () => {
           args: {},
         },
       ],
-      toolResults: [],
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          parameters: z.object({}),
+        },
+      },
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -74,25 +75,17 @@ describe('toResponseMessages', () => {
 
   it('should include tool results as a separate message', () => {
     const result = toResponseMessages({
-      text: 'Tool used',
-      files: [],
-      reasoning: [],
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          parameters: z.object({}),
-          execute: async () => 'Tool result',
+      content: [
+        {
+          type: 'text',
+          text: 'Tool used',
         },
-      },
-      toolCalls: [
         {
           type: 'tool-call',
           toolCallId: '123',
           toolName: 'testTool',
           args: {},
         },
-      ],
-      toolResults: [
         {
           type: 'tool-result',
           toolCallId: '123',
@@ -101,6 +94,13 @@ describe('toResponseMessages', () => {
           args: {},
         },
       ],
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          parameters: z.object({}),
+          execute: async () => 'Tool result',
+        },
+      },
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -136,13 +136,11 @@ describe('toResponseMessages', () => {
 
   it('should handle undefined text', () => {
     const result = toResponseMessages({
-      text: undefined,
-      files: [],
-      reasoning: [
+      content: [
         {
           type: 'reasoning',
           text: 'Thinking text',
-          providerOptions: {
+          providerMetadata: {
             testProvider: {
               signature: 'sig',
             },
@@ -150,8 +148,6 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -179,27 +175,27 @@ describe('toResponseMessages', () => {
 
   it('should include reasoning array with redacted reasoning in the assistant message', () => {
     const result = toResponseMessages({
-      text: 'Final text',
-      files: [],
-      reasoning: [
+      content: [
+        {
+          type: 'text',
+          text: 'Final text',
+        },
         {
           type: 'reasoning',
           text: 'redacted-data',
-          providerOptions: {
+          providerMetadata: {
             testProvider: { isRedacted: true },
           },
         },
         {
           type: 'reasoning',
           text: 'Thinking text',
-          providerOptions: {
+          providerMetadata: {
             testProvider: { signature: 'sig' },
           },
         },
       ],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -240,9 +236,25 @@ describe('toResponseMessages', () => {
 
   it('should handle multipart tool results', () => {
     const result = toResponseMessages({
-      text: 'multipart tool result',
-      files: [],
-      reasoning: [],
+      content: [
+        {
+          type: 'text',
+          text: 'multipart tool result',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          args: {},
+        },
+        {
+          type: 'tool-result',
+          toolCallId: '123',
+          toolName: 'testTool',
+          result: 'image-base64',
+          args: {},
+        },
+      ],
       tools: {
         testTool: tool({
           description: 'A test tool',
@@ -253,23 +265,6 @@ describe('toResponseMessages', () => {
           },
         }),
       },
-      toolCalls: [
-        {
-          type: 'tool-call',
-          toolCallId: '123',
-          toolName: 'testTool',
-          args: {},
-        },
-      ],
-      toolResults: [
-        {
-          type: 'tool-result',
-          toolCallId: '123',
-          toolName: 'testTool',
-          args: {},
-          result: 'image-base64',
-        },
-      ],
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -315,12 +310,14 @@ describe('toResponseMessages', () => {
     });
 
     const result = toResponseMessages({
-      text: 'Here is an image',
-      files: [pngFile],
-      reasoning: [],
+      content: [
+        {
+          type: 'text',
+          text: 'Here is an image',
+        },
+        { type: 'file', file: pngFile },
+      ],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -348,12 +345,15 @@ describe('toResponseMessages', () => {
     });
 
     const result = toResponseMessages({
-      text: 'Here are multiple images',
-      files: [pngFile, jpegFile],
-      reasoning: [],
+      content: [
+        {
+          type: 'text',
+          text: 'Here are multiple images',
+        },
+        { type: 'file', file: pngFile },
+        { type: 'file', file: jpegFile },
+      ],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -382,12 +382,14 @@ describe('toResponseMessages', () => {
     });
 
     const result = toResponseMessages({
-      text: 'Here is a binary image',
-      files: [pngFile],
-      reasoning: [],
+      content: [
+        {
+          type: 'text',
+          text: 'Here is a binary image',
+        },
+        { type: 'file', file: pngFile },
+      ],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -411,13 +413,22 @@ describe('toResponseMessages', () => {
     });
 
     const result = toResponseMessages({
-      text: 'Combined response',
-      files: [pngFile],
-      reasoning: [
+      content: [
+        {
+          type: 'text',
+          text: 'Combined response',
+        },
+        { type: 'file', file: pngFile },
         {
           type: 'reasoning',
           text: 'Thinking text',
-          providerOptions: { testProvider: { signature: 'sig' } },
+          providerMetadata: { testProvider: { signature: 'sig' } },
+        },
+        {
+          type: 'tool-call',
+          toolCallId: '123',
+          toolName: 'testTool',
+          args: {},
         },
       ],
       tools: {
@@ -426,15 +437,6 @@ describe('toResponseMessages', () => {
           parameters: z.object({}),
         },
       },
-      toolCalls: [
-        {
-          type: 'tool-call',
-          toolCallId: '123',
-          toolName: 'testTool',
-          args: {},
-        },
-      ],
-      toolResults: [],
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -477,16 +479,11 @@ describe('toResponseMessages', () => {
 
   it('should not append text parts if text is empty string', () => {
     const result = toResponseMessages({
-      text: '',
-      files: [],
-      reasoning: [],
-      tools: {
-        testTool: {
-          description: 'A test tool',
-          parameters: z.object({}),
+      content: [
+        {
+          type: 'text',
+          text: '',
         },
-      },
-      toolCalls: [
         {
           type: 'tool-call',
           toolCallId: '123',
@@ -494,7 +491,12 @@ describe('toResponseMessages', () => {
           args: {},
         },
       ],
-      toolResults: [],
+      tools: {
+        testTool: {
+          description: 'A test tool',
+          parameters: z.object({}),
+        },
+      },
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });
@@ -517,12 +519,8 @@ describe('toResponseMessages', () => {
 
   it('should not append assistant message if there is no content', () => {
     const result = toResponseMessages({
-      text: '',
-      files: [],
-      reasoning: [],
+      content: [],
       tools: {},
-      toolCalls: [],
-      toolResults: [],
       messageId: 'msg-123',
       generateMessageId: mockValues('msg-345'),
     });

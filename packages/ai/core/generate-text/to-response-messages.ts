@@ -1,5 +1,6 @@
 import { ToolResultPart } from '../prompt';
 import { ReasoningPart } from '../prompt/content-part';
+import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './step-result';
 import { ToolCallArray } from './tool-call';
@@ -10,32 +11,39 @@ import { ToolSet } from './tool-set';
 Converts the result of a `generateText` or `streamText` call to a list of response messages.
  */
 export function toResponseMessages<TOOLS extends ToolSet>({
-  text = '',
-  files,
-  reasoning,
+  content: inputContent,
   tools,
-  toolCalls,
-  toolResults,
   messageId,
   generateMessageId,
 }: {
-  text: string | undefined;
-  files: Array<GeneratedFile>;
-  reasoning: Array<ReasoningPart>;
+  content: Array<ContentPart<TOOLS>>;
   tools: TOOLS;
-  toolCalls: ToolCallArray<TOOLS>;
-  toolResults: ToolResultArray<TOOLS>;
   messageId: string;
   generateMessageId: () => string;
 }): Array<ResponseMessage> {
   const responseMessages: Array<ResponseMessage> = [];
+
+  const files = inputContent
+    .filter(part => part.type === 'file')
+    .map(part => part.file);
+  const reasoning = inputContent.filter(part => part.type === 'reasoning');
+  const text = inputContent
+    .filter(part => part.type === 'text')
+    .map(part => part.text)
+    .join('');
+  const toolCalls = inputContent.filter(part => part.type === 'tool-call');
+  const toolResults = inputContent.filter(part => part.type === 'tool-result');
 
   const content = [];
 
   // TODO language model v2: switch to order response content (instead of type-based ordering)
 
   for (const part of reasoning) {
-    content.push(part);
+    content.push({
+      type: 'reasoning' as const,
+      text: part.text,
+      providerOptions: part.providerMetadata,
+    });
   }
 
   if (files.length > 0) {

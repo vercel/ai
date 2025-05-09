@@ -696,12 +696,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
         if (part.type === 'step-finish') {
           const stepMessages = toResponseMessages({
-            text: recordedContinuationText,
-            files: extractFiles(recordedContent),
-            reasoning: extractReasoning(recordedContent),
+            content: recordedContent,
             tools: tools ?? ({} as TOOLS),
-            toolCalls: recordedToolCalls,
-            toolResults: recordedToolResults,
             messageId: part.messageId,
             generateMessageId,
           });
@@ -1396,12 +1392,20 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     } else {
                       responseMessages.push(
                         ...toResponseMessages({
-                          text: stepText,
-                          files: stepFiles,
-                          reasoning: stepReasoning,
+                          content: [
+                            ...stepReasoning,
+                            {
+                              type: 'text',
+                              text: stepText,
+                            },
+                            ...stepFiles.map(file => ({
+                              type: 'file' as const,
+                              file,
+                            })),
+                            ...stepToolCalls,
+                            ...stepToolResults,
+                          ],
                           tools: tools ?? ({} as TOOLS),
-                          toolCalls: stepToolCalls,
-                          toolResults: stepToolResults,
                           messageId,
                           generateMessageId,
                         }),
