@@ -579,8 +579,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     // The event processor reads the transformed stream to enable correct
     // recording of the final transformed outputs.
     let recordedStepText = '';
-    let recordedContinuationText = '';
-    let recordedFullText = '';
 
     let activeReasoningPart:
       | undefined
@@ -631,8 +629,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
         if (part.type === 'text') {
           recordedStepText += part.text;
-          recordedContinuationText += part.text;
-          recordedFullText += part.text;
 
           const latestContent = recordedContent[recordedContent.length - 1];
           if (latestContent?.type === 'text') {
@@ -738,7 +734,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           }
 
           recordedResponse.messages.push(...stepMessages);
-          recordedContinuationText = '';
         }
 
         if (part.type === 'finish') {
@@ -783,7 +778,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           self.usagePromise.resolve(usage);
 
           // aggregate results:
-          self.textPromise.resolve(recordedFullText);
+          self.textPromise.resolve(lastStep.text);
           self.sourcesPromise.resolve(recordedSources);
           self.filesPromise.resolve(lastStep.files);
           self.stepsPromise.resolve(recordedSteps);
@@ -793,7 +788,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             finishReason,
             usage,
             content: lastStep.content,
-            text: recordedFullText,
+            text: lastStep.text,
             reasoningText: lastStep.reasoningText,
             reasoning: lastStep.reasoning,
             files: lastStep.files,
@@ -813,7 +808,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               telemetry,
               attributes: {
                 'ai.response.finishReason': finishReason,
-                'ai.response.text': { output: () => recordedFullText },
+                'ai.response.text': { output: () => lastStep.text },
                 'ai.response.toolCalls': {
                   output: () =>
                     lastStep.toolCalls?.length
