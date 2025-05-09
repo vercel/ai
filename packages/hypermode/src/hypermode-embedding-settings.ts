@@ -1,6 +1,6 @@
 import type { OpenAICompatibleEmbeddingSettings } from '@ai-sdk/openai-compatible';
 
-// https://docs.hypermode.com/model-router#available-models
+// https://docs.hypermode.com/model-router#embedding
 export type HypermodeEmbeddingModelId =
   | 'nomic-ai/nomic-embed-text-v1.5'
   | 'text-embedding-3-small'

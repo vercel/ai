@@ -1,5 +1,4 @@
 import 'dotenv/config';
-import { expect } from 'vitest';
 import { hypermode as provider, HypermodeErrorData } from '@ai-sdk/hypermode';
 import { APICallError } from 'ai';
 import {

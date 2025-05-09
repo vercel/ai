@@ -1,8 +1,5 @@
-import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { createHypermode } from './hypermode-provider';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { OpenAICompatibleChatLanguageModel } from '@ai-sdk/openai-compatible';
-import { OpenAICompatibleEmbeddingModel } from '@ai-sdk/openai-compatible';
 import { HypermodeChatLanguageModel } from './hypermode-chat-language-model';
 import { HypermodeEmbeddingModel } from './hypermode-embedding-model';
 

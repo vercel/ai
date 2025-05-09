@@ -30,9 +30,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "0.2.14",
-    "@ai-sdk/provider": "1.1.3",
-    "@ai-sdk/provider-utils": "2.2.8"
+    "@ai-sdk/openai-compatible": "workspace:*",
+    "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "20.17.24",
