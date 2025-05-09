@@ -106,6 +106,10 @@ export type UseChatHelpers = {
 // @ts-expect-error - some issues with the default export of useSWRV
 const useSWRV = (swrv.default as (typeof import('swrv'))['default']) || swrv;
 const store: Record<string, UIMessage[] | undefined> = {};
+const statusStore: Record<
+  string,
+  Ref<'submitted' | 'streaming' | 'ready' | 'error'>
+> = {};
 
 export function useChat(
   {
@@ -164,11 +168,11 @@ export function useChat(
     () => store[key] ?? fillMessageParts(initialMessages),
   );
 
-  const { data: status, mutate: mutateStatus } = useSWRV<
-    'submitted' | 'streaming' | 'ready' | 'error'
-  >(`${chatId}-status`, null);
-
-  status.value ??= 'ready';
+  const status =
+    statusStore[chatId] ??
+    (statusStore[chatId] = ref<'submitted' | 'streaming' | 'ready' | 'error'>(
+      'ready',
+    ));
 
   // Force the `data` to be `initialMessages` if it's `undefined`.
   messagesData.value ??= fillMessageParts(initialMessages);
@@ -192,7 +196,7 @@ export function useChat(
     { data, headers, body }: ChatRequestOptions = {},
   ) {
     error.value = undefined;
-    mutateStatus(() => 'submitted');
+    status.value = 'submitted';
 
     const messageCount = messages.value.length;
     const maxStep = extractMaxToolInvocationStep(
@@ -257,7 +261,7 @@ export function useChat(
         credentials,
         onResponse,
         onUpdate({ message, data, replaceLastMessage }) {
-          mutateStatus(() => 'streaming');
+          status.value = 'streaming';
 
           mutate([
             ...(replaceLastMessage
@@ -283,12 +287,12 @@ export function useChat(
         lastMessage: recursiveToRaw(chatMessages[chatMessages.length - 1]),
       });
 
-      mutateStatus(() => 'ready');
+      status.value = 'ready';
     } catch (err) {
       // Ignore abort errors as they are expected.
       if ((err as any).name === 'AbortError') {
         abortController = null;
-        mutateStatus(() => 'ready');
+        status.value = 'ready';
         return null;
       }
 
@@ -297,7 +301,7 @@ export function useChat(
       }
 
       error.value = err as Error;
-      mutateStatus(() => 'error');
+      status.value = 'error';
     } finally {
       abortController = null;
     }
