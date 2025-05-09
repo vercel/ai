@@ -1,5 +1,64 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`processChatTextResponse > scenario: multiple short chunks > should call the addOrUpdateAssistantMessageParts function with the correct arguments 1`] = `
+[
+  [
+    {
+      "chatId": "chat-id",
+      "partDelta": {
+        "text": "",
+        "type": "text",
+      },
+    },
+  ],
+  [
+    {
+      "chatId": "chat-id",
+      "partDelta": {
+        "text": "A",
+        "type": "text",
+      },
+    },
+  ],
+  [
+    {
+      "chatId": "chat-id",
+      "partDelta": {
+        "text": "B",
+        "type": "text",
+      },
+    },
+  ],
+  [
+    {
+      "chatId": "chat-id",
+      "partDelta": {
+        "text": "C",
+        "type": "text",
+      },
+    },
+  ],
+  [
+    {
+      "chatId": "chat-id",
+      "partDelta": {
+        "text": "D",
+        "type": "text",
+      },
+    },
+  ],
+  [
+    {
+      "chatId": "chat-id",
+      "partDelta": {
+        "text": "E",
+        "type": "text",
+      },
+    },
+  ],
+]
+`;
+
 exports[`processChatTextResponse > scenario: multiple short chunks > should call the onFinish function after the stream ends 1`] = `
 [
   {
@@ -16,85 +75,7 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
 ]
 `;
 
-exports[`processChatTextResponse > scenario: multiple short chunks > should call the update function with correct arguments for each chunk 1`] = `
-[
-  {
-    "data": [],
-    "message": {
-      "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "test-id",
-      "parts": [
-        {
-          "text": "A",
-          "type": "text",
-        },
-      ],
-      "role": "assistant",
-    },
-    "replaceLastMessage": false,
-  },
-  {
-    "data": [],
-    "message": {
-      "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "test-id",
-      "parts": [
-        {
-          "text": "AB",
-          "type": "text",
-        },
-      ],
-      "role": "assistant",
-    },
-    "replaceLastMessage": false,
-  },
-  {
-    "data": [],
-    "message": {
-      "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "test-id",
-      "parts": [
-        {
-          "text": "ABC",
-          "type": "text",
-        },
-      ],
-      "role": "assistant",
-    },
-    "replaceLastMessage": false,
-  },
-  {
-    "data": [],
-    "message": {
-      "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "test-id",
-      "parts": [
-        {
-          "text": "ABCD",
-          "type": "text",
-        },
-      ],
-      "role": "assistant",
-    },
-    "replaceLastMessage": false,
-  },
-  {
-    "data": [],
-    "message": {
-      "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "test-id",
-      "parts": [
-        {
-          "text": "ABCDE",
-          "type": "text",
-        },
-      ],
-      "role": "assistant",
-    },
-    "replaceLastMessage": false,
-  },
-]
-`;
+exports[`processChatTextResponse > scenario: multiple short chunks > should call the updateData function with the correct arguments 1`] = `[]`;
 
 exports[`processChatTextResponse > scenario: no text chunks > should call the onFinish function after the stream ends 1`] = `
 [
@@ -112,7 +93,53 @@ exports[`processChatTextResponse > scenario: no text chunks > should call the on
 ]
 `;
 
-exports[`processChatTextResponse > scenario: no text chunks > should call the update function with correct arguments for each chunk 1`] = `[]`;
+exports[`processChatTextResponse > scenario: no text chunks > should call the updateData function with the correct arguments 1`] = `[]`;
+
+exports[`processChatTextResponse > scenario: no text chunks > should not call the addOrUpdateAssistantMessageParts function 1`] = `
+[
+  [
+    {
+      "chatId": "chat-id",
+      "partDelta": {
+        "text": "",
+        "type": "text",
+      },
+    },
+  ],
+]
+`;
+
+exports[`processChatTextResponse > scenario: simple text response > should call the addOrUpdateAssistantMessageParts function with the correct arguments 1`] = `
+[
+  [
+    {
+      "chatId": "chat-id",
+      "partDelta": {
+        "text": "",
+        "type": "text",
+      },
+    },
+  ],
+  [
+    {
+      "chatId": "chat-id",
+      "partDelta": {
+        "text": "Hello, ",
+        "type": "text",
+      },
+    },
+  ],
+  [
+    {
+      "chatId": "chat-id",
+      "partDelta": {
+        "text": "world!",
+        "type": "text",
+      },
+    },
+  ],
+]
+`;
 
 exports[`processChatTextResponse > scenario: simple text response > should call the onFinish function after the stream ends 1`] = `
 [
@@ -130,37 +157,4 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
 ]
 `;
 
-exports[`processChatTextResponse > scenario: simple text response > should call the update function with correct arguments for each chunk 1`] = `
-[
-  {
-    "data": [],
-    "message": {
-      "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "test-id",
-      "parts": [
-        {
-          "text": "Hello, ",
-          "type": "text",
-        },
-      ],
-      "role": "assistant",
-    },
-    "replaceLastMessage": false,
-  },
-  {
-    "data": [],
-    "message": {
-      "createdAt": 2023-01-01T00:00:00.000Z,
-      "id": "test-id",
-      "parts": [
-        {
-          "text": "Hello, world!",
-          "type": "text",
-        },
-      ],
-      "role": "assistant",
-    },
-    "replaceLastMessage": false,
-  },
-]
-`;
+exports[`processChatTextResponse > scenario: simple text response > should call the updateData function with the correct arguments 1`] = `[]`;

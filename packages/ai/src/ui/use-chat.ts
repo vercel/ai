@@ -1,6 +1,7 @@
 import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { FetchFunction, IdGenerator, ToolCall } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from '../../core/types/usage';
+import { ChatStore } from './chat-store';
 import { UIMessage } from './ui-messages';
 
 export type ChatRequestOptions = {
@@ -43,6 +44,11 @@ export type UseChatOptions = {
    * Initial messages of the chat. Useful to load an existing chat history.
    */
   initialMessages?: UIMessage[];
+
+  /**
+   * Optional ChatStore instance.
+   */
+  store?: ChatStore;
 
   /**
    * Initial input of the chat.

@@ -1,44 +1,35 @@
+import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
+import { parsePartialJson } from '../util';
 import type {
   ReasoningUIPart,
   TextUIPart,
   ToolInvocation,
   ToolInvocationUIPart,
   UIMessage,
-} from '../types';
-import { generateId as generateIdFunction, parsePartialJson } from '../util';
+} from './ui-messages';
 
 interface ChatStoreSubscriber {
-  onChatMessagesChanged?: (id: string) => void;
-  onChatStatusChanged?: (id: string) => void;
-  onChatErrorChanged?: (id: string) => void;
-  // onChatAdded?
-  // onChatRemoved?
+  id: string;
+  onChatChanged: (event: ChatStoreEvent) => void;
 }
 
 export enum ChatStoreEvent {
   ChatMessagesChanged = 'chat-messages-changed',
   ChatStatusChanged = 'chat-status-changed',
   ChatErrorChanged = 'chat-error-changed',
-  // ChatAdded = 'chat-added',
-  // ChatRemoved = 'chat-removed',
 }
-
-const ChatStoreEventMap = {
-  [ChatStoreEvent.ChatMessagesChanged]: 'onChatMessagesChanged',
-  [ChatStoreEvent.ChatStatusChanged]: 'onChatStatusChanged',
-  [ChatStoreEvent.ChatErrorChanged]: 'onChatErrorChanged',
-} as const;
 
 export interface ChatStoreInitialization {
   chats?: Record<string, Pick<ChatState, 'messages'>>;
   generateId?: () => string;
+  getCurrentDate?: () => Date;
 }
 
 export interface ChatState {
   status: 'submitted' | 'streaming' | 'ready' | 'error';
   messages: UIMessage[];
   activeResponse?: {
-    message: UIMessage;
+    message: UIMessage & { revisionId?: string };
     partialState: {
       textPart?: TextUIPart;
       reasoningPart?: ReasoningUIPart;
@@ -50,12 +41,14 @@ export interface ChatState {
 
 export class ChatStore {
   private chats: Map<string, ChatState>;
-  private subscribers: Set<ChatStoreSubscriber>;
+  private subscribers: Map<string, Set<ChatStoreSubscriber>>;
   private generateId: () => string;
+  private getCurrentDate: () => Date;
 
   constructor({
     chats = {},
     generateId = generateIdFunction,
+    getCurrentDate: customGetCurrentDate = () => new Date(),
   }: ChatStoreInitialization = {}) {
     this.chats = new Map(
       Object.entries(chats).map(([id, state]) => [
@@ -68,11 +61,12 @@ export class ChatStore {
         },
       ]),
     );
-    this.subscribers = new Set();
+    this.subscribers = new Map();
     this.generateId = generateId;
+    this.getCurrentDate = customGetCurrentDate;
   }
 
-  get totalChats() {
+  get chatCount() {
     return this.chats.size;
   }
 
@@ -115,8 +109,15 @@ export class ChatStore {
   }
 
   subscribe(subscriber: ChatStoreSubscriber): () => void {
-    this.subscribers.add(subscriber);
-    return () => this.subscribers.delete(subscriber);
+    const { id } = subscriber;
+
+    if (!this.subscribers.has(id)) {
+      this.subscribers.set(id, new Set());
+    }
+
+    this.subscribers.get(id)?.add(subscriber);
+
+    return () => this.subscribers.get(id)?.delete(subscriber);
   }
 
   setMessages({ id, messages }: { id: string; messages: UIMessage[] }) {
@@ -158,11 +159,11 @@ export class ChatStore {
   }
 
   private emitEvent({ id, event }: { id: string; event: ChatStoreEvent }) {
-    for (const subscriber of this.subscribers) {
-      const handler = ChatStoreEventMap[event];
-      if (handler) {
-        subscriber[handler]?.(id);
-      }
+    const subscribers = this.subscribers.get(id);
+    if (!subscribers) return;
+
+    for (const subscriber of subscribers) {
+      subscriber.onChatChanged(event);
     }
   }
 
@@ -177,6 +178,14 @@ export class ChatStore {
       return 0;
     }
 
+    const hasToolInvocation = chat.activeResponse.message.parts?.some(
+      part => part.type === 'tool-invocation',
+    );
+
+    if (!hasToolInvocation) {
+      return 0;
+    }
+
     return (
       chat.activeResponse.message.parts?.reduce((max, part) => {
         if (part.type === 'tool-invocation') {
@@ -184,7 +193,7 @@ export class ChatStore {
         }
         return max;
       }, 0) ?? 0
-    );
+    ) + 1;
   }
 
   private resetActiveResponse(id: string) {
@@ -198,6 +207,11 @@ export class ChatStore {
     this.emitEvent({ id, event: ChatStoreEvent.ChatErrorChanged });
   }
 
+  /**
+   * Initializes the active response for a chat.
+   * If the last message is an assistant message, it will be used to construct the active response state.
+   * Otherwise, a new message will be created.
+   */
   private initializeActiveResponse({
     chatId,
     messageId,
@@ -208,20 +222,45 @@ export class ChatStore {
     const chat = this.chats.get(chatId);
     if (!chat) return;
 
+    const maybeLastAssistantMessage = this.getLastMessage(chatId);
+    const lastMessage =
+      maybeLastAssistantMessage?.role === 'assistant'
+        ? maybeLastAssistantMessage
+        : undefined;
+
+    if (!lastMessage && maybeLastAssistantMessage?.role !== 'user') {
+      throw new Error('Corresponding user message not found');
+    }
+
+    const id = messageId ?? lastMessage?.id ?? this.generateId();
+    const createdAt = lastMessage?.createdAt ?? this.getCurrentDate();
+    const parts = lastMessage?.parts ?? [];
+
     chat.activeResponse = {
       message: {
-        id: messageId ?? this.generateId(),
-        createdAt: new Date(),
+        id,
+        createdAt,
         role: 'assistant',
-        content: '',
-        parts: [],
+        parts,
       },
-      partialState: {},
+      partialState: {
+        textPart: parts.find(part => part.type === 'text'),
+        reasoningPart: parts.find(part => part.type === 'reasoning'),
+        toolParts: parts
+          .filter(part => part.type === 'tool-invocation')
+          .reduce(
+            (acc, part) => {
+              acc[part.toolInvocation.toolCallId] = part;
+              return acc;
+            },
+            {} as Record<string, ToolInvocationUIPart>,
+          ),
+      },
     };
-    chat.messages.push(chat.activeResponse.message);
+    chat.messages.push(chat.activeResponse!.message);
   }
 
-  addOrUpdateAssistantMessageParts({
+  async addOrUpdateAssistantMessageParts({
     chatId,
     partDelta,
     messageId,
@@ -234,15 +273,9 @@ export class ChatStore {
     if (!chat) return;
 
     if (!chat.activeResponse) {
-      const lastMessage = chat.messages[chat.messages.length - 1];
-      if (lastMessage?.role !== 'user') {
-        throw new Error('Invalid state: no corresponding user message found');
-      }
-
       this.initializeActiveResponse({
         chatId,
         messageId,
-        customGenerateId: generateId,
       });
     }
 
@@ -254,10 +287,11 @@ export class ChatStore {
         if (activeResponse.partialState.textPart) {
           activeResponse.partialState.textPart.text += partDelta.text;
         } else {
-          activeResponse.partialState.textPart = partDelta;
-          activeResponse.message.parts.push(partDelta);
+          activeResponse.partialState.textPart = { ...partDelta };
+          activeResponse.message.parts.push(
+            activeResponse.partialState.textPart,
+          );
         }
-        activeResponse.message.content += partDelta.text;
         break;
       }
       case 'reasoning': {
@@ -268,7 +302,7 @@ export class ChatStore {
         break;
       }
       case 'tool-invocation': {
-        this.addOrUpdateToolInvocation({
+        await this.addOrUpdateToolInvocation({
           toolInvocation: partDelta.toolInvocation,
           activeResponse,
           chatId,
@@ -287,7 +321,7 @@ export class ChatStore {
       }
     }
 
-    chat.messages = [...chat.messages.slice(0, -1), activeResponse.message];
+    chat.activeResponse!.message.revisionId = this.generateId();
     this.emitEvent({ id: chatId, event: ChatStoreEvent.ChatMessagesChanged });
   }
 
@@ -302,15 +336,20 @@ export class ChatStore {
     if (!chat) return;
 
     if (!chat.activeResponse) {
-      throw new Error('Invalid state: no active response found');
+      this.initializeActiveResponse({
+        chatId,
+        messageId: message.id,
+      });
     }
 
-    chat.activeResponse.message = {
-      ...chat.activeResponse.message,
+    chat.activeResponse!.message = {
+      ...chat.activeResponse!.message,
       ...message,
     };
-
-    this.emitEvent({ id: chatId, event: ChatStoreEvent.ChatMessagesChanged });
+    this.setMessages({
+      id: chatId,
+      messages: [...chat.messages.slice(0, -1), chat.activeResponse!.message],
+    });
   }
 
   clearStepPartialState({
@@ -334,7 +373,7 @@ export class ChatStore {
     chat.activeResponse.partialState = partialState;
   }
 
-  private addOrUpdateToolInvocation({
+  private async addOrUpdateToolInvocation({
     chatId,
     toolInvocation,
     activeResponse,
@@ -359,8 +398,9 @@ export class ChatStore {
       switch (toolInvocation.state) {
         case 'partial-call': {
           const args = existingToolInvocation.args + toolInvocation.args;
-          const { value: partialArgs } = await parsePartialJson(args);
-          existingToolInvocation.args = partialArgs;
+          const { value: partialArgs, state } = await parsePartialJson(args);
+          existingToolInvocation.args =
+            state === 'successful-parse' ? partialArgs : args;
           break;
         }
         case 'call': {
@@ -379,6 +419,10 @@ export class ChatStore {
     } else {
       if (toolInvocation.state === 'result') {
         throw new Error('tool_result must be preceded by a tool_call');
+      }
+
+      if (toolInvocation.state !== 'partial-call' && toolInvocation.state !== 'call') {
+        throw new Error('Invalid tool invocation state');
       }
 
       const partialToolPart: ToolInvocationUIPart = {

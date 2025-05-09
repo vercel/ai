@@ -1,231 +1,148 @@
 import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
-import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from '../../core/types/usage';
 import { processDataStream } from '../data-stream/process-data-stream';
-import { parsePartialJson } from '../util/parse-partial-json';
-import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
-import { getToolInvocations } from './get-tool-invocations';
-import type {
-  ReasoningUIPart,
-  TextUIPart,
-  ToolInvocation,
-  ToolInvocationUIPart,
-  UIMessage,
-} from './ui-messages';
+import { ChatStore } from './chat-store';
+import type { UIMessage } from './ui-messages';
 import { UseChatOptions } from './use-chat';
+
+type LocalState = {
+  messageAnnotations?: JSONValue[];
+  usage: LanguageModelUsage;
+  finishReason: LanguageModelV2FinishReason;
+};
 
 export async function processChatResponse({
   stream,
-  update,
+  updateData,
   onToolCall,
   onFinish,
-  generateId = generateIdFunction,
-  getCurrentDate = () => new Date(),
-  lastMessage,
+  store,
+  chatId,
 }: {
   stream: ReadableStream<Uint8Array>;
-  update: (options: {
-    message: UIMessage;
-    data: JSONValue[] | undefined;
-    replaceLastMessage: boolean;
-  }) => void;
+  updateData: (data?: JSONValue[]) => void;
   onToolCall?: UseChatOptions['onToolCall'];
   onFinish?: (options: {
     message: UIMessage | undefined;
     finishReason: LanguageModelV2FinishReason;
     usage: LanguageModelUsage;
   }) => void;
-  generateId?: () => string;
-  getCurrentDate?: () => Date;
-  lastMessage: UIMessage | undefined;
+  store: ChatStore;
+  chatId: string;
 }) {
-  const replaceLastMessage = lastMessage?.role === 'assistant';
-
-  let step = replaceLastMessage
-    ? 1 + (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0)
-    : 0;
-
-  const message: UIMessage = replaceLastMessage
-    ? structuredClone(lastMessage)
-    : {
-        id: generateId(),
-        createdAt: getCurrentDate(),
-        role: 'assistant',
-        parts: [],
-      };
-
-  let currentTextPart: TextUIPart | undefined = undefined;
-  let currentReasoningPart: ReasoningUIPart | undefined = undefined;
-
-  function updateToolInvocationPart(
-    toolCallId: string,
-    invocation: ToolInvocation,
-  ) {
-    const part = message.parts.find(
-      part =>
-        part.type === 'tool-invocation' &&
-        part.toolInvocation.toolCallId === toolCallId,
-    ) as ToolInvocationUIPart | undefined;
-
-    if (part != null) {
-      part.toolInvocation = invocation;
-    } else {
-      message.parts.push({
-        type: 'tool-invocation',
-        toolInvocation: invocation,
-      });
-    }
-  }
-
   const data: JSONValue[] = [];
 
-  // keep list of current message annotations for message
-  let messageAnnotations: JSONValue[] | undefined = replaceLastMessage
-    ? lastMessage?.annotations
-    : undefined;
+  const lastMessage = store.getLastMessage(chatId);
+  const replaceLastMessage = lastMessage?.role === 'assistant';
 
-  // keep track of partial tool calls
-  const partialToolCalls: Record<
-    string,
-    { text: string; step: number; index: number; toolName: string }
-  > = {};
-
-  let usage: LanguageModelUsage = {
-    inputTokens: undefined,
-    outputTokens: undefined,
-    totalTokens: undefined,
+  const localState: LocalState = {
+    // We keep track of message annotation locally because they may be returned before the active response is created (before native parts are processed):
+    messageAnnotations: replaceLastMessage
+      ? lastMessage?.annotations
+      : undefined,
+    usage: {
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
+    },
+    finishReason: 'unknown',
   };
-  let finishReason: LanguageModelV2FinishReason = 'unknown';
-
-  function execUpdate() {
-    // make a copy of the data array to ensure UI is updated (SWR)
-    const copiedData = [...data];
-
-    // keeps the currentMessage up to date with the latest annotations,
-    // even if annotations preceded the message creation
-    if (messageAnnotations?.length) {
-      message.annotations = messageAnnotations;
-    }
-
-    const copiedMessage = {
-      // deep copy the message to ensure that deep changes (msg attachments) are updated
-      // with SolidJS. SolidJS uses referential integration of sub-objects to detect changes.
-      ...structuredClone(message),
-      // add a revision id to ensure that the message is updated with SWR. SWR uses a
-      // hashing approach by default to detect changes, but it only works for shallow
-      // changes. This is why we need to add a revision id to ensure that the message
-      // is updated with SWR (without it, the changes get stuck in SWR and are not
-      // forwarded to rendering):
-      revisionId: generateId(),
-    } as UIMessage;
-
-    update({
-      message: copiedMessage,
-      data: copiedData,
-      replaceLastMessage,
-    });
-  }
 
   await processDataStream({
     stream,
-    onTextPart(value) {
-      if (currentTextPart == null) {
-        currentTextPart = {
+    onStreamStart() {
+      store.setStatus({
+        id: chatId,
+        status: 'streaming',
+      });
+    },
+    async onTextPart(value) {
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
           type: 'text',
           text: value,
-        };
-        message.parts.push(currentTextPart);
-      } else {
-        currentTextPart.text += value;
-      }
-
-      execUpdate();
+        },
+      });
     },
-    onReasoningPart(value) {
-      if (currentReasoningPart == null) {
-        currentReasoningPart = {
+    async onReasoningPart(value) {
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
           type: 'reasoning',
           text: value.text,
           providerMetadata: value.providerMetadata,
-        };
-        message.parts.push(currentReasoningPart);
-      } else {
-        currentReasoningPart.text += value.text;
-        currentReasoningPart.providerMetadata = value.providerMetadata;
-      }
-
-      execUpdate();
-    },
-    onReasoningPartFinish(value) {
-      if (currentReasoningPart != null) {
-        currentReasoningPart = undefined;
-      }
-    },
-    onFilePart(value) {
-      message.parts.push({
-        type: 'file',
-        mediaType: value.mediaType,
-        url: value.url,
+        },
       });
-
-      execUpdate();
     },
-    onSourcePart(value) {
-      message.parts.push({
-        type: 'source',
-        source: value,
+    async onReasoningPartFinish() {
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
+          type: 'reasoning',
+          text: '',
+          providerMetadata: undefined,
+        },
       });
-
-      execUpdate();
     },
-    onToolCallStreamingStartPart(value) {
-      const toolInvocations = getToolInvocations(message);
-
-      // add the partial tool call to the map
-      partialToolCalls[value.toolCallId] = {
-        text: '',
-        step,
-        toolName: value.toolName,
-        index: toolInvocations.length,
-      };
-
-      updateToolInvocationPart(value.toolCallId, {
-        state: 'partial-call',
-        step,
-        toolCallId: value.toolCallId,
-        toolName: value.toolName,
-        args: undefined,
-      } as const);
-
-      execUpdate();
+    async onFilePart(value) {
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
+          type: 'file',
+          mediaType: value.mediaType,
+          url: value.url,
+        },
+      });
+    },
+    async onSourcePart(value) {
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
+          type: 'source',
+          source: value,
+        },
+      });
+    },
+    async onToolCallStreamingStartPart(value) {
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
+          type: 'tool-invocation',
+          toolInvocation: {
+            state: 'partial-call',
+            toolCallId: value.toolCallId,
+            toolName: value.toolName,
+            args: undefined,
+          },
+        },
+      });
     },
     async onToolCallDeltaPart(value) {
-      const partialToolCall = partialToolCalls[value.toolCallId];
-
-      partialToolCall.text += value.argsTextDelta;
-
-      const { value: partialArgs } = await parsePartialJson(
-        partialToolCall.text,
-      );
-
-      updateToolInvocationPart(value.toolCallId, {
-        state: 'partial-call',
-        step: partialToolCall.step,
-        toolCallId: value.toolCallId,
-        toolName: partialToolCall.toolName,
-        args: partialArgs,
-      } as const);
-
-      execUpdate();
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
+          type: 'tool-invocation',
+          toolInvocation: {
+            state: 'partial-call',
+            toolCallId: value.toolCallId,
+            toolName: '',
+            args: value.argsTextDelta,
+          },
+        },
+      });
     },
     async onToolCallPart(value) {
-      updateToolInvocationPart(value.toolCallId, {
-        state: 'call',
-        step,
-        ...value,
-      } as const);
-
-      execUpdate();
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
+          type: 'tool-invocation',
+          toolInvocation: {
+            state: 'call',
+            ...value,
+          },
+        },
+      });
 
       // invoke the onToolCall callback if it exists. This is blocking.
       // In the future we should make this non-blocking, which
@@ -235,78 +152,96 @@ export async function processChatResponse({
           toolCall: value,
         });
         if (result != null) {
-          updateToolInvocationPart(value.toolCallId, {
-            state: 'result',
-            step,
-            ...value,
-            result,
-          } as const);
-
-          execUpdate();
+          store.addOrUpdateAssistantMessageParts({
+            chatId,
+            partDelta: {
+              type: 'tool-invocation',
+              toolInvocation: {
+                state: 'result',
+                ...value,
+                result,
+              },
+            },
+          });
         }
       }
     },
-    onToolResultPart(value) {
-      const toolInvocations = getToolInvocations(message);
-
-      if (toolInvocations == null) {
-        throw new Error('tool_result must be preceded by a tool_call');
-      }
-
-      // find if there is any tool invocation with the same toolCallId
-      // and replace it with the result
-      const toolInvocationIndex = toolInvocations.findIndex(
-        invocation => invocation.toolCallId === value.toolCallId,
-      );
-
-      if (toolInvocationIndex === -1) {
-        throw new Error(
-          'tool_result must be preceded by a tool_call with the same toolCallId',
-        );
-      }
-
-      updateToolInvocationPart(value.toolCallId, {
-        ...toolInvocations[toolInvocationIndex],
-        state: 'result' as const,
-        ...value,
-      } as const);
-
-      execUpdate();
+    async onToolResultPart(value) {
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
+          type: 'tool-invocation',
+          toolInvocation: {
+            state: 'result',
+            ...value,
+          },
+        },
+      });
     },
     onDataPart(value) {
       data.push(...value);
-      execUpdate();
+      updateData(data);
     },
     onMessageAnnotationsPart(value) {
+      const { messageAnnotations } = localState;
+
       if (messageAnnotations == null) {
-        messageAnnotations = [...value];
+        localState.messageAnnotations = [...value];
       } else {
-        messageAnnotations.push(...value);
+        localState.messageAnnotations?.push(...value);
       }
 
-      execUpdate();
+      const lastMessage = store.getLastMessage(chatId);
+
+      if (
+        lastMessage != null &&
+        lastMessage.role === 'assistant' &&
+        localState.messageAnnotations != null
+      ) {
+        store.updateActiveResponse({
+          chatId,
+          message: {
+            annotations: [...localState.messageAnnotations],
+          },
+        });
+      }
     },
     onFinishStepPart(value) {
-      step += 1;
-
-      // reset the current text and reasoning parts
-      currentTextPart = value.isContinued ? currentTextPart : undefined;
-      currentReasoningPart = undefined;
+      store.clearStepPartialState({
+        id: chatId,
+        isContinued: value.isContinued,
+      });
     },
-    onStartStepPart(value) {
-      // keep message id stable when we are updating an existing message:
-      if (!replaceLastMessage) {
-        message.id = value.messageId;
-      }
-
-      // add a step boundary part to the message
-      message.parts.push({ type: 'step-start' });
-      execUpdate();
+    async onStartStepPart(value) {
+      // Add a step boundary part to the message
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
+          type: 'step-start',
+        },
+        // Keep message id stable when we are updating an existing message:
+        messageId: !replaceLastMessage ? value.messageId : undefined,
+      });
     },
     onFinishMessagePart(value) {
-      finishReason = value.finishReason;
+      localState.finishReason = value.finishReason;
+
       if (value.usage != null) {
-        usage = value.usage as LanguageModelUsage;
+        localState.usage = value.usage as LanguageModelUsage;
+      }
+
+      // Check if we need to add annotations:
+      if (localState.messageAnnotations != null) {
+        const lastMessage = store.getLastMessage(chatId);
+
+        if (lastMessage?.role === 'assistant' && !lastMessage?.annotations) {
+          store.updateActiveResponse({
+            chatId,
+            message: {
+              annotations: [...localState.messageAnnotations],
+            },
+          });
+        }
       }
     },
     onErrorPart(error) {
@@ -314,5 +249,15 @@ export async function processChatResponse({
     },
   });
 
-  onFinish?.({ message, finishReason, usage });
+  const message = store.getLastMessage(chatId);
+
+  if (message != null && 'revisionId' in message) {
+    delete message.revisionId;
+  }
+
+  onFinish?.({
+    message,
+    finishReason: localState.finishReason,
+    usage: localState.usage,
+  });
 }

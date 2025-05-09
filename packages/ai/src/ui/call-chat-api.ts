@@ -1,8 +1,8 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { IdGenerator } from '@ai-sdk/provider-utils';
+import { ChatStore } from '.';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
-import { UIMessage } from './ui-messages';
 import { UseChatOptions } from './use-chat';
 
 // use function to allow for mocking in tests:
@@ -16,14 +16,14 @@ export async function callChatApi({
   headers,
   abortController,
   onResponse,
-  onUpdate,
+  onUpdateData,
   onFinish,
   onToolCall,
   generateId,
   fetch = getOriginalFetch(),
-  lastMessage,
   getCurrentDate,
   requestType = 'generate',
+  store,
 }: {
   api: string;
   body: Record<string, any>;
@@ -32,22 +32,19 @@ export async function callChatApi({
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
-  onUpdate: (options: {
-    message: UIMessage;
-    data: JSONValue[] | undefined;
-    replaceLastMessage: boolean;
-  }) => void;
+  onUpdateData: (data?: JSONValue[]) => void;
   onFinish: UseChatOptions['onFinish'];
   onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
-  lastMessage: UIMessage | undefined;
   getCurrentDate: () => Date;
   requestType?: 'generate' | 'resume';
+  store: ChatStore;
 }) {
+  const chatId = body.id;
   const response =
     requestType === 'resume'
-      ? await fetch(`${api}?chatId=${body.id}`, {
+      ? await fetch(`${api}?chatId=${chatId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -85,10 +82,10 @@ export async function callChatApi({
     case 'text': {
       await processChatTextResponse({
         stream: response.body,
-        update: onUpdate,
+        updateData: onUpdateData,
         onFinish,
-        generateId,
-        getCurrentDate,
+        store,
+        chatId,
       });
       return;
     }
@@ -96,16 +93,15 @@ export async function callChatApi({
     case 'data': {
       await processChatResponse({
         stream: response.body,
-        update: onUpdate,
-        lastMessage,
+        updateData: onUpdateData,
         onToolCall,
         onFinish({ message, finishReason, usage }) {
           if (onFinish && message != null) {
             onFinish(message, { usage, finishReason });
           }
         },
-        generateId,
-        getCurrentDate,
+        store,
+        chatId,
       });
       return;
     }

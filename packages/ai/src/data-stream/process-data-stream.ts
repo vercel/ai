@@ -11,6 +11,7 @@ import { DataStreamPart, dataStreamPartSchema } from './data-stream-parts';
 
 export async function processDataStream({
   stream,
+  onStreamStart,
   onTextPart,
   onReasoningPart,
   onReasoningPartFinish,
@@ -28,6 +29,7 @@ export async function processDataStream({
   onStartStepPart,
 }: {
   stream: ReadableStream<Uint8Array>;
+  onStreamStart?: () => Promise<void> | void;
   onTextPart?: (
     streamPart: (DataStreamPart & { type: 'text' })['value'],
   ) => Promise<void> | void;
@@ -78,6 +80,8 @@ export async function processDataStream({
     streamPart: (DataStreamPart & { type: 'start-step' })['value'],
   ) => Promise<void> | void;
 }): Promise<void> {
+  await onStreamStart?.();
+
   const streamParts = createAsyncIterableStream(
     stream
       .pipeThrough(new TextDecoderStream())
