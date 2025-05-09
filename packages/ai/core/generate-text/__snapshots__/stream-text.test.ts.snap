@@ -261,7 +261,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
       "sources": [],
-      "stepType": "initial",
       "text": "",
       "toolCalls": [
         {
@@ -358,7 +357,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
         "timestamp": 1970-01-01T00:00:01.000Z,
       },
       "sources": [],
-      "stepType": "tool-result",
       "text": "Hello, world!",
       "toolCalls": [],
       "toolResults": [],
@@ -467,7 +465,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "sources": [],
-    "stepType": "initial",
     "text": "",
     "toolCalls": [
       {
@@ -564,7 +561,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > callbac
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
     "sources": [],
-    "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
     "toolResults": [],
@@ -954,7 +950,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "sources": [],
-    "stepType": "initial",
     "text": "",
     "toolCalls": [
       {
@@ -1051,7 +1046,6 @@ exports[`streamText > options.maxSteps > 2 steps: initial, tool-result > value p
       "timestamp": 1970-01-01T00:00:01.000Z,
     },
     "sources": [],
-    "stepType": "tool-result",
     "text": "Hello, world!",
     "toolCalls": [],
     "toolResults": [],
@@ -1305,7 +1299,6 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
       "sources": [],
-      "stepType": "initial",
       "text": "Hello, world!",
       "toolCalls": [
         {
@@ -1519,7 +1512,6 @@ exports[`streamText > options.onFinish > should send files 1`] = `
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
       "sources": [],
-      "stepType": "initial",
       "text": "Hello!",
       "toolCalls": [],
       "toolResults": [],
@@ -1711,7 +1703,6 @@ exports[`streamText > options.onFinish > should send sources 1`] = `
           "url": "https://example.com/2",
         },
       ],
-      "stepType": "initial",
       "text": "Hello!",
       "toolCalls": [],
       "toolResults": [],
@@ -1805,7 +1796,6 @@ exports[`streamText > options.output > object output > should call onFinish with
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
       "sources": [],
-      "stepType": "initial",
       "text": "{ "value": "Hello, world!" }",
       "toolCalls": [],
       "toolResults": [],
@@ -2001,7 +1991,6 @@ exports[`streamText > options.transform > with base transformation > options.onF
         "timestamp": 1970-01-01T00:00:00.000Z,
       },
       "sources": [],
-      "stepType": "initial",
       "text": "HELLO, WORLD!",
       "toolCalls": [
         {
@@ -2151,7 +2140,6 @@ exports[`streamText > options.transform > with base transformation > options.onS
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
   "sources": [],
-  "stepType": "initial",
   "text": "HELLO, WORLD!",
   "toolCalls": [
     {
@@ -2256,7 +2244,6 @@ exports[`streamText > options.transform > with base transformation > result.step
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "sources": [],
-    "stepType": "initial",
     "text": "HELLO, WORLD!",
     "toolCalls": [
       {
@@ -2407,7 +2394,6 @@ exports[`streamText > options.transform > with transformation that aborts stream
     "timestamp": 1970-01-01T00:00:00.000Z,
   },
   "sources": [],
-  "stepType": "initial",
   "text": "Hello, ",
   "toolCalls": [],
   "toolResults": [],
@@ -3528,7 +3514,6 @@ exports[`streamText > result.steps > should add the files from the model respons
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "sources": [],
-    "stepType": "initial",
     "text": "Hello!",
     "toolCalls": [],
     "toolResults": [],
@@ -3660,7 +3645,6 @@ exports[`streamText > result.steps > should add the reasoning from the model res
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
     "sources": [],
-    "stepType": "initial",
     "text": "Hi there!",
     "toolCalls": [],
     "toolResults": [],
@@ -3759,7 +3743,6 @@ exports[`streamText > result.steps > should add the sources from the model respo
         "url": "https://example.com/2",
       },
     ],
-    "stepType": "initial",
     "text": "Hello!",
     "toolCalls": [],
     "toolResults": [],

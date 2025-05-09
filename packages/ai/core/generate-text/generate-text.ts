@@ -496,7 +496,6 @@ A function that attempts to repair a tool call that failed to parse.
 
         // Add step information (after response messages are updated):
         const currentStepResult: StepResult<TOOLS> = {
-          stepType,
           content: stepContent,
           text: stepText,
           reasoningText: asReasoningText(extractReasoning(stepContent)),

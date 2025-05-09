@@ -699,7 +699,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = {
-            stepType,
             content: recordedContent,
             text: recordedStepText,
             reasoningText: asReasoningText(extractReasoning(recordedContent)),
