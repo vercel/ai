@@ -1009,10 +1009,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepToolResults: ToolResultUnion<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
           const stepContent: Array<ContentPart<TOOLS>> = [];
-          const stepReasoning: Array<
-            ContentPart<TOOLS> & { type: 'reasoning' }
-          > = [];
-          const stepFiles: Array<GeneratedFile> = [];
+
           let activeReasoningPart:
             | undefined
             | (ContentPart<TOOLS> & { type: 'reasoning' }) = undefined;
@@ -1026,15 +1023,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let stepText = '';
-          let fullStepText = '';
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: currentDate(),
             modelId: model.modelId,
           };
-
-          // chunk buffer when using continue:
-          let chunkTextPublished = false;
 
           async function publishTextChunk({
             controller,
@@ -1046,8 +1039,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             controller.enqueue(chunk);
 
             stepText += chunk.text;
-            fullStepText += chunk.text;
-            chunkTextPublished = true;
           }
 
           self.addStream(
@@ -1106,7 +1097,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                           text: chunk.text,
                           providerMetadata: chunk.providerMetadata,
                         };
-                        stepReasoning.push(activeReasoningPart);
                         stepContent.push(activeReasoningPart);
                       } else {
                         activeReasoningPart.text += chunk.text;
@@ -1169,7 +1159,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     }
 
                     case 'file': {
-                      stepFiles.push(chunk.file);
                       stepContent.push(chunk);
                       controller.enqueue(chunk);
                       break;
