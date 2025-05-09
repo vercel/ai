@@ -174,7 +174,7 @@ describe('data protocol stream', () => {
       });
     });
 
-    it('gets stuck when the stream finishes while the tab is hidden', async () => {
+    it('should update status when the tab is hidden', async () => {
       const controller = new TestResponseController();
       server.urls['/api/chat'].response = {
         type: 'controlled-stream',
