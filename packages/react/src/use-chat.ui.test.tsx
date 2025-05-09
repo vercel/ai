@@ -887,7 +887,7 @@ describe('onToolCall', () => {
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
-      `{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}`,
+      `{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"step":0}`,
     );
 
     resolve();
@@ -912,7 +912,7 @@ describe('tool invocations', () => {
           <div data-testid={`message-${idx}`} key={m.id}>
             {getToolInvocations(m).map((toolInvocation, toolIdx) => {
               return (
-                <div key={toolIdx}>
+                <div key={`tool-invocation-${toolIdx}`}>
                   <div data-testid={`tool-invocation-${toolIdx}`}>
                     {JSON.stringify(toolInvocation)}
                   </div>
@@ -968,7 +968,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"partial-call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool"}',
+        '{"state":"partial-call","toolCallId":"tool-call-0","toolName":"test-tool","step":0}',
       );
     });
 
@@ -1061,7 +1061,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"step":0}',
       );
     });
 
@@ -1109,9 +1109,14 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"step":0}',
       );
     });
+
+    server.urls['/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [],
+    };
 
     await userEvent.click(screen.getByTestId('add-result-0'));
 
@@ -1157,7 +1162,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"step":0}',
       );
     });
 
