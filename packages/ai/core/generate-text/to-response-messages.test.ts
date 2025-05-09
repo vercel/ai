@@ -177,10 +177,6 @@ describe('toResponseMessages', () => {
     const result = toResponseMessages({
       content: [
         {
-          type: 'text',
-          text: 'Final text',
-        },
-        {
           type: 'reasoning',
           text: 'redacted-data',
           providerMetadata: {
@@ -193,6 +189,10 @@ describe('toResponseMessages', () => {
           providerMetadata: {
             testProvider: { signature: 'sig' },
           },
+        },
+        {
+          type: 'text',
+          text: 'Final text',
         },
       ],
       tools: {},
@@ -322,13 +322,13 @@ describe('toResponseMessages', () => {
       generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
+    expect(result).toStrictEqual([
       {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
           { type: 'text', text: 'Here is an image' },
+          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
         ],
       },
     ]);
@@ -358,18 +358,18 @@ describe('toResponseMessages', () => {
       generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
+    expect(result).toStrictEqual([
       {
         role: 'assistant',
         id: 'msg-123',
         content: [
+          { type: 'text', text: 'Here are multiple images' },
           { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
           {
             type: 'file',
             data: jpegFile.base64,
             mediaType: jpegFile.mediaType,
           },
-          { type: 'text', text: 'Here are multiple images' },
         ],
       },
     ]);
@@ -394,13 +394,13 @@ describe('toResponseMessages', () => {
       generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
+    expect(result).toStrictEqual([
       {
         role: 'assistant',
         id: 'msg-123',
         content: [
-          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
           { type: 'text', text: 'Here is a binary image' },
+          { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
         ],
       },
     ]);
@@ -415,14 +415,14 @@ describe('toResponseMessages', () => {
     const result = toResponseMessages({
       content: [
         {
-          type: 'text',
-          text: 'Combined response',
-        },
-        { type: 'file', file: pngFile },
-        {
           type: 'reasoning',
           text: 'Thinking text',
           providerMetadata: { testProvider: { signature: 'sig' } },
+        },
+        { type: 'file', file: pngFile },
+        {
+          type: 'text',
+          text: 'Combined response',
         },
         {
           type: 'tool-call',

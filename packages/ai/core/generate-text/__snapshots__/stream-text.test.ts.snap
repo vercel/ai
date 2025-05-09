@@ -1185,7 +1185,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
       {
         "content": [
           {
-            "text": "Hello, world!",
+            "text": "Hello, ",
             "type": "text",
           },
           {
@@ -1195,6 +1195,10 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
+          },
+          {
+            "text": "world!",
+            "type": "text",
           },
         ],
         "id": "msg-0",
@@ -1265,7 +1269,7 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
           {
             "content": [
               {
-                "text": "Hello, world!",
+                "text": "Hello, ",
                 "type": "text",
               },
               {
@@ -1275,6 +1279,10 @@ exports[`streamText > options.onFinish > should send correct information 1`] = `
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
+              },
+              {
+                "text": "world!",
+                "type": "text",
               },
             ],
             "id": "msg-0",
@@ -1420,13 +1428,13 @@ exports[`streamText > options.onFinish > should send files 1`] = `
             "type": "file",
           },
           {
+            "text": "Hello!",
+            "type": "text",
+          },
+          {
             "data": "QkFVRw==",
             "mediaType": "image/jpeg",
             "type": "file",
-          },
-          {
-            "text": "Hello!",
-            "type": "text",
           },
         ],
         "id": "msg-0",
@@ -1494,13 +1502,13 @@ exports[`streamText > options.onFinish > should send files 1`] = `
                 "type": "file",
               },
               {
+                "text": "Hello!",
+                "type": "text",
+              },
+              {
                 "data": "QkFVRw==",
                 "mediaType": "image/jpeg",
                 "type": "file",
-              },
-              {
-                "text": "Hello!",
-                "type": "text",
               },
             ],
             "id": "msg-0",
@@ -1873,7 +1881,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
       {
         "content": [
           {
-            "text": "HELLO, WORLD!",
+            "text": "HELLO, ",
             "type": "text",
           },
           {
@@ -1883,6 +1891,10 @@ exports[`streamText > options.transform > with base transformation > options.onF
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
+          },
+          {
+            "text": "WORLD!",
+            "type": "text",
           },
         ],
         "id": "msg-0",
@@ -1953,7 +1965,7 @@ exports[`streamText > options.transform > with base transformation > options.onF
           {
             "content": [
               {
-                "text": "HELLO, WORLD!",
+                "text": "HELLO, ",
                 "type": "text",
               },
               {
@@ -1963,6 +1975,10 @@ exports[`streamText > options.transform > with base transformation > options.onF
                 "toolCallId": "call-1",
                 "toolName": "tool1",
                 "type": "tool-call",
+              },
+              {
+                "text": "WORLD!",
+                "type": "text",
               },
             ],
             "id": "msg-0",
@@ -2099,7 +2115,7 @@ exports[`streamText > options.transform > with base transformation > options.onS
       {
         "content": [
           {
-            "text": "HELLO, WORLD!",
+            "text": "HELLO, ",
             "type": "text",
           },
           {
@@ -2109,6 +2125,10 @@ exports[`streamText > options.transform > with base transformation > options.onS
             "toolCallId": "call-1",
             "toolName": "tool1",
             "type": "tool-call",
+          },
+          {
+            "text": "WORLD!",
+            "type": "text",
           },
         ],
         "id": "msg-0",
@@ -3491,13 +3511,13 @@ exports[`streamText > result.steps > should add the files from the model respons
               "type": "file",
             },
             {
+              "text": "Hello!",
+              "type": "text",
+            },
+            {
               "data": "QkFVRw==",
               "mediaType": "image/jpeg",
               "type": "file",
-            },
-            {
-              "text": "Hello!",
-              "type": "text",
             },
           ],
           "id": "msg-0",
