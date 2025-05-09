@@ -46,11 +46,12 @@ import { extractFiles, extractReasoning, extractSources } from './as-content';
 import { ContentPart } from './content-part';
 import { Output } from './output';
 import { asReasoningText } from './reasoning';
+import { ResponseMessage } from './response-message';
 import {
   runToolsTransformation,
   SingleRequestTextStreamPart,
 } from './run-tools-transformation';
-import { ResponseMessage, StepResult } from './step-result';
+import { StepResult } from './step-result';
 import {
   ConsumeStreamOptions,
   DataStreamOptions,

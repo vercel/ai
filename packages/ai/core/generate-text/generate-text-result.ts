@@ -6,7 +6,8 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
-import { ResponseMessage, StepResult } from './step-result';
+import { ResponseMessage } from './response-message';
+import { StepResult } from './step-result';
 import { ToolCallArray } from './tool-call';
 import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';

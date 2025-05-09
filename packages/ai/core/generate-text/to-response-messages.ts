@@ -1,6 +1,6 @@
 import { AssistantContent, ToolContent, ToolResultPart } from '../prompt';
 import { ContentPart } from './content-part';
-import { ResponseMessage } from './step-result';
+import { ResponseMessage } from './response-message';
 import { ToolSet } from './tool-set';
 
 /**
