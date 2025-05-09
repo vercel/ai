@@ -14,7 +14,7 @@ import {
   FinishReason,
   getToolInvocations,
   LanguageModelUsage,
-  UIMessage
+  UIMessage,
 } from 'ai';
 import { mockValues } from 'ai/test';
 import React, { useEffect, useRef, useState } from 'react';
@@ -132,7 +132,9 @@ describe('data protocol stream', () => {
     userEvent.click(screen.getByTestId('do-append'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('messages').textContent).toMatchInlineSnapshot(`"[]"`);
+      expect(screen.getByTestId('messages').textContent).toMatchInlineSnapshot(
+        `"[]"`,
+      );
     });
   });
 
@@ -148,7 +150,9 @@ describe('data protocol stream', () => {
     userEvent.click(screen.getByTestId('do-append'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('data').textContent).toMatchInlineSnapshot(`""`);
+      expect(screen.getByTestId('data').textContent).toMatchInlineSnapshot(
+        `""`,
+      );
     });
   });
 
@@ -248,7 +252,7 @@ describe('data protocol stream', () => {
       });
     });
   });
-  
+
   it('should invoke onFinish when the stream finishes', async () => {
     const controller = new TestResponseController();
 
@@ -889,7 +893,7 @@ describe('onToolCall', () => {
           {"args":{"testArg":"test-value"},"step":0,"toolName":"test-tool","state":"call","toolCallId":"tool-call-0"}
         </div>
       </div>
-    `)
+    `);
 
     resolve();
 

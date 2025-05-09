@@ -195,60 +195,59 @@ Default is undefined, which disables throttling.
   const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
 
   // Store array of the processed initial messages to avoid re-renders:
-  const stableInitialMessages = useStableValue(
-    initialMessages ?? [],
-  );
+  const stableInitialMessages = useStableValue(initialMessages ?? []);
   const processedInitialMessages = useMemo(
     () => stableInitialMessages,
     [stableInitialMessages],
   );
 
   const newStoreRef = useRef<ChatStore>();
-  const chatStore = useMemo(
-    () => {
-      if (store) {
-        if (!store.hasChat(chatId)) {
-          store.addChat(chatId, processedInitialMessages);
-        }
-        return store;
+  const chatStore = useMemo(() => {
+    if (store) {
+      if (!store.hasChat(chatId)) {
+        store.addChat(chatId, processedInitialMessages);
       }
+      return store;
+    }
 
-      if (!newStoreRef.current) {
-        newStoreRef.current = new ChatStore({
-          chats: { [chatId]: { messages: processedInitialMessages } },
-          getCurrentDate,
-        });
-      }
-      
-      return newStoreRef.current;
+    if (!newStoreRef.current) {
+      newStoreRef.current = new ChatStore({
+        chats: { [chatId]: { messages: processedInitialMessages } },
+        getCurrentDate,
+      });
+    }
+
+    return newStoreRef.current;
+  }, [store, chatId, processedInitialMessages, getCurrentDate]);
+
+  const subscribeToMessages = useCallback(
+    (cb: () => void) => {
+      return chatStore.subscribe({
+        id: chatId,
+        onChatChanged: () => cb(),
+      });
     },
-    [store, chatId, processedInitialMessages, getCurrentDate],
+    [chatStore, chatId],
   );
-
-  const subscribeToMessages = useCallback((cb: () => void) => {
-    return chatStore.subscribe({
-      id: chatId,
-      onChatChanged: () => cb(),
-    });
-  }, [chatStore, chatId]);
   const messages = useSyncExternalStore(
     subscribeToMessages,
     () => chatStore.getMessages(chatId) ?? EMPTY_MESSAGES,
     () => processedInitialMessages,
   );
-  const status: 'submitted' | 'streaming' | 'ready' | 'error' = useSyncExternalStore(
-    cb =>
-      chatStore.subscribe({
-        id: chatId,
-        onChatChanged: e => {
-          if (e === ChatStoreEvent.ChatStatusChanged) {
-            cb();
-          }
-        },
-      }),
-    () => chatStore.getStatus(chatId) ?? 'ready',
-    () => 'ready',
-  );
+  const status: 'submitted' | 'streaming' | 'ready' | 'error' =
+    useSyncExternalStore(
+      cb =>
+        chatStore.subscribe({
+          id: chatId,
+          onChatChanged: e => {
+            if (e === ChatStoreEvent.ChatStatusChanged) {
+              cb();
+            }
+          },
+        }),
+      () => chatStore.getStatus(chatId) ?? 'ready',
+      () => 'ready',
+    );
   const error = useSyncExternalStore(
     cb =>
       chatStore.subscribe({
@@ -396,7 +395,22 @@ Default is undefined, which disables throttling.
         await triggerRequest();
       }
     },
-    [chatStore, chatId, maxSteps, mutateStreamData, throttleWaitMs, api, experimental_prepareRequestBody, streamProtocol, onResponse, onToolCall, onFinish, fetch, generateId, onError],
+    [
+      chatStore,
+      chatId,
+      maxSteps,
+      mutateStreamData,
+      throttleWaitMs,
+      api,
+      experimental_prepareRequestBody,
+      streamProtocol,
+      onResponse,
+      onToolCall,
+      onFinish,
+      fetch,
+      generateId,
+      onError,
+    ],
   );
 
   const append = useCallback(

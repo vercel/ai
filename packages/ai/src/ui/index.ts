@@ -22,4 +22,3 @@ export {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from './use-completion';
-

@@ -15,13 +15,13 @@ describe('ChatStore', () => {
           id: '1',
           role: 'user',
           parts: [{ type: 'text', text: 'hello' }],
-          createdAt: new Date('2025-01-01')
+          createdAt: new Date('2025-01-01'),
         },
         {
           id: '2',
           role: 'assistant',
           parts: [{ type: 'text', text: 'world' }],
-          createdAt: new Date('2025-01-01')
+          createdAt: new Date('2025-01-01'),
         },
       ];
       const store = new ChatStore({
@@ -40,12 +40,32 @@ describe('ChatStore', () => {
       const [id1, id2] = ['chat-1', 'chat-2'];
       const [messages1, messages2] = [
         [
-          { id: '1', role: 'user', parts: [{ type: 'text', text: 'hello' }], createdAt: new Date('2025-01-01') },
-          { id: '2', role: 'assistant', parts: [{ type: 'text', text: 'world' }], createdAt: new Date('2025-01-01') },
+          {
+            id: '1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'hello' }],
+            createdAt: new Date('2025-01-01'),
+          },
+          {
+            id: '2',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'world' }],
+            createdAt: new Date('2025-01-01'),
+          },
         ] as UIMessage[],
         [
-          { id: '1', role: 'user', parts: [{ type: 'text', text: 'beep' }], createdAt: new Date('2025-01-01') },
-          { id: '2', role: 'assistant', parts: [{ type: 'boop', text: 'hello' }], createdAt: new Date('2025-01-01') },
+          {
+            id: '1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'beep' }],
+            createdAt: new Date('2025-01-01'),
+          },
+          {
+            id: '2',
+            role: 'assistant',
+            parts: [{ type: 'boop', text: 'hello' }],
+            createdAt: new Date('2025-01-01'),
+          },
         ] as UIMessage[],
       ];
       const store = new ChatStore({
@@ -80,10 +100,27 @@ describe('ChatStore', () => {
         id,
         onChatChanged,
       });
-      store.setMessages({ id, messages: [
-        { id: '1', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
-        { id: '2', role: 'assistant', parts: [], createdAt: new Date('2025-01-01') },
-          { id: '3', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
+      store.setMessages({
+        id,
+        messages: [
+          {
+            id: '1',
+            role: 'user',
+            parts: [],
+            createdAt: new Date('2025-01-01'),
+          },
+          {
+            id: '2',
+            role: 'assistant',
+            parts: [],
+            createdAt: new Date('2025-01-01'),
+          },
+          {
+            id: '3',
+            role: 'user',
+            parts: [],
+            createdAt: new Date('2025-01-01'),
+          },
         ],
       });
       expect(store.getMessages(id)).toMatchSnapshot();
@@ -99,8 +136,18 @@ describe('ChatStore', () => {
         chats: {
           [id]: {
             messages: [
-              { id: '1', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
-              { id: '2', role: 'assistant', parts: [], createdAt: new Date('2025-01-01') },
+              {
+                id: '1',
+                role: 'user',
+                parts: [],
+                createdAt: new Date('2025-01-01'),
+              },
+              {
+                id: '2',
+                role: 'assistant',
+                parts: [],
+                createdAt: new Date('2025-01-01'),
+              },
             ],
           },
         },
@@ -118,7 +165,7 @@ describe('ChatStore', () => {
       const store = new ChatStore({
         chats: { [id]: { messages: [] } },
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-      }); 
+      });
       expect(store.getStatus(id)).toEqual('ready');
       store.setStatus({ id, status: 'streaming' });
       expect(store.getStatus(id)).toEqual('streaming');
@@ -133,7 +180,7 @@ describe('ChatStore', () => {
       const store = new ChatStore({
         chats: { [id]: { messages: [] } },
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-      }); 
+      });
       expect(store.getError(id)).toBeUndefined();
       store.setError({ id, error: new Error('test') });
       expect(store.getError(id)).toEqual(new Error('test'));
@@ -152,10 +199,14 @@ describe('ChatStore', () => {
     it('returns the last message', () => {
       const id = 'chat-1';
       const store = new ChatStore({
-        chats: { [id]: { messages: [
-          { id: '1', role: 'user', parts: []  },
-          { id: '2', role: 'assistant', parts: [] },
-        ] } },
+        chats: {
+          [id]: {
+            messages: [
+              { id: '1', role: 'user', parts: [] },
+              { id: '2', role: 'assistant', parts: [] },
+            ],
+          },
+        },
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       expect(store.getLastMessage(id)).toMatchSnapshot();
@@ -167,9 +218,7 @@ describe('ChatStore', () => {
     it('notifies subscribers', () => {
       const id = 'chat-1';
       const store = new ChatStore({
-        chats: { [id]: { messages: [
-          { id: '1', role: 'user', parts: [] },
-        ] } },
+        chats: { [id]: { messages: [{ id: '1', role: 'user', parts: [] }] } },
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       const onChatChanged = vi.fn();
@@ -177,43 +226,41 @@ describe('ChatStore', () => {
         id,
         onChatChanged,
       });
-      store.updateActiveResponse({ chatId: id, message: {
-        id: '1',
-        role: 'assistant',
-        parts: [
-          { type: 'text', text: 'hello' },
-        ],
-        createdAt: new Date('2025-01-01'),
-      } });
+      store.updateActiveResponse({
+        chatId: id,
+        message: {
+          id: '1',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'hello' }],
+          createdAt: new Date('2025-01-01'),
+        },
+      });
       expect(onChatChanged).toHaveBeenCalledOnce();
       unsubscribe();
-    })
+    });
 
     it('initializes new active response if none exists', () => {
       const id = 'chat-1';
       const store = new ChatStore({
-        chats: { [id]: { messages: [
-          { id: '1', role: 'user', parts: [] },
-        ] } },
+        chats: { [id]: { messages: [{ id: '1', role: 'user', parts: [] }] } },
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
-      store.updateActiveResponse({ chatId: id, message: {
-        id: '2',
-        role: 'assistant',
-        parts: [
-          { type: 'text', text: 'hello' },
-        ],
-        createdAt: new Date('2025-01-01'),
-      } });
+      store.updateActiveResponse({
+        chatId: id,
+        message: {
+          id: '2',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'hello' }],
+          createdAt: new Date('2025-01-01'),
+        },
+      });
       expect(store.getMessages(id)).toMatchSnapshot();
-    })
+    });
 
     it('merges current active response with partial message', () => {
       const id = 'chat-1';
       const store = new ChatStore({
-        chats: { [id]: { messages: [
-          { id: '1', role: 'user', parts: [] },
-        ] } },
+        chats: { [id]: { messages: [{ id: '1', role: 'user', parts: [] }] } },
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       store.addOrUpdateAssistantMessageParts({
@@ -221,15 +268,20 @@ describe('ChatStore', () => {
         partDelta: { type: 'text', text: 'hello' },
         generateId: mockId(),
       });
-      store.updateActiveResponse({ chatId: id, message: {
-        annotations: [{
-          foo: 'bar',
-        }]
-      } });
+      store.updateActiveResponse({
+        chatId: id,
+        message: {
+          annotations: [
+            {
+              foo: 'bar',
+            },
+          ],
+        },
+      });
       expect(store.getMessages(id)).toMatchSnapshot();
-    })
-  })
-  
+    });
+  });
+
   describe('appendMessage', () => {
     it('notifies subscribers', () => {
       const id = 'chat-1';
@@ -246,22 +298,28 @@ describe('ChatStore', () => {
         onChatChanged,
       });
 
-      store.appendMessage({ id, message: {
-        id: '1',
-        role: 'user',
-        parts: [],
-        createdAt: new Date('2025-01-01'),
-      } });
+      store.appendMessage({
+        id,
+        message: {
+          id: '1',
+          role: 'user',
+          parts: [],
+          createdAt: new Date('2025-01-01'),
+        },
+      });
       expect(store.getMessages(id)).toMatchSnapshot();
       expect(onChatChanged).toHaveBeenCalledOnce();
 
       unsubscribe();
-      store.appendMessage({ id, message: {
-        id: '2',
-        role: 'assistant',
-        parts: [],
-        createdAt: new Date('2025-01-01'),
-      } });
+      store.appendMessage({
+        id,
+        message: {
+          id: '2',
+          role: 'assistant',
+          parts: [],
+          createdAt: new Date('2025-01-01'),
+        },
+      });
       expect(onChatChanged).toHaveBeenCalledOnce();
     });
   });
@@ -271,7 +329,12 @@ describe('ChatStore', () => {
       const id = 'chat-1';
       const messages: UIMessage[] = [
         { id: '1', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
-        { id: '2', role: 'assistant', parts: [], createdAt: new Date('2025-01-01') },
+        {
+          id: '2',
+          role: 'assistant',
+          parts: [],
+          createdAt: new Date('2025-01-01'),
+        },
       ];
       const store = new ChatStore({
         chats: {
@@ -304,7 +367,12 @@ describe('ChatStore', () => {
         chats: {
           [id]: {
             messages: [
-              { id: '1', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
+              {
+                id: '1',
+                role: 'user',
+                parts: [],
+                createdAt: new Date('2025-01-01'),
+              },
             ],
           },
         },
@@ -319,7 +387,12 @@ describe('ChatStore', () => {
         chats: {
           [id]: {
             messages: [
-              { id: '1', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
+              {
+                id: '1',
+                role: 'user',
+                parts: [],
+                createdAt: new Date('2025-01-01'),
+              },
             ],
           },
         },
@@ -333,7 +406,12 @@ describe('ChatStore', () => {
       const id = 'chat-1';
       const messages: UIMessage[] = [
         { id: '1', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
-        { id: '2', role: 'assistant', parts: [], createdAt: new Date('2025-01-01') },
+        {
+          id: '2',
+          role: 'assistant',
+          parts: [],
+          createdAt: new Date('2025-01-01'),
+        },
       ];
       const store = new ChatStore({
         chats: { [id]: { messages } },
@@ -359,12 +437,32 @@ describe('ChatStore', () => {
       const [id1, id2] = ['chat-1', 'chat-2'];
       const [messages1, messages2]: UIMessage[][] = [
         [
-          { id: '1', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
-          { id: '2', role: 'assistant', parts: [], createdAt: new Date('2025-01-01') },
+          {
+            id: '1',
+            role: 'user',
+            parts: [],
+            createdAt: new Date('2025-01-01'),
+          },
+          {
+            id: '2',
+            role: 'assistant',
+            parts: [],
+            createdAt: new Date('2025-01-01'),
+          },
         ],
         [
-          { id: '1', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
-          { id: '2', role: 'assistant', parts: [], createdAt: new Date('2025-01-01') },
+          {
+            id: '1',
+            role: 'user',
+            parts: [],
+            createdAt: new Date('2025-01-01'),
+          },
+          {
+            id: '2',
+            role: 'assistant',
+            parts: [],
+            createdAt: new Date('2025-01-01'),
+          },
         ],
       ];
       const store = new ChatStore({
@@ -424,7 +522,7 @@ describe('ChatStore', () => {
           chatId: id,
           partDelta: { type: 'text', text: 'hi' },
           generateId: mockId(),
-        })
+        }),
       ).rejects.toThrow();
       expect(store.getMessages(id)).toMatchSnapshot();
     });
@@ -435,7 +533,12 @@ describe('ChatStore', () => {
         chats: {
           [id]: {
             messages: [
-              { id: '1', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
+              {
+                id: '1',
+                role: 'user',
+                parts: [],
+                createdAt: new Date('2025-01-01'),
+              },
             ],
           },
         },
@@ -551,9 +654,7 @@ describe('ChatStore', () => {
 
   describe('tool invocation handling', () => {
     const chatId = 'chat-1';
-    const messages: UIMessage[] = [
-      { id: '1', role: 'user', parts: [] },
-    ];
+    const messages: UIMessage[] = [{ id: '1', role: 'user', parts: [] }];
     let store: ChatStore;
 
     beforeEach(() => {
@@ -571,7 +672,7 @@ describe('ChatStore', () => {
         toolInvocation: {
           toolCallId: 'test-id',
           toolName: 'test-tool',
-          args: {"arg": "value"},
+          args: { arg: 'value' },
           state: 'call' as const,
         },
       };
@@ -581,7 +682,6 @@ describe('ChatStore', () => {
         partDelta: toolInvocation,
         generateId: mockId(),
       });
-
 
       const messages = store.getMessages(chatId);
       expect(messages?.[1]).toMatchSnapshot();
@@ -603,7 +703,7 @@ describe('ChatStore', () => {
         toolInvocation: {
           toolCallId: 'test-id-2',
           toolName: 'test-tool-2',
-          args: {"arg": "value-2"},
+          args: { arg: 'value-2' },
           state: 'call' as const,
         },
       };
@@ -670,7 +770,7 @@ describe('ChatStore', () => {
             args: '{"arg": "',
             state: 'partial-call' as const,
           },
-        },  
+        },
         generateId: mockId(),
       });
 
@@ -767,58 +867,73 @@ describe('ChatStore', () => {
       await expect(async () =>
         store.addOrUpdateAssistantMessageParts({
           chatId,
-          partDelta: { type: 'tool-invocation' as const, toolInvocation: {
-            // @ts-expect-error
-            state: 'invalid' 
-          } },
+          partDelta: {
+            type: 'tool-invocation' as const,
+            toolInvocation: {
+              // @ts-expect-error
+              state: 'invalid',
+            },
+          },
         }),
       ).rejects.toThrow('Invalid tool invocation state');
     });
-    
+
     it('should handle multiple tool invocations', async () => {
       await store.addOrUpdateAssistantMessageParts({
         chatId,
-        partDelta: { type: 'tool-invocation' as const, toolInvocation: {
-          toolCallId: 'test-id',
-          toolName: 'test-tool',
-          state: 'call' as const,
-          args: { foo: 'bar' },
-        } },
-        generateId: mockId(),
-      }); 
-
-      await store.addOrUpdateAssistantMessageParts({
-        chatId,
-        partDelta: { type: 'tool-invocation' as const, toolInvocation: {
-          toolCallId: 'test-id',
-          toolName: '',
-          state: 'result' as const,
-          result: 'first result',
-          args: undefined,
-        } },
+        partDelta: {
+          type: 'tool-invocation' as const,
+          toolInvocation: {
+            toolCallId: 'test-id',
+            toolName: 'test-tool',
+            state: 'call' as const,
+            args: { foo: 'bar' },
+          },
+        },
         generateId: mockId(),
       });
 
       await store.addOrUpdateAssistantMessageParts({
         chatId,
-        partDelta: { type: 'tool-invocation' as const, toolInvocation: {
-          toolCallId: 'test-id-2',
-          toolName: 'test-tool-2',
-          state: 'call' as const,
-          args: { baz: 'qux' },
-        } },
+        partDelta: {
+          type: 'tool-invocation' as const,
+          toolInvocation: {
+            toolCallId: 'test-id',
+            toolName: '',
+            state: 'result' as const,
+            result: 'first result',
+            args: undefined,
+          },
+        },
         generateId: mockId(),
       });
 
       await store.addOrUpdateAssistantMessageParts({
         chatId,
-        partDelta: { type: 'tool-invocation' as const, toolInvocation: {
-          toolCallId: 'test-id-2',
-          toolName: 'test-tool-2',
-          state: 'result' as const,
-          result: 'second result',
-          args: undefined,
-        } },
+        partDelta: {
+          type: 'tool-invocation' as const,
+          toolInvocation: {
+            toolCallId: 'test-id-2',
+            toolName: 'test-tool-2',
+            state: 'call' as const,
+            args: { baz: 'qux' },
+          },
+        },
+        generateId: mockId(),
+      });
+
+      await store.addOrUpdateAssistantMessageParts({
+        chatId,
+        partDelta: {
+          type: 'tool-invocation' as const,
+          toolInvocation: {
+            toolCallId: 'test-id-2',
+            toolName: 'test-tool-2',
+            state: 'result' as const,
+            result: 'second result',
+            args: undefined,
+          },
+        },
         generateId: mockId(),
       });
 
@@ -829,9 +944,7 @@ describe('ChatStore', () => {
 
   describe('reasoning handling', () => {
     const chatId = 'chat-1';
-    const messages: UIMessage[] = [
-      { id: '1', role: 'user', parts: [] },
-    ];
+    const messages: UIMessage[] = [{ id: '1', role: 'user', parts: [] }];
     let store: ChatStore;
 
     beforeEach(() => {
@@ -865,7 +978,7 @@ describe('ChatStore', () => {
           type: 'reasoning',
           text: '',
           providerMetadata: {
-            provider: { signature: 'abc123' }
+            provider: { signature: 'abc123' },
           },
         },
         generateId: mockId(),

@@ -194,13 +194,13 @@ export class ChatStore {
     }
 
     return (
-      chat.activeResponse.message.parts?.reduce((max, part) => {
+      (chat.activeResponse.message.parts?.reduce((max, part) => {
         if (part.type === 'tool-invocation') {
           return Math.max(max, part.toolInvocation.step ?? 0) ?? 0;
         }
         return max;
-      }, 0) ?? 0
-    ) + 1;
+      }, 0) ?? 0) + 1
+    );
   }
 
   private resetActiveResponse(id: string) {
@@ -438,7 +438,10 @@ export class ChatStore {
         throw new Error('tool_result must be preceded by a tool_call');
       }
 
-      if (toolInvocation.state !== 'partial-call' && toolInvocation.state !== 'call') {
+      if (
+        toolInvocation.state !== 'partial-call' &&
+        toolInvocation.state !== 'call'
+      ) {
         throw new Error('Invalid tool invocation state');
       }
 

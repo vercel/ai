@@ -187,7 +187,7 @@ export async function processChatResponse({
             state: 'result',
             ...value,
           },
-        },  
+        },
         generateId,
       });
     },

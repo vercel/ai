@@ -1,3 +1,3 @@
-import { ChatStore } from "ai";
+import { ChatStore } from 'ai';
 
 export const store = new ChatStore();
