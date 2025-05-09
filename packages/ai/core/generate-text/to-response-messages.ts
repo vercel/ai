@@ -1,10 +1,6 @@
 import { ToolResultPart } from '../prompt';
-import { ReasoningPart } from '../prompt/content-part';
 import { ContentPart } from './content-part';
-import { GeneratedFile } from './generated-file';
 import { ResponseMessage } from './step-result';
-import { ToolCallArray } from './tool-call';
-import { ToolResultArray } from './tool-result';
 import { ToolSet } from './tool-set';
 
 /**

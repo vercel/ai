@@ -23,9 +23,7 @@ import { DelayedPromise } from '../../src/util/delayed-promise';
 import { now as originalNow } from '../../src/util/now';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { CallSettings } from '../prompt/call-settings';
-import { ReasoningPart } from '../prompt/content-part';
 import { convertToLanguageModelPrompt } from '../prompt/convert-to-language-model-prompt';
-import { AssistantModelMessage } from '../prompt/message';
 import { prepareCallSettings } from '../prompt/prepare-call-settings';
 import { prepareToolsAndToolChoice } from '../prompt/prepare-tools-and-tool-choice';
 import { Prompt } from '../prompt/prompt';
@@ -584,7 +582,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     let recordedContinuationText = '';
     let recordedFullText = '';
 
-    let activeReasoningPart: undefined | ReasoningPart = undefined;
+    let activeReasoningPart:
+      | undefined
+      | (ContentPart<TOOLS> & { type: 'reasoning' }) = undefined;
 
     let recordedContent: Array<ContentPart<TOOLS>> = [];
     const recordedSources: LanguageModelV2Source[] = [];
@@ -647,12 +647,12 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             activeReasoningPart = {
               type: 'reasoning',
               text: part.text,
-              providerOptions: part.providerMetadata,
+              providerMetadata: part.providerMetadata,
             };
             recordedContent.push(activeReasoningPart);
           } else {
             activeReasoningPart.text += part.text;
-            activeReasoningPart.providerOptions = part.providerMetadata;
+            activeReasoningPart.providerMetadata = part.providerMetadata;
           }
         }
 
@@ -901,17 +901,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           currentStep,
           responseMessages,
           usage,
-          stepType,
-          previousStepText,
-          hasLeadingWhitespace,
           messageId,
         }: {
           currentStep: number;
           responseMessages: Array<ResponseMessage>;
           usage: LanguageModelUsage;
-          stepType: 'initial' | 'continue' | 'tool-result';
-          previousStepText: string;
-          hasLeadingWhitespace: boolean;
           messageId: string;
         }) {
           const initialPrompt = await standardizePrompt({
@@ -1019,10 +1013,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepToolCalls: ToolCallUnion<TOOLS>[] = [];
           const stepToolResults: ToolResultUnion<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
-
-          const stepReasoning: Array<ReasoningPart> = [];
+          const stepContent: Array<ContentPart<TOOLS>> = [];
+          const stepReasoning: Array<
+            ContentPart<TOOLS> & { type: 'reasoning' }
+          > = [];
           const stepFiles: Array<GeneratedFile> = [];
-          let activeReasoningPart: undefined | ReasoningPart = undefined;
+          let activeReasoningPart:
+            | undefined
+            | (ContentPart<TOOLS> & { type: 'reasoning' }) = undefined;
 
           let stepFinishReason: FinishReason = 'unknown';
           let stepUsage: LanguageModelUsage = {
@@ -1033,7 +1031,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           let stepProviderMetadata: ProviderMetadata | undefined;
           let stepFirstChunk = true;
           let stepText = '';
-          let fullStepText = stepType === 'continue' ? previousStepText : '';
+          let fullStepText = '';
           let stepResponse: { id: string; timestamp: Date; modelId: string } = {
             id: generateId(),
             timestamp: currentDate(),
@@ -1041,10 +1039,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           };
 
           // chunk buffer when using continue:
-          let chunkBuffer = '';
           let chunkTextPublished = false;
-          let inWhitespacePrefix = true;
-          let hasWhitespaceSuffix = false; // for next step. when true, step ended with whitespace
 
           async function publishTextChunk({
             controller,
@@ -1058,7 +1053,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             stepText += chunk.text;
             fullStepText += chunk.text;
             chunkTextPublished = true;
-            hasWhitespaceSuffix = chunk.text.trimEnd() !== chunk.text;
           }
 
           self.addStream(
@@ -1115,12 +1109,13 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                         activeReasoningPart = {
                           type: 'reasoning',
                           text: chunk.text,
-                          providerOptions: chunk.providerMetadata,
+                          providerMetadata: chunk.providerMetadata,
                         };
                         stepReasoning.push(activeReasoningPart);
+                        stepContent.push(activeReasoningPart);
                       } else {
                         activeReasoningPart.text += chunk.text;
-                        activeReasoningPart.providerOptions =
+                        activeReasoningPart.providerMetadata =
                           chunk.providerMetadata;
                       }
 
@@ -1137,6 +1132,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       controller.enqueue(chunk);
                       // store tool calls for onFinish callback and toolCalls promise:
                       stepToolCalls.push(chunk);
+                      stepContent.push(chunk);
                       break;
                     }
 
@@ -1144,6 +1140,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       controller.enqueue(chunk);
                       // store tool results for onFinish callback and toolResults promise:
                       stepToolResults.push(chunk);
+                      stepContent.push(chunk);
                       break;
                     }
 
@@ -1178,12 +1175,18 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     case 'file': {
                       stepFiles.push(chunk.file);
+                      stepContent.push(chunk);
+                      controller.enqueue(chunk);
+                      break;
+                    }
+
+                    case 'source': {
+                      stepContent.push(chunk);
                       controller.enqueue(chunk);
                       break;
                     }
 
                     // forward:
-                    case 'source':
                     case 'tool-call-streaming-start':
                     case 'tool-call-delta': {
                       controller.enqueue(chunk);
@@ -1289,52 +1292,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                     self.closeStream(); // close the stitchable stream
                   } else {
                     // append to messages for the next step:
-                    if (stepType === 'continue') {
-                      // continue step: update the last assistant message
-                      // continue is only possible when there are no tool calls,
-                      // so we can assume that there is a single last assistant message:
-                      const lastMessage = responseMessages[
-                        responseMessages.length - 1
-                      ] as AssistantModelMessage;
-
-                      if (typeof lastMessage.content === 'string') {
-                        lastMessage.content += stepText;
-                      } else {
-                        lastMessage.content.push({
-                          text: stepText,
-                          type: 'text',
-                        });
-                      }
-                    } else {
-                      responseMessages.push(
-                        ...toResponseMessages({
-                          content: [
-                            ...stepReasoning,
-                            {
-                              type: 'text',
-                              text: stepText,
-                            },
-                            ...stepFiles.map(file => ({
-                              type: 'file' as const,
-                              file,
-                            })),
-                            ...stepToolCalls,
-                            ...stepToolResults,
-                          ],
-                          tools: tools ?? ({} as TOOLS),
-                          messageId,
-                          generateMessageId,
-                        }),
-                      );
-                    }
+                    responseMessages.push(
+                      ...toResponseMessages({
+                        content: stepContent,
+                        tools: tools ?? ({} as TOOLS),
+                        messageId,
+                        generateMessageId,
+                      }),
+                    );
 
                     await streamStep({
                       currentStep: currentStep + 1,
                       responseMessages,
                       usage: combinedUsage,
-                      stepType: nextStepType,
-                      previousStepText: fullStepText,
-                      hasLeadingWhitespace: hasWhitespaceSuffix,
                       messageId: generateMessageId(),
                     });
                   }
@@ -1353,9 +1323,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             outputTokens: undefined,
             totalTokens: undefined,
           },
-          previousStepText: '',
-          stepType: 'initial',
-          hasLeadingWhitespace: false,
           messageId: generateMessageId(),
         });
       },

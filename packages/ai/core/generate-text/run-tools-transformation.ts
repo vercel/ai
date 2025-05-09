@@ -11,22 +11,16 @@ import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { FinishReason, LanguageModelUsage, ProviderMetadata } from '../types';
-import { Source } from '../types/language-model';
-import { DefaultGeneratedFileWithType, GeneratedFile } from './generated-file';
+import { ContentPart } from './content-part';
+import { DefaultGeneratedFileWithType } from './generated-file';
 import { parseToolCall } from './parse-tool-call';
-import { ToolCallUnion } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
-import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
 
 export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
+  | ContentPart<TOOLS>
   | { type: 'stream-start'; warnings: LanguageModelV2CallWarning[] }
-  | { type: 'text'; text: string }
-  | { type: 'reasoning'; text: string; providerMetadata?: ProviderMetadata }
   | { type: 'reasoning-part-finish' }
-  | { type: 'file'; file: GeneratedFile }
-  | ({ type: 'source' } & Source)
-  | ({ type: 'tool-call' } & ToolCallUnion<TOOLS>)
   | {
       type: 'tool-call-streaming-start';
       toolCallId: string;
@@ -38,9 +32,6 @@ export type SingleRequestTextStreamPart<TOOLS extends ToolSet> =
       toolName: string;
       argsTextDelta: string;
     }
-  | ({
-      type: 'tool-result';
-    } & ToolResultUnion<TOOLS>)
   | {
       type: 'response-metadata';
       id?: string;
