@@ -1,4 +1,5 @@
 import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
+import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { LanguageModelUsage } from '../../core/types/usage';
 import { processDataStream } from '../data-stream/process-data-stream';
 import { ChatStore } from './chat-store';
@@ -16,6 +17,7 @@ export async function processChatResponse({
   updateData,
   onToolCall,
   onFinish,
+  generateId = generateIdFunction,
   store,
   chatId,
 }: {
@@ -27,6 +29,7 @@ export async function processChatResponse({
     finishReason: LanguageModelV2FinishReason;
     usage: LanguageModelUsage;
   }) => void;
+  generateId?: () => string;
   store: ChatStore;
   chatId: string;
 }) {
@@ -63,6 +66,7 @@ export async function processChatResponse({
           type: 'text',
           text: value,
         },
+        generateId,
       });
     },
     async onReasoningPart(value) {
@@ -73,6 +77,7 @@ export async function processChatResponse({
           text: value.text,
           providerMetadata: value.providerMetadata,
         },
+        generateId,
       });
     },
     async onReasoningPartFinish() {
@@ -83,6 +88,7 @@ export async function processChatResponse({
           text: '',
           providerMetadata: undefined,
         },
+        generateId,
       });
     },
     async onFilePart(value) {
@@ -93,6 +99,7 @@ export async function processChatResponse({
           mediaType: value.mediaType,
           url: value.url,
         },
+        generateId,
       });
     },
     async onSourcePart(value) {
@@ -102,6 +109,7 @@ export async function processChatResponse({
           type: 'source',
           source: value,
         },
+        generateId,
       });
     },
     async onToolCallStreamingStartPart(value) {
@@ -116,6 +124,7 @@ export async function processChatResponse({
             args: undefined,
           },
         },
+        generateId,
       });
     },
     async onToolCallDeltaPart(value) {
@@ -130,6 +139,7 @@ export async function processChatResponse({
             args: value.argsTextDelta,
           },
         },
+        generateId,
       });
     },
     async onToolCallPart(value) {
@@ -142,6 +152,7 @@ export async function processChatResponse({
             ...value,
           },
         },
+        generateId,
       });
 
       // invoke the onToolCall callback if it exists. This is blocking.
@@ -162,6 +173,7 @@ export async function processChatResponse({
                 result,
               },
             },
+            generateId,
           });
         }
       }
@@ -175,7 +187,8 @@ export async function processChatResponse({
             state: 'result',
             ...value,
           },
-        },
+        },  
+        generateId,
       });
     },
     onDataPart(value) {
@@ -203,6 +216,7 @@ export async function processChatResponse({
           message: {
             annotations: [...localState.messageAnnotations],
           },
+          generateId,
         });
       }
     },
@@ -221,6 +235,7 @@ export async function processChatResponse({
         },
         // Keep message id stable when we are updating an existing message:
         messageId: !replaceLastMessage ? value.messageId : undefined,
+        generateId,
       });
     },
     onFinishMessagePart(value) {
@@ -240,6 +255,7 @@ export async function processChatResponse({
             message: {
               annotations: [...localState.messageAnnotations],
             },
+            generateId,
           });
         }
       }

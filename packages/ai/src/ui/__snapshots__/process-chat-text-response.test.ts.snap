@@ -5,6 +5,7 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "",
         "type": "text",
@@ -14,6 +15,7 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "A",
         "type": "text",
@@ -23,6 +25,7 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "B",
         "type": "text",
@@ -32,6 +35,7 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "C",
         "type": "text",
@@ -41,6 +45,7 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "D",
         "type": "text",
@@ -50,6 +55,7 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "E",
         "type": "text",
@@ -100,6 +106,7 @@ exports[`processChatTextResponse > scenario: no text chunks > should not call th
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "",
         "type": "text",
@@ -114,6 +121,7 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "",
         "type": "text",
@@ -123,6 +131,7 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "Hello, ",
         "type": "text",
@@ -132,6 +141,7 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "world!",
         "type": "text",

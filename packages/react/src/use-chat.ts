@@ -203,6 +203,7 @@ Default is undefined, which disables throttling.
     [stableInitialMessages],
   );
 
+  const newStoreRef = useRef<ChatStore>();
   const chatStore = useMemo(
     () => {
       if (store) {
@@ -212,25 +213,26 @@ Default is undefined, which disables throttling.
         return store;
       }
 
-      return new ChatStore({
-        chats: { [chatId]: { messages: processedInitialMessages } },
-        generateId,
-        getCurrentDate,
-      });
+      if (!newStoreRef.current) {
+        newStoreRef.current = new ChatStore({
+          chats: { [chatId]: { messages: processedInitialMessages } },
+          getCurrentDate,
+        });
+      }
+      
+      return newStoreRef.current;
     },
-    [store, chatId, processedInitialMessages, generateId, getCurrentDate],
+    [store, chatId, processedInitialMessages, getCurrentDate],
   );
 
+  const subscribeToMessages = useCallback((cb: () => void) => {
+    return chatStore.subscribe({
+      id: chatId,
+      onChatChanged: () => cb(),
+    });
+  }, [chatStore, chatId]);
   const messages = useSyncExternalStore(
-    cb =>
-      chatStore.subscribe({
-        id: chatId,
-        onChatChanged: e => {
-          if (e === ChatStoreEvent.ChatMessagesChanged) {
-            cb();
-          }
-        },
-      }),
+    subscribeToMessages,
     () => chatStore.getMessages(chatId) ?? EMPTY_MESSAGES,
     () => processedInitialMessages,
   );
@@ -357,6 +359,8 @@ Default is undefined, which disables throttling.
           fetch,
           requestType,
           store: chatStore,
+          generateId,
+          chatId,
         });
 
         abortControllerRef.current = null;
@@ -392,7 +396,7 @@ Default is undefined, which disables throttling.
         await triggerRequest();
       }
     },
-    [chatStore, chatId, maxSteps, mutateStreamData, throttleWaitMs, api, experimental_prepareRequestBody, streamProtocol, onResponse, onToolCall, onFinish, fetch, onError],
+    [chatStore, chatId, maxSteps, mutateStreamData, throttleWaitMs, api, experimental_prepareRequestBody, streamProtocol, onResponse, onToolCall, onFinish, fetch, generateId, onError],
   );
 
   const append = useCallback(
@@ -404,8 +408,8 @@ Default is undefined, which disables throttling.
         id: chatId,
         message: {
           ...message,
-          id: message.id ?? generateId(),
           createdAt: message.createdAt ?? getCurrentDate(),
+          id: generateId(),
         },
       });
 
@@ -417,7 +421,7 @@ Default is undefined, which disables throttling.
         },
       });
     },
-    [chatStore, chatId, generateId, getCurrentDate, triggerRequest],
+    [chatStore, chatId, getCurrentDate, generateId, triggerRequest],
   );
 
   const reload = useCallback(
@@ -553,6 +557,7 @@ Default is undefined, which disables throttling.
             args: undefined,
           },
         },
+        generateId,
       });
 
       // When the request is ongoing, the auto-submit will be triggered after the request is finished
@@ -569,7 +574,7 @@ Default is undefined, which disables throttling.
         triggerRequest();
       }
     },
-    [status, triggerRequest, chatStore, chatId],
+    [chatStore, chatId, generateId, status, triggerRequest],
   );
 
   return {

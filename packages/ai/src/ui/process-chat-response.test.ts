@@ -75,7 +75,6 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -117,6 +116,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -217,6 +217,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -266,7 +267,6 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -337,6 +337,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -441,6 +442,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -563,6 +565,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -650,6 +653,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -731,6 +735,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -762,7 +767,6 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -812,6 +816,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -850,7 +855,6 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -895,6 +899,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -926,7 +931,6 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -1002,6 +1006,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -1033,7 +1038,6 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -1079,6 +1083,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -1110,7 +1115,6 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -1195,6 +1199,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -1226,7 +1231,6 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -1275,6 +1279,7 @@ describe('processChatResponse', () => {
         store,
         chatId,
         onToolCall: vi.fn().mockResolvedValue('test-result'),
+        generateId: mockId(),
       });
     });
 
@@ -1306,7 +1311,6 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -1357,6 +1361,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 
@@ -1388,7 +1393,6 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
         getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -1444,6 +1448,7 @@ describe('processChatResponse', () => {
         onFinish,
         store,
         chatId,
+        generateId: mockId(),
       });
     });
 

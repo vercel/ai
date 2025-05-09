@@ -1,4 +1,5 @@
 import { JSONValue } from '@ai-sdk/provider';
+import { IdGenerator } from '@ai-sdk/provider-utils';
 import { ChatStore } from '.';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
@@ -18,9 +19,11 @@ export async function callChatApi({
   onUpdateData,
   onFinish,
   onToolCall,
+  generateId,
   fetch = getOriginalFetch(),
   requestType = 'generate',
   store,
+  chatId,
 }: {
   api: string;
   body: Record<string, any>;
@@ -32,11 +35,12 @@ export async function callChatApi({
   onUpdateData: (data?: JSONValue[]) => void;
   onFinish: UseChatOptions['onFinish'];
   onToolCall: UseChatOptions['onToolCall'];
+  generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   requestType?: 'generate' | 'resume';
   store: ChatStore;
+  chatId: string;
 }) {
-  const chatId = body.id;
   const response =
     requestType === 'resume'
       ? await fetch(`${api}?chatId=${chatId}`, {
@@ -81,6 +85,7 @@ export async function callChatApi({
         onFinish,
         store,
         chatId,
+        generateId,
       });
       return;
     }
@@ -97,6 +102,7 @@ export async function callChatApi({
         },
         store,
         chatId,
+        generateId,
       });
       return;
     }

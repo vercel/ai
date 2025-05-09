@@ -3,12 +3,24 @@
 import { useChat } from '@ai-sdk/react';
 import { store } from './store';
 
+store.setMessages({
+  id: '1',
+  messages: [
+    {
+      id: '1',
+      role: 'user',
+      parts: [{ type: 'text', text: 'Hello, world!' }],
+    },
+  ],
+});
+
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
     useChat({
-      store,
       api: '/api/use-chat-tools',
       maxSteps: 5,
+      // store,
+      // id: '1',
 
       // run client-side tools that are automatically executed:
       async onToolCall({ toolCall }) {

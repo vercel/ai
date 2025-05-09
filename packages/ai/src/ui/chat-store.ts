@@ -1,4 +1,3 @@
-import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { parsePartialJson } from '../util';
 import type {
   ReasoningUIPart,
@@ -21,7 +20,6 @@ export enum ChatStoreEvent {
 
 export interface ChatStoreInitialization {
   chats?: Record<string, Pick<ChatState, 'messages'>>;
-  generateId?: () => string;
   getCurrentDate?: () => Date;
 }
 
@@ -42,12 +40,10 @@ export interface ChatState {
 export class ChatStore {
   private chats: Map<string, ChatState>;
   private subscribers: Map<string, Set<ChatStoreSubscriber>>;
-  private generateId: () => string;
   private getCurrentDate: () => Date;
 
   constructor({
     chats = {},
-    generateId = generateIdFunction,
     getCurrentDate: customGetCurrentDate = () => new Date(),
   }: ChatStoreInitialization = {}) {
     this.chats = new Map(
@@ -62,7 +58,6 @@ export class ChatStore {
       ]),
     );
     this.subscribers = new Map();
-    this.generateId = generateId;
     this.getCurrentDate = customGetCurrentDate;
   }
 
@@ -227,9 +222,11 @@ export class ChatStore {
   private initializeActiveResponse({
     chatId,
     messageId,
+    generateId,
   }: {
     chatId: string;
     messageId?: string;
+    generateId: () => string;
   }) {
     const chat = this.chats.get(chatId);
     if (!chat) return;
@@ -244,7 +241,7 @@ export class ChatStore {
       throw new Error('Corresponding user message not found');
     }
 
-    const id = messageId ?? lastMessage?.id ?? this.generateId();
+    const id = messageId ?? lastMessage?.id ?? generateId();
     const createdAt = lastMessage?.createdAt ?? this.getCurrentDate();
     const parts = lastMessage?.parts ?? [];
 
@@ -276,10 +273,12 @@ export class ChatStore {
     chatId,
     partDelta,
     messageId,
+    generateId,
   }: {
     chatId: string;
     partDelta: UIMessage['parts'][number];
     messageId?: string;
+    generateId: () => string;
   }) {
     const chat = this.chats.get(chatId);
     if (!chat) return;
@@ -288,6 +287,7 @@ export class ChatStore {
       this.initializeActiveResponse({
         chatId,
         messageId,
+        generateId,
       });
     }
 
@@ -333,16 +333,19 @@ export class ChatStore {
       }
     }
 
-    chat.activeResponse!.message.revisionId = this.generateId();
+    chat.activeResponse!.message.revisionId = generateId();
+    chat.messages = [...chat.messages];
     this.emitEvent({ id: chatId, event: ChatStoreEvent.ChatMessagesChanged });
   }
 
   updateActiveResponse({
     chatId,
     message,
+    generateId,
   }: {
     chatId: string;
     message: Partial<UIMessage>;
+    generateId: () => string;
   }) {
     const chat = this.chats.get(chatId);
     if (!chat) return;
@@ -351,6 +354,7 @@ export class ChatStore {
       this.initializeActiveResponse({
         chatId,
         messageId: message.id,
+        generateId,
       });
     }
 
@@ -358,6 +362,7 @@ export class ChatStore {
       ...chat.activeResponse!.message,
       ...message,
     };
+
     this.setMessages({
       id: chatId,
       messages: [...chat.messages.slice(0, -1), chat.activeResponse!.message],

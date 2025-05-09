@@ -1,4 +1,5 @@
 import { JSONValue } from '@ai-sdk/provider';
+import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { ChatStore } from './chat-store';
 import { processTextStream } from './process-text-stream';
 import { UseChatOptions } from './use-chat';
@@ -9,10 +10,12 @@ export async function processChatTextResponse({
   onFinish,
   store,
   chatId,
+  generateId = generateIdFunction,
 }: {
   stream: ReadableStream<Uint8Array>;
   updateData: (data?: JSONValue[]) => void;
   onFinish: UseChatOptions['onFinish'];
+  generateId?: () => string;
   store: ChatStore;
   chatId: string;
 }) {
@@ -25,6 +28,7 @@ export async function processChatTextResponse({
   store.addOrUpdateAssistantMessageParts({
     chatId,
     partDelta: { type: 'text', text: '' },
+    generateId,
   });
 
   await processTextStream({
@@ -33,17 +37,18 @@ export async function processChatTextResponse({
       await store.addOrUpdateAssistantMessageParts({
         chatId,
         partDelta: { type: 'text', text: chunk },
+        generateId,
       });
     },
   });
 
-  // In text mode, we don't have usage information or finish reason:
   const lastMessage = store.getLastMessage(chatId);
 
   if (lastMessage && 'revisionId' in lastMessage) {
     delete lastMessage.revisionId;
   }
 
+  // In text mode, we don't have usage information or finish reason:
   onFinish?.(lastMessage!, {
     usage: {
       inputTokens: undefined,

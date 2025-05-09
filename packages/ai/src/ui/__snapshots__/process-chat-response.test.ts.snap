@@ -5,6 +5,7 @@ exports[`processChatResponse > scenario: delayed message annotations in onFinish
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "text",
         "type": "text",
@@ -50,6 +51,7 @@ exports[`processChatResponse > scenario: message annotations in onChunk > should
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "t1",
         "type": "text",
@@ -59,6 +61,7 @@ exports[`processChatResponse > scenario: message annotations in onChunk > should
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "t2",
         "type": "text",
@@ -103,6 +106,7 @@ exports[`processChatResponse > scenario: message annotations with existing assis
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "t1",
         "type": "text",
@@ -147,6 +151,7 @@ exports[`processChatResponse > scenario: onToolCall is executed > should call th
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "args": {
@@ -163,6 +168,7 @@ exports[`processChatResponse > scenario: onToolCall is executed > should call th
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "args": {
@@ -220,6 +226,7 @@ exports[`processChatResponse > scenario: server provides file parts > should cal
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "Here is a file:",
         "type": "text",
@@ -229,6 +236,7 @@ exports[`processChatResponse > scenario: server provides file parts > should cal
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "mediaType": "text/plain",
         "type": "file",
@@ -239,6 +247,7 @@ exports[`processChatResponse > scenario: server provides file parts > should cal
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "And another one:",
         "type": "text",
@@ -248,6 +257,7 @@ exports[`processChatResponse > scenario: server provides file parts > should cal
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "mediaType": "application/json",
         "type": "file",
@@ -299,6 +309,7 @@ exports[`processChatResponse > scenario: server provides message ids > should ca
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "messageId": "step_123",
       "partDelta": {
         "type": "step-start",
@@ -308,6 +319,7 @@ exports[`processChatResponse > scenario: server provides message ids > should ca
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "Hello, ",
         "type": "text",
@@ -317,6 +329,7 @@ exports[`processChatResponse > scenario: server provides message ids > should ca
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "world!",
         "type": "text",
@@ -360,6 +373,7 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "messageId": "step_123",
       "partDelta": {
         "type": "step-start",
@@ -369,6 +383,7 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": undefined,
         "text": "I will open the conversation",
@@ -379,6 +394,7 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": {
           "testProvider": {
@@ -393,6 +409,7 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": {
           "testProvider": {
@@ -407,6 +424,7 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": undefined,
         "text": "Once the user has relaxed,",
@@ -417,6 +435,7 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": {
           "testProvider": {
@@ -431,6 +450,7 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": undefined,
         "text": "",
@@ -441,6 +461,7 @@ exports[`processChatResponse > scenario: server provides reasoning > should call
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "Hi there!",
         "type": "text",
@@ -493,6 +514,7 @@ exports[`processChatResponse > scenario: server provides sources > should call t
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "The weather in London is sunny.",
         "type": "text",
@@ -502,6 +524,7 @@ exports[`processChatResponse > scenario: server provides sources > should call t
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "source": {
           "id": "source-id",
@@ -558,6 +581,7 @@ exports[`processChatResponse > scenario: server-side continue roundtrip > should
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "The weather in London ",
         "type": "text",
@@ -567,6 +591,7 @@ exports[`processChatResponse > scenario: server-side continue roundtrip > should
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "is sunny.",
         "type": "text",
@@ -607,6 +632,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip > should cal
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "args": {
@@ -623,6 +649,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip > should cal
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "result": {
@@ -638,6 +665,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip > should cal
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "The weather in London is sunny.",
         "type": "text",
@@ -693,6 +721,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with existin
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "messageId": undefined,
       "partDelta": {
         "type": "step-start",
@@ -702,6 +731,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with existin
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "args": {
@@ -718,6 +748,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with existin
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "result": {
@@ -733,6 +764,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with existin
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "The weather in London is sunny.",
         "type": "text",
@@ -804,6 +836,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": undefined,
         "text": "I will ",
@@ -814,6 +847,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": {
           "testProvider": {
@@ -828,6 +862,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": undefined,
         "text": "",
@@ -838,6 +873,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "args": {
@@ -854,6 +890,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "result": {
@@ -869,6 +906,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": {
           "testProvider": {
@@ -883,6 +921,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "providerMetadata": undefined,
         "text": "",
@@ -893,6 +932,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "The weather in London is sunny.",
         "type": "text",
@@ -966,6 +1006,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "I will ",
         "type": "text",
@@ -975,6 +1016,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "use a tool to get the weather in London.",
         "type": "text",
@@ -984,6 +1026,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "args": {
@@ -1000,6 +1043,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "result": {
@@ -1015,6 +1059,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "The weather in London ",
         "type": "text",
@@ -1024,6 +1069,7 @@ exports[`processChatResponse > scenario: server-side tool roundtrip with multipl
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "is sunny.",
         "type": "text",
@@ -1083,6 +1129,7 @@ exports[`processChatResponse > scenario: simple text response > should call the 
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "Hello, ",
         "type": "text",
@@ -1092,6 +1139,7 @@ exports[`processChatResponse > scenario: simple text response > should call the 
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "text": "world!",
         "type": "text",
@@ -1132,6 +1180,7 @@ exports[`processChatResponse > scenario: tool call streaming > should call the a
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "args": undefined,
@@ -1146,6 +1195,7 @@ exports[`processChatResponse > scenario: tool call streaming > should call the a
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "args": "{"testArg":"t",
@@ -1160,6 +1210,7 @@ exports[`processChatResponse > scenario: tool call streaming > should call the a
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "args": "est-value"}}",
@@ -1174,6 +1225,7 @@ exports[`processChatResponse > scenario: tool call streaming > should call the a
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "args": {
@@ -1190,6 +1242,7 @@ exports[`processChatResponse > scenario: tool call streaming > should call the a
   [
     {
       "chatId": "chat-id",
+      "generateId": [Function],
       "partDelta": {
         "toolInvocation": {
           "result": "test-result",
