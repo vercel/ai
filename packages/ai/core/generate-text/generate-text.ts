@@ -23,17 +23,11 @@ import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attribu
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
 import { LanguageModel, ProviderOptions, ToolChoice } from '../types';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import {
-  asContent,
-  extractFiles,
-  extractReasoning,
-  extractSources,
-} from './as-content';
+import { asContent } from './as-content';
 import { extractContentText } from './extract-content-text';
 import { GenerateTextResult } from './generate-text-result';
 import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
-import { asReasoningText } from './reasoning';
 import { ResponseMessage } from './response-message';
 import { DefaultStepResult, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';

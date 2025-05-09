@@ -1,7 +1,4 @@
-import {
-  LanguageModelV2CallWarning,
-  LanguageModelV2Source,
-} from '@ai-sdk/provider';
+import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
@@ -42,10 +39,8 @@ import {
 import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
-import { extractFiles, extractReasoning, extractSources } from './as-content';
 import { ContentPart } from './content-part';
 import { Output } from './output';
-import { asReasoningText } from './reasoning';
 import { ResponseMessage } from './response-message';
 import {
   runToolsTransformation,
