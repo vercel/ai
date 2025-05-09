@@ -66,6 +66,18 @@ export class ChatStore {
     this.getCurrentDate = customGetCurrentDate;
   }
 
+  hasChat(id: string) {
+    return this.chats.has(id);
+  }
+
+  addChat(id: string, messages: UIMessage[]) {
+    this.chats.set(id, {
+      messages,
+      status: 'ready',
+      activeResponse: undefined,
+    });
+  }
+
   get chatCount() {
     return this.chats.size;
   }

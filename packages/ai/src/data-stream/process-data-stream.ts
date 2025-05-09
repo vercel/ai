@@ -80,7 +80,7 @@ export async function processDataStream({
     streamPart: (DataStreamPart & { type: 'start-step' })['value'],
   ) => Promise<void> | void;
 }): Promise<void> {
-  await onStreamStart?.();
+  let startedProcessing = false;
 
   const streamParts = createAsyncIterableStream(
     stream
@@ -107,6 +107,11 @@ export async function processDataStream({
   for await (const parseResult of streamParts) {
     if (!parseResult.success) {
       throw new Error('Failed to parse data stream part');
+    }
+
+    if (!startedProcessing) {
+      await onStreamStart?.();
+      startedProcessing = true;
     }
 
     const { type, value } = parseResult.value;

@@ -1,10 +1,12 @@
 'use client';
 
-import { useChatV2 } from '@ai-sdk/react';
+import { useChat } from '@ai-sdk/react';
+import { store } from './store';
 
 export default function Chat() {
   const { messages, input, handleInputChange, handleSubmit, addToolResult } =
-    useChatV2({
+    useChat({
+      store,
       api: '/api/use-chat-tools',
       maxSteps: 5,
 
@@ -25,7 +27,10 @@ export default function Chat() {
       },
 
       onError(error) {
-        console.error(error);
+        console.error('error', error);
+      },
+      onFinish(message) {
+        console.log('onFinish', message);
       },
     });
 
