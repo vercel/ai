@@ -24,7 +24,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     ],
     "files": [],
     "finishReason": "tool-calls",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [],
     "reasoningText": undefined,
@@ -106,7 +105,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     ],
     "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [],
     "reasoningText": undefined,
@@ -240,7 +238,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     ],
     "files": [],
     "finishReason": "tool-calls",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [],
     "reasoningText": undefined,
@@ -322,7 +319,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     ],
     "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [],
     "reasoningText": undefined,
@@ -415,7 +411,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
     ],
     "files": [],
     "finishReason": "tool-calls",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [],
     "reasoningText": undefined,
@@ -497,7 +492,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
     ],
     "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [],
     "reasoningText": undefined,
@@ -631,7 +625,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
     ],
     "files": [],
     "finishReason": "tool-calls",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [],
     "reasoningText": undefined,
@@ -713,7 +706,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
     ],
     "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [],
     "reasoningText": undefined,
@@ -776,733 +768,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
       "outputTokens": 10,
       "reasoningTokens": undefined,
       "totalTokens": 13,
-    },
-    "warnings": [],
-  },
-]
-`;
-
-exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > onStepFinish should be called for each step 1`] = `
-[
-  {
-    "content": [
-      {
-        "text": "part 1 
- to-be-discarded",
-        "type": "text",
-      },
-    ],
-    "files": [],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "body": undefined,
-      "headers": undefined,
-      "id": "test-id-1-from-model",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- ",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "sources": [],
-    "stepType": "initial",
-    "text": "part 1 
- ",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 10,
-      "outputTokens": 20,
-      "reasoningTokens": undefined,
-      "totalTokens": 30,
-    },
-    "warnings": [],
-  },
-  {
-    "content": [
-      {
-        "text": "no-whitespace",
-        "type": "text",
-      },
-      {
-        "file": DefaultGeneratedFile {
-          "base64Data": undefined,
-          "mediaType": "image/png",
-          "uint8ArrayData": Uint8Array [
-            1,
-            2,
-            3,
-          ],
-        },
-        "type": "file",
-      },
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-    ],
-    "files": [
-      DefaultGeneratedFile {
-        "base64Data": undefined,
-        "mediaType": "image/png",
-        "uint8ArrayData": Uint8Array [
-          1,
-          2,
-          3,
-        ],
-      },
-    ],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "body": undefined,
-      "headers": {
-        "custom-response-header": "response-header-value",
-      },
-      "id": "test-id-2-from-model",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- ",
-              "type": "text",
-            },
-            {
-              "text": "no-whitespace",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:10.000Z,
-    },
-    "sources": [
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-    ],
-    "stepType": "continue",
-    "text": "no-whitespace",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 30,
-      "outputTokens": 5,
-      "reasoningTokens": undefined,
-      "totalTokens": 35,
-    },
-    "warnings": [],
-  },
-  {
-    "content": [
-      {
-        "text": "immediatefollow  ",
-        "type": "text",
-      },
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-      {
-        "id": "789",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value3",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 3",
-        "type": "source",
-        "url": "https://example.com/3",
-      },
-    ],
-    "files": [],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "body": undefined,
-      "headers": undefined,
-      "id": "test-id-3-from-model",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- ",
-              "type": "text",
-            },
-            {
-              "text": "no-whitespace",
-              "type": "text",
-            },
-            {
-              "text": "immediatefollow  ",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:20.000Z,
-    },
-    "sources": [
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-      {
-        "id": "789",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value3",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 3",
-        "type": "source",
-        "url": "https://example.com/3",
-      },
-    ],
-    "stepType": "continue",
-    "text": "immediatefollow  ",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 2,
-      "reasoningTokens": undefined,
-      "totalTokens": 5,
-    },
-    "warnings": [],
-  },
-  {
-    "content": [
-      {
-        "text": "  final value keep all whitespace
- end",
-        "type": "text",
-      },
-      {
-        "file": DefaultGeneratedFile {
-          "base64Data": "QkFVRw==",
-          "mediaType": "image/jpeg",
-          "uint8ArrayData": undefined,
-        },
-        "type": "file",
-      },
-    ],
-    "files": [
-      DefaultGeneratedFile {
-        "base64Data": "QkFVRw==",
-        "mediaType": "image/jpeg",
-        "uint8ArrayData": undefined,
-      },
-    ],
-    "finishReason": "stop",
-    "isContinued": false,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "body": undefined,
-      "headers": undefined,
-      "id": "test-id-4-from-model",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- ",
-              "type": "text",
-            },
-            {
-              "text": "no-whitespace",
-              "type": "text",
-            },
-            {
-              "text": "immediatefollow  ",
-              "type": "text",
-            },
-            {
-              "text": "final value keep all whitespace
- end",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:20.000Z,
-    },
-    "sources": [],
-    "stepType": "continue",
-    "text": "final value keep all whitespace
- end",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 2,
-      "reasoningTokens": undefined,
-      "totalTokens": 5,
-    },
-    "warnings": [],
-  },
-]
-`;
-
-exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > result.files should contain files from last step 1`] = `
-[
-  DefaultGeneratedFile {
-    "base64Data": "QkFVRw==",
-    "mediaType": "image/jpeg",
-    "uint8ArrayData": undefined,
-  },
-]
-`;
-
-exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > result.sources should contain sources from all steps 1`] = `
-[
-  {
-    "id": "123",
-    "providerMetadata": {
-      "provider": {
-        "custom": "value",
-      },
-    },
-    "sourceType": "url",
-    "title": "Example",
-    "type": "source",
-    "url": "https://example.com",
-  },
-  {
-    "id": "456",
-    "providerMetadata": {
-      "provider": {
-        "custom": "value2",
-      },
-    },
-    "sourceType": "url",
-    "title": "Example 2",
-    "type": "source",
-    "url": "https://example.com/2",
-  },
-  {
-    "id": "789",
-    "providerMetadata": {
-      "provider": {
-        "custom": "value3",
-      },
-    },
-    "sourceType": "url",
-    "title": "Example 3",
-    "type": "source",
-    "url": "https://example.com/3",
-  },
-]
-`;
-
-exports[`options.maxSteps > 4 steps: initial, continue, continue, continue > result.steps should contain all steps 1`] = `
-[
-  {
-    "content": [
-      {
-        "text": "part 1 
- to-be-discarded",
-        "type": "text",
-      },
-    ],
-    "files": [],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "body": undefined,
-      "headers": undefined,
-      "id": "test-id-1-from-model",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- ",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:00.000Z,
-    },
-    "sources": [],
-    "stepType": "initial",
-    "text": "part 1 
- ",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 10,
-      "outputTokens": 20,
-      "reasoningTokens": undefined,
-      "totalTokens": 30,
-    },
-    "warnings": [],
-  },
-  {
-    "content": [
-      {
-        "text": "no-whitespace",
-        "type": "text",
-      },
-      {
-        "file": DefaultGeneratedFile {
-          "base64Data": undefined,
-          "mediaType": "image/png",
-          "uint8ArrayData": Uint8Array [
-            1,
-            2,
-            3,
-          ],
-        },
-        "type": "file",
-      },
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-    ],
-    "files": [
-      DefaultGeneratedFile {
-        "base64Data": undefined,
-        "mediaType": "image/png",
-        "uint8ArrayData": Uint8Array [
-          1,
-          2,
-          3,
-        ],
-      },
-    ],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "body": undefined,
-      "headers": {
-        "custom-response-header": "response-header-value",
-      },
-      "id": "test-id-2-from-model",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- ",
-              "type": "text",
-            },
-            {
-              "text": "no-whitespace",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:10.000Z,
-    },
-    "sources": [
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-    ],
-    "stepType": "continue",
-    "text": "no-whitespace",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 30,
-      "outputTokens": 5,
-      "reasoningTokens": undefined,
-      "totalTokens": 35,
-    },
-    "warnings": [],
-  },
-  {
-    "content": [
-      {
-        "text": "immediatefollow  ",
-        "type": "text",
-      },
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-      {
-        "id": "789",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value3",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 3",
-        "type": "source",
-        "url": "https://example.com/3",
-      },
-    ],
-    "files": [],
-    "finishReason": "length",
-    "isContinued": true,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "body": undefined,
-      "headers": undefined,
-      "id": "test-id-3-from-model",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- ",
-              "type": "text",
-            },
-            {
-              "text": "no-whitespace",
-              "type": "text",
-            },
-            {
-              "text": "immediatefollow  ",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:20.000Z,
-    },
-    "sources": [
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-      {
-        "id": "789",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value3",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 3",
-        "type": "source",
-        "url": "https://example.com/3",
-      },
-    ],
-    "stepType": "continue",
-    "text": "immediatefollow  ",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 2,
-      "reasoningTokens": undefined,
-      "totalTokens": 5,
-    },
-    "warnings": [],
-  },
-  {
-    "content": [
-      {
-        "text": "  final value keep all whitespace
- end",
-        "type": "text",
-      },
-      {
-        "file": DefaultGeneratedFile {
-          "base64Data": "QkFVRw==",
-          "mediaType": "image/jpeg",
-          "uint8ArrayData": undefined,
-        },
-        "type": "file",
-      },
-    ],
-    "files": [
-      DefaultGeneratedFile {
-        "base64Data": "QkFVRw==",
-        "mediaType": "image/jpeg",
-        "uint8ArrayData": undefined,
-      },
-    ],
-    "finishReason": "stop",
-    "isContinued": false,
-    "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
-    "request": {},
-    "response": {
-      "body": undefined,
-      "headers": undefined,
-      "id": "test-id-4-from-model",
-      "messages": [
-        {
-          "content": [
-            {
-              "text": "part 1 
- ",
-              "type": "text",
-            },
-            {
-              "text": "no-whitespace",
-              "type": "text",
-            },
-            {
-              "text": "immediatefollow  ",
-              "type": "text",
-            },
-            {
-              "text": "final value keep all whitespace
- end",
-              "type": "text",
-            },
-          ],
-          "id": "msg-0",
-          "role": "assistant",
-        },
-      ],
-      "modelId": "test-response-model-id",
-      "timestamp": 1970-01-01T00:00:20.000Z,
-    },
-    "sources": [],
-    "stepType": "continue",
-    "text": "final value keep all whitespace
- end",
-    "toolCalls": [],
-    "toolResults": [],
-    "usage": {
-      "cachedInputTokens": undefined,
-      "inputTokens": 3,
-      "outputTokens": 2,
-      "reasoningTokens": undefined,
-      "totalTokens": 5,
     },
     "warnings": [],
   },
@@ -1717,7 +982,6 @@ exports[`result.steps > should add the reasoning from the model response to the 
     ],
     "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [
       {
@@ -1841,7 +1105,6 @@ exports[`result.steps > should contain files 1`] = `
       },
     ],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [],
     "reasoningText": undefined,
@@ -1927,7 +1190,6 @@ exports[`result.steps > should contain sources 1`] = `
     ],
     "files": [],
     "finishReason": "stop",
-    "isContinued": false,
     "providerMetadata": undefined,
     "reasoning": [],
     "reasoningText": undefined,

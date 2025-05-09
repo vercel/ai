@@ -312,7 +312,6 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       usage: LanguageModelUsage;
       finishReason: FinishReason;
       providerMetadata: ProviderMetadata | undefined;
-      isContinued: boolean;
     }
   | {
       type: 'finish';

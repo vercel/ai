@@ -10,7 +10,6 @@ exports[`simulateStreamingMiddleware > should handle empty text response 1`] = `
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
     "messageId": "msg-6",
     "providerMetadata": undefined,
     "request": {},
@@ -75,7 +74,6 @@ exports[`simulateStreamingMiddleware > should preserve additional metadata in th
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
     "messageId": "msg-5",
     "providerMetadata": {
       "custom": {
@@ -155,7 +153,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
     "messageId": "msg-2",
     "providerMetadata": undefined,
     "request": {},
@@ -215,7 +212,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with reasoning 
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
     "messageId": "msg-1",
     "providerMetadata": undefined,
     "request": {},
@@ -270,7 +266,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with text respo
   },
   {
     "finishReason": "stop",
-    "isContinued": false,
     "messageId": "msg-0",
     "providerMetadata": undefined,
     "request": {},
@@ -333,7 +328,6 @@ exports[`simulateStreamingMiddleware > should simulate streaming with tool calls
   },
   {
     "finishReason": "tool-calls",
-    "isContinued": false,
     "messageId": "msg-4",
     "providerMetadata": undefined,
     "request": {},

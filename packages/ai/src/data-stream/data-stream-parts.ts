@@ -83,7 +83,6 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('finish-step'),
     value: z.object({
-      isContinued: z.boolean(),
       finishReason: finishReasonSchema,
       usage: languageModelUsageSchema.optional(),
     }),
