@@ -35,7 +35,7 @@ import { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import { asReasoningText } from './reasoning';
 import { ResponseMessage } from './response-message';
-import { StepResult } from './step-result';
+import { DefaultStepResult, StepResult } from './step-result';
 import { toResponseMessages } from './to-response-messages';
 import { ToolCallArray } from './tool-call';
 import { ToolCallRepairFunction } from './tool-call-repair';
@@ -292,7 +292,6 @@ A function that attempts to repair a tool call that failed to parse.
       let currentToolResults: ToolResultArray<TOOLS> = [];
       let stepCount = 0;
       const responseMessages: Array<ResponseMessage> = [];
-      let text = '';
       const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
       do {
@@ -467,11 +466,6 @@ A function that attempts to repair a tool call that failed to parse.
           toolResults: currentToolResults,
         });
 
-        // text:
-        const stepText = extractContentText(currentModelResponse.content) ?? '';
-
-        text = stepText;
-
         // append to messages for potential next step:
         responseMessages.push(
           ...toResponseMessages({
@@ -483,26 +477,20 @@ A function that attempts to repair a tool call that failed to parse.
         );
 
         // Add step information (after response messages are updated):
-        const currentStepResult: StepResult<TOOLS> = {
+        const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
           content: stepContent,
-          text: stepText,
-          reasoningText: asReasoningText(extractReasoning(stepContent)),
-          reasoning: extractReasoning(stepContent),
-          files: extractFiles(stepContent),
-          sources: extractSources(stepContent),
-          toolCalls: currentToolCalls,
-          toolResults: currentToolResults,
           finishReason: currentModelResponse.finishReason,
           usage: currentModelResponse.usage,
           warnings: currentModelResponse.warnings,
+          providerMetadata: currentModelResponse.providerMetadata,
           request: currentModelResponse.request ?? {},
           response: {
             ...currentModelResponse.response,
             // deep clone msgs to avoid mutating past messages in multi-step:
             messages: structuredClone(responseMessages),
           },
-          providerMetadata: currentModelResponse.providerMetadata,
-        };
+        });
+
         steps.push(currentStepResult);
         await onStepFinish?.(currentStepResult);
       } while (
@@ -539,14 +527,16 @@ A function that attempts to repair a tool call that failed to parse.
         }),
       );
 
+      const lastStep = steps[steps.length - 1];
+
       return new DefaultGenerateTextResult({
         steps,
         resolvedOutput: await output?.parseOutput(
-          { text },
+          { text: lastStep.text },
           {
-            response: currentModelResponse.response,
-            usage: currentModelResponse.usage,
-            finishReason: currentModelResponse.finishReason,
+            response: lastStep.response,
+            usage: lastStep.usage,
+            finishReason: lastStep.finishReason,
           },
         ),
       });

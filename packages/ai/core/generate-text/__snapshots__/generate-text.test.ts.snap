@@ -2,7 +2,7 @@
 
 exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should be called for each step 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "args": {
@@ -22,11 +22,8 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
         "type": "tool-result",
       },
     ],
-    "files": [],
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -63,29 +60,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "text": "",
-    "toolCalls": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "toolResults": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 10,
@@ -95,18 +69,15 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
     },
     "warnings": [],
   },
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -155,10 +126,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > onStepFinish should 
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
-    "sources": [],
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -214,7 +181,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.response.mess
 
 exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should contain all steps 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "args": {
@@ -234,11 +201,8 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
         "type": "tool-result",
       },
     ],
-    "files": [],
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -275,29 +239,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "text": "",
-    "toolCalls": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "toolResults": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 10,
@@ -307,18 +248,15 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
     },
     "warnings": [],
   },
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -367,10 +305,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
-    "sources": [],
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -385,7 +319,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result > result.steps should 
 
 exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onStepFinish should be called for each step 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "args": {
@@ -405,11 +339,8 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
         "type": "tool-result",
       },
     ],
-    "files": [],
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -446,29 +377,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "text": "",
-    "toolCalls": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "toolResults": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 10,
@@ -478,18 +386,15 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
     },
     "warnings": [],
   },
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -538,10 +443,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > onS
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
-    "sources": [],
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -597,7 +498,7 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
 
 exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > result.steps should contain all steps 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "args": {
@@ -617,11 +518,8 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
         "type": "tool-result",
       },
     ],
-    "files": [],
     "finishReason": "tool-calls",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -658,29 +556,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "text": "",
-    "toolCalls": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-call",
-      },
-    ],
-    "toolResults": [
-      {
-        "args": {
-          "value": "value",
-        },
-        "result": "result1",
-        "toolCallId": "call-1",
-        "toolName": "tool1",
-        "type": "tool-result",
-      },
-    ],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 10,
@@ -690,18 +565,15 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
     },
     "warnings": [],
   },
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "Hello, world!",
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -750,10 +622,6 @@ exports[`options.maxSteps > 2 steps: initial, tool-result with prepareStep > res
       "modelId": "test-response-model-id",
       "timestamp": 1970-01-01T00:00:10.000Z,
     },
-    "sources": [],
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -947,7 +815,7 @@ exports[`result.sources > should contain sources 1`] = `
 
 exports[`result.steps > should add the reasoning from the model response to the step result 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "providerMetadata": {
@@ -972,30 +840,8 @@ exports[`result.steps > should add the reasoning from the model response to the 
         "type": "text",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [
-      {
-        "providerMetadata": {
-          "testProvider": {
-            "signature": "signature",
-          },
-        },
-        "text": "I will open the conversation with witty banter.",
-        "type": "reasoning",
-      },
-      {
-        "providerMetadata": {
-          "testProvider": {
-            "redactedData": "redacted-reasoning-data",
-          },
-        },
-        "text": "",
-        "type": "reasoning",
-      },
-    ],
-    "reasoningText": "I will open the conversation with witty banter.",
     "request": {},
     "response": {
       "body": undefined,
@@ -1034,10 +880,6 @@ exports[`result.steps > should add the reasoning from the model response to the 
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -1052,7 +894,7 @@ exports[`result.steps > should add the reasoning from the model response to the 
 
 exports[`result.steps > should contain files 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "Hello, world!",
@@ -1079,26 +921,8 @@ exports[`result.steps > should contain files 1`] = `
         "type": "file",
       },
     ],
-    "files": [
-      DefaultGeneratedFile {
-        "base64Data": "AQID",
-        "mediaType": "image/png",
-        "uint8ArrayData": Uint8Array [
-          1,
-          2,
-          3,
-        ],
-      },
-      DefaultGeneratedFile {
-        "base64Data": "QkFVRw==",
-        "mediaType": "image/jpeg",
-        "uint8ArrayData": undefined,
-      },
-    ],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -1129,10 +953,6 @@ exports[`result.steps > should contain files 1`] = `
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [],
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
@@ -1147,7 +967,7 @@ exports[`result.steps > should contain files 1`] = `
 
 exports[`result.steps > should contain sources 1`] = `
 [
-  {
+  DefaultStepResult {
     "content": [
       {
         "text": "Hello, world!",
@@ -1178,11 +998,8 @@ exports[`result.steps > should contain sources 1`] = `
         "url": "https://example.com/2",
       },
     ],
-    "files": [],
     "finishReason": "stop",
     "providerMetadata": undefined,
-    "reasoning": [],
-    "reasoningText": undefined,
     "request": {},
     "response": {
       "body": undefined,
@@ -1203,35 +1020,6 @@ exports[`result.steps > should contain sources 1`] = `
       "modelId": "mock-model-id",
       "timestamp": 1970-01-01T00:00:00.000Z,
     },
-    "sources": [
-      {
-        "id": "123",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example",
-        "type": "source",
-        "url": "https://example.com",
-      },
-      {
-        "id": "456",
-        "providerMetadata": {
-          "provider": {
-            "custom": "value2",
-          },
-        },
-        "sourceType": "url",
-        "title": "Example 2",
-        "type": "source",
-        "url": "https://example.com/2",
-      },
-    ],
-    "text": "Hello, world!",
-    "toolCalls": [],
-    "toolResults": [],
     "usage": {
       "cachedInputTokens": undefined,
       "inputTokens": 3,
