@@ -96,12 +96,15 @@ export interface AnthropicToolResultContent {
   cache_control: AnthropicCacheControl | undefined;
 }
 
-// New type for web search tool result errors
 export interface AnthropicWebSearchToolResultErrorContent {
   type: 'web_search_tool_result_error';
   error_code: string; // e.g., 'max_uses_exceeded', 'too_many_requests', etc.
 }
 
+/**
+ * See documentation for errors responses that can happen during web search:
+ * @see https://docs.anthropic.com/en/docs/build-with-claude/tool-use/web-search-tool#errors
+ */
 export interface AnthropicWebSearchToolResultContent {
   type: 'web_search_tool_result';
   tool_use_id: string;
