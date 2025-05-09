@@ -129,6 +129,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
           : undefined,
       ...(this.settings.audioTimestamp && {
         audioTimestamp: this.settings.audioTimestamp,
+        mediaResolution: this.settings.mediaResolution,
       }),
 
       // provider options:
@@ -141,7 +142,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     switch (type) {
       case 'regular': {
-        const { tools, toolConfig, toolWarnings } = prepareTools(
+        const preparedTools = prepareTools(
           mode,
           this.settings.useSearchGrounding ?? false,
           this.settings.dynamicRetrievalConfig,
@@ -150,15 +151,21 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
         return {
           args: {
+            // Conditionally include tools, toolConfig, and systemInstruction
+            // only if cachedContent is not being used.
+            ...(!this.settings.cachedContent
+              ? {
+                  tools: preparedTools.tools,
+                  toolConfig: preparedTools.toolConfig,
+                  systemInstruction,
+                }
+              : {}),
             generationConfig,
             contents,
-            systemInstruction,
             safetySettings: this.settings.safetySettings,
-            tools,
-            toolConfig,
             cachedContent: this.settings.cachedContent,
           },
-          warnings: [...warnings, ...toolWarnings],
+          warnings: [...warnings, ...preparedTools.toolWarnings],
         };
       }
 
@@ -177,7 +184,11 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                   : undefined,
             },
             contents,
-            systemInstruction,
+            ...(!this.settings.cachedContent
+              ? {
+                  systemInstruction,
+                }
+              : {}),
             safetySettings: this.settings.safetySettings,
             cachedContent: this.settings.cachedContent,
           },
@@ -287,6 +298,15 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         google: {
           groundingMetadata: candidate.groundingMetadata ?? null,
           safetyRatings: candidate.safetyRatings ?? null,
+          cachedContentTokenCount:
+            usageMetadata?.cachedContentTokenCount ?? null,
+          thoughtsTokenCount: usageMetadata?.thoughtsTokenCount ?? null,
+          promptTokensDetails: usageMetadata?.promptTokensDetails ?? null,
+          cacheTokensDetails: usageMetadata?.cacheTokensDetails ?? null,
+          candidatesTokensDetails:
+            usageMetadata?.candidatesTokensDetails ?? null,
+          toolUsePromptTokensDetails:
+            usageMetadata?.toolUsePromptTokensDetails ?? null,
         },
       },
       sources: extractSources({
@@ -446,6 +466,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                 google: {
                   groundingMetadata: candidate.groundingMetadata ?? null,
                   safetyRatings: candidate.safetyRatings ?? null,
+                  cachedContentTokenCount:
+                    usageMetadata?.cachedContentTokenCount ?? null,
+                  thoughtsTokenCount:
+                    usageMetadata?.thoughtsTokenCount ??
+                    (args.generationConfig.thinkingConfig?.thinkingBudget === 0
+                      ? 0
+                      : null),
+                  promptTokensDetails:
+                    usageMetadata?.promptTokensDetails ?? null,
+                  cacheTokensDetails: usageMetadata?.cacheTokensDetails ?? null,
+                  candidatesTokensDetails:
+                    usageMetadata?.candidatesTokensDetails ?? null,
+                  toolUsePromptTokensDetails:
+                    usageMetadata?.toolUsePromptTokensDetails ?? null,
                 },
               };
             }
@@ -625,6 +659,20 @@ export const safetyRatingSchema = z.object({
   blocked: z.boolean().nullish(),
 });
 
+const modalityEnum = z.enum([
+  'TEXT',
+  'IMAGE',
+  'AUDIO',
+  'VIDEO',
+  'DOCUMENT',
+  'MODALITY_UNSPECIFIED',
+]);
+
+export const tokensDetailsSchema = z.object({
+  modality: modalityEnum,
+  tokenCount: z.number(),
+});
+
 const responseSchema = z.object({
   candidates: z.array(
     z.object({
@@ -639,6 +687,12 @@ const responseSchema = z.object({
       promptTokenCount: z.number().nullish(),
       candidatesTokenCount: z.number().nullish(),
       totalTokenCount: z.number().nullish(),
+      cachedContentTokenCount: z.number().nullish(),
+      thoughtsTokenCount: z.number().nullish(),
+      promptTokensDetails: z.array(tokensDetailsSchema).nullish(),
+      cacheTokensDetails: z.array(tokensDetailsSchema).nullish(),
+      candidatesTokensDetails: z.array(tokensDetailsSchema).nullish(),
+      toolUsePromptTokensDetails: z.array(tokensDetailsSchema).nullish(),
     })
     .nullish(),
 });
@@ -661,6 +715,12 @@ const chunkSchema = z.object({
       promptTokenCount: z.number().nullish(),
       candidatesTokenCount: z.number().nullish(),
       totalTokenCount: z.number().nullish(),
+      cachedContentTokenCount: z.number().nullish(),
+      thoughtsTokenCount: z.number().nullish(),
+      promptTokensDetails: z.array(tokensDetailsSchema).nullish(),
+      cacheTokensDetails: z.array(tokensDetailsSchema).nullish(),
+      candidatesTokensDetails: z.array(tokensDetailsSchema).nullish(),
+      toolUsePromptTokensDetails: z.array(tokensDetailsSchema).nullish(),
     })
     .nullish(),
 });
