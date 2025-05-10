@@ -33,7 +33,7 @@ describe('processDataStream', () => {
   it('should handle multiple stream parts in sequence', async () => {
     const stream = createReadableStream([
       { type: 'text', value: 'Hello' },
-      { type: 'data', value: [1, 2, 3] },
+      { type: 'reasoning', value: { text: 'reasoning' } },
       { type: 'error', value: 'error' },
     ]);
     const receivedParts: DataStreamPart[] = [];
@@ -43,8 +43,8 @@ describe('processDataStream', () => {
       onTextPart: value => {
         receivedParts.push({ type: 'text', value });
       },
-      onDataPart: value => {
-        receivedParts.push({ type: 'data', value });
+      onReasoningPart: value => {
+        receivedParts.push({ type: 'reasoning', value });
       },
       onErrorPart: value => {
         receivedParts.push({ type: 'error', value });
@@ -53,7 +53,10 @@ describe('processDataStream', () => {
 
     expect(receivedParts).toHaveLength(3);
     expect(receivedParts[0]).toEqual({ type: 'text', value: 'Hello' });
-    expect(receivedParts[1]).toEqual({ type: 'data', value: [1, 2, 3] });
+    expect(receivedParts[1]).toEqual({
+      type: 'reasoning',
+      value: { text: 'reasoning' },
+    });
     expect(receivedParts[2]).toEqual({ type: 'error', value: 'error' });
   });
 
