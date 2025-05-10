@@ -1335,6 +1335,162 @@ describe('doGenerate', () => {
       { type: 'text', text: 'Another internal thought.' },
     ]);
   });
+  describe('warnings for includeThoughts option', () => {
+    it('should generate a warning if includeThoughts is true for a non-Vertex provider', async () => {
+      prepareJsonResponse({ content: 'test' }); // Mock API response
+
+      // Manually create a model instance to control the provider string
+      const nonVertexModel = new GoogleGenerativeAILanguageModel(
+        'gemini-pro',
+        {},
+        {
+          provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: {},
+          generateId: () => 'test-id',
+          isSupportedUrl: () => false, // Dummy implementation
+        },
+      );
+
+      const { warnings } = await nonVertexModel.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        providerMetadata: {
+          google: {
+            thinkingConfig: {
+              includeThoughts: true,
+              thinkingBudget: 500,
+            },
+          },
+        },
+      });
+
+      expect(warnings).toContainEqual({
+        type: 'other',
+        message:
+          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+          'and might not be supported or could behave unexpectedly with the current Google provider ' +
+          '(google.generative-ai.chat).',
+      });
+    });
+
+    it('should NOT generate a warning if includeThoughts is true for a Vertex provider', async () => {
+      prepareJsonResponse({ content: 'test' }); // Mock API response
+
+      const vertexModel = new GoogleGenerativeAILanguageModel(
+        'gemini-pro',
+        {},
+        {
+          provider: 'google.vertex.chat', // Simulate Vertex provider
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: {},
+          generateId: () => 'test-id',
+          isSupportedUrl: () => false,
+        },
+      );
+
+      const { warnings } = await vertexModel.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        providerMetadata: {
+          google: {
+            thinkingConfig: {
+              includeThoughts: true,
+              thinkingBudget: 500,
+            },
+          },
+        },
+      });
+
+      const expectedWarningMessage =
+        "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+        'and might not be supported or could behave unexpectedly with the current Google provider ';
+
+      expect(
+        warnings?.some(
+          w =>
+            w.type === 'other' && w.message.startsWith(expectedWarningMessage),
+        ),
+      ).toBe(false);
+    });
+
+    it('should NOT generate a warning if includeThoughts is false for a non-Vertex provider', async () => {
+      prepareJsonResponse({ content: 'test' }); // Mock API response
+
+      const nonVertexModel = new GoogleGenerativeAILanguageModel(
+        'gemini-pro',
+        {},
+        {
+          provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: {},
+          generateId: () => 'test-id',
+          isSupportedUrl: () => false,
+        },
+      );
+
+      const { warnings } = await nonVertexModel.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        providerMetadata: {
+          google: {
+            thinkingConfig: {
+              includeThoughts: false,
+              thinkingBudget: 500,
+            },
+          },
+        },
+      });
+
+      const expectedWarningMessage =
+        "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+        'and might not be supported or could behave unexpectedly with the current Google provider ';
+      expect(
+        warnings?.some(
+          w =>
+            w.type === 'other' && w.message.startsWith(expectedWarningMessage),
+        ),
+      ).toBe(false);
+    });
+
+    it('should NOT generate a warning if thinkingConfig is not provided for a non-Vertex provider', async () => {
+      prepareJsonResponse({ content: 'test' }); // Mock API response
+      const nonVertexModel = new GoogleGenerativeAILanguageModel(
+        'gemini-pro',
+        {},
+        {
+          provider: 'google.generative-ai.chat', // Simulate non-Vertex provider
+          baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+          headers: {},
+          generateId: () => 'test-id',
+          isSupportedUrl: () => false,
+        },
+      );
+
+      const { warnings } = await nonVertexModel.doGenerate({
+        inputFormat: 'prompt',
+        mode: { type: 'regular' },
+        prompt: TEST_PROMPT,
+        providerMetadata: {
+          google: {
+            // No thinkingConfig
+          },
+        },
+      });
+      const expectedWarningMessage =
+        "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+        'and might not be supported or could behave unexpectedly with the current Google provider ';
+      expect(
+        warnings?.some(
+          w =>
+            w.type === 'other' && w.message.startsWith(expectedWarningMessage),
+        ),
+      ).toBe(false);
+    });
+  });
 });
 
 describe('doStream', () => {

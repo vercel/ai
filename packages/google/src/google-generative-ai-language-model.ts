@@ -91,6 +91,20 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
       schema: googleGenerativeAIProviderOptionsSchema,
     });
 
+    // Add warning if includeThoughts is used with a non-Vertex Google provider
+    if (
+      googleOptions?.thinkingConfig?.includeThoughts === true &&
+      !this.config.provider.startsWith('google.vertex.')
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+          'and might not be supported or could behave unexpectedly with the current Google provider ' +
+          `(${this.config.provider}).`,
+      });
+    }
+
     const generationConfig = {
       // standardized settings:
       maxOutputTokens: maxTokens,
