@@ -1,5 +1,24 @@
 # @ai-sdk/google
 
+## 1.2.17
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+
+## 1.2.16
+
+### Patch Changes
+
+- 0ca6f2f: feat(providers/google): add gemini-2.5-pro-preview-05-06
+
+## 1.2.15
+
+### Patch Changes
+
+- 2afd354: fix(providers/google): accept nullish in safetyRatings
+
 ## 1.2.14
 
 ### Patch Changes

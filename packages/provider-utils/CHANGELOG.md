@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 2.2.8
+
+### Patch Changes
+
+- d87b9d1: fix(provider-utils): fix SSE parser bug (CRLF)
+
 ## 2.2.7
 
 ### Patch Changes

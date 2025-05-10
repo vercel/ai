@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/togetherai",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -30,9 +30,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "0.2.13",
+    "@ai-sdk/openai-compatible": "0.2.14",
     "@ai-sdk/provider": "1.1.3",
-    "@ai-sdk/provider-utils": "2.2.7"
+    "@ai-sdk/provider-utils": "2.2.8"
   },
   "devDependencies": {
     "@types/node": "20.17.24",

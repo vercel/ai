@@ -1,5 +1,19 @@
 # @ai-sdk/vue
 
+## 1.2.12
+
+### Patch Changes
+
+- b54cb59: fix (ai-sdk/vue): fix status reactivity
+
+## 1.2.11
+
+### Patch Changes
+
+- Updated dependencies [d87b9d1]
+  - @ai-sdk/provider-utils@2.2.8
+  - @ai-sdk/ui-utils@1.2.11
+
 ## 1.2.10
 
 ### Patch Changes

@@ -43,6 +43,12 @@ describe('EventSourceParserStream', () => {
     ]);
   });
 
+  it('should handle CRLF lines correctly', async () => {
+    expect(await parseStream(['data: sup?\r\nevent: hey\n\n'])).toEqual([
+      { data: 'sup?', event: 'hey' },
+    ]);
+  });
+
   it('should handle CRLF line endings', async () => {
     expect(await parseStream(['data: hello\r\n\r\n'])).toEqual([
       { data: 'hello' },

@@ -174,6 +174,47 @@ describe('data protocol stream', () => {
       });
     });
 
+    it('should update status when the tab is hidden', async () => {
+      const controller = new TestResponseController();
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      const originalVisibilityState = document.visibilityState;
+
+      try {
+        await userEvent.click(screen.getByTestId('do-append'));
+        await waitFor(() =>
+          expect(screen.getByTestId('status')).toHaveTextContent('submitted'),
+        );
+
+        controller.write('0:"Hello"\n');
+        await waitFor(() =>
+          expect(screen.getByTestId('status')).toHaveTextContent('streaming'),
+        );
+
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => 'hidden',
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+
+        controller.write('0:", world."\n');
+        controller.close();
+
+        await waitFor(() =>
+          expect(screen.getByTestId('status')).toHaveTextContent('ready'),
+        );
+      } finally {
+        Object.defineProperty(document, 'visibilityState', {
+          configurable: true,
+          get: () => originalVisibilityState,
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+      }
+    });
+
     it('should set status to error when there is a server error', async () => {
       server.urls['/api/chat'].response = {
         type: 'error',

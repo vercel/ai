@@ -120,8 +120,7 @@ function splitLines(buffer: string, chunk: string) {
     } else if (char === '\r') {
       lines.push(currentLine);
       currentLine = '';
-
-      if (chunk[i + 1] === '\n') {
+      if (chunk[i] === '\n') {
         i++; // CRLF case: Skip the LF character
       }
     } else {
