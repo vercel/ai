@@ -322,7 +322,6 @@ describe('streamText', () => {
           },
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -394,7 +393,6 @@ describe('streamText', () => {
           currentDate: mockValues(new Date(2000)),
           generateId: mockValues('id-2000'),
         },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -462,7 +460,6 @@ describe('streamText', () => {
         },
         toolChoice: 'required',
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -579,7 +576,6 @@ describe('streamText', () => {
         },
         toolChoice: 'required',
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -668,7 +664,6 @@ describe('streamText', () => {
         },
         toolChoice: 'required',
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -713,7 +708,6 @@ describe('streamText', () => {
           }),
         },
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -755,7 +749,6 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -788,7 +781,6 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(
@@ -824,7 +816,6 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       result.pipeDataStreamToResponse(mockResponse);
@@ -877,7 +868,6 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       result.pipeDataStreamToResponse(mockResponse, {
@@ -944,7 +934,6 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       result.pipeDataStreamToResponse(mockResponse);
@@ -964,7 +953,6 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       result.pipeDataStreamToResponse(mockResponse, {
@@ -1412,7 +1400,6 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       const response = result.toDataStreamResponse();
@@ -1464,7 +1451,6 @@ describe('streamText', () => {
       const result = streamText({
         model: createTestModel(),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       const response = result.toDataStreamResponse({
@@ -1527,7 +1513,6 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       const response = result.toDataStreamResponse();
@@ -1543,7 +1528,6 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       const response = result.toDataStreamResponse({
@@ -1683,7 +1667,6 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect({
@@ -2326,7 +2309,6 @@ describe('streamText', () => {
           ]),
         }),
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       result.consumeStream();
@@ -2361,7 +2343,6 @@ describe('streamText', () => {
           },
         },
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       result.consumeStream();
@@ -2552,7 +2533,6 @@ describe('streamText', () => {
           _internal: {
             now: mockValues(0, 100, 500, 600, 1000),
           },
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
       });
 
@@ -2946,7 +2926,6 @@ describe('streamText', () => {
         },
         toolChoice: 'required',
         prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
         _internal: {
           now: mockValues(0, 100, 500),
         },
@@ -3386,7 +3365,6 @@ describe('streamText', () => {
           },
           experimental_transform: upperCaseTransform,
           prompt: 'test-input',
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
         result.consumeStream();
@@ -3509,7 +3487,6 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: upperCaseTransform,
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
         await resultObject.consumeStream();
@@ -3563,7 +3540,6 @@ describe('streamText', () => {
             result = event as unknown as typeof result;
           },
           experimental_transform: upperCaseTransform,
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
         await resultObject.consumeStream();
@@ -3886,7 +3862,6 @@ describe('streamText', () => {
           }),
           prompt: 'test-input',
           experimental_transform: stopWordTransform(),
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
         });
 
         expect(await convertAsyncIterableToArray(result.fullStream))
@@ -3955,7 +3930,6 @@ describe('streamText', () => {
           onStepFinish: async event => {
             result = event as unknown as typeof result;
           },
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
           experimental_transform: stopWordTransform(),
         });
 
@@ -4255,7 +4229,6 @@ describe('streamText', () => {
           onFinish: async event => {
             result = event as unknown as typeof result;
           },
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
           _internal: {
             generateId: mockId({ prefix: 'id' }),
             currentDate: () => new Date(0),

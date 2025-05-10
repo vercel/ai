@@ -65,11 +65,6 @@ const originalGenerateId = createIdGenerator({
   size: 24,
 });
 
-const originalGenerateMessageId = createIdGenerator({
-  prefix: 'msg',
-  size: 24,
-});
-
 /**
 A transformation that is applied to the stream.
 
@@ -177,7 +172,6 @@ If set and supported by the model, calls will generate deterministic results.
 @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
 
 @param maxSteps - Maximum number of sequential LLM calls (steps), e.g. when you use tool calls.
-@param experimental_generateMessageId - Generate a unique ID for each message.
 
 @param onChunk - Callback that is called for each chunk of the stream. The stream processing will pause until the callback promise is resolved.
 @param onError - Callback that is called when an error occurs during streaming. You can use it to log errors.
@@ -203,7 +197,6 @@ export function streamText<
   abortSignal,
   headers,
   maxSteps = 1,
-  experimental_generateMessageId: generateMessageId = originalGenerateMessageId,
   experimental_output: output,
   experimental_telemetry: telemetry,
   providerOptions,
@@ -247,11 +240,6 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
  */
     maxSteps?: number;
-
-    /**
-Generate a unique ID for each message.
-     */
-    experimental_generateMessageId?: IdGenerator;
 
     /**
 Optional telemetry configuration (experimental).
@@ -361,7 +349,6 @@ Internal. For test use only. May change without notice.
     now,
     currentDate,
     generateId,
-    generateMessageId,
   });
 }
 
@@ -495,7 +482,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     now,
     currentDate,
     generateId,
-    generateMessageId,
     onChunk,
     onError,
     onFinish,
@@ -522,7 +508,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     now: () => number;
     currentDate: () => Date;
     generateId: () => string;
-    generateMessageId: () => string;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -802,12 +787,10 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           currentStep,
           responseMessages,
           usage,
-          messageId,
         }: {
           currentStep: number;
           responseMessages: Array<ResponseMessage>;
           usage: LanguageModelUsage;
-          messageId: string;
         }) {
           const initialPrompt = await standardizePrompt({
             system,
@@ -1173,7 +1156,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       currentStep: currentStep + 1,
                       responseMessages,
                       usage: combinedUsage,
-                      messageId: generateMessageId(),
                     });
                   } else {
                     controller.enqueue({
@@ -1199,7 +1181,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             outputTokens: undefined,
             totalTokens: undefined,
           },
-          messageId: generateMessageId(),
         });
       },
     }).catch(error => {
