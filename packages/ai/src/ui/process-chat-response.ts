@@ -11,6 +11,7 @@ import type {
   UIMessage,
 } from './ui-messages';
 import { UseChatOptions } from './use-chat';
+import { mergeObjects } from '../util/merge-objects';
 
 export async function processChatResponse({
   stream,
@@ -253,11 +254,23 @@ export async function processChatResponse({
       }
 
       if (value.metadata != null) {
-        // TODO this should be a deep merge
-        message.metadata = value.metadata;
+        message.metadata =
+          message.metadata != null
+            ? mergeObjects(message.metadata, value.metadata)
+            : value.metadata;
       }
+      execUpdate();
     },
-    onFinishPart(value) {},
+    onFinishPart(value) {
+      if (value.metadata != null) {
+        message.metadata =
+          message.metadata != null
+            ? mergeObjects(message.metadata, value.metadata)
+            : value.metadata;
+      }
+
+      execUpdate();
+    },
     onErrorPart(error) {
       throw new Error(error);
     },

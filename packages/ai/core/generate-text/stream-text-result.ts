@@ -32,7 +32,7 @@ export type DataStreamOptions = {
    * Called on `start` events.
    */
   messageMetadata?: (options: {
-    part: TextStreamPart<ToolSet> & { type: 'start' };
+    part: TextStreamPart<ToolSet> & { type: 'start' | 'finish' };
   }) => any; // TODO type // JSONValue
 
   /**

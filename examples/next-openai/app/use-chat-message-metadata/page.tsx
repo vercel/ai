@@ -21,9 +21,18 @@ export default function Chat() {
       {messages.map(message => (
         <div key={message.id} className="whitespace-pre-wrap">
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.metadata?.createdAt
-            ? new Date(message.metadata.createdAt).toLocaleString()
-            : ''}
+          {message.metadata?.createdAt && (
+            <div>
+              Created at:{' '}
+              {new Date(message.metadata.createdAt).toLocaleString()}
+            </div>
+          )}
+          {message.metadata?.duration && (
+            <div>Duration: {message.metadata.duration}ms</div>
+          )}
+          {message.metadata?.model && (
+            <div>Model: {message.metadata.model}</div>
+          )}
           {message.parts.map((part, index) => {
             if (part.type === 'text') {
               return <div key={index}>{part.text}</div>;

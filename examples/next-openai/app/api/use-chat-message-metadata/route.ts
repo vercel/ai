@@ -14,10 +14,22 @@ export async function POST(req: Request) {
     prompt,
   });
 
+  let startTimestamp!: number;
   return result.toDataStreamResponse({
     messageMetadata: ({ part }) => {
       if (part.type === 'start') {
-        return { createdAt: Date.now() };
+        startTimestamp = Date.now();
+
+        return {
+          createdAt: startTimestamp,
+          model: 'openai/gpt-4o',
+        };
+      }
+
+      if (part.type === 'finish') {
+        return {
+          duration: Date.now() - startTimestamp,
+        };
       }
     },
   });

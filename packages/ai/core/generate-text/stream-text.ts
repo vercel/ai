@@ -1480,7 +1480,9 @@ However, the LLM results are expected to be small enough to not cause issues.
               if (experimental_sendFinish) {
                 controller.enqueue({
                   type: 'finish',
-                  value: {},
+                  value: {
+                    metadata: messageMetadata?.({ part }),
+                  },
                 });
               }
               break;
