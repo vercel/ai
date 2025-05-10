@@ -1342,6 +1342,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   toDataStream({
     messageId,
+    messageMetadata,
     sendReasoning = false,
     sendSources = false,
     experimental_sendStart = true,
@@ -1350,17 +1351,17 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: DataStreamOptions = {}): ReadableStream<DataStreamPart> {
     return this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, DataStreamPart>({
-        transform: async (chunk, controller) => {
-          const chunkType = chunk.type;
-          switch (chunkType) {
+        transform: async (part, controller) => {
+          const partType = part.type;
+          switch (partType) {
             case 'text': {
-              controller.enqueue({ type: 'text', value: chunk.text });
+              controller.enqueue({ type: 'text', value: part.text });
               break;
             }
 
             case 'reasoning': {
               if (sendReasoning) {
-                controller.enqueue({ type: 'reasoning', value: chunk });
+                controller.enqueue({ type: 'reasoning', value: part });
               }
               break;
             }
@@ -1379,8 +1380,8 @@ However, the LLM results are expected to be small enough to not cause issues.
               controller.enqueue({
                 type: 'file',
                 value: {
-                  mediaType: chunk.file.mediaType,
-                  url: `data:${chunk.file.mediaType};base64,${chunk.file.base64}`,
+                  mediaType: part.file.mediaType,
+                  url: `data:${part.file.mediaType};base64,${part.file.base64}`,
                 },
               });
               break;
@@ -1388,7 +1389,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
             case 'source': {
               if (sendSources) {
-                controller.enqueue({ type: 'source', value: chunk });
+                controller.enqueue({ type: 'source', value: part });
               }
               break;
             }
@@ -1397,8 +1398,8 @@ However, the LLM results are expected to be small enough to not cause issues.
               controller.enqueue({
                 type: 'tool-call-streaming-start',
                 value: {
-                  toolCallId: chunk.toolCallId,
-                  toolName: chunk.toolName,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
                 },
               });
               break;
@@ -1408,8 +1409,8 @@ However, the LLM results are expected to be small enough to not cause issues.
               controller.enqueue({
                 type: 'tool-call-delta',
                 value: {
-                  toolCallId: chunk.toolCallId,
-                  argsTextDelta: chunk.argsTextDelta,
+                  toolCallId: part.toolCallId,
+                  argsTextDelta: part.argsTextDelta,
                 },
               });
               break;
@@ -1419,9 +1420,9 @@ However, the LLM results are expected to be small enough to not cause issues.
               controller.enqueue({
                 type: 'tool-call',
                 value: {
-                  toolCallId: chunk.toolCallId,
-                  toolName: chunk.toolName,
-                  args: chunk.args,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                  args: part.args,
                 },
               });
               break;
@@ -1431,8 +1432,8 @@ However, the LLM results are expected to be small enough to not cause issues.
               controller.enqueue({
                 type: 'tool-result',
                 value: {
-                  toolCallId: chunk.toolCallId,
-                  result: chunk.result,
+                  toolCallId: part.toolCallId,
+                  result: part.result,
                 },
               });
               break;
@@ -1441,7 +1442,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'error': {
               controller.enqueue({
                 type: 'error',
-                value: onError(chunk.error),
+                value: onError(part.error),
               });
               break;
             }
@@ -1467,7 +1468,8 @@ However, the LLM results are expected to be small enough to not cause issues.
                 controller.enqueue({
                   type: 'start',
                   value: {
-                    messageId: messageId,
+                    messageId,
+                    metadata: messageMetadata?.({ part }),
                   },
                 });
               }
@@ -1485,7 +1487,7 @@ However, the LLM results are expected to be small enough to not cause issues.
             }
 
             default: {
-              const exhaustiveCheck: never = chunkType;
+              const exhaustiveCheck: never = partType;
               throw new Error(`Unknown chunk type: ${exhaustiveCheck}`);
             }
           }
@@ -1498,6 +1500,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     response: ServerResponse,
     {
       messageId,
+      messageMetadata,
       sendReasoning,
       sendSources,
       experimental_sendFinish,
@@ -1510,6 +1513,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       response,
       dataStream: this.toDataStream({
         messageId,
+        messageMetadata,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
@@ -1530,6 +1534,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   toDataStreamResponse({
     messageId,
+    messageMetadata,
     sendReasoning,
     sendSources,
     experimental_sendFinish,
@@ -1540,6 +1545,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     return createDataStreamResponse({
       dataStream: this.toDataStream({
         messageId,
+        messageMetadata,
         sendReasoning,
         sendSources,
         experimental_sendFinish,

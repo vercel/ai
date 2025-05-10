@@ -251,6 +251,11 @@ export async function processChatResponse({
       if (value.messageId != null) {
         message.id = value.messageId;
       }
+
+      if (value.metadata != null) {
+        // TODO this should be a deep merge
+        message.metadata = value.metadata;
+      }
     },
     onFinishPart(value) {},
     onErrorPart(error) {

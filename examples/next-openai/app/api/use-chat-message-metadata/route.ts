@@ -14,5 +14,11 @@ export async function POST(req: Request) {
     prompt,
   });
 
-  return result.toDataStreamResponse();
+  return result.toDataStreamResponse({
+    messageMetadata: ({ part }) => {
+      if (part.type === 'start') {
+        return { createdAt: Date.now() };
+      }
+    },
+  });
 }

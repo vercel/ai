@@ -76,6 +76,7 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
     type: z.literal('start'),
     value: z.object({
       messageId: z.string().optional(),
+      metadata: z.any(), // TODO json / typing
     }),
   }),
   z.object({

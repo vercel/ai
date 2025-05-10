@@ -13,11 +13,11 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
+import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ResponseMessage } from './response-message';
 
 export type DataStreamOptions = {
   /**
@@ -26,9 +26,14 @@ export type DataStreamOptions = {
    */
   messageId?: string;
 
+  /**
+   * Extracts message metadata that will be send to the client.
+   *
+   * Called on `start` events.
+   */
   messageMetadata?: (options: {
-    part: TextStreamPart<ToolSet> & { type: 'finish' };
-  }) => any; // TODO type // JSON
+    part: TextStreamPart<ToolSet> & { type: 'start' };
+  }) => any; // TODO type // JSONValue
 
   /**
    * Send reasoning parts to the client.

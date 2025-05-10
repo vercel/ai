@@ -30,6 +30,11 @@ The role of the message.
   role: 'system' | 'user' | 'assistant';
 
   /**
+The metadata of the message.
+   */
+  metadata?: any; // TODO json / typing
+
+  /**
 The parts of the message. Use this for rendering the message in the UI.
 
 System messages should be avoided (set the system prompt on the server instead).
