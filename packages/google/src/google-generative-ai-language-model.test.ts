@@ -1295,6 +1295,46 @@ describe('doGenerate', () => {
       },
     ]);
   });
+  it('should correctly parse and separate reasoning parts from text output', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { text: 'Visible text part 1. ' },
+                { text: 'This is a thought process.', thought: true },
+                { text: 'Visible text part 2.' },
+                { text: 'Another internal thought.', thought: true },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: SAFETY_RATINGS,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 10,
+          candidatesTokenCount: 20,
+          totalTokenCount: 30,
+        },
+      },
+    };
+
+    const { text, reasoning } = await model.doGenerate({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(text).toStrictEqual('Visible text part 1. Visible text part 2.');
+    expect(reasoning).toStrictEqual([
+      { type: 'text', text: 'This is a thought process.' },
+      { type: 'text', text: 'Another internal thought.' },
+    ]);
+  });
 });
 
 describe('doStream', () => {
@@ -1925,6 +1965,93 @@ describe('doStream', () => {
       generationConfig: {
         responseModalities: ['TEXT', 'IMAGE'],
       },
+    });
+  });
+
+  it('should correctly stream reasoning parts and text deltas separately', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Text delta 1. ' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Reasoning delta 1.', thought: true }],
+                role: 'model',
+              },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Text delta 2.' }], role: 'model' },
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'Reasoning delta 2.', thought: true }],
+                role: 'model',
+              },
+              finishReason: 'STOP', // Mark finish reason in a chunk that has content
+              index: 0,
+              safetyRatings: SAFETY_RATINGS,
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          // Final chunk for usage metadata
+          usageMetadata: {
+            promptTokenCount: 15,
+            candidatesTokenCount: 25,
+            totalTokenCount: 40,
+          },
+        })}\n\n`,
+      ],
+    };
+    const { stream } = await model.doStream({
+      inputFormat: 'prompt',
+      mode: { type: 'regular' },
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    const relevantEvents = events.filter(
+      event => event.type === 'text-delta' || event.type === 'reasoning',
+    );
+
+    expect(relevantEvents).toStrictEqual([
+      { type: 'text-delta', textDelta: 'Text delta 1. ' },
+      { type: 'reasoning', textDelta: 'Reasoning delta 1.' },
+      { type: 'text-delta', textDelta: 'Text delta 2.' },
+      { type: 'reasoning', textDelta: 'Reasoning delta 2.' },
+    ]);
+
+    const finishEvent = events.find(event => event.type === 'finish');
+    expect(finishEvent).toBeDefined();
+    expect(finishEvent?.type === 'finish' && finishEvent.finishReason).toEqual(
+      'stop',
+    );
+    expect(finishEvent?.type === 'finish' && finishEvent.usage).toStrictEqual({
+      promptTokens: 15,
+      completionTokens: 25,
     });
   });
 });
