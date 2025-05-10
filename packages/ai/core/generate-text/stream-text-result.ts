@@ -301,36 +301,26 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       argsTextDelta: string;
     }
   | {
-      type: 'step-start';
-      messageId: string;
+      type: 'start-step';
       request: LanguageModelRequestMetadata;
       warnings: CallWarning[];
     }
   | {
-      type: 'step-finish';
-      messageId: string;
-
-      // TODO 5.0 breaking change: remove request (on start instead)
-      request: LanguageModelRequestMetadata;
-      // TODO 5.0 breaking change: remove warnings (on start instead)
-      warnings: CallWarning[] | undefined;
-
+      type: 'finish-step';
       response: LanguageModelResponseMetadata;
       usage: LanguageModelUsage;
       finishReason: FinishReason;
       providerMetadata: ProviderMetadata | undefined;
     }
   | {
+      type: 'start';
+      messageId: string;
+    }
+  | {
       type: 'finish';
+      messageId: string;
       finishReason: FinishReason;
-      usage: LanguageModelUsage;
-      providerMetadata: ProviderMetadata | undefined;
-
-      /**
-       * @deprecated use response on step-finish instead
-       */
-      // TODO 5.0 breaking change: remove response (on step instead)
-      response: LanguageModelResponseMetadata;
+      totalUsage: LanguageModelUsage;
     }
   | {
       type: 'error';

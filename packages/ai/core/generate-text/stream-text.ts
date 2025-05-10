@@ -411,7 +411,7 @@ function createOutputTransformStream<
   >({
     async transform(chunk, controller) {
       // ensure that we publish the last text chunk before the step finish:
-      if (chunk.type === 'step-finish') {
+      if (chunk.type === 'finish-step') {
         publishTextChunk({ controller });
       }
 
@@ -625,7 +625,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(part);
         }
 
-        if (part.type === 'step-finish') {
+        if (part.type === 'finish-step') {
           const stepMessages = toResponseMessages({
             content: recordedContent,
             tools: tools ?? ({} as TOOLS),
@@ -1183,13 +1183,9 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   } else {
                     controller.enqueue({
                       type: 'finish',
+                      messageId,
                       finishReason: stepFinishReason,
-                      usage: combinedUsage,
-                      providerMetadata: stepProviderMetadata,
-                      response: {
-                        ...stepResponse,
-                        headers: response?.headers,
-                      },
+                      totalUsage: combinedUsage,
                     });
 
                     self.closeStream(); // close the stitchable stream
@@ -1474,17 +1470,15 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
-            case 'step-start': {
+            case 'start-step': {
               controller.enqueue({
                 type: 'start-step',
-                value: {
-                  messageId: chunk.messageId,
-                },
+                value: {},
               });
               break;
             }
 
-            case 'step-finish': {
+            case 'finish-step': {
               controller.enqueue({
                 type: 'finish-step',
                 value: {
@@ -1495,13 +1489,24 @@ However, the LLM results are expected to be small enough to not cause issues.
               break;
             }
 
+            case 'start': {
+              controller.enqueue({
+                type: 'start',
+                value: {
+                  messageId: chunk.messageId,
+                },
+              });
+              break;
+            }
+
             case 'finish': {
               if (experimental_sendFinish) {
                 controller.enqueue({
-                  type: 'finish-message',
+                  type: 'finish',
                   value: {
+                    messageId: chunk.messageId,
                     finishReason: chunk.finishReason,
-                    usage: sendUsage ? chunk.usage : undefined,
+                    totalUsage: sendUsage ? chunk.totalUsage : undefined,
                   },
                 });
               }

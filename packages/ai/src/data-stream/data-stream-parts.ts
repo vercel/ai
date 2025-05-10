@@ -73,27 +73,6 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
     value: z.object({ toolCallId: z.string(), argsTextDelta: z.string() }),
   }),
   z.object({
-    type: z.literal('finish-message'),
-    value: z.object({
-      finishReason: finishReasonSchema,
-      // TODO v5 remove usage from finish event (only on step-finish)
-      usage: languageModelUsageSchema.optional(),
-    }),
-  }),
-  z.object({
-    type: z.literal('finish-step'),
-    value: z.object({
-      finishReason: finishReasonSchema,
-      usage: languageModelUsageSchema.optional(),
-    }),
-  }),
-  z.object({
-    type: z.literal('start-step'),
-    value: z.object({
-      messageId: z.string(),
-    }),
-  }),
-  z.object({
     type: z.literal('reasoning'),
     value: z.object({
       text: z.string(),
@@ -109,6 +88,31 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
     value: z.object({
       url: z.string(),
       mediaType: z.string(),
+    }),
+  }),
+  z.object({
+    type: z.literal('start-step'),
+    value: z.object({}),
+  }),
+  z.object({
+    type: z.literal('finish-step'),
+    value: z.object({
+      finishReason: finishReasonSchema,
+      usage: languageModelUsageSchema.optional(),
+    }),
+  }),
+  z.object({
+    type: z.literal('start'),
+    value: z.object({
+      messageId: z.string(),
+    }),
+  }),
+  z.object({
+    type: z.literal('finish'),
+    value: z.object({
+      messageId: z.string(),
+      finishReason: finishReasonSchema,
+      totalUsage: languageModelUsageSchema.optional(),
     }),
   }),
   z.object({
