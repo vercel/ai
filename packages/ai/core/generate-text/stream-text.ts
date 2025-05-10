@@ -629,8 +629,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const stepMessages = toResponseMessages({
             content: recordedContent,
             tools: tools ?? ({} as TOOLS),
-            messageId: part.messageId,
-            generateMessageId,
           });
 
           // Add step information (after response messages are updated):
@@ -956,6 +954,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                 async transform(chunk, controller): Promise<void> {
                   if (chunk.type === 'stream-start') {
                     warnings = chunk.warnings;
+                    controller.enqueue({ type: 'start' });
                     return; // stream start chunks are sent immediately and do not count as first chunk
                   }
 
@@ -975,8 +974,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
                     // Step start:
                     controller.enqueue({
-                      type: 'step-start',
-                      messageId,
+                      type: 'start-step',
                       request: stepRequest,
                       warnings: warnings ?? [],
                     });
@@ -1143,17 +1141,14 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   }
 
                   controller.enqueue({
-                    type: 'step-finish',
+                    type: 'finish-step',
                     finishReason: stepFinishReason,
                     usage: stepUsage,
                     providerMetadata: stepProviderMetadata,
-                    request: stepRequest,
                     response: {
                       ...stepResponse,
                       headers: response?.headers,
                     },
-                    warnings,
-                    messageId,
                   });
 
                   const combinedUsage = addLanguageModelUsage(usage, stepUsage);
@@ -1169,8 +1164,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                       ...toResponseMessages({
                         content: stepContent,
                         tools: tools ?? ({} as TOOLS),
-                        messageId,
-                        generateMessageId,
                       }),
                     );
 
@@ -1183,7 +1176,6 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
                   } else {
                     controller.enqueue({
                       type: 'finish',
-                      messageId,
                       finishReason: stepFinishReason,
                       totalUsage: combinedUsage,
                     });
@@ -1366,11 +1358,12 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toDataStream({
-    onError = () => 'An error occurred.', // mask error messages for safety by default
-    sendUsage = true,
+    messageId,
     sendReasoning = false,
     sendSources = false,
+    experimental_sendStart = true,
     experimental_sendFinish = true,
+    onError = () => 'An error occurred.', // mask error messages for safety by default
   }: DataStreamOptions = {}): ReadableStream<DataStreamPart> {
     return this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, DataStreamPart>({
@@ -1481,21 +1474,20 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'finish-step': {
               controller.enqueue({
                 type: 'finish-step',
-                value: {
-                  finishReason: chunk.finishReason,
-                  usage: sendUsage ? chunk.usage : undefined,
-                },
+                value: {},
               });
               break;
             }
 
             case 'start': {
-              controller.enqueue({
-                type: 'start',
-                value: {
-                  messageId: chunk.messageId,
-                },
-              });
+              if (experimental_sendStart) {
+                controller.enqueue({
+                  type: 'start',
+                  value: {
+                    messageId: messageId,
+                  },
+                });
+              }
               break;
             }
 
@@ -1503,11 +1495,7 @@ However, the LLM results are expected to be small enough to not cause issues.
               if (experimental_sendFinish) {
                 controller.enqueue({
                   type: 'finish',
-                  value: {
-                    messageId: chunk.messageId,
-                    finishReason: chunk.finishReason,
-                    totalUsage: sendUsage ? chunk.totalUsage : undefined,
-                  },
+                  value: {},
                 });
               }
               break;
@@ -1526,24 +1514,24 @@ However, the LLM results are expected to be small enough to not cause issues.
   pipeDataStreamToResponse(
     response: ServerResponse,
     {
-      onError,
-      sendUsage,
+      messageId,
       sendReasoning,
       sendSources,
       experimental_sendFinish,
       experimental_sendStart,
+      onError,
       ...init
     }: ResponseInit & DataStreamOptions = {},
   ) {
     pipeDataStreamToResponse({
       response,
       dataStream: this.toDataStream({
-        onError,
-        sendUsage,
+        messageId,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
         experimental_sendStart,
+        onError,
       }),
       ...init,
     });
@@ -1558,22 +1546,22 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toDataStreamResponse({
-    onError,
-    sendUsage,
+    messageId,
     sendReasoning,
     sendSources,
     experimental_sendFinish,
     experimental_sendStart,
+    onError,
     ...init
   }: ResponseInit & DataStreamOptions = {}): Response {
     return createDataStreamResponse({
       dataStream: this.toDataStream({
-        onError,
-        sendUsage,
+        messageId,
         sendReasoning,
         sendSources,
         experimental_sendFinish,
         experimental_sendStart,
+        onError,
       }),
       ...init,
     });

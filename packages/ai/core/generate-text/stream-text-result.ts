@@ -21,18 +21,10 @@ import { ResponseMessage } from './response-message';
 
 export type DataStreamOptions = {
   /**
-   * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
-   *
-   * @return error message to include in the data stream.
+   * Message ID that is sent to the client.
+   * This is intended to be used for the UI message.
    */
-  onError?: (error: unknown) => string;
-
-  /**
-   * Send usage parts to the client.
-   * Default to true.
-   */
-  // TODO change default to false in v5: secure by default
-  sendUsage?: boolean;
+  messageId?: string;
 
   /**
    * Send reasoning parts to the client.
@@ -66,6 +58,13 @@ export type DataStreamOptions = {
    * the message start event from being sent multiple times.
    */
   experimental_sendStart?: boolean;
+
+  /**
+   * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
+   *
+   * @return error message to include in the data stream.
+   */
+  onError?: (error: unknown) => string;
 };
 
 export type ConsumeStreamOptions = {
@@ -314,11 +313,9 @@ export type TextStreamPart<TOOLS extends ToolSet> =
     }
   | {
       type: 'start';
-      messageId: string;
     }
   | {
       type: 'finish';
-      messageId: string;
       finishReason: FinishReason;
       totalUsage: LanguageModelUsage;
     }
