@@ -208,7 +208,10 @@ describe('data protocol stream', () => {
           expect(screen.getByTestId('status')).toHaveTextContent('submitted'),
         );
 
-        controller.write('0:"Hello"\n');
+        controller.write(
+          formatDataStreamPart({ type: 'text', value: 'Hello' }),
+        );
+
         await waitFor(() =>
           expect(screen.getByTestId('status')).toHaveTextContent('streaming'),
         );
@@ -219,7 +222,9 @@ describe('data protocol stream', () => {
         });
         document.dispatchEvent(new Event('visibilitychange'));
 
-        controller.write('0:", world."\n');
+        controller.write(
+          formatDataStreamPart({ type: 'text', value: ' world.' }),
+        );
         controller.close();
 
         await waitFor(() =>
