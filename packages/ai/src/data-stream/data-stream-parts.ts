@@ -80,7 +80,9 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('finish'),
-    value: z.object({}),
+    value: z.object({
+      metadata: z.any(), // TODO json / typing
+    }),
   }),
   z.object({
     type: z.literal('reasoning-part-finish'),

@@ -26,6 +26,10 @@ export type DataStreamOptions = {
    */
   messageId?: string;
 
+  messageMetadata?: (options: {
+    part: TextStreamPart<ToolSet> & { type: 'finish' };
+  }) => any; // TODO type // JSON
+
   /**
    * Send reasoning parts to the client.
    * Default to false.

@@ -31,12 +31,13 @@ import { getTracer } from '../telemetry/get-tracer';
 import { recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
 import { TelemetrySettings } from '../telemetry/telemetry-settings';
+import { LanguageModelRequestMetadata } from '../types';
 import {
+  CallWarning,
   FinishReason,
   LanguageModel,
   ToolChoice,
 } from '../types/language-model';
-import { LanguageModelResponseMetadata } from '../types/language-model-response-metadata';
 import { ProviderMetadata, ProviderOptions } from '../types/provider-metadata';
 import { addLanguageModelUsage, LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
@@ -130,6 +131,11 @@ export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
 Details for all steps.
    */
     readonly steps: StepResult<TOOLS>[];
+
+    /**
+Total usage for all steps. This is the sum of the usage of all steps.
+     */
+    readonly totalUsage: LanguageModelUsage;
   },
 ) => Promise<void> | void;
 
@@ -539,17 +545,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
       | (ContentPart<TOOLS> & { type: 'reasoning' }) = undefined;
 
     let recordedContent: Array<ContentPart<TOOLS>> = [];
-    const recordedResponse: LanguageModelResponseMetadata & {
-      messages: Array<ResponseMessage>;
-    } = {
-      id: generateId(),
-      timestamp: currentDate(),
-      modelId: model.modelId,
-      messages: [],
-    };
+    const recordedResponseMessages: Array<ResponseMessage> = [];
     let recordedFinishReason: FinishReason | undefined = undefined;
-    let recordedUsage: LanguageModelUsage | undefined = undefined;
-
+    let recordedTotalUsage: LanguageModelUsage | undefined = undefined;
+    let recordedRequest: LanguageModelRequestMetadata = {};
+    let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
 
     let rootSpan!: Span;
@@ -625,6 +625,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent.push(part);
         }
 
+        if (part.type === 'start-step') {
+          recordedRequest = part.request;
+          recordedWarnings = part.warnings;
+        }
+
         if (part.type === 'finish-step') {
           const stepMessages = toResponseMessages({
             content: recordedContent,
@@ -636,11 +641,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
             content: recordedContent,
             finishReason: part.finishReason,
             usage: part.usage,
-            warnings: part.warnings,
-            request: part.request,
+            warnings: recordedWarnings,
+            request: recordedRequest,
             response: {
               ...part.response,
-              messages: [...recordedResponse.messages, ...stepMessages],
+              messages: [...recordedResponseMessages, ...stepMessages],
             },
             providerMetadata: part.providerMetadata,
           });
@@ -652,15 +657,11 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           recordedContent = [];
           activeReasoningPart = undefined;
 
-          recordedResponse.messages.push(...stepMessages);
+          recordedResponseMessages.push(...stepMessages);
         }
 
         if (part.type === 'finish') {
-          recordedResponse.id = part.response.id;
-          recordedResponse.timestamp = part.response.timestamp;
-          recordedResponse.modelId = part.response.modelId;
-          recordedResponse.headers = part.response.headers;
-          recordedUsage = part.usage;
+          recordedTotalUsage = part.totalUsage;
           recordedFinishReason = part.finishReason;
         }
       },
@@ -673,7 +674,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // derived:
           const finishReason = recordedFinishReason ?? 'unknown';
-          const usage = recordedUsage ?? {
+          const totalUsage = recordedTotalUsage ?? {
             inputTokens: undefined,
             outputTokens: undefined,
             totalTokens: undefined,
@@ -681,28 +682,29 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // from finish:
           self.finishReasonPromise.resolve(finishReason);
-          self.totalUsagePromise.resolve(usage);
+          self.totalUsagePromise.resolve(totalUsage);
 
           // aggregate results:
           self.stepsPromise.resolve(recordedSteps);
 
           // call onFinish callback:
-          const lastStep = recordedSteps[recordedSteps.length - 1];
+          const finalStep = recordedSteps[recordedSteps.length - 1];
           await onFinish?.({
             finishReason,
-            usage,
-            content: lastStep.content,
-            text: lastStep.text,
-            reasoningText: lastStep.reasoningText,
-            reasoning: lastStep.reasoning,
-            files: lastStep.files,
-            sources: lastStep.sources,
-            toolCalls: lastStep.toolCalls,
-            toolResults: lastStep.toolResults,
-            request: lastStep.request,
-            response: lastStep.response,
-            warnings: lastStep.warnings,
-            providerMetadata: lastStep.providerMetadata,
+            totalUsage,
+            usage: finalStep.usage,
+            content: finalStep.content,
+            text: finalStep.text,
+            reasoningText: finalStep.reasoningText,
+            reasoning: finalStep.reasoning,
+            files: finalStep.files,
+            sources: finalStep.sources,
+            toolCalls: finalStep.toolCalls,
+            toolResults: finalStep.toolResults,
+            request: finalStep.request,
+            response: finalStep.response,
+            warnings: finalStep.warnings,
+            providerMetadata: finalStep.providerMetadata,
             steps: recordedSteps,
           });
 
@@ -712,19 +714,19 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
               telemetry,
               attributes: {
                 'ai.response.finishReason': finishReason,
-                'ai.response.text': { output: () => lastStep.text },
+                'ai.response.text': { output: () => finalStep.text },
                 'ai.response.toolCalls': {
                   output: () =>
-                    lastStep.toolCalls?.length
-                      ? JSON.stringify(lastStep.toolCalls)
+                    finalStep.toolCalls?.length
+                      ? JSON.stringify(finalStep.toolCalls)
                       : undefined,
                 },
 
-                'ai.usage.inputTokens': usage.inputTokens,
-                'ai.usage.outputTokens': usage.outputTokens,
-                'ai.usage.totalTokens': usage.totalTokens,
-                'ai.usage.reasoningTokens': usage.reasoningTokens,
-                'ai.usage.cachedInputTokens': usage.cachedInputTokens,
+                'ai.usage.inputTokens': totalUsage.inputTokens,
+                'ai.usage.outputTokens': totalUsage.outputTokens,
+                'ai.usage.totalTokens': totalUsage.totalTokens,
+                'ai.usage.reasoningTokens': totalUsage.reasoningTokens,
+                'ai.usage.cachedInputTokens': totalUsage.cachedInputTokens,
               },
             }),
           );

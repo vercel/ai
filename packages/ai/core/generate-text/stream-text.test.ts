@@ -843,7 +843,10 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          "data: {"type":"start","value":{}}
+
+        ",
+          "data: {"type":"start-step","value":{}}
 
         ",
           "data: {"type":"text","value":"Hello"}
@@ -855,10 +858,10 @@ describe('streamText', () => {
           "data: {"type":"text","value":"world!"}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish-step","value":{}}
 
         ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish","value":{}}
 
         ",
           "data: [DONE]
@@ -903,7 +906,10 @@ describe('streamText', () => {
 
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          "data: {"type":"start","value":{}}
+
+        ",
+          "data: {"type":"start-step","value":{}}
 
         ",
           "data: {"type":"text","value":"Hello"}
@@ -915,10 +921,10 @@ describe('streamText', () => {
           "data: {"type":"text","value":"world!"}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish-step","value":{}}
 
         ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish","value":{}}
 
         ",
           "data: [DONE]
@@ -964,31 +970,6 @@ describe('streamText', () => {
       result.pipeDataStreamToResponse(mockResponse, {
         onError: error => `custom error message: ${error}`,
       });
-
-      await mockResponse.waitForEnd();
-
-      expect(mockResponse.getDecodedChunks()).toMatchSnapshot();
-    });
-
-    it('should suppress usage information when sendUsage is false', async () => {
-      const mockResponse = createMockServerResponse();
-
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, World!' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-
-      result.pipeDataStreamToResponse(mockResponse, { sendUsage: false });
 
       await mockResponse.waitForEnd();
 
@@ -1047,7 +1028,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          "data: {"type":"start-step","value":{}}
 
         ",
           "data: {"type":"reasoning","value":{"type":"reasoning","text":"I will open the conversation"}}
@@ -1086,10 +1067,10 @@ describe('streamText', () => {
           "data: {"type":"text","value":" there!"}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish-step","value":{}}
 
         ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish","value":{}}
 
         ",
           "data: [DONE]
@@ -1125,7 +1106,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          "data: {"type":"start-step","value":{}}
 
         ",
           "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"123","url":"https://example.com","title":"Example","providerMetadata":{"provider":{"custom":"value"}}}}
@@ -1137,10 +1118,10 @@ describe('streamText', () => {
           "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish-step","value":{}}
 
         ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish","value":{}}
 
         ",
           "data: [DONE]
@@ -1174,7 +1155,7 @@ describe('streamText', () => {
       `);
       expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
         [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          "data: {"type":"start-step","value":{}}
 
         ",
           "data: {"type":"file","value":{"mediaType":"text/plain","url":"data:text/plain;base64,Hello World"}}
@@ -1186,10 +1167,10 @@ describe('streamText', () => {
           "data: {"type":"file","value":{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish-step","value":{}}
 
         ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          "data: {"type":"finish","value":{}}
 
         ",
           "data: [DONE]
@@ -1370,26 +1351,6 @@ describe('streamText', () => {
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
 
-    it('should suppress usage information when sendUsage is false', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, World!' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        ...defaultSettings(),
-      });
-
-      const dataStream = result.toDataStream({ sendUsage: false });
-
-      expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
-    });
-
     it('should omit message finish event (d:) when sendFinish is false', async () => {
       const result = streamText({
         model: createTestModel({
@@ -1471,7 +1432,10 @@ describe('streamText', () => {
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
           [
-            "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+            "data: {"type":"start","value":{}}
+
+          ",
+            "data: {"type":"start-step","value":{}}
 
           ",
             "data: {"type":"text","value":"Hello"}
@@ -1483,10 +1447,10 @@ describe('streamText', () => {
             "data: {"type":"text","value":"world!"}
 
           ",
-            "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+            "data: {"type":"finish-step","value":{}}
 
           ",
-            "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+            "data: {"type":"finish","value":{}}
 
           ",
             "data: [DONE]
@@ -1527,7 +1491,10 @@ describe('streamText', () => {
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
           [
-            "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+            "data: {"type":"start","value":{}}
+
+          ",
+            "data: {"type":"start-step","value":{}}
 
           ",
             "data: {"type":"text","value":"Hello"}
@@ -1539,10 +1506,10 @@ describe('streamText', () => {
             "data: {"type":"text","value":"world!"}
 
           ",
-            "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+            "data: {"type":"finish-step","value":{}}
 
           ",
-            "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+            "data: {"type":"finish","value":{}}
 
           ",
             "data: [DONE]
@@ -1582,27 +1549,6 @@ describe('streamText', () => {
       const response = result.toDataStreamResponse({
         onError: error => `custom error message: ${error}`,
       });
-
-      expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
-    });
-
-    it('should suppress usage information when sendUsage is false', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'text', text: 'Hello, World!' },
-            {
-              type: 'finish',
-              finishReason: 'stop',
-              usage: testUsage,
-            },
-          ]),
-        }),
-        prompt: 'test-input',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
-      });
-
-      const response = result.toDataStreamResponse({ sendUsage: false });
 
       expect(await convertResponseStreamToArray(response)).toMatchSnapshot();
     });
@@ -1889,7 +1835,6 @@ describe('streamText', () => {
                 "type": "text",
               },
             ],
-            "id": "msg-0",
             "role": "assistant",
           },
         ]
@@ -3096,66 +3041,55 @@ describe('streamText', () => {
 
       expect(await convertAsyncIterableToArray(result.fullStream))
         .toMatchInlineSnapshot(`
-          [
-            {
-              "messageId": "msg-0",
-              "request": {},
-              "type": "step-start",
-              "warnings": [],
+        [
+          {
+            "request": {},
+            "type": "start-step",
+            "warnings": [],
+          },
+          {
+            "args": {
+              "value": "value",
             },
-            {
-              "args": {
-                "value": "value",
-              },
-              "toolCallId": "call-1",
-              "toolName": "tool1",
-              "type": "tool-call",
+            "toolCallId": "call-1",
+            "toolName": "tool1",
+            "type": "tool-call",
+          },
+          {
+            "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
+            "type": "error",
+          },
+          {
+            "finishReason": "stop",
+            "providerMetadata": undefined,
+            "response": {
+              "headers": undefined,
+              "id": "id-0",
+              "modelId": "mock-model-id",
+              "timestamp": 1970-01-01T00:00:00.000Z,
             },
-            {
-              "error": [AI_ToolExecutionError: Error executing tool tool1: test error],
-              "type": "error",
+            "type": "finish-step",
+            "usage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
-            {
-              "finishReason": "stop",
-              "messageId": "msg-0",
-              "providerMetadata": undefined,
-              "request": {},
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "step-finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
-              "warnings": undefined,
+          },
+          {
+            "finishReason": "stop",
+            "totalUsage": {
+              "cachedInputTokens": undefined,
+              "inputTokens": 3,
+              "outputTokens": 10,
+              "reasoningTokens": undefined,
+              "totalTokens": 13,
             },
-            {
-              "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
-                "cachedInputTokens": undefined,
-                "inputTokens": 3,
-                "outputTokens": 10,
-                "reasoningTokens": undefined,
-                "totalTokens": 13,
-              },
-            },
-          ]
-        `);
+            "type": "finish",
+          },
+        ]
+      `);
     });
   });
 
@@ -3191,7 +3125,7 @@ describe('streamText', () => {
               };
             }
 
-            if (chunk.type === 'step-finish') {
+            if (chunk.type === 'start-step') {
               if (chunk.request.body != null) {
                 chunk.request.body = (
                   chunk.request.body as string
@@ -3199,7 +3133,7 @@ describe('streamText', () => {
               }
             }
 
-            if (chunk.type === 'finish') {
+            if (chunk.type === 'finish-step') {
               if (chunk.providerMetadata?.testProvider != null) {
                 chunk.providerMetadata.testProvider = {
                   testKey: 'TEST VALUE',
@@ -3252,7 +3186,6 @@ describe('streamText', () => {
           messages: [
             {
               role: 'assistant',
-              id: expect.any(String),
               content: [
                 {
                   text: 'HELLO, WORLD!',
@@ -3280,7 +3213,7 @@ describe('streamText', () => {
             new TransformStream<TextStreamPart<any>, TextStreamPart<any>>({
               transform(chunk, controller) {
                 if (chunk.type === 'finish') {
-                  chunk.usage = {
+                  chunk.totalUsage = {
                     inputTokens: 200,
                     outputTokens: 300,
                     totalTokens: undefined,
@@ -3895,8 +3828,7 @@ describe('streamText', () => {
                 stopStream();
 
                 controller.enqueue({
-                  type: 'step-finish',
-                  messageId: 'msg-transformed-123',
+                  type: 'finish-step',
                   finishReason: 'stop',
                   providerMetadata: undefined,
                   usage: {
@@ -3906,30 +3838,22 @@ describe('streamText', () => {
                     reasoningTokens: undefined,
                     cachedInputTokens: undefined,
                   },
-                  request: {},
                   response: {
                     id: 'response-id',
                     modelId: 'mock-model-id',
                     timestamp: new Date(0),
                   },
-                  warnings: [],
                 });
 
                 controller.enqueue({
                   type: 'finish',
                   finishReason: 'stop',
-                  providerMetadata: undefined,
-                  usage: {
+                  totalUsage: {
                     inputTokens: undefined,
                     outputTokens: undefined,
                     totalTokens: undefined,
                     reasoningTokens: undefined,
                     cachedInputTokens: undefined,
-                  },
-                  response: {
-                    id: 'response-id',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(0),
                   },
                 });
 
@@ -3967,56 +3891,46 @@ describe('streamText', () => {
 
         expect(await convertAsyncIterableToArray(result.fullStream))
           .toMatchInlineSnapshot(`
-            [
-              {
-                "messageId": "msg-0",
-                "request": {},
-                "type": "step-start",
-                "warnings": [],
+          [
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "text": "Hello, ",
+              "type": "text",
+            },
+            {
+              "finishReason": "stop",
+              "providerMetadata": undefined,
+              "response": {
+                "id": "response-id",
+                "modelId": "mock-model-id",
+                "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              {
-                "text": "Hello, ",
-                "type": "text",
+              "type": "finish-step",
+              "usage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": undefined,
               },
-              {
-                "finishReason": "stop",
-                "messageId": "msg-transformed-123",
-                "providerMetadata": undefined,
-                "request": {},
-                "response": {
-                  "id": "response-id",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
-                },
-                "type": "step-finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": undefined,
-                  "outputTokens": undefined,
-                  "reasoningTokens": undefined,
-                  "totalTokens": undefined,
-                },
-                "warnings": [],
+            },
+            {
+              "finishReason": "stop",
+              "totalUsage": {
+                "cachedInputTokens": undefined,
+                "inputTokens": undefined,
+                "outputTokens": undefined,
+                "reasoningTokens": undefined,
+                "totalTokens": undefined,
               },
-              {
-                "finishReason": "stop",
-                "providerMetadata": undefined,
-                "response": {
-                  "id": "response-id",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
-                },
-                "type": "finish",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokens": undefined,
-                  "outputTokens": undefined,
-                  "reasoningTokens": undefined,
-                  "totalTokens": undefined,
-                },
-              },
-            ]
-          `);
+              "type": "finish",
+            },
+          ]
+        `);
       });
 
       it('options.onStepFinish should be called', async () => {
