@@ -8,6 +8,7 @@ export function mapAnthropicStopReason(
     case 'stop_sequence':
       return 'stop';
     case 'tool_use':
+    case 'server_tool_use':
       return 'tool-calls';
     case 'max_tokens':
       return 'length';
