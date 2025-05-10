@@ -36,7 +36,7 @@ export async function processChatResponse({
   const message: UIMessage = replaceLastMessage
     ? structuredClone(lastMessage)
     : {
-        id: 'no-id-received',
+        id: generateId(),
         role: 'assistant',
         parts: [],
       };
@@ -248,7 +248,9 @@ export async function processChatResponse({
       currentReasoningPart = undefined;
     },
     onStartPart(value) {
-      message.id = value.messageId;
+      if (value.messageId != null) {
+        message.id = value.messageId;
+      }
     },
     onFinishPart(value) {},
     onErrorPart(error) {

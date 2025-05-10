@@ -70,7 +70,7 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-0",
+              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -86,7 +86,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-1",
+              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -102,7 +102,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-2",
+              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -180,30 +180,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-0",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-              ],
               "revisionId": "id-1",
               "role": "assistant",
             },
@@ -220,10 +196,7 @@ describe('processChatResponse', () => {
                     "args": {
                       "city": "London",
                     },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
+                    "state": "call",
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
@@ -257,11 +230,38 @@ describe('processChatResponse', () => {
                   },
                   "type": "tool-invocation",
                 },
+              ],
+              "revisionId": "id-3",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
                 {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-3",
+              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -295,7 +295,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-4",
+              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -699,22 +699,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-0",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "I will ",
-                  "type": "text",
-                },
-              ],
               "revisionId": "id-1",
               "role": "assistant",
             },
@@ -727,7 +711,7 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
                 {
-                  "text": "I will use a tool to get the weather in London.",
+                  "text": "I will ",
                   "type": "text",
                 },
               ],
@@ -745,18 +729,6 @@ describe('processChatResponse', () => {
                 {
                   "text": "I will use a tool to get the weather in London.",
                   "type": "text",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
                 },
               ],
               "revisionId": "id-3",
@@ -779,10 +751,7 @@ describe('processChatResponse', () => {
                     "args": {
                       "city": "London",
                     },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
+                    "state": "call",
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
@@ -820,11 +789,42 @@ describe('processChatResponse', () => {
                   },
                   "type": "tool-invocation",
                 },
+              ],
+              "revisionId": "id-5",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "text",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
                 {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-5",
+              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -862,7 +862,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-6",
+              "revisionId": "id-7",
               "role": "assistant",
             },
           },
@@ -900,7 +900,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-7",
+              "revisionId": "id-8",
               "role": "assistant",
             },
           },
@@ -1021,7 +1021,7 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-0",
+              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -1035,27 +1035,6 @@ describe('processChatResponse', () => {
                 {
                   "providerMetadata": undefined,
                   "text": "I will ",
-                  "type": "reasoning",
-                },
-              ],
-              "revisionId": "id-1",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
-                  },
-                  "text": "I will use a tool to get the weather in London.",
                   "type": "reasoning",
                 },
               ],
@@ -1078,18 +1057,6 @@ describe('processChatResponse', () => {
                   },
                   "text": "I will use a tool to get the weather in London.",
                   "type": "reasoning",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "state": "call",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
                 },
               ],
               "revisionId": "id-3",
@@ -1117,10 +1084,7 @@ describe('processChatResponse', () => {
                     "args": {
                       "city": "London",
                     },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
+                    "state": "call",
                     "step": 0,
                     "toolCallId": "tool-call-id",
                     "toolName": "tool-name",
@@ -1163,11 +1127,47 @@ describe('processChatResponse', () => {
                   },
                   "type": "tool-invocation",
                 },
+              ],
+              "revisionId": "id-5",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "1234567890",
+                    },
+                  },
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "reasoning",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
                 {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-5",
+              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -1215,7 +1215,7 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-6",
+              "revisionId": "id-7",
               "role": "assistant",
             },
           },
@@ -1267,7 +1267,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-7",
+              "revisionId": "id-8",
               "role": "assistant",
             },
           },
@@ -1582,28 +1582,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-0",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": undefined,
-                    "state": "partial-call",
-                    "step": 0,
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
-                  },
-                  "type": "tool-invocation",
-                },
-              ],
               "revisionId": "id-1",
               "role": "assistant",
             },
@@ -1617,9 +1595,7 @@ describe('processChatResponse', () => {
                 },
                 {
                   "toolInvocation": {
-                    "args": {
-                      "testArg": "t",
-                    },
+                    "args": undefined,
                     "state": "partial-call",
                     "step": 0,
                     "toolCallId": "tool-call-0",
@@ -1642,7 +1618,7 @@ describe('processChatResponse', () => {
                 {
                   "toolInvocation": {
                     "args": {
-                      "testArg": "test-value",
+                      "testArg": "t",
                     },
                     "state": "partial-call",
                     "step": 0,
@@ -1668,7 +1644,7 @@ describe('processChatResponse', () => {
                     "args": {
                       "testArg": "test-value",
                     },
-                    "state": "call",
+                    "state": "partial-call",
                     "step": 0,
                     "toolCallId": "tool-call-0",
                     "toolName": "test-tool",
@@ -1677,6 +1653,30 @@ describe('processChatResponse', () => {
                 },
               ],
               "revisionId": "id-4",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "testArg": "test-value",
+                    },
+                    "state": "call",
+                    "step": 0,
+                    "toolCallId": "tool-call-0",
+                    "toolName": "test-tool",
+                  },
+                  "type": "tool-invocation",
+                },
+              ],
+              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -1701,7 +1701,7 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-5",
+              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -1772,7 +1772,7 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-0",
+              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -1788,7 +1788,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-1",
+              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -1804,7 +1804,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-2",
+              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -1905,7 +1905,7 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-0",
+              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -1922,7 +1922,7 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-1",
+              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -1943,7 +1943,7 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-2",
+              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -1964,7 +1964,7 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-3",
+              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -1981,7 +1981,7 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-4",
+              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -2002,7 +2002,7 @@ describe('processChatResponse', () => {
                   "type": "reasoning",
                 },
               ],
-              "revisionId": "id-5",
+              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -2027,7 +2027,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-6",
+              "revisionId": "id-7",
               "role": "assistant",
             },
           },
@@ -2105,7 +2105,7 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-0",
+              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -2129,7 +2129,7 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-1",
+              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -2154,7 +2154,7 @@ describe('processChatResponse', () => {
                   "type": "tool-invocation",
                 },
               ],
-              "revisionId": "id-2",
+              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -2234,7 +2234,7 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-0",
+              "revisionId": "id-1",
               "role": "assistant",
             },
           },
@@ -2250,7 +2250,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-1",
+              "revisionId": "id-2",
               "role": "assistant",
             },
           },
@@ -2276,7 +2276,7 @@ describe('processChatResponse', () => {
                   "type": "source",
                 },
               ],
-              "revisionId": "id-2",
+              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -2362,22 +2362,6 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
               ],
-              "revisionId": "id-0",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "Here is a file:",
-                  "type": "text",
-                },
-              ],
               "revisionId": "id-1",
               "role": "assistant",
             },
@@ -2393,11 +2377,6 @@ describe('processChatResponse', () => {
                   "text": "Here is a file:",
                   "type": "text",
                 },
-                {
-                  "mediaType": "text/plain",
-                  "type": "file",
-                  "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
-                },
               ],
               "revisionId": "id-2",
               "role": "assistant",
@@ -2411,7 +2390,7 @@ describe('processChatResponse', () => {
                   "type": "step-start",
                 },
                 {
-                  "text": "Here is a file:And another one:",
+                  "text": "Here is a file:",
                   "type": "text",
                 },
                 {
@@ -2440,13 +2419,34 @@ describe('processChatResponse', () => {
                   "type": "file",
                   "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
                 },
+              ],
+              "revisionId": "id-4",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "Here is a file:And another one:",
+                  "type": "text",
+                },
+                {
+                  "mediaType": "text/plain",
+                  "type": "file",
+                  "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
+                },
                 {
                   "mediaType": "application/json",
                   "type": "file",
                   "url": "data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9",
                 },
               ],
-              "revisionId": "id-4",
+              "revisionId": "id-5",
               "role": "assistant",
             },
           },

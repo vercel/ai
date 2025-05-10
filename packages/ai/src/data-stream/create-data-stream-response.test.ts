@@ -13,7 +13,7 @@ describe('createDataStreamResponse', () => {
         'Custom-Header': 'test',
       },
       dataStream: convertArrayToReadableStream([
-        { type: 'data', value: ['test-data'] },
+        { type: 'text', value: 'test-data' },
       ]),
     });
 
@@ -41,7 +41,7 @@ describe('createDataStreamResponse', () => {
       ),
     ).toMatchInlineSnapshot(`
       [
-        "data: {"type":"data","value":["test-data"]}
+        "data: {"type":"text","value":"test-data"}
 
       ",
         "data: [DONE]
