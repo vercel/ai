@@ -1,4 +1,4 @@
-import { JSONValue, LanguageModelV2Source } from '@ai-sdk/provider';
+import { LanguageModelV2Source } from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 
 /**
