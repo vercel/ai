@@ -1,7 +1,6 @@
 import {
   convertArrayToReadableStream,
   convertAsyncIterableToArray,
-  mockId,
 } from '@ai-sdk/provider-utils/test';
 import { generateText, streamText } from '../generate-text';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
@@ -218,7 +217,6 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(await convertAsyncIterableToArray(result.fullStream))
@@ -312,7 +310,6 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(await convertAsyncIterableToArray(result.fullStream))
@@ -411,7 +408,6 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(await convertAsyncIterableToArray(result.fullStream))
@@ -501,7 +497,6 @@ describe('extractReasoningMiddleware', () => {
           }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       const resultFalse = streamText({
@@ -510,7 +505,6 @@ describe('extractReasoningMiddleware', () => {
           middleware: extractReasoningMiddleware({ tagName: 'think' }),
         }),
         prompt: 'Hello, how can I help?',
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
 
       expect(await convertAsyncIterableToArray(resultTrue.fullStream))
