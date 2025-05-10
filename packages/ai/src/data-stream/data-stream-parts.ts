@@ -1,23 +1,5 @@
 import { z } from 'zod';
 
-const languageModelUsageSchema = z.object({
-  inputTokens: z.number().optional(),
-  outputTokens: z.number().optional(),
-  totalTokens: z.number().optional(),
-  reasoningTokens: z.number().optional(),
-  cachedInputTokens: z.number().optional(),
-});
-
-const finishReasonSchema = z.enum([
-  'stop',
-  'length',
-  'tool-calls',
-  'content-filter',
-  'other',
-  'error',
-  'unknown',
-]);
-
 const toolCallSchema = z.object({
   toolCallId: z.string(),
   toolName: z.string(),
@@ -45,16 +27,8 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
     value: z.string(),
   }),
   z.object({
-    type: z.literal('data'),
-    value: z.array(z.any()), // TODO json validation
-  }),
-  z.object({
     type: z.literal('error'),
     value: z.string(),
-  }),
-  z.object({
-    type: z.literal('message-annotations'),
-    value: z.array(z.any()), // TODO json validation
   }),
   z.object({
     type: z.literal('tool-call'),
@@ -96,10 +70,7 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('finish-step'),
-    value: z.object({
-      finishReason: finishReasonSchema,
-      usage: languageModelUsageSchema.optional(),
-    }),
+    value: z.object({}),
   }),
   z.object({
     type: z.literal('start'),
@@ -109,11 +80,7 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('finish'),
-    value: z.object({
-      messageId: z.string(),
-      finishReason: finishReasonSchema,
-      totalUsage: languageModelUsageSchema.optional(),
-    }),
+    value: z.object({}),
   }),
   z.object({
     type: z.literal('reasoning-part-finish'),

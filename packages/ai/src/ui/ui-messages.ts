@@ -25,21 +25,9 @@ A unique identifier for the message.
   id: string;
 
   /**
-The timestamp of the message.
-   */
-  // TODO solve optionality similar id
-  createdAt?: Date;
-
-  /**
 The role of the message.
    */
   role: 'system' | 'user' | 'assistant';
-
-  /**
-Additional message-specific information added on the server via StreamData
-   */
-  // TODO replace with special part
-  annotations?: JSONValue[] | undefined;
 
   /**
 The parts of the message. Use this for rendering the message in the UI.

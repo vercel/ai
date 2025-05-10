@@ -1,6 +1,4 @@
-import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
-import { LanguageModelUsage } from '../../core/types/usage';
 import { processDataStream } from '../data-stream/process-data-stream';
 import { parsePartialJson } from '../util/parse-partial-json';
 import { extractMaxToolInvocationStep } from './extract-max-tool-invocation-step';
@@ -19,24 +17,14 @@ export async function processChatResponse({
   update,
   onToolCall,
   onFinish,
-  generateId = generateIdFunction,
-  getCurrentDate = () => new Date(),
   lastMessage,
+  generateId = generateIdFunction,
 }: {
   stream: ReadableStream<Uint8Array>;
-  update: (options: {
-    message: UIMessage;
-    data: JSONValue[] | undefined;
-    replaceLastMessage: boolean;
-  }) => void;
+  update: (options: { message: UIMessage }) => void;
   onToolCall?: UseChatOptions['onToolCall'];
-  onFinish?: (options: {
-    message: UIMessage | undefined;
-    finishReason: LanguageModelV2FinishReason;
-    usage: LanguageModelUsage;
-  }) => void;
-  generateId?: () => string;
-  getCurrentDate?: () => Date;
+  onFinish?: (options: { message: UIMessage }) => void;
+  generateId?: () => string; // TODO remove once store is in place
   lastMessage: UIMessage | undefined;
 }) {
   const replaceLastMessage = lastMessage?.role === 'assistant';
@@ -48,8 +36,7 @@ export async function processChatResponse({
   const message: UIMessage = replaceLastMessage
     ? structuredClone(lastMessage)
     : {
-        id: generateId(),
-        createdAt: getCurrentDate(),
+        id: 'no-id-received',
         role: 'assistant',
         parts: [],
       };
@@ -77,36 +64,13 @@ export async function processChatResponse({
     }
   }
 
-  const data: JSONValue[] = [];
-
-  // keep list of current message annotations for message
-  let messageAnnotations: JSONValue[] | undefined = replaceLastMessage
-    ? lastMessage?.annotations
-    : undefined;
-
   // keep track of partial tool calls
   const partialToolCalls: Record<
     string,
     { text: string; step: number; index: number; toolName: string }
   > = {};
 
-  let usage: LanguageModelUsage = {
-    inputTokens: undefined,
-    outputTokens: undefined,
-    totalTokens: undefined,
-  };
-  let finishReason: LanguageModelV2FinishReason = 'unknown';
-
   function execUpdate() {
-    // make a copy of the data array to ensure UI is updated (SWR)
-    const copiedData = [...data];
-
-    // keeps the currentMessage up to date with the latest annotations,
-    // even if annotations preceded the message creation
-    if (messageAnnotations?.length) {
-      message.annotations = messageAnnotations;
-    }
-
     const copiedMessage = {
       // deep copy the message to ensure that deep changes (msg attachments) are updated
       // with SolidJS. SolidJS uses referential integration of sub-objects to detect changes.
@@ -121,8 +85,6 @@ export async function processChatResponse({
 
     update({
       message: copiedMessage,
-      data: copiedData,
-      replaceLastMessage,
     });
   }
 
@@ -273,17 +235,9 @@ export async function processChatResponse({
 
       execUpdate();
     },
-    onDataPart(value) {
-      data.push(...value);
-      execUpdate();
-    },
-    onMessageAnnotationsPart(value) {
-      if (messageAnnotations == null) {
-        messageAnnotations = [...value];
-      } else {
-        messageAnnotations.push(...value);
-      }
-
+    onStartStepPart(value) {
+      // add a step boundary part to the message
+      message.parts.push({ type: 'step-start' });
       execUpdate();
     },
     onFinishStepPart() {
@@ -293,26 +247,14 @@ export async function processChatResponse({
       currentTextPart = undefined;
       currentReasoningPart = undefined;
     },
-    onStartStepPart(value) {
-      // keep message id stable when we are updating an existing message:
-      if (!replaceLastMessage) {
-        message.id = value.messageId;
-      }
-
-      // add a step boundary part to the message
-      message.parts.push({ type: 'step-start' });
-      execUpdate();
+    onStartPart(value) {
+      message.id = value.messageId;
     },
-    onFinishMessagePart(value) {
-      finishReason = value.finishReason;
-      if (value.usage != null) {
-        usage = value.usage as LanguageModelUsage;
-      }
-    },
+    onFinishPart(value) {},
     onErrorPart(error) {
       throw new Error(error);
     },
   });
 
-  onFinish?.({ message, finishReason, usage });
+  onFinish?.({ message });
 }
