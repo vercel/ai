@@ -239,14 +239,31 @@ export async function processChatResponse({
     onStartStepPart(value) {
       // add a step boundary part to the message
       message.parts.push({ type: 'step-start' });
+
+      if (value.metadata != null) {
+        message.metadata =
+          message.metadata != null
+            ? mergeObjects(message.metadata, value.metadata)
+            : value.metadata;
+      }
+
       execUpdate();
     },
-    onFinishStepPart() {
+    onFinishStepPart(value) {
       step += 1;
 
       // reset the current text and reasoning parts
       currentTextPart = undefined;
       currentReasoningPart = undefined;
+
+      if (value.metadata != null) {
+        message.metadata =
+          message.metadata != null
+            ? mergeObjects(message.metadata, value.metadata)
+            : value.metadata;
+      }
+
+      execUpdate();
     },
     onStartPart(value) {
       if (value.messageId != null) {

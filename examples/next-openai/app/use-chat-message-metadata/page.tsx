@@ -33,8 +33,8 @@ export default function Chat() {
           {message.metadata?.model && (
             <div>Model: {message.metadata.model}</div>
           )}
-          {message.metadata?.usage && (
-            <div>Total tokens: {message.metadata.usage.totalTokens}</div>
+          {message.metadata?.totalTokens && (
+            <div>Total tokens: {message.metadata.totalTokens}</div>
           )}
           {message.metadata?.finishReason && (
             <div>Finish reason: {message.metadata.finishReason}</div>

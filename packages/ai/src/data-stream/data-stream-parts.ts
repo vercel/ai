@@ -66,11 +66,15 @@ export const dataStreamPartSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('start-step'),
-    value: z.object({}),
+    value: z.object({
+      metadata: z.any(), // TODO json / typing
+    }),
   }),
   z.object({
     type: z.literal('finish-step'),
-    value: z.object({}),
+    value: z.object({
+      metadata: z.any(), // TODO json / typing
+    }),
   }),
   z.object({
     type: z.literal('start'),

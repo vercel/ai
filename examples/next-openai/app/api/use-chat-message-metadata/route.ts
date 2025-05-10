@@ -23,7 +23,14 @@ export async function POST(req: Request) {
 
         return {
           createdAt: startTimestamp,
-          model: 'openai/gpt-4o',
+          model: 'gpt-4o', // initial model info
+        };
+      }
+
+      // send additional model information on finish-step:
+      if (part.type === 'finish-step') {
+        return {
+          model: part.response.modelId, // update with the actual model id
         };
       }
 
@@ -31,7 +38,7 @@ export async function POST(req: Request) {
       if (part.type === 'finish') {
         return {
           duration: Date.now() - startTimestamp,
-          usage: part.totalUsage,
+          totalTokens: part.totalUsage.totalTokens,
           finishReason: part.finishReason,
         };
       }

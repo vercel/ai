@@ -1450,7 +1450,9 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'start-step': {
               controller.enqueue({
                 type: 'start-step',
-                value: {},
+                value: {
+                  metadata: messageMetadata?.({ part }),
+                },
               });
               break;
             }
@@ -1458,7 +1460,9 @@ However, the LLM results are expected to be small enough to not cause issues.
             case 'finish-step': {
               controller.enqueue({
                 type: 'finish-step',
-                value: {},
+                value: {
+                  metadata: messageMetadata?.({ part }),
+                },
               });
               break;
             }

@@ -29,11 +29,13 @@ export type DataStreamOptions = {
   /**
    * Extracts message metadata that will be send to the client.
    *
-   * Called on `start` events.
+   * Called on `start` and `finish` events.
    */
   messageMetadata?: (options: {
-    part: TextStreamPart<ToolSet> & { type: 'start' | 'finish' };
-  }) => any; // TODO type // JSONValue
+    part: TextStreamPart<ToolSet> & {
+      type: 'start' | 'finish' | 'start-step' | 'finish-step';
+    };
+  }) => unknown;
 
   /**
    * Send reasoning parts to the client.
