@@ -225,6 +225,10 @@ export async function processChatResponse({
         id: chatId,
         isContinued: value.isContinued,
       });
+
+      // reset the current text and reasoning parts - todo: grace review
+      // currentTextPart = undefined;
+      //currentReasoningPart = undefined;
     },
     async onStartStepPart(value) {
       // Add a step boundary part to the message

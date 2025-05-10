@@ -251,7 +251,6 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},
@@ -362,7 +361,6 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},
@@ -461,7 +459,6 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},
@@ -576,7 +573,6 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},
@@ -645,7 +641,6 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},

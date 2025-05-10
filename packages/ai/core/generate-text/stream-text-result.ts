@@ -13,10 +13,11 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
-import { ResponseMessage, StepResult } from './step-result';
+import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
+import { ResponseMessage } from './response-message';
 
 export type DataStreamOptions = {
   /**
@@ -111,8 +112,7 @@ Resolved when the response is finished.
   readonly files: Promise<GeneratedFile[]>;
 
   /**
-Sources that have been used as input to generate the response.
-For multi-step generation, the sources are accumulated from all steps.
+Sources that have been used as references in the last step.
 
 Resolved when the response is finished.
    */
@@ -140,12 +140,19 @@ Resolved when the response is finished.
   readonly finishReason: Promise<FinishReason>;
 
   /**
+The token usage of the last step.
+
+Resolved when the response is finished.
+   */
+  readonly usage: Promise<LanguageModelUsage>;
+
+  /**
 The total token usage of the generated response.
 When there are multiple steps, the usage is the sum of all step usages.
 
 Resolved when the response is finished.
      */
-  readonly usage: Promise<LanguageModelUsage>;
+  readonly totalUsage: Promise<LanguageModelUsage>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings) for the first step.
@@ -312,7 +319,6 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       usage: LanguageModelUsage;
       finishReason: FinishReason;
       providerMetadata: ProviderMetadata | undefined;
-      isContinued: boolean;
     }
   | {
       type: 'finish';

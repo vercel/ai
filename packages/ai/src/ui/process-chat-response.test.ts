@@ -93,7 +93,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -179,7 +178,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         { type: 'text', value: 'The weather in London is sunny.' },
@@ -194,7 +192,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -298,7 +295,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         { type: 'text', value: 'The weather in London is sunny.' },
@@ -313,7 +309,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -402,7 +397,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         { type: 'text', value: 'The weather in London ' },
@@ -418,7 +412,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -516,7 +509,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -541,95 +533,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
-          },
-        },
-        {
-          type: 'finish-message',
-          value: {
-            finishReason: 'stop',
-            usage: {
-              inputTokens: 7,
-              outputTokens: 14,
-              totalTokens: 21,
-              reasoningTokens: undefined,
-              cachedInputTokens: undefined,
-            },
-          },
-        },
-      ]);
-
-      await processChatResponse({
-        stream,
-        updateData,
-        onFinish,
-        store,
-        chatId,
-        generateId: mockId(),
-      });
-    });
-
-    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
-      expect(storeSpy.mock.calls).toMatchSnapshot();
-    });
-
-    it('should call the updateData function with the correct arguments', async () => {
-      expect(updateDataCalls).toMatchSnapshot();
-    });
-
-    it('should call the onFinish function with the correct arguments', async () => {
-      expect(finishCalls).toMatchSnapshot();
-    });
-  });
-
-  describe('scenario: server-side continue roundtrip', () => {
-    beforeEach(async () => {
-      store = new ChatStore({
-        chats: {
-          [chatId]: {
-            messages: [
-              {
-                role: 'user',
-                id: 'user-message-id',
-                createdAt: new Date('2023-01-01T00:00:00.000Z'),
-                parts: [{ type: 'text', text: 'Hi' }],
-              },
-            ],
-          },
-        },
-        generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-      });
-      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
-      const stream = createDataProtocolStream([
-        { type: 'text', value: 'The weather in London ' },
-        {
-          type: 'finish-step',
-          value: {
-            finishReason: 'length',
-            usage: {
-              inputTokens: 5,
-              outputTokens: 10,
-              totalTokens: 15,
-              reasoningTokens: undefined,
-              cachedInputTokens: undefined,
-            },
-            isContinued: true,
-          },
-        },
-        { type: 'text', value: 'is sunny.' },
-        {
-          type: 'finish-step',
-          value: {
-            finishReason: 'stop',
-            usage: {
-              inputTokens: 2,
-              outputTokens: 4,
-              totalTokens: 6,
-              reasoningTokens: undefined,
-              cachedInputTokens: undefined,
-            },
-            isContinued: false,
           },
         },
         {
@@ -702,7 +605,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -792,7 +694,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -875,7 +776,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -982,7 +882,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -1059,7 +958,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -1175,7 +1073,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -1254,7 +1151,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -1337,7 +1233,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {
@@ -1424,7 +1319,6 @@ describe('processChatResponse', () => {
               reasoningTokens: undefined,
               cachedInputTokens: undefined,
             },
-            isContinued: false,
           },
         },
         {

@@ -855,7 +855,7 @@ describe('streamText', () => {
           "data: {"type":"text","value":"world!"}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
 
         ",
           "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
@@ -915,7 +915,7 @@ describe('streamText', () => {
           "data: {"type":"text","value":"world!"}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
 
         ",
           "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
@@ -1086,7 +1086,7 @@ describe('streamText', () => {
           "data: {"type":"text","value":" there!"}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
 
         ",
           "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
@@ -1137,7 +1137,7 @@ describe('streamText', () => {
           "data: {"type":"source","value":{"type":"source","sourceType":"url","id":"456","url":"https://example.com/2","title":"Example 2","providerMetadata":{"provider":{"custom":"value2"}}}}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
 
         ",
           "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
@@ -1186,7 +1186,7 @@ describe('streamText', () => {
           "data: {"type":"file","value":{"mediaType":"image/jpeg","url":"data:image/jpeg;base64,QkFVRw=="}}
 
         ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
 
         ",
           "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
@@ -1470,30 +1470,30 @@ describe('streamText', () => {
 
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
-        [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          [
+            "data: {"type":"start-step","value":{"messageId":"msg-0"}}
 
-        ",
-          "data: {"type":"text","value":"Hello"}
+          ",
+            "data: {"type":"text","value":"Hello"}
 
-        ",
-          "data: {"type":"text","value":", "}
+          ",
+            "data: {"type":"text","value":", "}
 
-        ",
-          "data: {"type":"text","value":"world!"}
+          ",
+            "data: {"type":"text","value":"world!"}
 
-        ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          ",
+            "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
 
-        ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          ",
+            "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
 
-        ",
-          "data: [DONE]
+          ",
+            "data: [DONE]
 
-        ",
-        ]
-      `);
+          ",
+          ]
+        `);
     });
 
     it('should create a Response with a data stream and custom headers', async () => {
@@ -1526,30 +1526,30 @@ describe('streamText', () => {
         `);
       expect(await convertResponseStreamToArray(response))
         .toMatchInlineSnapshot(`
-        [
-          "data: {"type":"start-step","value":{"messageId":"msg-0"}}
+          [
+            "data: {"type":"start-step","value":{"messageId":"msg-0"}}
 
-        ",
-          "data: {"type":"text","value":"Hello"}
+          ",
+            "data: {"type":"text","value":"Hello"}
 
-        ",
-          "data: {"type":"text","value":", "}
+          ",
+            "data: {"type":"text","value":", "}
 
-        ",
-          "data: {"type":"text","value":"world!"}
+          ",
+            "data: {"type":"text","value":"world!"}
 
-        ",
-          "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13},"isContinued":false}}
+          ",
+            "data: {"type":"finish-step","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
 
-        ",
-          "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
+          ",
+            "data: {"type":"finish-message","value":{"finishReason":"stop","usage":{"inputTokens":3,"outputTokens":10,"totalTokens":13}}}
 
-        ",
-          "data: [DONE]
+          ",
+            "data: [DONE]
 
-        ",
-        ]
-      `);
+          ",
+          ]
+        `);
     });
 
     it('should mask error messages by default', async () => {
@@ -2636,8 +2636,8 @@ describe('streamText', () => {
           await result.consumeStream();
         });
 
-        it('result.usage should contain total token usage', async () => {
-          expect(await result.usage).toMatchInlineSnapshot(`
+        it('result.totalUsage should contain total token usage', async () => {
+          expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
               "cachedInputTokens": 3,
               "inputTokens": 6,
@@ -2646,6 +2646,18 @@ describe('streamText', () => {
               "totalTokens": 36,
             }
           `);
+        });
+
+        it('result.usage should contain token usage from final step', async () => {
+          expect(await result.totalUsage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": 3,
+            "inputTokens": 6,
+            "outputTokens": 20,
+            "reasoningTokens": 10,
+            "totalTokens": 36,
+          }
+        `);
         });
 
         it('result.finishReason should contain finish reason from final step', async () => {
@@ -2668,337 +2680,6 @@ describe('streamText', () => {
       it('should record telemetry data for each step', async () => {
         await result.consumeStream();
         expect(tracer.jsonSpans).toMatchSnapshot();
-      });
-    });
-
-    describe('4 steps: initial, continue, continue, continue', () => {
-      beforeEach(async () => {
-        result = undefined as any;
-        onFinishResult = undefined as any;
-        onStepFinishResults = [];
-
-        let responseCount = 0;
-        result = streamText({
-          model: new MockLanguageModelV2({
-            doStream: async ({ prompt }) => {
-              switch (responseCount++) {
-                case 0: {
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'id-0',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(0),
-                      },
-                      // trailing text is to be discarded, trailing whitespace is to be kept:
-                      { type: 'text', text: 'pa' },
-                      { type: 'text', text: 'rt ' },
-                      { type: 'text', text: '1 \n' },
-                      { type: 'text', text: ' to-be' },
-                      { type: 'text', text: '-discar' },
-                      { type: 'text', text: 'ded' },
-                      {
-                        type: 'finish',
-                        finishReason: 'length',
-                        usage: testUsage,
-                      },
-                    ]),
-                  };
-                }
-                case 1: {
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'assistant',
-                      content: [
-                        {
-                          type: 'text',
-                          text: 'part 1 \n ',
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'id-1',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(1000),
-                      },
-                      // case where there is no leading nor trailing whitespace:
-                      { type: 'text', text: 'no-' },
-                      {
-                        type: 'source',
-                        sourceType: 'url' as const,
-                        id: '123',
-                        url: 'https://example.com',
-                        title: 'Example',
-                        providerMetadata: { provider: { custom: 'value' } },
-                      },
-                      { type: 'text', text: 'whitespace' },
-                      {
-                        type: 'finish',
-                        finishReason: 'length',
-                        usage: testUsage2,
-                      },
-                    ]),
-                  };
-                }
-                case 2: {
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'assistant',
-                      content: [
-                        {
-                          type: 'text',
-                          text: 'part 1 \n ',
-                          providerOptions: undefined,
-                        },
-                        {
-                          type: 'text',
-                          text: 'no-whitespace',
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'id-2',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(1000),
-                      },
-                      {
-                        type: 'source',
-                        sourceType: 'url' as const,
-                        id: '456',
-                        url: 'https://example.com/2',
-                        title: 'Example 2',
-                        providerMetadata: { provider: { custom: 'value2' } },
-                      },
-                      // set up trailing whitespace for next step:
-                      { type: 'text', text: 'immediatefollow  ' },
-                      {
-                        type: 'source',
-                        sourceType: 'url' as const,
-                        id: '789',
-                        url: 'https://example.com/3',
-                        title: 'Example 3',
-                        providerMetadata: { provider: { custom: 'value3' } },
-                      },
-                      {
-                        type: 'finish',
-                        finishReason: 'length',
-                        usage: {
-                          inputTokens: 3,
-                          outputTokens: 2,
-                          totalTokens: 5,
-                          reasoningTokens: undefined,
-                          cachedInputTokens: undefined,
-                        },
-                      },
-                    ]),
-                    response: { headers: { call: '3' } },
-                  };
-                }
-                case 3: {
-                  expect(prompt).toStrictEqual([
-                    {
-                      role: 'user',
-                      content: [{ type: 'text', text: 'test-input' }],
-                      providerOptions: undefined,
-                    },
-                    {
-                      role: 'assistant',
-                      content: [
-                        {
-                          type: 'text',
-                          text: 'part 1 \n ',
-                          providerOptions: undefined,
-                        },
-                        {
-                          type: 'text',
-                          text: 'no-whitespace',
-                          providerOptions: undefined,
-                        },
-                        {
-                          type: 'text',
-                          text: 'immediatefollow  ',
-                          providerOptions: undefined,
-                        },
-                      ],
-                      providerOptions: undefined,
-                    },
-                  ]);
-
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'id-3',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(1000),
-                      },
-                      // leading whitespace is to be discarded when there is whitespace from previous step
-                      // (for models such as Anthropic that trim trailing whitespace in their inputs):
-                      { type: 'text', text: ' ' }, // split into 2 chunks for test coverage
-                      { type: 'text', text: '  final' },
-                      { type: 'text', text: ' va' },
-                      { type: 'text', text: 'lue keep all w' },
-                      { type: 'text', text: 'hitespace' },
-                      { type: 'text', text: '\n ' },
-                      { type: 'text', text: 'en' },
-                      { type: 'text', text: 'd' },
-                      {
-                        type: 'finish',
-                        finishReason: 'stop',
-                        usage: {
-                          inputTokens: 3,
-                          outputTokens: 2,
-                          totalTokens: 5,
-                          reasoningTokens: undefined,
-                          cachedInputTokens: undefined,
-                        },
-                      },
-                    ]),
-                    response: { headers: { call: '3' } },
-                  };
-                }
-                default:
-                  throw new Error(
-                    `Unexpected response count: ${responseCount}`,
-                  );
-              }
-            },
-          }),
-          prompt: 'test-input',
-          maxSteps: 5,
-          experimental_continueSteps: true,
-          onFinish: async event => {
-            expect(onFinishResult).to.be.undefined;
-            onFinishResult = event as unknown as typeof onFinishResult;
-          },
-          onStepFinish: async event => {
-            onStepFinishResults.push(event);
-          },
-          experimental_telemetry: { isEnabled: true, tracer },
-          _internal: {
-            now: mockValues(0, 100, 500, 600, 1000),
-          },
-          experimental_generateMessageId: mockId({ prefix: 'msg' }),
-        });
-      });
-
-      it('should contain text deltas from all steps', async () => {
-        expect(
-          await convertAsyncIterableToArray(result.fullStream),
-        ).toMatchSnapshot();
-      });
-
-      describe('callbacks', () => {
-        beforeEach(async () => {
-          await result.consumeStream();
-        });
-
-        it('onFinish should send correct information', async () => {
-          expect(onFinishResult).toMatchSnapshot();
-        });
-
-        it('onStepFinish should send correct information', async () => {
-          expect(onStepFinishResults).toMatchSnapshot();
-        });
-      });
-
-      describe('value promises', () => {
-        beforeEach(async () => {
-          await result.consumeStream();
-        });
-
-        it('result.usage should contain total token usage', async () => {
-          expect(await result.usage).toMatchInlineSnapshot(`
-            {
-              "cachedInputTokens": 3,
-              "inputTokens": 12,
-              "outputTokens": 24,
-              "reasoningTokens": 10,
-              "totalTokens": 46,
-            }
-          `);
-        });
-
-        it('result.finishReason should contain finish reason from final step', async () => {
-          assert.strictEqual(await result.finishReason, 'stop');
-        });
-
-        it('result.text should contain combined text from all steps', async () => {
-          assert.strictEqual(
-            await result.text,
-            'part 1 \n no-whitespaceimmediatefollow  final value keep all whitespace\n end',
-          );
-        });
-
-        it('result.steps should contain all steps', async () => {
-          expect(await result.steps).toMatchSnapshot();
-        });
-
-        it('result.response.messages should contain an assistant message with the combined text', async () => {
-          expect((await result.response).messages).toStrictEqual([
-            {
-              role: 'assistant',
-              id: expect.any(String),
-              content: [
-                {
-                  type: 'text',
-                  text: 'part 1 \n no-whitespaceimmediatefollow  final value keep all whitespace\n end',
-                },
-              ],
-            },
-          ]);
-        });
-      });
-
-      it('should record telemetry data for each step', async () => {
-        await result.consumeStream();
-        expect(tracer.jsonSpans).toMatchSnapshot();
-      });
-
-      it('should generate correct data stream', async () => {
-        const dataStream = result.toDataStream();
-
-        expect(
-          await convertReadableStreamToArray(dataStream),
-        ).toMatchSnapshot();
-      });
-
-      it('result.sources should contain sources from all steps', async () => {
-        result.consumeStream();
-        expect(await result.sources).toMatchSnapshot();
       });
     });
   });
@@ -3436,7 +3117,6 @@ describe('streamText', () => {
             },
             {
               "finishReason": "stop",
-              "isContinued": false,
               "messageId": "msg-0",
               "providerMetadata": undefined,
               "request": {},
@@ -3584,7 +3264,7 @@ describe('streamText', () => {
         });
       });
 
-      it('result.usage should be transformed', async () => {
+      it('result.totalUsage should be transformed', async () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
@@ -3616,7 +3296,7 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(await result.usage).toStrictEqual({
+        expect(await result.totalUsage).toStrictEqual({
           inputTokens: 200,
           outputTokens: 300,
           totalTokens: undefined,
@@ -4233,7 +3913,6 @@ describe('streamText', () => {
                     timestamp: new Date(0),
                   },
                   warnings: [],
-                  isContinued: false,
                 });
 
                 controller.enqueue({
@@ -4301,7 +3980,6 @@ describe('streamText', () => {
               },
               {
                 "finishReason": "stop",
-                "isContinued": false,
                 "messageId": "msg-transformed-123",
                 "providerMetadata": undefined,
                 "request": {},

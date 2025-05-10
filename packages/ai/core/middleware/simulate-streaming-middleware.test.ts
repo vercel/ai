@@ -190,7 +190,6 @@ describe('simulateStreamingMiddleware', () => {
           },
           {
             "finishReason": "stop",
-            "isContinued": false,
             "messageId": "msg-3",
             "providerMetadata": undefined,
             "request": {},
