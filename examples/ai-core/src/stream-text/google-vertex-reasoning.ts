@@ -4,12 +4,13 @@ import { streamText } from 'ai';
 async function main() {
   const result = streamText({
     model: vertex('gemini-2.5-flash-preview-04-17'),
-    prompt: 'Describe the most unusual or striking architectural feature you\'ve ever seen in a building or structure.',
+    prompt:
+      "Describe the most unusual or striking architectural feature you've ever seen in a building or structure.",
     providerOptions: {
       google: {
         thinkingConfig: {
           thinkingBudget: 2048,
-          includeThoughts: true
+          includeThoughts: true,
         },
       },
     },
