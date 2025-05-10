@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
         return {
           createdAt: startTimestamp,
-          model: 'gpt-4o', // initial model info
+          model: 'gpt-4o', // initial model id
         };
       }
 
