@@ -146,7 +146,6 @@ Internal. For test use only. May change without notice.
           clonedMessages.push({
             role: 'assistant',
             id: messageId,
-            createdAt: currentDate(), // generate a createdAt date for the message, will be overridden by the client
             parts: [
               ...parts,
               ...getToolInvocationsForStep(0).map(call => ({

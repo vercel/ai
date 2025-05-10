@@ -96,6 +96,6 @@ describe('processDataStream', () => {
           'data: {"type": "invalid" }',
         ]).pipeThrough(new TextEncoderStream()),
       }),
-    ).rejects.toThrow('Failed to parse data stream part');
+    ).rejects.toThrow('Type validation failed: Value: {"type":"invalid"}.');
   });
 });
