@@ -10,7 +10,6 @@ export const setupTestComponent = (
   } = {},
 ) => {
   beforeEach(() => {
-    // reset SWR cache to isolate tests:
     render(
       <SWRConfig value={{ provider: () => new Map() }}>
         {init?.(TestComponent) ?? <TestComponent />}

@@ -1,0 +1,635 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ChatStore > addOrUpdateAssistantMessageParts > notifies subscribers 1`] = `
+[
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "1",
+    "parts": [],
+    "role": "user",
+  },
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "id-0",
+    "parts": [
+      {
+        "text": "hi",
+        "type": "text",
+      },
+    ],
+    "revisionId": "id-1",
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`ChatStore > addOrUpdateAssistantMessageParts > should create a new assistant message 1`] = `
+[
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "1",
+    "parts": [],
+    "role": "user",
+  },
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "id-0",
+    "parts": [
+      {
+        "text": "hi",
+        "type": "text",
+      },
+    ],
+    "revisionId": "id-1",
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`ChatStore > addOrUpdateAssistantMessageParts > should handle file parts 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "mediaType": "text/plain",
+      "type": "file",
+      "url": "https://example.com/hello.txt",
+    },
+  ],
+  "revisionId": "id-1",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > addOrUpdateAssistantMessageParts > should handle multiple text parts 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "text": "Hello world",
+      "type": "text",
+    },
+  ],
+  "revisionId": "id-3",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > addOrUpdateAssistantMessageParts > should handle source parts 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "source": {
+        "id": "1",
+        "sourceType": "url",
+        "type": "source",
+        "url": "https://example.com",
+      },
+      "type": "source",
+    },
+  ],
+  "revisionId": "id-1",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > addOrUpdateAssistantMessageParts > should handle step-start parts 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "type": "step-start",
+    },
+  ],
+  "revisionId": "id-1",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > addOrUpdateAssistantMessageParts > should throw if no corresponding user message is found 1`] = `[]`;
+
+exports[`ChatStore > appendMessage > notifies subscribers 1`] = `
+[
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "1",
+    "parts": [],
+    "role": "user",
+  },
+]
+`;
+
+exports[`ChatStore > clear > clears all chats when explicit id is not provided 1`] = `[]`;
+
+exports[`ChatStore > clear > clears all chats when explicit id is not provided 2`] = `[]`;
+
+exports[`ChatStore > clear > notifies subscribers 1`] = `[]`;
+
+exports[`ChatStore > getLastMessage > returns the last message 1`] = `
+{
+  "id": "2",
+  "parts": [],
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > initialization > initializes with a single chat 1`] = `
+[
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "1",
+    "parts": [
+      {
+        "text": "hello",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "2",
+    "parts": [
+      {
+        "text": "world",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`ChatStore > initialization > initializes with multiple chats 1`] = `
+[
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "1",
+    "parts": [
+      {
+        "text": "hello",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "2",
+    "parts": [
+      {
+        "text": "world",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`ChatStore > initialization > initializes with multiple chats 2`] = `
+[
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "1",
+    "parts": [
+      {
+        "text": "beep",
+        "type": "text",
+      },
+    ],
+    "role": "user",
+  },
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "2",
+    "parts": [
+      {
+        "text": "hello",
+        "type": "boop",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`ChatStore > initialization > should use custom id generator when provided 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "generated-id",
+  "parts": [
+    {
+      "text": "hi",
+      "type": "text",
+    },
+  ],
+  "revisionId": "generated-id",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > reasoning handling > should accumulate reasoning text 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "providerMetadata": {},
+      "text": "First thought. Second thought.",
+      "type": "reasoning",
+    },
+  ],
+  "revisionId": "id-2",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > reasoning handling > should initialize reasoning with redacted detail 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "providerMetadata": {
+        "provider": {
+          "isRedacted": true,
+        },
+      },
+      "text": "redacted-data",
+      "type": "reasoning",
+    },
+  ],
+  "revisionId": "id-1",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > reasoning handling > should initialize reasoning with signature 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "providerMetadata": {
+        "provider": {
+          "signature": "abc123",
+        },
+      },
+      "text": "",
+      "type": "reasoning",
+    },
+  ],
+  "revisionId": "id-1",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > reasoning handling > should initialize reasoning with text detail 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "providerMetadata": {},
+      "text": "initial thought",
+      "type": "reasoning",
+    },
+  ],
+  "revisionId": "id-1",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > reasoning handling > should update reasoning with redacted detail 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "providerMetadata": {},
+      "text": "Initial text.redacted-dataAnother thought.",
+      "type": "reasoning",
+    },
+  ],
+  "revisionId": "id-3",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > reasoning handling > should update signature when provided in subsequent parts 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "providerMetadata": {
+        "provider": {
+          "signature": "late-signature",
+        },
+      },
+      "text": "Initial thought",
+      "type": "reasoning",
+    },
+  ],
+  "revisionId": "id-2",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > removeAssistantResponse > notifies subscribers 1`] = `
+[
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "1",
+    "parts": [],
+    "role": "user",
+  },
+]
+`;
+
+exports[`ChatStore > setMessages > handles empty arrays 1`] = `
+[
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "1",
+    "parts": [],
+    "role": "user",
+  },
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "2",
+    "parts": [],
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`ChatStore > setMessages > handles empty arrays 2`] = `[]`;
+
+exports[`ChatStore > setMessages > notifies subscribers 1`] = `
+[
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "1",
+    "parts": [],
+    "role": "user",
+  },
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "2",
+    "parts": [],
+    "role": "assistant",
+  },
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "3",
+    "parts": [],
+    "role": "user",
+  },
+]
+`;
+
+exports[`ChatStore > tool invocation handling > should handle call part 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "toolInvocation": {
+        "args": {
+          "arg": "value",
+        },
+        "state": "call",
+        "step": 0,
+        "toolCallId": "test-id",
+        "toolName": "test-tool",
+      },
+      "type": "tool-invocation",
+    },
+  ],
+  "revisionId": "id-1",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > tool invocation handling > should handle multiple call parts 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "toolInvocation": {
+        "args": "arg",
+        "state": "call",
+        "step": 0,
+        "toolCallId": "test-id",
+        "toolName": "test-tool",
+      },
+      "type": "tool-invocation",
+    },
+    {
+      "toolInvocation": {
+        "args": {
+          "arg": "value-2",
+        },
+        "state": "call",
+        "step": 1,
+        "toolCallId": "test-id-2",
+        "toolName": "test-tool-2",
+      },
+      "type": "tool-invocation",
+    },
+  ],
+  "revisionId": "id-2",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > tool invocation handling > should handle multiple partial call parts 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "toolInvocation": {
+        "args": {
+          "arg": "value",
+        },
+        "state": "partial-call",
+        "step": 0,
+        "toolCallId": "test-id",
+        "toolName": "test-tool",
+      },
+      "type": "tool-invocation",
+    },
+  ],
+  "revisionId": "id-4",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > tool invocation handling > should handle multiple tool invocations 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "toolInvocation": {
+        "args": {
+          "foo": "bar",
+        },
+        "result": "first result",
+        "state": "result",
+        "step": 0,
+        "toolCallId": "test-id",
+        "toolName": "test-tool",
+      },
+      "type": "tool-invocation",
+    },
+    {
+      "toolInvocation": {
+        "args": {
+          "baz": "qux",
+        },
+        "result": "second result",
+        "state": "result",
+        "step": 1,
+        "toolCallId": "test-id-2",
+        "toolName": "test-tool-2",
+      },
+      "type": "tool-invocation",
+    },
+  ],
+  "revisionId": "id-4",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > tool invocation handling > should handle partial call part 1`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "toolInvocation": {
+        "args": "",
+        "state": "partial-call",
+        "step": 0,
+        "toolCallId": "test-id",
+        "toolName": "test-tool",
+      },
+      "type": "tool-invocation",
+    },
+  ],
+  "revisionId": "id-1",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > tool invocation handling > should handle result parts after call 1`] = `
+[
+  {
+    "id": "1",
+    "parts": [],
+    "role": "user",
+  },
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "id-0",
+    "parts": [
+      {
+        "toolInvocation": {
+          "args": {
+            "foo": "bar",
+          },
+          "state": "call",
+          "step": 0,
+          "toolCallId": "test-id",
+          "toolName": "test-tool",
+        },
+        "type": "tool-invocation",
+      },
+    ],
+    "revisionId": "id-1",
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`ChatStore > tool invocation handling > should handle result parts after call 2`] = `
+{
+  "createdAt": 2025-01-01T00:00:00.000Z,
+  "id": "id-0",
+  "parts": [
+    {
+      "toolInvocation": {
+        "args": {
+          "foo": "bar",
+        },
+        "result": "some result",
+        "state": "result",
+        "step": 0,
+        "toolCallId": "test-id",
+        "toolName": "test-tool",
+      },
+      "type": "tool-invocation",
+    },
+  ],
+  "revisionId": "id-2",
+  "role": "assistant",
+}
+`;
+
+exports[`ChatStore > updateActiveResponse > initializes new active response if none exists 1`] = `
+[
+  {
+    "id": "1",
+    "parts": [],
+    "role": "user",
+  },
+  {
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "2",
+    "parts": [
+      {
+        "text": "hello",
+        "type": "text",
+      },
+    ],
+    "role": "assistant",
+  },
+]
+`;
+
+exports[`ChatStore > updateActiveResponse > merges current active response with partial message 1`] = `
+[
+  {
+    "id": "1",
+    "parts": [],
+    "role": "user",
+  },
+  {
+    "annotations": [
+      {
+        "foo": "bar",
+      },
+    ],
+    "createdAt": 2025-01-01T00:00:00.000Z,
+    "id": "id-0",
+    "parts": [
+      {
+        "text": "hello",
+        "type": "text",
+      },
+    ],
+    "revisionId": "id-1",
+    "role": "assistant",
+  },
+]
+`;

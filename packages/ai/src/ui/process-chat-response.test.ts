@@ -1,10 +1,11 @@
 import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
+import { MockInstance } from 'vitest';
 import { LanguageModelUsage } from '../../core/types/usage';
-import { DataStreamPart } from '../../src';
+import { ChatStore, DataStreamPart } from '../../src';
 import { JsonToSseTransformStream } from '../../src/data-stream/json-to-sse-transform-stream';
-import { UIMessage } from './ui-messages';
 import { processChatResponse } from './process-chat-response';
+import { UIMessage } from './ui-messages';
 
 function createDataProtocolStream(
   parts: DataStreamPart[],
@@ -14,18 +15,10 @@ function createDataProtocolStream(
     .pipeThrough(new TextEncoderStream());
 }
 
-let updateCalls: Array<{
-  message: UIMessage;
-  data: JSONValue[] | undefined;
-  replaceLastMessage: boolean;
-}> = [];
-const update = (options: {
-  message: UIMessage;
-  data: JSONValue[] | undefined;
-  replaceLastMessage: boolean;
-}) => {
+let updateDataCalls: Array<JSONValue[]> = [];
+const updateData = (data?: JSONValue[]) => {
   // clone to preserve the original object
-  updateCalls.push(structuredClone(options));
+  if (data) updateDataCalls.push(structuredClone(data));
 };
 
 let finishCalls: Array<{
@@ -42,6 +35,20 @@ const onFinish = (options: {
   finishCalls.push({ ...options });
 };
 
+const chatId = 'chat-id';
+let store: ChatStore;
+let storeSpy: MockInstance<
+  ({
+    chatId,
+    partDelta,
+    messageId,
+  }: {
+    chatId: string;
+    partDelta: UIMessage['parts'][number];
+    messageId?: string;
+  }) => Promise<void>
+>;
+
 export function mockId(): () => string {
   let counter = 0;
   return () => `id-${counter++}`;
@@ -49,12 +56,29 @@ export function mockId(): () => string {
 
 describe('processChatResponse', () => {
   beforeEach(() => {
-    updateCalls = [];
+    updateDataCalls = [];
     finishCalls = [];
   });
 
   describe('scenario: simple text response', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date(),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
+
       const stream = createDataProtocolStream([
         { type: 'text', value: 'Hello, ' },
         { type: 'text', value: 'world!' },
@@ -85,19 +109,22 @@ describe('processChatResponse', () => {
           },
         },
       ]);
-
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -107,6 +134,23 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date(),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        generateId: mockId(),
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         {
           type: 'tool-call',
@@ -164,19 +208,22 @@ describe('processChatResponse', () => {
           },
         },
       ]);
-
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -186,6 +233,40 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip with existing assistant message', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hello, how are you?' }],
+              },
+              {
+                role: 'assistant',
+                id: 'original-id',
+                createdAt: new Date('2023-01-02T00:00:00.000Z'),
+                parts: [
+                  {
+                    type: 'tool-invocation',
+                    toolInvocation: {
+                      args: {},
+                      result: { location: 'Berlin' },
+                      state: 'result',
+                      step: 0,
+                      toolCallId: 'tool-call-id-original',
+                      toolName: 'tool-name-original',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         { type: 'start-step', value: { messageId: 'step_123' } },
         {
@@ -247,33 +328,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: {
-          role: 'assistant',
-          id: 'original-id',
-          createdAt: new Date('2023-01-02T00:00:00.000Z'),
-          parts: [
-            {
-              type: 'tool-invocation',
-              toolInvocation: {
-                args: {},
-                result: { location: 'Berlin' },
-                state: 'result',
-                step: 0,
-                toolCallId: 'tool-call-id-original',
-                toolName: 'tool-name-original',
-              },
-            },
-          ],
-        },
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -283,6 +351,23 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip with multiple assistant texts', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        generateId: mockId(),
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         { type: 'text', value: 'I will ' },
         { type: 'text', value: 'use a tool to get the weather in London.' },
@@ -346,16 +431,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -365,6 +454,23 @@ describe('processChatResponse', () => {
 
   describe('scenario: server-side tool roundtrip with multiple assistant reasoning', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        generateId: mockId(),
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         { type: 'reasoning', value: { text: 'I will ' } },
         {
@@ -446,16 +552,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -465,6 +575,23 @@ describe('processChatResponse', () => {
 
   describe('scenario: delayed message annotations in onFinish', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        generateId: mockId(),
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         { type: 'text', value: 'text' },
         {
@@ -506,16 +633,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -525,6 +656,22 @@ describe('processChatResponse', () => {
 
   describe('scenario: message annotations in onChunk', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         {
           type: 'message-annotations',
@@ -566,16 +713,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -583,8 +734,31 @@ describe('processChatResponse', () => {
     });
   });
 
-  describe('scenario: message annotations with existing assistant lastMessage', () => {
+  describe('scenario: message annotations with existing assistant last message', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+              {
+                role: 'assistant',
+                id: 'original-id',
+                createdAt: new Date('2023-01-02T00:00:00.000Z'),
+                annotations: ['annotation0'],
+                parts: [],
+              },
+            ],
+          },
+        },
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         {
           type: 'message-annotations',
@@ -621,22 +795,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: {
-          role: 'assistant',
-          id: 'original-id',
-          createdAt: new Date('2023-01-02T00:00:00.000Z'),
-          annotations: ['annotation0'],
-          parts: [],
-        },
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -646,6 +818,22 @@ describe('processChatResponse', () => {
 
   describe('scenario: tool call streaming', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         {
           type: 'tool-call-streaming-start',
@@ -713,16 +901,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -732,6 +924,22 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides message ids', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         {
           type: 'start-step',
@@ -769,16 +977,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -788,6 +1000,22 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides reasoning', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         {
           type: 'start-step',
@@ -864,16 +1092,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -883,6 +1115,22 @@ describe('processChatResponse', () => {
 
   describe('scenario: onToolCall is executed', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         {
           type: 'tool-call',
@@ -922,17 +1170,21 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
-        generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
+        store,
+        chatId,
         onToolCall: vi.fn().mockResolvedValue('test-result'),
+        generateId: mockId(),
       });
     });
 
-    it('should call the update function twice with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -942,6 +1194,22 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides sources', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         { type: 'text', value: 'The weather in London is sunny.' },
         {
@@ -984,16 +1252,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
@@ -1003,6 +1275,22 @@ describe('processChatResponse', () => {
 
   describe('scenario: server provides file parts', () => {
     beforeEach(async () => {
+      store = new ChatStore({
+        chats: {
+          [chatId]: {
+            messages: [
+              {
+                role: 'user',
+                id: 'user-message-id',
+                createdAt: new Date('2023-01-01T00:00:00.000Z'),
+                parts: [{ type: 'text', text: 'Hi' }],
+              },
+            ],
+          },
+        },
+        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+      });
+      storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
         { type: 'text', value: 'Here is a file:' },
         {
@@ -1050,16 +1338,20 @@ describe('processChatResponse', () => {
 
       await processChatResponse({
         stream,
-        update,
+        updateData,
         onFinish,
+        store,
+        chatId,
         generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
-        lastMessage: undefined,
       });
     });
 
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+    it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', async () => {
+      expect(storeSpy.mock.calls).toMatchSnapshot();
+    });
+
+    it('should call the updateData function with the correct arguments', async () => {
+      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
