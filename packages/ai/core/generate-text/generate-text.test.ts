@@ -768,14 +768,26 @@ describe('options.maxSteps', () => {
       expect(result.response.messages).toMatchSnapshot();
     });
 
-    it('result.usage should sum token usage', () => {
-      expect(result.usage).toMatchInlineSnapshot(`
+    it('result.totalUsage should sum token usage', () => {
+      expect(result.totalUsage).toMatchInlineSnapshot(`
         {
           "cachedInputTokens": undefined,
           "inputTokens": 13,
           "outputTokens": 15,
           "reasoningTokens": undefined,
           "totalTokens": 28,
+        }
+      `);
+    });
+
+    it('result.usage should contain token usage from final step', async () => {
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "cachedInputTokens": undefined,
+          "inputTokens": 3,
+          "outputTokens": 10,
+          "reasoningTokens": undefined,
+          "totalTokens": 13,
         }
       `);
     });
@@ -977,14 +989,26 @@ describe('options.maxSteps', () => {
       expect(result.response.messages).toMatchSnapshot();
     });
 
-    it('result.usage should sum token usage', () => {
-      expect(result.usage).toMatchInlineSnapshot(`
+    it('result.totalUsage should sum token usage', () => {
+      expect(result.totalUsage).toMatchInlineSnapshot(`
         {
           "cachedInputTokens": undefined,
           "inputTokens": 13,
           "outputTokens": 15,
           "reasoningTokens": undefined,
           "totalTokens": 28,
+        }
+      `);
+    });
+
+    it('result.usage should contain token usage from final step', async () => {
+      expect(result.usage).toMatchInlineSnapshot(`
+        {
+          "cachedInputTokens": undefined,
+          "inputTokens": 3,
+          "outputTokens": 10,
+          "reasoningTokens": undefined,
+          "totalTokens": 13,
         }
       `);
     });

@@ -65,9 +65,15 @@ The reason why the generation finished.
   readonly finishReason: FinishReason;
 
   /**
-The overall token usage of all steps.
+The token usage of the last step.
    */
   readonly usage: LanguageModelUsage;
+
+  /**
+The total token usage of all steps.
+When there are multiple steps, the usage is the sum of all step usages.
+   */
+  readonly totalUsage: LanguageModelUsage;
 
   /**
 Warnings from the model provider (e.g. unsupported settings)

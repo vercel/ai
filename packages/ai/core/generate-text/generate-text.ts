@@ -646,63 +646,67 @@ class DefaultGenerateTextResult<TOOLS extends ToolSet, OUTPUT>
     this.resolvedOutput = options.resolvedOutput;
   }
 
-  private get lastStep() {
+  private get finalStep() {
     return this.steps[this.steps.length - 1];
   }
 
   get content() {
-    return this.lastStep.content;
+    return this.finalStep.content;
   }
 
   get text() {
-    return this.lastStep.text;
+    return this.finalStep.text;
   }
 
   get files() {
-    return this.lastStep.files;
+    return this.finalStep.files;
   }
 
   get reasoningText() {
-    return this.lastStep.reasoningText;
+    return this.finalStep.reasoningText;
   }
 
   get reasoning() {
-    return this.lastStep.reasoning;
+    return this.finalStep.reasoning;
   }
 
   get toolCalls() {
-    return this.lastStep.toolCalls;
+    return this.finalStep.toolCalls;
   }
 
   get toolResults() {
-    return this.lastStep.toolResults;
+    return this.finalStep.toolResults;
   }
 
   get sources() {
-    return this.lastStep.sources;
+    return this.finalStep.sources;
   }
 
   get finishReason() {
-    return this.lastStep.finishReason;
+    return this.finalStep.finishReason;
   }
 
   get warnings() {
-    return this.lastStep.warnings;
+    return this.finalStep.warnings;
   }
 
   get providerMetadata() {
-    return this.lastStep.providerMetadata;
+    return this.finalStep.providerMetadata;
   }
 
   get response() {
-    return this.lastStep.response;
+    return this.finalStep.response;
   }
 
   get request() {
-    return this.lastStep.request;
+    return this.finalStep.request;
   }
 
   get usage() {
+    return this.finalStep.usage;
+  }
+
+  get totalUsage() {
     return this.steps.reduce(
       (totalUsage, step) => {
         return addLanguageModelUsage(totalUsage, step.usage);

@@ -447,7 +447,7 @@ function createOutputTransformStream<
 class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
   implements StreamTextResult<TOOLS, PARTIAL_OUTPUT>
 {
-  private readonly usagePromise = new DelayedPromise<
+  private readonly totalUsagePromise = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, PARTIAL_OUTPUT>['usage']>
   >();
   private readonly finishReasonPromise = new DelayedPromise<
@@ -683,7 +683,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
           // from finish:
           self.finishReasonPromise.resolve(finishReason);
-          self.usagePromise.resolve(usage);
+          self.totalUsagePromise.resolve(usage);
 
           // aggregate results:
           self.stepsPromise.resolve(recordedSteps);
@@ -1230,60 +1230,64 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     return this.stepsPromise.value;
   }
 
-  private get lastStep() {
+  private get finalStep() {
     return this.steps.then(steps => steps[steps.length - 1]);
   }
 
   get content() {
-    return this.lastStep.then(step => step.content);
+    return this.finalStep.then(step => step.content);
   }
 
   get warnings() {
-    return this.lastStep.then(step => step.warnings);
+    return this.finalStep.then(step => step.warnings);
   }
 
   get providerMetadata() {
-    return this.lastStep.then(step => step.providerMetadata);
+    return this.finalStep.then(step => step.providerMetadata);
   }
 
   get text() {
-    return this.lastStep.then(step => step.text);
+    return this.finalStep.then(step => step.text);
   }
 
   get reasoningText() {
-    return this.lastStep.then(step => step.reasoningText);
+    return this.finalStep.then(step => step.reasoningText);
   }
 
   get reasoning() {
-    return this.lastStep.then(step => step.reasoning);
+    return this.finalStep.then(step => step.reasoning);
   }
 
   get sources() {
-    return this.lastStep.then(step => step.sources);
+    return this.finalStep.then(step => step.sources);
   }
 
   get files() {
-    return this.lastStep.then(step => step.files);
+    return this.finalStep.then(step => step.files);
   }
 
   get toolCalls() {
-    return this.lastStep.then(step => step.toolCalls);
+    return this.finalStep.then(step => step.toolCalls);
   }
 
   get toolResults() {
-    return this.lastStep.then(step => step.toolResults);
-  }
-
-  get request() {
-    return this.lastStep.then(step => step.request);
-  }
-
-  get response() {
-    return this.lastStep.then(step => step.response);
+    return this.finalStep.then(step => step.toolResults);
   }
 
   get usage() {
-    return this.usagePromise.value;
+    return this.finalStep.then(step => step.usage);
+  }
+
+  get request() {
+    return this.finalStep.then(step => step.request);
+  }
+
+  get response() {
+    return this.finalStep.then(step => step.response);
+  }
+
+  get totalUsage() {
+    return this.totalUsagePromise.value;
   }
 
   get finishReason() {

@@ -2636,8 +2636,8 @@ describe('streamText', () => {
           await result.consumeStream();
         });
 
-        it('result.usage should contain total token usage', async () => {
-          expect(await result.usage).toMatchInlineSnapshot(`
+        it('result.totalUsage should contain total token usage', async () => {
+          expect(await result.totalUsage).toMatchInlineSnapshot(`
             {
               "cachedInputTokens": 3,
               "inputTokens": 6,
@@ -2646,6 +2646,18 @@ describe('streamText', () => {
               "totalTokens": 36,
             }
           `);
+        });
+
+        it('result.usage should contain token usage from final step', async () => {
+          expect(await result.totalUsage).toMatchInlineSnapshot(`
+          {
+            "cachedInputTokens": 3,
+            "inputTokens": 6,
+            "outputTokens": 20,
+            "reasoningTokens": 10,
+            "totalTokens": 36,
+          }
+        `);
         });
 
         it('result.finishReason should contain finish reason from final step', async () => {
@@ -3252,7 +3264,7 @@ describe('streamText', () => {
         });
       });
 
-      it('result.usage should be transformed', async () => {
+      it('result.totalUsage should be transformed', async () => {
         const result = streamText({
           model: createTestModel({
             stream: convertArrayToReadableStream([
@@ -3284,7 +3296,7 @@ describe('streamText', () => {
 
         await result.consumeStream();
 
-        expect(await result.usage).toStrictEqual({
+        expect(await result.totalUsage).toStrictEqual({
           inputTokens: 200,
           outputTokens: 300,
           totalTokens: undefined,

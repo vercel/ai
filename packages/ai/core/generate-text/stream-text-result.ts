@@ -140,12 +140,19 @@ Resolved when the response is finished.
   readonly finishReason: Promise<FinishReason>;
 
   /**
+The token usage of the last step.
+
+Resolved when the response is finished.
+   */
+  readonly usage: Promise<LanguageModelUsage>;
+
+  /**
 The total token usage of the generated response.
 When there are multiple steps, the usage is the sum of all step usages.
 
 Resolved when the response is finished.
      */
-  readonly usage: Promise<LanguageModelUsage>;
+  readonly totalUsage: Promise<LanguageModelUsage>;
 
   /**
 Warnings from the model provider (e.g. unsupported settings) for the first step.
