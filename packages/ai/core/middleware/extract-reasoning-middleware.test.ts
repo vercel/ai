@@ -225,9 +225,8 @@ describe('extractReasoningMiddleware', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "msg-0",
               "request": {},
-              "type": "step-start",
+              "type": "start-step",
               "warnings": [],
             },
             {
@@ -251,16 +250,14 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "messageId": "msg-0",
               "providerMetadata": undefined,
-              "request": {},
               "response": {
                 "headers": undefined,
                 "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              "type": "step-finish",
+              "type": "finish-step",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
@@ -268,25 +265,17 @@ describe('extractReasoningMiddleware', () => {
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
-              "warnings": undefined,
             },
             {
               "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
+              "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
                 "outputTokens": 10,
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
+              "type": "finish",
             },
           ]
         `);
@@ -330,9 +319,8 @@ describe('extractReasoningMiddleware', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "msg-0",
               "request": {},
-              "type": "step-start",
+              "type": "start-step",
               "warnings": [],
             },
             {
@@ -361,16 +349,14 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "messageId": "msg-0",
               "providerMetadata": undefined,
-              "request": {},
               "response": {
                 "headers": undefined,
                 "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              "type": "step-finish",
+              "type": "finish-step",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
@@ -378,25 +364,17 @@ describe('extractReasoningMiddleware', () => {
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
-              "warnings": undefined,
             },
             {
               "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
+              "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
                 "outputTokens": 10,
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
+              "type": "finish",
             },
           ]
         `);
@@ -440,9 +418,8 @@ describe('extractReasoningMiddleware', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "msg-0",
               "request": {},
-              "type": "step-start",
+              "type": "start-step",
               "warnings": [],
             },
             {
@@ -459,16 +436,14 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "messageId": "msg-0",
               "providerMetadata": undefined,
-              "request": {},
               "response": {
                 "headers": undefined,
                 "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              "type": "step-finish",
+              "type": "finish-step",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
@@ -476,25 +451,17 @@ describe('extractReasoningMiddleware', () => {
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
-              "warnings": undefined,
             },
             {
               "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
+              "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
                 "outputTokens": 10,
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
+              "type": "finish",
             },
           ]
         `);
@@ -550,9 +517,8 @@ describe('extractReasoningMiddleware', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "msg-0",
               "request": {},
-              "type": "step-start",
+              "type": "start-step",
               "warnings": [],
             },
             {
@@ -573,16 +539,14 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "messageId": "msg-0",
               "providerMetadata": undefined,
-              "request": {},
               "response": {
                 "headers": undefined,
                 "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              "type": "step-finish",
+              "type": "finish-step",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
@@ -590,25 +554,17 @@ describe('extractReasoningMiddleware', () => {
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
-              "warnings": undefined,
             },
             {
               "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
+              "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
                 "outputTokens": 10,
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
+              "type": "finish",
             },
           ]
         `);
@@ -617,9 +573,8 @@ describe('extractReasoningMiddleware', () => {
         .toMatchInlineSnapshot(`
           [
             {
-              "messageId": "msg-0",
               "request": {},
-              "type": "step-start",
+              "type": "start-step",
               "warnings": [],
             },
             {
@@ -641,16 +596,14 @@ describe('extractReasoningMiddleware', () => {
             },
             {
               "finishReason": "stop",
-              "messageId": "msg-0",
               "providerMetadata": undefined,
-              "request": {},
               "response": {
                 "headers": undefined,
                 "id": "id-0",
                 "modelId": "mock-model-id",
                 "timestamp": 1970-01-01T00:00:00.000Z,
               },
-              "type": "step-finish",
+              "type": "finish-step",
               "usage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
@@ -658,25 +611,17 @@ describe('extractReasoningMiddleware', () => {
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
-              "warnings": undefined,
             },
             {
               "finishReason": "stop",
-              "providerMetadata": undefined,
-              "response": {
-                "headers": undefined,
-                "id": "id-0",
-                "modelId": "mock-model-id",
-                "timestamp": 1970-01-01T00:00:00.000Z,
-              },
-              "type": "finish",
-              "usage": {
+              "totalUsage": {
                 "cachedInputTokens": undefined,
                 "inputTokens": 5,
                 "outputTokens": 10,
                 "reasoningTokens": 3,
                 "totalTokens": 18,
               },
+              "type": "finish",
             },
           ]
         `);
