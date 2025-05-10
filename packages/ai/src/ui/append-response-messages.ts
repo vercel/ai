@@ -14,20 +14,22 @@ import {
 } from './ui-messages';
 
 /**
- * Appends the ResponseMessage[] from the response to a Message[] (for useChat).
- * The messages are converted to Messages before being appended.
+ * Appends the ResponseMessage[] from the response to a UIMessage[] (for useChat).
+ * The messages are converted to UIMessages before being appended.
  * Timestamps are generated for the new messages.
  *
- * @returns A new Message[] with the response messages appended.
+ * @returns A new UIMessage[] that contains the appended response messages.
+ * It can either have a single new UI message, or the last UI message has been updated.
  */
 export function appendResponseMessages({
   messages,
   responseMessages,
+  messageId,
   _internal: { currentDate = () => new Date() } = {},
 }: {
   messages: UIMessage[];
   responseMessages: ResponseMessage[];
-
+  messageId: string;
   /**
 Internal. For test use only. May change without notice.
      */
@@ -143,7 +145,7 @@ Internal. For test use only. May change without notice.
           // last message was a user message, add the assistant message:
           clonedMessages.push({
             role: 'assistant',
-            id: message.id,
+            id: messageId,
             createdAt: currentDate(), // generate a createdAt date for the message, will be overridden by the client
             parts: [
               ...parts,

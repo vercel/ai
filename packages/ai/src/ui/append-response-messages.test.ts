@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { appendResponseMessages } from './append-response-messages';
 
 describe('appendResponseMessages', () => {
@@ -17,9 +16,9 @@ describe('appendResponseMessages', () => {
           {
             role: 'assistant',
             content: 'This is a response from the assistant.',
-            id: '123',
           },
         ],
+        messageId: '123',
         _internal: { currentDate: () => new Date(789) },
       });
 
@@ -58,9 +57,9 @@ describe('appendResponseMessages', () => {
               },
               { type: 'text', text: 'text response 2' },
             ],
-            id: '123',
           },
         ],
+        messageId: '123',
         _internal: { currentDate: () => new Date(789) },
       });
 
@@ -87,9 +86,9 @@ describe('appendResponseMessages', () => {
                 data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=',
               },
             ],
-            id: '123',
           },
         ],
+        messageId: '123',
         _internal: { currentDate: () => new Date(789) },
       });
 
@@ -118,9 +117,9 @@ describe('appendResponseMessages', () => {
                 args: { query: 'some query' },
               },
             ],
-            id: '123',
           },
         ],
+        messageId: '123',
         _internal: { currentDate: () => new Date(789) },
       });
 
@@ -148,11 +147,9 @@ describe('appendResponseMessages', () => {
                 args: { query: 'some query' },
               },
             ],
-            id: '2',
           },
           {
             role: 'tool',
-            id: '3',
             content: [
               {
                 type: 'tool-result',
@@ -172,11 +169,9 @@ describe('appendResponseMessages', () => {
                 args: { query: 'another query' },
               },
             ],
-            id: '4',
           },
           {
             role: 'tool',
-            id: '5',
             content: [
               {
                 type: 'tool-result',
@@ -189,9 +184,9 @@ describe('appendResponseMessages', () => {
           {
             role: 'assistant',
             content: 'response',
-            id: '6',
           },
         ],
+        messageId: '2',
         _internal: { currentDate: () => new Date(789) },
       });
 
@@ -212,7 +207,6 @@ describe('appendResponseMessages', () => {
           responseMessages: [
             {
               role: 'tool',
-              id: '3',
               content: [
                 {
                   type: 'tool-result',
@@ -223,6 +217,7 @@ describe('appendResponseMessages', () => {
               ],
             },
           ],
+          messageId: '123',
         }),
       ).toThrowError('Tool result must follow an assistant message: user');
     });
@@ -261,9 +256,9 @@ describe('appendResponseMessages', () => {
           {
             role: 'assistant',
             content: 'This is a response from the assistant.',
-            id: '123',
           },
         ],
+        messageId: '123',
         _internal: {
           currentDate: () => new Date(789),
         },
@@ -311,9 +306,9 @@ describe('appendResponseMessages', () => {
                 args: { query: 'another query' },
               },
             ],
-            id: '123',
           },
         ],
+        messageId: '123',
         _internal: {
           currentDate: () => new Date(789),
         },
@@ -352,7 +347,6 @@ describe('appendResponseMessages', () => {
         responseMessages: [
           {
             role: 'tool',
-            id: '3',
             content: [
               {
                 type: 'tool-result',
@@ -363,6 +357,7 @@ describe('appendResponseMessages', () => {
             ],
           },
         ],
+        messageId: '123',
         _internal: {
           currentDate: () => new Date(789),
         },
@@ -405,7 +400,6 @@ describe('appendResponseMessages', () => {
         responseMessages: [
           {
             role: 'tool',
-            id: '3',
             content: [
               {
                 type: 'tool-result',
@@ -439,9 +433,9 @@ describe('appendResponseMessages', () => {
               },
               { type: 'text', text: 'text response 2' },
             ],
-            id: '123',
           },
         ],
+        messageId: '123',
         _internal: {
           currentDate: () => new Date(789),
         },
