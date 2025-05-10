@@ -33,6 +33,84 @@ import {
   ToolSchemas,
 } from './types';
 
+// Add new types for prompts
+interface PromptArgument {
+  name: string;
+  description?: string;
+  required?: boolean;
+}
+
+interface Prompt {
+  name: string;
+  description?: string;
+  arguments?: PromptArgument[];
+}
+
+interface PromptMessageContent {
+  type: 'text' | 'resource';
+  text?: string;
+  resource?: {
+    uri: string;
+    text: string;
+    mimeType: string;
+  };
+}
+
+interface PromptMessage {
+  role: 'user' | 'assistant';
+  content: PromptMessageContent | PromptMessageContent[];
+}
+
+interface GetPromptResult {
+  description?: string;
+  messages: PromptMessage[];
+}
+
+// Add new schemas for prompts
+const ListPromptsResultSchema = z.object({
+  prompts: z.array(z.object({
+    name: z.string(),
+    description: z.string().optional(),
+    arguments: z.array(z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      required: z.boolean().optional()
+    })).optional()
+  }))
+});
+
+const GetPromptResultSchema = z.object({
+  description: z.string().optional(),
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.union([
+      z.object({
+        type: z.enum(['text', 'resource']),
+        text: z.string().optional(),
+        resource: z.object({
+          uri: z.string(),
+          text: z.string(),
+          mimeType: z.string()
+        }).optional()
+      }),
+      z.array(z.object({
+        type: z.enum(['text', 'resource']),
+        text: z.string().optional(),
+        resource: z.object({
+          uri: z.string(),
+          text: z.string(),
+          mimeType: z.string()
+        }).optional()
+      }))
+    ])
+  }))
+});
+
+// Update RequestOptions to include abortSignal
+interface ExtendedRequestOptions extends RequestOptions {
+  abortSignal?: AbortSignal;
+}
+
 const CLIENT_VERSION = '1.0.0';
 
 interface MCPClientConfig {
@@ -179,6 +257,14 @@ class MCPClient {
           });
         }
         break;
+      case 'prompts/list':
+      case 'prompts/get':
+        if (!this.serverCapabilities.prompts) {
+          throw new MCPClientError({
+            message: `Server does not support prompts`,
+          });
+        }
+        break;
       default:
         throw new MCPClientError({
           message: `Unsupported method: ${method}`,
@@ -193,7 +279,7 @@ class MCPClient {
   }: {
     request: Request;
     resultSchema: T;
-    options?: RequestOptions;
+    options?: ExtendedRequestOptions;
   }): Promise<z.infer<T>> {
     return new Promise((resolve, reject) => {
       if (this.isClosed) {
@@ -206,7 +292,7 @@ class MCPClient {
 
       this.assertCapability(request.method);
 
-      const signal = options?.signal;
+      const signal = options?.abortSignal;
       signal?.throwIfAborted();
 
       const messageId = this.requestMessageId++;
@@ -323,10 +409,10 @@ class MCPClient {
         const parameters =
           schemas === 'automatic'
             ? jsonSchema({
-                ...inputSchema,
-                properties: inputSchema.properties ?? {},
-                additionalProperties: false,
-              } as JSONSchema7)
+              ...inputSchema,
+              properties: inputSchema.properties ?? {},
+              additionalProperties: false,
+            } as JSONSchema7)
             : schemas[name].parameters;
 
         const self = this;
@@ -356,6 +442,71 @@ class MCPClient {
     }
   }
 
+  // Add new methods for prompts
+  private async listPrompts({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: ExtendedRequestOptions;
+  } = {}): Promise<{ prompts: Prompt[] }> {
+    try {
+      return this.request({
+        request: { method: 'prompts/list', params },
+        resultSchema: ListPromptsResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private async getPrompt({
+    name,
+    args,
+    options,
+  }: {
+    name: string;
+    args?: Record<string, unknown>;
+    options?: ExtendedRequestOptions;
+  }): Promise<GetPromptResult> {
+    try {
+      return this.request({
+        request: {
+          method: 'prompts/get',
+          params: { name, arguments: args }
+        },
+        resultSchema: GetPromptResultSchema,
+        options,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Returns a list of available prompts from the MCP server
+   */
+  async prompts(): Promise<Prompt[]> {
+    try {
+      const result = await this.listPrompts();
+      return result.prompts;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Gets a specific prompt with arguments from the MCP server
+   */
+  async getPromptWithArgs(
+    name: string,
+    args?: Record<string, unknown>,
+    options?: ExtendedRequestOptions
+  ): Promise<GetPromptResult> {
+    return this.getPrompt({ name, args, options });
+  }
+
   private onClose(): void {
     if (this.isClosed) return;
 
@@ -365,7 +516,7 @@ class MCPClient {
     });
 
     for (const handler of this.responseHandlers.values()) {
-      handler(error);
+      handler(error as unknown as Error);
     }
 
     this.responseHandlers.clear();
@@ -395,9 +546,9 @@ class MCPClient {
       'result' in response
         ? response
         : new MCPClientError({
-            message: response.error.message,
-            cause: response.error,
-          }),
+          message: response.error.message,
+          cause: response.error,
+        }) as unknown as Error
     );
   }
 }

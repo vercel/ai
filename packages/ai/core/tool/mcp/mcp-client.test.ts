@@ -235,7 +235,10 @@ describe('MCPClient', () => {
   it('should support custom transports', async () => {
     const mockTransport = new MockMCPTransport();
     client = await createMCPClient({
-      transport: mockTransport,
+      transport: {
+        type: 'sse',
+        url: 'https://example.com/sse',
+      },
     });
     const tools = await client.tools({
       schemas: {
@@ -295,6 +298,151 @@ describe('MCPClient', () => {
     const result = await tool.execute({}, { messages: [], toolCallId: '1' });
     expect(result).toEqual({
       content: [{ type: 'text', text: 'Mock tool call result' }],
+    });
+  });
+
+  describe('prompts', () => {
+    it.only('should return list of available prompts', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const prompts = await client.prompts();
+      expect(prompts).toHaveLength(2);
+      expect(prompts[0]).toMatchObject({
+        name: 'analyze-code',
+        description: 'Analyze code for potential improvements',
+        arguments: [
+          {
+            name: 'language',
+            description: 'Programming language',
+            required: true
+          },
+          {
+            name: 'code',
+            description: 'Code to analyze',
+            required: true
+          }
+        ]
+      });
+    });
+
+    it('should get a specific prompt with arguments', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const result = await client.getPromptWithArgs('analyze-code', {
+        language: 'python',
+        code: 'def hello():\n    print("Hello, world!")'
+      });
+
+      expect(result).toMatchObject({
+        description: 'Analyze python code for potential improvements',
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: expect.stringContaining('Please analyze the following python code')
+            }
+          }
+        ]
+      });
+    });
+
+    it('should throw if prompt is not found', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      await expect(
+        client.getPromptWithArgs('nonexistent-prompt', {})
+      ).rejects.toThrow(MCPClientError);
+    });
+
+    it('should throw if required arguments are missing', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      await expect(
+        client.getPromptWithArgs('analyze-code', {
+          language: 'python'
+          // missing required 'code' argument
+        })
+      ).rejects.toThrow(MCPClientError);
+    });
+
+    it('should throw if server does not support prompts', async () => {
+      createMockTransport.mockImplementation(
+        () =>
+          new MockMCPTransport({
+          })
+      );
+
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+
+      await expect(client.prompts()).rejects.toThrow(MCPClientError);
+    });
+
+    it('should handle resource-type prompt content', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const result = await client.getPromptWithArgs('analyze-project', {
+        timeframe: '1h',
+        fileUri: 'file:///path/to/code.py'
+      });
+
+      expect(result).toMatchObject({
+        messages: [
+          {
+            role: 'user',
+            content: {
+              type: 'text',
+              text: expect.stringContaining('Analyze these system logs')
+            }
+          },
+          {
+            role: 'user',
+            content: {
+              type: 'resource',
+              resource: {
+                uri: expect.stringContaining('logs://recent'),
+                text: expect.any(String),
+                mimeType: 'text/plain'
+              }
+            }
+          },
+          {
+            role: 'user',
+            content: {
+              type: 'resource',
+              resource: {
+                uri: 'file:///path/to/code.py',
+                text: expect.any(String),
+                mimeType: 'text/x-python'
+              }
+            }
+          }
+        ]
+      });
+    });
+
+    it('should throw Abort Error if prompt request is aborted', async () => {
+      client = await createMCPClient({
+        transport: { type: 'sse', url: 'https://example.com/sse' },
+      });
+      const abortController = new AbortController();
+      abortController.abort();
+      await expect(
+        client.getPromptWithArgs(
+          'analyze-code',
+          { language: 'python', code: 'print("hello")' },
+          { abortSignal: abortController.signal }
+        )
+      ).rejects.toSatisfy(
+        error => error instanceof Error && error.name === 'AbortError'
+      );
     });
   });
 });
