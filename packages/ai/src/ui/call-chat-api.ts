@@ -1,9 +1,9 @@
 import { JSONValue } from '@ai-sdk/provider';
 import { IdGenerator } from '@ai-sdk/provider-utils';
-import { ChatStore } from '.';
+import { ChatStore } from './chat-store';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
-import { UseChatOptions } from './use-chat';
+import { type UseChatOptions } from './use-chat';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -81,7 +81,6 @@ export async function callChatApi({
     case 'text': {
       await processChatTextResponse({
         stream: response.body,
-        updateData: onUpdateData,
         onFinish,
         store,
         chatId,

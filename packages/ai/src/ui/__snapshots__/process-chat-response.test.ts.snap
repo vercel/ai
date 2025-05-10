@@ -601,6 +601,54 @@ exports[`processChatResponse > scenario: server-side continue roundtrip > should
 ]
 `;
 
+exports[`processChatResponse > scenario: server-side tool roundtrip > should call the addOrUpdateAssistantMessageParts function with the correct arguments 1`] = `
+[
+  [
+    {
+      "chatId": "chat-id",
+      "generateId": [Function],
+      "partDelta": {
+        "toolInvocation": {
+          "args": {
+            "city": "London",
+          },
+          "state": "call",
+          "toolCallId": "tool-call-id",
+          "toolName": "tool-name",
+        },
+        "type": "tool-invocation",
+      },
+    },
+  ],
+  [
+    {
+      "chatId": "chat-id",
+      "generateId": [Function],
+      "partDelta": {
+        "toolInvocation": {
+          "result": {
+            "weather": "sunny",
+          },
+          "state": "result",
+          "toolCallId": "tool-call-id",
+        },
+        "type": "tool-invocation",
+      },
+    },
+  ],
+  [
+    {
+      "chatId": "chat-id",
+      "generateId": [Function],
+      "partDelta": {
+        "text": "The weather in London is sunny.",
+        "type": "text",
+      },
+    },
+  ],
+]
+`;
+
 exports[`processChatResponse > scenario: server-side tool roundtrip > should call the onFinish function with the correct arguments 1`] = `
 [
   {

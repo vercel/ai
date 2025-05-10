@@ -1,4 +1,3 @@
-import { JSONValue } from '@ai-sdk/provider';
 import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
 import { ChatStore } from './chat-store';
 import { processTextStream } from './process-text-stream';
@@ -6,14 +5,12 @@ import { UseChatOptions } from './use-chat';
 
 export async function processChatTextResponse({
   stream,
-  updateData,
   onFinish,
   store,
   chatId,
   generateId = generateIdFunction,
 }: {
   stream: ReadableStream<Uint8Array>;
-  updateData: (data?: JSONValue[]) => void;
   onFinish: UseChatOptions['onFinish'];
   generateId?: () => string;
   store: ChatStore;

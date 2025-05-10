@@ -81,8 +81,6 @@ exports[`processChatTextResponse > scenario: multiple short chunks > should call
 ]
 `;
 
-exports[`processChatTextResponse > scenario: multiple short chunks > should call the updateData function with the correct arguments 1`] = `[]`;
-
 exports[`processChatTextResponse > scenario: no text chunks > should call the onFinish function after the stream ends 1`] = `
 [
   {
@@ -98,8 +96,6 @@ exports[`processChatTextResponse > scenario: no text chunks > should call the on
   },
 ]
 `;
-
-exports[`processChatTextResponse > scenario: no text chunks > should call the updateData function with the correct arguments 1`] = `[]`;
 
 exports[`processChatTextResponse > scenario: no text chunks > should not call the addOrUpdateAssistantMessageParts function 1`] = `
 [
@@ -166,5 +162,3 @@ exports[`processChatTextResponse > scenario: simple text response > should call 
   },
 ]
 `;
-
-exports[`processChatTextResponse > scenario: simple text response > should call the updateData function with the correct arguments 1`] = `[]`;

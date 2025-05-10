@@ -2,7 +2,6 @@ import { LanguageModelV2CallWarning } from '@ai-sdk/provider';
 import { createIdGenerator, IdGenerator } from '@ai-sdk/provider-utils';
 import { Span } from '@opentelemetry/api';
 import { ServerResponse } from 'node:http';
-import { convertToModelMessages } from '../../src';
 import { createDataStreamResponse } from '../../src/data-stream/create-data-stream-response';
 import { DataStreamPart } from '../../src/data-stream/data-stream-parts';
 import { pipeDataStreamToResponse } from '../../src/data-stream/pipe-data-stream-to-response';
@@ -813,8 +812,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
           const initialPrompt = await standardizePrompt({
             system,
             prompt,
-            // @ts-expect-error
-            messages: messages ? convertToModelMessages(messages) : undefined,
+            messages,
           });
 
           const stepInputMessages = [

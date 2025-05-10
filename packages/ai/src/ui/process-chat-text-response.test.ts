@@ -1,6 +1,6 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it, MockInstance } from 'vitest';
-import { ChatStore } from '../..';
+import { ChatStore } from './chat-store';
 import { processChatTextResponse } from './process-chat-text-response';
 import { UIMessage } from './ui-messages';
 
@@ -10,14 +10,7 @@ function createTextStream(chunks: string[]): ReadableStream<Uint8Array> {
   );
 }
 
-let updateDataCalls: any[] = [];
-
 let finishCallMessages: UIMessage[] = [];
-
-const updateData = (data?: any[]) => {
-  // clone to preserve the original object
-  if (data) updateDataCalls.push(structuredClone(data));
-};
 
 const onFinish = (message: UIMessage) => {
   // store the final message
@@ -44,7 +37,6 @@ let storeSpy: MockInstance<
 >;
 
 beforeEach(() => {
-  updateDataCalls = [];
   finishCallMessages = [];
 });
 
@@ -63,7 +55,6 @@ describe('processChatTextResponse', () => {
             ],
           },
         },
-        generateId: mockId,
         getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -72,19 +63,15 @@ describe('processChatTextResponse', () => {
 
       await processChatTextResponse({
         stream,
-        updateData,
         onFinish,
         store,
         chatId,
+        generateId: mockId,
       });
     });
 
     it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', () => {
       expect(storeSpy.mock.calls).toMatchSnapshot();
-    });
-
-    it('should call the updateData function with the correct arguments', () => {
-      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function after the stream ends', () => {
@@ -106,7 +93,6 @@ describe('processChatTextResponse', () => {
             ],
           },
         },
-        generateId: mockId,
         getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -114,19 +100,15 @@ describe('processChatTextResponse', () => {
 
       await processChatTextResponse({
         stream,
-        updateData,
         onFinish,
         store,
         chatId,
+        generateId: mockId,
       });
     });
 
     it('should not call the addOrUpdateAssistantMessageParts function', () => {
       expect(storeSpy.mock.calls).toMatchSnapshot();
-    });
-
-    it('should call the updateData function with the correct arguments', () => {
-      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function after the stream ends', () => {
@@ -148,7 +130,6 @@ describe('processChatTextResponse', () => {
             ],
           },
         },
-        generateId: mockId,
         getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
@@ -156,19 +137,15 @@ describe('processChatTextResponse', () => {
 
       await processChatTextResponse({
         stream,
-        updateData,
         onFinish,
         store,
         chatId,
+        generateId: mockId,
       });
     });
 
     it('should call the addOrUpdateAssistantMessageParts function with the correct arguments', () => {
       expect(storeSpy.mock.calls).toMatchSnapshot();
-    });
-
-    it('should call the updateData function with the correct arguments', () => {
-      expect(updateDataCalls).toMatchSnapshot();
     });
 
     it('should call the onFinish function after the stream ends', () => {
