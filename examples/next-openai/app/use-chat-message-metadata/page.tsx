@@ -12,16 +12,38 @@ export default function Chat() {
     messages,
     reload,
     stop,
-  } = useChat();
+  } = useChat({
+    api: '/api/use-chat-message-metadata',
+  });
 
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
-      {messages.map(m => (
-        <div key={m.id} className="whitespace-pre-wrap">
-          {m.role === 'user' ? 'User: ' : 'AI: '}
-          {m.parts
-            .map(part => (part.type === 'text' ? part.text : ''))
-            .join('')}
+      {messages.map(message => (
+        <div key={message.id} className="whitespace-pre-wrap">
+          {message.role === 'user' ? 'User: ' : 'AI: '}
+          {message.metadata?.createdAt && (
+            <div>
+              Created at:{' '}
+              {new Date(message.metadata.createdAt).toLocaleString()}
+            </div>
+          )}
+          {message.metadata?.duration && (
+            <div>Duration: {message.metadata.duration}ms</div>
+          )}
+          {message.metadata?.model && (
+            <div>Model: {message.metadata.model}</div>
+          )}
+          {message.metadata?.totalTokens && (
+            <div>Total tokens: {message.metadata.totalTokens}</div>
+          )}
+          {message.metadata?.finishReason && (
+            <div>Finish reason: {message.metadata.finishReason}</div>
+          )}
+          {message.parts.map((part, index) => {
+            if (part.type === 'text') {
+              return <div key={index}>{part.text}</div>;
+            }
+          })}
         </div>
       ))}
 

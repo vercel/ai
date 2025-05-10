@@ -19,14 +19,11 @@ describe('toResponseMessages', () => {
           parameters: z.object({}),
         },
       },
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [{ type: 'text', text: 'Hello, world!' }],
       },
     ]);
@@ -52,14 +49,11 @@ describe('toResponseMessages', () => {
           parameters: z.object({}),
         },
       },
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [
           { type: 'text', text: 'Using a tool' },
           {
@@ -101,14 +95,11 @@ describe('toResponseMessages', () => {
           execute: async () => 'Tool result',
         },
       },
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [
           { type: 'text', text: 'Tool used' },
           {
@@ -121,7 +112,6 @@ describe('toResponseMessages', () => {
       },
       {
         role: 'tool',
-        id: 'msg-345',
         content: [
           {
             type: 'tool-result',
@@ -148,8 +138,6 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {},
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -166,7 +154,6 @@ describe('toResponseMessages', () => {
               "type": "reasoning",
             },
           ],
-          "id": "msg-123",
           "role": "assistant",
         },
       ]
@@ -196,8 +183,6 @@ describe('toResponseMessages', () => {
         },
       ],
       tools: {},
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -227,7 +212,6 @@ describe('toResponseMessages', () => {
               "type": "text",
             },
           ],
-          "id": "msg-123",
           "role": "assistant",
         },
       ]
@@ -265,42 +249,51 @@ describe('toResponseMessages', () => {
           },
         }),
       },
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        content: [
-          { type: 'text', text: 'multipart tool result' },
-          {
-            type: 'tool-call',
-            toolCallId: '123',
-            toolName: 'testTool',
-            args: {},
-          },
-        ],
-        id: 'msg-123',
-      },
-      {
-        role: 'tool',
-        content: [
-          {
-            type: 'tool-result',
-            toolCallId: '123',
-            toolName: 'testTool',
-            result: [
-              { type: 'image', data: 'image-base64', mediaType: 'image/png' },
-            ],
-            experimental_content: [
-              { type: 'image', data: 'image-base64', mediaType: 'image/png' },
-            ],
-          },
-        ],
-        id: 'msg-345',
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "multipart tool result",
+              "type": "text",
+            },
+            {
+              "args": {},
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "experimental_content": [
+                {
+                  "data": "image-base64",
+                  "mediaType": "image/png",
+                  "type": "image",
+                },
+              ],
+              "result": [
+                {
+                  "data": "image-base64",
+                  "mediaType": "image/png",
+                  "type": "image",
+                },
+              ],
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-result",
+            },
+          ],
+          "role": "tool",
+        },
+      ]
+    `);
   });
 
   it('should include images in the assistant message', () => {
@@ -318,14 +311,11 @@ describe('toResponseMessages', () => {
         { type: 'file', file: pngFile },
       ],
       tools: {},
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toStrictEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [
           { type: 'text', text: 'Here is an image' },
           { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
@@ -354,14 +344,11 @@ describe('toResponseMessages', () => {
         { type: 'file', file: jpegFile },
       ],
       tools: {},
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toStrictEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [
           { type: 'text', text: 'Here are multiple images' },
           { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
@@ -390,14 +377,11 @@ describe('toResponseMessages', () => {
         { type: 'file', file: pngFile },
       ],
       tools: {},
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toStrictEqual([
       {
         role: 'assistant',
-        id: 'msg-123',
         content: [
           { type: 'text', text: 'Here is a binary image' },
           { type: 'file', data: pngFile.base64, mediaType: pngFile.mediaType },
@@ -437,8 +421,6 @@ describe('toResponseMessages', () => {
           parameters: z.object({}),
         },
       },
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toMatchInlineSnapshot(`
@@ -470,7 +452,6 @@ describe('toResponseMessages', () => {
               "type": "tool-call",
             },
           ],
-          "id": "msg-123",
           "role": "assistant",
         },
       ]
@@ -497,32 +478,29 @@ describe('toResponseMessages', () => {
           parameters: z.object({}),
         },
       },
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
-    expect(result).toEqual([
-      {
-        role: 'assistant',
-        id: 'msg-123',
-        content: [
-          {
-            type: 'tool-call',
-            toolCallId: '123',
-            toolName: 'testTool',
-            args: {},
-          },
-        ],
-      },
-    ]);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "args": {},
+              "toolCallId": "123",
+              "toolName": "testTool",
+              "type": "tool-call",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
   });
 
   it('should not append assistant message if there is no content', () => {
     const result = toResponseMessages({
       content: [],
       tools: {},
-      messageId: 'msg-123',
-      generateMessageId: mockValues('msg-345'),
     });
 
     expect(result).toEqual([]);

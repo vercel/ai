@@ -102,9 +102,6 @@ export async function callCompletionApi({
             result += value;
             setCompletion(result);
           },
-          onDataPart(value) {
-            onData?.(value);
-          },
           onErrorPart(value) {
             throw new Error(value);
           },

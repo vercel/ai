@@ -141,7 +141,6 @@ export function useChat({
   generateId = generateIdFunc,
   fetch,
   experimental_throttle: throttleWaitMs,
-  ...options
 }: UseChatOptions & {
   key?: string;
 
@@ -171,11 +170,6 @@ Default is undefined, which disables throttling.
     currentDate?: () => Date;
   };
 } = {}): UseChatHelpers {
-  // allow overriding the current date for testing purposes:
-  const getCurrentDate = useCallback(() => {
-    return options['~internal']?.currentDate?.() ?? new Date();
-  }, [options]);
-
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
@@ -296,8 +290,11 @@ Default is undefined, which disables throttling.
           },
           abortController: () => abortControllerRef.current,
           onResponse,
-          onUpdate({ message, data, replaceLastMessage }) {
+          onUpdate({ message }) {
             mutateStatus('streaming');
+
+            const replaceLastMessage =
+              message.id === chatMessages[chatMessages.length - 1].id;
 
             throttledMutate(
               [
@@ -308,20 +305,12 @@ Default is undefined, which disables throttling.
               ],
               false,
             );
-
-            if (data?.length) {
-              throttledMutateStreamData(
-                [...(existingData ?? []), ...data],
-                false,
-              );
-            }
           },
           onToolCall,
           onFinish,
           generateId,
           fetch,
           lastMessage: chatMessages[chatMessages.length - 1],
-          getCurrentDate,
           requestType,
         });
 
@@ -379,7 +368,6 @@ Default is undefined, which disables throttling.
       fetch,
       throttleWaitMs,
       chatId,
-      getCurrentDate,
     ],
   );
 
@@ -392,13 +380,12 @@ Default is undefined, which disables throttling.
         messages: messagesRef.current.concat({
           ...message,
           id: message.id ?? generateId(),
-          createdAt: message.createdAt ?? getCurrentDate(),
         }),
         headers,
         body,
         data,
       }),
-    [triggerRequest, generateId, getCurrentDate],
+    [triggerRequest, generateId],
   );
 
   const reload = useCallback(
@@ -493,7 +480,6 @@ Default is undefined, which disables throttling.
       triggerRequest({
         messages: messagesRef.current.concat({
           id: generateId(),
-          createdAt: getCurrentDate(),
           role: 'user',
           parts: [...fileParts, { type: 'text', text: input }],
         }),
@@ -504,7 +490,7 @@ Default is undefined, which disables throttling.
 
       setInput('');
     },
-    [input, generateId, triggerRequest, getCurrentDate],
+    [input, generateId, triggerRequest],
   );
 
   const handleInputChange = (e: any) => {

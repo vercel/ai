@@ -9,24 +9,15 @@ function createTextStream(chunks: string[]): ReadableStream<Uint8Array> {
   );
 }
 
-let updateCalls: Array<{
-  message: UIMessage;
-  data: any[] | undefined;
-  replaceLastMessage: boolean;
-}> = [];
-
+let updateCalls: Array<{ message: UIMessage }> = [];
 let finishCallMessages: UIMessage[] = [];
 
-const update = (options: {
-  message: UIMessage;
-  data: any[] | undefined;
-  replaceLastMessage: boolean;
-}) => {
+const update = (options: { message: UIMessage }) => {
   // clone to preserve the original object
   updateCalls.push(structuredClone(options));
 };
 
-const onFinish = (message: UIMessage) => {
+const onFinish = ({ message }: { message: UIMessage }) => {
   // store the final message
   finishCallMessages.push(structuredClone(message));
 };
@@ -51,7 +42,6 @@ describe('processChatTextResponse', () => {
         update,
         onFinish,
         generateId: () => mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
       });
     });
 
@@ -73,7 +63,6 @@ describe('processChatTextResponse', () => {
         update,
         onFinish,
         generateId: () => mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
       });
     });
 
@@ -95,7 +84,6 @@ describe('processChatTextResponse', () => {
         update,
         onFinish,
         generateId: () => mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
       });
     });
 

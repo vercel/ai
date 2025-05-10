@@ -13,26 +13,29 @@ import { LanguageModelResponseMetadata } from '../types/language-model-response-
 import { LanguageModelUsage } from '../types/usage';
 import { ContentPart } from './content-part';
 import { GeneratedFile } from './generated-file';
+import { ResponseMessage } from './response-message';
 import { StepResult } from './step-result';
 import { ToolCallUnion } from './tool-call';
 import { ToolResultUnion } from './tool-result';
 import { ToolSet } from './tool-set';
-import { ResponseMessage } from './response-message';
 
 export type DataStreamOptions = {
   /**
-   * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
-   *
-   * @return error message to include in the data stream.
+   * Message ID that is sent to the client.
+   * This is intended to be used for the UI message.
    */
-  onError?: (error: unknown) => string;
+  messageId?: string;
 
   /**
-   * Send usage parts to the client.
-   * Default to true.
+   * Extracts message metadata that will be send to the client.
+   *
+   * Called on `start` and `finish` events.
    */
-  // TODO change default to false in v5: secure by default
-  sendUsage?: boolean;
+  messageMetadata?: (options: {
+    part: TextStreamPart<ToolSet> & {
+      type: 'start' | 'finish' | 'start-step' | 'finish-step';
+    };
+  }) => unknown;
 
   /**
    * Send reasoning parts to the client.
@@ -66,6 +69,13 @@ export type DataStreamOptions = {
    * the message start event from being sent multiple times.
    */
   experimental_sendStart?: boolean;
+
+  /**
+   * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
+   *
+   * @return error message to include in the data stream.
+   */
+  onError?: (error: unknown) => string;
 };
 
 export type ConsumeStreamOptions = {
@@ -301,36 +311,24 @@ export type TextStreamPart<TOOLS extends ToolSet> =
       argsTextDelta: string;
     }
   | {
-      type: 'step-start';
-      messageId: string;
+      type: 'start-step';
       request: LanguageModelRequestMetadata;
       warnings: CallWarning[];
     }
   | {
-      type: 'step-finish';
-      messageId: string;
-
-      // TODO 5.0 breaking change: remove request (on start instead)
-      request: LanguageModelRequestMetadata;
-      // TODO 5.0 breaking change: remove warnings (on start instead)
-      warnings: CallWarning[] | undefined;
-
+      type: 'finish-step';
       response: LanguageModelResponseMetadata;
       usage: LanguageModelUsage;
       finishReason: FinishReason;
       providerMetadata: ProviderMetadata | undefined;
     }
   | {
+      type: 'start';
+    }
+  | {
       type: 'finish';
       finishReason: FinishReason;
-      usage: LanguageModelUsage;
-      providerMetadata: ProviderMetadata | undefined;
-
-      /**
-       * @deprecated use response on step-finish instead
-       */
-      // TODO 5.0 breaking change: remove response (on step instead)
-      response: LanguageModelResponseMetadata;
+      totalUsage: LanguageModelUsage;
     }
   | {
       type: 'error';

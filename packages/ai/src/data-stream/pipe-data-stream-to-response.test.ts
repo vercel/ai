@@ -14,7 +14,7 @@ describe('pipeDataStreamToResponse', () => {
         'Custom-Header': 'test',
       },
       dataStream: convertArrayToReadableStream([
-        { type: 'data', value: ['test-data'] },
+        { type: 'text', value: 'test-data' },
       ]),
     });
 
@@ -41,7 +41,7 @@ describe('pipeDataStreamToResponse', () => {
     const decodedChunks = mockResponse.getDecodedChunks();
     expect(decodedChunks).toMatchInlineSnapshot(`
       [
-        "data: {"type":"data","value":["test-data"]}
+        "data: {"type":"text","value":"test-data"}
 
       ",
         "data: [DONE]

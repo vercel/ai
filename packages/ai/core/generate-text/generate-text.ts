@@ -41,11 +41,6 @@ const originalGenerateId = createIdGenerator({
   size: 24,
 });
 
-const originalGenerateMessageId = createIdGenerator({
-  prefix: 'msg',
-  size: 24,
-});
-
 /**
 Callback that is set using the `onStepFinish` option.
 
@@ -117,7 +112,6 @@ export async function generateText<
   abortSignal,
   headers,
   maxSteps = 1,
-  experimental_generateMessageId: generateMessageId = originalGenerateMessageId,
   experimental_output: output,
   experimental_telemetry: telemetry,
   providerOptions,
@@ -155,11 +149,6 @@ A maximum number is required to prevent infinite loops in the case of misconfigu
 By default, it's set to 1, which means that only a single LLM call is made.
      */
     maxSteps?: number;
-
-    /**
-Generate a unique ID for each message.
-     */
-    experimental_generateMessageId?: IdGenerator;
 
     /**
 Optional telemetry configuration (experimental).
@@ -465,8 +454,6 @@ A function that attempts to repair a tool call that failed to parse.
           ...toResponseMessages({
             content: stepContent,
             tools: tools ?? ({} as TOOLS),
-            messageId: generateMessageId(),
-            generateMessageId,
           }),
         );
 

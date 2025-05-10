@@ -8,6 +8,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { createAsyncIterableStream } from '../util/async-iterable-stream';
 import { DataStreamPart, dataStreamPartSchema } from './data-stream-parts';
+import { TypeValidationError } from '@ai-sdk/provider';
 
 export async function processDataStream({
   stream,
@@ -16,16 +17,15 @@ export async function processDataStream({
   onReasoningPartFinish,
   onSourcePart,
   onFilePart,
-  onDataPart,
   onErrorPart,
   onToolCallStreamingStartPart,
   onToolCallDeltaPart,
   onToolCallPart,
   onToolResultPart,
-  onMessageAnnotationsPart,
-  onFinishMessagePart,
-  onFinishStepPart,
   onStartStepPart,
+  onFinishStepPart,
+  onStartPart,
+  onFinishPart,
 }: {
   stream: ReadableStream<Uint8Array>;
   onTextPart?: (
@@ -45,9 +45,6 @@ export async function processDataStream({
   onSourcePart?: (
     streamPart: (DataStreamPart & { type: 'source' })['value'],
   ) => Promise<void> | void;
-  onDataPart?: (
-    streamPart: (DataStreamPart & { type: 'data' })['value'],
-  ) => Promise<void> | void;
   onErrorPart?: (
     streamPart: (DataStreamPart & { type: 'error' })['value'],
   ) => Promise<void> | void;
@@ -63,19 +60,17 @@ export async function processDataStream({
   onToolResultPart?: (
     streamPart: ToolResult<string, any, any>,
   ) => Promise<void> | void;
-  onMessageAnnotationsPart?: (
-    streamPart: (DataStreamPart & {
-      type: 'message-annotations';
-    })['value'],
-  ) => Promise<void> | void;
-  onFinishMessagePart?: (
-    streamPart: (DataStreamPart & { type: 'finish-message' })['value'],
+  onStartStepPart?: (
+    streamPart: (DataStreamPart & { type: 'start-step' })['value'],
   ) => Promise<void> | void;
   onFinishStepPart?: (
     streamPart: (DataStreamPart & { type: 'finish-step' })['value'],
   ) => Promise<void> | void;
-  onStartStepPart?: (
-    streamPart: (DataStreamPart & { type: 'start-step' })['value'],
+  onStartPart?: (
+    streamPart: (DataStreamPart & { type: 'start' })['value'],
+  ) => Promise<void> | void;
+  onFinishPart?: (
+    streamPart: (DataStreamPart & { type: 'finish' })['value'],
   ) => Promise<void> | void;
 }): Promise<void> {
   const streamParts = createAsyncIterableStream(
@@ -102,7 +97,10 @@ export async function processDataStream({
 
   for await (const parseResult of streamParts) {
     if (!parseResult.success) {
-      throw new Error('Failed to parse data stream part');
+      throw new TypeValidationError({
+        value: parseResult.rawValue,
+        cause: parseResult.error,
+      });
     }
 
     const { type, value } = parseResult.value;
@@ -123,14 +121,8 @@ export async function processDataStream({
       case 'source':
         await onSourcePart?.(value);
         break;
-      case 'data':
-        await onDataPart?.(value);
-        break;
       case 'error':
         await onErrorPart?.(value);
-        break;
-      case 'message-annotations':
-        await onMessageAnnotationsPart?.(value);
         break;
       case 'tool-call-streaming-start':
         await onToolCallStreamingStartPart?.(value);
@@ -144,8 +136,11 @@ export async function processDataStream({
       case 'tool-result':
         await onToolResultPart?.(value as ToolResult<string, any, any>);
         break;
-      case 'finish-message':
-        await onFinishMessagePart?.(value);
+      case 'start':
+        await onStartPart?.(value);
+        break;
+      case 'finish':
+        await onFinishPart?.(value);
         break;
       case 'finish-step':
         await onFinishStepPart?.(value);

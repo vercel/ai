@@ -1,4 +1,3 @@
-import { JSONValue } from '@ai-sdk/provider';
 import { IdGenerator } from '@ai-sdk/provider-utils';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
@@ -22,7 +21,6 @@ export async function callChatApi({
   generateId,
   fetch = getOriginalFetch(),
   lastMessage,
-  getCurrentDate,
   requestType = 'generate',
 }: {
   api: string;
@@ -32,17 +30,12 @@ export async function callChatApi({
   headers: HeadersInit | undefined;
   abortController: (() => AbortController | null) | undefined;
   onResponse: ((response: Response) => void | Promise<void>) | undefined;
-  onUpdate: (options: {
-    message: UIMessage;
-    data: JSONValue[] | undefined;
-    replaceLastMessage: boolean;
-  }) => void;
+  onUpdate: (options: { message: UIMessage }) => void;
   onFinish: UseChatOptions['onFinish'];
   onToolCall: UseChatOptions['onToolCall'];
   generateId: IdGenerator;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   lastMessage: UIMessage | undefined;
-  getCurrentDate: () => Date;
   requestType?: 'generate' | 'resume';
 }) {
   const response =
@@ -88,24 +81,20 @@ export async function callChatApi({
         update: onUpdate,
         onFinish,
         generateId,
-        getCurrentDate,
       });
       return;
     }
 
     case 'data': {
+      // TODO check protocol version header
+
       await processChatResponse({
         stream: response.body,
         update: onUpdate,
         lastMessage,
         onToolCall,
-        onFinish({ message, finishReason, usage }) {
-          if (onFinish && message != null) {
-            onFinish(message, { usage, finishReason });
-          }
-        },
+        onFinish,
         generateId,
-        getCurrentDate,
       });
       return;
     }

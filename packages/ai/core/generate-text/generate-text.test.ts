@@ -260,9 +260,6 @@ describe('result.steps', () => {
     const result = await generateText({
       model: modelWithReasoning,
       prompt: 'prompt',
-      experimental_generateMessageId: mockId({
-        prefix: 'msg',
-      }),
       _internal: {
         generateId: mockId({ prefix: 'id' }),
         currentDate: () => new Date(0),
@@ -276,7 +273,6 @@ describe('result.steps', () => {
     const result = await generateText({
       model: modelWithSources,
       prompt: 'prompt',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
       _internal: {
         generateId: mockId({ prefix: 'id' }),
         currentDate: () => new Date(0),
@@ -290,7 +286,6 @@ describe('result.steps', () => {
     const result = await generateText({
       model: modelWithFiles,
       prompt: 'prompt',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
       _internal: {
         generateId: mockId({ prefix: 'id' }),
         currentDate: () => new Date(0),
@@ -496,7 +491,6 @@ describe('result.response.messages', () => {
         }),
       }),
       prompt: 'test-input',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -532,7 +526,6 @@ describe('result.response.messages', () => {
         },
       },
       prompt: 'test-input',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -542,7 +535,6 @@ describe('result.response.messages', () => {
     const result = await generateText({
       model: modelWithReasoning,
       prompt: 'test-input',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.response.messages).toMatchSnapshot();
@@ -589,7 +581,6 @@ describe('result.response', () => {
         }),
       }),
       prompt: 'prompt',
-      experimental_generateMessageId: mockId({ prefix: 'msg' }),
     });
 
     expect(result.steps[0].response).toMatchSnapshot();
@@ -748,7 +739,6 @@ describe('options.maxSteps', () => {
         onStepFinish: async event => {
           onStepFinishResults.push(event);
         },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
     });
 
@@ -969,7 +959,6 @@ describe('options.maxSteps', () => {
             return { model: trueModel, experimental_activeTools: [] };
           }
         },
-        experimental_generateMessageId: mockId({ prefix: 'msg' }),
       });
     });
 

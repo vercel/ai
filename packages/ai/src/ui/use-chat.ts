@@ -71,16 +71,8 @@ export type UseChatOptions = {
    * Optional callback function that is called when the assistant message is finished streaming.
    *
    * @param message The message that was streamed.
-   * @param options.usage The token usage of the message.
-   * @param options.finishReason The finish reason of the message.
    */
-  onFinish?: (
-    message: UIMessage,
-    options: {
-      usage: LanguageModelUsage;
-      finishReason: LanguageModelV2FinishReason;
-    },
-  ) => void;
+  onFinish?: (options: { message: UIMessage }) => void;
 
   /**
    * Callback function to be called when an error is encountered.

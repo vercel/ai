@@ -1,4 +1,4 @@
-import { JSONValue, LanguageModelV2Source } from '@ai-sdk/provider';
+import { LanguageModelV2Source } from '@ai-sdk/provider';
 import { ToolCall, ToolResult } from '@ai-sdk/provider-utils';
 
 /**
@@ -25,21 +25,14 @@ A unique identifier for the message.
   id: string;
 
   /**
-The timestamp of the message.
-   */
-  // TODO solve optionality similar id
-  createdAt?: Date;
-
-  /**
 The role of the message.
    */
   role: 'system' | 'user' | 'assistant';
 
   /**
-Additional message-specific information added on the server via StreamData
+The metadata of the message.
    */
-  // TODO replace with special part
-  annotations?: JSONValue[] | undefined;
+  metadata?: any; // TODO json / typing
 
   /**
 The parts of the message. Use this for rendering the message in the UI.
