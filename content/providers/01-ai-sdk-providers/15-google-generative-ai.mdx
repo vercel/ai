@@ -186,6 +186,11 @@ The following provider options are available:
     disables thinking. Budgets from 1 to 1024 tokens will be set to 1024.
     For more information see [Google Generative AI documentation](https://ai.google.dev/gemini-api/docs/thinking).
 
+  - **includeThoughts** _boolean_
+
+    Optional. When set to `true`, the model will include its "thought" process (reasoning steps) in the response. These are exposed as `reasoning` stream parts or
+    in the `reasoning` and `reasoningDetails` fields of the `generateText` result. Defaults to `false`
+
 You can use Google Generative AI language models to generate text with the `generateText` function:
 
 ```ts
@@ -237,6 +242,69 @@ const result = await generateText({
 </Note>
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
+
+### Reasoning (Thinking Tokens)
+
+Certain Google Gemini models support emitting "thinking" tokens, which represent the model's reasoning process before generating the final response. The AI SDK exposes these as reasoning information.
+
+To enable thinking tokens, set `includeThoughts: true` in the `thinkingConfig` provider option:
+
+```ts
+import { google } from '@ai-sdk/google';
+import { GoogleGenerativeAIProviderOptions } from '@ai-sdk/google';
+import { generateText, streamText } from 'ai';
+
+// For generateText:
+const { text, reasoning, reasoningDetails } = await generateText({
+  model: google('gemini-2.5-flash-preview-04-17'), // Or other supported model
+  providerOptions: {
+    google: {
+      thinkingConfig: {
+        includeThoughts: true,
+        // thinkingBudget: 2048, // Optional
+      },
+    } satisfies GoogleGenerativeAIProviderOptions,
+  },
+  prompt: 'Explain quantum computing in simple terms.',
+});
+
+console.log('Reasoning:', reasoning);
+console.log('Reasoning Details:', reasoningDetails);
+console.log('Final Text:', text);
+
+// For streamText:
+const result = streamText({
+  model: google('gemini-2.5-flash-preview-04-17'), // Or other supported model
+  providerOptions: {
+    google: {
+      thinkingConfig: {
+        includeThoughts: true,
+        // thinkingBudget: 2048, // Optional
+      },
+    } satisfies GoogleGenerativeAIProviderOptions,
+  },
+  prompt: 'Explain quantum computing in simple terms.',
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'reasoning') {
+    process.stdout.write(`THOUGHT: ${part.textDelta}\n`);
+  } else if (part.type === 'text-delta') {
+    process.stdout.write(part.textDelta);
+  }
+}
+```
+
+When `includeThoughts` is true, parts of the API response marked with `thought: true` will be processed as reasoning.
+
+- In `generateText`, these contribute to the `reasoning` (string) and `reasoningDetails` (array) fields.
+- In `streamText`, these are emitted as `reasoning` stream parts.
+
+<Note>
+  Refer to the [Google Generative AI
+  documentation](https://ai.google.dev/gemini-api/docs/thinking) for a list of
+  models that support thinking tokens and for more details on `thinkingBudget`.
+</Note>
 
 ### Cached Content
 

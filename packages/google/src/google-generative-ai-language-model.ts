@@ -244,7 +244,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
         : candidate.content.parts;
 
     const toolCalls = getToolCallsFromParts({
-      parts,
+      parts: parts, // Use candidateParts
       generateId: this.config.generateId,
     });
 
@@ -252,6 +252,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
 
     return {
       text: getTextFromParts(parts),
+      reasoning: getReasoningDetailsFromParts(parts),
       files: getInlineDataParts(parts)?.map(part => ({
         data: part.inlineData.data,
         mimeType: part.inlineData.mimeType,
@@ -358,6 +359,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV1 {
                   type: 'text-delta',
                   textDelta: deltaText,
                 });
+              }
+
+              const reasoningDeltaText = getReasoningDetailsFromParts(
+                content.parts,
+              );
+              if (reasoningDeltaText != null) {
+                for (const part of reasoningDeltaText) {
+                  controller.enqueue({
+                    type: 'reasoning',
+                    textDelta: part.text,
+                  });
+                }
               }
 
               const inlineDataParts = getInlineDataParts(content.parts);
@@ -468,13 +481,27 @@ function getToolCallsFromParts({
 }
 
 function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts?.filter(part => 'text' in part) as Array<
-    GoogleGenerativeAIContentPart & { text: string }
-  >;
+  const textParts = parts?.filter(
+    part => 'text' in part && (part as any).thought !== true, // Exclude thought parts
+  ) as Array<GoogleGenerativeAIContentPart & { text: string }>;
 
   return textParts == null || textParts.length === 0
     ? undefined
     : textParts.map(part => part.text).join('');
+}
+
+function getReasoningDetailsFromParts(
+  parts: z.infer<typeof contentSchema>['parts'],
+): Array<{ type: 'text'; text: string }> | undefined {
+  const reasoningParts = parts?.filter(
+    part => 'text' in part && (part as any).thought === true,
+  ) as Array<
+    GoogleGenerativeAIContentPart & { text: string; thought?: boolean }
+  >;
+
+  return reasoningParts == null || reasoningParts.length === 0
+    ? undefined
+    : reasoningParts.map(part => ({ type: 'text', text: part.text }));
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
@@ -517,6 +544,7 @@ const contentSchema = z.object({
       z.union([
         z.object({
           text: z.string(),
+          thought: z.boolean().nullish(),
         }),
         z.object({
           functionCall: z.object({
@@ -628,6 +656,7 @@ const googleGenerativeAIProviderOptionsSchema = z.object({
   thinkingConfig: z
     .object({
       thinkingBudget: z.number().nullish(),
+      includeThoughts: z.boolean().nullish(),
     })
     .nullish(),
 });
