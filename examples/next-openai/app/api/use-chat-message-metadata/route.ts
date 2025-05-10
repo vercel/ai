@@ -17,6 +17,7 @@ export async function POST(req: Request) {
   let startTimestamp!: number;
   return result.toDataStreamResponse({
     messageMetadata: ({ part }) => {
+      // send custom information to the client on start:
       if (part.type === 'start') {
         startTimestamp = Date.now();
 
@@ -26,9 +27,12 @@ export async function POST(req: Request) {
         };
       }
 
+      // when the message is finished, send additional information:
       if (part.type === 'finish') {
         return {
           duration: Date.now() - startTimestamp,
+          usage: part.totalUsage,
+          finishReason: part.finishReason,
         };
       }
     },
