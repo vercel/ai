@@ -1,6 +1,7 @@
 export { appendClientMessage } from './append-client-message';
 export { appendResponseMessages } from './append-response-messages';
 export { callChatApi } from './call-chat-api';
+export { callChatApi as callChatApiLegacy } from './call-chat-api-legacy';
 export { callCompletionApi } from './call-completion-api';
 export {
   ChatStore,
@@ -28,3 +29,4 @@ export {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from './use-completion';
+
