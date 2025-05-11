@@ -58,7 +58,7 @@ export async function POST(req: Request) {
         },
       });
 
-      writer.merge(result.toDataStream());
+      writer.merge(result.toUIMessageStream());
     },
   });
 

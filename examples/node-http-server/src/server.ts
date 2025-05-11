@@ -26,7 +26,7 @@ createServer(async (req, res) => {
             prompt: 'Invent a new holiday and describe its traditions.',
           });
 
-          writer.merge(result.toDataStream());
+          writer.merge(result.toUIMessageStream());
         },
         onError: error => {
           // Error messages are masked by default for security reasons.

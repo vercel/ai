@@ -9,6 +9,7 @@ import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
+import { constructUIMessages } from '../../src/ui/x';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,
@@ -460,6 +461,8 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
 
   private output: Output<OUTPUT, PARTIAL_OUTPUT> | undefined;
 
+  private generateId: () => string;
+
   constructor({
     model,
     telemetry,
@@ -524,6 +527,7 @@ class DefaultStreamTextResult<TOOLS extends ToolSet, OUTPUT, PARTIAL_OUTPUT>
     }
 
     this.output = output;
+    this.generateId = generateId;
 
     let activeReasoningPart:
       | undefined
@@ -1341,7 +1345,9 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toDataStream({
-    messageId,
+    newMessageId,
+    originalMessages,
+    onFinish,
     messageMetadata,
     sendReasoning = false,
     sendSources = false,
@@ -1349,7 +1355,11 @@ However, the LLM results are expected to be small enough to not cause issues.
     experimental_sendFinish = true,
     onError = () => 'An error occurred.', // mask error messages for safety by default
   }: DataStreamOptions = {}): ReadableStream<DataStreamPart> {
-    return this.fullStream.pipeThrough(
+    const lastMessage = originalMessages?.[originalMessages.length - 1];
+    const isContinuation = lastMessage?.role === 'assistant';
+    const messageId = isContinuation ? lastMessage.id : newMessageId;
+
+    const baseStream = this.fullStream.pipeThrough(
       new TransformStream<TextStreamPart<TOOLS>, DataStreamPart>({
         transform: async (part, controller) => {
           const partType = part.type;
@@ -1500,12 +1510,23 @@ However, the LLM results are expected to be small enough to not cause issues.
         },
       }),
     );
+
+    return onFinish == null
+      ? baseStream
+      : constructUIMessages({
+          newMessageId: messageId ?? this.generateId(),
+          originalMessages: originalMessages ?? [],
+          uiMessageStream: baseStream,
+          onFinish,
+        });
   }
 
   pipeDataStreamToResponse(
     response: ServerResponse,
     {
-      messageId,
+      newMessageId,
+      originalMessages,
+      onFinish,
       messageMetadata,
       sendReasoning,
       sendSources,
@@ -1518,7 +1539,9 @@ However, the LLM results are expected to be small enough to not cause issues.
     pipeDataStreamToResponse({
       response,
       dataStream: this.toDataStream({
-        messageId,
+        newMessageId,
+        originalMessages,
+        onFinish,
         messageMetadata,
         sendReasoning,
         sendSources,
@@ -1539,7 +1562,9 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   toDataStreamResponse({
-    messageId,
+    newMessageId,
+    originalMessages,
+    onFinish,
     messageMetadata,
     sendReasoning,
     sendSources,
@@ -1550,7 +1575,9 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: ResponseInit & DataStreamOptions = {}): Response {
     return createDataStreamResponse({
       dataStream: this.toDataStream({
-        messageId,
+        newMessageId,
+        originalMessages,
+        onFinish,
         messageMetadata,
         sendReasoning,
         sendSources,

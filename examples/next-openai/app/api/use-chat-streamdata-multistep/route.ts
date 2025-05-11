@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
       // forward the initial result to the client without the finish event:
       writer.merge(
-        result1.toDataStream({
+        result1.toUIMessageStream({
           experimental_sendFinish: false, // omit the finish event
         }),
       );
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 
       // forward the 2nd result to the client (incl. the finish event):
       writer.merge(
-        result2.toDataStream({
+        result2.toUIMessageStream({
           experimental_sendStart: false, // omit the start event
         }),
       );
