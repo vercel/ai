@@ -1,5 +1,13 @@
 import { JSONValue } from '@ai-sdk/provider';
+import { parseJsonEventStream, ParseResult } from '@ai-sdk/provider-utils';
+import {
+  DataStreamPart,
+  dataStreamPartSchema,
+} from '../data-stream/data-stream-parts';
+import { consumeStream } from '../util/consume-stream';
+import { processChatResponse } from './process-chat-response';
 import { processTextStream } from './process-text-stream';
+import { UIMessage } from './ui-messages';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -95,21 +103,34 @@ export async function callCompletionApi({
         break;
       }
       case 'data': {
-        // await processDataStream({
-        //   stream: response.body,
-        //   onTextPart(value) {
-        //     result += value;
-        //     setCompletion(result);
-        //   },
-        //   onErrorPart(value) {
-        //     throw new Error(value);
-        //   },
-        // });
-        // break;
+        await consumeStream({
+          stream: parseJsonEventStream({
+            stream: response.body,
+            schema: dataStreamPartSchema,
+          }).pipeThrough(
+            new TransformStream<ParseResult<DataStreamPart>, DataStreamPart>({
+              async transform(part, controller) {
+                if (!part.success) {
+                  throw part.error;
+                }
+
+                const { type, value } = part.value;
+
+                if (type === 'text') {
+                  result += value;
+                  setCompletion(result);
+                } else if (type === 'error') {
+                  throw new Error(value);
+                }
+              },
+            }),
+          ),
+        });
+        break;
       }
       default: {
-        // const exhaustiveCheck: never = streamProtocol;
-        // throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
+        const exhaustiveCheck: never = streamProtocol;
+        throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
       }
     }
 

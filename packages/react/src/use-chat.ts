@@ -101,17 +101,6 @@ export type UseChatHelpers<MESSAGE_METADATA> = {
    */
   status: 'submitted' | 'streaming' | 'ready' | 'error';
 
-  /** Additional data added on the server via StreamData. */
-  data?: JSONValue[];
-
-  /** Set the data of the chat. You can use this to transform or clear the chat data. */
-  setData: (
-    data:
-      | JSONValue[]
-      | undefined
-      | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
-  ) => void;
-
   addToolResult: ({
     toolCallId,
     result,
@@ -144,8 +133,6 @@ export function useChat<MESSAGE_METADATA>({
   experimental_throttle: throttleWaitMs,
   messageMetadataSchema,
 }: UseChatOptions<MESSAGE_METADATA> & {
-  key?: string;
-
   /**
    * Experimental (React only). When a function is provided, it will be used
    * to prepare the request body for the chat API. This can be useful for
@@ -162,6 +149,10 @@ export function useChat<MESSAGE_METADATA>({
     requestBody?: object;
   }) => unknown;
 
+  /**
+   * Schema for the message metadata. Validates the message metadata.
+   * Message metadata can be undefined or must match the schema.
+   */
   messageMetadataSchema?: Schema<MESSAGE_METADATA>;
 
   /**
@@ -169,10 +160,6 @@ Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
    */
   experimental_throttle?: number;
-
-  '~internal'?: {
-    currentDate?: () => Date;
-  };
 } = {}): UseChatHelpers<MESSAGE_METADATA> {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
@@ -200,17 +187,6 @@ Default is undefined, which disables throttling.
   useEffect(() => {
     messagesRef.current = messages || [];
   }, [messages]);
-
-  // stream data
-  const { data: streamData, mutate: mutateStreamData } = useSWR<
-    JSONValue[] | undefined
-  >([chatKey, 'streamData'], null);
-
-  // keep the latest stream data in a ref
-  const streamDataRef = useRef<JSONValue[] | undefined>(streamData);
-  useEffect(() => {
-    streamDataRef.current = streamData;
-  }, [streamData]);
 
   const { data: status = 'ready', mutate: mutateStatus } = useSWR<
     'submitted' | 'streaming' | 'ready' | 'error'
@@ -355,8 +331,6 @@ Default is undefined, which disables throttling.
       onFinish,
       onError,
       setError,
-      mutateStreamData,
-      streamDataRef,
       streamProtocol,
       experimental_prepareRequestBody,
       onToolCall,
@@ -431,23 +405,6 @@ Default is undefined, which disables throttling.
       messagesRef.current = messages;
     },
     [mutate],
-  );
-
-  const setData = useCallback(
-    (
-      data:
-        | JSONValue[]
-        | undefined
-        | ((data: JSONValue[] | undefined) => JSONValue[] | undefined),
-    ) => {
-      if (typeof data === 'function') {
-        data = data(streamDataRef.current);
-      }
-
-      mutateStreamData(data, false);
-      streamDataRef.current = data;
-    },
-    [mutateStreamData],
   );
 
   // Input state and handlers.
@@ -539,8 +496,6 @@ Default is undefined, which disables throttling.
     messages: messages ?? [],
     id: chatId,
     setMessages,
-    data: streamData,
-    setData,
     error,
     append,
     reload,

@@ -15,7 +15,6 @@ import {
   LanguageModelUsage,
   UIMessage,
 } from 'ai';
-import { mockValues } from 'ai/test';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -29,13 +28,7 @@ const server = createTestServer({
 });
 
 describe('data protocol stream', () => {
-  let onFinishCalls: Array<{
-    message: UIMessage;
-    options: {
-      finishReason: FinishReason;
-      usage: LanguageModelUsage;
-    };
-  }> = [];
+  let onFinishCalls: Array<{ message: UIMessage }> = [];
 
   setupTestComponent(
     ({ id: idParam }: { id: string }) => {
@@ -44,19 +37,14 @@ describe('data protocol stream', () => {
         messages,
         append,
         error,
-        data,
         status,
-        setData,
         id: idKey,
       } = useChat({
         id,
-        onFinish: (message, options) => {
-          onFinishCalls.push({ message, options });
+        onFinish: options => {
+          onFinishCalls.push(options);
         },
         generateId: mockId(),
-        '~internal': {
-          currentDate: mockValues(new Date('2025-01-01')),
-        },
       });
 
       return (
@@ -64,9 +52,6 @@ describe('data protocol stream', () => {
           <div data-testid="id">{idKey}</div>
           <div data-testid="status">{status.toString()}</div>
           {error && <div data-testid="error">{error.toString()}</div>}
-          <div data-testid="data">
-            {data != null ? JSON.stringify(data) : ''}
-          </div>
           <div data-testid="messages">{JSON.stringify(messages, null, 2)}</div>
           <button
             data-testid="do-append"
@@ -81,18 +66,6 @@ describe('data protocol stream', () => {
             data-testid="do-change-id"
             onClick={() => {
               setId('second-id');
-            }}
-          />
-          <button
-            data-testid="do-set-data"
-            onClick={() => {
-              setData([{ t1: 'set' }]);
-            }}
-          />
-          <button
-            data-testid="do-clear-data"
-            onClick={() => {
-              setData(undefined);
             }}
           />
         </div>
@@ -133,11 +106,9 @@ describe('data protocol stream', () => {
               }
             ],
             "id": "id-1",
-            "createdAt": "2025-01-01T00:00:00.000Z"
           },
           {
             "id": "id-2",
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "role": "assistant",
             "parts": [
               {
@@ -149,53 +120,6 @@ describe('data protocol stream', () => {
           }
         ]"
       `);
-    });
-  });
-
-  it('should set stream data', async () => {
-    server.urls['/api/chat'].response = {
-      type: 'stream-chunks',
-      chunks: [
-        formatDataStreamPart({ type: 'data', value: [{ t1: 'v1' }] }),
-        formatDataStreamPart({ type: 'text', value: 'Hello' }),
-      ],
-    };
-
-    await userEvent.click(screen.getByTestId('do-append'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('data').textContent).toMatchInlineSnapshot(
-        `"[{"t1":"v1"}]"`,
-      );
-    });
-  });
-
-  describe('setData', () => {
-    it('should set data', async () => {
-      await userEvent.click(screen.getByTestId('do-set-data'));
-
-      await screen.findByTestId('data');
-      expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"set"}]');
-    });
-
-    it('should clear data', async () => {
-      server.urls['/api/chat'].response = {
-        type: 'stream-chunks',
-        chunks: [
-          formatDataStreamPart({ type: 'data', value: [{ t1: 'v1' }] }),
-          formatDataStreamPart({ type: 'text', value: 'Hello' }),
-        ],
-      };
-
-      await userEvent.click(screen.getByTestId('do-append'));
-
-      await screen.findByTestId('data');
-      expect(screen.getByTestId('data')).toHaveTextContent('[{"t1":"v1"}]');
-
-      await userEvent.click(screen.getByTestId('do-clear-data'));
-
-      await screen.findByTestId('data');
-      expect(screen.getByTestId('data')).toHaveTextContent('');
     });
   });
 
@@ -287,13 +211,10 @@ describe('data protocol stream', () => {
     controller.write(formatDataStreamPart({ type: 'text', value: '.' }));
     controller.write(
       formatDataStreamPart({
-        type: 'finish-message',
+        type: 'finish',
         value: {
-          finishReason: 'stop',
-          usage: {
-            inputTokens: 1,
-            outputTokens: 3,
-            totalTokens: 4,
+          metadata: {
+            example: 'metadata',
           },
         },
       }),
@@ -314,19 +235,20 @@ describe('data protocol stream', () => {
             },
           ],
           id: 'id-1',
-          createdAt: '2025-01-01T00:00:00.000Z',
         },
         {
           id: 'id-2',
-          createdAt: '2025-01-01T00:00:00.000Z',
           role: 'assistant',
+          metadata: {
+            example: 'metadata',
+          },
           parts: [
             {
               type: 'text',
               text: 'Hello, world.',
             },
           ],
-          revisionId: 'id-6',
+          revisionId: 'id-7',
         },
       ]);
     });
@@ -334,9 +256,12 @@ describe('data protocol stream', () => {
     expect(onFinishCalls).toMatchInlineSnapshot(`
       [
         {
+          "isContinuation": false,
           "message": {
-            "createdAt": 2025-01-01T00:00:00.000Z,
             "id": "id-2",
+            "metadata": {
+              "example": "metadata",
+            },
             "parts": [
               {
                 "text": "Hello, world.",
@@ -344,14 +269,6 @@ describe('data protocol stream', () => {
               },
             ],
             "role": "assistant",
-          },
-          "options": {
-            "finishReason": "stop",
-            "usage": {
-              "inputTokens": 1,
-              "outputTokens": 3,
-              "totalTokens": 4,
-            },
           },
         },
       ]
@@ -377,7 +294,6 @@ describe('data protocol stream', () => {
           "id": "first-id-0",
           "messages": [
             {
-              "createdAt": "2025-01-01T00:00:00.000Z",
               "id": "id-1",
               "parts": [
                 {
@@ -410,7 +326,6 @@ describe('data protocol stream', () => {
           JSON.parse(screen.getByTestId('messages').textContent ?? ''),
         ).toStrictEqual([
           {
-            createdAt: '2025-01-01T00:00:00.000Z',
             id: expect.any(String),
             parts: [
               {
@@ -421,8 +336,8 @@ describe('data protocol stream', () => {
             role: 'user',
           },
           {
-            createdAt: '2025-01-01T00:00:00.000Z',
             id: 'id-2',
+            metadata: {},
             parts: [
               {
                 text: 'Hello, world.',
@@ -442,24 +357,15 @@ describe('data protocol stream', () => {
 });
 
 describe('text stream', () => {
-  let onFinishCalls: Array<{
-    message: UIMessage;
-    options: {
-      finishReason: FinishReason;
-      usage: LanguageModelUsage;
-    };
-  }> = [];
+  let onFinishCalls: Array<{ message: UIMessage }> = [];
 
   setupTestComponent(() => {
     const { messages, append } = useChat({
       streamProtocol: 'text',
-      onFinish: (message, options) => {
-        onFinishCalls.push({ message, options });
+      onFinish: options => {
+        onFinishCalls.push(options);
       },
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
 
     return (
@@ -551,7 +457,6 @@ describe('text stream', () => {
       [
         {
           "message": {
-            "createdAt": 2025-01-01T00:00:00.000Z,
             "id": "id-2",
             "parts": [
               {
@@ -560,14 +465,6 @@ describe('text stream', () => {
               },
             ],
             "role": "assistant",
-          },
-          "options": {
-            "finishReason": "unknown",
-            "usage": {
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "totalTokens": undefined,
-            },
           },
         },
       ]
@@ -733,9 +630,6 @@ describe('prepareRequestBody', () => {
         return 'test-request-body';
       },
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
 
     return (
@@ -794,7 +688,6 @@ describe('prepareRequestBody', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": 2025-01-01T00:00:00.000Z,
             "id": "id-1",
             "parts": [
               {
@@ -887,14 +780,14 @@ describe('onToolCall', () => {
 
     await screen.findByTestId('message-1');
     expect(screen.getByTestId('message-1')).toHaveTextContent(
-      `{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}`,
+      `{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}`,
     );
 
     resolve();
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        `{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-tool-response: test-tool tool-call-0 {\\"testArg\\":\\"test-value\\"}"}`,
+        `{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-tool-response: test-tool tool-call-0 {\\"testArg\\":\\"test-value\\"}"}`,
       );
     });
   });
@@ -1017,7 +910,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
       );
     });
 
@@ -1034,7 +927,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+        `{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}`,
       );
     });
   });
@@ -1061,7 +954,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
       );
     });
 
@@ -1078,7 +971,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
       );
     });
   });
@@ -1090,9 +983,7 @@ describe('tool invocations', () => {
       chunks: [
         formatDataStreamPart({
           type: 'start-step',
-          value: {
-            messageId: '1234',
-          },
+          value: {},
         }),
         formatDataStreamPart({
           type: 'tool-call',
@@ -1137,9 +1028,7 @@ describe('tool invocations', () => {
     controller1.write(
       formatDataStreamPart({
         type: 'start-step',
-        value: {
-          messageId: '1234',
-        },
+        value: {},
       }),
     );
 
@@ -1157,7 +1046,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"call","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"}}',
+        '{"state":"call","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool"}',
       );
     });
 
@@ -1167,7 +1056,7 @@ describe('tool invocations', () => {
     // UI should show the tool result
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"state":"result","step":0,"toolCallId":"tool-call-0","toolName":"test-tool","args":{"testArg":"test-value"},"result":"test-result"}',
+        '{"state":"result","step":0,"args":{"testArg":"test-value"},"toolCallId":"tool-call-0","toolName":"test-tool","result":"test-result"}',
       );
     });
 
@@ -1175,22 +1064,8 @@ describe('tool invocations', () => {
     expect(server.calls.length).toBe(1);
 
     // finish stream
-    controller1.write(
-      formatDataStreamPart({
-        type: 'finish-step',
-        value: {
-          finishReason: 'tool-calls',
-        },
-      }),
-    );
-    controller1.write(
-      formatDataStreamPart({
-        type: 'finish-message',
-        value: {
-          finishReason: 'tool-calls',
-        },
-      }),
-    );
+    controller1.write(formatDataStreamPart({ type: 'finish-step', value: {} }));
+    controller1.write(formatDataStreamPart({ type: 'finish', value: {} }));
 
     await controller1.close();
 
@@ -1362,9 +1237,6 @@ describe('file attachments with data url', () => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({
         generateId: mockId(),
-        '~internal': {
-          currentDate: mockValues(new Date('2025-01-01')),
-        },
       });
 
     const [files, setFiles] = useState<FileList | undefined>(undefined);
@@ -1439,7 +1311,6 @@ describe('file attachments with data url', () => {
       ).toStrictEqual([
         {
           id: 'id-0',
-          createdAt: '2025-01-01T00:00:00.000Z',
           role: 'user',
           parts: [
             {
@@ -1455,8 +1326,8 @@ describe('file attachments with data url', () => {
           ],
         },
         {
-          createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
+          metadata: {},
           parts: [
             {
               text: 'Response to message with text attachment',
@@ -1474,7 +1345,6 @@ describe('file attachments with data url', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-0",
             "parts": [
               {
@@ -1525,7 +1395,6 @@ describe('file attachments with data url', () => {
       ).toStrictEqual([
         {
           role: 'user',
-          createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
           parts: [
             {
@@ -1542,8 +1411,8 @@ describe('file attachments with data url', () => {
         },
         {
           role: 'assistant',
-          createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
+          metadata: {},
           parts: [
             {
               type: 'text',
@@ -1560,7 +1429,6 @@ describe('file attachments with data url', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-0",
             "parts": [
               {
@@ -1587,9 +1455,6 @@ describe('file attachments with url', () => {
     const { messages, handleSubmit, handleInputChange, status, input } =
       useChat({
         generateId: mockId(),
-        '~internal': {
-          currentDate: mockValues(new Date('2025-01-01')),
-        },
       });
 
     return (
@@ -1647,7 +1512,6 @@ describe('file attachments with url', () => {
       ).toStrictEqual([
         {
           role: 'user',
-          createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-0',
           parts: [
             {
@@ -1663,8 +1527,8 @@ describe('file attachments with url', () => {
         },
         {
           role: 'assistant',
-          createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
+          metadata: {},
           parts: [
             {
               type: 'text',
@@ -1681,7 +1545,6 @@ describe('file attachments with url', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-0",
             "parts": [
               {
@@ -1706,9 +1569,6 @@ describe('attachments with empty submit', () => {
   setupTestComponent(() => {
     const { messages, handleSubmit } = useChat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
 
     return (
@@ -1759,7 +1619,6 @@ describe('attachments with empty submit', () => {
       ).toStrictEqual([
         {
           id: 'id-1',
-          createdAt: '2025-01-01T00:00:00.000Z',
           role: 'user',
           parts: [
             {
@@ -1776,8 +1635,8 @@ describe('attachments with empty submit', () => {
         },
         {
           id: 'id-2',
-          createdAt: '2025-01-01T00:00:00.000Z',
           role: 'assistant',
+          metadata: {},
           parts: [
             {
               type: 'text',
@@ -1794,7 +1653,6 @@ describe('attachments with empty submit', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1820,9 +1678,6 @@ describe('should append message with attachments', () => {
   setupTestComponent(() => {
     const { messages, append } = useChat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
 
     return (
@@ -1877,7 +1732,6 @@ describe('should append message with attachments', () => {
         JSON.parse(screen.getByTestId('messages').textContent ?? ''),
       ).toStrictEqual([
         {
-          createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-1',
           parts: [
             {
@@ -1893,8 +1747,8 @@ describe('should append message with attachments', () => {
           role: 'user',
         },
         {
-          createdAt: '2025-01-01T00:00:00.000Z',
           id: 'id-2',
+          metadata: {},
           parts: [
             {
               text: 'Response to message with image attachment',
@@ -1912,7 +1766,6 @@ describe('should append message with attachments', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -1937,9 +1790,6 @@ describe('reload', () => {
   setupTestComponent(() => {
     const { messages, append, reload } = useChat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
 
     return (
@@ -2011,7 +1861,6 @@ describe('reload', () => {
         "id": "id-0",
         "messages": [
           {
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
             "parts": [
               {
@@ -2042,9 +1891,6 @@ describe('test sending additional fields during message submission', () => {
   setupTestComponent(() => {
     const { messages, append } = useChat({
       generateId: mockId(),
-      '~internal': {
-        currentDate: mockValues(new Date('2025-01-01')),
-      },
     });
 
     return (
@@ -2063,7 +1909,9 @@ describe('test sending additional fields during message submission', () => {
           onClick={() => {
             append({
               role: 'user',
-              annotations: ['this is an annotation'],
+              metadata: {
+                test: 'example',
+              },
               parts: [{ text: 'hi', type: 'text' }],
             });
           }}
@@ -2088,11 +1936,10 @@ describe('test sending additional fields during message submission', () => {
         "id": "id-0",
         "messages": [
           {
-            "annotations": [
-              "this is an annotation",
-            ],
-            "createdAt": "2025-01-01T00:00:00.000Z",
             "id": "id-1",
+            "metadata": {
+              "test": "example",
+            },
             "parts": [
               {
                 "text": "hi",
