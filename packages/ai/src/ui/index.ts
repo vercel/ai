@@ -2,7 +2,13 @@ export { appendClientMessage } from './append-client-message';
 export { appendResponseMessages } from './append-response-messages';
 export { callChatApi } from './call-chat-api';
 export { callCompletionApi } from './call-completion-api';
-export { ChatStore, ChatStoreEvent } from './chat-store';
+export {
+  ChatStore,
+  type ChatState,
+  type ChatStatus,
+  type ChatStoreEvent,
+  type ChatStoreSubscriber,
+} from './chat-store';
 export { convertFileListToFileUIParts } from './convert-file-list-to-file-ui-parts';
 export {
   convertToCoreMessages,
@@ -22,3 +28,4 @@ export {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from './use-completion';
+

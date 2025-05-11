@@ -7,7 +7,7 @@ import type {
   UIMessage,
 } from './ui-messages';
 
-interface ChatStoreSubscriber {
+export interface ChatStoreSubscriber {
   onChatChanged: (event: ChatStoreEvent) => void;
 }
 
@@ -24,8 +24,10 @@ export interface ChatStoreInitialization {
   };
 }
 
+export type ChatStatus = 'submitted' | 'streaming' | 'ready' | 'error';
+
 export interface ChatState {
-  status: 'submitted' | 'streaming' | 'ready' | 'error';
+  status: ChatStatus;
   messages: UIMessage[];
   activeResponse?: {
     message: UIMessage & { revisionId?: string };
@@ -74,11 +76,15 @@ export class ChatStore {
     });
   }
 
+  getChats() {
+    return Array.from(this.chats.entries());
+  }
+
   get chatCount() {
     return this.chats.size;
   }
 
-  getStatus(id: string) {
+  getStatus(id: string): ChatStatus | undefined {
     const chat = this.chats.get(id);
     if (!chat) return;
     return chat.status;

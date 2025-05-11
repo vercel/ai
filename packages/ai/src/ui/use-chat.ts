@@ -42,6 +42,8 @@ export type UseChatOptions = {
 
   /**
    * Initial messages of the chat. Useful to load an existing chat history.
+   *
+   * Note: To be removed in v5; leaving it in for now to avoid breaking changes in example builds.
    */
   initialMessages?: UIMessage[];
 
