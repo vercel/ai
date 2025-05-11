@@ -245,24 +245,14 @@ of the [standard call settings](/docs/ai-sdk-core/settings). You can pass them a
 an options argument:
 
 ```ts
-const model = vertex('gemini-1.5-pro');
-
-await generateText({
-  model,
-  providerOptions: {
-    google: {
-      safetySettings: [
-        {
-          category: 'HARM_CATEGORY_UNSPECIFIED',
-          threshold: 'BLOCK_LOW_AND_ABOVE',
-        },
-      ],
-    },
-  },
+const model = vertex('gemini-1.5-pro', {
+  safetySettings: [
+    { category: 'HARM_CATEGORY_UNSPECIFIED', threshold: 'BLOCK_LOW_AND_ABOVE' },
+  ],
 });
 ```
 
-The following optional provider options are available for Google Vertex models:
+The following optional settings are available for Google Vertex models:
 
 - **structuredOutputs** _boolean_
 
@@ -339,7 +329,7 @@ import { generateText, streamText } from 'ai';
 
 // For generateText:
 const { text, reasoning, reasoningDetails } = await generateText({
-  model: vertex('gemini-2.0-flash-001'), // Or other supported model via Vertex
+  model: vertex('gemini-2.5-flash-preview-04-17'), // Or other supported model via Vertex
   providerOptions: {
     google: {
       // Options are nested under 'google' for Vertex provider
@@ -358,7 +348,7 @@ console.log('Final Text:', text);
 
 // For streamText:
 const result = streamText({
-  model: vertex('gemini-2.0-flash-001'), // Or other supported model via Vertex
+  model: vertex('gemini-2.5-flash-preview-04-17'), // Or other supported model via Vertex
   providerOptions: {
     google: {
       // Options are nested under 'google' for Vertex provider
@@ -412,7 +402,7 @@ const { text } = await generateText({
         {
           type: 'file',
           data: fs.readFileSync('./data/ai.pdf'),
-          mediaType: 'application/pdf',
+          mimeType: 'application/pdf',
         },
       ],
     },
@@ -440,12 +430,9 @@ import { GoogleGenerativeAIProviderMetadata } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const { text, providerMetadata } = await generateText({
-  model: vertex('gemini-1.5-pro'),
-  providerOptions: {
-    google: {
-      useSearchGrounding: true,
-    },
-  },
+  model: vertex('gemini-1.5-pro', {
+    useSearchGrounding: true,
+  }),
   prompt:
     'List the top 5 San Francisco news from the past week.' +
     'You must include the date of each article.',
@@ -521,12 +508,7 @@ import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { sources } = await generateText({
-  model: vertex('gemini-1.5-pro'),
-  providerOptions: {
-    google: {
-      useSearchGrounding: true,
-    },
-  },
+  model: vertex('gemini-1.5-pro', { useSearchGrounding: true }),
   prompt: 'List the top 5 San Francisco news from the past week.',
 });
 ```
@@ -591,12 +573,9 @@ You can disable structured outputs for object generation as a workaround:
 
 ```ts highlight="3,8"
 const result = await generateObject({
-  model: vertex('gemini-1.5-pro'),
-  providerOptions: {
-    google: {
-      structuredOutputs: false,
-    },
-  },
+  model: vertex('gemini-1.5-pro', {
+    structuredOutputs: false,
+  }),
   schema: z.object({
     name: z.string(),
     age: z.number(),
@@ -638,32 +617,21 @@ The following Zod features are known to not work with Google Vertex:
 
 ### Embedding Models
 
-You can create models that call the Google Vertex AI embeddings API using the `.textEmbedding()` factory method:
+You can create models that call the Google Vertex AI embeddings API using the `.textEmbeddingModel()` factory method:
 
 ```ts
-const model = vertex.textEmbedding('text-embedding-004');
+const model = vertex.textEmbeddingModel('text-embedding-004');
 ```
 
 Google Vertex AI embedding models support additional settings. You can pass them as an options argument:
 
 ```ts
-import { vertex } from '@ai-sdk/google-vertex';
-import { embed } from 'ai';
-
-const model = vertex.textEmbedding('text-embedding-004');
-
-const { embedding } = await embed({
-  model,
-  value: 'sunny day at the beach',
-  providerOptions: {
-    google: {
-      outputDimensionality: 512, // optional, number of dimensions for the embedding
-    },
-  },
+const model = vertex.textEmbeddingModel('text-embedding-004', {
+  outputDimensionality: 512, // optional, number of dimensions for the embedding
 });
 ```
 
-The following optional provider options are available for Google Vertex AI embedding models:
+The following optional settings are available for Google Vertex AI embedding models:
 
 - **outputDimensionality**: _number_
 
@@ -701,7 +669,7 @@ Further configuration can be done using Google Vertex provider options. You can 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
+import { generateImage } from 'ai';
 
 const { image } = await generateImage({
   model: vertex.image('imagen-3.0-generate-002'),
@@ -735,24 +703,6 @@ The following provider options are available:
   Imagen models do not support the `size` parameter. Use the `aspectRatio`
   parameter instead.
 </Note>
-
-Additional information about the images can be retrieved using Google Vertex meta data.
-
-```ts
-import { vertex } from '@ai-sdk/google-vertex';
-import { GoogleVertexImageProviderOptions } from '@ai-sdk/google-vertex';
-import { experimental_generateImage as generateImage } from 'ai';
-
-const { image, providerMetadata } = await generateImage({
-  model: vertex.image('imagen-3.0-generate-002'),
-  prompt: 'A futuristic cityscape at sunset',
-  aspectRatio: '16:9',
-});
-
-console.log(
-  `Revised prompt: ${providerMetadata.vertex.images[0].revisedPrompt}`,
-);
-```
 
 #### Model Capabilities
 
@@ -966,7 +916,7 @@ Anthropic language models can also be used in the `streamText`, `generateObject`
   instead of streaming it incrementally.
 </Note>
 
-The following optional provider options are available for Anthropic models:
+The following optional settings are available for Anthropic models:
 
 - `sendReasoning` _boolean_
 
@@ -974,10 +924,6 @@ The following optional provider options are available for Anthropic models:
 
   If you are experiencing issues with the model handling requests involving
   reasoning content, you can set this to `false` to omit them from the request.
-
-- `thinking` _object_
-
-  Optional. See [Reasoning section](#reasoning) for more details.
 
 ### Reasoning
 
@@ -1182,7 +1128,7 @@ const computerTool = vertexAnthropic.tools.computer_20241022({
   experimental_toToolResultContent(result) {
     return typeof result === 'string'
       ? [{ type: 'text', text: result }]
-      : [{ type: 'image', data: result.data, mediaType: 'image/png' }];
+      : [{ type: 'image', data: result.data, mimeType: 'image/png' }];
   },
 });
 ```
