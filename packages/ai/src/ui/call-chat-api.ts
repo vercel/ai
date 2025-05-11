@@ -1,10 +1,18 @@
-import { IdGenerator, Schema } from '@ai-sdk/provider-utils';
-import { parseEncodedDataStream } from '../data-stream/parse-encoded-data-stream';
+import {
+  IdGenerator,
+  parseJsonEventStream,
+  ParseResult,
+  Schema,
+} from '@ai-sdk/provider-utils';
+import {
+  DataStreamPart,
+  dataStreamPartSchema,
+} from '../data-stream/data-stream-parts';
+import { consumeStream } from '../util/consume-stream';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
 import { UIMessage } from './ui-messages';
 import { UseChatOptions } from './use-chat';
-import { consumeStream } from '../util/consume-stream';
 
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
@@ -94,12 +102,19 @@ export async function callChatApi<MESSAGE_METADATA = any>({
 
       await consumeStream({
         stream: processChatResponse({
-          stream: parseEncodedDataStream({
+          stream: parseJsonEventStream({
             stream: response.body,
-            onError: error => {
-              throw error;
-            },
-          }),
+            schema: dataStreamPartSchema,
+          }).pipeThrough(
+            new TransformStream<ParseResult<DataStreamPart>, DataStreamPart>({
+              async transform(part, controller) {
+                if (!part.success) {
+                  throw part.error;
+                }
+                controller.enqueue(part.value);
+              },
+            }),
+          ),
           onUpdate({ message }) {
             const copiedMessage = {
               // deep copy the message to ensure that deep changes (msg attachments) are updated
