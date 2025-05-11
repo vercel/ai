@@ -101,19 +101,7 @@ export async function safeParseJSON<T>({
       return { success: true, value: value as T, rawValue: value };
     }
 
-    const validationResult = await safeValidateTypes({ value, schema });
-
-    return validationResult.success
-      ? {
-          success: true,
-          rawValue: value,
-          value: validationResult.value,
-        }
-      : {
-          success: false,
-          rawValue: value,
-          error: validationResult.error,
-        };
+    return await safeValidateTypes({ value, schema });
   } catch (error) {
     return {
       success: false,
