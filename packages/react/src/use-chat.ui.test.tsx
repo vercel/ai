@@ -999,7 +999,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"args":"{\\\"testArg\\\":\\\"t","step":0,"toolName":"test-tool","state":"partial-call","toolCallId":"tool-call-0"}',
+        '{"args":{"testArg":"t"},"step":0,"toolName":"test-tool","state":"partial-call","toolCallId":"tool-call-0"}',
       );
     });
 
@@ -1015,7 +1015,7 @@ describe('tool invocations', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
-        '{"args":"{\\\"testArg\\\":\\\"test-value\\\"}}","step":0,"toolName":"test-tool","state":"partial-call","toolCallId":"tool-call-0"}',
+        '{"args":{"testArg":"test-value"},"step":0,"toolName":"test-tool","state":"partial-call","toolCallId":"tool-call-0"}',
       );
     });
 
