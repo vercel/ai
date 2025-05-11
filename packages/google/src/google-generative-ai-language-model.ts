@@ -91,6 +91,51 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       schema: googleGenerativeAIProviderOptions,
     });
 
+    // Add warning if includeThoughts is used with a non-Vertex Google provider
+    if (
+      googleOptions?.thinkingConfig?.includeThoughts === true &&
+      !this.config.provider.startsWith('google.vertex.')
+    ) {
+      warnings.push({
+        type: 'other',
+        message:
+          "The 'includeThoughts' option is only supported with the Google Vertex provider " +
+          'and might not be supported or could behave unexpectedly with the current Google provider ' +
+          `(${this.config.provider}).`,
+      });
+    }
+
+    const generationConfig = {
+      // standardized settings:
+      maxOutputTokens,
+      temperature,
+      topK,
+      topP,
+      frequencyPenalty,
+      presencePenalty,
+      stopSequences,
+      seed,
+
+      // response format:
+      responseMimeType:
+        responseFormat?.type === 'json' ? 'application/json' : undefined,
+      responseSchema:
+        responseFormat?.type === 'json' &&
+        responseFormat.schema != null &&
+        // Google GenAI does not support all OpenAPI Schema features,
+        // so this is needed as an escape hatch:
+        (googleOptions?.structuredOutputs ?? true)
+          ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
+          : undefined,
+      ...(googleOptions?.audioTimestamp && {
+        audioTimestamp: googleOptions.audioTimestamp,
+      }),
+
+      // provider options:
+      responseModalities: googleOptions?.responseModalities,
+      thinkingConfig: googleOptions?.thinkingConfig,
+    };
+
     const { contents, systemInstruction } =
       convertToGoogleGenerativeAIMessages(prompt);
 
@@ -188,37 +233,26 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         ? []
         : (candidate.content.parts ?? []);
 
-    for (const part of parts) {
-      if ('text' in part && part.text.length > 0) {
-        content.push({ type: 'text', text: part.text });
-      } else if ('functionCall' in part) {
-        content.push({
-          type: 'tool-call' as const,
-          toolCallType: 'function' as const,
-          toolCallId: this.config.generateId(),
-          toolName: part.functionCall.name,
-          args: JSON.stringify(part.functionCall.args),
-        });
-      } else if ('inlineData' in part) {
-        content.push({
-          type: 'file' as const,
-          data: part.inlineData.data,
-          mediaType: part.inlineData.mimeType,
-        });
-      }
-    }
-
-    // sources
-    const sources =
-      extractSources({
-        groundingMetadata: candidate.groundingMetadata,
-        generateId: this.config.generateId,
-      }) ?? [];
-    for (const source of sources) {
-      content.push(source);
-    }
+    const toolCalls = getToolCallsFromParts({
+      parts: parts, // Use candidateParts
+      generateId: this.config.generateId,
+    });
 
     const usageMetadata = response.usageMetadata;
+
+    // Build content array from all parts
+    const textContent = getTextFromParts(parts);
+    const reasoningContent = getReasoningDetailsFromParts(parts);
+    const fileContent = getInlineDataParts(parts)?.map(part => ({
+      type: 'file' as const,
+      data: part.inlineData.data,
+      mediaType: part.inlineData.mimeType,
+    }));
+
+    if (textContent) content.push(textContent);
+    if (reasoningContent) content.push(...reasoningContent);
+    if (fileContent) content.push(...fileContent);
+    if (toolCalls) content.push(...toolCalls);
 
     return {
       content,
@@ -330,6 +364,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                 controller.enqueue(deltaText);
               }
 
+              const reasoningDeltaText = getReasoningDetailsFromParts(
+                content.parts,
+              );
+              if (reasoningDeltaText != null) {
+                for (const part of reasoningDeltaText) {
+                  controller.enqueue({
+                    type: 'reasoning',
+                    text: part.text,
+                  });
+                }
+              }
+
               const inlineDataParts = getInlineDataParts(content.parts);
               if (inlineDataParts != null) {
                 for (const part of inlineDataParts) {
@@ -437,9 +483,9 @@ function getToolCallsFromParts({
 }
 
 function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
-  const textParts = parts?.filter(part => 'text' in part) as Array<
-    GoogleGenerativeAIContentPart & { text: string }
-  >;
+  const textParts = parts?.filter(
+    part => 'text' in part && (part as any).thought !== true, // Exclude thought parts
+  ) as Array<GoogleGenerativeAIContentPart & { text: string }>;
 
   return textParts == null || textParts.length === 0
     ? undefined
@@ -447,6 +493,20 @@ function getTextFromParts(parts: z.infer<typeof contentSchema>['parts']) {
         type: 'text' as const,
         text: textParts.map(part => part.text).join(''),
       };
+}
+
+function getReasoningDetailsFromParts(
+  parts: z.infer<typeof contentSchema>['parts'],
+): Array<{ type: 'text'; text: string }> | undefined {
+  const reasoningParts = parts?.filter(
+    part => 'text' in part && (part as any).thought === true,
+  ) as Array<
+    GoogleGenerativeAIContentPart & { text: string; thought?: boolean }
+  >;
+
+  return reasoningParts == null || reasoningParts.length === 0
+    ? undefined
+    : reasoningParts.map(part => ({ type: 'text', text: part.text }));
 }
 
 function getInlineDataParts(parts: z.infer<typeof contentSchema>['parts']) {
@@ -490,6 +550,7 @@ const contentSchema = z.object({
       z.union([
         z.object({
           text: z.string(),
+          thought: z.boolean().nullish(),
         }),
         z.object({
           functionCall: z.object({
@@ -591,3 +652,16 @@ const chunkSchema = z.object({
     .nullish(),
   usageMetadata: usageSchema.nullish(),
 });
+
+const googleGenerativeAIProviderOptionsSchema = z.object({
+  responseModalities: z.array(z.enum(['TEXT', 'IMAGE'])).nullish(),
+  thinkingConfig: z
+    .object({
+      thinkingBudget: z.number().nullish(),
+      includeThoughts: z.boolean().nullish(),
+    })
+    .nullish(),
+});
+export type GoogleGenerativeAIProviderOptions = z.infer<
+  typeof googleGenerativeAIProviderOptionsSchema
+>;
