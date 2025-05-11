@@ -32,7 +32,7 @@ The role of the message.
   /**
 The metadata of the message.
    */
-  metadata: METADATA | undefined;
+  metadata?: METADATA;
 
   /**
 The parts of the message. Use this for rendering the message in the UI.
