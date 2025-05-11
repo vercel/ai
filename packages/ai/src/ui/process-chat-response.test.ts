@@ -407,6 +407,7 @@ describe('processChatResponse', () => {
         lastMessage: {
           role: 'assistant',
           id: 'original-id',
+          metadata: undefined,
           parts: [
             {
               type: 'tool-invocation',
@@ -430,6 +431,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": undefined,
               "parts": [
                 {
                   "toolInvocation": {
@@ -452,6 +454,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": undefined,
               "parts": [
                 {
                   "toolInvocation": {
@@ -477,6 +480,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": undefined,
               "parts": [
                 {
                   "toolInvocation": {
@@ -514,6 +518,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": undefined,
               "parts": [
                 {
                   "toolInvocation": {
@@ -554,6 +559,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": undefined,
               "parts": [
                 {
                   "toolInvocation": {
@@ -597,6 +603,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": undefined,
               "parts": [
                 {
                   "toolInvocation": {
@@ -651,6 +658,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": undefined,
               "parts": [
                 {
                   "toolInvocation": {

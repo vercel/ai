@@ -146,6 +146,7 @@ Internal. For test use only. May change without notice.
           clonedMessages.push({
             role: 'assistant',
             id: messageId,
+            metadata: undefined,
             parts: [
               ...parts,
               ...getToolInvocationsForStep(0).map(call => ({

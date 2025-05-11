@@ -91,9 +91,7 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
       revisionId: generateId(),
     } as UIMessage;
 
-    update({
-      message: copiedMessage,
-    });
+    update({ message: copiedMessage });
   }
 
   async function updateMessageMetadata(metadata: unknown) {
@@ -299,13 +297,7 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
         // add a step boundary part to the message
         message.parts.push({ type: 'step-start' });
 
-        if (value.metadata != null) {
-          message.metadata =
-            message.metadata != null
-              ? mergeObjects(message.metadata, value.metadata)
-              : value.metadata;
-        }
-
+        await updateMessageMetadata(value.metadata);
         execUpdate();
         break;
       }
@@ -317,7 +309,7 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
         currentTextPart = undefined;
         currentReasoningPart = undefined;
 
-        updateMessageMetadata(value.metadata);
+        await updateMessageMetadata(value.metadata);
         if (value.metadata != null) {
           execUpdate();
         }
@@ -329,7 +321,7 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
           message.id = value.messageId;
         }
 
-        updateMessageMetadata(value.metadata);
+        await updateMessageMetadata(value.metadata);
 
         if (value.messageId != null || value.metadata != null) {
           execUpdate();
@@ -338,7 +330,7 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
       }
 
       case 'finish': {
-        updateMessageMetadata(value.metadata);
+        await updateMessageMetadata(value.metadata);
         if (value.metadata != null) {
           execUpdate();
         }
@@ -346,7 +338,7 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
       }
 
       case 'message-metadata': {
-        updateMessageMetadata(value.metadata);
+        await updateMessageMetadata(value.metadata);
         if (value.metadata != null) {
           execUpdate();
         }
