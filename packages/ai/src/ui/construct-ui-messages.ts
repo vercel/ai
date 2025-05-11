@@ -1,5 +1,4 @@
 import { DataStreamPart } from '../data-stream';
-import { createAsyncIterableStream } from '../util/async-iterable-stream';
 import { processChatResponse } from './process-chat-response';
 import { UIMessage } from './ui-messages';
 
@@ -36,7 +35,7 @@ export function constructUIMessages({
   }
 
   return processChatResponse({
-    stream: createAsyncIterableStream(uiMessageStream),
+    stream: uiMessageStream,
     lastMessage: originalMessages[originalMessages.length - 1],
     newMessageId,
     onFinish: ({ message, isContinuation }) => {
