@@ -3,6 +3,7 @@ import type {
   CreateUIMessage,
   FileUIPart,
   JSONValue,
+  Schema,
   UIMessage,
   UseChatOptions,
 } from 'ai';
@@ -23,9 +24,9 @@ import { useStableValue } from './util/use-stable-value';
 
 export type { CreateUIMessage, UIMessage, UseChatOptions };
 
-export type UseChatHelpers = {
+export type UseChatHelpers<MESSAGE_METADATA> = {
   /** Current messages in the chat */
-  messages: UIMessage[];
+  messages: UIMessage<MESSAGE_METADATA>[];
   /** The error object of the API request */
   error: undefined | Error;
   /**
@@ -123,7 +124,7 @@ export type UseChatHelpers = {
   id: string;
 };
 
-export function useChat({
+export function useChat<MESSAGE_METADATA>({
   api = '/api/chat',
   id,
   initialMessages,
@@ -141,7 +142,8 @@ export function useChat({
   generateId = generateIdFunc,
   fetch,
   experimental_throttle: throttleWaitMs,
-}: UseChatOptions & {
+  messageMetadataSchema,
+}: UseChatOptions<MESSAGE_METADATA> & {
   key?: string;
 
   /**
@@ -160,6 +162,8 @@ export function useChat({
     requestBody?: object;
   }) => unknown;
 
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
+
   /**
 Custom throttle wait in ms for the chat messages and data updates.
 Default is undefined, which disables throttling.
@@ -169,7 +173,7 @@ Default is undefined, which disables throttling.
   '~internal'?: {
     currentDate?: () => Date;
   };
-} = {}): UseChatHelpers {
+} = {}): UseChatHelpers<MESSAGE_METADATA> {
   // Generate ID once, store in state for stability across re-renders
   const [hookId] = useState(generateId);
 
@@ -258,15 +262,9 @@ Default is undefined, which disables throttling.
         abortControllerRef.current = abortController;
 
         const throttledMutate = throttle(mutate, throttleWaitMs);
-        const throttledMutateStreamData = throttle(
-          mutateStreamData,
-          throttleWaitMs,
-        );
 
         // Do an optimistic update to show the updated messages immediately:
         throttledMutate(chatMessages, false);
-
-        const existingData = streamDataRef.current;
 
         await callChatApi({
           api,
@@ -312,6 +310,7 @@ Default is undefined, which disables throttling.
           fetch,
           lastMessage: chatMessages[chatMessages.length - 1],
           requestType,
+          messageMetadataSchema,
         });
 
         abortControllerRef.current = null;
@@ -481,6 +480,7 @@ Default is undefined, which disables throttling.
         messages: messagesRef.current.concat({
           id: generateId(),
           role: 'user',
+          metadata: undefined,
           parts: [...fileParts, { type: 'text', text: input }],
         }),
         headers: options.headers,

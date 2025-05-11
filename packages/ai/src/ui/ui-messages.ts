@@ -18,7 +18,7 @@ export type ToolInvocation =
 /**
  * AI SDK UI Messages. They are used in the client and to communicate between the frontend and the API routes.
  */
-export interface UIMessage {
+export interface UIMessage<METADATA = any> {
   /**
 A unique identifier for the message.
    */
@@ -32,7 +32,7 @@ The role of the message.
   /**
 The metadata of the message.
    */
-  metadata?: any; // TODO json / typing
+  metadata: METADATA | undefined;
 
   /**
 The parts of the message. Use this for rendering the message in the UI.

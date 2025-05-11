@@ -1,6 +1,7 @@
 import {
   generateId as generateIdFunction,
   Schema,
+  validateTypes,
 } from '@ai-sdk/provider-utils';
 import { parseEncodedDataStream } from '../data-stream/parse-encoded-data-stream';
 import { mergeObjects } from '../util/merge-objects';
@@ -23,13 +24,14 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
   onFinish,
   lastMessage,
   generateId = generateIdFunction,
+  messageMetadataSchema,
 }: {
   stream: ReadableStream<Uint8Array>;
-  update: (options: { message: UIMessage }) => void;
+  update: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
   onToolCall?: UseChatOptions['onToolCall'];
-  onFinish?: (options: { message: UIMessage }) => void;
+  onFinish?: (options: { message: UIMessage<MESSAGE_METADATA> }) => void;
   generateId?: () => string;
-  lastMessage: UIMessage | undefined;
+  lastMessage: UIMessage<MESSAGE_METADATA> | undefined;
   messageMetadataSchema?: Schema<MESSAGE_METADATA>;
 }) {
   const replaceLastMessage = lastMessage?.role === 'assistant';
@@ -38,10 +40,11 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
     ? 1 + (extractMaxToolInvocationStep(getToolInvocations(lastMessage)) ?? 0)
     : 0;
 
-  const message: UIMessage = replaceLastMessage
+  const message: UIMessage<MESSAGE_METADATA> = replaceLastMessage
     ? structuredClone(lastMessage)
     : {
         id: generateId(),
+        metadata: {} as MESSAGE_METADATA,
         role: 'assistant',
         parts: [],
       };
@@ -93,12 +96,21 @@ export async function processChatResponse<MESSAGE_METADATA = any>({
     });
   }
 
-  function updateMessageMetadata(metadata: unknown) {
+  async function updateMessageMetadata(metadata: unknown) {
     if (metadata != null) {
-      message.metadata =
+      const mergedMetadata =
         message.metadata != null
           ? mergeObjects(message.metadata, metadata)
           : metadata;
+
+      if (messageMetadataSchema != null) {
+        await validateTypes({
+          value: mergedMetadata,
+          schema: messageMetadataSchema,
+        });
+      }
+
+      message.metadata = mergedMetadata as MESSAGE_METADATA;
     }
   }
 

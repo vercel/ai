@@ -1,6 +1,5 @@
-import { JSONValue, LanguageModelV2FinishReason } from '@ai-sdk/provider';
+import { JSONValue } from '@ai-sdk/provider';
 import { FetchFunction, IdGenerator, ToolCall } from '@ai-sdk/provider-utils';
-import { LanguageModelUsage } from '../../core/types/usage';
 import { UIMessage } from './ui-messages';
 
 export type ChatRequestOptions = {
@@ -25,7 +24,7 @@ export type ChatRequestOptions = {
   allowEmptySubmit?: boolean;
 };
 
-export type UseChatOptions = {
+export type UseChatOptions<MESSAGE_METADATA = any> = {
   /**
    * The API endpoint that accepts a `{ messages: Message[] }` object and returns
    * a stream of tokens of the AI chat response. Defaults to `/api/chat`.
@@ -42,7 +41,7 @@ export type UseChatOptions = {
   /**
    * Initial messages of the chat. Useful to load an existing chat history.
    */
-  initialMessages?: UIMessage[];
+  initialMessages?: UIMessage<MESSAGE_METADATA>[];
 
   /**
    * Initial input of the chat.

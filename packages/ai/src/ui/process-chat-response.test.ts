@@ -65,6 +65,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -73,6 +74,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -85,6 +87,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -101,6 +104,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -124,6 +128,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -183,6 +188,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -191,6 +197,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -203,6 +210,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -227,6 +235,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -254,6 +263,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -284,6 +294,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -325,6 +336,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -732,6 +744,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -740,6 +753,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -752,6 +766,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -768,6 +783,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -784,6 +800,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -812,6 +829,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -843,6 +861,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -877,6 +896,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -915,6 +935,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -960,6 +981,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1062,6 +1084,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -1070,6 +1093,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1082,6 +1106,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1099,6 +1124,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1120,6 +1146,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1153,6 +1180,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1189,6 +1217,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1228,6 +1257,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1276,6 +1306,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1335,6 +1366,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1718,6 +1750,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -1726,6 +1759,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1738,6 +1772,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -1980,6 +2015,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -1988,6 +2024,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2000,6 +2037,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2022,6 +2060,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2046,6 +2085,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2070,6 +2110,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2094,6 +2135,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2126,6 +2168,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2178,6 +2221,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -2186,6 +2230,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2198,6 +2243,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2214,6 +2260,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2237,6 +2284,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2319,6 +2367,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -2327,6 +2376,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2339,6 +2389,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2356,6 +2407,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2377,6 +2429,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2398,6 +2451,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2415,6 +2469,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2436,6 +2491,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2468,6 +2524,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2527,6 +2584,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -2535,6 +2593,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2547,6 +2606,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2571,6 +2631,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2603,6 +2664,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2664,6 +2726,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -2672,6 +2735,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2684,6 +2748,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2700,6 +2765,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2733,6 +2799,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2800,6 +2867,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [],
               "revisionId": "id-1",
               "role": "assistant",
@@ -2808,6 +2876,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2820,6 +2889,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2836,6 +2906,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2857,6 +2928,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2878,6 +2950,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",
@@ -2911,6 +2984,7 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
+              "metadata": {},
               "parts": [
                 {
                   "type": "step-start",

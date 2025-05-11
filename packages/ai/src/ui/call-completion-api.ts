@@ -1,5 +1,4 @@
 import { JSONValue } from '@ai-sdk/provider';
-import { processDataStream } from '../../src/data-stream/process-data-stream';
 import { processTextStream } from './process-text-stream';
 
 // use function to allow for mocking in tests:
@@ -96,21 +95,21 @@ export async function callCompletionApi({
         break;
       }
       case 'data': {
-        await processDataStream({
-          stream: response.body,
-          onTextPart(value) {
-            result += value;
-            setCompletion(result);
-          },
-          onErrorPart(value) {
-            throw new Error(value);
-          },
-        });
-        break;
+        // await processDataStream({
+        //   stream: response.body,
+        //   onTextPart(value) {
+        //     result += value;
+        //     setCompletion(result);
+        //   },
+        //   onErrorPart(value) {
+        //     throw new Error(value);
+        //   },
+        // });
+        // break;
       }
       default: {
-        const exhaustiveCheck: never = streamProtocol;
-        throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
+        // const exhaustiveCheck: never = streamProtocol;
+        // throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
       }
     }
 

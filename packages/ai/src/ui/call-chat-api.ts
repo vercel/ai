@@ -1,4 +1,4 @@
-import { IdGenerator } from '@ai-sdk/provider-utils';
+import { IdGenerator, Schema } from '@ai-sdk/provider-utils';
 import { processChatResponse } from './process-chat-response';
 import { processChatTextResponse } from './process-chat-text-response';
 import { UIMessage } from './ui-messages';
@@ -7,7 +7,7 @@ import { UseChatOptions } from './use-chat';
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export async function callChatApi({
+export async function callChatApi<MESSAGE_METADATA = any>({
   api,
   body,
   streamProtocol = 'data',
@@ -22,6 +22,7 @@ export async function callChatApi({
   fetch = getOriginalFetch(),
   lastMessage,
   requestType = 'generate',
+  messageMetadataSchema,
 }: {
   api: string;
   body: Record<string, any>;
@@ -37,6 +38,7 @@ export async function callChatApi({
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
   lastMessage: UIMessage | undefined;
   requestType?: 'generate' | 'resume';
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
 }) {
   const response =
     requestType === 'resume'
@@ -95,6 +97,7 @@ export async function callChatApi({
         onToolCall,
         onFinish,
         generateId,
+        messageMetadataSchema,
       });
       return;
     }
