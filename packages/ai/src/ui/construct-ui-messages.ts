@@ -1,7 +1,6 @@
 import { DataStreamPart } from '../data-stream';
 import { TextUIPart, UIMessage } from './ui-messages';
 
-// TODO rename
 export function constructUIMessages({
   newMessageId,
   originalMessages,

@@ -9,7 +9,7 @@ import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { constructUIMessages } from '../../src/ui/x';
+import { constructUIMessages } from '../../src/ui/construct-ui-messages';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,

@@ -1209,7 +1209,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream();
+      const dataStream = result.toDataStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1256,7 +1256,7 @@ describe('streamText', () => {
       });
 
       expect(
-        await convertReadableStreamToArray(result.toUIMessageStream()),
+        await convertReadableStreamToArray(result.toDataStream()),
       ).toMatchSnapshot();
     });
 
@@ -1303,7 +1303,7 @@ describe('streamText', () => {
       });
 
       expect(
-        await convertReadableStreamToArray(result.toUIMessageStream()),
+        await convertReadableStreamToArray(result.toDataStream()),
       ).toMatchSnapshot();
     });
 
@@ -1317,7 +1317,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream();
+      const dataStream = result.toDataStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1332,7 +1332,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream({
+      const dataStream = result.toDataStream({
         onError: error => `custom error message: ${error}`,
       });
 
@@ -1354,7 +1354,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream({
+      const dataStream = result.toDataStream({
         experimental_sendFinish: false,
       });
 
@@ -1367,7 +1367,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream({ sendReasoning: true });
+      const dataStream = result.toDataStream({ sendReasoning: true });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1378,7 +1378,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream({ sendSources: true });
+      const dataStream = result.toDataStream({ sendSources: true });
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1389,7 +1389,7 @@ describe('streamText', () => {
         ...defaultSettings(),
       });
 
-      const dataStream = result.toUIMessageStream();
+      const dataStream = result.toDataStream();
 
       expect(await convertReadableStreamToArray(dataStream)).toMatchSnapshot();
     });
@@ -1672,9 +1672,7 @@ describe('streamText', () => {
       expect({
         textStream: await convertAsyncIterableToArray(result.textStream),
         fullStream: await convertAsyncIterableToArray(result.fullStream),
-        dataStream: await convertReadableStreamToArray(
-          result.toUIMessageStream(),
-        ),
+        dataStream: await convertReadableStreamToArray(result.toDataStream()),
       }).toMatchSnapshot();
     });
   });
