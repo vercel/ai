@@ -130,22 +130,6 @@ describe('processChatResponse', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-6",
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -405,40 +389,6 @@ describe('processChatResponse', () => {
                 },
               ],
               "revisionId": "id-8",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-9",
               "role": "assistant",
             },
           },
@@ -843,53 +793,6 @@ describe('processChatResponse', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 1,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-8",
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -1277,44 +1180,6 @@ describe('processChatResponse', () => {
                 },
               ],
               "revisionId": "id-11",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "I will use a tool to get the weather in London.",
-                  "type": "text",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-12",
               "role": "assistant",
             },
           },
@@ -1781,58 +1646,6 @@ describe('processChatResponse', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
-                  },
-                  "text": "I will use a tool to get the weather in London.",
-                  "type": "reasoning",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
-                    },
-                  },
-                  "text": "I know know the weather in London.",
-                  "type": "reasoning",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-12",
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -1896,6 +1709,303 @@ describe('processChatResponse', () => {
     });
   });
 
+  describe('scenario: message metadata', () => {
+    beforeEach(async () => {
+      const stream = createDataProtocolStream([
+        {
+          type: 'start',
+          value: {
+            messageId: 'msg-123',
+            metadata: {
+              start: 'start-1',
+              shared: {
+                key1: 'value-1a',
+                key2: 'value-2a',
+              },
+            },
+          },
+        },
+        {
+          type: 'start-step',
+          value: {
+            metadata: {
+              startStep: 'start-step-1',
+              shared: {
+                key1: 'value-1b',
+                key3: 'value-3b',
+              },
+            },
+          },
+        },
+        { type: 'text', value: 't1' },
+        {
+          type: 'message-metadata',
+          value: {
+            metadata: {
+              metadata: 'metadata-1',
+              shared: {
+                key1: 'value-1c',
+                key4: 'value-4c',
+              },
+            },
+          },
+        },
+        { type: 'text', value: 't2' },
+        {
+          type: 'finish-step',
+          value: {
+            metadata: {
+              finishStep: 'finish-step-1',
+              shared: {
+                key1: 'value-1d',
+                key5: 'value-5d',
+              },
+            },
+          },
+        },
+        {
+          type: 'finish',
+          value: {
+            metadata: {
+              finish: 'finish-1',
+              shared: {
+                key1: 'value-1e',
+                key6: 'value-6e',
+              },
+            },
+          },
+        },
+      ]);
+
+      await processChatResponse({
+        stream,
+        update,
+        onFinish,
+        generateId: mockId(),
+        lastMessage: undefined,
+      });
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(updateCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "shared": {
+                  "key1": "value-1a",
+                  "key2": "value-2a",
+                },
+                "start": "start-1",
+              },
+              "parts": [],
+              "revisionId": "id-1",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "shared": {
+                  "key1": "value-1b",
+                  "key2": "value-2a",
+                  "key3": "value-3b",
+                },
+                "start": "start-1",
+                "startStep": "start-step-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "revisionId": "id-2",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "shared": {
+                  "key1": "value-1b",
+                  "key2": "value-2a",
+                  "key3": "value-3b",
+                },
+                "start": "start-1",
+                "startStep": "start-step-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "revisionId": "id-3",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "metadata": "metadata-1",
+                "shared": {
+                  "key1": "value-1c",
+                  "key2": "value-2a",
+                  "key3": "value-3b",
+                  "key4": "value-4c",
+                },
+                "start": "start-1",
+                "startStep": "start-step-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "revisionId": "id-4",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "metadata": "metadata-1",
+                "shared": {
+                  "key1": "value-1c",
+                  "key2": "value-2a",
+                  "key3": "value-3b",
+                  "key4": "value-4c",
+                },
+                "start": "start-1",
+                "startStep": "start-step-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1t2",
+                  "type": "text",
+                },
+              ],
+              "revisionId": "id-5",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "finishStep": "finish-step-1",
+                "metadata": "metadata-1",
+                "shared": {
+                  "key1": "value-1d",
+                  "key2": "value-2a",
+                  "key3": "value-3b",
+                  "key4": "value-4c",
+                  "key5": "value-5d",
+                },
+                "start": "start-1",
+                "startStep": "start-step-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1t2",
+                  "type": "text",
+                },
+              ],
+              "revisionId": "id-6",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "finish": "finish-1",
+                "finishStep": "finish-step-1",
+                "metadata": "metadata-1",
+                "shared": {
+                  "key1": "value-1e",
+                  "key2": "value-2a",
+                  "key3": "value-3b",
+                  "key4": "value-4c",
+                  "key5": "value-5d",
+                  "key6": "value-6e",
+                },
+                "start": "start-1",
+                "startStep": "start-step-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1t2",
+                  "type": "text",
+                },
+              ],
+              "revisionId": "id-7",
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should call the onFinish function with the correct arguments', async () => {
+      expect(finishCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "finish": "finish-1",
+                "finishStep": "finish-step-1",
+                "metadata": "metadata-1",
+                "shared": {
+                  "key1": "value-1e",
+                  "key2": "value-2a",
+                  "key3": "value-3b",
+                  "key4": "value-4c",
+                  "key5": "value-5d",
+                  "key6": "value-6e",
+                },
+                "start": "start-1",
+                "startStep": "start-step-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1t2",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+  });
+
   describe.skip('scenario: delayed message annotations in onFinish', () => {
     beforeEach(async () => {
       const stream = createDataProtocolStream([
@@ -1936,67 +2046,6 @@ describe('processChatResponse', () => {
               example: 'annotation',
             },
           ],
-        },
-      ]);
-
-      await processChatResponse({
-        stream,
-        update,
-        onFinish,
-        generateId: mockId(),
-        lastMessage: undefined,
-      });
-    });
-
-    it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
-    });
-
-    it('should call the onFinish function with the correct arguments', async () => {
-      expect(finishCalls).toMatchSnapshot();
-    });
-  });
-
-  describe.skip('scenario: message annotations in onChunk', () => {
-    beforeEach(async () => {
-      const stream = createDataProtocolStream([
-        { type: 'start-step', value: { messageId: 'msg-123' } },
-        {
-          type: 'message-annotations',
-          value: ['annotation1'],
-        },
-        { type: 'text', value: 't1' },
-        {
-          type: 'message-annotations',
-          value: ['annotation2'],
-        },
-        { type: 'text', value: 't2' },
-        {
-          type: 'finish-step',
-          value: {
-            finishReason: 'stop',
-            usage: {
-              inputTokens: 5,
-              outputTokens: 10,
-              totalTokens: 15,
-              reasoningTokens: undefined,
-              cachedInputTokens: undefined,
-            },
-          },
-        },
-        {
-          type: 'finish',
-          value: {
-            finishReason: 'stop',
-            messageId: 'msg-123',
-            totalUsage: {
-              inputTokens: 5,
-              outputTokens: 10,
-              totalTokens: 15,
-              reasoningTokens: undefined,
-              cachedInputTokens: undefined,
-            },
-          },
         },
       ]);
 
@@ -2300,31 +2349,6 @@ describe('processChatResponse', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "testArg": "test-value",
-                    },
-                    "result": "test-result",
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
-                  },
-                  "type": "tool-invocation",
-                },
-              ],
-              "revisionId": "id-9",
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -2449,22 +2473,6 @@ describe('processChatResponse', () => {
                 },
               ],
               "revisionId": "id-5",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -2724,31 +2732,6 @@ describe('processChatResponse', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
-                    },
-                  },
-                  "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
-                  "type": "reasoning",
-                },
-                {
-                  "text": "Hi there!",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-10",
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -2909,31 +2892,6 @@ describe('processChatResponse', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": "test-result",
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-              ],
-              "revisionId": "id-6",
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -3087,32 +3045,6 @@ describe('processChatResponse', () => {
                 },
               ],
               "revisionId": "id-5",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-                {
-                  "source": {
-                    "id": "source-id",
-                    "sourceType": "url",
-                    "title": "Example",
-                    "type": "source",
-                    "url": "https://example.com",
-                  },
-                  "type": "source",
-                },
-              ],
-              "revisionId": "id-6",
               "role": "assistant",
             },
           },
@@ -3317,32 +3249,6 @@ describe('processChatResponse', () => {
                 },
               ],
               "revisionId": "id-7",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "Here is a file:And another one:",
-                  "type": "text",
-                },
-                {
-                  "mediaType": "text/plain",
-                  "type": "file",
-                  "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
-                },
-                {
-                  "mediaType": "application/json",
-                  "type": "file",
-                  "url": "data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9",
-                },
-              ],
-              "revisionId": "id-8",
               "role": "assistant",
             },
           },
