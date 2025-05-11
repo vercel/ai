@@ -576,31 +576,6 @@ exports[`processChatResponse > scenario: server provides sources > should call t
 
 exports[`processChatResponse > scenario: server provides sources > should call the updateData function with the correct arguments 1`] = `[]`;
 
-exports[`processChatResponse > scenario: server-side continue roundtrip > should call the addOrUpdateAssistantMessageParts function with the correct arguments 1`] = `
-[
-  [
-    {
-      "chatId": "chat-id",
-      "generateId": [Function],
-      "partDelta": {
-        "text": "The weather in London ",
-        "type": "text",
-      },
-    },
-  ],
-  [
-    {
-      "chatId": "chat-id",
-      "generateId": [Function],
-      "partDelta": {
-        "text": "is sunny.",
-        "type": "text",
-      },
-    },
-  ],
-]
-`;
-
 exports[`processChatResponse > scenario: server-side tool roundtrip > should call the addOrUpdateAssistantMessageParts function with the correct arguments 1`] = `
 [
   [

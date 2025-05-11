@@ -75,7 +75,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
 
@@ -147,8 +149,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -264,7 +267,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -364,8 +369,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -467,8 +473,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -588,8 +595,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        generateId: mockId(),
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -669,7 +677,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -756,7 +766,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -831,7 +843,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -937,7 +951,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -1013,7 +1029,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -1128,7 +1146,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -1207,7 +1227,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([
@@ -1288,7 +1310,9 @@ describe('processChatResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createDataProtocolStream([

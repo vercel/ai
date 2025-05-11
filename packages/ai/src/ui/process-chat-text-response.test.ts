@@ -55,7 +55,9 @@ describe('processChatTextResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
 
@@ -93,7 +95,9 @@ describe('processChatTextResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createTextStream([]);
@@ -130,7 +134,9 @@ describe('processChatTextResponse', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2023-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       storeSpy = vi.spyOn(store, 'addOrUpdateAssistantMessageParts');
       const stream = createTextStream(['A', 'B', 'C', 'D', 'E']);

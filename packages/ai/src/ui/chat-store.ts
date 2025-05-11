@@ -35,6 +35,8 @@ export interface ChatState {
       textPart?: TextUIPart;
       reasoningPart?: ReasoningUIPart;
       toolParts?: Record<string, ToolInvocationUIPart>;
+      // Maintains accumulated string representation of tool invocation args:
+      toolArgs?: Record<string, string>;
     };
   };
   error?: Error;
@@ -212,7 +214,6 @@ export class ChatStore {
     chat.error = undefined;
     chat.status = 'ready';
     this.emitEvent({ type: 'chat-status-changed', chatId: id });
-    console.log('resetActiveResponse', id);
   }
 
   /**
@@ -265,8 +266,20 @@ export class ChatStore {
             },
             {} as Record<string, ToolInvocationUIPart>,
           ),
+        toolArgs: parts
+          .filter(part => part.type === 'tool-invocation')
+          .reduce(
+            (acc, part) => {
+              acc[part.toolInvocation.toolCallId] = String(
+                part.toolInvocation.args,
+              );
+              return acc;
+            },
+            {} as Record<string, string>,
+          ),
       },
     };
+
     chat.messages.push(chat.activeResponse!.message);
   }
 
@@ -370,22 +383,15 @@ export class ChatStore {
     });
   }
 
-  clearStepPartialState({
-    id,
-    isContinued = false,
-  }: {
-    id: string;
-    isContinued?: boolean;
-  }) {
+  clearStepPartialState({ id }: { id: string }) {
     const chat = this.chats.get(id);
     if (!chat || !chat.activeResponse) return;
 
     const partialState = {
       toolParts: chat.activeResponse?.partialState?.toolParts,
+      toolArgs: chat.activeResponse?.partialState?.toolArgs,
       reasoningPart: undefined,
-      textPart: isContinued
-        ? chat.activeResponse?.partialState?.textPart
-        : undefined,
+      textPart: undefined,
     };
 
     chat.activeResponse.partialState = partialState;
@@ -406,6 +412,7 @@ export class ChatStore {
     const { message, partialState } = activeResponse;
 
     if (!partialState.toolParts) partialState.toolParts = {};
+    if (!partialState.toolArgs) partialState.toolArgs = {};
 
     const existingToolPart = partialState.toolParts[toolCallId] || {};
     const existingToolInvocation = existingToolPart?.toolInvocation;
@@ -415,10 +422,11 @@ export class ChatStore {
 
       switch (existingToolInvocation.state) {
         case 'partial-call': {
-          const args = existingToolInvocation.args + toolInvocation.args;
-          const { value: partialArgs, state } = await parsePartialJson(args);
-          existingToolInvocation.args =
-            state === 'successful-parse' ? partialArgs : args;
+          partialState.toolArgs[toolCallId] += toolInvocation.args;
+          const { value: partialArgs } = await parsePartialJson(
+            partialState.toolArgs[toolCallId],
+          );
+          existingToolInvocation.args = partialArgs;
           break;
         }
         case 'call': {
@@ -458,6 +466,7 @@ export class ChatStore {
       };
 
       partialState.toolParts[toolCallId] = partialToolPart;
+      partialState.toolArgs[toolCallId] = toolInvocation.args ?? '';
       message.parts.push(partialToolPart);
     }
   }
@@ -509,7 +518,6 @@ export class ChatStore {
     if (id) {
       this.setMessages({ id, messages: [] });
       this.resetActiveResponse(id);
-      console.log('clear', id);
     } else {
       const ids = Array.from(this.chats.keys());
       for (const id of ids) {

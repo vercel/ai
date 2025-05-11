@@ -424,7 +424,9 @@ describe('ChatStore', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       expect(() => store.removeAssistantResponse(id)).toThrow();
     });
@@ -444,7 +446,9 @@ describe('ChatStore', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
     });
   });
