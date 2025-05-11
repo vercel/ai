@@ -1,4 +1,7 @@
-import { generateId as generateIdFunction } from '@ai-sdk/provider-utils';
+import {
+  generateId as generateIdFunction,
+  Schema,
+} from '@ai-sdk/provider-utils';
 import { parseEncodedDataStream } from '../data-stream/parse-encoded-data-stream';
 import { mergeObjects } from '../util/merge-objects';
 import { parsePartialJson } from '../util/parse-partial-json';
@@ -13,7 +16,7 @@ import type {
 } from './ui-messages';
 import { UseChatOptions } from './use-chat';
 
-export async function processChatResponse({
+export async function processChatResponse<MESSAGE_METADATA = any>({
   stream,
   update,
   onToolCall,
@@ -27,6 +30,7 @@ export async function processChatResponse({
   onFinish?: (options: { message: UIMessage }) => void;
   generateId?: () => string;
   lastMessage: UIMessage | undefined;
+  messageMetadataSchema?: Schema<MESSAGE_METADATA>;
 }) {
   const replaceLastMessage = lastMessage?.role === 'assistant';
 
@@ -87,6 +91,15 @@ export async function processChatResponse({
     update({
       message: copiedMessage,
     });
+  }
+
+  function updateMessageMetadata(metadata: unknown) {
+    if (metadata != null) {
+      message.metadata =
+        message.metadata != null
+          ? mergeObjects(message.metadata, metadata)
+          : metadata;
+    }
   }
 
   const streamParts = parseEncodedDataStream(stream);
@@ -292,14 +305,10 @@ export async function processChatResponse({
         currentTextPart = undefined;
         currentReasoningPart = undefined;
 
+        updateMessageMetadata(value.metadata);
         if (value.metadata != null) {
-          message.metadata =
-            message.metadata != null
-              ? mergeObjects(message.metadata, value.metadata)
-              : value.metadata;
+          execUpdate();
         }
-
-        execUpdate();
         break;
       }
 
@@ -308,12 +317,7 @@ export async function processChatResponse({
           message.id = value.messageId;
         }
 
-        if (value.metadata != null) {
-          message.metadata =
-            message.metadata != null
-              ? mergeObjects(message.metadata, value.metadata)
-              : value.metadata;
-        }
+        updateMessageMetadata(value.metadata);
 
         if (value.messageId != null || value.metadata != null) {
           execUpdate();
@@ -322,22 +326,16 @@ export async function processChatResponse({
       }
 
       case 'finish': {
+        updateMessageMetadata(value.metadata);
         if (value.metadata != null) {
-          message.metadata =
-            message.metadata != null
-              ? mergeObjects(message.metadata, value.metadata)
-              : value.metadata;
           execUpdate();
         }
         break;
       }
 
       case 'message-metadata': {
+        updateMessageMetadata(value.metadata);
         if (value.metadata != null) {
-          message.metadata =
-            message.metadata != null
-              ? mergeObjects(message.metadata, value.metadata)
-              : value.metadata;
           execUpdate();
         }
         break;

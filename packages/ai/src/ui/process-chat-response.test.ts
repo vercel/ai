@@ -114,22 +114,6 @@ describe('processChatResponse', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-5",
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -289,6 +273,9 @@ describe('processChatResponse', () => {
                   },
                   "type": "tool-invocation",
                 },
+                {
+                  "type": "step-start",
+                },
               ],
               "revisionId": "id-5",
               "role": "assistant",
@@ -319,76 +306,12 @@ describe('processChatResponse', () => {
                 {
                   "type": "step-start",
                 },
+                {
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
               ],
               "revisionId": "id-6",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-7",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-8",
               "role": "assistant",
             },
           },
@@ -651,6 +574,9 @@ describe('processChatResponse', () => {
                   },
                   "type": "tool-invocation",
                 },
+                {
+                  "type": "step-start",
+                },
               ],
               "revisionId": "id-4",
               "role": "assistant",
@@ -694,102 +620,12 @@ describe('processChatResponse', () => {
                 {
                   "type": "step-start",
                 },
+                {
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
               ],
               "revisionId": "id-5",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 1,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-6",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "toolInvocation": {
-                    "args": {},
-                    "result": {
-                      "location": "Berlin",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id-original",
-                    "toolName": "tool-name-original",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 1,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-7",
               "role": "assistant",
             },
           },
@@ -1030,42 +866,11 @@ describe('processChatResponse', () => {
                   },
                   "type": "tool-invocation",
                 },
+                {
+                  "type": "step-start",
+                },
               ],
               "revisionId": "id-7",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "I will use a tool to get the weather in London.",
-                  "type": "text",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-              ],
-              "revisionId": "id-8",
               "role": "assistant",
             },
           },
@@ -1103,83 +908,45 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
+              "revisionId": "id-8",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "I will use a tool to get the weather in London.",
+                  "type": "text",
+                },
+                {
+                  "toolInvocation": {
+                    "args": {
+                      "city": "London",
+                    },
+                    "result": {
+                      "weather": "sunny",
+                    },
+                    "state": "result",
+                    "step": 0,
+                    "toolCallId": "tool-call-id",
+                    "toolName": "tool-name",
+                  },
+                  "type": "tool-invocation",
+                },
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
+              ],
               "revisionId": "id-9",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "I will use a tool to get the weather in London.",
-                  "type": "text",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-10",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "I will use a tool to get the weather in London.",
-                  "type": "text",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-11",
               "role": "assistant",
             },
           },
@@ -1450,6 +1217,9 @@ describe('processChatResponse', () => {
                   },
                   "type": "tool-invocation",
                 },
+                {
+                  "type": "step-start",
+                },
               ],
               "revisionId": "id-7",
               "role": "assistant",
@@ -1488,6 +1258,15 @@ describe('processChatResponse', () => {
                 },
                 {
                   "type": "step-start",
+                },
+                {
+                  "providerMetadata": {
+                    "testProvider": {
+                      "signature": "abc123",
+                    },
+                  },
+                  "text": "I know know the weather in London.",
+                  "type": "reasoning",
                 },
               ],
               "revisionId": "id-8",
@@ -1537,112 +1316,12 @@ describe('processChatResponse', () => {
                   "text": "I know know the weather in London.",
                   "type": "reasoning",
                 },
+                {
+                  "text": "The weather in London is sunny.",
+                  "type": "text",
+                },
               ],
               "revisionId": "id-9",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
-                  },
-                  "text": "I will use a tool to get the weather in London.",
-                  "type": "reasoning",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
-                    },
-                  },
-                  "text": "I know know the weather in London.",
-                  "type": "reasoning",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-10",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "1234567890",
-                    },
-                  },
-                  "text": "I will use a tool to get the weather in London.",
-                  "type": "reasoning",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": {
-                      "weather": "sunny",
-                    },
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
-                    },
-                  },
-                  "text": "I know know the weather in London.",
-                  "type": "reasoning",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-11",
               "role": "assistant",
             },
           },
@@ -2075,22 +1754,6 @@ describe('processChatResponse', () => {
           {
             "message": {
               "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "t1",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-4",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
               "metadata": {
                 "key1": "value-1",
               },
@@ -2103,7 +1766,7 @@ describe('processChatResponse', () => {
                   "type": "text",
                 },
               ],
-              "revisionId": "id-5",
+              "revisionId": "id-4",
               "role": "assistant",
             },
           },
@@ -2222,27 +1885,6 @@ describe('processChatResponse', () => {
                 },
               ],
               "revisionId": "id-2",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "metadata": {
-                "key1": "value-1b",
-                "key2": "value-2b",
-                "key3": "value-3a",
-              },
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "t1",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-3",
               "role": "assistant",
             },
           },
@@ -2474,31 +2116,6 @@ describe('processChatResponse', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "testArg": "test-value",
-                    },
-                    "result": "test-result",
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-0",
-                    "toolName": "test-tool",
-                  },
-                  "type": "tool-invocation",
-                },
-              ],
-              "revisionId": "id-8",
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -2607,22 +2224,6 @@ describe('processChatResponse', () => {
                 },
               ],
               "revisionId": "id-4",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "Hello, world!",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -2857,31 +2458,6 @@ describe('processChatResponse', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "providerMetadata": {
-                    "testProvider": {
-                      "signature": "abc123",
-                    },
-                  },
-                  "text": "I will open the conversation with witty banter. redacted-dataOnce the user has relaxed, I will pry for valuable information.",
-                  "type": "reasoning",
-                },
-                {
-                  "text": "Hi there!",
-                  "type": "text",
-                },
-              ],
-              "revisionId": "id-9",
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -3017,31 +2593,6 @@ describe('processChatResponse', () => {
               "role": "assistant",
             },
           },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "toolInvocation": {
-                    "args": {
-                      "city": "London",
-                    },
-                    "result": "test-result",
-                    "state": "result",
-                    "step": 0,
-                    "toolCallId": "tool-call-id",
-                    "toolName": "tool-name",
-                  },
-                  "type": "tool-invocation",
-                },
-              ],
-              "revisionId": "id-5",
-              "role": "assistant",
-            },
-          },
         ]
       `);
     });
@@ -3169,32 +2720,6 @@ describe('processChatResponse', () => {
                 },
               ],
               "revisionId": "id-4",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "The weather in London is sunny.",
-                  "type": "text",
-                },
-                {
-                  "source": {
-                    "id": "source-id",
-                    "sourceType": "url",
-                    "title": "Example",
-                    "type": "source",
-                    "url": "https://example.com",
-                  },
-                  "type": "source",
-                },
-              ],
-              "revisionId": "id-5",
               "role": "assistant",
             },
           },
@@ -3373,32 +2898,6 @@ describe('processChatResponse', () => {
                 },
               ],
               "revisionId": "id-6",
-              "role": "assistant",
-            },
-          },
-          {
-            "message": {
-              "id": "msg-123",
-              "parts": [
-                {
-                  "type": "step-start",
-                },
-                {
-                  "text": "Here is a file:And another one:",
-                  "type": "text",
-                },
-                {
-                  "mediaType": "text/plain",
-                  "type": "file",
-                  "url": "data:text/plain;base64,SGVsbG8gV29ybGQ=",
-                },
-                {
-                  "mediaType": "application/json",
-                  "type": "file",
-                  "url": "data:application/json;base64,eyJrZXkiOiJ2YWx1ZSJ9",
-                },
-              ],
-              "revisionId": "id-7",
               "role": "assistant",
             },
           },
