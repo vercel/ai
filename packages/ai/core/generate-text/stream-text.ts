@@ -9,7 +9,7 @@ import { InvalidArgumentError } from '../../src/error/invalid-argument-error';
 import { NoOutputSpecifiedError } from '../../src/error/no-output-specified-error';
 import { createTextStreamResponse } from '../../src/text-stream/create-text-stream-response';
 import { pipeTextStreamToResponse } from '../../src/text-stream/pipe-text-stream-to-response';
-import { constructUIMessages } from '../../src/ui/construct-ui-messages';
+import { processChatResponse } from '../../src/ui/process-chat-response';
 import { asArray } from '../../src/util/as-array';
 import {
   AsyncIterableStream,
@@ -1346,7 +1346,7 @@ However, the LLM results are expected to be small enough to not cause issues.
 
   toDataStream({
     newMessageId,
-    originalMessages,
+    originalMessages = [],
     onFinish,
     messageMetadata,
     sendReasoning = false,
@@ -1355,7 +1355,7 @@ However, the LLM results are expected to be small enough to not cause issues.
     experimental_sendFinish = true,
     onError = () => 'An error occurred.', // mask error messages for safety by default
   }: DataStreamOptions = {}): ReadableStream<DataStreamPart> {
-    const lastMessage = originalMessages?.[originalMessages.length - 1];
+    const lastMessage = originalMessages[originalMessages.length - 1];
     const isContinuation = lastMessage?.role === 'assistant';
     const messageId = isContinuation ? lastMessage.id : newMessageId;
 
@@ -1513,11 +1513,22 @@ However, the LLM results are expected to be small enough to not cause issues.
 
     return onFinish == null
       ? baseStream
-      : constructUIMessages({
+      : processChatResponse({
+          stream: baseStream,
+          lastMessage,
           newMessageId: messageId ?? this.generateId(),
-          originalMessages: originalMessages ?? [],
-          uiMessageStream: baseStream,
-          onFinish,
+          onFinish: ({ message, isContinuation }) => {
+            onFinish({
+              isContinuation,
+              responseMessage: message,
+              messages: [
+                ...(isContinuation
+                  ? originalMessages.slice(0, -1)
+                  : originalMessages),
+                message,
+              ],
+            });
+          },
         });
   }
 
