@@ -2006,46 +2006,21 @@ describe('processChatResponse', () => {
     });
   });
 
-  describe.skip('scenario: delayed message annotations in onFinish', () => {
+  describe('scenario: delayed message metadata after finish', () => {
     beforeEach(async () => {
       const stream = createDataProtocolStream([
-        { type: 'start-step', value: { messageId: 'msg-123' } },
-        { type: 'text', value: 'text' },
+        { type: 'start', value: { messageId: 'msg-123' } },
+        { type: 'start-step', value: {} },
+        { type: 'text', value: 't1' },
+        { type: 'finish-step', value: {} },
+        { type: 'finish', value: {} },
         {
-          type: 'finish-step',
+          type: 'message-metadata',
           value: {
-            finishReason: 'stop',
-            usage: {
-              inputTokens: 5,
-              outputTokens: 10,
-              totalTokens: 15,
-              reasoningTokens: undefined,
-              cachedInputTokens: undefined,
+            metadata: {
+              key1: 'value-1',
             },
           },
-        },
-        {
-          type: 'finish',
-          value: {
-            finishReason: 'stop',
-            messageId: 'msg-123',
-            totalUsage: {
-              inputTokens: 5,
-              outputTokens: 10,
-              totalTokens: 15,
-              reasoningTokens: undefined,
-              cachedInputTokens: undefined,
-            },
-          },
-        },
-        // delayed message annotations:
-        {
-          type: 'message-annotations',
-          value: [
-            {
-              example: 'annotation',
-            },
-          ],
         },
       ]);
 
@@ -2059,50 +2034,125 @@ describe('processChatResponse', () => {
     });
 
     it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+      expect(updateCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "parts": [],
+              "revisionId": "id-1",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "revisionId": "id-2",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "revisionId": "id-3",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "revisionId": "id-4",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "key1": "value-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "revisionId": "id-5",
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
-      expect(finishCalls).toMatchSnapshot();
+      expect(finishCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "key1": "value-1",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
     });
   });
 
-  describe.skip('scenario: message metadata with existing assistant lastMessage', () => {
+  describe('scenario: message metadata with existing assistant lastMessage', () => {
     beforeEach(async () => {
       const stream = createDataProtocolStream([
-        { type: 'start-step', value: { messageId: 'msg-123' } },
+        { type: 'start', value: { messageId: 'msg-123' } },
         {
-          type: 'message-annotations',
-          value: ['annotation1'],
+          type: 'start-step',
+          value: {
+            metadata: {
+              key1: 'value-1b',
+              key2: 'value-2b',
+            },
+          },
         },
         { type: 'text', value: 't1' },
-        {
-          type: 'finish-step',
-          value: {
-            finishReason: 'stop',
-            usage: {
-              inputTokens: 5,
-              outputTokens: 10,
-              totalTokens: 15,
-              reasoningTokens: undefined,
-              cachedInputTokens: undefined,
-            },
-          },
-        },
-        {
-          type: 'finish',
-          value: {
-            finishReason: 'stop',
-            messageId: 'msg-123',
-            totalUsage: {
-              inputTokens: 5,
-              outputTokens: 10,
-              totalTokens: 15,
-              reasoningTokens: undefined,
-              cachedInputTokens: undefined,
-            },
-          },
-        },
+        { type: 'finish-step', value: {} },
+        { type: 'finish', value: {} },
       ]);
 
       await processChatResponse({
@@ -2113,18 +2163,118 @@ describe('processChatResponse', () => {
         lastMessage: {
           role: 'assistant',
           id: 'original-id',
-          annotations: ['annotation0'],
+          metadata: {
+            key1: 'value-1a',
+            key3: 'value-3a',
+          },
           parts: [],
         },
       });
     });
 
     it('should call the update function with the correct arguments', async () => {
-      expect(updateCalls).toMatchSnapshot();
+      expect(updateCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "key1": "value-1a",
+                "key3": "value-3a",
+              },
+              "parts": [],
+              "revisionId": "id-0",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "key1": "value-1b",
+                "key2": "value-2b",
+                "key3": "value-3a",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+              ],
+              "revisionId": "id-1",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "key1": "value-1b",
+                "key2": "value-2b",
+                "key3": "value-3a",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "revisionId": "id-2",
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "key1": "value-1b",
+                "key2": "value-2b",
+                "key3": "value-3a",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "revisionId": "id-3",
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
     });
 
     it('should call the onFinish function with the correct arguments', async () => {
-      expect(finishCalls).toMatchSnapshot();
+      expect(finishCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": {
+                "key1": "value-1b",
+                "key2": "value-2b",
+                "key3": "value-3a",
+              },
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "text": "t1",
+                  "type": "text",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
     });
   });
 
