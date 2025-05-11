@@ -8,19 +8,20 @@ import type {
 } from './ui-messages';
 
 interface ChatStoreSubscriber {
-  id: string;
   onChatChanged: (event: ChatStoreEvent) => void;
 }
 
-export enum ChatStoreEvent {
-  ChatMessagesChanged = 'chat-messages-changed',
-  ChatStatusChanged = 'chat-status-changed',
-  ChatErrorChanged = 'chat-error-changed',
+export interface ChatStoreEvent {
+  type: 'chat-messages-changed' | 'chat-status-changed';
+  chatId: number | string;
+  error?: Error;
 }
 
 export interface ChatStoreInitialization {
   chats?: Record<string, Pick<ChatState, 'messages'>>;
-  getCurrentDate?: () => Date;
+  '~internal'?: {
+    currentDate?: () => Date;
+  };
 }
 
 export interface ChatState {
@@ -39,12 +40,12 @@ export interface ChatState {
 
 export class ChatStore {
   private chats: Map<string, ChatState>;
-  private subscribers: Map<string, Set<ChatStoreSubscriber>>;
+  private subscribers: Set<ChatStoreSubscriber>;
   private getCurrentDate: () => Date;
 
   constructor({
     chats = {},
-    getCurrentDate: customGetCurrentDate = () => new Date(),
+    '~internal': { currentDate = () => new Date() } = {},
   }: ChatStoreInitialization = {}) {
     this.chats = new Map(
       Object.entries(chats).map(([id, state]) => [
@@ -57,8 +58,8 @@ export class ChatStore {
         },
       ]),
     );
-    this.subscribers = new Map();
-    this.getCurrentDate = customGetCurrentDate;
+    this.subscribers = new Set();
+    this.getCurrentDate = currentDate;
   }
 
   hasChat(id: string) {
@@ -83,24 +84,26 @@ export class ChatStore {
     return chat.status;
   }
 
-  setStatus({ id, status }: { id: string; status: ChatState['status'] }) {
+  setStatus({
+    id,
+    status,
+    error,
+  }: {
+    id: string;
+    status: ChatState['status'];
+    error?: Error;
+  }) {
     const chat = this.chats.get(id);
     if (!chat || chat.status === status) return;
     chat.status = status;
-    this.emitEvent({ id, event: ChatStoreEvent.ChatStatusChanged });
+    chat.error = error;
+    this.emitEvent({ type: 'chat-status-changed', chatId: id, error });
   }
 
   getError(id: string) {
     const chat = this.chats.get(id);
     if (!chat) return;
     return chat.error;
-  }
-
-  setError({ id, error }: { id: string; error: ChatState['error'] }) {
-    const chat = this.chats.get(id);
-    if (!chat) return;
-    chat.error = error;
-    this.emitEvent({ id, event: ChatStoreEvent.ChatErrorChanged });
   }
 
   getMessages(id: string) {
@@ -116,15 +119,8 @@ export class ChatStore {
   }
 
   subscribe(subscriber: ChatStoreSubscriber): () => void {
-    const { id } = subscriber;
-
-    if (!this.subscribers.has(id)) {
-      this.subscribers.set(id, new Set());
-    }
-
-    this.subscribers.get(id)?.add(subscriber);
-
-    return () => this.subscribers.get(id)?.delete(subscriber);
+    this.subscribers.add(subscriber);
+    return () => this.subscribers.delete(subscriber);
   }
 
   setMessages({ id, messages }: { id: string; messages: UIMessage[] }) {
@@ -132,7 +128,7 @@ export class ChatStore {
     if (!chat) return;
 
     chat.messages = [...messages];
-    this.emitEvent({ id, event: ChatStoreEvent.ChatMessagesChanged });
+    this.emitEvent({ type: 'chat-messages-changed', chatId: id });
   }
 
   appendMessage({ id, message }: { id: string; message: UIMessage }) {
@@ -144,7 +140,7 @@ export class ChatStore {
     }
 
     chat.messages = [...chat.messages, { ...message }];
-    this.emitEvent({ id, event: ChatStoreEvent.ChatMessagesChanged });
+    this.emitEvent({ type: 'chat-messages-changed', chatId: id });
   }
 
   removeAssistantResponse(id: string) {
@@ -165,18 +161,17 @@ export class ChatStore {
     this.resetActiveResponse(id);
   }
 
-  private emitEvent({ id, event }: { id: string; event: ChatStoreEvent }) {
-    const subscribers = this.subscribers.get(id);
-    if (!subscribers) return;
-
-    for (const subscriber of subscribers) {
+  private emitEvent(event: ChatStoreEvent) {
+    for (const subscriber of this.subscribers) {
       subscriber.onChatChanged(event);
     }
   }
 
   private calculateStep(id: string) {
     const chat = this.chats.get(id);
-    if (!chat) return 0;
+    if (!chat) {
+      throw new Error('Chat not found');
+    }
 
     if (
       !chat.activeResponse ||
@@ -210,8 +205,8 @@ export class ChatStore {
     chat.activeResponse = undefined;
     chat.error = undefined;
     chat.status = 'ready';
-    this.emitEvent({ id, event: ChatStoreEvent.ChatStatusChanged });
-    this.emitEvent({ id, event: ChatStoreEvent.ChatErrorChanged });
+    this.emitEvent({ type: 'chat-status-changed', chatId: id });
+    console.log('resetActiveResponse', id);
   }
 
   /**
@@ -335,7 +330,7 @@ export class ChatStore {
 
     chat.activeResponse!.message.revisionId = generateId();
     chat.messages = [...chat.messages];
-    this.emitEvent({ id: chatId, event: ChatStoreEvent.ChatMessagesChanged });
+    this.emitEvent({ type: 'chat-messages-changed', chatId });
   }
 
   updateActiveResponse({
@@ -412,7 +407,7 @@ export class ChatStore {
     if (existingToolInvocation) {
       existingToolInvocation.state = toolInvocation.state;
 
-      switch (toolInvocation.state) {
+      switch (existingToolInvocation.state) {
         case 'partial-call': {
           const args = existingToolInvocation.args + toolInvocation.args;
           const { value: partialArgs, state } = await parsePartialJson(args);
@@ -425,7 +420,7 @@ export class ChatStore {
           break;
         }
         case 'result': {
-          // @ts-ignore - caused by `result` not existing on ToolCall type
+          // @ts-expect-error - Due to the switch statement narrowing down the type of `existingToolInvocation`, TS is not aware that toolInvocation is also a result Tool Invocation even though both are the same type:
           existingToolInvocation.result = toolInvocation.result;
           break;
         }
@@ -508,6 +503,7 @@ export class ChatStore {
     if (id) {
       this.setMessages({ id, messages: [] });
       this.resetActiveResponse(id);
+      console.log('clear', id);
     } else {
       const ids = Array.from(this.chats.keys());
       for (const id of ids) {

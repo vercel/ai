@@ -1,4 +1,4 @@
-import { ChatStore } from './chat-store';
+import { ChatStore, type ChatStoreEvent } from './chat-store';
 import type { UIMessage } from './ui-messages';
 
 function mockId(): () => string {
@@ -6,7 +6,13 @@ function mockId(): () => string {
   return () => `id-${counter++}`;
 }
 
+let onChatChangedCalls: ChatStoreEvent[] = [];
+
 describe('ChatStore', () => {
+  beforeEach(() => {
+    onChatChangedCalls = [];
+  });
+
   describe('initialization', () => {
     it('initializes with a single chat', () => {
       const id = 'chat-1';
@@ -30,7 +36,9 @@ describe('ChatStore', () => {
             messages,
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       expect(store.chatCount).toEqual(1);
       expect(store.getMessages(id)).toMatchSnapshot();
@@ -73,7 +81,9 @@ describe('ChatStore', () => {
           [id1]: { messages: messages1 },
           [id2]: { messages: messages2 },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       expect(store.getMessages(id1)).toMatchSnapshot();
       expect(store.getMessages(id2)).toMatchSnapshot();
@@ -89,15 +99,18 @@ describe('ChatStore', () => {
   describe('setMessages', () => {
     it('notifies subscribers', () => {
       const id = 'chat-1';
-      const onChatChanged = vi.fn();
+      const onChatChanged = vi.fn(args => {
+        onChatChangedCalls.push(args);
+      });
       const store = new ChatStore({
         chats: {
           [id]: { messages: [] },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       const unsubscribe = store.subscribe({
-        id,
         onChatChanged,
       });
       store.setMessages({
@@ -125,6 +138,7 @@ describe('ChatStore', () => {
       });
       expect(store.getMessages(id)).toMatchSnapshot();
       expect(onChatChanged).toHaveBeenCalledOnce();
+      expect(onChatChangedCalls[0]).toMatchSnapshot();
       unsubscribe();
       store.setMessages({ id, messages: [] });
       expect(onChatChanged).toHaveBeenCalledOnce();
@@ -151,7 +165,9 @@ describe('ChatStore', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       expect(store.getMessages(id)).toMatchSnapshot();
       store.setMessages({ id, messages: [] });
@@ -159,31 +175,34 @@ describe('ChatStore', () => {
     });
   });
 
-  describe('status', () => {
+  describe('status and error', () => {
     it('gets and sets the status of the chat', () => {
       const id = 'chat-1';
       const store = new ChatStore({
         chats: { [id]: { messages: [] } },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
+      });
+      const onChatChanged = vi.fn(args => {
+        onChatChangedCalls.push(args);
+      });
+      const unsubscribe = store.subscribe({
+        onChatChanged,
       });
       expect(store.getStatus(id)).toEqual('ready');
       store.setStatus({ id, status: 'streaming' });
       expect(store.getStatus(id)).toEqual('streaming');
-      store.setStatus({ id, status: 'error' });
+      store.setStatus({ id, status: 'error', error: new Error('test') });
       expect(store.getStatus(id)).toEqual('error');
-    });
-  });
-
-  describe('error', () => {
-    it('gets and sets the error of the chat', () => {
-      const id = 'chat-1';
-      const store = new ChatStore({
-        chats: { [id]: { messages: [] } },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
-      });
-      expect(store.getError(id)).toBeUndefined();
-      store.setError({ id, error: new Error('test') });
       expect(store.getError(id)).toEqual(new Error('test'));
+      store.setStatus({ id, status: 'ready' });
+      expect(store.getStatus(id)).toEqual('ready');
+      expect(store.getError(id)).toBeUndefined();
+      expect(onChatChangedCalls).toMatchSnapshot();
+      unsubscribe();
+      store.setStatus({ id, status: 'streaming' });
+      expect(onChatChangedCalls).toMatchSnapshot();
     });
   });
 
@@ -207,23 +226,27 @@ describe('ChatStore', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       expect(store.getLastMessage(id)).toMatchSnapshot();
     });
   });
 
-  // updateActiveResponse
   describe('updateActiveResponse', () => {
     it('notifies subscribers', () => {
       const id = 'chat-1';
       const store = new ChatStore({
         chats: { [id]: { messages: [{ id: '1', role: 'user', parts: [] }] } },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
-      const onChatChanged = vi.fn();
+      const onChatChanged = vi.fn(args => {
+        onChatChangedCalls.push(args);
+      });
       const unsubscribe = store.subscribe({
-        id,
         onChatChanged,
       });
       store.updateActiveResponse({
@@ -234,16 +257,32 @@ describe('ChatStore', () => {
           parts: [{ type: 'text', text: 'hello' }],
           createdAt: new Date('2025-01-01'),
         },
+        generateId: mockId(),
       });
       expect(onChatChanged).toHaveBeenCalledOnce();
+      expect(onChatChangedCalls).toMatchSnapshot();
       unsubscribe();
+      store.updateActiveResponse({
+        chatId: id,
+        message: {
+          id: '1',
+          role: 'assistant',
+          parts: [{ type: 'text', text: 'hello' }],
+          createdAt: new Date('2025-01-01'),
+        },
+        generateId: mockId(),
+      });
+      expect(onChatChanged).toHaveBeenCalledOnce();
+      expect(onChatChangedCalls).toMatchSnapshot();
     });
 
     it('initializes new active response if none exists', () => {
       const id = 'chat-1';
       const store = new ChatStore({
         chats: { [id]: { messages: [{ id: '1', role: 'user', parts: [] }] } },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       store.updateActiveResponse({
         chatId: id,
@@ -253,6 +292,7 @@ describe('ChatStore', () => {
           parts: [{ type: 'text', text: 'hello' }],
           createdAt: new Date('2025-01-01'),
         },
+        generateId: mockId(),
       });
       expect(store.getMessages(id)).toMatchSnapshot();
     });
@@ -261,7 +301,9 @@ describe('ChatStore', () => {
       const id = 'chat-1';
       const store = new ChatStore({
         chats: { [id]: { messages: [{ id: '1', role: 'user', parts: [] }] } },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       store.addOrUpdateAssistantMessageParts({
         chatId: id,
@@ -277,6 +319,7 @@ describe('ChatStore', () => {
             },
           ],
         },
+        generateId: mockId(),
       });
       expect(store.getMessages(id)).toMatchSnapshot();
     });
@@ -289,12 +332,13 @@ describe('ChatStore', () => {
         chats: {
           [id]: { messages: [] },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
 
       const onChatChanged = vi.fn();
       const unsubscribe = store.subscribe({
-        id,
         onChatChanged,
       });
 
@@ -342,23 +386,27 @@ describe('ChatStore', () => {
             messages,
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
 
-      const onChatChanged = vi.fn();
+      const onChatChanged = vi.fn(args => {
+        onChatChangedCalls.push(args);
+      });
       const unsubscribe = store.subscribe({
-        id,
         onChatChanged,
       });
 
       store.removeAssistantResponse(id);
       expect(store.getMessages(id)).toMatchSnapshot();
       expect(onChatChanged).toHaveBeenCalledOnce();
-
+      expect(onChatChangedCalls).toMatchSnapshot();
       unsubscribe();
       store.appendMessage({ id, message: messages[1] });
       store.removeAssistantResponse(id);
       expect(onChatChanged).toHaveBeenCalledOnce();
+      expect(onChatChangedCalls).toMatchSnapshot();
     });
 
     it('throws an error if the chat is empty', () => {
@@ -415,18 +463,21 @@ describe('ChatStore', () => {
       ];
       const store = new ChatStore({
         chats: { [id]: { messages } },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
-      const onChatChanged = vi.fn();
+      const onChatChanged = vi.fn(args => {
+        onChatChangedCalls.push(args);
+      });
       const unsubscribe = store.subscribe({
-        id,
         onChatChanged,
       });
 
       store.clear(id);
       expect(store.getMessages(id)).toMatchSnapshot();
       expect(onChatChanged).toHaveBeenCalledOnce();
-
+      expect(onChatChangedCalls).toMatchSnapshot();
       unsubscribe();
       store.setMessages({ id, messages });
       store.clear();
@@ -470,11 +521,52 @@ describe('ChatStore', () => {
           [id1]: { messages: messages1 },
           [id2]: { messages: messages2 },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
+      });
+      const onChatChanged = vi.fn(args => {
+        onChatChangedCalls.push(args);
+      });
+      store.subscribe({
+        onChatChanged,
       });
       store.clear();
       expect(store.getMessages(id1)).toMatchSnapshot();
-      expect(store.getMessages(id2)).toMatchSnapshot();
+      expect(onChatChanged).toHaveBeenCalledTimes(2);
+      expect(onChatChangedCalls).toMatchSnapshot();
+    });
+
+    it('clears active response state if it exists', () => {
+      const id = 'chat-1';
+      const messages: UIMessage[] = [
+        { id: '1', role: 'user', parts: [], createdAt: new Date('2025-01-01') },
+      ];
+      const store = new ChatStore({
+        chats: { [id]: { messages } },
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
+      });
+      store.updateActiveResponse({
+        chatId: id,
+        message: {
+          id: '1',
+          role: 'assistant',
+          parts: [],
+          createdAt: new Date('2025-01-01'),
+        },
+        generateId: mockId(),
+      });
+      const onChatChanged = vi.fn(args => {
+        onChatChangedCalls.push(args);
+      });
+      store.subscribe({
+        onChatChanged,
+      });
+      store.clear(id);
+      expect(onChatChanged).toHaveBeenCalledTimes(2);
+      expect(onChatChangedCalls).toMatchSnapshot();
     });
   });
 
@@ -486,11 +578,12 @@ describe('ChatStore', () => {
       const id = 'chat-1';
       const store = new ChatStore({
         chats: { [id]: { messages } },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       const onChatChanged = vi.fn();
       const unsubscribe = store.subscribe({
-        id,
         onChatChanged,
       });
 
@@ -515,7 +608,9 @@ describe('ChatStore', () => {
       const id = 'chat-1';
       const store = new ChatStore({
         chats: { [id]: { messages: [] } },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       await expect(
         store.addOrUpdateAssistantMessageParts({
@@ -542,7 +637,9 @@ describe('ChatStore', () => {
             ],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       store.addOrUpdateAssistantMessageParts({
         chatId: id,
@@ -560,22 +657,25 @@ describe('ChatStore', () => {
             messages: [{ id: '1', role: 'user', parts: [] }],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
+      const generateId = mockId();
       store.addOrUpdateAssistantMessageParts({
         chatId: id,
         partDelta: { type: 'text', text: 'Hello' },
-        generateId: mockId(),
+        generateId,
       });
       store.addOrUpdateAssistantMessageParts({
         chatId: id,
         partDelta: { type: 'text', text: ' ' },
-        generateId: mockId(),
+        generateId,
       });
       store.addOrUpdateAssistantMessageParts({
         chatId: id,
         partDelta: { type: 'text', text: 'world' },
-        generateId: mockId(),
+        generateId,
       });
       expect(store.getMessages(id)?.[1]).toMatchSnapshot();
     });
@@ -588,7 +688,9 @@ describe('ChatStore', () => {
             messages: [{ id: '1', role: 'user', parts: [] }],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
 
       const stepStart = { type: 'step-start' as const };
@@ -609,7 +711,9 @@ describe('ChatStore', () => {
             messages: [{ id: '1', role: 'user', parts: [] }],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       const source = {
         type: 'source' as const,
@@ -636,7 +740,9 @@ describe('ChatStore', () => {
             messages: [{ id: '1', role: 'user', parts: [] }],
           },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
       const file = {
         type: 'file' as const,
@@ -662,7 +768,9 @@ describe('ChatStore', () => {
         chats: {
           [chatId]: { messages },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
     });
 
@@ -688,6 +796,7 @@ describe('ChatStore', () => {
     });
 
     it('should handle multiple call parts', async () => {
+      const generateId = mockId();
       const toolInvocation = {
         type: 'tool-invocation' as const,
         toolInvocation: {
@@ -711,13 +820,13 @@ describe('ChatStore', () => {
       await store.addOrUpdateAssistantMessageParts({
         chatId,
         partDelta: toolInvocation,
-        generateId: mockId(),
+        generateId,
       });
 
       await store.addOrUpdateAssistantMessageParts({
         chatId,
         partDelta: toolInvocation2,
-        generateId: mockId(),
+        generateId,
       });
 
       const messages = store.getMessages(chatId);
@@ -746,6 +855,7 @@ describe('ChatStore', () => {
     });
 
     it('should handle multiple partial call parts', async () => {
+      const generateId = mockId();
       await store.addOrUpdateAssistantMessageParts({
         chatId,
         partDelta: {
@@ -757,7 +867,7 @@ describe('ChatStore', () => {
             state: 'partial-call' as const,
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       await store.addOrUpdateAssistantMessageParts({
@@ -771,7 +881,7 @@ describe('ChatStore', () => {
             state: 'partial-call' as const,
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       await store.addOrUpdateAssistantMessageParts({
@@ -785,7 +895,7 @@ describe('ChatStore', () => {
             state: 'partial-call' as const,
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       await store.addOrUpdateAssistantMessageParts({
@@ -799,7 +909,7 @@ describe('ChatStore', () => {
             state: 'partial-call' as const,
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       const messages = store.getMessages(chatId);
@@ -828,6 +938,7 @@ describe('ChatStore', () => {
     });
 
     it('should handle result parts after call', async () => {
+      const generateId = mockId();
       const toolInvocation = {
         type: 'tool-invocation' as const,
         toolInvocation: {
@@ -841,7 +952,7 @@ describe('ChatStore', () => {
       await store.addOrUpdateAssistantMessageParts({
         chatId,
         partDelta: toolInvocation,
-        generateId: mockId(),
+        generateId,
       });
 
       const messages = store.getMessages(chatId);
@@ -857,7 +968,7 @@ describe('ChatStore', () => {
             result: 'some result',
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       expect(messages?.[1]).toMatchSnapshot();
@@ -874,11 +985,13 @@ describe('ChatStore', () => {
               state: 'invalid',
             },
           },
+          generateId: mockId(),
         }),
       ).rejects.toThrow('Invalid tool invocation state');
     });
 
     it('should handle multiple tool invocations', async () => {
+      const generateId = mockId();
       await store.addOrUpdateAssistantMessageParts({
         chatId,
         partDelta: {
@@ -890,7 +1003,7 @@ describe('ChatStore', () => {
             args: { foo: 'bar' },
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       await store.addOrUpdateAssistantMessageParts({
@@ -905,7 +1018,7 @@ describe('ChatStore', () => {
             args: undefined,
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       await store.addOrUpdateAssistantMessageParts({
@@ -919,7 +1032,7 @@ describe('ChatStore', () => {
             args: { baz: 'qux' },
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       await store.addOrUpdateAssistantMessageParts({
@@ -934,7 +1047,7 @@ describe('ChatStore', () => {
             args: undefined,
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       const messages = store.getMessages(chatId);
@@ -952,7 +1065,9 @@ describe('ChatStore', () => {
         chats: {
           [chatId]: { messages },
         },
-        getCurrentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        '~internal': {
+          currentDate: vi.fn().mockReturnValue(new Date('2025-01-01')),
+        },
       });
     });
 
@@ -1006,6 +1121,7 @@ describe('ChatStore', () => {
     });
 
     it('should accumulate reasoning text', () => {
+      const generateId = mockId();
       store.addOrUpdateAssistantMessageParts({
         chatId,
         partDelta: {
@@ -1013,7 +1129,7 @@ describe('ChatStore', () => {
           text: 'First thought. ',
           providerMetadata: {},
         },
-        generateId: mockId(),
+        generateId,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -1023,7 +1139,7 @@ describe('ChatStore', () => {
           text: 'Second thought.',
           providerMetadata: {},
         },
-        generateId: mockId(),
+        generateId,
       });
 
       const message = store.getMessages(chatId)?.[1];
@@ -1031,6 +1147,7 @@ describe('ChatStore', () => {
     });
 
     it('should update signature when provided in subsequent parts', () => {
+      const generateId = mockId();
       store.addOrUpdateAssistantMessageParts({
         chatId,
         partDelta: {
@@ -1038,7 +1155,7 @@ describe('ChatStore', () => {
           text: 'Initial thought',
           providerMetadata: {},
         },
-        generateId: mockId(),
+        generateId,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -1050,7 +1167,7 @@ describe('ChatStore', () => {
             provider: { signature: 'late-signature' },
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       const message = store.getMessages(chatId)?.[1];
@@ -1058,6 +1175,7 @@ describe('ChatStore', () => {
     });
 
     it('should update reasoning with redacted detail', () => {
+      const generateId = mockId();
       store.addOrUpdateAssistantMessageParts({
         chatId,
         partDelta: {
@@ -1065,7 +1183,7 @@ describe('ChatStore', () => {
           text: 'Initial text.',
           providerMetadata: {},
         },
-        generateId: mockId(),
+        generateId,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -1077,7 +1195,7 @@ describe('ChatStore', () => {
             provider: { isRedacted: true },
           },
         },
-        generateId: mockId(),
+        generateId,
       });
 
       store.addOrUpdateAssistantMessageParts({
@@ -1087,7 +1205,7 @@ describe('ChatStore', () => {
           text: 'Another thought.',
           providerMetadata: {},
         },
-        generateId: mockId(),
+        generateId,
       });
 
       const message = store.getMessages(chatId)?.[1];

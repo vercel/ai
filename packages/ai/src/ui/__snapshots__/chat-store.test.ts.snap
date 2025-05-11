@@ -124,11 +124,44 @@ exports[`ChatStore > appendMessage > notifies subscribers 1`] = `
 ]
 `;
 
+exports[`ChatStore > clear > clears active response state if it exists 1`] = `
+[
+  {
+    "chatId": "chat-1",
+    "type": "chat-messages-changed",
+  },
+  {
+    "chatId": "chat-1",
+    "type": "chat-status-changed",
+  },
+]
+`;
+
 exports[`ChatStore > clear > clears all chats when explicit id is not provided 1`] = `[]`;
 
-exports[`ChatStore > clear > clears all chats when explicit id is not provided 2`] = `[]`;
+exports[`ChatStore > clear > clears all chats when explicit id is not provided 2`] = `
+[
+  {
+    "chatId": "chat-1",
+    "type": "chat-messages-changed",
+  },
+  {
+    "chatId": "chat-2",
+    "type": "chat-messages-changed",
+  },
+]
+`;
 
 exports[`ChatStore > clear > notifies subscribers 1`] = `[]`;
+
+exports[`ChatStore > clear > notifies subscribers 2`] = `
+[
+  {
+    "chatId": "chat-1",
+    "type": "chat-messages-changed",
+  },
+]
+`;
 
 exports[`ChatStore > getLastMessage > returns the last message 1`] = `
 {
@@ -217,21 +250,6 @@ exports[`ChatStore > initialization > initializes with multiple chats 2`] = `
     "role": "assistant",
   },
 ]
-`;
-
-exports[`ChatStore > initialization > should use custom id generator when provided 1`] = `
-{
-  "createdAt": 2025-01-01T00:00:00.000Z,
-  "id": "generated-id",
-  "parts": [
-    {
-      "text": "hi",
-      "type": "text",
-    },
-  ],
-  "revisionId": "generated-id",
-  "role": "assistant",
-}
 `;
 
 exports[`ChatStore > reasoning handling > should accumulate reasoning text 1`] = `
@@ -353,6 +371,24 @@ exports[`ChatStore > removeAssistantResponse > notifies subscribers 1`] = `
 ]
 `;
 
+exports[`ChatStore > removeAssistantResponse > notifies subscribers 2`] = `
+[
+  {
+    "chatId": "chat-1",
+    "type": "chat-messages-changed",
+  },
+]
+`;
+
+exports[`ChatStore > removeAssistantResponse > notifies subscribers 3`] = `
+[
+  {
+    "chatId": "chat-1",
+    "type": "chat-messages-changed",
+  },
+]
+`;
+
 exports[`ChatStore > setMessages > handles empty arrays 1`] = `
 [
   {
@@ -391,6 +427,53 @@ exports[`ChatStore > setMessages > notifies subscribers 1`] = `
     "id": "3",
     "parts": [],
     "role": "user",
+  },
+]
+`;
+
+exports[`ChatStore > setMessages > notifies subscribers 2`] = `
+{
+  "chatId": "chat-1",
+  "type": "chat-messages-changed",
+}
+`;
+
+exports[`ChatStore > status and error > gets and sets the status of the chat 1`] = `
+[
+  {
+    "chatId": "chat-1",
+    "error": undefined,
+    "type": "chat-status-changed",
+  },
+  {
+    "chatId": "chat-1",
+    "error": [Error: test],
+    "type": "chat-status-changed",
+  },
+  {
+    "chatId": "chat-1",
+    "error": undefined,
+    "type": "chat-status-changed",
+  },
+]
+`;
+
+exports[`ChatStore > status and error > gets and sets the status of the chat 2`] = `
+[
+  {
+    "chatId": "chat-1",
+    "error": undefined,
+    "type": "chat-status-changed",
+  },
+  {
+    "chatId": "chat-1",
+    "error": [Error: test],
+    "type": "chat-status-changed",
+  },
+  {
+    "chatId": "chat-1",
+    "error": undefined,
+    "type": "chat-status-changed",
   },
 ]
 `;
@@ -630,6 +713,24 @@ exports[`ChatStore > updateActiveResponse > merges current active response with 
     ],
     "revisionId": "id-1",
     "role": "assistant",
+  },
+]
+`;
+
+exports[`ChatStore > updateActiveResponse > notifies subscribers 1`] = `
+[
+  {
+    "chatId": "chat-1",
+    "type": "chat-messages-changed",
+  },
+]
+`;
+
+exports[`ChatStore > updateActiveResponse > notifies subscribers 2`] = `
+[
+  {
+    "chatId": "chat-1",
+    "type": "chat-messages-changed",
   },
 ]
 `;
