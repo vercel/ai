@@ -198,6 +198,9 @@ Default is undefined, which disables throttling.
             messages: [],
           },
         },
+        '~internal': {
+          currentDate: getCurrentDate,
+        },
       }),
   );
 
