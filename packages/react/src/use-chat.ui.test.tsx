@@ -8,13 +8,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  DataStreamPart,
-  FinishReason,
-  getToolInvocations,
-  LanguageModelUsage,
-  UIMessage,
-} from 'ai';
+import { DataStreamPart, getToolInvocations, UIMessage } from 'ai';
 import React, { useEffect, useRef, useState } from 'react';
 import { setupTestComponent } from './setup-test-component';
 import { useChat } from './use-chat';
@@ -95,31 +89,32 @@ describe('data protocol stream', () => {
     await userEvent.click(screen.getByTestId('do-append'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('messages').textContent).toMatchInlineSnapshot(`
-        "[
-          {
-            "role": "user",
-            "parts": [
-              {
-                "text": "hi",
-                "type": "text"
-              }
-            ],
-            "id": "id-1",
-          },
-          {
-            "id": "id-2",
-            "role": "assistant",
-            "parts": [
-              {
-                "type": "text",
-                "text": "Hello, world."
-              }
-            ],
-            "revisionId": "id-6"
-          }
-        ]"
-      `);
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          role: 'user',
+          parts: [
+            {
+              text: 'hi',
+              type: 'text',
+            },
+          ],
+          id: 'id-1',
+        },
+        {
+          id: 'id-2',
+          role: 'assistant',
+          metadata: {},
+          parts: [
+            {
+              type: 'text',
+              text: 'Hello, world.',
+            },
+          ],
+          revisionId: 'id-6',
+        },
+      ]);
     });
   });
 

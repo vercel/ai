@@ -109,7 +109,7 @@ export async function callCompletionApi({
             schema: dataStreamPartSchema,
           }).pipeThrough(
             new TransformStream<ParseResult<DataStreamPart>, DataStreamPart>({
-              async transform(part, controller) {
+              async transform(part) {
                 if (!part.success) {
                   throw part.error;
                 }
@@ -125,6 +125,9 @@ export async function callCompletionApi({
               },
             }),
           ),
+          onError: error => {
+            throw error;
+          },
         });
         break;
       }

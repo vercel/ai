@@ -137,6 +137,9 @@ export async function callChatApi<MESSAGE_METADATA = any>({
           newMessageId: generateId(),
           messageMetadataSchema,
         }),
+        onError: error => {
+          throw error;
+        },
       });
       return;
     }
